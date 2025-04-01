@@ -269,7 +269,7 @@ class EnsembleNetwork(nn.Module):
         return stable_ranks
 
     def save(self, path: Path) -> None:
-        path.mkdir(parents=True, exist_ok=True)
+        path.parent.mkdir(parents=True, exist_ok=True)
         torch.save(self.state_dict(), path)
 
     def load(self, path: Path) -> None:
