@@ -5,6 +5,9 @@ env:
   name: sim_async_env
   gym_name: WindyRoom-v0
 
+xy_metrics:
+  enabled: True
+
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
