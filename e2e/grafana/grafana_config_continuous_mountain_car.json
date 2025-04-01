@@ -112,7 +112,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'pdf%'\nAND agent_step = ${latestAgentStep} - 1\n-- AND agent_step = (SELECT DISTINCT MAX(agent_step) AS max_as FROM metrics_xy)\nAND metric = '${selectedAction}'\nORDER BY \"time\"",
+          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'pdf%'\nAND agent_step = ${latestAgentStep} - 1\n-- AND agent_step = (SELECT DISTINCT MAX(agent_step) AS max_as FROM metrics_xy)\n-- AND metric = '${selectedAction}'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -134,6 +134,17 @@
         }
       ],
       "title": "Actor PDF - Direct Action Space",
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "metric"
+            ],
+            "keepFields": false
+          }
+        }
+      ],
       "type": "xychart"
     },
     {
@@ -227,7 +238,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'qs_plot%'\nAND agent_step = ${latestAgentStep} - 1\nAND metric = '${selectedQAction}'\nORDER BY \"time\"",
+          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'qs_plot_action_%'\nAND agent_step = ${latestAgentStep} - 1\n-- AND agent_step = (SELECT DISTINCT MAX(agent_step) AS max_as FROM metrics_xy)\n-- AND metric = '${selectedAction}'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -249,6 +260,17 @@
         }
       ],
       "title": "Critic - Direct Action Space",
+      "transformations": [
+        {
+          "id": "partitionByValues",
+          "options": {
+            "fields": [
+              "metric"
+            ],
+            "keepFields": false
+          }
+        }
+      ],
       "type": "xychart"
     },
     {
@@ -1729,6 +1751,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 20,
+  "version": 7,
   "weekStart": ""
 }
