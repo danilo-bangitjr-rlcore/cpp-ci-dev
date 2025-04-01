@@ -71,9 +71,17 @@ class BSuiteTestCase:
         # ensure metrics table exists
         assert table_exists(tsdb, 'metrics', schema=schema)
 
-        # ensure some metrics were logged to table
         with tsdb.connect() as conn:
+            # ensure some metrics were logged to table
             metrics_table = pd.read_sql_table('metrics', schema=schema, con=conn)
+
+            # ensure metrics_table has a retention policy
+            try:
+                conn.execute(text(f"SELECT add_retention_policy('{schema}.metrics', INTERVAL '3d');"))
+                conn.commit()
+            except Exception:
+                pass
+
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table
