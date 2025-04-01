@@ -13,7 +13,6 @@ from corerl.agent.utils import (
     SampledQReturn,
     get_sampled_qs,
     grab_percentile,
-    _tensor_argsort,
     grab_top_n,
     mix_uniform_actions,
     mix_uniform_actions_evenly_dispersed,
@@ -262,13 +261,13 @@ class GACPolicyManager:
         )
 
         _, policy_actions = grab_top_n(values=qr.q_values, keys=[qr.states, qr.policy_actions], n=1)
-        return policy_actions
+        return policy_actions.squeeze(1)
 
     def get_greedy_actions(
         self,
         states: torch.Tensor,
         prev_direct_actions: torch.Tensor,
-        critic: EnsembleCritic
+        critic: EnsembleCritic,
     ) -> ActionReturn:
         """
         For each state, performs random search (with samples from proposal)
@@ -291,11 +290,16 @@ class GACPolicyManager:
         self,
         states: torch.Tensor,
         prev_direct_actions: torch.Tensor,
+        critic: EnsembleCritic | None = None,
     ) -> ActionReturn:
         """
         Samples direct actions for states from the actor.
         """
-        return self._get_actions(self._sample_actor, states, prev_direct_actions)
+        if not self.cfg.greedy:
+            return self._get_actions(self._sample_actor, states, prev_direct_actions)
+
+        assert critic is not None
+        return self.get_greedy_actions(states, prev_direct_actions, critic)
 
     def get_sampler_actions(
         self,
