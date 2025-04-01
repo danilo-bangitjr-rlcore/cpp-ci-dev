@@ -12,6 +12,8 @@ from corerl.agent.utils import (
     SampledQReturn,
     get_sampled_qs,
     grab_percentile,
+    _tensor_argsort,
+    grab_top_n,
     mix_uniform_actions,
     mix_uniform_actions_evenly_dispersed,
 )
@@ -54,6 +56,7 @@ class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
     delta_actions: bool = MISSING
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
+    greedy: bool = False
 
     # hyperparameters
     delta_rejection_sample: bool = True
@@ -245,6 +248,31 @@ class GACPolicyManager:
     # ---------------------------------------------------------------------------- #
     #                                      API                                     #
     # ---------------------------------------------------------------------------- #
+
+    def get_greedy_actions(
+        self,
+        states: torch.Tensor,
+        prev_direct_actions: torch.Tensor,
+        critic: EnsembleCritic
+    ) -> ActionReturn:
+        """
+        For each state, performs random search (with samples from proposal)
+        in action space of approximate action-value function (critic)
+        """
+        qr = get_sampled_qs(
+            states=states,
+            prev_actions=prev_direct_actions,
+            n_samples=self.cfg.num_samples,
+            sampler=self.get_sampler_actions,
+            critic=critic,
+        )
+
+        _, policy_actions = grab_top_n(values=qr.q_values, keys=[qr.states, qr.policy_actions], n=1)
+        direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
+
+        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
+
+        return ActionReturn(direct_actions, policy_actions)
 
     def get_actor_actions(
         self,
