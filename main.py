@@ -1,17 +1,15 @@
-
 import gymnasium as gym
 import jax
 
-from src.agent.random import RandomAgent
 from src.interaction.env_wrapper import EnvWrapper
+from src.agent.random import RandomAgent
 from src.interaction.logging import log_to_file, setup_logging
-
 
 def main():
     log_path = setup_logging()
 
     env = gym.make("MountainCarContinuous-v0")
-
+    
     wrapper_env = EnvWrapper(
         env=env,
         observation_space_info={
@@ -42,7 +40,7 @@ def main():
 
             state_dict = {f"state_{i}": float(x) for i, x in enumerate(wrapper_env.to_array(next_state))}
             action_dict = {f"action_{i}": float(x) for i, x in enumerate(action)}
-
+            
             log_to_file(
                 log_path,
                 measurement="gym_environment",
@@ -63,18 +61,6 @@ def main():
             steps += 1
 
             if terminated or truncated:
-                log_to_file(
-                    log_path,
-                    measurement="gym_episode",
-                    tags={
-                        "env_id": env.unwrapped.spec.id,
-                        "episode": episode
-                    },
-                    fields={
-                        "total_steps": steps,
-                        "total_reward": float(episode_reward)
-                    }
-                )
                 break
 
             state = next_state
