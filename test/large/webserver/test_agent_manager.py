@@ -28,6 +28,7 @@ async def test_start_agent_emits_ws_text(tmp_sqlite_file: Path):
     agent itself can run, but rather that the subprocess call and websocket communication are working as expected.
     """
 
+    num_lines_to_check = 10
     test_client = TestClient(app)
 
     # create a temporary SQLite file with stub agent config
@@ -59,26 +60,7 @@ async def test_start_agent_emits_ws_text(tmp_sqlite_file: Path):
         )
         conn.commit()
 
-
-    received_messages = []
-    # start the agent using a POST request, expecting agent start to fail but observe outputs in WS
-    async def listen_to_websocket():
-        with test_client.websocket_connect("/api/corerl/agents/test_agent_config_id/ws") as websocket:
-            try:
-                while len(received_messages) < 10:
-                    try:
-                        async with asyncio.timeout(0.1):
-                            message = await asyncio.to_thread(websocket.receive_text)
-                        received_messages.append(message)
-                    except asyncio.TimeoutError:
-                        continue
-            except ConnectionClosedOK:
-                pass
-
-    # Start the websocket listener in the background
-    websocket_task = asyncio.create_task(listen_to_websocket())
-    await asyncio.sleep(0.1)  # Give some time for the websocket to connect
-
+    # start the agent using the fastapi agent manager
     response = test_client.post(
         "/api/corerl/agents/test_agent_config_id/start",
         json={},
@@ -86,9 +68,40 @@ async def test_start_agent_emits_ws_text(tmp_sqlite_file: Path):
     assert response.status_code == 200
     assert response.json().get("status") == "SUCCESS"
 
-    while len(received_messages) < 10:
-        await asyncio.sleep(0.1)
-    assert len(received_messages) >= 10
+    # verify that the agent is running before continuing
+    while True:
+        response = test_client.get(
+            "/api/corerl/agents/test_agent_config_id/status",
+        )
+        assert response.status_code == 200
+        if response.json().get("status") == "running":
+            break
+
+    received_messages = []
+    # start the agent using a POST request, expecting agent start to fail but observe outputs in WS
+    async def listen_to_websocket():
+        with test_client.websocket_connect("/api/corerl/agents/test_agent_config_id/ws") as websocket:
+            try:
+                while len(received_messages) < num_lines_to_check:
+                    try:
+                        async with asyncio.timeout(0.1):
+                            message = await asyncio.to_thread(websocket.receive_text)
+                        received_messages.append(message)
+                    except asyncio.TimeoutError:
+                        continue
+                    finally:
+                        await asyncio.sleep(0.01)
+            except ConnectionClosedOK:
+                pass
+
+    # Start the websocket listener in the background
+    websocket_task = asyncio.create_task(listen_to_websocket())
+
+    timeout_counter = 0
+    while len(received_messages) < num_lines_to_check and timeout_counter < 100:
+        await asyncio.sleep(0.5)
+        timeout_counter += 1
+    assert len(received_messages) >= num_lines_to_check
     websocket_task.cancel()
     try:
         await websocket_task
