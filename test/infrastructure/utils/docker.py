@@ -14,7 +14,7 @@ def init_docker_container(
 ):
     """This function will spin up a docker container running timescaledb.
     All docker container and image configurations are parameterized.
-    By default, a timescaledb:ltaest-pg17 image will be used to create a container named
+    By default, a timescaledb:latest-pg17 image will be used to create a container named
     test_timescale, binding container port 5432 to 5433.
     """
     client = from_env()
