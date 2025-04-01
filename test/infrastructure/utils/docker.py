@@ -6,8 +6,8 @@ from docker import errors, from_env
 
 def init_docker_container(
     name: str = "test_timescale",
-    repository: str = "timescale/timescaledb-ha",
-    tag: str = "pg16",
+    repository: str = "timescale/timescaledb",
+    tag: str = "latest-pg17",
     env: Mapping[str, str] = MappingProxyType({"POSTGRES_PASSWORD": "password"}),
     ports: Mapping[str, Any] = MappingProxyType({"5432": 5433}),
     restart: bool = True,

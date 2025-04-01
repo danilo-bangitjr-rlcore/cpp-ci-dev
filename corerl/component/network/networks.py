@@ -1,4 +1,5 @@
 import copy
+from pathlib import Path
 from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import torch
@@ -14,6 +15,7 @@ from corerl.component.network.ensemble.reductions import (
     bootstrap_reduct_group,
 )
 from corerl.configs.config import MISSING, computed, config, list_
+from corerl.eval.torch import get_layers_stable_rank
 from corerl.utils.device import device
 
 if TYPE_CHECKING:
@@ -237,3 +239,50 @@ class EnsembleNetwork(nn.Module):
             return torch.var(qs, dim=0)
         else:
             return torch.zeros(1)
+
+    def get_gradient_norms(self):
+        grad_norms: list[float] = []
+        for net in self.subnetworks:
+            total = sum(
+                map(grad_norm, net.parameters())
+            )
+            grad_norms.append(total ** 0.5)
+
+        return grad_norms
+
+    def get_weight_norms(self):
+        weight_norms: list[float] = []
+        for net in self.subnetworks:
+            total = sum(
+                map(weight_norm, net.parameters())
+            )
+            weight_norms.append(total ** 0.5)
+
+        return weight_norms
+
+    def get_stable_ranks(self):
+        stable_ranks: list[list[float]] = []
+        for net in self.subnetworks:
+            layer_srs = get_layers_stable_rank(net)
+            stable_ranks.append(layer_srs)
+
+        return stable_ranks
+
+    def save(self, path: Path) -> None:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save(self.state_dict(), path)
+
+    def load(self, path: Path) -> None:
+        self.load_state_dict(torch.load(path, map_location=device.device))
+
+
+def grad_norm(param: torch.nn.Parameter) -> float:
+    if not (param.requires_grad and param.grad is not None):
+        return 0
+
+    param_norm = param.grad.norm(2) ** 2
+    return param_norm.item()
+
+def weight_norm(param: torch.nn.Parameter) -> float:
+    param_norm = param.norm(2) ** 2
+    return param_norm.item()
