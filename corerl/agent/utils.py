@@ -9,34 +9,57 @@ if TYPE_CHECKING:
     from corerl.component.critic.ensemble_critic import EnsembleCritic
     from corerl.component.policy_manager import ActionReturn
 
-def grab_percentile(
+
+def grab_top_n(
         values: torch.Tensor,
         keys: list[torch.Tensor],
-        percentile: float,
+        n: int,
     ) -> list[torch.Tensor]:
+    sanitize_grab_top_n(values, keys)
+    if n == 1:
+        sorted_inds = torch.argmax(values, dim=1, keepdim=True)
+    else:
+        sorted_inds = torch.argsort(values, dim=1, descending=True)
+
+    top_n_indices = sorted_inds[:, :n]
+    top_n_indices = top_n_indices.unsqueeze(-1)
+
+    selected_keys_list = []
+    for k in keys:
+        k_dim = k.size(2)
+        top_n_indices_k = top_n_indices.repeat_interleave(k_dim, -1) # batch x top_n x (state_dim or action_dim)
+        selected_keys = torch.gather(k, dim=1, index=top_n_indices_k)
+        selected_keys_list.append(selected_keys)
+
+    return selected_keys_list
+
+def sanitize_grab_top_n(
+        values: torch.Tensor,
+        keys: list[torch.Tensor],
+    ):
+    """
+    In policy update:
+        values  <- action values with dim: batch x samples
+        keys[0] <- states with        dim: batch x samples x state dim
+        keys[1] <- actions with       dim: batch x samples x action dim
+    """
     assert len(keys) > 0
     for k in keys:
+        # ensure all keys have the same shape up to first two axes
         assert k.dim() == 3
         assert k.size(0) == keys[0].size(0)
         assert k.size(1) == keys[0].size(1)
 
     assert values.dim() == 2
 
+def grab_percentile(
+        values: torch.Tensor,
+        keys: list[torch.Tensor],
+        percentile: float,
+    ) -> list[torch.Tensor]:
     n_samples = values.size(1)
     top_n = ceil(percentile * n_samples)
-
-    sorted_inds = torch.argsort(values, dim=1, descending=True)
-    top_n_indices = sorted_inds[:, :top_n]
-    top_n_indices = top_n_indices.unsqueeze(-1)
-
-    selected_keys_list = []
-    for k in keys:
-        k_dim = k.size(2)
-        top_n_indices_k = top_n_indices.repeat_interleave(k_dim, -1)
-        selected_keys = torch.gather(k, dim=1, index=top_n_indices_k)
-        selected_keys_list.append(selected_keys)
-
-    return selected_keys_list
+    return grab_top_n(values, keys, top_n)
 
 def get_percentile_threshold(
         q_vals: torch.Tensor,
