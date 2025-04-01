@@ -277,7 +277,8 @@ class EnsembleCritic(BaseCritic):
         state_batches: list[torch.Tensor],
         action_batches: list[torch.Tensor],
     )-> EnsembleNetworkReturn:
-        return self.target.forward([state_batches, action_batches])
+        with torch.no_grad():
+            return self.target.forward([state_batches, action_batches])
 
 
 # ---------------------------------------------------------------------------- #
