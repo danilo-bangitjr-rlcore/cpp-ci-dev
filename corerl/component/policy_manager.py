@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 import pickle
 from pathlib import Path
@@ -249,6 +250,20 @@ class GACPolicyManager:
     #                                      API                                     #
     # ---------------------------------------------------------------------------- #
 
+    def _sample_greedy(
+        self, states: torch.Tensor, prev_direct_actions: torch.Tensor, critic: EnsembleCritic
+    ) -> torch.Tensor:
+        qr = get_sampled_qs(
+            states=states,
+            prev_actions=prev_direct_actions,
+            n_samples=self.cfg.num_samples,
+            sampler=self.get_sampler_actions,
+            critic=critic,
+        )
+
+        _, policy_actions = grab_top_n(values=qr.q_values, keys=[qr.states, qr.policy_actions], n=1)
+        return policy_actions
+
     def get_greedy_actions(
         self,
         states: torch.Tensor,
@@ -259,18 +274,16 @@ class GACPolicyManager:
         For each state, performs random search (with samples from proposal)
         in action space of approximate action-value function (critic)
         """
-        qr = get_sampled_qs(
-            states=states,
-            prev_actions=prev_direct_actions,
-            n_samples=self.cfg.num_samples,
-            sampler=self.get_sampler_actions,
-            critic=critic,
-        )
-
-        _, policy_actions = grab_top_n(values=qr.q_values, keys=[qr.states, qr.policy_actions], n=1)
+        sampler = functools.partial(self._sample_greedy, prev_direct_actions=prev_direct_actions, critic=critic)
+        policy_actions = sampler(states)
         direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
 
-        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
+        if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
+            direct_actions, policy_actions = self._rejection_sample(
+                sampler, states, prev_direct_actions, direct_actions, policy_actions
+            )
+        else:
+            direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
 
         return ActionReturn(direct_actions, policy_actions)
 
