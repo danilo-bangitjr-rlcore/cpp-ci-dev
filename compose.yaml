@@ -45,7 +45,7 @@ services:
           path: ./e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
-  corerl-web:
+  corerl:
     # corerl web server for direct main config API
     build:
       context: .
@@ -77,7 +77,7 @@ services:
       opc-server:
         condition: service_started
       # soft dependency for MainConfig API proxy, thin client can function without this
-      # corerl-web:
+      # corerl:
       #   condition: service_started
     ports:
       - 2222:2222

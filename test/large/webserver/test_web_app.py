@@ -1,6 +1,5 @@
 import datetime
 import json
-import os
 from pathlib import Path
 
 import pytest
@@ -8,6 +7,7 @@ import yaml
 from fastapi.testclient import TestClient
 
 from corerl.config import MainConfig
+from corerl.web import get_coreio_sqlite_path
 from corerl.web.app import app
 
 
@@ -20,12 +20,8 @@ def test_healthcheck(test_client: TestClient):
     assert response.status_code == 200
     payload = response.json()
 
-    sqlite_path = os.environ.get("COREIO_SQLITE_DB_PATH", None)
-    if not sqlite_path:
-        # defer to the docker volume bound path
-        sqlite_path = "/app/coreio-data/sqlite.db"
-    my_file = Path(sqlite_path)
-    expected_status = "OK" if my_file.is_file() else "ERROR"
+    coreio_db = Path(get_coreio_sqlite_path())
+    expected_status = "OK" if coreio_db.is_file() else "ERROR"
 
     assert payload["status"] == expected_status
 

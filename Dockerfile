@@ -14,8 +14,7 @@ RUN mkdir -p -m 0600 ~/.ssh &&\
 
 WORKDIR /app
 
-# Copy minimal source code for building corerl package
-COPY ./corerl /app/corerl
+# Copy minimal pyproject.toml for dependencies
 COPY ./pyproject.toml /app/pyproject.toml
 
 # Install the corerl dependencies
@@ -24,6 +23,9 @@ RUN --mount=type=ssh \
   # This step ensures that our dependencies exist in a folder called 'vendor'
   # which can be referenced within setuptools and added to our generated corerl wheel
   uv pip install --system --target /app/vendor -r deps.txt
+
+# copy source code for building corerl package
+COPY ./corerl /app/corerl
 
 # Build corerl package which emits built .whl into /app/dist
 RUN uv build --wheel
