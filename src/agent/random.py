@@ -4,7 +4,6 @@ from typing import NamedTuple
 
 import chex
 import jax
-import jax.numpy as jnp
 
 
 @dataclass

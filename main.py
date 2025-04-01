@@ -1,18 +1,17 @@
+
 import gymnasium as gym
 import jax
-import time
-from datetime import datetime
-from pathlib import Path
 
-from src.interaction.env_wrapper import EnvWrapper
 from src.agent.random import RandomAgent
+from src.interaction.env_wrapper import EnvWrapper
 from src.interaction.logging import log_to_file, setup_logging
+
 
 def main():
     log_path = setup_logging()
 
     env = gym.make("MountainCarContinuous-v0")
-    
+
     wrapper_env = EnvWrapper(
         env=env,
         observation_space_info={
@@ -43,7 +42,7 @@ def main():
 
             state_dict = {f"state_{i}": float(x) for i, x in enumerate(wrapper_env.to_array(next_state))}
             action_dict = {f"action_{i}": float(x) for i, x in enumerate(action)}
-            
+
             log_to_file(
                 log_path,
                 measurement="gym_environment",

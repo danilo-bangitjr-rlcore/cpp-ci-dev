@@ -1,7 +1,7 @@
 from typing import Any
 
-import numpy as np
 import jax.numpy as jnp
+import numpy as np
 from gymnasium import Env
 
 from .state_constructor import StateConstructor
