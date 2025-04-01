@@ -236,7 +236,7 @@ def test_dep_mountain_car_continuous(
     )
     proc.check_returncode()
 
-def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str, dummy_app_state: AppState):
+def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     cfg = direct_load_config(
         MainConfig,
         overrides={
@@ -256,7 +256,7 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str, dummy_app_
         evals=evals_group.dispatch(cfg.evals),
         event_bus=event_bus,
     )
-    pipeline = Pipeline(dummy_app_state, cfg.pipeline)
+    pipeline = Pipeline(app_state, cfg.pipeline)
     column_desc = pipeline.column_descriptions
     agent = GreedyAC(
         cfg.agent,
@@ -264,7 +264,7 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str, dummy_app_
         column_desc,
     )
     now = datetime.now(UTC)
-    output_dir = Path('test/medium/smoke/test_save_agent/')
+    output_dir = Path('test/large/smoke/test_save_agent/')
     path = output_dir / str(now).replace(':','_')
     path.mkdir(exist_ok=True, parents=True)
     agent.save(path)
