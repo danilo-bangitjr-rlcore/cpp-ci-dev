@@ -10,7 +10,7 @@ from sqlalchemy import Engine, text
 import corerl.utils.git as git
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
-from corerl.sql_logging.sql_logging import table_exists
+from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.time import now_iso
 
@@ -75,12 +75,10 @@ class BSuiteTestCase:
             # ensure some metrics were logged to table
             metrics_table = pd.read_sql_table('metrics', schema=schema, con=conn)
 
-            # ensure metrics_table has a retention policy
-            try:
-                conn.execute(text(f"SELECT add_retention_policy('{schema}.metrics', INTERVAL '3d');"))
-                conn.commit()
-            except Exception:
-                pass
+            # ensure tables have retention policies
+            add_retention_policy(conn, 'metrics', schema, days=3)
+            add_retention_policy(conn, 'evals', schema, days=3)
+            add_retention_policy(conn, 'metrics_xy', schema, days=3)
 
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)

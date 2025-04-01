@@ -6,7 +6,7 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 import sqlalchemy
-from sqlalchemy import URL, Column, DateTime, Engine, MetaData, Table, inspect, select
+from sqlalchemy import URL, Column, Connection, DateTime, Engine, MetaData, Table, inspect, select, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy_utils import create_database, database_exists, drop_database
@@ -281,3 +281,11 @@ def prep_cfg_for_db(cfg: Any, to_remove: list[str]) -> dict:
 
     cgf_dict = dict_u.drop(cfg_dict, to_remove)
     return dict_u.flatten(cgf_dict)
+
+
+def add_retention_policy(conn: Connection, table_name: str, schema: str, days: int):
+    try:
+        conn.execute(text(f"SELECT add_retention_policy('{schema}.{table_name}', INTERVAL '{days}d');"))
+        conn.commit()
+    except Exception:
+        ...
