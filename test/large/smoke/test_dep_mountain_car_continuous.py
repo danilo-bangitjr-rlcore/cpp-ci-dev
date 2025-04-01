@@ -1,4 +1,3 @@
-import multiprocessing
 import shutil
 import subprocess
 import time
@@ -147,34 +146,7 @@ def check_opc_server_ready(run_docker_compose: None, request: FixtureRequest):
 
 
 @pytest.fixture(scope="module")
-def run_background_opc_client(check_opc_server_ready: None, request: FixtureRequest):
-    """Run the OPC Client simulated farama environment"""
-    # for some reason Popen failes to keep the simulation farama gym running as daemon
-    # using proc = subprocess.Popen, use subprocess.run within multiprocessing process instead
-    def subproc_run():
-        subprocess.run(
-            [
-                "uv",
-                "run",
-                "python",
-                "e2e/opc_clients/opc_sim.py",
-                "--config-name",
-                "config/opc_sim/async_mountain_car_continuous.yaml",
-            ],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            cwd=request.config.rootpath,
-        )
-
-    process = multiprocessing.Process(target=subproc_run)
-    process.start()
-    yield
-
-    process.terminate()
-
-
-@pytest.fixture(scope="module")
-def check_sim_farama_environment_ready(run_background_opc_client: None, request: FixtureRequest):
+def check_sim_farama_environment_ready(check_opc_server_ready: None, request: FixtureRequest):
     """Check for the opc_client values that are emitted within the farama gym environment simulation,
     ensure that it's being picked up by telegraf.
     """
