@@ -1,0 +1,59 @@
+xy_metrics:
+  enabled: True
+
+env:
+  name: sim_async_env
+  gym_name: 'Calibration-v0'
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment:
+  exp_name: calibration
+  max_steps: 5000
+  gamma: 0.95
+
+
+metrics:
+  enabled: True
+    
+pipeline:
+  reward:
+    priorities:
+      - op: up_to
+        tag: tag-1 # efficiency
+        thresh: 0.5
+
+      - tags: [tag-0]
+        directions: [min]
+
+  tags:
+  # meta tags
+  - name: reward
+    operating_range: [0, 1]
+    reward_constructor:
+    - name: 'null'
+    state_constructor:
+    - name: 'null'
+
+  - name: terminated
+    is_meta: True
+
+  - name: truncated
+    is_meta: True
+      
+  - name: action-0
+    operating_range: [0, 1]
+    action_constructor:
+    - name: identity
+    state_constructor:
+    - name: 'null'
+    
+  - name: tag-0 # cost
+    operating_range: [0, 1]
+    
+  - name: tag-1 # efficiency
+    operating_range: [0, 1]
+
