@@ -291,8 +291,8 @@ class GreedyAC:
         return sampled_actions
 
     def get_top_percentile_actions(self, states: jax.Array):
-        sampled_actions = self.get_action_samples(states)
-        repeat_states = states.repeat(self.num_samples, axis=0)
+        self.get_action_samples(states)
+        states.repeat(self.num_samples, axis=0)
 
     def actor_loss(self):
         pass
@@ -301,7 +301,7 @@ class GreedyAC:
         pass
 
     def actor_update(self):
-        batches = self.policy_buffer.sample(self.batch_size)
+        self.policy_buffer.sample(self.batch_size)
 
     def proposal_update(self):
         pass

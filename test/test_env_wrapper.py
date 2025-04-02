@@ -1,6 +1,5 @@
 import gymnasium as gym
 import jax.numpy as jnp
-import numpy as np
 
 from src.interaction.env_wrapper import EnvWrapper
 

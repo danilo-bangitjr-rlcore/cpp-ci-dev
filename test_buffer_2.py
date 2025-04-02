@@ -1,6 +1,7 @@
 
 
 import time
+
 import jax.numpy as jnp
 
 from src.agent.components.buffer import EnsembleReplayBuffer
@@ -36,7 +37,7 @@ for i in range(10):
 
 
 rts = 0
-for i in range(100):
+for _ in range(100):
     start = time.time()
     buffer.sample()
     rts += (time.time()-start)
