@@ -79,5 +79,7 @@ class EnvWrapper:
         return self.state_constructor.get_state_dim()
 
     def to_array(self, state_dict: dict[str, Any]) -> jax.Array:
+        if isinstance(state_dict, (jax.Array, np.ndarray)):
+            return jnp.asarray(state_dict)
         numpy_array = self.state_constructor.to_array(state_dict)
         return jnp.asarray(numpy_array)
