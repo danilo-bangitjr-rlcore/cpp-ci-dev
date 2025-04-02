@@ -37,7 +37,8 @@ class StateConstructor:
         result_dict = {}
         for key, value in observation.items():
             if self.normalize:
-                result_dict[key] = (value - self.obs_low[int(key)]) / self.range[int(key)]
+                idx = int(key)
+                result_dict[key] = (value - self.obs_low[idx]) / self.range[idx]
             else:
                 result_dict[key] = value.copy()
 

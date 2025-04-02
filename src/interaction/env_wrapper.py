@@ -61,7 +61,6 @@ class EnvWrapper:
             state=self.last_state,
             action=jnp.asarray(action),
             reward=float(reward),
-            next_state=state_array,
             done=done
         )
 
