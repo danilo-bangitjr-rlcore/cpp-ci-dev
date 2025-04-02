@@ -91,7 +91,6 @@ class GreedyAC:
         self.actor_percentile = cfg.actor_percentile
         self.proposal_percentile = cfg.proposal_percentile
         self.uniform_weight = cfg.uniform_weight
-        self.batch_size = cfg.batch_size
         self.ensemble = cfg.ensemble
 
         # Neural Nets
