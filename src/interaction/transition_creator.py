@@ -9,7 +9,6 @@ class Step:
     state: jax.Array
     action: jax.Array
     reward: float
-    next_state: jax.Array
     done: bool
     gamma: float
 
@@ -21,12 +20,12 @@ class Transition:
     n_step_gamma: float
 
     @property
-    def prior(self):
-        return self.steps[0]
+    def prior_state(self):
+        return self.steps[0].state
 
     @property
-    def post(self):
-        return self.steps[-1]
+    def post_state(self):
+        return self.steps[-1].state
 
     @property
     def n_steps(self) -> int:
@@ -77,17 +76,15 @@ class TransitionCreator:
 
         self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
 
-    def __call__(self,
-                 state: jax.Array,
-                 action: jax.Array,
-                 reward: float,
-                 next_state: jax.Array,
+    def __call__(self, 
+                 state: jax.Array, 
+                 action: jax.Array, 
+                 reward: float, 
                  done: bool) -> list[Transition]:
         step = Step(
             state=state,
             action=action,
             reward=reward,
-            next_state=next_state,
             done=done,
             gamma=self.gamma
         )

@@ -9,9 +9,8 @@ def test_buffer_add():
 
     step = Step(
         state=jnp.array([1.0, 2.0]),
-        action=0.5,
+        action=jnp.array(0.5),
         reward=1.0,
-        next_state=jnp.array([1.0, 2.0]),
         done=False,
         gamma=0.99
     )
@@ -37,9 +36,8 @@ def test_buffer_sample():
     for i in range(5):
         step = Step(
             state=jnp.array([float(i), float(i)]),
-            action=float(i),
+            action=jnp.array(float(i)),
             reward=float(i),
-            next_state=jnp.array([float(i), float(i)]),
             done=False,
             gamma=0.99
         )
@@ -59,9 +57,8 @@ def test_buffer_overflow():
     for i in range(3):
         step = Step(
             state=jnp.array([float(i), float(i)]),
-            action=float(i),
+            action=jnp.array(float(i)),
             reward=float(i),
-            next_state=jnp.array([float(i), float(i)]),
             done=False,
             gamma=0.99
         )
@@ -84,9 +81,8 @@ def test_ensemble_assignment():
     for _ in range(50):
         step = Step(
             state=jnp.zeros(2),
-            action=0.0,
+            action=jnp.array(0.0),
             reward=0.0,
-            next_state=jnp.zeros(2),
             done=False,
             gamma=0.99
         )
