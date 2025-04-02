@@ -18,7 +18,7 @@ def main():
             'high': env.observation_space.high
         },
         min_n_step=1,
-        max_n_step=3,
+        max_n_step=1,
         gamma=0.99
     )
 
