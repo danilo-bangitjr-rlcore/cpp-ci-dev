@@ -56,7 +56,7 @@ class EnvWrapper:
         state_dict, self.current_trace_state = self.state_constructor(observation_dict)
         state_array = self.to_array(state_dict)
         done = terminated or truncated
-        
+
         transitions = self.transition_creator(
             state=self.last_state,
             action=jnp.asarray(action),

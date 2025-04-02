@@ -80,3 +80,6 @@ def get_activation(name: str):
         return jax.nn.relu
     else:
         raise NotImplementedError
+
+def scale_shift(x: jax.Array, low: int, high: int) -> jax.Array:
+    return (high - low) * x + low
