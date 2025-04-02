@@ -14,10 +14,10 @@ from src.agent.components.buffer import EnsembleReplayBuffer, TransitionBatch
 
 
 class GACNetParams(NamedTuple):
-    critic_params: nets.Params
-    critic_target_params: nets.Params
-    actor_params: nets.Params
-    proposal_params: nets.Params
+    critic_params: chex.ArrayTree
+    critic_target_params: chex.ArrayTree
+    actor_params: chex.ArrayTree
+    proposal_params: chex.ArrayTree
 
 class GACOptimizerStates(NamedTuple):
     critic_opt_state: Any # TODO: Unsure about type hint

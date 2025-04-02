@@ -1,4 +1,3 @@
-from collections.abc import MutableMapping
 from dataclasses import dataclass
 from typing import assert_never
 
@@ -7,8 +6,6 @@ import jax
 import jax.numpy as jnp
 
 from src.agent.components.networks.activations import get_activation
-
-type Params = MutableMapping[str, MutableMapping[str, jax.Array]]
 
 
 @dataclass
