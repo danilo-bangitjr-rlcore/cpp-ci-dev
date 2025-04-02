@@ -124,11 +124,13 @@ class GreedyAC:
         # Replay Buffers
         self.critic_buffer = EnsembleReplayBuffer(
             n_ensemble=self.ensemble,
-            ensemble_prob=0.5
+            ensemble_prob=0.5,
+            batch_size=cfg.batch_size,
         )
         self.policy_buffer = EnsembleReplayBuffer(
             n_ensemble=1,
-            ensemble_prob=1.0
+            ensemble_prob=1.0,
+            batch_size=cfg.batch_size,
         )
 
         # Agent State
@@ -302,7 +304,9 @@ class GreedyAC:
         pass
 
     def actor_update(self):
-        self.policy_buffer.sample(self.batch_size)
+        if self.policy_buffer.size == 0:
+            return
+        self.policy_buffer.sample()
 
     def proposal_update(self):
         pass
