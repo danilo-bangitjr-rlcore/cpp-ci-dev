@@ -28,7 +28,8 @@ class PolicyState(NamedTuple):
     proposal_opt_state: Any
 
 
-class GACState(NamedTuple):
+@dataclass
+class GACState:
     critic: CriticState
     policy: PolicyState
 
