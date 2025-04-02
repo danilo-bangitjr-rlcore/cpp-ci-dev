@@ -182,6 +182,10 @@ class GreedyAC:
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
     @partial(jax.jit, static_argnums=(0,))
+    def get_actions(self, rng: chex.PRNGKey, states: jax.Array):
+        return self.get_actor_actions(rng, states)
+
+    @partial(jax.jit, static_argnums=(0,))
     def get_proposal_actions(self, rng: chex.PRNGKey, states: jax.Array) -> jax.Array:
         proposal_params = self.agent_state.policy.proposal_params
         out: ActorOutputs = self.proposal.apply(params=proposal_params, x=states)
