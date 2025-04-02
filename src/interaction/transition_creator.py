@@ -20,11 +20,19 @@ class Transition:
     n_step_gamma: float
 
     @property
-    def prior_state(self):
+    def prior(self) -> Step:
+        return self.steps[0]
+
+    @property
+    def post(self) -> Step:
+        return self.steps[-1]
+
+    @property
+    def prior_state(self) -> jax.Array:
         return self.steps[0].state
 
     @property
-    def post_state(self):
+    def post_state(self)  -> jax.Array:
         return self.steps[-1].state
 
     @property

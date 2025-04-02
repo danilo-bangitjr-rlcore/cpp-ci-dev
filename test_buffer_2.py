@@ -17,7 +17,6 @@ def make_step(i: int)-> Step:
         jnp.ones(STATE_DIM)*i,
         jnp.ones(ACTION_DIM),
         1,
-        jnp.ones(STATE_DIM)*(i+1),
         False,
         0.99,
     )
@@ -37,6 +36,7 @@ for i in range(10):
 
 
 rts = 0
+buffer.sample()
 for _ in range(100):
     start = time.time()
     buffer.sample()
