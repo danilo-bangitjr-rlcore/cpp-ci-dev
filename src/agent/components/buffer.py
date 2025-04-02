@@ -73,11 +73,11 @@ class EnsembleReplayBuffer:
         self.size = min(self.size + 1, self.max_size)
 
     @partial(jax.jit, static_argnums=(0,))
-    def sample(self) -> VectorizedTransition:
+    def _sample(self, key: chex.PRNGKey) -> tuple[VectorizedTransition, chex.PRNGKey]:
         assert self.transitions is not None
 
-        ensemble_keys = random.split(self.key, self.n_ensemble + 1) # Create keys for each ensemble member
-        self.key = ensemble_keys[0]  # Update the main key
+        ensemble_keys = random.split(key, self.n_ensemble+1) # Create keys for each ensemble member
+        key = ensemble_keys[0]  # Update the main key
         ensemble_keys = ensemble_keys[1:]  # Keys for sampling
 
         all_indices = jnp.arange(self.size)
@@ -104,4 +104,8 @@ class EnsembleReplayBuffer:
                 self.transitions
             )
         v_mapped_index = vmap(index)
-        return v_mapped_index(random_indices)
+        return v_mapped_index(random_indices), key
+
+    def sample(self) -> VectorizedTransition:
+        samples, self.key = self._sample(self.key)
+        return samples
