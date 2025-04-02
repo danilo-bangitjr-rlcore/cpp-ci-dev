@@ -40,9 +40,9 @@ from corerl.web.agent_manager import shutdown_agents
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")
-_log.setLevel(logging.DEBUG)
+_log.setLevel(logging.INFO)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("uvicorn")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -247,7 +247,7 @@ async def verify_connection_db(db_req: DB_Status_Request) -> DB_Status_Response:
 
         connection.close()
     except SQLAlchemyError as err:
-        _log.info("Database connection unsuccessful", err)
+        logger.info("Database connection unsuccessful", err)
 
     db_status = DB_Status_Response(db_status=db_status, table_status=table_status, has_connected=True)
     return db_status
