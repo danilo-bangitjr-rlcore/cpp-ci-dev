@@ -1,7 +1,8 @@
 import gymnasium as gym
 import jax
+from tqdm import tqdm
 
-from src.agent.random import RandomAgent
+from agent.gac import GreedyAC, GreedyACConfig
 from src.interaction.env_wrapper import EnvWrapper
 from src.interaction.logging import log_to_file, setup_logging
 
@@ -22,7 +23,10 @@ def main():
         gamma=0.99
     )
 
-    agent = RandomAgent(seed=0, action_dim=1)
+    agent = GreedyAC(GreedyACConfig(),
+                     seed=0,
+                     state_dim=2,
+                     action_dim=1)
     rng = jax.random.PRNGKey(0)
 
     episodes = 2
@@ -30,15 +34,17 @@ def main():
         state, _ = wrapper_env.reset()
         episode_reward = 0.0
         steps = 0
-
+        pbar = tqdm()
         while True:
             rng, step_key = jax.random.split(rng)
             state_array = wrapper_env.to_array(state).reshape(1, -1)
             action = agent.get_actions(step_key, state_array)[0]
-            agent.update()
 
             next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
+            for t in transitions:
+                agent.update_buffer(t)
 
+            agent.update() # this needs to happen AFTER update buffer rn
             state_dict = {f"state_{i}": float(x) for i, x in enumerate(wrapper_env.to_array(next_state))}
             action_dict = {f"action_{i}": float(x) for i, x in enumerate(action)}
 
@@ -60,6 +66,7 @@ def main():
 
             episode_reward += reward
             steps += 1
+            pbar.update(1)
 
             if terminated or truncated:
                 break
