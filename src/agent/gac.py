@@ -10,9 +10,9 @@ import jax.numpy as jnp
 import optax
 
 import src.agent.components.networks.networks as nets
-from src.agent.components.networks.activations import get_output_activation, scale_shift, ActivationConfig, TanhConfig
 from src.agent.components.buffer import EnsembleReplayBuffer, TransitionBatch
-from src.interaction.transition_creator import Transition, Step
+from src.agent.components.networks.activations import ActivationConfig, TanhConfig, get_output_activation, scale_shift
+from src.interaction.transition_creator import Transition
 
 
 class CriticState(NamedTuple):

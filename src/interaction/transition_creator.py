@@ -69,11 +69,11 @@ class TransitionCreator:
 
         self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
 
-    def __call__(self, 
-                 state: jax.Array, 
-                 action: jax.Array, 
-                 reward: float, 
-                 next_state: jax.Array, 
+    def __call__(self,
+                 state: jax.Array,
+                 action: jax.Array,
+                 reward: float,
+                 next_state: jax.Array,
                  done: bool) -> list[Transition]:
         step = Step(
             state=state,
