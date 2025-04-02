@@ -1,14 +1,15 @@
 from collections import deque
 from dataclasses import dataclass
-from typing import Any
+
+import jax
 
 
 @dataclass
 class Step:
-    state: Any
-    action: float
+    state: jax.Array
+    action: jax.Array
     reward: float
-    next_state: Any
+    next_state: jax.Array
     done: bool
     gamma: float
 
@@ -27,6 +28,7 @@ class Transition:
     def post(self):
         return self.steps[-1]
 
+    @property
     def n_steps(self) -> int:
         return len(self.steps) - 1
 
@@ -67,7 +69,12 @@ class TransitionCreator:
 
         self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
 
-    def __call__(self, state: Any, action: float, reward: float, next_state: Any, done: bool) -> list[Transition]:
+    def __call__(self, 
+                 state: jax.Array, 
+                 action: jax.Array, 
+                 reward: float, 
+                 next_state: jax.Array, 
+                 done: bool) -> list[Transition]:
         step = Step(
             state=state,
             action=action,

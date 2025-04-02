@@ -31,32 +31,31 @@ class StateConstructor:
 
     def __call__(
         self,
-        observation: np.ndarray,
+        observation: dict[str, np.ndarray],
         state: TraceState | None = None
     ) -> tuple[dict[str, np.ndarray], TraceState | None]:
-        if self.normalize:
-            result = (observation - self.obs_low) / self.range
-        else:
-            result = observation.copy()
+        result_dict = {}
+        for key, value in observation.items():
+            if self.normalize:
+                result_dict[key] = (value - self.obs_low[int(key)]) / self.range[int(key)]
+            else:
+                result_dict[key] = value.copy()
 
-        result_dict = {str(i): v for i, v in enumerate(result)}
         if self.trace:
             if state is None or state.mu is None:
-                mu: dict[str, np.ndarray | None] = {str(i): None for i in range(len(observation))}
+                mu: dict[str, np.ndarray | None] = {key: None for key in observation.keys()}
             else:
                 mu = state.mu
 
-            for i, x in enumerate(result):
-                col = str(i)
+            for key, x in observation.items():
                 trace_vals, new_mu = self._compute_trace(
                     data=x,
                     decays=self._decays,
-                    mu_0=mu[col]
+                    mu_0=mu[key]
                 )
-
-                mu[col] = new_mu
+                mu[key] = new_mu
                 for j, decay in enumerate(self._decays):
-                    result_dict[f'{col}_trace-{decay}'] = trace_vals[:, j]
+                    result_dict[f'{key}_trace-{decay}'] = trace_vals[:, j]
 
             return result_dict, TraceState(mu)
 

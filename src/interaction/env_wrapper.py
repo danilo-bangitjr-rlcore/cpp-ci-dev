@@ -1,5 +1,6 @@
 from typing import Any
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 from gymnasium import Env
@@ -30,8 +31,7 @@ class EnvWrapper:
         )
 
         self.current_trace_state = None
-        self.last_state = None
-
+        self.last_state = jnp.zeros(self.state_constructor.get_state_dim())
         self.is_dict_space = hasattr(env.observation_space, 'spaces')
 
     def _process_observation(self, observation: Any) -> dict[str, Any]:
@@ -44,37 +44,41 @@ class EnvWrapper:
 
     def reset(self):
         observation, info = self.env.reset()
-        state, self.current_trace_state = self.state_constructor(observation)
-        self.last_state = state
-        return state, info
+        observation_dict = self._process_observation(observation)
+        state_dict, self.current_trace_state = self.state_constructor(observation_dict)
+        state_array = self.to_array(state_dict)
+        self.last_state = state_array
+        return state_array, info
 
-    def step(self, action: Any) -> tuple[Any, float, bool, bool, dict[str, Any], list[Transition]]:
-        # states are indexed by the observation space
-        # e.g. {'0': observation_0,
-        #       '1': observation_1,
-        #       '0_trace-0.5': observation_0_trace_value,
-        #       '1_trace-0.5': observation_1_trace_value}
-        observation, reward, terminated, truncated, info = self.env.step(action)
-        state, self.current_trace_state = self.state_constructor(observation)
-
+    def step(self, action: jax.Array) -> tuple[jax.Array, float, bool, bool, dict[str, Any], list[Transition]]:
+        observation, reward, terminated, truncated, info = self.env.step(np.array(action))
+        observation_dict = self._process_observation(observation)
+        state_dict, self.current_trace_state = self.state_constructor(observation_dict)
+        state_array = self.to_array(state_dict)
         done = terminated or truncated
+        
         transitions = self.transition_creator(
             state=self.last_state,
-            action=action,
+            action=jnp.asarray(action),
             reward=float(reward),
-            next_state=state,
+            next_state=state_array,
             done=done
         )
 
-        self.last_state = state
-        return state, float(reward), terminated, truncated, info, transitions
+        self.last_state = state_array
+        return state_array, float(reward), terminated, truncated, info, transitions
 
-    def denormalize(self, normalized_observation: dict[str, Any]) -> dict[str, Any]:
-        return self.state_constructor.denormalize(normalized_observation)
+    def denormalize(self, normalized_observation: jax.Array) -> jax.Array:
+        if not self.state_constructor.normalize:
+            return normalized_observation
+
+        low = jnp.array(self.state_constructor.obs_low)
+        range_val = jnp.array(self.state_constructor.range)
+        return normalized_observation * range_val + low
 
     def get_state_dim(self) -> int | None:
         return self.state_constructor.get_state_dim()
 
-    def to_array(self, state_dict: dict[str, Any]) -> jnp.ndarray:
+    def to_array(self, state_dict: dict[str, Any]) -> jax.Array:
         numpy_array = self.state_constructor.to_array(state_dict)
         return jnp.asarray(numpy_array)
