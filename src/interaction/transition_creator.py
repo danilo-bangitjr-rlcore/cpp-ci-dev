@@ -31,6 +31,14 @@ class Transition:
     def n_steps(self) -> int:
         return len(self.steps) - 1
 
+    @property
+    def state_dim(self) -> int:
+        return self.prior.state.shape[0]
+
+    @property
+    def action_dim(self) -> int:
+        return self.prior.action.shape[0]
+
 
 type StepInfo = dict[int, deque[Step]]
 
