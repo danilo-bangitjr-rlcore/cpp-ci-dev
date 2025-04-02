@@ -5,6 +5,44 @@
 - styles again
 - fix agent test utils
 
+## [0.136.0](https://github.com/rlcoretech/core-rl/compare/v0.135.0...v0.136.0) (2025-04-01)
+
+
+### Features
+
+* add ability to disable polyak target nets ([e1c4376](https://github.com/rlcoretech/core-rl/commit/e1c437605ade107d4cb7c32a165d1856bc2b82d8))
+* add ability to scale each embedding size ([b75871a](https://github.com/rlcoretech/core-rl/commit/b75871a444e18c7e3259df8368436a16a3650b40))
+* added smoke test with generated config ([b1b8cfc](https://github.com/rlcoretech/core-rl/commit/b1b8cfcbce99babe307a76620b5df0d0092fd73c))
+* enable wide_nets by default ([948c70f](https://github.com/rlcoretech/core-rl/commit/948c70fc77432c9b83e808f5345291431f968f54))
+* integrate wide_nets into action embeddings ([14d8c7a](https://github.com/rlcoretech/core-rl/commit/14d8c7a1d120c495af98913c27ebdcadd5413db1))
+* **PROD-277:** support dynamically running agents through fastapi ([dd75dfc](https://github.com/rlcoretech/core-rl/commit/dd75dfc74a7f3c2589775ef38a800111515d60f1))
+* **PROD-277:** support dynamically running agents through fastapi ([d6cbcd7](https://github.com/rlcoretech/core-rl/commit/d6cbcd79b7cdcb2af60a3ecd541ee29dc10e14b4))
+* **PROD-278:** core-rl share coreio volume in compose ([8a9ccf9](https://github.com/rlcoretech/core-rl/commit/8a9ccf90f9ce05cc93cb6627232ebc2b1fc80f59))
+* **PROD-278:** removed old opcua endpoints, shared volume in compose ([ad20b32](https://github.com/rlcoretech/core-rl/commit/ad20b326adfb73e029cb86f4f13e57986d7f4b34))
+* smoke test for generated config ([956ca9c](https://github.com/rlcoretech/core-rl/commit/956ca9c540ada72b4463dda39c0590198f0381a5))
+
+
+### Bug Fixes
+
+* add opc-sim to pyproject ([1245ab4](https://github.com/rlcoretech/core-rl/commit/1245ab4cef45be6ded1e04c55473cae44f32427c))
+* added profile to services ([1c812be](https://github.com/rlcoretech/core-rl/commit/1c812bec70a35395ceeaa294ea978dab692d762b))
+* fix tsdb version for large test ([b37454b](https://github.com/rlcoretech/core-rl/commit/b37454b74214483a075b8ff7e1cf79c93ab9a425))
+* follback on pyproject ([1d74eea](https://github.com/rlcoretech/core-rl/commit/1d74eead7f493237916e50338f28668c694d4877))
+* large test ([5fd7fdc](https://github.com/rlcoretech/core-rl/commit/5fd7fdc5acbc99b8668eefc06ee86836ee9bd7da))
+* mkdir bug in critic save fn ([3780668](https://github.com/rlcoretech/core-rl/commit/37806688f1e9ff10d845aabb9eab61ce6ec7a8c6))
+* modified profile ([69fc091](https://github.com/rlcoretech/core-rl/commit/69fc091ff22b7265badd7ec4a31c794ca2fd135c))
+* no additional opc-sim in test and resolve opc server in config test ([03aa646](https://github.com/rlcoretech/core-rl/commit/03aa646e9cfb2444ec2474a4c7c9e3fa21f7187c))
+* **PROD-289:** more function types in threshold and better error messages ([#679](https://github.com/rlcoretech/core-rl/issues/679)) ([f815617](https://github.com/rlcoretech/core-rl/commit/f8156178d8e92d44d1ab958ed274d86eff96b1fe))
+* remove additional opc-sim in large test ([87e465e](https://github.com/rlcoretech/core-rl/commit/87e465e4fa1e02dc50ff03eb271c9cc508a50bcf))
+* rollback on pyproject ([104a6e1](https://github.com/rlcoretech/core-rl/commit/104a6e1986fe6ecd1c69b7c0da1a31dff9f45cf6))
+* table specific templated statements. Only do compression policy on non-input plugin tables ([6f06041](https://github.com/rlcoretech/core-rl/commit/6f060415d9b6249cb0f5b0ef1df244ee451151cf))
+
+
+### Performance Improvements
+
+* tune tsdb parameters in telegraf config ([a5f9ac1](https://github.com/rlcoretech/core-rl/commit/a5f9ac1bc419984c3918b32f03cc100710b2584b))
+* tune tsdb parameters in telegraf config ([106574d](https://github.com/rlcoretech/core-rl/commit/106574d32baa307d3739f8879a6bf15bfb9256b8))
+
 ## [0.135.0](https://github.com/rlcoretech/core-rl/compare/v0.134.0...v0.135.0) (2025-03-26)
 
 
