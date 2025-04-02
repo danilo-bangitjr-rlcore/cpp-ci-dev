@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import optax
 
 import src.agent.components.networks.networks as nets
-from src.agent.components.buffer import EnsembleReplayBuffer, TransitionBatch
+from src.agent.components.buffer import EnsembleReplayBuffer, VectorizedTransition
 from src.agent.components.networks.activations import ActivationConfig, TanhConfig, get_output_activation, scale_shift
 from src.interaction.transition_creator import Transition
 
@@ -200,17 +200,14 @@ class GreedyAC:
             critic_params: chex.ArrayTree,
             target_params: chex.ArrayTree,
             actor_params: chex.ArrayTree,
-            transition: Transition,
+            transition: VectorizedTransition,
             rng: chex.PRNGKey
     ):
-        prior = transition.steps[0]
-        post = transition.steps[-1]
-
-        state = prior.state
-        action = post.action
-        reward = transition.n_step_reward
-        next_state = post.state
-        gamma = transition.n_step_gamma
+        state = transition.state
+        action = transition.action
+        reward = transition.reward
+        next_state = transition.next_state
+        gamma = transition.gamma
 
         actor_output = self.actor.apply(params=actor_params, x=next_state)
         next_action = distrax.Beta(actor_output.alpha, actor_output.beta).sample(seed=rng)
@@ -227,15 +224,18 @@ class GreedyAC:
             critic_params: chex.ArrayTree,
             target_params: chex.ArrayTree,
             actor_params: chex.ArrayTree,
-            batch: TransitionBatch,
+            transitions: VectorizedTransition,
             rng: chex.PRNGKey
     ):
-        rngs = jax.random.split(rng, len(batch.steps))
-        losses = jax.vmap(self.critic_loss, in_axes=(None, None, None, 0, 0))(critic_params,
-                                                                              target_params,
-                                                                              actor_params,
-                                                                              batch.steps,
-                                                                              rngs)
+        rngs = jax.random.split(rng, self.critic_buffer.batch_size)
+        vmapped = jax.vmap(self.critic_loss, in_axes=(None, None, None, 0, 0))
+        losses = vmapped(
+            critic_params,
+            target_params,
+            actor_params,
+            transitions,
+            rngs,
+        )
 
         return jnp.mean(losses)
 
@@ -243,14 +243,18 @@ class GreedyAC:
             self,
             critic_state: CriticState,
             actor_params: chex.ArrayTree,
-            batch: TransitionBatch,
+            transitions: VectorizedTransition,
             rng: chex.PRNGKey
     ):
-        loss, grads = jax.value_and_grad(self._batch_critic_loss)(critic_state.params,
-                                                                  critic_state.target_params,
-                                                                  actor_params,
-                                                                  batch,
-                                                                  rng)
+
+        grad_fn = jax.value_and_grad(self._batch_critic_loss)
+        loss, grads = grad_fn(
+            critic_state.params,
+            critic_state.target_params,
+            actor_params,
+            transitions,
+            rng,
+        )
         updates, updated_critic_opt_state = self.critic_opt.update(grads, critic_state.opt_state)
         updated_critic_params = optax.apply_updates(critic_state.params, updates)
 
@@ -262,22 +266,27 @@ class GreedyAC:
         return CriticState(
             updated_critic_params,
             updated_target_params,
-            updated_critic_opt_state
+            updated_critic_opt_state,
         )
 
     @partial(jax.jit, static_argnums=(0,))
-    def _ensemble_critic_update(self, batches: list[TransitionBatch]):
+    def _ensemble_critic_update(self, transitions: VectorizedTransition):
         rngs = jax.random.split(self.rng, self.ensemble)
-        new_critic_state = jax.vmap(self._critic_update, in_axes=(0, None, 0, 0))(self.agent_state.critic,
-                                                                                  self.agent_state.policy.actor_params,
-                                                                                  batches,
-                                                                                  rngs)
+        vmapped = jax.vmap(self._critic_update, in_axes=(0, None, 0, 0))
+        new_critic_state =  vmapped(
+            self.agent_state.critic,
+            self.agent_state.policy.actor_params,
+            transitions,
+            rngs,
+        )
 
         return new_critic_state
 
     def critic_update(self):
-        batches = self.critic_buffer.sample(self.batch_size)
-        new_critic_state = self._ensemble_critic_update(batches)
+        if self.critic_buffer.size == 0:
+            return
+        transitions = self.critic_buffer.sample()
+        new_critic_state = self._ensemble_critic_update(transitions)
         self.agent_state.critic = new_critic_state
 
     def get_action_samples(self, states: jax.Array):
