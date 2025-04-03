@@ -85,10 +85,3 @@ ignore = [
     # syntax error in forward declaration - incompatible with jaxtyping
     'F722',
 ]
-
-[tool.ruff.format]
-quote-style = "double"
-
-[tool.pytest.ini_options]
-asyncio_default_fixture_loop_scope = "function"
-asyncio_mode = "auto"
