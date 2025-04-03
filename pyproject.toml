@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 readme = 'README.md'
 dependencies = [
     'chex~=0.1',
+    "coreenv",
     "distrax~=0.1",
     "dm-haiku>=0.0.13",
     "flax>=0.10.4",
@@ -86,3 +87,6 @@ ignore = [
     # syntax error in forward declaration - incompatible with jaxtyping
     'F722',
 ]
+
+[tool.uv.sources]
+coreenv = { git = "ssh://git@github.com/rlcoretech/core-env.git" }

@@ -1,7 +1,7 @@
 from pathlib import Path
 
-import gymnasium as gym
 import jax
+from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.metadata import attach_metadata
 from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
@@ -17,6 +17,7 @@ def main():
     seed = 0
 
     collector = Collector(
+        tmp_file='./test.db',
         # specify which keys to actually store and ultimately save
         # Options are:
         #  - Identity() (save everything)
@@ -36,13 +37,20 @@ def main():
         # by default, ignore keys that are not explicitly listed above
         default=Ignore(),
         experiment_id=seed,
+        low_watermark=1,
     )
 
-    env = gym.make("MountainCarContinuous-v0")
+    env = init_env('Saturation-v0')
+    # env = gym.make("MountainCarContinuous-v0")
 
     obs_bounds = gym_u.space_bounds(env.observation_space)
+    act_bounds = gym_u.space_bounds(env.action_space)
     wrapper_env = EnvWrapper(
         env=env,
+        action_space_info={
+            'low': act_bounds[0],
+            'high': act_bounds[1],
+        },
         observation_space_info={
             'low': obs_bounds[0],
             'high': obs_bounds[1],

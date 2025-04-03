@@ -14,6 +14,7 @@ class EnvWrapper:
     def __init__(
         self,
         env: Env,
+        action_space_info: dict[str, Any],
         observation_space_info: dict[str, Any],
         trace_values: Sequence[float] = (0, 0.75, 0.9, 0.95),
         min_n_step: int = 1,
@@ -22,6 +23,7 @@ class EnvWrapper:
     ):
         self.env = env
         self.state_constructor = StateConstructor(
+            action_space_info=action_space_info,
             observation_space_info=observation_space_info,
             trace_values=trace_values,
         )
@@ -38,13 +40,13 @@ class EnvWrapper:
     def reset(self):
         observation, info = self.env.reset()
         assert isinstance(observation, np.ndarray)
-        state = self.state_constructor(observation)
+        state = self.state_constructor(observation, None)
         self.last_state = state
         return self.last_state, info
 
     def step(self, action: jax.Array) -> tuple[np.ndarray, float, bool, bool, dict[str, Any], list[Transition]]:
         observation, reward, terminated, truncated, info = self.env.step(np.array(action))
-        state = self.state_constructor(observation)
+        state = self.state_constructor(observation, np.asarray(action))
         done = terminated or truncated
 
         transitions = self.transition_creator(

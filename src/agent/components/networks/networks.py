@@ -34,7 +34,9 @@ class Linear(hk.Module):
     def __init__(self, cfg: LinearConfig):
         super().__init__(name=cfg.name)
         self.cfg = cfg
-        self._linear = hk.Linear(cfg.size)
+        self._linear = hk.Linear(
+            self.cfg.size,
+        )
 
     def __call__(self, x: jax.Array):
         act = get_activation(self.cfg.activation)
@@ -46,11 +48,15 @@ class FusionNet(hk.Module):
         super().__init__(name=cfg.name)
         self.cfg = cfg
         self.torso_branches = [
-            hk.Linear(size) for size in cfg.sizes
+            hk.Linear(size)
+            for size in cfg.sizes
         ]
 
     def __call__(self, *x: jax.Array):
-        parts = [self.torso_branches[i](x[i]) for i in range(len(x))]
+        parts = [
+            self.torso_branches[i](x[i])
+            for i in range(len(x))
+        ]
         z = jnp.concat(parts, axis=0)
         act = get_activation(self.cfg.activation)
         return act(z)

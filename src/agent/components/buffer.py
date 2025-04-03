@@ -29,7 +29,7 @@ class NPVectorizedTransition(NamedTuple):
         self.reward[ptr, :] = transition.n_step_reward
         self.next_state[ptr, :] = transition.post.state
         self.done[ptr, :] = transition.post.done
-        self.gamma[ptr, :] = transition.post.gamma
+        self.gamma[ptr, :] = transition.n_step_gamma
 
     def get_index(self, indices: np.ndarray):
         return NPVectorizedTransition(

@@ -120,12 +120,12 @@ class GreedyAC:
         self.proposal = self.actor
 
         # Optimizers
-        critic_lr = 0.1
+        critic_lr = 0.001
         self.critic_opt = optax.chain(
             optax.adam(learning_rate=critic_lr),
-            optax.scale_by_backtracking_linesearch(
-                max_backtracking_steps=50, max_learning_rate=critic_lr, decrease_factor=0.9, slope_rtol=0.1
-            ),
+            # optax.scale_by_backtracking_linesearch(
+            #     max_backtracking_steps=50, max_learning_rate=critic_lr, decrease_factor=0.9, slope_rtol=0.1
+            # ),
         )
 
         actor_lr = 0.01
@@ -193,9 +193,15 @@ class GreedyAC:
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
     def get_actions(self, state: jax.Array | np.ndarray):
+
         state = jnp.asarray(state)
-        self.rng, sample_rng = jax.random.split(self.rng, 2)
-        return self._get_actions(self.agent_state.actor.params, sample_rng, state )
+        if state.ndim == 1:
+            state = jnp.expand_dims(state, axis=0)
+            self.rng, sample_rng = jax.random.split(self.rng, 2)
+            return self._get_actions(self.agent_state.actor.params, sample_rng, state)[0]
+        else:
+            self.rng, sample_rng = jax.random.split(self.rng, 2)
+            return self._get_actions(self.agent_state.actor.params, sample_rng, state)
 
     def get_uniform_actions(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
