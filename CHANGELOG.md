@@ -5,6 +5,16 @@
 - styles again
 - fix agent test utils
 
+## [0.136.1](https://github.com/rlcoretech/core-rl/compare/v0.136.0...v0.136.1) (2025-04-03)
+
+
+### Bug Fixes
+
+* generator style-check error ([d7246d9](https://github.com/rlcoretech/core-rl/commit/d7246d9d05d8eefac400f6060116994ae125927a))
+* generator style-check error ([32024f6](https://github.com/rlcoretech/core-rl/commit/32024f69e6fc6479f4aba2e670797b67eda57415))
+* **PROD-277:** support openapi response, add graceful shutdown in prod run ([23b9a94](https://github.com/rlcoretech/core-rl/commit/23b9a9439a60519f5194284c4403f874e38752b3))
+* **PROD-277:** support openapi responses, add graceful shutdown in prod run ([cc82710](https://github.com/rlcoretech/core-rl/commit/cc827108bb1c18d4ad9a328718d2adb67eb49bc4))
+
 ## [0.136.0](https://github.com/rlcoretech/core-rl/compare/v0.135.0...v0.136.0) (2025-04-01)
 
 
