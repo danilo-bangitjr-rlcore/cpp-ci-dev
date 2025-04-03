@@ -43,7 +43,7 @@ def main():
             for t in transitions:
                 agent.update_buffer(t)
 
-            agent.update() # this needs to happen AFTER update buffer rn
+            agent.update()
             state_dict = {f"state_{i}": float(x) for i, x in enumerate(next_state)}
             action_dict = {f"action_{i}": float(x) for i, x in enumerate(action)}
 
