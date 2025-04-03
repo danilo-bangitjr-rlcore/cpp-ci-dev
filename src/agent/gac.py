@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, cast
 
 import chex
 import distrax
@@ -22,16 +22,15 @@ class CriticState(NamedTuple):
 
 
 class PolicyState(NamedTuple):
-    actor_params: chex.ArrayTree
-    proposal_params: chex.ArrayTree
-    actor_opt_state: Any
-    proposal_opt_state: Any
+    params: chex.ArrayTree
+    opt_state: Any
 
 
 @dataclass
 class GACState:
     critic: CriticState
-    policy: PolicyState
+    actor: PolicyState
+    proposal: PolicyState
 
 
 @dataclass
@@ -137,27 +136,26 @@ class GreedyAC:
         dummy_a = jnp.zeros(self.action_dim)
 
         rngs = jax.random.split(self.rng, self.ensemble)
-        critic_state = jax.vmap(self.get_critic_state, in_axes=(0, None, None))(rngs, dummy_x, dummy_a)
+        critic_state = jax.vmap(self.init_critic_state, in_axes=(0, None, None))(rngs, dummy_x, dummy_a)
 
         self.rng, rng = jax.random.split(self.rng)
-        actor_params = self.actor.init(rng=self.rng, x=dummy_x)
-        self.rng, rng = jax.random.split(self.rng)
-        proposal_params = self.proposal.init(rng=self.rng, x=dummy_x)
-
-        actor_opt_state = self.actor_opt.init(actor_params)
-        proposal_opt_state = self.proposal_opt.init(proposal_params)
-
-        policy_state = PolicyState(
-            actor_params=actor_params,
-            proposal_params=proposal_params,
-            actor_opt_state=actor_opt_state,
-            proposal_opt_state=proposal_opt_state
+        actor_params = self.actor.init(rng=rng, x=dummy_x)
+        actor_state = PolicyState(
+            params=actor_params,
+            opt_state=self.actor_opt.init(actor_params),
         )
 
-        self.agent_state = GACState(critic_state, policy_state)
+        self.rng, rng = jax.random.split(self.rng)
+        proposal_params = self.proposal.init(rng=rng, x=dummy_x)
+        proposal_state = PolicyState(
+            params=proposal_params,
+            opt_state=self.proposal_opt.init(proposal_params),
+        )
+
+        self.agent_state = GACState(critic_state, actor_state, proposal_state)
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_critic_state(self, rng: chex.PRNGKey, dummy_x: jax.Array, dummy_a: jax.Array):
+    def init_critic_state(self, rng: chex.PRNGKey, dummy_x: jax.Array, dummy_a: jax.Array):
         # Critic
         rng, _ = jax.random.split(rng)
         critic_params = self.critic.init(rng, dummy_x, dummy_a)
@@ -176,23 +174,12 @@ class GreedyAC:
         self.policy_buffer.add(transition)
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_actor_actions(self, rng: chex.PRNGKey, state: jax.Array):
-        actor_params = self.agent_state.policy.actor_params
-        out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
+    def get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
+        out: ActorOutputs = self.actor.apply(params=params, x=state)
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_actions(self, rng: chex.PRNGKey, states: jax.Array):
-        return self.get_actor_actions(rng, states)
-
-    @partial(jax.jit, static_argnums=(0,))
-    def get_proposal_actions(self, rng: chex.PRNGKey, states: jax.Array) -> jax.Array:
-        proposal_params = self.agent_state.policy.proposal_params
-        out: ActorOutputs = self.proposal.apply(params=proposal_params, x=states)
-        return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
-
-    @partial(jax.jit, static_argnums=(0,))
-    def get_uniform_actions(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
+    def get_uniform_actions_asdf(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
 
     def critic_loss(
@@ -209,9 +196,7 @@ class GreedyAC:
         next_state = transition.next_state
         gamma = transition.gamma
 
-        actor_output = self.actor.apply(params=actor_params, x=next_state)
-        next_action = distrax.Beta(actor_output.alpha, actor_output.beta).sample(seed=rng)
-
+        next_action = self.get_actions(actor_params, rng, next_state)
         target_value = self.critic.apply(params=target_params, x=next_state, a=next_action)
         target = reward + gamma * target_value.q
         value = self.critic.apply(params=critic_params, x=state, a=action)
@@ -247,40 +232,47 @@ class GreedyAC:
             rng: chex.PRNGKey
     ):
 
-        grad_fn = jax.value_and_grad(self._batch_critic_loss)
-        loss, grads = grad_fn(
+        grad_fn = jax.grad(self._batch_critic_loss)
+        grads = grad_fn(
             critic_state.params,
             critic_state.target_params,
             actor_params,
             transitions,
             rng,
         )
-        updates, updated_critic_opt_state = self.critic_opt.update(grads, critic_state.opt_state)
-        updated_critic_params = optax.apply_updates(critic_state.params, updates)
+        updates, new_opt_state = self.critic_opt.update(grads, critic_state.opt_state)
+        new_params = optax.apply_updates(critic_state.params, updates)
 
         # Target Net Polyak Update
         polyak = 0.995
         target_params = critic_state.target_params
-        updated_target_params = optax.incremental_update(updated_critic_params, target_params, polyak)
+        new_target_params = optax.incremental_update(new_params, target_params, polyak)
 
         return CriticState(
-            updated_critic_params,
-            updated_target_params,
-            updated_critic_opt_state,
+            new_params,
+            new_target_params,
+            new_opt_state,
         )
 
     @partial(jax.jit, static_argnums=(0,))
-    def _ensemble_critic_update(self, transitions: VectorizedTransition):
-        rngs = jax.random.split(self.rng, self.ensemble)
+    def _ensemble_critic_update(
+        self,
+        critic: CriticState,
+        actor_params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        transitions: VectorizedTransition,
+    ):
+        new_rng, rng = jax.random.split(rng)
+        rngs = jax.random.split(rng, self.ensemble)
         vmapped = jax.vmap(self._critic_update, in_axes=(0, None, 0, 0))
         new_critic_state =  vmapped(
-            self.agent_state.critic,
-            self.agent_state.policy.actor_params,
+            critic,
+            actor_params,
             transitions,
             rngs,
         )
 
-        return new_critic_state
+        return new_critic_state, new_rng
 
     def critic_update(self):
         if self.critic_buffer.size == 0:
@@ -302,10 +294,6 @@ class GreedyAC:
         sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=1)
 
         return sampled_actions
-
-    def get_top_percentile_actions(self, states: jax.Array):
-        self.get_action_samples(states)
-        states.repeat(self.num_samples, axis=0)
 
     def ensemble_state_action_eval(self, state: jax.Array, action: jax.Array):
         q_vals = jax.vmap(self.critic.apply, in_axes=(0, None, None))(self.agent_state.critic.params, state, action)
@@ -333,7 +321,7 @@ class GreedyAC:
         actor_params = self.agent_state.policy.actor_params
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
         dist = distrax.Beta(out.alpha, out.beta)
-        log_prob = dist.log_prob(top_actions)
+        log_prob = cast(jax.Array, dist.log_prob(top_actions))
 
         return -log_prob
 
@@ -347,7 +335,7 @@ class GreedyAC:
         proposal_params = self.agent_state.policy.proposal_params
         out: ActorOutputs = self.proposal.apply(params=proposal_params, x=state)
         dist = distrax.Beta(out.alpha, out.beta)
-        log_prob = dist.log_prob(top_actions)
+        log_prob = cast(jax.Array, dist.log_prob(top_actions))
 
         return -log_prob
 
@@ -357,33 +345,35 @@ class GreedyAC:
         # TODO: axis?
         return jnp.mean(losses)
 
-    def _actor_update(self, states: jax.Array, update_actions: jax.Array):
-        loss, grads = jax.value_and_grad(self.batch_actor_loss)(states, update_actions)
-        updates, updated_actor_opt_state = self.actor_opt.update(grads, self.agent_state.policy.actor_opt_state)
-        updated_actor_params = optax.apply_updates(self.agent_state.policy.actor_params, updates)
+    def _actor_update(self, policy_state: PolicyState, states: jax.Array, update_actions: jax.Array):
+        grads = jax.grad(self.batch_actor_loss)(states, update_actions)
+        updates, new_opt_state = self.actor_opt.update(grads, policy_state.actor_opt_state)
+        new_params = optax.apply_updates(policy_state.actor_params, updates)
 
-        return updated_actor_params
+        new_state = policy_state._replace(actor_params=new_params, actor_opt_state=new_opt_state)
+        return new_state
 
-    def _proposal_update(self, states: jax.Array, update_actions: jax.Array):
-        loss, grads = jax.value_and_grad(self.batch_proposal_loss)(states, update_actions)
-        updates, updated_proposal_opt_state = self.proposal_opt.update(grads, self.agent_state.policy.proposal_opt_state)
-        updated_proposal_params = optax.apply_updates(self.agent_state.policy.proposal_params, updates)
+    def _proposal_update(self, policy_state: PolicyState, states: jax.Array, update_actions: jax.Array):
+        grads = jax.grad(self.batch_proposal_loss)(states, update_actions)
+        updates, new_opt_state = self.proposal_opt.update(grads, policy_state.proposal_opt_state)
+        new_params = optax.apply_updates(policy_state.proposal_params, updates)
 
-        return updated_proposal_params
+        new_policy_state = policy_state._replace(proposal_params=new_params, proposal_opt_state=new_opt_state)
+        return new_policy_state
 
     def _policy_update(self, states: jax.Array):
         actor_update_actions, proposal_update_actions = jax.vmap(self.get_top_percentile_actions, in_axes=(0))(states)
 
         # Actor Update
-        updated_actor_params = self._actor_update(states, actor_update_actions)
-        self.agent_state.policy.actor_params = updated_actor_params
+        new_actor_state = self._actor_update(self.agent_state.policy, states, actor_update_actions)
+        self.agent_state = self.agent_state._replace(policy=new_actor_state)
 
         # Proposal Update
-        updated_proposal_params = self._proposal_update(states, proposal_update_actions)
+        updated_proposal_params = self._proposal_update(self.agent_state.policy, states, proposal_update_actions)
         self.agent_state.policy.proposal_params = updated_proposal_params
 
     def policy_update(self):
-        states = self.policy_buffer.sample(self.batch_size)
+        states = self.policy_buffer.sample()
         self._policy_update(states)
 
     def update(self):
