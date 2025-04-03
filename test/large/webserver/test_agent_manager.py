@@ -66,7 +66,7 @@ async def test_start_agent_emits_ws_text(tmp_sqlite_file: Path):
         json={},
     )
     assert response.status_code == 200
-    assert response.json().get("status") == "SUCCESS"
+    assert response.json().get("status") == "success"
 
     # verify that the agent is running before continuing
     while True:

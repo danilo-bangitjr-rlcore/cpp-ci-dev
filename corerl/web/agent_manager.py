@@ -28,8 +28,7 @@ from corerl.configs.loader import config_from_dict, config_to_json
 from corerl.utils.time import now_iso
 from corerl.web import get_coreio_sqlite_path
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger = logging.getLogger("uvicorn")
 
 router = APIRouter()
 
@@ -37,7 +36,7 @@ router = APIRouter()
 class WSMessage(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
-    type: Literal["log"] = "log"
+    type: Literal["log"] | Literal["return_code"] = "log"
     message: str | None = None
 
 
@@ -46,6 +45,7 @@ class CoreRLProcess(TypedDict):
 
     log_buffer: deque[WSMessage]
     process: subprocess.Popen | None
+    extra_options: List[str]
 
 
 processes: Dict[str, CoreRLProcess] = {}
@@ -77,6 +77,7 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
         ]
         if req_payload.extra_options:
             cmd.extend(req_payload.extra_options)
+            processes[config_id]["extra_options"] = req_payload.extra_options
 
     unbuffered_env = os.environ.copy()
     unbuffered_env["PYTHONUNBUFFERED"] = "true"
@@ -95,8 +96,12 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
     stream = process.stdout
     assert stream is not None
 
-    while process.poll() is None:
-        line = stream.readline()
+    while (return_code := process.poll()) is None:
+        try:
+            async with asyncio.timeout(5):
+                line = await asyncio.to_thread(stream.readline)
+        except TimeoutError:
+            line = None
         if not line:
             continue
 
@@ -117,6 +122,22 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
                 continue
             try:
                 await client.send_json(json.loads(ws_msg.model_dump_json()))
+            except WebSocketDisconnect:
+                pass
+            except ClosedResourceError:
+                pass
+            except Exception:
+                logger.exception("Error sending websocket message")
+                continue
+
+    # poll has returned, emit that the agent has died
+    if config_id in clients:
+        ws_msg = WSMessage(type="return_code", message=f"{return_code}")
+        for client in clients[config_id]:
+            if client.application_state != websockets.WebSocketState.CONNECTED:
+                continue
+            try:
+                await client.send_json(json.loads(ws_msg.model_dump_json()))
             except ClosedResourceError:
                 pass
             except Exception:
@@ -124,7 +145,25 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
                 continue
 
 
-@router.post("/{config_id}/start")
+class AgentStartErrorResponse(BaseModel):
+    status: Literal["error"]
+    message: str
+    sqlite_path: Optional[str]
+
+
+class AgentStartSuccessResponse(BaseModel):
+    status: Literal["success"]
+
+
+@router.post(
+    "/{config_id}/start",
+    tags=["Agent"],
+    responses={
+        status.HTTP_200_OK: {"model": AgentStartSuccessResponse},
+        status.HTTP_422_UNPROCESSABLE_ENTITY: {"model": AgentStartErrorResponse},
+        status.HTTP_400_BAD_REQUEST: {"model": AgentStartErrorResponse},
+    },
+)
 def agent_start(req_payload: StartAgentRequestPayload, config_id: str):
     """
     Start the agent. This post request should take the configuration UUID
@@ -132,47 +171,61 @@ def agent_start(req_payload: StartAgentRequestPayload, config_id: str):
     """
 
     if config_id in processes:
-        return {"status": "ERROR", "message": "agent already started, must stop before restart"}
+        return JSONResponse(
+            {"status": "error", "message": "agent already started, must stop before restart"},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
     try:
-        processes[config_id] = CoreRLProcess({"log_buffer": deque(maxlen=20000), "process": None})
+        processes[config_id] = CoreRLProcess({"log_buffer": deque(maxlen=20000), "process": None, "extra_options": []})
         # get the raw MainConfig JSON payload from CoreIO's sqlite DB
         with sqlite3.connect(get_coreio_sqlite_path()) as conn:
             cur = conn.cursor()
             cur.execute("SELECT config FROM CoreRLConfig WHERE id=?", (config_id,))
             config = cur.fetchone()
         if not config:
-            return {
-                "status": "ERROR",
-                "message": f"Config with id {config_id} not found.",
-                "sqlite_path": get_coreio_sqlite_path(),
-            }
+            raise Exception(f"Config with id {config_id} not found.")
 
         # validate the raw JSON configuration and convert it to yaml
         raw_json_config = json.loads(config[0])
         res_config = config_from_dict(MainConfig, raw_json_config)
         if isinstance(res_config, ConfigValidationErrors):
+            del processes[config_id]
             return JSONResponse(
-                content=json.loads(config_to_json(ConfigValidationErrors, res_config)),
+                content={
+                    "status": "error",
+                    "message": "Configuration failed core-rl validation.",
+                    "sqlite_path": get_coreio_sqlite_path(),
+                },
                 status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         json_config = json.loads(config_to_json(MainConfig, res_config))
         yaml_config = yaml.safe_dump(json_config, sort_keys=False)
 
-        t = Thread(target=asyncio.run, args=(start_proc_read_stream(yaml_config, config_id, req_payload),), daemon=True)
+        t = Thread(target=asyncio.run, args=(start_proc_read_stream(yaml_config, config_id, req_payload),))
         t.start()
 
-        return {"status": "SUCCESS"}
+        return JSONResponse({"status": "success"})
 
     except Exception as e:
-        return {"status": "ERROR", "message": str(e), "sqlite_path": get_coreio_sqlite_path()}
+        del processes[config_id]
+        return JSONResponse(
+            {"status": "error", "message": str(e), "sqlite_path": get_coreio_sqlite_path()},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
 
 
-@router.post("/{config_id}/stop")
+class AgentStopResponse(BaseModel):
+    status: Literal["stopped"] | Literal["not_running"]
+
+
+@router.post("/{config_id}/stop", response_model=AgentStopResponse)
 def agent_stop(config_id: str):
     """
     Stop the agent.
     """
     if config_id in processes:
+        logger.info(f"Shutting down agent {config_id}")
         coreRLProcess = processes[config_id]
         process = coreRLProcess["process"]
 
@@ -180,11 +233,17 @@ def agent_stop(config_id: str):
             process.terminate()
         del processes[config_id]
 
-        return {"status": "stopped"}
-    return {"status": "not running"}
+        return JSONResponse({"status": "stopped"})
+    return JSONResponse({"status": "not_running"})
 
 
-@router.get("/{config_id}/status")
+class AgentStatusResponse(BaseModel):
+    status: Literal["starting_up"] | Literal["running"] | Literal["dead"] | Literal["not_started"]
+    pid: int | None
+    extra_options: Optional[list[str]]
+
+
+@router.get("/{config_id}/status", response_model=AgentStatusResponse)
 def agent_status(config_id: str):
     """
     Get the status of the agent.
@@ -192,23 +251,28 @@ def agent_status(config_id: str):
     if config_id in processes:
         coreRLProcess = processes[config_id]
         process = coreRLProcess["process"]
+        extra_options = coreRLProcess["extra_options"]
         if not process:
-            return {"status": "starting_up"}
+            return JSONResponse({"status": "starting_up", "pid": None, "extra_options": extra_options})
         if process.poll() is None:
             # Process is still running
-            return {"status": "running", "pid": process.pid}
+            return JSONResponse({"status": "running", "pid": process.pid, "extra_options": extra_options})
         else:
             # Process has terminated
-            return {"status": "stopped", "pid": process.pid}
-    return {"status": "not_started", "pid": None}
+            return JSONResponse({"status": "dead", "pid": process.pid, "extra_options": extra_options})
+    return JSONResponse({"status": "not_started", "pid": None})
 
 
-@router.get("/")
+class AgentListResponse(BaseModel):
+    managed: list[str]
+
+
+@router.get("/", response_model=AgentListResponse)
 def agent_list():
     """
     List all agents.
     """
-    return {"managed": list(processes.keys())}
+    return JSONResponse({"managed": list(processes.keys())})
 
 
 @router.websocket("/{config_id}/ws")
@@ -245,6 +309,7 @@ def shutdown_agents():
     """
     Shutdown all agents.
     """
+    logger.info("Shutting down agents...")
     for config_id in list(processes.keys()):
         agent_stop(config_id)
     logger.info("All agents stopped.")
