@@ -73,13 +73,13 @@ class EnsembleReplayBuffer:
         self.size = min(self.size + 1, self.max_size)
 
     @partial(jax.jit, static_argnums=(0,))
-    def _sample(self, key: chex.PRNGKey) -> tuple[VectorizedTransition, chex.PRNGKey]:
-        assert self.transitions is not None
-
-        ensemble_keys = random.split(key, self.n_ensemble+1) # Create keys for each ensemble member
-        key = ensemble_keys[0]  # Update the main key
-        ensemble_keys = ensemble_keys[1:]  # Keys for sampling
-
+    def _sample(
+        self,
+        key: chex.PRNGKey,
+        transitions: VectorizedTransition,
+        ensemble_masks: Array
+    ) -> VectorizedTransition:
+        ensemble_keys = random.split(key, self.n_ensemble) # Create keys for each ensemble member
         all_indices = jnp.arange(self.size)
         def vmap_sample(key: chex.PRNGKey, mask: Array):
             # Sample with weighted probabilities
@@ -96,16 +96,18 @@ class EnsembleReplayBuffer:
                 p=weights
             )
 
-        random_indices =  jax.vmap(vmap_sample)(ensemble_keys, self.ensemble_masks[:, :self.size])
+        random_indices =  jax.vmap(vmap_sample)(ensemble_keys, ensemble_masks[:, :self.size])
 
         def index(indices: Array):
             return jax.tree_map(
                 lambda x: x[indices],
-                self.transitions
+                transitions
             )
         v_mapped_index = vmap(index)
-        return v_mapped_index(random_indices), key
+        return v_mapped_index(random_indices)
 
     def sample(self) -> VectorizedTransition:
-        samples, self.key = self._sample(self.key)
+        assert self.transitions is not None
+        self.key, sample_key = random.split(self.key, 2)
+        samples = self._sample(sample_key, self.transitions, self.ensemble_masks)
         return samples
