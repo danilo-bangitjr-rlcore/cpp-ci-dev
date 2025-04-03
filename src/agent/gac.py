@@ -116,7 +116,7 @@ class GreedyAC:
         self.proposal = self.actor
 
         # Optimizers
-        critic_lr = 0.001
+        critic_lr = 0.1
         self.critic_opt = optax.chain(
             optax.adam(learning_rate=critic_lr),
             optax.scale_by_backtracking_linesearch(
