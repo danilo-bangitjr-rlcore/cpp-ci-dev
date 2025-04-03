@@ -176,9 +176,9 @@ class GreedyAC:
         self.policy_buffer.add(transition)
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_actor_actions(self, rng: chex.PRNGKey, states: jax.Array):
+    def get_actor_actions(self, rng: chex.PRNGKey, state: jax.Array):
         actor_params = self.agent_state.policy.actor_params
-        out: ActorOutputs = self.actor.apply(params=actor_params, x=states)
+        out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
     @partial(jax.jit, static_argnums=(0,))
@@ -289,18 +289,16 @@ class GreedyAC:
         new_critic_state = self._ensemble_critic_update(transitions)
         self.agent_state.critic = new_critic_state
 
-    def get_action_samples(self, states: jax.Array):
+    def get_action_samples(self, state: jax.Array):
         uniform_samples = int(self.num_samples * self.uniform_weight)
         proposal_samples = self.num_samples - uniform_samples
-        num_states = len(states)
 
-        key = jax.random.PRNGKey(self.seed)
-        uniform_actions = self.get_uniform_actions(key, num_states * uniform_samples)
-        uniform_actions = uniform_actions.reshape((num_states, uniform_samples, self.action_dim))
+        self.rng, rng = jax.random.split(self.rng)
+        uniform_actions = self.get_uniform_actions(self.rng, uniform_samples)
 
-        repeat_states = states.repeat(proposal_samples, axis=0)
-        proposal_actions = self.get_proposal_actions(key, repeat_states)
-        proposal_actions.reshape((num_states, proposal_samples, self.action_dim))
+        rngs = jax.random.split(self.rng, proposal_samples)
+        proposal_actions = jax.vmap(self.get_proposal_action, in_axes=(0, None))(rngs, state)
+
         sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=1)
 
         return sampled_actions
@@ -309,21 +307,85 @@ class GreedyAC:
         self.get_action_samples(states)
         states.repeat(self.num_samples, axis=0)
 
-    def actor_loss(self):
-        pass
+    def ensemble_state_action_eval(self, state: jax.Array, action: jax.Array):
+        q_vals = jax.vmap(self.critic.apply, in_axes=(0, None, None))(self.agent_state.critic.params, state, action)
+        q_val = jnp.mean(q_vals) # Mean Reduction
+        return q_val
 
-    def proposal_loss(self):
-        pass
+    def get_top_percentile_actions(self, state: jax.Array):
+        sampled_actions = self.get_action_samples(state)
+        q_vals = jax.vmap(self.ensemble_state_action_eval, in_axes=(None, 0))(state, sampled_actions)
+        sorted_inds = jnp.argsort(q_vals, descending=True, axis=None)
 
-    def actor_update(self):
-        if self.policy_buffer.size == 0:
-            return
-        self.policy_buffer.sample()
+        # Actor
+        actor_top_n = int(self.actor_percentile * self.num_samples)
+        actor_top_n_inds = sorted_inds[:actor_top_n]
+        actor_update_actions = sampled_actions[actor_top_n_inds]
 
-    def proposal_update(self):
-        pass
+        proposal_top_n = int(self.proposal_percentile * self.num_samples)
+        proposal_top_n_inds = sorted_inds[:proposal_top_n]
+        proposal_update_actions = sampled_actions[proposal_top_n_inds]
+
+        return actor_update_actions, proposal_update_actions
+
+
+    def actor_loss(self, state: jax.Array, top_actions: jax.Array):
+        actor_params = self.agent_state.policy.actor_params
+        out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
+        dist = distrax.Beta(out.alpha, out.beta)
+        log_prob = dist.log_prob(top_actions)
+
+        return -log_prob
+
+    def batch_actor_loss(self, states: jax.Array, top_actions_batch: jax.Array):
+        losses = jax.vmap(self.actor_loss, in_axes=(0,0))(states, top_actions_batch)
+
+        # TODO: axis?
+        return jnp.mean(losses)
+
+    def proposal_loss(self, state: jax.Array, top_actions: jax.Array):
+        proposal_params = self.agent_state.policy.proposal_params
+        out: ActorOutputs = self.proposal.apply(params=proposal_params, x=state)
+        dist = distrax.Beta(out.alpha, out.beta)
+        log_prob = dist.log_prob(top_actions)
+
+        return -log_prob
+
+    def batch_proposal_loss(self, states: jax.Array, top_actions_batch: jax.Array):
+        losses = jax.vmap(self.proposal_loss, in_axes=(0, 0))(states, top_actions_batch)
+
+        # TODO: axis?
+        return jnp.mean(losses)
+
+    def _actor_update(self, states: jax.Array, update_actions: jax.Array):
+        loss, grads = jax.value_and_grad(self.batch_actor_loss)(states, update_actions)
+        updates, updated_actor_opt_state = self.actor_opt.update(grads, self.agent_state.policy.actor_opt_state)
+        updated_actor_params = optax.apply_updates(self.agent_state.policy.actor_params, updates)
+
+        return updated_actor_params
+
+    def _proposal_update(self, states: jax.Array, update_actions: jax.Array):
+        loss, grads = jax.value_and_grad(self.batch_proposal_loss)(states, update_actions)
+        updates, updated_proposal_opt_state = self.proposal_opt.update(grads, self.agent_state.policy.proposal_opt_state)
+        updated_proposal_params = optax.apply_updates(self.agent_state.policy.proposal_params, updates)
+
+        return updated_proposal_params
+
+    def _policy_update(self, states: jax.Array):
+        actor_update_actions, proposal_update_actions = jax.vmap(self.get_top_percentile_actions, in_axes=(0))(states)
+
+        # Actor Update
+        updated_actor_params = self._actor_update(states, actor_update_actions)
+        self.agent_state.policy.actor_params = updated_actor_params
+
+        # Proposal Update
+        updated_proposal_params = self._proposal_update(states, proposal_update_actions)
+        self.agent_state.policy.proposal_params = updated_proposal_params
+
+    def policy_update(self):
+        states = self.policy_buffer.sample(self.batch_size)
+        self._policy_update(states)
 
     def update(self):
         self.critic_update()
-        self.actor_update()
-        self.proposal_update()
+        self.policy_update()
