@@ -27,8 +27,7 @@ class PolicyState(NamedTuple):
     opt_state: chex.ArrayTree
 
 
-@dataclass
-class GACState:
+class GACState(NamedTuple):
     critic: CriticState
     actor: PolicyState
     proposal: PolicyState
@@ -175,13 +174,22 @@ class GreedyAC:
         self.policy_buffer.add(transition)
 
     @jax_u.method_jit
-    def get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
+    def _get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
         out: ActorOutputs = self.actor.apply(params=params, x=state)
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
+
+    def get_actions(self, state: jax.Array):
+        self.rng, sample_rng = jax.random.split(self.rng, 2)
+        return self._get_actions(self.agent_state.actor.params, sample_rng, state )
 
     @jax_u.method_jit
     def get_uniform_actions_asdf(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
+
+
+    # ---------------------------------------------------------------------------- #
+    #                                Critic Updating                               #
+    # ---------------------------------------------------------------------------- #
 
     def critic_loss(
             self,
@@ -189,7 +197,7 @@ class GreedyAC:
             target_params: chex.ArrayTree,
             actor_params: chex.ArrayTree,
             transition: VectorizedTransition,
-            rng: chex.PRNGKey
+            rng: chex.PRNGKey,
     ):
         state = transition.state
         action = transition.action
@@ -197,7 +205,7 @@ class GreedyAC:
         next_state = transition.next_state
         gamma = transition.gamma
 
-        next_action = self.get_actions(actor_params, rng, next_state)
+        next_action = self._get_actions(actor_params, rng, next_state)
         target_value = self.critic.apply(params=target_params, x=next_state, a=next_action)
         target = reward + gamma * target_value.q
         value = self.critic.apply(params=critic_params, x=state, a=action)
@@ -211,7 +219,7 @@ class GreedyAC:
             target_params: chex.ArrayTree,
             actor_params: chex.ArrayTree,
             transitions: VectorizedTransition,
-            rng: chex.PRNGKey
+            rng: chex.PRNGKey,
     ):
         rngs = jax.random.split(rng, self.critic_buffer.batch_size)
         vmapped = jax.vmap(self.critic_loss, in_axes=(None, None, None, 0, 0))
@@ -225,19 +233,21 @@ class GreedyAC:
 
         return jnp.mean(losses)
 
-    def _critic_update(
+    def _member_critic_update(
             self,
             critic_state: CriticState,
-            actor_params: chex.ArrayTree,
+            actor_state: PolicyState,
             transitions: VectorizedTransition,
-            rng: chex.PRNGKey
-    ):
-
+            rng: chex.PRNGKey,
+    ) -> CriticState:
+        """
+        Updates a single member of the ensemble.
+        """
         grad_fn = jax.grad(self._batch_critic_loss)
         grads = grad_fn(
             critic_state.params,
             critic_state.target_params,
-            actor_params,
+            actor_state.params,
             transitions,
             rng,
         )
@@ -258,29 +268,38 @@ class GreedyAC:
     @jax_u.method_jit
     def _ensemble_critic_update(
         self,
-        critic: CriticState,
-        actor_params: chex.ArrayTree,
-        rng: chex.PRNGKey,
+        critic_state: CriticState,
+        actor_state: PolicyState,
         transitions: VectorizedTransition,
-    ):
-        new_rng, rng = jax.random.split(rng)
+        rng: chex.PRNGKey,
+    ) -> CriticState:
+        """
+        Updates each member of the ensemble.
+        """
         rngs = jax.random.split(rng, self.ensemble)
-        vmapped = jax.vmap(self._critic_update, in_axes=(0, None, 0, 0))
+        vmapped = jax.vmap(self._member_critic_update, in_axes=(0, None, 0, 0))
         new_critic_state =  vmapped(
-            critic,
-            actor_params,
+            critic_state,
+            actor_state,
             transitions,
             rngs,
         )
-
-        return new_critic_state, new_rng
+        return new_critic_state
 
     def critic_update(self):
         if self.critic_buffer.size == 0:
             return
         transitions = self.critic_buffer.sample()
-        new_critic_state = self._ensemble_critic_update(transitions)
-        self.agent_state.critic = new_critic_state
+
+        self.rng, update_rng = jax.random.split(self.rng, 2)
+        new_critic_state = self._ensemble_critic_update(
+            self.agent_state.critic,
+            self.agent_state.actor,
+            transitions,
+            update_rng,
+        )
+        self.agent_state = self.agent_state._replace(critic=new_critic_state)
+
 
     def get_action_samples(self, state: jax.Array):
         uniform_samples = int(self.num_samples * self.uniform_weight)
@@ -374,9 +393,11 @@ class GreedyAC:
         self.agent_state.policy.proposal_params = updated_proposal_params
 
     def policy_update(self):
+        if self.policy_buffer.size == 0:
+            return
         states = self.policy_buffer.sample()
         self._policy_update(states)
 
     def update(self):
         self.critic_update()
-        self.policy_update()
+        # self.policy_update()
