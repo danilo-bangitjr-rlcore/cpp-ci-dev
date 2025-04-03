@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple, cast
+from typing import NamedTuple, cast
 
 import chex
 import distrax
@@ -10,6 +10,7 @@ import jax.numpy as jnp
 import optax
 
 import src.agent.components.networks.networks as nets
+import src.utils.jax as jax_u
 from src.agent.components.buffer import EnsembleReplayBuffer, VectorizedTransition
 from src.agent.components.networks.activations import ActivationConfig, TanhConfig, get_output_activation, scale_shift
 from src.interaction.transition_creator import Transition
@@ -18,12 +19,12 @@ from src.interaction.transition_creator import Transition
 class CriticState(NamedTuple):
     params: chex.ArrayTree
     target_params: chex.ArrayTree
-    opt_state: Any
+    opt_state: chex.ArrayTree
 
 
 class PolicyState(NamedTuple):
     params: chex.ArrayTree
-    opt_state: Any
+    opt_state: chex.ArrayTree
 
 
 class GACState(NamedTuple):
@@ -153,7 +154,7 @@ class GreedyAC:
 
         self.agent_state = GACState(critic_state, actor_state, proposal_state)
 
-    @partial(jax.jit, static_argnums=(0,))
+    @jax_u.method_jit
     def init_critic_state(self, rng: chex.PRNGKey, dummy_x: jax.Array, dummy_a: jax.Array):
         # Critic
         rng, _ = jax.random.split(rng)
@@ -181,7 +182,7 @@ class GreedyAC:
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self._get_actions(self.agent_state.actor.params, sample_rng, state )
 
-    @partial(jax.jit, static_argnums=(0,))
+    @jax_u.method_jit
     def get_uniform_actions_asdf(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
 
@@ -264,7 +265,7 @@ class GreedyAC:
             new_opt_state,
         )
 
-    @partial(jax.jit, static_argnums=(0,))
+    @jax_u.method_jit
     def _ensemble_critic_update(
         self,
         critic_state: CriticState,
