@@ -349,8 +349,8 @@ class GreedyAC:
         rng: chex.PRNGKey
     ):
         sampled_actions = self._get_action_samples(proposal_params, state, rng)
-        eval_over_ensemble = jax.vmap(self._ensemble_state_action_eval, in_axes=(None, None, 0))
-        q_vals = eval_over_ensemble(critic_params, state, sampled_actions)
+        eval_over_proposals = jax.vmap(self._ensemble_state_action_eval, in_axes=(None, None, 0))
+        q_vals = eval_over_proposals(critic_params, state, sampled_actions)
         return sampled_actions, q_vals
 
     def _get_top_ranked_actions(self, percentile: float, q_vals: jax.Array, sampled_actions: jax.Array):
