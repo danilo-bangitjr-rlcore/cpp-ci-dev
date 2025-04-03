@@ -38,7 +38,7 @@ def main():
         while True:
             rng, step_key = jax.random.split(rng)
             state_array = wrapper_env.to_array(state).reshape(1, -1)
-            action = agent.get_actions(step_key, state_array)[0]
+            action = agent.get_actions(state_array)[0]
 
             next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
             for t in transitions:

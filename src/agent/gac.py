@@ -173,9 +173,13 @@ class GreedyAC:
         self.policy_buffer.add(transition)
 
     @partial(jax.jit, static_argnums=(0,))
-    def get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
+    def _get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
         out: ActorOutputs = self.actor.apply(params=params, x=state)
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
+
+    def get_actions(self, state: jax.Array):
+        self.rng, sample_rng = jax.random.split(self.rng, 2)
+        return self._get_actions(self.agent_state.actor.params, sample_rng, state )
 
     @partial(jax.jit, static_argnums=(0,))
     def get_uniform_actions_asdf(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
@@ -388,6 +392,8 @@ class GreedyAC:
         self.agent_state.policy.proposal_params = updated_proposal_params
 
     def policy_update(self):
+        if self.policy_buffer.size == 0:
+            return
         states = self.policy_buffer.sample()
         self._policy_update(states)
 
