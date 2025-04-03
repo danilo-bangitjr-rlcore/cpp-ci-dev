@@ -117,7 +117,13 @@ class GreedyAC:
 
         # Optimizers
         critic_lr = 0.001
-        self.critic_opt = optax.adam(critic_lr)
+        self.critic_opt = optax.chain(
+            optax.adam(learning_rate=critic_lr),
+            optax.scale_by_backtracking_linesearch(
+                max_backtracking_steps=50, max_learning_rate=critic_lr, decrease_factor=0.9, slope_rtol=0.1
+            ),
+        )
+
         actor_lr = 0.001
         self.actor_opt = optax.adam(actor_lr)
         proposal_lr = 0.001
@@ -247,15 +253,25 @@ class GreedyAC:
         """
         Updates a single member of the ensemble.
         """
-        grad_fn = jax.grad(self._batch_critic_loss)
-        grads = grad_fn(
+        value, grads = jax.value_and_grad(self._batch_critic_loss)(
             critic_state.params,
             critic_state.target_params,
             actor_state.params,
             transitions,
             rng,
         )
-        updates, new_opt_state = self.critic_opt.update(grads, critic_state.opt_state)
+        updates, new_opt_state = self.critic_opt.update(
+            grads,
+            critic_state.opt_state,
+            critic_state.params,
+            value=value,
+            grad=grads,
+            value_fn=self._batch_critic_loss,
+            target_params=critic_state.target_params,
+            actor_params=actor_state.params,
+            transitions=transitions,
+            rng=rng,
+        )
         new_params = optax.apply_updates(critic_state.params, updates)
 
         # Target Net Polyak Update
