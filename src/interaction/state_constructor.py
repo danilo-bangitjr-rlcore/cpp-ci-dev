@@ -31,7 +31,7 @@ class StateConstructor:
         else:
             self._mu = _update_traces(observation, self._mu, self._decays)
 
-        return self._mu
+        return np.concatenate([observation, self._mu], axis=0)
 
     def denormalize(self, normalized_observation: np.ndarray) -> np.ndarray:
         return _denormalize(normalized_observation, self.obs_low, self.obs_high)
