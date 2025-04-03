@@ -6,6 +6,7 @@ import distrax
 import haiku as hk
 import jax
 import jax.numpy as jnp
+import numpy as np
 import optax
 
 import agent.components.networks.networks as nets
@@ -188,7 +189,8 @@ class GreedyAC:
         out: ActorOutputs = self.actor.apply(params=params, x=state)
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
-    def get_actions(self, state: jax.Array):
+    def get_actions(self, state: jax.Array | np.ndarray):
+        state = jnp.asarray(state)
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self._get_actions(self.agent_state.actor.params, sample_rng, state )
 

@@ -32,24 +32,24 @@ class EnvWrapper:
         )
 
         self.current_trace_state = None
-        self.last_state = jnp.zeros(self.state_constructor.get_state_dim())
+        self.last_state = np.zeros(self.state_constructor.get_state_dim())
         self.is_dict_space = hasattr(env.observation_space, 'spaces')
 
     def reset(self):
         observation, info = self.env.reset()
         assert isinstance(observation, np.ndarray)
         state = self.state_constructor(observation)
-        self.last_state = jnp.asarray(state)
+        self.last_state = state
         return self.last_state, info
 
-    def step(self, action: jax.Array) -> tuple[jax.Array, float, bool, bool, dict[str, Any], list[Transition]]:
+    def step(self, action: jax.Array) -> tuple[np.ndarray, float, bool, bool, dict[str, Any], list[Transition]]:
         observation, reward, terminated, truncated, info = self.env.step(np.array(action))
-        state = jnp.asarray(self.state_constructor(observation))
+        state = self.state_constructor(observation)
         done = terminated or truncated
 
         transitions = self.transition_creator(
             state=self.last_state,
-            action=jnp.asarray(action),
+            action=np.asarray(action),
             reward=float(reward),
             done=done
         )

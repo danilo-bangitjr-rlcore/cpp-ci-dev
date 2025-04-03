@@ -1,13 +1,13 @@
 from collections import deque
 from dataclasses import dataclass
 
-import jax
+import numpy as np
 
 
 @dataclass
 class Step:
-    state: jax.Array
-    action: jax.Array
+    state: np.ndarray
+    action: np.ndarray
     reward: float
     done: bool
     gamma: float
@@ -28,11 +28,11 @@ class Transition:
         return self.steps[-1]
 
     @property
-    def prior_state(self) -> jax.Array:
+    def prior_state(self) -> np.ndarray:
         return self.steps[0].state
 
     @property
-    def post_state(self)  -> jax.Array:
+    def post_state(self)  -> np.ndarray:
         return self.steps[-1].state
 
     @property
@@ -85,8 +85,8 @@ class TransitionCreator:
         self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
 
     def __call__(self,
-                 state: jax.Array,
-                 action: jax.Array,
+                 state: np.ndarray,
+                 action: np.ndarray,
                  reward: float,
                  done: bool) -> list[Transition]:
         step = Step(
