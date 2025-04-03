@@ -173,7 +173,7 @@ class GreedyAC:
         self.critic_buffer.add(transition)
         self.policy_buffer.add(transition)
 
-    @partial(jax.jit, static_argnums=(0,))
+    @jax_u.method_jit
     def _get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
         out: ActorOutputs = self.actor.apply(params=params, x=state)
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)

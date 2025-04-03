@@ -37,15 +37,14 @@ def main():
         pbar = tqdm()
         while True:
             rng, step_key = jax.random.split(rng)
-            state_array = wrapper_env.to_array(state).reshape(1, -1)
-            action = agent.get_actions(state_array)[0]
+            action = agent.get_actions(state)[0]
 
             next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
             for t in transitions:
                 agent.update_buffer(t)
 
             agent.update() # this needs to happen AFTER update buffer rn
-            state_dict = {f"state_{i}": float(x) for i, x in enumerate(wrapper_env.to_array(next_state))}
+            state_dict = {f"state_{i}": float(x) for i, x in enumerate(next_state)}
             action_dict = {f"action_{i}": float(x) for i, x in enumerate(action)}
 
             log_to_file(
