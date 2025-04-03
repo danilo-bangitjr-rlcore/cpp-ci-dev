@@ -8,6 +8,7 @@ from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
 from ml_instrumentation.utils import Pipe
 from tqdm import tqdm
 
+import utils.gym as gym_u
 from agent.gac import GreedyAC, GreedyACConfig
 from interaction.env_wrapper import EnvWrapper
 
@@ -34,11 +35,12 @@ def main():
 
     env = gym.make("MountainCarContinuous-v0")
 
+    obs_bounds = gym_u.space_bounds(env.observation_space)
     wrapper_env = EnvWrapper(
         env=env,
         observation_space_info={
-            'low': env.observation_space.low,
-            'high': env.observation_space.high
+            'low': obs_bounds[0],
+            'high': obs_bounds[1],
         },
         min_n_step=1,
         max_n_step=1,
