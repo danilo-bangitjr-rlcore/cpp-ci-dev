@@ -4,7 +4,7 @@ import gymnasium as gym
 import jax
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.metadata import attach_metadata
-from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
+from ml_instrumentation.Sampler import Identity, Ignore, MovingAverage, Subsample
 from ml_instrumentation.utils import Pipe
 from tqdm import tqdm
 
@@ -27,6 +27,11 @@ def main():
                 MovingAverage(0.99),
                 Subsample(100),
             ),
+            'critic_loss': Subsample(100),
+            'action_0': Pipe(
+                MovingAverage(0.99),
+                Subsample(100),
+            ),
         },
         # by default, ignore keys that are not explicitly listed above
         default=Ignore(),
@@ -44,13 +49,16 @@ def main():
         },
         min_n_step=1,
         max_n_step=1,
-        gamma=0.99
+        gamma=0.99,
     )
 
-    agent = GreedyAC(GreedyACConfig(),
-                     seed=0,
-                     state_dim=wrapper_env.get_state_dim(),
-                     action_dim=1)
+    agent = GreedyAC(
+        GreedyACConfig(),
+        seed=0,
+        state_dim=wrapper_env.get_state_dim(),
+        action_dim=1,
+        collector=collector,
+    )
     rng = jax.random.PRNGKey(0)
 
     episodes = 2
@@ -70,10 +78,10 @@ def main():
 
             agent.update()
             for i, x in enumerate(next_state):
-                collector.collect(f'state_{i}', x)
+                collector.collect(f'state_{i}', float(x))
 
             for i, a in enumerate(action):
-                collector.collect(f'action_{i}', a)
+                collector.collect(f'action_{i}', float(a))
 
             collector.collect('reward', reward)
             episode_reward += reward

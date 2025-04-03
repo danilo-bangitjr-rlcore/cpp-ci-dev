@@ -51,7 +51,7 @@ class FusionNet(hk.Module):
 
     def __call__(self, *x: jax.Array):
         parts = [self.torso_branches[i](x[i]) for i in range(len(x))]
-        z = jnp.concat(parts)
+        z = jnp.concat(parts, axis=0)
         act = get_activation(self.cfg.activation)
         return act(z)
 

@@ -15,10 +15,10 @@ class EnvWrapper:
         self,
         env: Env,
         observation_space_info: dict[str, Any],
-        trace_values: Sequence[float] = (0.75, 0.9, 0.95),
+        trace_values: Sequence[float] = (0, 0.75, 0.9, 0.95),
         min_n_step: int = 1,
         max_n_step: int = 1,
-        gamma: float = 1.0,
+        gamma: float = 0.99,
     ):
         self.env = env
         self.state_constructor = StateConstructor(
