@@ -5,7 +5,7 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 
-from src.agent.components.networks.activations import get_activation
+from agent.components.networks.activations import get_activation
 
 
 @dataclass

@@ -1,7 +1,7 @@
 import jax.numpy as jnp
 
-from src.agent.components.buffer import EnsembleReplayBuffer
-from src.interaction.transition_creator import Step, Transition
+from agent.components.buffer import EnsembleReplayBuffer
+from interaction.transition_creator import Step, Transition
 
 
 def test_buffer_add():

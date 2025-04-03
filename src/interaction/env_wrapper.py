@@ -6,8 +6,8 @@ import jax.numpy as jnp
 import numpy as np
 from gymnasium import Env
 
-from .state_constructor import StateConstructor
-from .transition_creator import Transition, TransitionCreator
+from interaction.state_constructor import StateConstructor
+from interaction.transition_creator import Transition, TransitionCreator
 
 
 class EnvWrapper:

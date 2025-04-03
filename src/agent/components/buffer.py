@@ -5,7 +5,7 @@ import chex
 import jax
 import jax.numpy as jnp
 
-from src.interaction.transition_creator import Transition
+from interaction.transition_creator import Transition
 
 
 class VectorizedTransition(NamedTuple):

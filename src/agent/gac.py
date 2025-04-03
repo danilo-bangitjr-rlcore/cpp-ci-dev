@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from functools import partial
 from typing import NamedTuple, cast
 
 import chex
@@ -9,11 +8,11 @@ import jax
 import jax.numpy as jnp
 import optax
 
-import src.agent.components.networks.networks as nets
-import src.utils.jax as jax_u
-from src.agent.components.buffer import EnsembleReplayBuffer, VectorizedTransition
-from src.agent.components.networks.activations import ActivationConfig, TanhConfig, get_output_activation, scale_shift
-from src.interaction.transition_creator import Transition
+import agent.components.networks.networks as nets
+import utils.jax as jax_u
+from agent.components.buffer import EnsembleReplayBuffer, VectorizedTransition
+from agent.components.networks.activations import ActivationConfig, TanhConfig, get_output_activation, scale_shift
+from interaction.transition_creator import Transition
 
 
 class CriticState(NamedTuple):
