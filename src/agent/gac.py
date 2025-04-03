@@ -15,6 +15,11 @@ from agent.components.networks.activations import ActivationConfig, TanhConfig, 
 from interaction.transition_creator import Transition
 
 
+class UpdateActions(NamedTuple):
+    actor: jax.Array
+    proposal: jax.Array
+
+
 class CriticState(NamedTuple):
     params: chex.ArrayTree
     target_params: chex.ArrayTree
@@ -182,7 +187,7 @@ class GreedyAC:
         return self._get_actions(self.agent_state.actor.params, sample_rng, state )
 
     @jax_u.method_jit
-    def get_uniform_actions_asdf(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
+    def get_uniform_actions(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
 
 
@@ -300,103 +305,127 @@ class GreedyAC:
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
 
 
-    def get_action_samples(self, state: jax.Array):
+    def _get_action_samples(self, proposal_params: chex.ArrayTree, state: jax.Array, rng: chex.PRNGKey):
         uniform_samples = int(self.num_samples * self.uniform_weight)
+        uniform_actions = self.get_uniform_actions(rng, uniform_samples)
+
         proposal_samples = self.num_samples - uniform_samples
-
-        self.rng, rng = jax.random.split(self.rng)
-        uniform_actions = self.get_uniform_actions(self.rng, uniform_samples)
-
         rngs = jax.random.split(self.rng, proposal_samples)
-        proposal_actions = jax.vmap(self.get_proposal_action, in_axes=(0, None))(rngs, state)
+        proposal_actions = jax.vmap(self._get_actions, in_axes=(None, 0, None))(proposal_params, rngs, state)
 
-        sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=1)
+        sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
 
         return sampled_actions
 
-    def ensemble_state_action_eval(self, state: jax.Array, action: jax.Array):
-        q_vals = jax.vmap(self.critic.apply, in_axes=(0, None, None))(self.agent_state.critic.params, state, action)
-        q_val = jnp.mean(q_vals) # Mean Reduction
+    def _ensemble_state_action_eval(self, critic_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+        q_vals = jax.vmap(self.critic.apply, in_axes=(0, None, None))(critic_params, state, action)
+        q_val = jnp.mean(q_vals.q, axis=0) # Mean Reduction
+
         return q_val
 
-    def get_top_percentile_actions(self, state: jax.Array):
-        sampled_actions = self.get_action_samples(state)
-        q_vals = jax.vmap(self.ensemble_state_action_eval, in_axes=(None, 0))(state, sampled_actions)
-        sorted_inds = jnp.argsort(q_vals, descending=True, axis=None)
+    def _evaluate_sampled_actions(
+        self,
+        critic_params: chex.ArrayTree,
+        proposal_params: chex.ArrayTree,
+        state: jax.Array,
+        rng: chex.PRNGKey
+    ):
+        sampled_actions = self._get_action_samples(proposal_params, state, rng)
+        q_vals = jax.vmap(self._ensemble_state_action_eval, in_axes=(None, None, 0))(critic_params, state, sampled_actions)
+        return sampled_actions, q_vals
 
-        # Actor
-        actor_top_n = int(self.actor_percentile * self.num_samples)
-        actor_top_n_inds = sorted_inds[:actor_top_n]
-        actor_update_actions = sampled_actions[actor_top_n_inds]
+    def _get_top_ranked_actions(self, percentile: float, q_vals: jax.Array, sampled_actions: jax.Array):
+        top_k = int(percentile * self.num_samples)
+        _, top_k_inds = jax.lax.top_k(q_vals.flatten(), top_k)
 
-        proposal_top_n = int(self.proposal_percentile * self.num_samples)
-        proposal_top_n_inds = sorted_inds[:proposal_top_n]
-        proposal_update_actions = sampled_actions[proposal_top_n_inds]
+        return sampled_actions[top_k_inds]
 
-        return actor_update_actions, proposal_update_actions
+    def _get_policy_update_actions(
+        self,
+        critic_params: chex.ArrayTree,
+        proposal_params: chex.ArrayTree,
+        state: jax.Array,
+        rng: chex.PRNGKey,
+    ):
+        sampled_actions, q_vals = self._evaluate_sampled_actions(critic_params, proposal_params, state, rng)
+        actor_update_actions = self._get_top_ranked_actions(self.actor_percentile, q_vals, sampled_actions)
+        proposal_update_actions = self._get_top_ranked_actions(self.proposal_percentile, q_vals, sampled_actions)
 
+        return UpdateActions(actor_update_actions, proposal_update_actions)
 
-    def actor_loss(self, state: jax.Array, top_actions: jax.Array):
-        actor_params = self.agent_state.policy.actor_params
-        out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
+    def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: jax.Array, top_actions: jax.Array):
+        out: ActorOutputs = policy.apply(params=params, x=state)
         dist = distrax.Beta(out.alpha, out.beta)
-        log_prob = cast(jax.Array, dist.log_prob(top_actions))
+        log_prob = dist.log_prob(top_actions)
 
         return -log_prob
 
-    def batch_actor_loss(self, states: jax.Array, top_actions_batch: jax.Array):
-        losses = jax.vmap(self.actor_loss, in_axes=(0,0))(states, top_actions_batch)
+    def _batch_policy_loss(
+        self,
+        params: chex.ArrayTree,
+        policy: hk.Transformed,
+        states: jax.Array,
+        top_actions_batch: jax.Array
+    ):
+        losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
 
-        # TODO: axis?
         return jnp.mean(losses)
 
-    def proposal_loss(self, state: jax.Array, top_actions: jax.Array):
-        proposal_params = self.agent_state.policy.proposal_params
-        out: ActorOutputs = self.proposal.apply(params=proposal_params, x=state)
-        dist = distrax.Beta(out.alpha, out.beta)
-        log_prob = cast(jax.Array, dist.log_prob(top_actions))
+    def _actor_update(
+        self,
+        actor_state: PolicyState,
+        states: jax.Array,
+        update_actions: jax.Array
+    ):
+        actor_params = actor_state.params
+        actor_opt_state = actor_state.opt_state
+        loss, grads = jax.value_and_grad(self._batch_policy_loss)(actor_params, self.actor, states, update_actions)
+        updates, updated_actor_opt_state = self.actor_opt.update(grads, actor_opt_state)
+        updated_actor_params = optax.apply_updates(actor_params, updates)
 
-        return -log_prob
+        return updated_actor_params, updated_actor_opt_state
 
-    def batch_proposal_loss(self, states: jax.Array, top_actions_batch: jax.Array):
-        losses = jax.vmap(self.proposal_loss, in_axes=(0, 0))(states, top_actions_batch)
+    def _proposal_update(
+        self,
+        proposal_state: PolicyState,
+        states: jax.Array,
+        update_actions: jax.Array
+    ):
+        proposal_params = proposal_state.params
+        proposal_opt_state = proposal_state.opt_state
+        loss, grads = jax.value_and_grad(self._batch_policy_loss)(proposal_params, self.proposal, states, update_actions)
+        updates, updated_proposal_opt_state = self.proposal_opt.update(grads, proposal_opt_state)
+        updated_proposal_params = optax.apply_updates(proposal_params, updates)
 
-        # TODO: axis?
-        return jnp.mean(losses)
+        return updated_proposal_params, updated_proposal_opt_state
 
-    def _actor_update(self, policy_state: PolicyState, states: jax.Array, update_actions: jax.Array):
-        grads = jax.grad(self.batch_actor_loss)(states, update_actions)
-        updates, new_opt_state = self.actor_opt.update(grads, policy_state.actor_opt_state)
-        new_params = optax.apply_updates(policy_state.actor_params, updates)
-
-        new_state = policy_state._replace(actor_params=new_params, actor_opt_state=new_opt_state)
-        return new_state
-
-    def _proposal_update(self, policy_state: PolicyState, states: jax.Array, update_actions: jax.Array):
-        grads = jax.grad(self.batch_proposal_loss)(states, update_actions)
-        updates, new_opt_state = self.proposal_opt.update(grads, policy_state.proposal_opt_state)
-        new_params = optax.apply_updates(policy_state.proposal_params, updates)
-
-        new_policy_state = policy_state._replace(proposal_params=new_params, proposal_opt_state=new_opt_state)
-        return new_policy_state
-
-    def _policy_update(self, states: jax.Array):
-        actor_update_actions, proposal_update_actions = jax.vmap(self.get_top_percentile_actions, in_axes=(0))(states)
+    def _policy_update(
+        self,
+        critic_params: chex.ArrayTree,
+        proposal_params: chex.ArrayTree,
+        states: jax.Array,
+        rng: chex.PRNGKey,
+    ):
+        top_ranked_actions = jax.vmap(self._get_policy_update_actions, in_axes=())(critic_params, proposal_params, states, rng)
 
         # Actor Update
-        new_actor_state = self._actor_update(self.agent_state.policy, states, actor_update_actions)
-        self.agent_state = self.agent_state._replace(policy=new_actor_state)
+        updated_actor_params, updated_actor_opt_state = self._actor_update(self.agent_state.actor, states, top_ranked_actions.actor)
+        self.agent_state.actor._replace(params=updated_actor_params, opt_state=updated_actor_opt_state)
 
         # Proposal Update
-        updated_proposal_params = self._proposal_update(self.agent_state.policy, states, proposal_update_actions)
-        self.agent_state.policy.proposal_params = updated_proposal_params
+        updated_proposal_params, updated_proposal_opt_state = self._proposal_update(self.agent_state.proposal, states,
+                                                                           top_ranked_actions.proposal)
+        self.agent_state.proposal._replace(params=updated_proposal_params, opt_state=updated_proposal_opt_state)
 
     def policy_update(self):
         if self.policy_buffer.size == 0:
             return
         states = self.policy_buffer.sample()
-        self._policy_update(states)
+        critic_params = self.agent_state.critic.params
+        proposal_params = self.agent_state.proposal.params
+        self.rng, update_rng = jax.random.split(self.rng, 2)
+        self._policy_update(critic_params, proposal_params, states, update_rng)
 
     def update(self):
         self.critic_update()
-        # self.policy_update()
+        self.policy_update()
