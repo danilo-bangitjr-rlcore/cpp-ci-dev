@@ -4,7 +4,7 @@ import gymnasium as gym
 import jax
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.metadata import attach_metadata
-from ml_instrumentation.Sampler import Identity, Ignore, MovingAverage, Subsample
+from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
 from ml_instrumentation.utils import Pipe
 from tqdm import tqdm
 

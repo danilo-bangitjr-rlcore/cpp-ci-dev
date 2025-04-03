@@ -128,7 +128,7 @@ class GreedyAC:
             ),
         )
 
-        actor_lr = 0.001
+        actor_lr = 0.01
         self.actor_opt = optax.adam(actor_lr)
         proposal_lr = 0.001
         self.proposal_opt = optax.adam(proposal_lr)
@@ -434,19 +434,24 @@ class GreedyAC:
     @jax_u.method_jit
     def _policy_update(
         self,
-        critic_params: chex.ArrayTree,
-        proposal_params: chex.ArrayTree,
+        agent_state: GACState,
         states: jax.Array,
         rng: chex.PRNGKey,
     ):
         top_ranked_actions_over_batch = jax.vmap(self._get_policy_update_actions, in_axes=(None, None, 0, None))
-        top_ranked_actions = top_ranked_actions_over_batch(critic_params, proposal_params, states, rng)
+        top_ranked_actions = top_ranked_actions_over_batch(
+            agent_state.critic.params,
+            agent_state.proposal.params,
+            states,
+            rng,
+        )
 
         # Actor Update
-        new_actor_state = self._actor_update(self.agent_state.actor, states, top_ranked_actions.actor)
+        new_actor_state = self._actor_update(agent_state.actor, states, top_ranked_actions.actor)
 
         # Proposal Update
-        new_proposal_state = self._proposal_update(self.agent_state.proposal, states, top_ranked_actions.proposal)
+        new_proposal_state = self._proposal_update(agent_state.proposal, states, top_ranked_actions.proposal)
+        # new_proposal_state = self.agent_state.proposal
 
         return new_actor_state, new_proposal_state
 
@@ -455,10 +460,8 @@ class GreedyAC:
             return
 
         batch = self.policy_buffer.sample()
-        critic_params = self.agent_state.critic.params
-        proposal_params = self.agent_state.proposal.params
         self.rng, update_rng = jax.random.split(self.rng, 2)
-        actor_state, proposal_state = self._policy_update(critic_params, proposal_params, batch.state[0], update_rng)
+        actor_state, proposal_state = self._policy_update(self.agent_state, batch.state[0], update_rng)
 
         self.agent_state = self.agent_state._replace(
             actor=actor_state,

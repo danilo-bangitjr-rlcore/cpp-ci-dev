@@ -25,7 +25,7 @@ class NPVectorizedTransition(NamedTuple):
 
     def add(self, ptr: int, transition: Transition):
         self.state[ptr, :] = transition.prior.state
-        self.action[ptr, :] = transition.prior.action
+        self.action[ptr, :] = transition.post.action
         self.reward[ptr, :] = transition.n_step_reward
         self.next_state[ptr, :] = transition.post.state
         self.done[ptr, :] = transition.post.done
