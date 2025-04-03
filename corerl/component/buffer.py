@@ -6,7 +6,6 @@ import numpy as np
 import torch
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
-from numpy.random._generator import Generator as Generator
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
