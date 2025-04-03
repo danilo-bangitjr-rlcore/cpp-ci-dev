@@ -3,8 +3,8 @@ import jax
 from tqdm import tqdm
 
 from agent.gac import GreedyAC, GreedyACConfig
-from src.interaction.env_wrapper import EnvWrapper
-from src.interaction.logging import log_to_file, setup_logging
+from interaction.env_wrapper import EnvWrapper
+from interaction.logging import log_to_file, setup_logging
 
 
 def main():
