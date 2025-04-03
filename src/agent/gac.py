@@ -45,7 +45,7 @@ class GreedyACConfig:
     actor_percentile: float = 0.1
     proposal_percentile: float = 0.2
     uniform_weight: float = 1.0
-    batch_size: int = 64
+    batch_size: int = 256
     ensemble: int = 1
 
 
@@ -128,7 +128,7 @@ class GreedyAC:
             # ),
         )
 
-        actor_lr = 0.01
+        actor_lr = 0.001
         self.actor_opt = optax.adam(actor_lr)
         proposal_lr = 0.001
         self.proposal_opt = optax.adam(proposal_lr)
@@ -176,7 +176,7 @@ class GreedyAC:
 
         # Target
         rng, _ = jax.random.split(rng)
-        target_params = self.critic.init(rng, dummy_x, dummy_a)
+        target_params = critic_params
 
         # Optimizer
         critic_opt_state = self.critic_opt.init(critic_params)
@@ -211,10 +211,13 @@ class GreedyAC:
     #                                Critic Updating                               #
     # ---------------------------------------------------------------------------- #
 
+    def _get_target_q(self, target_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+        return self.critic.apply(params=target_params, x=state, a=action).q
+
     def critic_loss(
             self,
             critic_params: chex.ArrayTree,
-            target_params: chex.ArrayTree,
+            ens_target_params: chex.ArrayTree,
             actor_params: chex.ArrayTree,
             transition: VectorizedTransition,
             rng: chex.PRNGKey,
@@ -226,8 +229,9 @@ class GreedyAC:
         gamma = transition.gamma
 
         next_action = self._get_actions(actor_params, rng, next_state)
-        target_value = self.critic.apply(params=target_params, x=next_state, a=next_action)
-        target = reward + gamma * target_value.q
+        ens_targets = jax.vmap(self._get_target_q, in_axes=(0, None, None))(ens_target_params, next_state, next_action)
+        target_value = ens_targets.mean(axis=0)
+        target = reward + gamma * target_value
         value = self.critic.apply(params=critic_params, x=state, a=action)
         loss = jnp.square(target - value.q)
 
@@ -236,7 +240,7 @@ class GreedyAC:
     def _batch_critic_loss(
             self,
             critic_params: chex.ArrayTree,
-            target_params: chex.ArrayTree,
+            ens_target_params: chex.ArrayTree,
             actor_params: chex.ArrayTree,
             transitions: VectorizedTransition,
             rng: chex.PRNGKey,
@@ -245,7 +249,7 @@ class GreedyAC:
         vmapped = jax.vmap(self.critic_loss, in_axes=(None, None, None, 0, 0))
         losses = vmapped(
             critic_params,
-            target_params,
+            ens_target_params,
             actor_params,
             transitions,
             rngs,
@@ -256,6 +260,7 @@ class GreedyAC:
     def _member_critic_update(
             self,
             critic_state: CriticState,
+            ens_target_params: chex.ArrayTree,
             actor_state: PolicyState,
             transitions: VectorizedTransition,
             rng: chex.PRNGKey,
@@ -265,7 +270,7 @@ class GreedyAC:
         """
         loss, grads = jax.value_and_grad(self._batch_critic_loss)(
             critic_state.params,
-            critic_state.target_params,
+            ens_target_params,
             actor_state.params,
             transitions,
             rng,
@@ -277,7 +282,7 @@ class GreedyAC:
             value=loss,
             grad=grads,
             value_fn=self._batch_critic_loss,
-            target_params=critic_state.target_params,
+            ens_target_params=ens_target_params,
             actor_params=actor_state.params,
             transitions=transitions,
             rng=rng,
@@ -307,9 +312,10 @@ class GreedyAC:
         Updates each member of the ensemble.
         """
         rngs = jax.random.split(rng, self.ensemble)
-        vmapped = jax.vmap(self._member_critic_update, in_axes=(0, None, 0, 0))
+        vmapped = jax.vmap(self._member_critic_update, in_axes=(0, None, None, 0, 0))
         new_critic_state, losses =  vmapped(
             critic_state,
+            critic_state.target_params,
             actor_state,
             transitions,
             rngs,
