@@ -25,7 +25,7 @@ def main():
 
     agent = GreedyAC(GreedyACConfig(),
                      seed=0,
-                     state_dim=2,
+                     state_dim=wrapper_env.get_state_dim(),
                      action_dim=1)
     rng = jax.random.PRNGKey(0)
 
@@ -37,7 +37,7 @@ def main():
         pbar = tqdm()
         while True:
             rng, step_key = jax.random.split(rng)
-            action = agent.get_actions(state)[0]
+            action = agent.get_actions(state)
 
             next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
             for t in transitions:

@@ -23,12 +23,12 @@ class EnvWrapper:
         self.env = env
         self.state_constructor = StateConstructor(
             observation_space_info=observation_space_info,
-            trace_values=trace_values
+            trace_values=trace_values,
         )
         self.transition_creator = TransitionCreator(
             min_n_step=min_n_step,
             max_n_step=max_n_step,
-            gamma=gamma
+            gamma=gamma,
         )
 
         self.current_trace_state = None
