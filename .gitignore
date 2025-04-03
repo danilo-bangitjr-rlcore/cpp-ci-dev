@@ -9,3 +9,4 @@ logs/
 **/*.csv
 **/*.nbc
 **/*.nbi
+local_tests/
