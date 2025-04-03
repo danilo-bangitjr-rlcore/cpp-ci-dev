@@ -1,14 +1,36 @@
+from pathlib import Path
+
 import gymnasium as gym
 import jax
+from ml_instrumentation.Collector import Collector
+from ml_instrumentation.metadata import attach_metadata
+from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
+from ml_instrumentation.utils import Pipe
 from tqdm import tqdm
 
 from agent.gac import GreedyAC, GreedyACConfig
 from interaction.env_wrapper import EnvWrapper
-from interaction.logging import log_to_file, setup_logging
 
 
 def main():
-    log_path = setup_logging()
+    seed = 0
+
+    collector = Collector(
+        # specify which keys to actually store and ultimately save
+        # Options are:
+        #  - Identity() (save everything)
+        #  - Window(n)  take a window average of size n
+        #  - Subsample(n) save one of every n elements
+        config={
+            'reward': Pipe(
+                MovingAverage(0.99),
+                Subsample(100),
+            ),
+        },
+        # by default, ignore keys that are not explicitly listed above
+        default=Ignore(),
+        experiment_id=seed,
+    )
 
     env = gym.make("MountainCarContinuous-v0")
 
@@ -30,12 +52,13 @@ def main():
     rng = jax.random.PRNGKey(0)
 
     episodes = 2
-    for episode in range(episodes):
+    for _ in range(episodes):
         state, _ = wrapper_env.reset()
         episode_reward = 0.0
         steps = 0
         pbar = tqdm()
         while True:
+            collector.next_frame()
             rng, step_key = jax.random.split(rng)
             action = agent.get_actions(state)
 
@@ -44,25 +67,13 @@ def main():
                 agent.update_buffer(t)
 
             agent.update()
-            state_dict = {f"state_{i}": float(x) for i, x in enumerate(next_state)}
-            action_dict = {f"action_{i}": float(x) for i, x in enumerate(action)}
+            for i, x in enumerate(next_state):
+                collector.collect(f'state_{i}', x)
 
-            log_to_file(
-                log_path,
-                measurement="gym_environment",
-                tags={
-                    "env_id": env.unwrapped.spec.id,
-                    "episode": episode,
-                    "step": steps
-                },
-                fields={
-                    **state_dict,
-                    **action_dict,
-                    "reward": float(reward),
-                    "episode_reward": float(episode_reward),
-                }
-            )
+            for i, a in enumerate(action):
+                collector.collect(f'action_{i}', a)
 
+            collector.collect('reward', reward)
             episode_reward += reward
             steps += 1
             pbar.update(1)
@@ -73,6 +84,16 @@ def main():
             state = next_state
 
     env.close()
+
+    save_path = Path('results/test/results.db')
+    save_path.parent.mkdir(exist_ok=True, parents=True)
+    # TODO: get the hyperparam values from the configs
+    hyperparams = { 'stepsize': 0.0001 }
+
+    # add the hyperparameters to the results database
+    attach_metadata(save_path, collector.get_current_experiment_id(), hyperparams)
+    collector.merge(str(save_path))
+    collector.close()
 
 if __name__ == "__main__":
     main()
