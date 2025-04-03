@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import assert_never
 
@@ -26,7 +27,7 @@ type LayerConfig = LinearConfig | LateFusionConfig
 
 @dataclass
 class TorsoConfig:
-    layers: list[LayerConfig]
+    layers: Sequence[LayerConfig]
 
 
 class Linear(hk.Module):
