@@ -403,38 +403,23 @@ class GreedyAC:
         losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
 
-    def _actor_update(
+    def _compute_policy_update(
         self,
-        actor_state: PolicyState,
+        policy_state: PolicyState,
+        policy: hk.Transformed,
+        policy_opt: optax.GradientTransformation,
         states: jax.Array,
         update_actions: jax.Array
     ):
-        params = actor_state.params
-        opt_state = actor_state.opt_state
-        grads = jax.grad(self._batch_policy_loss)(params, self.actor, states, update_actions)
-        updates, new_opt_state = self.actor_opt.update(grads, opt_state)
+        params = policy_state.params
+        opt_state = policy_state.opt_state
+        grads = jax.grad(self._batch_policy_loss)(params, policy, states, update_actions)
+        updates, new_opt_state = policy_opt.update(grads, opt_state)
         new_params = optax.apply_updates(params, updates)
 
         return PolicyState(
             new_params,
             new_opt_state,
-        )
-
-    def _proposal_update(
-        self,
-        proposal_state: PolicyState,
-        states: jax.Array,
-        update_actions: jax.Array
-    ):
-        proposal_params = proposal_state.params
-        proposal_opt_state = proposal_state.opt_state
-        grads = jax.grad(self._batch_policy_loss)(proposal_params, self.proposal, states, update_actions)
-        updates, updated_proposal_opt_state = self.proposal_opt.update(grads, proposal_opt_state)
-        updated_proposal_params = optax.apply_updates(proposal_params, updates)
-
-        return PolicyState(
-            updated_proposal_params,
-            updated_proposal_opt_state,
         )
 
     @jax_u.method_jit
@@ -453,12 +438,22 @@ class GreedyAC:
         )
 
         # Actor Update
-        new_actor_state = self._actor_update(agent_state.actor, states, top_ranked_actions.actor)
+        new_actor_state = self._compute_policy_update(
+            agent_state.actor,
+            self.actor,
+            self.actor_opt,
+            states,
+            top_ranked_actions.actor,
+        )
 
         # Proposal Update
-        new_proposal_state = self._proposal_update(agent_state.proposal, states, top_ranked_actions.proposal)
-        # new_proposal_state = self.agent_state.proposal
-
+        new_proposal_state = self._compute_policy_update(
+            agent_state.proposal,
+            self.proposal,
+            self.proposal_opt,
+            states,
+            top_ranked_actions.proposal,
+        )
         return new_actor_state, new_proposal_state
 
     def policy_update(self):
