@@ -168,6 +168,10 @@ class GreedyAC:
 
         self.agent_state = GACState(critic_state, actor_state, proposal_state)
 
+    # ----------------------
+    # -- Public Interface --
+    # ----------------------
+
     @jax_u.method_jit
     def init_critic_state(self, rng: chex.PRNGKey, dummy_x: jax.Array, dummy_a: jax.Array):
         # Critic
@@ -197,13 +201,14 @@ class GreedyAC:
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self._get_actions(self.agent_state.actor.params, sample_rng, state)
 
-    def get_uniform_actions(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
-        return jax.random.uniform(rng, (samples, self.action_dim))
+    def update(self):
+        self.critic_update()
+        self.policy_update()
 
 
-    # ---------------------------------------------------------------------------- #
-    #                                Critic Updating                               #
-    # ---------------------------------------------------------------------------- #
+    # -------------------
+    # -- Critic Update --
+    # -------------------
 
     def _get_target_q(self, target_params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
         return self.critic.apply(params=target_params, x=state, a=action).q
@@ -333,10 +338,78 @@ class GreedyAC:
         loss = jnp.mean(losses)
         self._collector.collect('critic_loss', float(loss))
 
+    # --------------------
+    # -- Policy Updates --
+    # --------------------
+    def policy_update(self):
+        if self.policy_buffer.size == 0:
+            return
+
+        batch = self.policy_buffer.sample()
+        self.rng, update_rng = jax.random.split(self.rng, 2)
+        actor_state, proposal_state = self._policy_update(self.agent_state, batch.state[0], update_rng)
+
+        self.agent_state = self.agent_state._replace(
+            actor=actor_state,
+            proposal=proposal_state,
+        )
+
+    @jax_u.method_jit
+    def _policy_update(
+        self,
+        agent_state: GACState,
+        states: jax.Array,
+        rng: chex.PRNGKey,
+    ):
+        top_ranked_actions_over_batch = jax_u.vmap_only(self._get_policy_update_actions, ['state'])
+        top_ranked_actions = top_ranked_actions_over_batch(
+            agent_state.critic.params,
+            agent_state.proposal.params,
+            states,
+            rng,
+        )
+
+        # Actor Update
+        new_actor_state = self._compute_policy_update(
+            agent_state.actor,
+            self.actor,
+            self.actor_opt,
+            states,
+            top_ranked_actions.actor,
+        )
+
+        # Proposal Update
+        new_proposal_state = self._compute_policy_update(
+            agent_state.proposal,
+            self.proposal,
+            self.proposal_opt,
+            states,
+            top_ranked_actions.proposal,
+        )
+        return new_actor_state, new_proposal_state
+
+    def _compute_policy_update(
+        self,
+        policy_state: PolicyState,
+        policy: hk.Transformed,
+        policy_opt: optax.GradientTransformation,
+        states: jax.Array,
+        update_actions: jax.Array
+    ):
+        grads = jax.grad(self._batch_policy_loss)(policy_state.params, policy, states, update_actions)
+        updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state)
+        new_params = optax.apply_updates(policy_state.params, updates)
+
+        return PolicyState(
+            new_params,
+            new_opt_state,
+        )
 
     def _get_action_samples(self, proposal_params: chex.ArrayTree, state: jax.Array, rng: chex.PRNGKey):
         uniform_samples = int(self.num_samples * self.uniform_weight)
-        uniform_actions = self.get_uniform_actions(rng, uniform_samples)
+
+        rng, u_rng = jax.random.split(rng, 2)
+        uniform_actions = jax.random.uniform(u_rng, (uniform_samples, self.action_dim))
 
         proposal_samples = self.num_samples - uniform_samples
         if proposal_samples == 0:
@@ -346,7 +419,6 @@ class GreedyAC:
         proposal_actions = jax_u.vmap_only(self._get_actions, ['rng'])(proposal_params, rngs, state)
 
         sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
-
         return sampled_actions
 
     def _ensemble_state_action_eval(self, critic_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
@@ -402,73 +474,3 @@ class GreedyAC:
     ):
         losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
-
-    def _compute_policy_update(
-        self,
-        policy_state: PolicyState,
-        policy: hk.Transformed,
-        policy_opt: optax.GradientTransformation,
-        states: jax.Array,
-        update_actions: jax.Array
-    ):
-        params = policy_state.params
-        opt_state = policy_state.opt_state
-        grads = jax.grad(self._batch_policy_loss)(params, policy, states, update_actions)
-        updates, new_opt_state = policy_opt.update(grads, opt_state)
-        new_params = optax.apply_updates(params, updates)
-
-        return PolicyState(
-            new_params,
-            new_opt_state,
-        )
-
-    @jax_u.method_jit
-    def _policy_update(
-        self,
-        agent_state: GACState,
-        states: jax.Array,
-        rng: chex.PRNGKey,
-    ):
-        top_ranked_actions_over_batch = jax_u.vmap_only(self._get_policy_update_actions, ['state'])
-        top_ranked_actions = top_ranked_actions_over_batch(
-            agent_state.critic.params,
-            agent_state.proposal.params,
-            states,
-            rng,
-        )
-
-        # Actor Update
-        new_actor_state = self._compute_policy_update(
-            agent_state.actor,
-            self.actor,
-            self.actor_opt,
-            states,
-            top_ranked_actions.actor,
-        )
-
-        # Proposal Update
-        new_proposal_state = self._compute_policy_update(
-            agent_state.proposal,
-            self.proposal,
-            self.proposal_opt,
-            states,
-            top_ranked_actions.proposal,
-        )
-        return new_actor_state, new_proposal_state
-
-    def policy_update(self):
-        if self.policy_buffer.size == 0:
-            return
-
-        batch = self.policy_buffer.sample()
-        self.rng, update_rng = jax.random.split(self.rng, 2)
-        actor_state, proposal_state = self._policy_update(self.agent_state, batch.state[0], update_rng)
-
-        self.agent_state = self.agent_state._replace(
-            actor=actor_state,
-            proposal=proposal_state,
-        )
-
-    def update(self):
-        self.critic_update()
-        self.policy_update()
