@@ -55,6 +55,7 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.saturation_goals  # noqa: F401
     import coreenv.three_tanks  # noqa: F401
     import coreenv.windy_room  # noqa: F401
+    import coreenv.calibration # noqa: F401
 
     logger.info(f"instantiaing {name} with overrides {overrides}")
 
