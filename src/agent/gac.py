@@ -150,7 +150,7 @@ class GreedyAC:
         dummy_a = jnp.zeros(self.action_dim)
 
         rngs = jax.random.split(self.rng, self.ensemble)
-        critic_state = jax.vmap(self.init_critic_state, in_axes=(0, None, None))(rngs, dummy_x, dummy_a)
+        critic_state = jax_u.vmap_only(self.init_critic_state, ['rng'])(rngs, dummy_x, dummy_a)
 
         self.rng, rng = jax.random.split(self.rng)
         actor_params = self.actor.init(rng=rng, x=dummy_x)
@@ -193,15 +193,9 @@ class GreedyAC:
         return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
 
     def get_actions(self, state: jax.Array | np.ndarray):
-
         state = jnp.asarray(state)
-        if state.ndim == 1:
-            state = jnp.expand_dims(state, axis=0)
-            self.rng, sample_rng = jax.random.split(self.rng, 2)
-            return self._get_actions(self.agent_state.actor.params, sample_rng, state)[0]
-        else:
-            self.rng, sample_rng = jax.random.split(self.rng, 2)
-            return self._get_actions(self.agent_state.actor.params, sample_rng, state)
+        self.rng, sample_rng = jax.random.split(self.rng, 2)
+        return self._get_actions(self.agent_state.actor.params, sample_rng, state)
 
     def get_uniform_actions(self, rng: chex.PRNGKey, samples: int) -> jax.Array:
         return jax.random.uniform(rng, (samples, self.action_dim))
@@ -211,7 +205,7 @@ class GreedyAC:
     #                                Critic Updating                               #
     # ---------------------------------------------------------------------------- #
 
-    def _get_target_q(self, target_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+    def _get_target_q(self, target_params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
         return self.critic.apply(params=target_params, x=state, a=action).q
 
     def critic_loss(
@@ -229,8 +223,8 @@ class GreedyAC:
         gamma = transition.gamma
 
         next_action = self._get_actions(actor_params, rng, next_state)
-        ens_targets = jax.vmap(self._get_target_q, in_axes=(0, None, None))(ens_target_params, next_state, next_action)
-        target_value = ens_targets.mean(axis=0)
+        get_ens_targets = jax_u.vmap_only(self._get_target_q, ['target_params'])
+        target_value = get_ens_targets(ens_target_params, next_state, next_action).mean(axis=0)
         target = reward + gamma * target_value
         value = self.critic.apply(params=critic_params, x=state, a=action)
         loss = jnp.square(target - value.q)
@@ -246,7 +240,7 @@ class GreedyAC:
             rng: chex.PRNGKey,
     ):
         rngs = jax.random.split(rng, self.critic_buffer.batch_size)
-        vmapped = jax.vmap(self.critic_loss, in_axes=(None, None, None, 0, 0))
+        vmapped = jax_u.vmap_only(self.critic_loss, ['transition', 'rng'])
         losses = vmapped(
             critic_params,
             ens_target_params,
@@ -349,14 +343,14 @@ class GreedyAC:
             return uniform_actions
 
         rngs = jax.random.split(self.rng, proposal_samples)
-        proposal_actions = jax.vmap(self._get_actions, in_axes=(None, 0, None))(proposal_params, rngs, state)
+        proposal_actions = jax_u.vmap_only(self._get_actions, ['rng'])(proposal_params, rngs, state)
 
         sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
 
         return sampled_actions
 
     def _ensemble_state_action_eval(self, critic_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
-        q_vals = jax.vmap(self.critic.apply, in_axes=(0, None, None))(critic_params, state, action)
+        q_vals = jax_u.vmap_only(self.critic.apply, [0])(critic_params, state, action)
         q_val = jnp.mean(q_vals.q, axis=0) # Mean Reduction
 
         return q_val
@@ -369,7 +363,7 @@ class GreedyAC:
         rng: chex.PRNGKey
     ):
         sampled_actions = self._get_action_samples(proposal_params, state, rng)
-        eval_over_proposals = jax.vmap(self._ensemble_state_action_eval, in_axes=(None, None, 0))
+        eval_over_proposals = jax_u.vmap_only(self._ensemble_state_action_eval, ['action'])
         q_vals = eval_over_proposals(critic_params, state, sampled_actions)
         return sampled_actions, q_vals
 
@@ -450,7 +444,7 @@ class GreedyAC:
         states: jax.Array,
         rng: chex.PRNGKey,
     ):
-        top_ranked_actions_over_batch = jax.vmap(self._get_policy_update_actions, in_axes=(None, None, 0, None))
+        top_ranked_actions_over_batch = jax_u.vmap_only(self._get_policy_update_actions, ['state'])
         top_ranked_actions = top_ranked_actions_over_batch(
             agent_state.critic.params,
             agent_state.proposal.params,
@@ -482,7 +476,4 @@ class GreedyAC:
 
     def update(self):
         self.critic_update()
-
-        # print('before: ', jax.tree_util.tree_map(lambda x: float(jnp.linalg.norm(x)), self.agent_state.actor.params))
         self.policy_update()
-        # print('after: ', jax.tree_util.tree_map(lambda x: float(jnp.linalg.norm(x)), self.agent_state.actor.params))
