@@ -116,6 +116,7 @@ class GreedyAC(BaseAgent):
         ar = self._policy_manager.get_actor_actions(
             tensor_state,
             tensor_prev_direct_action,
+            self.critic
         )
         direct_action = ar.direct_actions
 
@@ -134,6 +135,7 @@ class GreedyAC(BaseAgent):
         return self._policy_manager.get_actor_actions(
             states,
             prev_direct_actions,
+            self.critic,
         )
 
     def get_sampler_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
@@ -206,7 +208,7 @@ class GreedyAC(BaseAgent):
             with torch.no_grad():
                 cur_action = batch.post.action
                 dp_mask = batch.post.dp
-                ar = self._policy_manager.get_actor_actions(batch.post.state,  cur_action)
+                ar = self._policy_manager.get_actor_actions(batch.post.state,  cur_action, self.critic)
                 next_direct_actions = ar.direct_actions
                 next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
 
