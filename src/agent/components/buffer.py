@@ -71,6 +71,7 @@ class EnsembleReplayBuffer:
 
         self.transitions = None
         self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
+        self.rng = np.random.default_rng(seed)
 
     def _init_transitions(self, transition: Transition) -> None:
         self.transitions = NPVectorizedTransition(
@@ -89,10 +90,10 @@ class EnsembleReplayBuffer:
         assert self.transitions is not None
         self.transitions.add(self.ptr, transition)
 
-        ensemble_mask = np.random.uniform(size=self.n_ensemble) < self.ensemble_prob
+        ensemble_mask = self.rng.uniform(size=self.n_ensemble) < self.ensemble_prob
         # ensure that at least one member gets the transition
         if not np.any(ensemble_mask):
-            random_member = np.random.randint(0, self.n_ensemble)
+            random_member = self.rng.integers(0, self.n_ensemble)
             ensemble_mask[random_member] = True
 
         self.ensemble_masks[:, self.ptr] = ensemble_mask
@@ -105,7 +106,7 @@ class EnsembleReplayBuffer:
         ensemble_samples = []
         for m in range(self.n_ensemble):
             valid_indices = np.nonzero(self.ensemble_masks[m, :self.size])[0]
-            rand_indices = np.random.choice(
+            rand_indices = self.rng.choice(
                 valid_indices,
                 size=self.batch_size,
                 replace=True,
