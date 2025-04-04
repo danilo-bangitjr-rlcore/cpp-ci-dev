@@ -11,7 +11,6 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
-from corerl.environment.registry import register_custom_envs
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
 from corerl.eval.xy_metrics import XYTable
@@ -29,9 +28,6 @@ def test_buffer_load():
         MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_local.yaml"
     )
     assert isinstance(cfg, MainConfig)
-
-    # get custom gym environments
-    register_custom_envs()
 
     # set the random seeds
     seed = cfg.experiment.seed

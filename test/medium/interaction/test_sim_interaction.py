@@ -4,7 +4,6 @@ from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
-from corerl.environment.registry import register_custom_envs
 from corerl.eval.evals import evals_group
 from corerl.eval.metrics import metrics_group
 from corerl.eval.xy_metrics import XYTable
@@ -18,7 +17,6 @@ def test_action_bounds():
     NUM_STEPS = 5
     cfg = direct_load_config(MainConfig, base='test/medium/interaction/assets', config_name='saturation.yaml')
     assert isinstance(cfg, MainConfig)
-    register_custom_envs()
 
     # build global objects
     event_bus = EventBus(cfg.event_bus, cfg.env)

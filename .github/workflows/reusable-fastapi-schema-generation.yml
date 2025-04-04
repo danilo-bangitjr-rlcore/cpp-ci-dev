@@ -22,6 +22,11 @@ jobs:
           prune-cache: false
           cache-dependency-glob: "uv.lock"
 
+      - name: Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
+
       - name: Install Python dependencies
         run: |
           uv venv

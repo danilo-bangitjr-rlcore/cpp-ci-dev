@@ -15,6 +15,7 @@ interaction:
 env:
   name: sim_async_env
   gym_name: MountainCarContinuous-v0
+  init_type : gym.make
 
 pipeline:
   reward:

@@ -247,6 +247,19 @@ wheels = [
 ]
 
 [[package]]
+name = "coreenv"
+version = "0.133.0"
+source = { git = "https://github.com/rlcoretech/core-env.git#68e1f856a16fa8eb8dec35b6c84db716a159cfec" }
+dependencies = [
+    { name = "gymnasium" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "scipy" },
+    { name = "sympy" },
+]
+
+[[package]]
 name = "corerl"
 version = "0.135.0"
 source = { editable = "." }
@@ -285,6 +298,7 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "boto3" },
+    { name = "coreenv" },
     { name = "debugpy" },
     { name = "docker" },
     { name = "filelock" },
@@ -338,6 +352,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "boto3", specifier = ">=1.36.7" },
+    { name = "coreenv", git = "https://github.com/rlcoretech/core-env.git" },
     { name = "debugpy", specifier = ">=1.8.12" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "filelock", specifier = ">=3.17.0" },
