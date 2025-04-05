@@ -12,7 +12,7 @@ include = ["coreenv*"]
 "coreenv" = "vendor/core-env"
 
 [tool.uv.sources]
-coreenv = { git = "ssh://git@github.com/rlcoretech/core-env.git" }
+coreenv = { git = "ssh://git@gh-rlcore/rlcoretech/core-env.git" }
 
 
 [tool.commitizen]
