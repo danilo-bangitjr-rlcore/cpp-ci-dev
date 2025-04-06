@@ -218,9 +218,6 @@ class GreedyAC:
         apply = jax_u.vmap_only(self.critic.apply, ['params'])
         return apply(params, state, action).q
 
-    def _get_target_q(self, target_params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
-        return self.critic.apply(params=target_params, x=state, a=action).q
-
     def critic_loss(
             self,
             critic_params: chex.ArrayTree,
@@ -236,8 +233,7 @@ class GreedyAC:
         gamma = transition.gamma
 
         next_action = self._get_actions(actor_params, rng, next_state)
-        get_ens_targets = jax_u.vmap_only(self._get_target_q, ['target_params'])
-        target_value = get_ens_targets(ens_target_params, next_state, next_action).mean(axis=0)
+        target_value = self._get_ensemble_values(ens_target_params, next_state, next_action).mean(axis=0)
         target = reward + gamma * target_value
         value = self.critic.apply(params=critic_params, x=state, a=action)
         loss = jnp.square(target - value.q)
