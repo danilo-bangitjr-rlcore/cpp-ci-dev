@@ -92,6 +92,7 @@ class GreedyAC:
         self.rng = jax.random.PRNGKey(seed)
         self.state_dim = state_dim
         self.action_dim = action_dim
+        self._cfg = cfg
         self.num_samples = cfg.num_samples
         self.actor_percentile = cfg.actor_percentile
         self.proposal_percentile = cfg.proposal_percentile
@@ -213,6 +214,9 @@ class GreedyAC:
     # -------------------
     # -- Critic Update --
     # -------------------
+    def _get_ensemble_values(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
+        apply = jax_u.vmap_only(self.critic.apply, ['params'])
+        return apply(params, state, action).q
 
     def _get_target_q(self, target_params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
         return self.critic.apply(params=target_params, x=state, a=action).q
@@ -365,6 +369,8 @@ class GreedyAC:
         states: jax.Array,
         rng: chex.PRNGKey,
     ):
+        chex.assert_shape(states, (self._cfg.batch_size, self.state_dim))
+
         top_ranked_actions_over_batch = jax_u.vmap_only(self._get_policy_update_actions, ['state'])
         top_ranked_actions = top_ranked_actions_over_batch(
             agent_state.critic.params,
@@ -409,7 +415,7 @@ class GreedyAC:
             new_opt_state,
         )
 
-    def _get_action_samples(self, proposal_params: chex.ArrayTree, state: jax.Array, rng: chex.PRNGKey):
+    def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: jax.Array, rng: chex.PRNGKey):
         uniform_samples = int(self.num_samples * self.uniform_weight)
 
         rng, u_rng = jax.random.split(rng, 2)
@@ -425,24 +431,6 @@ class GreedyAC:
         sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
         return sampled_actions
 
-    def _ensemble_state_action_eval(self, critic_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
-        q_vals = jax_u.vmap_only(self.critic.apply, [0])(critic_params, state, action)
-        q_val = jnp.mean(q_vals.q, axis=0) # Mean Reduction
-
-        return q_val
-
-    def _evaluate_sampled_actions(
-        self,
-        critic_params: chex.ArrayTree,
-        proposal_params: chex.ArrayTree,
-        state: jax.Array,
-        rng: chex.PRNGKey
-    ):
-        sampled_actions = self._get_action_samples(proposal_params, state, rng)
-        eval_over_proposals = jax_u.vmap_only(self._ensemble_state_action_eval, ['action'])
-        q_vals = eval_over_proposals(critic_params, state, sampled_actions)
-        return sampled_actions, q_vals
-
     def _get_top_ranked_actions(self, percentile: float, q_vals: jax.Array, sampled_actions: jax.Array):
         top_k = int(percentile * self.num_samples)
         _, top_k_inds = jax.lax.top_k(q_vals.flatten(), top_k)
@@ -456,9 +444,22 @@ class GreedyAC:
         state: jax.Array,
         rng: chex.PRNGKey,
     ):
-        sampled_actions, q_vals = self._evaluate_sampled_actions(critic_params, proposal_params, state, rng)
-        actor_update_actions = self._get_top_ranked_actions(self.actor_percentile, q_vals, sampled_actions)
-        proposal_update_actions = self._get_top_ranked_actions(self.proposal_percentile, q_vals, sampled_actions)
+        chex.assert_shape(state, (self.state_dim, ))
+
+        proposal_actions = self._get_proposal_samples(proposal_params, state, rng)
+        chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
+
+        ens_q_vals = jax_u.vmap_only(self._get_ensemble_values, ['action'])(
+            critic_params,
+            state,
+            proposal_actions,
+        )
+        chex.assert_shape(ens_q_vals, (self._cfg.num_samples, self._cfg.ensemble, 1))
+
+        q_vals = ens_q_vals.mean(axis=1)
+
+        actor_update_actions = self._get_top_ranked_actions(self.actor_percentile, q_vals, proposal_actions)
+        proposal_update_actions = self._get_top_ranked_actions(self.proposal_percentile, q_vals, proposal_actions)
 
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
