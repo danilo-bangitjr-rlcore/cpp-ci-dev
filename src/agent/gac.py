@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import NamedTuple, cast
+from typing import Any, NamedTuple, cast
 
 import chex
 import distrax
@@ -41,12 +41,12 @@ class GACState(NamedTuple):
 
 @dataclass
 class GreedyACConfig:
-    num_samples: int = 128
+    num_samples: int = 32
     actor_percentile: float = 0.1
     proposal_percentile: float = 0.2
-    uniform_weight: float = 1.0
-    batch_size: int = 256
-    ensemble: int = 1
+    uniform_weight: float = 0.5
+    batch_size: int = 16
+    ensemble: int = 3
 
 
 class CriticOutputs(NamedTuple):
@@ -253,8 +253,8 @@ class GreedyAC:
             rng: chex.PRNGKey,
     ):
         rngs = jax.random.split(rng, self.critic_buffer.batch_size)
-        vmapped = jax_u.vmap_only(self.critic_loss, ['transition', 'rng'])
-        losses = vmapped(
+        loss_over_batch = jax_u.vmap_only(self.critic_loss, ['transition', 'rng'])
+        losses = loss_over_batch(
             critic_params,
             ens_target_params,
             actor_params,
@@ -264,70 +264,70 @@ class GreedyAC:
 
         return jnp.mean(losses)
 
-    def _member_critic_update(
-            self,
-            critic_state: CriticState,
-            ens_target_params: chex.ArrayTree,
-            actor_state: PolicyState,
-            transitions: VectorizedTransition,
-            rng: chex.PRNGKey,
+    def _ens_critic_loss(
+        self,
+        params: chex.ArrayTree,
+        ens_target_params: chex.ArrayTree,
+        actor_params: chex.ArrayTree,
+        transitions: VectorizedTransition,
+        rng: chex.PRNGKey,
     ):
-        """
-        Updates a single member of the ensemble.
-        """
-        loss, grads = jax.value_and_grad(self._batch_critic_loss)(
-            critic_state.params,
-            ens_target_params,
-            actor_state.params,
-            transitions,
-            rng,
-        )
-        updates, new_opt_state = self.critic_opt.update(
-            grads,
-            critic_state.opt_state,
-            critic_state.params,
-            value=loss,
-            grad=grads,
-            value_fn=self._batch_critic_loss,
-            ens_target_params=ens_target_params,
-            actor_params=actor_state.params,
-            transitions=transitions,
-            rng=rng,
-        )
-        new_params = optax.apply_updates(critic_state.params, updates)
-
-        # Target Net Polyak Update
-        polyak = 0.995
-        target_params = critic_state.target_params
-        new_target_params = optax.incremental_update(new_params, target_params, polyak)
-
-        return CriticState(
-            new_params,
-            new_target_params,
-            new_opt_state,
-        ), loss
+        rngs = jax.random.split(rng, self.ensemble)
+        loss_over_members = jax_u.vmap_only(self._batch_critic_loss, ['critic_params', 'transitions', 'rng'])
+        losses = loss_over_members(params, ens_target_params, actor_params, transitions, rngs)
+        return jnp.sum(losses), losses
 
     @jax_u.method_jit
     def _ensemble_critic_update(
         self,
         critic_state: CriticState,
-        actor_state: PolicyState,
+        actor_params: chex.ArrayTree,
         transitions: VectorizedTransition,
         rng: chex.PRNGKey,
     ):
         """
         Updates each member of the ensemble.
         """
-        rngs = jax.random.split(rng, self.ensemble)
-        vmapped = jax.vmap(self._member_critic_update, in_axes=(0, None, None, 0, 0))
-        new_critic_state, losses =  vmapped(
-            critic_state,
+        grads, member_losses = jax.grad(self._ens_critic_loss, has_aux=True)(
+            critic_state.params,
             critic_state.target_params,
-            actor_state,
+            actor_params,
             transitions,
-            rngs,
+            rng,
         )
-        return new_critic_state, losses
+
+        ens_updates = []
+        ens_opts = []
+        for i in range(self._cfg.ensemble):
+            updates, new_opt_state = self.critic_opt.update(
+                get_member(grads, i),
+                get_member(critic_state.opt_state, i),
+                get_member(critic_state.params, i),
+                value=member_losses[i],
+                grad=get_member(grads, i),
+                value_fn=self._batch_critic_loss,
+                ens_target_params=critic_state.target_params,
+                actor_params=actor_params,
+                transitions=get_member(transitions, i),
+                rng=rng,
+            )
+
+            ens_updates.append(updates)
+            ens_opts.append(new_opt_state)
+
+        updates = jax.tree_util.tree_map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
+        new_opt_state = jax.tree_util.tree_map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
+        new_params = optax.apply_updates(critic_state.params, updates)
+        # Target Net Polyak Update
+        polyak = 0.995
+        target_params = critic_state.target_params
+        new_target_params = optax.incremental_update(new_params, target_params, 1 - polyak)
+
+        return CriticState(
+            new_params,
+            new_target_params,
+            new_opt_state,
+        ), member_losses
 
     def critic_update(self):
         if self.critic_buffer.size == 0:
@@ -337,7 +337,7 @@ class GreedyAC:
         self.rng, update_rng = jax.random.split(self.rng, 2)
         new_critic_state, losses = self._ensemble_critic_update(
             self.agent_state.critic,
-            self.agent_state.actor,
+            self.agent_state.actor.params,
             transitions,
             update_rng,
         )
@@ -486,3 +486,7 @@ def top_k_by_other(arr: jax.Array, other: jax.Array, k: int) -> jax.Array:
 
     _, idxs = jax.lax.top_k(other, k)
     return arr[idxs]
+
+
+def get_member(a: Any, i: int):
+    return jax.tree_util.tree_map(lambda x: x[i], a)
