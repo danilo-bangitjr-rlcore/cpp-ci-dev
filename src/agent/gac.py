@@ -431,12 +431,6 @@ class GreedyAC:
         sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
         return sampled_actions
 
-    def _get_top_ranked_actions(self, percentile: float, q_vals: jax.Array, sampled_actions: jax.Array):
-        top_k = int(percentile * self.num_samples)
-        _, top_k_inds = jax.lax.top_k(q_vals.flatten(), top_k)
-
-        return sampled_actions[top_k_inds]
-
     def _get_policy_update_actions(
         self,
         critic_params: chex.ArrayTree,
@@ -456,10 +450,14 @@ class GreedyAC:
         )
         chex.assert_shape(ens_q_vals, (self._cfg.num_samples, self._cfg.ensemble, 1))
 
-        q_vals = ens_q_vals.mean(axis=1)
+        q_vals = ens_q_vals.mean(axis=1)[:, 0]
+        chex.assert_shape(q_vals, (self._cfg.num_samples, ))
 
-        actor_update_actions = self._get_top_ranked_actions(self.actor_percentile, q_vals, proposal_actions)
-        proposal_update_actions = self._get_top_ranked_actions(self.proposal_percentile, q_vals, proposal_actions)
+        actor_k = int(self._cfg.actor_percentile * self._cfg.num_samples)
+        actor_update_actions = top_k_by_other(proposal_actions, q_vals, actor_k)
+
+        proposal_k = int(self._cfg.proposal_percentile * self._cfg.num_samples)
+        proposal_update_actions = top_k_by_other(proposal_actions, q_vals, proposal_k)
 
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
@@ -479,3 +477,12 @@ class GreedyAC:
     ):
         losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
+
+
+def top_k_by_other(arr: jax.Array, other: jax.Array, k: int) -> jax.Array:
+    chex.assert_equal_shape_prefix((arr, other), prefix_len=1)
+    chex.assert_axis_dimension_gteq(arr, 0, k)
+    chex.assert_axis_dimension_gteq(other, 0, k)
+
+    _, idxs = jax.lax.top_k(other, k)
+    return arr[idxs]
