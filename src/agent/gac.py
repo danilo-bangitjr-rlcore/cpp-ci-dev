@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import NamedTuple, cast
+from typing import NamedTuple
 
 import chex
 import distrax
@@ -191,15 +191,52 @@ class GreedyAC:
         self.critic_buffer.add(transition)
         self.policy_buffer.add(transition)
 
+    def _get_dist(self, params: chex.ArrayTree, state: jax.Array) -> distrax.Distribution:
+        out: ActorOutputs = self.actor.apply(params=params, x=state)
+        dist = distrax.Beta(out.alpha, out.beta)
+        return dist
+
     @jax_u.method_jit
     def _get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
-        out: ActorOutputs = self.actor.apply(params=params, x=state)
-        return distrax.Beta(out.alpha, out.beta).sample(seed=rng)
+        dist = self._get_dist(params, state)
+        return dist.sample(seed=rng)
 
     def get_actions(self, state: jax.Array | np.ndarray):
         state = jnp.asarray(state)
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self._get_actions(self.agent_state.actor.params, sample_rng, state)
+
+    def _get_prob(self, dist: distrax.Distribution, action: jax.Array):
+        log_prob = dist.log_prob(action)
+        return jnp.exp(log_prob)
+
+    def _get_probs(self, dist: distrax.Distribution, actions: jax.Array):
+        probs = jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
+        return probs
+
+    @jax_u.method_jit
+    def get_probs(self, params: chex.ArrayTree, state: jax.Array | np.ndarray, actions: jax.Array):
+        state = jnp.asarray(state)
+        dist = self._get_dist(params, state)
+        probs = self._get_probs(dist, actions)
+
+        return probs
+
+    def _get_action_value(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+        return self.critic.apply(params=params, x=state, a=action).q
+
+    def _get_ensemble_action_value(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+        ensemble_q_vals = jax.vmap(self._get_action_value, in_axes=(0, None, None))(params, state, action)
+        q_val = jnp.mean(ensemble_q_vals) # Mean Reduction
+
+        return q_val
+
+    @jax_u.method_jit
+    def get_action_values(self, params: chex.ArrayTree, state: jax.Array | np.ndarray, actions: jax.Array):
+        state = jnp.asarray(state)
+        q_values = jax.vmap(self._get_ensemble_action_value, in_axes=(None, None, 0))(params, state, actions)
+
+        return q_values
 
     def update(self):
         self.critic_update()
@@ -461,9 +498,10 @@ class GreedyAC:
     def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: jax.Array, top_actions: jax.Array):
         out: ActorOutputs = policy.apply(params=params, x=state)
         dist = distrax.Beta(out.alpha, out.beta)
-        log_prob = dist.log_prob(top_actions)
+        log_prob = dist.log_prob(top_actions) # log prob for each action dimension
+        loss = jnp.sum(log_prob)
 
-        return -cast(jax.Array, log_prob)
+        return -loss
 
     def _batch_policy_loss(
         self,
