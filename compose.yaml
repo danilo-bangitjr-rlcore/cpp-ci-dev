@@ -96,11 +96,20 @@ services:
         condition: service_healthy
     ports:
       - '3000:3000'
+    environment:
+      GF_RENDERING_SERVER_URL: http://renderer:8081/render
+      GF_RENDERING_CALLBACK_URL: http://grafana:3000/
+      GF_LOG_FILTERS: rendering:debug
     volumes:
       - grafana-storage:/var/lib/grafana
       - ./e2e/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
       - ./e2e/grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
       - ./e2e/grafana/grafana_config_continuous_mountain_car.json:/var/lib/grafana/dashboards/grafana_config_continuous_mountain_car.json
+
+  renderer:
+    image: grafana/grafana-image-renderer:latest
+    ports:
+      - 8081
 
   config-test:
     profiles: ['test']
