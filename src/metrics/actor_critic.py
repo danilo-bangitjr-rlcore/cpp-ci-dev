@@ -1,6 +1,5 @@
 import jax.numpy as jnp
 import numpy as np
-
 from ml_instrumentation.Collector import Collector
 
 from agent.gac import GreedyAC
