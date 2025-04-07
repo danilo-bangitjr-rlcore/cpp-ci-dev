@@ -5,6 +5,22 @@
 - styles again
 - fix agent test utils
 
+## [0.137.0](https://github.com/rlcoretech/core-rl/compare/v0.136.1...v0.137.0) (2025-04-07)
+
+
+### Features
+
+* added renderer to grafana ([dc72b67](https://github.com/rlcoretech/core-rl/commit/dc72b677dc6bf42fa92b8b774743774b33ef43c7))
+* **PROD-189:** add model as init type ([00420fd](https://github.com/rlcoretech/core-rl/commit/00420fd725326a9b5a41ff37bba5c2340aa8c41e))
+* **PROD-189:** change default init_type to custom ([9c16045](https://github.com/rlcoretech/core-rl/commit/9c160454edc02aefcc82b6a74e13c28ed3b6778d))
+
+
+### Bug Fixes
+
+* **PROD-189:** docker dependencies for core_env ([a928a9a](https://github.com/rlcoretech/core-rl/commit/a928a9ae0bb36338373dec6d5da01b2348f0ce2e))
+* **PROD-189:** pvs imports ([04a9237](https://github.com/rlcoretech/core-rl/commit/04a923779d033ff5f756a922666b39a7233d61e1))
+* **PROD-189:** set up ssh for getting core_env ([c348f04](https://github.com/rlcoretech/core-rl/commit/c348f047d2e8bb516f71c3e5ea8338ccc9f5926d))
+
 ## [0.136.1](https://github.com/rlcoretech/core-rl/compare/v0.136.0...v0.136.1) (2025-04-03)
 
 
