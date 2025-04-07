@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, NamedTuple, cast
+from typing import Any, NamedTuple
 
 import chex
 import distrax
