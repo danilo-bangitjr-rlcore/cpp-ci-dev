@@ -4,13 +4,14 @@ import jax
 from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.metadata import attach_metadata
-from ml_instrumentation.Sampler import Ignore, MovingAverage, Subsample
+from ml_instrumentation.Sampler import Identity, MovingAverage, Subsample
 from ml_instrumentation.utils import Pipe
 from tqdm import tqdm
 
 import utils.gym as gym_u
 from agent.gac import GreedyAC, GreedyACConfig
 from interaction.env_wrapper import EnvWrapper
+from metrics.actor_critic import ac_eval
 
 
 def main():
@@ -35,7 +36,7 @@ def main():
             ),
         },
         # by default, ignore keys that are not explicitly listed above
-        default=Ignore(),
+        default=Identity(),
         experiment_id=seed,
         low_watermark=1,
     )
@@ -62,7 +63,7 @@ def main():
 
     agent = GreedyAC(
         GreedyACConfig(),
-        seed=0,
+        seed=seed,
         state_dim=wrapper_env.get_state_dim(),
         action_dim=1,
         collector=collector,
@@ -78,6 +79,7 @@ def main():
         while True:
             collector.next_frame()
             rng, step_key = jax.random.split(rng)
+            ac_eval(collector, agent, state)
             action = agent.get_actions(state)
 
             next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
