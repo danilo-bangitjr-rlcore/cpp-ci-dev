@@ -81,11 +81,15 @@ dependencies = [
     'jaxlib>=0.5.3',
     "jaxtyping~=0.3",
     "matplotlib~=3.10",
-    "ml-instrument>=0.4.0",
+    "ml-instrument>=0.4.1",
     "numba~=0.58",
     'numpy~=2.0',
     'optax>=0.2.4',
+    "psycopg2-binary>=2.9.10",
     "pydantic~=2.10",
+    "pyyaml>=6.0.2",
+    "sqlalchemy>=2.0.40",
+    "sqlalchemy-utils>=0.41.2",
     "tqdm~=4.67",
 ]
 

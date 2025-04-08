@@ -41,12 +41,13 @@ class GACState(NamedTuple):
 
 @dataclass
 class GreedyACConfig:
-    num_samples: int = 32
-    actor_percentile: float = 0.1
-    proposal_percentile: float = 0.2
-    uniform_weight: float = 0.5
-    batch_size: int = 16
-    ensemble: int = 3
+    name: str
+    num_samples: int
+    actor_percentile: float
+    proposal_percentile: float
+    uniform_weight: float
+    batch_size: int
+    ensemble: int
 
 
 class CriticOutputs(NamedTuple):

@@ -1,6 +1,6 @@
+import argparse
 from pathlib import Path
 
-import jax
 from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.metadata import attach_metadata
@@ -10,15 +10,26 @@ from tqdm import tqdm
 
 import utils.gym as gym_u
 from agent.gac import GreedyAC, GreedyACConfig
+from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
-from metrics.actor_critic import ac_eval
+
+parser = argparse.ArgumentParser()
+parser.add_argument('-e', '--exp', type=str, required=True)
+parser.add_argument('-s', '--seed', type=int, required=True)
+
+args = parser.parse_args()
 
 
 def main():
-    seed = 0
+    cfg = ExperimentConfig.load(args.exp)
+
+    save_path = Path('results/test/results.db')
+    save_path.parent.mkdir(exist_ok=True, parents=True)
+
+    exp_id = get_next_id(save_path)
 
     collector = Collector(
-        tmp_file='./test.db',
+        tmp_file=str(save_path),
         # specify which keys to actually store and ultimately save
         # Options are:
         #  - Identity() (save everything)
@@ -30,19 +41,14 @@ def main():
                 Subsample(100),
             ),
             'critic_loss': Subsample(100),
-            'action_0': Pipe(
-                MovingAverage(0.99),
-                Subsample(100),
-            ),
         },
         # by default, ignore keys that are not explicitly listed above
         default=Identity(),
-        experiment_id=seed,
+        experiment_id=exp_id,
         low_watermark=1,
     )
 
-    env = init_env('Saturation-v0')
-    # env = gym.make("MountainCarContinuous-v0")
+    env = init_env(cfg.env['name'], cfg.env)
 
     obs_bounds = gym_u.space_bounds(env.observation_space)
     act_bounds = gym_u.space_bounds(env.action_space)
@@ -62,57 +68,51 @@ def main():
     )
 
     agent = GreedyAC(
-        GreedyACConfig(),
-        seed=seed,
+        GreedyACConfig(**cfg.agent),
+        seed=args.seed,
         state_dim=wrapper_env.get_state_dim(),
         action_dim=1,
         collector=collector,
     )
-    rng = jax.random.PRNGKey(0)
 
-    episodes = 2
-    for _ in range(episodes):
-        state, _ = wrapper_env.reset()
-        episode_reward = 0.0
-        steps = 0
-        pbar = tqdm()
-        while True:
-            collector.next_frame()
-            rng, step_key = jax.random.split(rng)
-            ac_eval(collector, agent, state)
-            action = agent.get_actions(state)
+    state, _ = wrapper_env.reset()
+    episode_reward = 0.0
+    steps = 0
+    # +1 to ensure we don't reject any metrics that are subsampling
+    # every 100 steps
+    for _ in tqdm(range(cfg.max_steps + 1)):
+        collector.next_frame()
+        # ac_eval(collector, agent, state)
+        action = agent.get_actions(state)
 
-            next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
-            for t in transitions:
-                agent.update_buffer(t)
+        next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
+        for t in transitions:
+            agent.update_buffer(t)
 
-            agent.update()
-            for i, x in enumerate(next_state):
-                collector.collect(f'state_{i}', float(x))
+        agent.update()
+        collector.collect('reward', reward)
+        episode_reward += reward
+        steps += 1
 
-            for i, a in enumerate(action):
-                collector.collect(f'action_{i}', float(a))
+        if terminated or truncated:
+            collector.collect('return', episode_reward)
+            collector.collect('num_steps', steps)
 
-            collector.collect('reward', reward)
-            episode_reward += reward
-            steps += 1
-            pbar.update(1)
+            steps = 0
+            episode_reward = 0
 
-            if terminated or truncated:
-                break
+            state, _ = wrapper_env.reset()
 
+        else:
             state = next_state
 
     env.close()
 
-    save_path = Path('results/test/results.db')
-    save_path.parent.mkdir(exist_ok=True, parents=True)
-    # TODO: get the hyperparam values from the configs
-    hyperparams = { 'stepsize': 0.0001 }
-
     # add the hyperparameters to the results database
+    hyperparams = cfg.flatten()
+    hyperparams['seed'] = args.seed
     attach_metadata(save_path, collector.get_current_experiment_id(), hyperparams)
-    collector.merge(str(save_path))
+    collector.reset()
     collector.close()
 
 if __name__ == "__main__":
