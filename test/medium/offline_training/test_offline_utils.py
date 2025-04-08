@@ -18,7 +18,6 @@ from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.eval.actor_critic import PlotInfoBatch
 from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
-from corerl.eval.xy_metrics import XYTable
 from corerl.messages.event_bus import EventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
@@ -157,7 +156,6 @@ def test_offline_training(
     app_state = AppState(
         cfg=offline_cfg,
         metrics=MetricsTable(offline_cfg.metrics),
-        xy_metrics=XYTable(offline_cfg.xy_metrics),
         evals=EvalsTable(offline_cfg.evals),
         event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
     )

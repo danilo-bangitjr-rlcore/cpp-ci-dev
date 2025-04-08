@@ -11,7 +11,6 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.eval.xy_metrics import XYTable
 from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
 
@@ -28,14 +27,12 @@ def cfg():
 @pytest.fixture
 def app_state(cfg: MainConfig):
     cfg.metrics.enabled = False
-    cfg.xy_metrics.enabled = False
     cfg.evals.enabled = False
     cfg.event_bus.enabled = False
     return AppState(
         cfg=cfg,
         evals=EvalsTable(cfg.evals),
         metrics=MetricsTable(cfg.metrics),
-        xy_metrics=XYTable(cfg.xy_metrics),
         event_bus=EventBus(cfg.event_bus, cfg.env),
     )
 
