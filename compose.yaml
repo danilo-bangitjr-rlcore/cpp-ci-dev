@@ -49,8 +49,8 @@ services:
     # corerl web server for direct main config API
     build:
       context: .
-    ssh:
-      - default
+      ssh:
+        - default
     ports:
       - 8000:8000
     entrypoint: ["python", "/usr/local/bin/corerl_start_web"]
