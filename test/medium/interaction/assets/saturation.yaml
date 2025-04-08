@@ -14,9 +14,6 @@ experiment :
 metrics:
   enabled: False
 
-xy_metrics:
-  enabled: False
-
 pipeline:
   state_constructor:
     defaults:
