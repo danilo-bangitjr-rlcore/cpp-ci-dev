@@ -116,6 +116,7 @@ def retryable_main(cfg: MainConfig):
     finally:
         app_state.metrics.close()
         app_state.evals.close()
+        app_state.xy_metrics.close()
         env.cleanup()
         event_bus.cleanup()
 
