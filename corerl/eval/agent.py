@@ -3,6 +3,7 @@ from typing import Callable, Concatenate, ParamSpec, Protocol, SupportsFloat, Ty
 
 import numpy as np
 import torch
+from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import (
@@ -406,15 +407,16 @@ def q_values_and_act_prob(
             cfg.other_action_samples,
         ).mean(dim=1)
 
-        # the x values are the direct actions
         lin_spaced_actions_in_da_space = direct_actions[:, a_dim_idx].unique()
-        for la_idx, a in enumerate(lin_spaced_actions_in_da_space):
-            app_state.xy_metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"pdf_plot_action_{a_dim_idx}",
-                x=a,
-                y=probs[la_idx],
-            )
+        measure = XYEval(data=[
+            XY(x=x, y=float(y))
+            for x, y in zip(lin_spaced_actions_in_da_space, probs, strict=True)
+        ])
+        app_state.evals.write(
+            agent_step=app_state.agent_step,
+            evaluator=f"pdf_plot_action_{a_dim_idx}",
+            value=measure.model_dump_json(),
+        )
 
         # Next, plot q values for the entire range of direct actions
         augmented_direct_actions = direct_actions.clone()
@@ -427,11 +429,21 @@ def q_values_and_act_prob(
             cfg.primary_action_samples,
             cfg.other_action_samples,
         ).mean(dim=1)
-        for la_idx, a in enumerate(lin_spaced_actions):
-            app_state.xy_metrics.write(
-                agent_step=app_state.agent_step,
-                metric=f"qs_plot_action_{a_dim_idx}",
-                x=a,
-                y=qs[la_idx],
-            )
 
+        measure = XYEval(data=[
+            XY(x=float(x), y=float(y))
+            for x, y in zip(lin_spaced_actions, qs, strict=True)
+        ])
+        app_state.evals.write(
+            agent_step=app_state.agent_step,
+            evaluator=f"qs_plot_action_{a_dim_idx}",
+            value=measure.model_dump_json(),
+        )
+
+
+class XY(BaseModel):
+    x: float
+    y: float
+
+class XYEval(BaseModel):
+    data: list[XY]

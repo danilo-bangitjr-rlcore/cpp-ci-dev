@@ -65,11 +65,12 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         if not self.cfg.enabled:
             return
 
+        value = value if isinstance(value, str) else json.dumps(value)
         point = _EvalPoint(
             timestamp=timestamp or now_iso(),
             agent_step=agent_step,
             evaluator=evaluator,
-            value=json.dumps(value),
+            value=value,
         )
 
         try:
