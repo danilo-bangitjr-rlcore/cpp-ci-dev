@@ -15,7 +15,6 @@ from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
-from corerl.eval.actor_critic import PlotInfoBatch
 from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
 from corerl.messages.event_bus import EventBus
@@ -186,24 +185,6 @@ def test_offline_training(
         partial_return_entries = metrics.loc[metrics["metric"] == "partial_return_0"]
         assert len(state_v_entries) == len(observed_a_q_entries) == len(partial_return_entries) == 2
 
-        # Ensure Actor-Critic evaluator writes an entry to the evals table
-        ac_cfg = offline_cfg.eval_cfgs.actor_critic
-        evals = pd.read_sql_table('evals', con=conn)
-        ac_eval_rows = evals.loc[evals["evaluator"] == "actor-critic_0"]
-        assert len(ac_eval_rows) == len(offline_cfg.experiment.offline_eval_iters)
-        for i in range(len(ac_eval_rows)):
-            ac_out = PlotInfoBatch.model_validate_json(ac_eval_rows["value"].iloc[i])
-            assert len(ac_out.states) == ac_cfg.num_test_states
-            for test_state in ac_out.states:
-                for action_plot_info in test_state.a_dims:
-                    pdf_x_range = np.array(action_plot_info.pdf.x_range)
-                    pdfs = np.array(action_plot_info.pdf.pdfs)
-                    direct_critic_x_range = np.array(action_plot_info.direct_critic.x_range)
-                    qs = np.array(action_plot_info.direct_critic.q_vals)
-                    assert pdf_x_range.shape == (ac_cfg.num_uniform_actions,)
-                    assert pdfs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
-                    assert direct_critic_x_range.shape == (ac_cfg.num_uniform_actions,)
-                    assert qs.shape == (ac_cfg.critic_samples, ac_cfg.num_uniform_actions)
 
 def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_state: AppState):
     normalizer = NormalizerConfig(from_data=True)

@@ -2,14 +2,12 @@ import logging
 
 import numpy as np
 import pandas as pd
-from torch import Tensor
 
 import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnv
-from corerl.eval.actor_critic import ActorCriticEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.configs import SimInteractionConfig
 from corerl.interaction.interaction import Interaction
@@ -48,13 +46,6 @@ class SimInteraction(Interaction):
             app_state,
             agent,
         )
-        self._actor_critic_eval = ActorCriticEval(
-            self._app_state.cfg.eval_cfgs.actor_critic,
-            app_state,
-            pipeline,
-            agent,
-            self._column_desc,
-        )
 
         self._sim_time = app_state.start_time
 
@@ -90,8 +81,6 @@ class SimInteraction(Interaction):
 
         # perform evaluations
         self._monte_carlo_eval.execute(pipe_return, "online")
-        label = str(self._app_state.agent_step)
-        self._actor_critic_eval.execute([Tensor(self._last_state)], [Tensor(self._last_action)], label)
 
         self._app_state.agent_step += 1
 
