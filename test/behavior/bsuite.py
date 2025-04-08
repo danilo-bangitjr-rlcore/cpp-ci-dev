@@ -55,7 +55,6 @@ class BSuiteTestCase:
             'experiment.num_threads': 1,
             'experiment.seed': self.seed,
             'metrics.enabled': True,
-            'xy_metrics.enabled': True,
             'evals.enabled': True,
         } | feature_overrides
 
@@ -78,8 +77,6 @@ class BSuiteTestCase:
             # ensure tables have retention policies
             add_retention_policy(conn, 'metrics', schema, days=3)
             add_retention_policy(conn, 'evals', schema, days=3)
-            add_retention_policy(conn, 'metrics_xy', schema, days=3)
-
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
         return metrics_table
