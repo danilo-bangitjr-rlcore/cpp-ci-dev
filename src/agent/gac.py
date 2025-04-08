@@ -41,13 +41,18 @@ class GACState(NamedTuple):
 
 @dataclass
 class GreedyACConfig:
-    name: str
     num_samples: int
     actor_percentile: float
     proposal_percentile: float
     uniform_weight: float
     batch_size: int
     ensemble: int
+    ensemble_prob: float
+
+    actor_lr: float
+    proposal_lr: float
+    critic_lr: float
+    polyak: float
 
 
 class CriticOutputs(NamedTuple):
@@ -99,22 +104,23 @@ class GreedyAC:
         self.proposal_percentile = cfg.proposal_percentile
         self.uniform_weight = cfg.uniform_weight
         self.ensemble = cfg.ensemble
+        self.polyak = cfg.polyak
 
         self._collector = collector
 
         # Neural Nets
         critic_torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.LateFusionConfig(sizes=[32, 32], activation='relu'),
-                nets.LinearConfig(size=64, activation='relu'),
+                nets.LateFusionConfig(sizes=[128, 128], activation='relu'),
+                nets.LinearConfig(size=256, activation='relu'),
             ],
         )
         self.critic = critic_builder(critic_torso_cfg)
 
         actor_torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.LinearConfig(size=64, activation='relu'),
-                nets.LinearConfig(size=64, activation='relu'),
+                nets.LinearConfig(size=256, activation='relu'),
+                nets.LinearConfig(size=256, activation='relu'),
             ]
         )
         actor_output_act_cfg = TanhConfig(shift=-4.0)
@@ -122,27 +128,24 @@ class GreedyAC:
         self.proposal = self.actor
 
         # Optimizers
-        critic_lr = 0.1
         self.critic_opt = optax.chain(
-            optax.adam(learning_rate=critic_lr),
+            optax.adam(learning_rate=cfg.critic_lr),
             optax.scale_by_backtracking_linesearch(
                 max_backtracking_steps=50,
-                max_learning_rate=critic_lr,
+                max_learning_rate=cfg.critic_lr,
                 decrease_factor=0.9,
                 increase_factor=np.inf,
                 slope_rtol=0.1
             ),
         )
 
-        actor_lr = 0.001
-        self.actor_opt = optax.adam(actor_lr)
-        proposal_lr = 0.001
-        self.proposal_opt = optax.adam(proposal_lr)
+        self.actor_opt = optax.adam(cfg.actor_lr)
+        self.proposal_opt = optax.adam(cfg.proposal_lr)
 
         # Replay Buffers
         self.critic_buffer = EnsembleReplayBuffer(
             n_ensemble=self.ensemble,
-            ensemble_prob=1.0,
+            ensemble_prob=cfg.ensemble_prob,
             batch_size=cfg.batch_size,
         )
         self.policy_buffer = EnsembleReplayBuffer(
@@ -353,9 +356,8 @@ class GreedyAC:
         new_opt_state = jax.tree_util.tree_map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
         new_params = optax.apply_updates(critic_state.params, updates)
         # Target Net Polyak Update
-        polyak = 0.995
         target_params = critic_state.target_params
-        new_target_params = optax.incremental_update(new_params, target_params, 1 - polyak)
+        new_target_params = optax.incremental_update(new_params, target_params, 1 - self.polyak)
 
         return CriticState(
             new_params,
