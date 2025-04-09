@@ -69,7 +69,6 @@ metrics:
   table_name: pilot_metrics
 
 evals:
-  name: db
   enabled: True
 
 eval_cfgs:

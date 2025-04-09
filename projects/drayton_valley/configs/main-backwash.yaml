@@ -69,7 +69,6 @@ metrics:
   enabled: True
 
 evals:
-  name: db
   enabled: True
 
 eval_cfgs:
@@ -124,7 +123,7 @@ pipeline:
     # It would be preferable to keep one source of truth
     # for conversion to permeability in the preprocessor,
     # but attempts to do so have broken reward constructor.
-    # Instead we have to divide by TMP in both state and 
+    # Instead we have to divide by TMP in both state and
     # reward constructors.
     filter: # ignore perm if following conditions are met
     - name: comparator
@@ -132,7 +131,7 @@ pipeline:
       val: 10
     # binary max acts as OR
     - name: binary
-      op: max 
+      op: max
       # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
@@ -185,7 +184,7 @@ pipeline:
       val: -1
     # binary max acts as OR
     - name: binary
-      op: max 
+      op: max
       # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
