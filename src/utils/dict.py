@@ -2,7 +2,7 @@ from typing import Any
 
 
 def flatten(d: dict[str, object], path: str = '', _out: dict[str, Any] | None = None) -> dict[str, Any]:
-    out = _out or {}
+    out = _out if _out is not None else {}
 
     for k, v in d.items():
         if path == '':
@@ -11,7 +11,7 @@ def flatten(d: dict[str, object], path: str = '', _out: dict[str, Any] | None = 
             key = path + '.' + k
 
         if isinstance(v, dict):
-            flatten(v, key, _out)
+            flatten(v, key, out)
         else:
             out[key] = v
 
