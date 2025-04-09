@@ -23,6 +23,11 @@ services:
     depends_on:
       timescale-db:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "uaread -n 'ns=2;i=2'"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     develop:
       watch:
         - action: rebuild
@@ -35,7 +40,7 @@ services:
       timescale-db:
         condition: service_healthy
       opc-server:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
@@ -120,7 +125,7 @@ services:
       timescale-db:
         condition: service_healthy
       opc-server:
-        condition: service_started
+        condition: service_healthy
       telegraf:
         condition: service_started
       coreio:
@@ -147,7 +152,7 @@ services:
       timescale-db:
         condition: service_healthy
       opc-server:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./e2e/opc_clients:/app/e2e/opc_clients
       - ./config/opc_sim:/app/config/opc_sim

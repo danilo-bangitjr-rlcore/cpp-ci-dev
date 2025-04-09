@@ -1,4 +1,5 @@
 gym:
+  init_type: "gym.make"
   gym_name: MountainCarContinuous-v0
   seed: 1
   # kwargs:
