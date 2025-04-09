@@ -41,6 +41,7 @@ class GACState(NamedTuple):
 
 @dataclass
 class GreedyACConfig:
+    name: str
     num_samples: int
     actor_percentile: float
     proposal_percentile: float

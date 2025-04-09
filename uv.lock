@@ -658,7 +658,7 @@ wheels = [
 
 [[package]]
 name = "ml-instrument"
-version = "0.4.0"
+version = "0.4.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "connectorx" },
@@ -666,10 +666,12 @@ dependencies = [
     { name = "numpy" },
     { name = "polars" },
     { name = "pyarrow" },
+    { name = "sqlalchemy" },
+    { name = "sqlalchemy-utils" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/44/fd/2b5e2d63e3c1e3fbf687c7298ba4da3c8321bc796b138021036a5ed96363/ml_instrument-0.4.0.tar.gz", hash = "sha256:e965e7d33db2b5e00ae0587df4d7ae9715182a78eb248165c77ac7975ad55190", size = 19426 }
+sdist = { url = "https://files.pythonhosted.org/packages/14/10/1695f6cddd7bc2a0c4ad5afb1becd0b89b7b766ef5c9fa7ac75da08522d4/ml_instrument-0.4.2.tar.gz", hash = "sha256:ff4589b283813fd85b0f4302e12665407d26bf747e1551842854d449495aecdf", size = 19949 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/75/9f/54563e7fa05627f1d29c926c8e7fc935dd8bd10cc0db597723d45cb4c360/ml_instrument-0.4.0-py3-none-any.whl", hash = "sha256:8248d58d3c30abc3e037599a151b08064fe76b8e7479f9b84300fb8782b97df2", size = 16940 },
+    { url = "https://files.pythonhosted.org/packages/80/72/3e9e725519138b9947ccca13dfdc57b6ab52f1b9b1fa867d3b3deb1a622e/ml_instrument-0.4.2-py3-none-any.whl", hash = "sha256:91a6d2a42a6ea7d5026f170aea81c27d82a5d2b57044cda5696b4d0e2b9f742f", size = 17226 },
 ]
 
 [[package]]
@@ -932,18 +934,6 @@ wheels = [
 ]
 
 [[package]]
-name = "psycopg"
-version = "3.2.6"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "tzdata", marker = "sys_platform == 'win32'" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/67/97/eea08f74f1c6dd2a02ee81b4ebfe5b558beb468ebbd11031adbf58d31be0/psycopg-3.2.6.tar.gz", hash = "sha256:16fa094efa2698f260f2af74f3710f781e4a6f226efe9d1fd0c37f384639ed8a", size = 156322 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/7d/0ba52deff71f65df8ec8038adad86ba09368c945424a9bd8145d679a2c6a/psycopg-3.2.6-py3-none-any.whl", hash = "sha256:f3ff5488525890abb0566c429146add66b329e20d6d4835662b920cbbf90ac58", size = 199077 },
-]
-
-[[package]]
 name = "psycopg2-binary"
 version = "2.9.10"
 source = { registry = "https://pypi.org/simple" }
@@ -1132,7 +1122,6 @@ dependencies = [
     { name = "numba" },
     { name = "numpy" },
     { name = "optax" },
-    { name = "psycopg" },
     { name = "psycopg2-binary" },
     { name = "pydantic" },
     { name = "pyyaml" },
@@ -1165,11 +1154,10 @@ requires-dist = [
     { name = "jaxlib", specifier = ">=0.5.3" },
     { name = "jaxtyping", specifier = "~=0.3" },
     { name = "matplotlib", specifier = "~=3.10" },
-    { name = "ml-instrument", specifier = ">=0.4.0" },
+    { name = "ml-instrument", specifier = ">=0.4.1" },
     { name = "numba", specifier = "~=0.58" },
     { name = "numpy", specifier = "~=2.0" },
     { name = "optax", specifier = ">=0.2.4" },
-    { name = "psycopg", specifier = ">=3.2.6" },
     { name = "psycopg2-binary", specifier = ">=2.9.10" },
     { name = "pydantic", specifier = "~=2.10" },
     { name = "pyyaml", specifier = ">=6.0.2" },
@@ -1455,15 +1443,6 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/82/5c/e6082df02e215b846b4b8c0b887a64d7d08ffaba30605502639d44c06b82/typing_inspection-0.4.0.tar.gz", hash = "sha256:9765c87de36671694a67904bf2c96e395be9c6439bb6c87b5142569dcdd65122", size = 76222 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/31/08/aa4fdfb71f7de5176385bd9e90852eaf6b5d622735020ad600f2bab54385/typing_inspection-0.4.0-py3-none-any.whl", hash = "sha256:50e72559fcd2a6367a19f7a7e610e6afcb9fac940c650290eed893d61386832f", size = 14125 },
-]
-
-[[package]]
-name = "tzdata"
-version = "2025.2"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9", size = 196380 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839 },
 ]
 
 [[package]]
