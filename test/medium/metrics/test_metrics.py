@@ -6,7 +6,7 @@ import pytest
 import pytz
 from sqlalchemy import Engine
 
-from corerl.eval.metrics import MetricsDBConfig, MetricsTable, PandasMetricsConfig, PandasMetricsTable
+from corerl.eval.metrics import MetricsDBConfig, MetricsTable
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.utils.time import now_iso
 
@@ -36,17 +36,6 @@ def db_metrics_table(
     yield metrics_table
 
     metrics_table.close()
-
-@pytest.fixture()
-def pandas_metrics_table() -> PandasMetricsTable:
-    pandas_metrics_cfg = PandasMetricsConfig(
-        enabled=True,
-        buffer_size=1
-    )
-
-    metrics_table = PandasMetricsTable(pandas_metrics_cfg)
-
-    return metrics_table
 
 def test_db_metrics_writer(tsdb_engine: Engine, db_metrics_table: MetricsTable):
     metrics_val = 1.5
@@ -176,40 +165,6 @@ def test_db_metrics_read_by_metric(tsdb_engine: Engine, db_metrics_table: Metric
     # Read metrics table by metric
     rewards_df = db_metrics_table.read("reward")
     q_df = db_metrics_table.read("q")
-
-    # Ensure the correct entries are in the read DFs
-    assert len(rewards_df) == steps
-    assert len(q_df) == steps
-    for i in range(steps):
-        assert rewards_df.iloc[i]["agent_step"] == i
-        assert rewards_df.iloc[i]["value"] == 2 * i
-        assert q_df.iloc[i]["agent_step"] == i
-        assert q_df.iloc[i]["value"] == i
-
-def test_pandas_metrics_read_by_metric(pandas_metrics_table: PandasMetricsTable):
-    start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
-    curr_time = deepcopy(start_time)
-    delta = dt.timedelta(hours=1)
-    steps = 5
-    for i in range(steps):
-        pandas_metrics_table.write(
-            agent_step=i,
-            metric="reward",
-            value=2*i,
-            timestamp=curr_time.isoformat()
-        )
-        pandas_metrics_table.write(
-            agent_step=i,
-            metric="q",
-            value=i,
-            timestamp=curr_time.isoformat()
-        )
-        curr_time += delta
-    pandas_metrics_table.close()
-
-    # Read metrics table by metric
-    rewards_df = pandas_metrics_table.read("reward")
-    q_df = pandas_metrics_table.read("q")
 
     # Ensure the correct entries are in the read DFs
     assert len(rewards_df) == steps

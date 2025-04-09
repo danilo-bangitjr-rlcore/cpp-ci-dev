@@ -6,8 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from corerl.eval.evals import EvalTableProtocol
-from corerl.eval.metrics import MetricsTableProtocol
+from corerl.eval.evals import EvalsTable
+from corerl.eval.metrics import MetricsTable
 from corerl.eval.xy_metrics import XYTableProtocol
 
 if TYPE_CHECKING:
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 @dataclass
 class AppState:
     cfg: MainConfig
-    evals: EvalTableProtocol
-    metrics: MetricsTableProtocol
+    evals: EvalsTable
+    metrics: MetricsTable
     xy_metrics: XYTableProtocol
     event_bus: EventBus
     agent_step: int = 0
