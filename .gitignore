@@ -11,3 +11,4 @@ results/
 **/*.nbc
 **/*.nbi
 local_tests/
+commands.txt
