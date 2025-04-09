@@ -17,7 +17,9 @@ if TYPE_CHECKING:
 # -- Configs --
 # -------------
 @config()
-class BaseInteractionConfig:
+class InteractionConfig:
+    name: Literal["sim_interaction", "dep_interaction"] = "dep_interaction"
+
     obs_period: timedelta = MISSING
     """
     Kind: required external
@@ -55,22 +57,6 @@ class BaseInteractionConfig:
 
     The number of updates to apply before the first interaction.
     """
-
-
-    @computed('update_period')
-    @classmethod
-    def _update_period(cls, cfg: MainConfig):
-        return cfg.interaction.obs_period
-
-
-@config()
-class SimInteractionConfig(BaseInteractionConfig):
-    name: Literal["sim_interaction"] = "sim_interaction"
-
-
-@config()
-class DepInteractionConfig(BaseInteractionConfig):
-    name: Literal["dep_interaction"] = "dep_interaction"
 
     historical_batch_size: int = 10000
     """
@@ -112,3 +98,10 @@ class DepInteractionConfig(BaseInteractionConfig):
     """
 
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
+
+
+    @computed('update_period')
+    @classmethod
+    def _update_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
+

@@ -38,7 +38,6 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.tag_names = [tag.name for tag in tag_configs]
         self.tag_aggs = {tag.name: tag.agg for tag in tag_configs}
-        self._observation_tags = [tag for tag in tag_configs if not tag.is_meta and tag.action_constructor is None]
 
         self.data_reader = self._init_datareader()
 

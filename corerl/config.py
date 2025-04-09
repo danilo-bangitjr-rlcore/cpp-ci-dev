@@ -11,7 +11,7 @@ from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics import MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
-from corerl.interaction.factory import DepInteractionConfig, InteractionConfig
+from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
 
 
@@ -106,7 +106,7 @@ class MainConfig:
     # -- Agent --
     # -----------
     env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
-    interaction: InteractionConfig = Field(default_factory=DepInteractionConfig)
+    interaction: InteractionConfig = Field(default_factory=InteractionConfig)
     agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
 
     # ----------------
