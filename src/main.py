@@ -17,11 +17,26 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
 parser.add_argument('-s', '--seed', type=int, required=True)
 
-args = parser.parse_args()
+args, override_args = parser.parse_known_args()
+
+
+def process_overrides(override_args: list) -> list[tuple]:
+    """
+    Process the overrides from the command line arguments.
+    """
+    override_list = []
+    for override in override_args:
+        key, value = override.split('=')
+        value = eval(value)  # Convert string to actual value (e.g., int, float, etc.)
+
+        keys = key.split('.')
+        override_list.append((keys, value))
+    return override_list
 
 
 def main():
-    cfg = ExperimentConfig.load(args.exp)
+    overrides = process_overrides(override_args)
+    cfg = ExperimentConfig.load(args.exp, overrides)
 
     save_path = Path('results/test/results.db')
     save_path.parent.mkdir(exist_ok=True, parents=True)
