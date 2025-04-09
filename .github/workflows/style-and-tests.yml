@@ -48,7 +48,6 @@ jobs:
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
-      test-flags: -n auto
       test-suite: small
      # - run: uv run pytest -n auto test/small
 
@@ -65,6 +64,7 @@ jobs:
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
+      test-flags: --verbose --log-cli-level=20
       test-suite: large
       #- run: uv run pytest test/large
 
