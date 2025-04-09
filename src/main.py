@@ -1,5 +1,7 @@
 import argparse
+import ast
 from pathlib import Path
+from typing import Any
 
 from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
@@ -17,11 +19,43 @@ parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
 parser.add_argument('-s', '--seed', type=int, required=True)
 
-args = parser.parse_args()
+args, override_args = parser.parse_known_args()
+
+def safe_cast(value: Any):
+    if not isinstance(value, str):
+        return value
+
+    try:
+        # Check if it's a valid Python literal (number, list, dict, etc.)
+        return ast.literal_eval(value)
+    except (ValueError, SyntaxError):
+        # If not a Python literal, it might be a regular string
+        # or a string representation of True/False
+        if value.lower() == 'true':
+            return True
+        elif value.lower() == 'false':
+            return False
+        else:
+            return value  # Keep as string
+
+
+def process_overrides(override_args: list) -> list[tuple]:
+    """
+    Process the overrides from the command line arguments.
+    """
+    override_list = []
+    for override in override_args:
+        key, value = override.split('=')
+        value = safe_cast(value)
+
+        keys = key.split('.')
+        override_list.append((keys, value))
+    return override_list
 
 
 def main():
-    cfg = ExperimentConfig.load(args.exp)
+    overrides = process_overrides(override_args)
+    cfg = ExperimentConfig.load(args.exp, overrides)
 
     save_path = Path('results/test/results.db')
     save_path.parent.mkdir(exist_ok=True, parents=True)
