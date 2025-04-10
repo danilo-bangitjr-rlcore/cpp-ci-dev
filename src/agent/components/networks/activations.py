@@ -48,6 +48,14 @@ class TanhConfig(ActivationConfig):
 def tanh_act(cfg: TanhConfig, x: jax.Array) -> jax.Array:
     return (jnp.tanh(x + cfg.shift) + 1) / 2
 
+@dataclass
+class SoftplusConfig(ActivationConfig):
+    name: Literal['softplus'] = 'softplus'
+    shift: float = 0.0
+
+def softplus_act(cfg: SoftplusConfig, x: jax.Array) -> jax.Array:
+    return jax.nn.softplus(x + cfg.shift) + 1
+
 def get_output_activation(cfg: ActivationConfig):
     """
     These output activation functions return values in [0, 1]
@@ -70,6 +78,10 @@ def get_output_activation(cfg: ActivationConfig):
         assert isinstance(cfg, CosineConfig)
         cosine_act_fn = functools.partial(cos_act, cfg)
         return cosine_act_fn
+    elif cfg.name == "softplus":
+        assert isinstance(cfg, SoftplusConfig)
+        softplus_act_fn = functools.partial(softplus_act, cfg)
+        return softplus_act_fn
     else:
         raise NotImplementedError
 
