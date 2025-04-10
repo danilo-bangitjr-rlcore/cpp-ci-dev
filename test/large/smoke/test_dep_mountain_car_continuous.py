@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 import time
@@ -20,10 +21,14 @@ from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
 
 raw_service_names = [
-    "core-rl-opc-server-1",
+    "core-rl-corerl-1",
     "core-rl-telegraf-1",
-    "core-rl-timescale-db-1",
+    "core-rl-renderer-1",
+    "core-rl-grafana-1",
+    "core-rl-opc-sim-1",
     "core-rl-coreio-1",
+    "core-rl-timescale-db-1",
+    "core-rl-opc-server-1",
 ]
 
 db_cfg = TagDBConfig(
@@ -36,6 +41,7 @@ db_cfg = TagDBConfig(
     ip="localhost",
     port=5432,
 )
+
 
 def should_skip_test():
     """Skip running large OPC TSDB mountain car smoke test if the
@@ -214,3 +220,36 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     agent.save(path)
     agent.load(path)
     shutil.rmtree(output_dir)
+
+
+@pytest.mark.skipif(
+    should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
+)
+def test_docker_compose_up_running(check_sim_farama_environment_ready: None):
+    """This test checks if docker compose up was run successfully by inspecting all
+    relevant services and verifying that their container state is running.
+    """
+    proc = subprocess.run(
+        ["docker", "container", "ls", "-a", "--format", "json"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE
+    )
+    proc.check_returncode()
+
+    containers_to_check = set(raw_service_names)
+    raw_container_outputs = proc.stdout.splitlines()
+    for raw_container_output in raw_container_outputs:
+        container_output = json.loads(raw_container_output)
+        assert "State" in container_output and "Names" in container_output
+
+        state = container_output["State"]
+        name = container_output["Names"]
+
+        if name not in raw_service_names:
+            continue
+
+        assert state == "running", f"{name} should be running, got {state}"
+        containers_to_check.remove(container_output["Names"])
+
+    assert len(containers_to_check) == 0, f"did not find expected container(s): {containers_to_check}"

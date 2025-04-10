@@ -60,7 +60,7 @@ services:
     ports:
       - 8000:8000
     healthcheck:
-      test: ["CMD", "wget", "http://localhost:8000/api/corerl/health"]
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/corerl/health"]
       interval: 10s
       timeout: 10s
       retries: 3

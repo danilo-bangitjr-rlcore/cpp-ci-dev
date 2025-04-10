@@ -39,6 +39,9 @@ RUN uv pip install --system pyc_wheel &&\
 # Stage: install corerl to minimal Python 3 image
 FROM python:3.12-slim AS corerl
 
+# needed for health check within compose.yaml
+RUN apt-get update && apt-get install curl -y
+
 COPY --from=base /app/dist /app/dist
 WORKDIR /app
 
