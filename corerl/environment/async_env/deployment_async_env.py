@@ -110,6 +110,7 @@ class DeploymentAsyncEnv(AsyncEnv):
             elif data_type in {OPCUADataType.Double, OPCUADataType.Float}:
                 action_val = float(action[action_name].iloc[0])
             else:
+                logger.warning("Action OPC dtype undefined")
                 action_val = action[action_name].iloc[0]
 
             if connection_id not in write_payloads:
