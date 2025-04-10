@@ -166,6 +166,13 @@ class GreedyAC:
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self._get_actions(self.agent_state.actor.params, sample_rng, state)
 
+    def get_action_values(self, state: jax.Array | np.ndarray, actions: jax.Array | np.ndarray):
+        return self._critic.forward(
+            self.agent_state.critic.params,
+            x=jnp.asarray(state),
+            a=jnp.asarray(actions),
+        )
+
     def _get_prob(self, dist: distrax.Distribution, action: jax.Array):
         log_prob = dist.log_prob(action)
         return jnp.exp(log_prob)
