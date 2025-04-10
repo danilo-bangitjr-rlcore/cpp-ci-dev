@@ -115,6 +115,24 @@ class TagConfig:
     can select.
     """
 
+    action_bounds: Bounds | None = None
+    """
+    Kind: optional external
+
+    The lower and upper bounds of values that the agent can write to this tag. This interval
+    may be a subset of the operating range.
+    """
+
+    action_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
+    action_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    """
+    Kind: computed internal
+
+    In case that the action_bounds are specified as strings representing sympy functions,
+    the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
+    and the action_bounds_tags will hold the lists of tags that those functions depend on.
+    """
+
     red_bounds: Bounds | None = None
     """
     Kind: optional external
