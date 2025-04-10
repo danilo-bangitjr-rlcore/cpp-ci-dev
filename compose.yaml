@@ -148,6 +148,9 @@ services:
   opc-sim:
     build: 
       context: .
+      ssh:
+        - default
+
     depends_on:
       timescale-db:
         condition: service_healthy
