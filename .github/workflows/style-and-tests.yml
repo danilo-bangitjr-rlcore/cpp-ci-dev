@@ -64,7 +64,7 @@ jobs:
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
-      test-flags: --verbose # --log-cli-level=20
+      test-flags: --verbose --dist loadscope
       test-suite: large
       #- run: uv run pytest test/large
 

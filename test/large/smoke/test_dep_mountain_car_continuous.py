@@ -100,19 +100,17 @@ def run_make_configs(request: FixtureRequest):
 
 @pytest.fixture(scope="module")
 def run_docker_compose(run_make_configs: None, request: FixtureRequest):
-    """Run docker compose up to spin up services, cleanup after yield"""
+    """Run docker compose up to spin up services, cleanup after yield
+    """
     proc = subprocess.run(
         ["docker", "compose", "up", "-d"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
         text=True,
         cwd=request.config.rootpath,
     )
 
-    # proc.check_returncode()
-    # sometimes docker compose up -d fails in CI
-    # this gives us additional context instead of just raising status code error
-    assert proc.returncode == 0, proc.stdout
+    proc.check_returncode()
     yield
 
     proc = subprocess.run(
