@@ -5,6 +5,20 @@
 - styles again
 - fix agent test utils
 
+## [0.137.1](https://github.com/rlcoretech/core-rl/compare/v0.137.0...v0.137.1) (2025-04-10)
+
+
+### Bug Fixes
+
+* add ssh agent to opc sim service ([2815fd2](https://github.com/rlcoretech/core-rl/commit/2815fd24b80ddfd32fd64de669e977637be64a65))
+* fix compose format for ssh agent ([3b05058](https://github.com/rlcoretech/core-rl/commit/3b050588b453a6ab8ab4829843c63c094424507b))
+* fix compose format for ssh agent ([159bf38](https://github.com/rlcoretech/core-rl/commit/159bf389c3529f60badbefaaab27c55aa2f46184))
+* improve docker compose up deployment test ([9514fa7](https://github.com/rlcoretech/core-rl/commit/9514fa70f24051499a6c49ce22dd2face8d0ca10))
+* improved index creation, allow for multiple tables with *_name_idx ([ed1e564](https://github.com/rlcoretech/core-rl/commit/ed1e56462bef9d69041e8062a53d8f72d7a73ee5))
+* **PROD-317:** docker compose up should function without errors ([4acd5e4](https://github.com/rlcoretech/core-rl/commit/4acd5e409292ac89342642f541ec1364925997ec))
+* remove leaking tsdb connection with xy table ([bbf26cc](https://github.com/rlcoretech/core-rl/commit/bbf26cc82eb9ae3de0db7b26168e3f5aeb46ac10))
+* temp fix for broken telegraf config ([6a096b1](https://github.com/rlcoretech/core-rl/commit/6a096b19fa6edd26153306fc1622c64221f78b59))
+
 ## [0.137.0](https://github.com/rlcoretech/core-rl/compare/v0.136.1...v0.137.0) (2025-04-07)
 
 
