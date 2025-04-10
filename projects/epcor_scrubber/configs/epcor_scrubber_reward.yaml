@@ -78,7 +78,6 @@ metrics:
   enabled: True
 
 evals:
-  name: db
   enabled: True
 
 eval_cfgs:

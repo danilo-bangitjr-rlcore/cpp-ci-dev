@@ -4,8 +4,8 @@ from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
-from corerl.eval.evals import evals_group
-from corerl.eval.metrics import metrics_group
+from corerl.eval.evals import EvalsTable
+from corerl.eval.metrics import MetricsTable
 from corerl.eval.xy_metrics import XYTable
 from corerl.interaction.factory import init_interaction
 from corerl.interaction.sim_interaction import SimInteraction
@@ -22,9 +22,9 @@ def test_action_bounds():
     event_bus = EventBus(cfg.event_bus, cfg.env)
     app_state = AppState(
         cfg=cfg,
-        metrics=metrics_group.dispatch(cfg.metrics),
+        metrics=MetricsTable(cfg.metrics),
         xy_metrics=XYTable(cfg.xy_metrics),
-        evals=evals_group.dispatch(cfg.evals),
+        evals=EvalsTable(cfg.evals),
         event_bus=event_bus,
     )
     pipeline = Pipeline(app_state, cfg.pipeline)

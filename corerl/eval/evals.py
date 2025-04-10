@@ -1,41 +1,18 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Literal, NamedTuple, Protocol
+from typing import NamedTuple
 
 import pandas as pd
 from sqlalchemy import text
 
 from corerl.configs.config import config
-from corerl.configs.group import Group
 from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
 
 log = logging.getLogger(__name__)
-
-
-class EvalTableProtocol(Protocol):
-    def write(
-        self,
-        agent_step: int,
-        evaluator: str,
-        value: object,
-        timestamp: str | None = None
-    ):
-        ...
-    def read(
-        self,
-        evaluator: str,
-        step_start: int | None = None,
-        step_end: int | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None
-    ) -> pd.DataFrame:
-        ...
-    def close(self)-> None:
-        ...
 
 
 class _EvalPoint(NamedTuple):
@@ -47,7 +24,6 @@ class _EvalPoint(NamedTuple):
 
 @config()
 class EvalDBConfig(BufferedWriterConfig):
-    name: Literal['db'] = 'db'
     table_name: str = 'evals'
     lo_wm: int = 10
     enabled: bool = False
@@ -206,10 +182,3 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
             return self._read_by_step(evaluator, step_start, step_end)
         else:
             return self._read_by_eval(evaluator)
-
-
-evals_group = Group[
-    [], EvalTableProtocol,
-]()
-
-evals_group.dispatcher(EvalsTable)

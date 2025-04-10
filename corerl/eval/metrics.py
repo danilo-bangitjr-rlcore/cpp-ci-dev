@@ -1,45 +1,17 @@
 import logging
-import os
-import shutil
-from collections import defaultdict
 from datetime import UTC, datetime
-from typing import Literal, NamedTuple, Protocol, SupportsFloat
+from typing import NamedTuple, SupportsFloat
 
 import pandas as pd
-from pydantic import Field
 from sqlalchemy import text
-from typing_extensions import Annotated
 
 from corerl.configs.config import config
-from corerl.configs.group import Group
 from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 from corerl.utils.time import now_iso
 
 log = logging.getLogger(__name__)
-
-
-class MetricsTableProtocol(Protocol):
-    def write(
-        self,
-        agent_step: int,
-        metric: str,
-        value: SupportsFloat,
-        timestamp: str | None = None
-    ):
-        ...
-    def read(
-        self,
-        metric: str,
-        step_start: int | None = None,
-        step_end: int | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None
-    ) -> pd.DataFrame:
-        ...
-    def close(self)-> None:
-        ...
 
 
 class _MetricPoint(NamedTuple):
@@ -51,7 +23,6 @@ class _MetricPoint(NamedTuple):
 
 @config()
 class MetricsDBConfig(BufferedWriterConfig):
-    name : Literal['db'] = 'db'
     table_name: str = 'metrics'
     lo_wm: int = 1
     enabled: bool = False
@@ -212,138 +183,3 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             return self._read_by_step(metric, step_start, step_end)
         else:
             return self._read_by_metric(metric)
-
-
-@config()
-class PandasMetricsConfig:
-    name : Literal['pandas'] = 'pandas'
-    enabled: bool = False
-    output_path : str = 'metric_outputs'
-    buffer_size : int = 256  # Number of points to buffer before writing
-
-
-class PandasMetricsTable:
-    def __init__(
-            self,
-            cfg : PandasMetricsConfig,
-        ):
-        self.buffer = defaultdict(list)  # Temporary buffer for points
-        self.output_path = cfg.output_path
-        self.buffer_size = cfg.buffer_size
-
-        if os.path.exists(self.output_path):
-            logging.warning("Output path for metrics already exists. "
-                            "Existing files will be overwritten.")
-            shutil.rmtree(self.output_path)
-
-        os.makedirs(self.output_path, exist_ok=True)
-
-    def _read_by_metric(self, df: pd.DataFrame, metric: str) -> pd.DataFrame:
-        return df.loc[df['metric'] == metric].drop(columns=['metric'])
-
-    def _read_by_step(
-            self,
-            df: pd.DataFrame,
-            metric: str,
-            step_start: int | None,
-            step_end: int | None,
-    ) -> pd.DataFrame:
-        if step_start is not None:
-            df = df.loc[df['agent_step'] >= step_start]
-
-        if step_end is not None:
-            df = df.loc[df['agent_step'] <= step_end]
-
-        return df.loc[df['metric'] == metric].drop(columns=['metric', 'time'])
-
-    def _read_by_time(
-            self,
-            df: pd.DataFrame,
-            metric: str,
-            start_time: datetime | None,
-            end_time: datetime | None
-    ) -> pd.DataFrame:
-        if start_time is not None:
-            df = df.loc[df['time'] >= start_time]
-
-        if end_time is not None:
-            df = df.loc[df['time'] <= end_time]
-
-        return df.loc[df['metric'] == metric].drop(columns=['metric', 'agent_step'])
-
-    def read(
-        self,
-        metric: str,
-        step_start: int | None = None,
-        step_end: int | None = None,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None
-    ) -> pd.DataFrame:
-        file_path = f'{self.output_path}/{metric}.csv'
-        assert os.path.exists(file_path)
-        df = pd.read_csv(file_path, header=0)
-        df["time"] = pd.to_datetime(df["time"])
-        df['agent_step'] = df['agent_step'].astype(int)
-        df['metric'] = df['metric'].astype(str)
-        df['value'] = df['value'].astype(float)
-
-        if start_time is not None or end_time is not None:
-            return self._read_by_time(df, metric, start_time, end_time)
-        elif step_start is not None or step_end is not None:
-            return self._read_by_step(df, metric, step_start, step_end)
-        else:
-            return self._read_by_metric(df, metric)
-
-    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
-        point = _MetricPoint(
-            timestamp=timestamp or now_iso(),
-            agent_step=agent_step,
-            metric=metric,
-            value=float(value),
-        )
-
-        self.buffer[metric].append(point)
-
-        if len(self.buffer[metric]) >= self.buffer_size:
-            self._flush_metric(metric)
-
-    def _flush_metric(self, metric: str):
-        """Write buffered points for a specific metric to CSV"""
-        if not self.buffer[metric]:
-            return
-
-        data = defaultdict(list)
-        for point in self.buffer[metric]:
-            data['time'].append(point.timestamp)
-            data['agent_step'].append(point.agent_step)
-            data['metric'].append(point.metric)
-            data['value'].append(point.value)
-
-        df = pd.DataFrame(data)
-        file_path = f'{self.output_path}/{metric}.csv'
-
-        if os.path.exists(file_path):
-            df.to_csv(file_path, mode='a', header=False, index=False)
-        else:
-            df.to_csv(file_path, index=False)
-
-        self.buffer[metric].clear()
-
-    def close(self):
-        # Flush any remaining points
-        for metric in list(self.buffer.keys()):
-            self._flush_metric(metric)
-
-
-MetricsConfig = Annotated[
-    MetricsDBConfig | PandasMetricsConfig,
-    Field(discriminator='name')
-]
-
-
-metrics_group = Group[
-    [], MetricsTableProtocol,
-]()
-
-metrics_group.dispatcher(MetricsTable)
-metrics_group.dispatcher(PandasMetricsTable)

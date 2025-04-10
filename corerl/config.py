@@ -10,7 +10,7 @@ from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
-from corerl.eval.metrics import MetricsConfig, MetricsDBConfig
+from corerl.eval.metrics import MetricsDBConfig
 from corerl.eval.xy_metrics import XYDBConfig
 from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.configs import DepInteractionConfig
@@ -98,7 +98,7 @@ class MainConfig:
 
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
     xy_metrics: XYDBConfig = Field(default_factory=XYDBConfig)
-    metrics: MetricsConfig = Field(default_factory=MetricsDBConfig)
+    metrics: MetricsDBConfig = Field(default_factory=MetricsDBConfig)
     """
     Kind: internal
 
