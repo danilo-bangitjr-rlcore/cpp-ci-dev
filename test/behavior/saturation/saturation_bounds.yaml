@@ -21,8 +21,6 @@ agent:
 
 
 eval_cfgs:
-  actor_critic:
-    enabled: True
   monte_carlo:
     enabled: True
     precision: 0.9

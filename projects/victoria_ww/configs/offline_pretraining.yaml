@@ -42,8 +42,6 @@ evals:
   enabled: True
 
 eval_cfgs:
-  actor_critic:
-    enabled: True
   monte_carlo:
     enabled: True
 

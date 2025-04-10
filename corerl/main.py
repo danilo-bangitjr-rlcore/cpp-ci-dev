@@ -21,7 +21,6 @@ from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.eval.xy_metrics import XYTable
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import EventType
@@ -100,7 +99,6 @@ def retryable_main(cfg: MainConfig):
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),
-        xy_metrics=XYTable(cfg.xy_metrics),
         evals=EvalsTable(cfg.evals),
         event_bus=event_bus,
     )
@@ -116,7 +114,6 @@ def retryable_main(cfg: MainConfig):
     finally:
         app_state.metrics.close()
         app_state.evals.close()
-        app_state.xy_metrics.close()
         env.cleanup()
         event_bus.cleanup()
 

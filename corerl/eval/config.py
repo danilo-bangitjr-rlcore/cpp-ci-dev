@@ -5,7 +5,6 @@ from pydantic import Field
 from corerl.agent.base import BaseAgent
 from corerl.configs.config import config
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.actor_critic import ActorCriticEvalConfig
 from corerl.eval.agent import (
     GreedDistConfig,
     GreedValuesConfig,
@@ -20,7 +19,6 @@ from corerl.state import AppState
 
 @config()
 class EvalConfig:
-    actor_critic: ActorCriticEvalConfig = Field(default_factory=ActorCriticEvalConfig)
     monte_carlo: MonteCarloEvalConfig = Field(default_factory=MonteCarloEvalConfig)
     raw_data : RawDataEvalConfig = Field(default_factory=RawDataEvalConfig)
     policy_variance: PolicyVarianceConfig = Field(default_factory=PolicyVarianceConfig)

@@ -13,7 +13,6 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.eval.xy_metrics import XYTable
 from corerl.interaction.configs import DepInteractionConfig
 from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
@@ -38,7 +37,6 @@ def test_buffer_load():
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),
-        xy_metrics=XYTable(cfg.xy_metrics),
         evals=EvalsTable(cfg.evals),
         event_bus=EventBus(cfg.event_bus, cfg.env),
     )

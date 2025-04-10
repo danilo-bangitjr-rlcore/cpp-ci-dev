@@ -16,7 +16,6 @@ from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.eval.xy_metrics import XYTable
 from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
 
@@ -202,7 +201,6 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),
-        xy_metrics=XYTable(cfg.xy_metrics),
         evals=EvalsTable(cfg.evals),
         event_bus=event_bus,
     )

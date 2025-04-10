@@ -8,7 +8,6 @@ from typing import TYPE_CHECKING
 
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.eval.xy_metrics import XYTableProtocol
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -20,7 +19,6 @@ class AppState:
     cfg: MainConfig
     evals: EvalsTable
     metrics: MetricsTable
-    xy_metrics: XYTableProtocol
     event_bus: EventBus
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))

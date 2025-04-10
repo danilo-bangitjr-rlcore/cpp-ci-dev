@@ -86,33 +86,21 @@
         },
         "mapping": "auto",
         "series": [
-          {
-            "x": {
-              "matcher": {
-                "id": "byName",
-                "options": "x"
-              }
-            },
-            "y": {
-              "matcher": {
-                "id": "byName",
-                "options": "y"
-              }
-            }
-          }
+          {}
         ],
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'pdf%'\nAND agent_step = ${latestAgentStep} - 1\n-- AND agent_step = (SELECT DISTINCT MAX(agent_step) AS max_as FROM metrics_xy)\n-- AND metric = '${selectedAction}'\nORDER BY \"time\"",
+          "rawSql": "SELECT evaluator, (data->'x')::float as x, (data->'y')::float as y\nFROM evals, jsonb_array_elements(value->'data') as data\nWHERE $__timeFilter(\"time\") AND agent_step = (\n  SELECT max(agent_step) FROM evals WHERE $__timeFilter(time) AND evaluator LIKE 'pdf%'\n)\nAND evaluator LIKE 'pdf%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -139,9 +127,12 @@
           "id": "partitionByValues",
           "options": {
             "fields": [
-              "metric"
+              "evaluator"
             ],
-            "keepFields": false
+            "keepFields": false,
+            "naming": {
+              "asLabels": true
+            }
           }
         }
       ],
@@ -212,33 +203,21 @@
         },
         "mapping": "auto",
         "series": [
-          {
-            "x": {
-              "matcher": {
-                "id": "byName",
-                "options": "x"
-              }
-            },
-            "y": {
-              "matcher": {
-                "id": "byName",
-                "options": "y"
-              }
-            }
-          }
+          {}
         ],
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT x, y, time, metric, agent_step\nFROM metrics_xy \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'qs_plot_action_%'\nAND agent_step = ${latestAgentStep} - 1\n-- AND agent_step = (SELECT DISTINCT MAX(agent_step) AS max_as FROM metrics_xy)\n-- AND metric = '${selectedAction}'\nORDER BY \"time\"",
+          "rawSql": "SELECT evaluator, (data->'x')::float as x, (data->'y')::float as y\nFROM evals, jsonb_array_elements(value->'data') as data\nWHERE $__timeFilter(\"time\") AND agent_step = (\n  SELECT max(agent_step) FROM evals WHERE $__timeFilter(time) AND evaluator LIKE 'qs%'\n)\nAND evaluator LIKE 'qs%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -265,9 +244,12 @@
           "id": "partitionByValues",
           "options": {
             "fields": [
-              "metric"
+              "evaluator"
             ],
-            "keepFields": false
+            "keepFields": true,
+            "naming": {
+              "asLabels": false
+            }
           }
         }
       ],
@@ -348,11 +330,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "editorMode": "code",
@@ -490,11 +473,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "editorMode": "code",
@@ -632,11 +616,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "datasource": {
@@ -753,11 +738,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "datasource": {
@@ -899,11 +885,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "datasource": {
@@ -1045,11 +1032,12 @@
           "showLegend": true
         },
         "tooltip": {
+          "hideZeros": false,
           "mode": "single",
           "sort": "none"
         }
       },
-      "pluginVersion": "11.4.0",
+      "pluginVersion": "11.5.1",
       "targets": [
         {
           "datasource": {
@@ -1139,8 +1127,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1260,8 +1247,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1406,8 +1392,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1527,8 +1512,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1698,50 +1682,7 @@
   "schemaVersion": 40,
   "tags": [],
   "templating": {
-    "list": [
-      {
-        "current": {
-          "text": "462",
-          "value": "462"
-        },
-        "definition": "SELECT MAX(agent_step) FROM metrics_xy WHERE $__timeFilter(\"time\") AND metric LIKE 'pdf%'",
-        "hide": 2,
-        "name": "latestAgentStep",
-        "options": [],
-        "query": "SELECT MAX(agent_step) FROM metrics_xy WHERE $__timeFilter(\"time\") AND metric LIKE 'pdf%'",
-        "refresh": 2,
-        "regex": "",
-        "type": "query"
-      },
-      {
-        "current": {
-          "text": "pdf_plot_0_action",
-          "value": "pdf_plot_0_action"
-        },
-        "definition": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'pdf%' ORDER BY metric",
-        "name": "selectedAction",
-        "options": [],
-        "query": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'pdf%' ORDER BY metric",
-        "refresh": 2,
-        "regex": "",
-        "type": "query"
-      },
-      {
-        "current": {
-          "text": "qs_plot_1_action",
-          "value": "qs_plot_1_action"
-        },
-        "definition": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'qs_plot%' ORDER BY metric",
-        "description": "",
-        "label": "selectedQAction",
-        "name": "selectedQAction",
-        "options": [],
-        "query": "SELECT DISTINCT metric FROM metrics_xy WHERE metric LIKE 'qs_plot%' ORDER BY metric",
-        "refresh": 1,
-        "regex": "",
-        "type": "query"
-      }
-    ]
+    "list": []
   },
   "time": {
     "from": "now-5m",
@@ -1751,6 +1692,6 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 7,
+  "version": 4,
   "weekStart": ""
 }

@@ -30,16 +30,7 @@ agent:
 evals:
   enabled: True
 
-xy_metrics:
-  enabled: False
-
 eval_cfgs:
-  actor_critic:
-    enabled: True
-    num_test_states: 1
-    num_uniform_actions: 10
-    critic_samples: 2
-
   monte_carlo:
     enabled: True
     precision: 0.2
