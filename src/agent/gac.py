@@ -54,6 +54,7 @@ class GreedyACConfig:
     proposal_lr: float
     critic_lr: float
     polyak: float
+    critic_lso : bool = True
 
 
 class CriticOutputs(NamedTuple):
@@ -129,16 +130,20 @@ class GreedyAC:
         self.proposal = self.actor
 
         # Optimizers
-        self.critic_opt = optax.chain(
-            optax.adam(learning_rate=cfg.critic_lr),
-            optax.scale_by_backtracking_linesearch(
-                max_backtracking_steps=50,
-                max_learning_rate=cfg.critic_lr,
-                decrease_factor=0.9,
-                increase_factor=np.inf,
-                slope_rtol=0.1
-            ),
-        )
+        self.critic_lso = cfg.critic_lso
+        if cfg.critic_lso:
+            self.critic_opt = optax.chain(
+                optax.adam(learning_rate=cfg.critic_lr),
+                optax.scale_by_backtracking_linesearch(
+                    max_backtracking_steps=50,
+                    max_learning_rate=cfg.critic_lr,
+                    decrease_factor=0.9,
+                    increase_factor=np.inf,
+                    slope_rtol=0.1
+                ),
+            )
+        else:
+            self.critic_opt = optax.adam(learning_rate=cfg.critic_lr)
 
         self.actor_opt = optax.adam(cfg.actor_lr)
         self.proposal_opt = optax.adam(cfg.proposal_lr)
@@ -337,18 +342,26 @@ class GreedyAC:
         ens_updates = []
         ens_opts = []
         for i in range(self._cfg.ensemble):
-            updates, new_opt_state = self.critic_opt.update(
-                get_member(grads, i),
-                get_member(critic_state.opt_state, i),
-                get_member(critic_state.params, i),
-                value=member_losses[i],
-                grad=get_member(grads, i),
-                value_fn=self._batch_critic_loss,
-                ens_target_params=critic_state.target_params,
-                actor_params=actor_params,
-                transitions=get_member(transitions, i),
-                rng=rng,
-            )
+
+            if self.critic_lso:
+                assert isinstance(self.critic_opt,  optax.GradientTransformationExtraArgs)
+                updates, new_opt_state = self.critic_opt.update(
+                    get_member(grads, i),
+                    get_member(critic_state.opt_state, i),
+                    get_member(critic_state.params, i),
+                    value=member_losses[i],
+                    grad=get_member(grads, i),
+                    value_fn=self._batch_critic_loss,
+                    ens_target_params=critic_state.target_params,
+                    actor_params=actor_params,
+                    transitions=get_member(transitions, i),
+                    rng=rng,
+                )
+            else:
+                updates, new_opt_state = self.critic_opt.update(
+                    get_member(grads, i),
+                    get_member(critic_state.opt_state, i),
+                )
 
             ens_updates.append(updates)
             ens_opts.append(new_opt_state)
