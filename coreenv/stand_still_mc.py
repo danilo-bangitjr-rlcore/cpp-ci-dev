@@ -16,6 +16,8 @@ class StandStillMC(gym.Env):
         if cfg is None:
             cfg = StandStillMCConfig()
         self._env = gym.make("MountainCarContinuous-v0")
+        self.observation_space = self._env.observation_space
+        self.action_space = self._env.action_space
 
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
