@@ -103,13 +103,16 @@ def run_docker_compose(run_make_configs: None, request: FixtureRequest):
     """Run docker compose up to spin up services, cleanup after yield"""
     proc = subprocess.run(
         ["docker", "compose", "up", "-d"],
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
         cwd=request.config.rootpath,
     )
 
-    proc.check_returncode()
+    # proc.check_returncode()
+    # sometimes docker compose up -d fails in CI
+    # this gives us additional context instead of just raising status code error
+    assert proc.returncode == 0, proc.stdout
     yield
 
     proc = subprocess.run(
