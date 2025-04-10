@@ -13,10 +13,14 @@ class WindyRoomConfig(EnvConfig):
     initial_zone_low: float = 0.45
     initial_zone_high: float = 0.55
 
+    yellow_zone_thresh = 0.3
+    red_zone_thresh = 0.05
+
     initial_wind_direction = np.pi
     wind_magnitude: float  = 0.01
     wind_direction_delta: float = (2*np.pi)/1000 # 1000 steps to complete a full circle
     action_magnitude: float = 0.02
+    no_zones: bool = True
 
 STATE_DIM = 2
 BOUNDS_LOW = 0
@@ -66,8 +70,39 @@ class WindyRoom(gym.Env):
             self.wind_direction = self.wind_direction - 2*np.pi
 
         self.state = np.concatenate([xy, [self.wind_direction]])
-        reward = 0.
+        reward = self.reward(xy)
         return self.state, reward, False, False, {}
+
+    def reward(self, xy: np.ndarray) -> float:
+        if self._cfg.no_zones:
+            return 0.
+
+        yellow_lo = self._cfg.yellow_zone_thresh
+        yellow_hi = 1 - self._cfg.yellow_zone_thresh
+
+        red_lo = self._cfg.red_zone_thresh
+        red_hi = 1 - self._cfg.red_zone_thresh
+
+        #mimic yellow/red zones in corerl
+        for v in xy:
+            if v < red_lo:
+                percent = (red_lo - v) / (red_lo - BOUNDS_LOW)
+                return -4 - (4 * percent)
+
+            elif v > red_hi:
+                percent =  (v - red_hi) / (BOUNDS_HIGH - red_hi)
+                return -4 - (4 * percent)
+
+            elif v < yellow_lo:
+                percent = (yellow_lo - v) / (yellow_lo - red_lo)
+                return -2 * (percent**2)
+
+            elif v > yellow_hi:
+                percent = (v - yellow_hi) / (red_hi - yellow_hi)
+                return -2 * (percent**2)
+
+        return 0.
+
 
     def reset(
         self,
