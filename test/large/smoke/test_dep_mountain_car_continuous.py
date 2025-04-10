@@ -118,35 +118,7 @@ def run_docker_compose(run_make_configs: None, request: FixtureRequest):
 
 
 @pytest.fixture(scope="module")
-def check_opc_server_ready(run_docker_compose: None, request: FixtureRequest):
-    """Check for the 'counter' stub value that is emitted within the OPC server,
-    ensure that it's being picked up by telegraf.
-    """
-    start = datetime.now(UTC)
-    successful_query = False
-    query_attempts = 0
-    while not successful_query:
-        if query_attempts >= 100:
-            raise RuntimeError("Failed to query for Counter in tsdb, are docker compose services failing?")
-        data_reader = None
-        try:
-            end = datetime.now(UTC)
-            data_reader = DataReader(db_cfg=db_cfg)
-
-            _df = data_reader.single_aggregated_read(["Counter"], start, end)
-            successful_query = True
-        except Exception:
-            # sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "public.opcua" does not exist
-            query_attempts += 1
-            time.sleep(1)
-            pass
-        finally:
-            if data_reader is not None:
-                data_reader.close()
-
-
-@pytest.fixture(scope="module")
-def check_sim_farama_environment_ready(check_opc_server_ready: None, request: FixtureRequest):
+def check_sim_farama_environment_ready(run_docker_compose: None, request: FixtureRequest):
     """Check for the opc_client values that are emitted within the farama gym environment simulation,
     ensure that it's being picked up by telegraf.
     """
