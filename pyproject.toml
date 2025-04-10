@@ -26,6 +26,7 @@ major_version_zero = true
 include = ['.']
 exclude = [
     '.venv/',
+    'local_tests/',
 ]
 venvPath = '.'
 venv = '.venv'
