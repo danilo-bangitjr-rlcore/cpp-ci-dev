@@ -20,9 +20,15 @@ services:
     build: ./e2e/opc_server
     ports:
       - 4840:4840
-    depends_on:
-      timescale-db:
-        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "uaread -u opc.tcp://opc-server:4840/rlcore/server/ -n 'ns=2;i=2'",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     develop:
       watch:
         - action: rebuild
@@ -35,7 +41,7 @@ services:
       timescale-db:
         condition: service_healthy
       opc-server:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
@@ -49,10 +55,16 @@ services:
     # corerl web server for direct main config API
     build:
       context: .
-    ssh:
-      - default
+      ssh:
+        - default
     ports:
       - 8000:8000
+    healthcheck:
+      test: ["CMD", "wget", "http://localhost:8000/api/corerl/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
     entrypoint: ["python", "/usr/local/bin/corerl_start_web"]
     develop:
       watch:
@@ -75,12 +87,19 @@ services:
     # build:
     #   context: ../coreio/
 
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "http://localhost:2222"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
     depends_on:
       opc-server:
-        condition: service_started
+        condition: service_healthy
       # soft dependency for MainConfig API proxy, thin client can function without this
       # corerl:
-      #   condition: service_started
+      #   condition: service_healthy
     ports:
       - 2222:2222
     volumes:
@@ -95,7 +114,7 @@ services:
       timescale-db:
         condition: service_healthy
     ports:
-      - '3000:3000'
+      - "3000:3000"
     environment:
       GF_RENDERING_SERVER_URL: http://renderer:8081/render
       GF_RENDERING_CALLBACK_URL: http://grafana:3000/
@@ -112,7 +131,7 @@ services:
       - 8081
 
   config-test:
-    profiles: ['test']
+    profiles: ["test"]
     build:
       context: .
       dockerfile: Dockerfile
@@ -120,43 +139,51 @@ services:
       timescale-db:
         condition: service_healthy
       opc-server:
-        condition: service_started
+        condition: service_healthy
       telegraf:
         condition: service_started
       coreio:
-        condition: service_started
+        condition: service_healthy
       opc-sim:
         condition: service_started
     volumes:
       - ./config:/app/config
       - ./corerl:/app/corerl
     entrypoint: ["python"]
-    command: [
-      "-m", "corerl.main",
-      "--config-name", "coreio_dep_mountain_car_continuous",
-      "experiment.max_steps=25",
-      "env.db.ip=timescale-db",
-      "metrics.ip=timescale-db",
-      "env.coreio_origin=http://coreio:2222"
-    ]
+    command:
+      [
+        "-m",
+        "corerl.main",
+        "--config-name",
+        "coreio_dep_mountain_car_continuous",
+        "experiment.max_steps=25",
+        "env.db.ip=timescale-db",
+        "metrics.ip=timescale-db",
+        "env.coreio_origin=http://coreio:2222",
+      ]
 
   opc-sim:
-    build: 
+    build:
       context: .
+      ssh:
+        - default
+
     depends_on:
       timescale-db:
         condition: service_healthy
       opc-server:
-        condition: service_started
+        condition: service_healthy
     volumes:
       - ./e2e/opc_clients:/app/e2e/opc_clients
       - ./config/opc_sim:/app/config/opc_sim
     entrypoint: ["python"]
-    command: [
-      "e2e/opc_clients/opc_sim.py",
-      "--config-name", "config/opc_sim/async_mountain_car_continuous.yaml",
-      "opc_server=opc-server"
-    ]
+    command:
+      [
+        "e2e/opc_clients/opc_sim.py",
+        "--config-name",
+        "config/opc_sim/async_mountain_car_continuous.yaml",
+        "opc_endpoint_uri=opc.tcp://admin@opc-server:4840/rlcore/server/",
+      ]
 
 volumes:
   timescale-storage: {}
