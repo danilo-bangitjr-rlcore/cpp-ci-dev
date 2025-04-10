@@ -39,8 +39,8 @@ class WindyRoom(gym.Env):
 
         self._cfg = cfg
         self._random = np.random.default_rng(cfg.seed)
-        self._obs_min = np.ones(STATE_DIM) * BOUNDS_LOW
-        self._obs_max = np.ones(STATE_DIM) * BOUNDS_HIGH
+        self._obs_min = np.concatenate([np.ones(STATE_DIM) * BOUNDS_LOW, [0]])
+        self._obs_max = np.concatenate([np.ones(STATE_DIM) * BOUNDS_HIGH, [2*np.pi]])
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
 
         self._action_min = -np.ones(STATE_DIM)
