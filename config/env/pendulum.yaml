@@ -1,3 +1,6 @@
 name: sim_async_env
-gym_name : Pendulum-v1
-init_type : gym.make
+
+gym:
+  init_type : gym.make
+  gym_name : Pendulum-v1
+

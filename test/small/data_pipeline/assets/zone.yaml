@@ -1,6 +1,7 @@
 env:
   name: sim_async_env
-  gym_name : Saturation-v0
+  gym:
+    gym_name : Saturation-v0
 
 interaction:
   name: sim_interaction

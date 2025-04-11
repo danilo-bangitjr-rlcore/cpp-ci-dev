@@ -3,7 +3,8 @@ xy_metrics:
 
 env:
   name: sim_async_env
-  gym_name: 'Calibration-v0'
+  gym:
+    gym_name: 'Calibration-v0'
 
 interaction:
   name: sim_interaction

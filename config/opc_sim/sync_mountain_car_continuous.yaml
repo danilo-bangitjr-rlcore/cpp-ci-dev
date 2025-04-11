@@ -1,8 +1,9 @@
 gym:
   gym_name: MountainCarContinuous-v0
+  init_type: "gym.make"
   seed: 1
-  # kwargs:
-  #   render_mode: human
+
+sim_timestep_period: null # sync with agent step
 
 obs_tags:
 - tag-0

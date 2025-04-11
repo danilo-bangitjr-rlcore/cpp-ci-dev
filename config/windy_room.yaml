@@ -3,7 +3,8 @@ feature_flags:
 
 env:
   name: sim_async_env
-  gym_name: WindyRoom-v0
+  gym:
+    gym_name: WindyRoom-v0
 
 xy_metrics:
   enabled: True

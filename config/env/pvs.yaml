@@ -1,6 +1,6 @@
 name: sim_async_env
-gym_name: PVS-v0
-seed: 0
-obs_period: 00:00:01
-update_period: 00:00:01
-action_period: 00:00:01
+
+gym:
+  init_type : gym.make
+  gym_name: PVS-v0
+

@@ -13,9 +13,9 @@ metrics:
 
 env:
   name: sim_async_env
-  init_type: gym.make
-  gym_name: MountainCarContinuous-v0
-  seed: 1
+  gym:
+    gym_name: MountainCarContinuous-v0
+    init_type: gym.make
 
 agent:
   name: greedy_ac

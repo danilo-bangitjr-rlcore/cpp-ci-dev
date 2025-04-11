@@ -1,9 +1,7 @@
 gym:
-  init_type: "gym.make"
   gym_name: MountainCarContinuous-v0
+  init_type: "gym.make"
   seed: 1
-  # kwargs:
-  #   render_mode: human
 
 sim_timestep_period: 00:00:00.1 # 10 steps per second
 
