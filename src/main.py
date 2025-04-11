@@ -6,8 +6,7 @@ from typing import Any
 from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.metadata import attach_metadata
-from ml_instrumentation.Sampler import Identity, MovingAverage, Subsample
-from ml_instrumentation.utils import Pipe
+from ml_instrumentation.Sampler import Identity, Subsample, Window
 from tqdm import tqdm
 
 import utils.gym as gym_u
@@ -70,10 +69,7 @@ def main():
         #  - Window(n)  take a window average of size n
         #  - Subsample(n) save one of every n elements
         config={
-            'reward': Pipe(
-                MovingAverage(0.99),
-                Subsample(100),
-            ),
+            'reward': Window(100),
             'critic_loss': Subsample(100),
         },
         # by default, ignore keys that are not explicitly listed above
