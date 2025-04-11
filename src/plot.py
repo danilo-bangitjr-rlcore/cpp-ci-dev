@@ -83,6 +83,18 @@ def plot_measurment_by_frame(
         ax.plot(xs, ys, color='blue', alpha=0.2)
         ax.set_title(title)
 
+def plot_across(metadata: dict, cursor: sqlite3.Cursor, table_name: str, key: str):
+    vals = unique_vals(key, metadata)
+    fig, axs = plt.subplots(len(vals), 1, figsize=(10, 5 * len(vals)))
+    for idx, val in enumerate(vals):
+        ids = ids_for_value(key, val, metadata)
+        rows = get_rows_by_ids(cursor, table_name, ids)
+        grouped_rows = group_by_id(rows)
+        plot_measurment_by_frame(grouped_rows, ax=axs[idx], title=val)
+
+    result_path = "/".join(args.results.split("/")[:-1])
+    save_path = os.path.join(result_path, f'{table_name}.png')
+    plt.savefig(save_path)
 
 def main():
     conn = sqlite3.connect(args.results)
@@ -90,18 +102,8 @@ def main():
     cursor = conn.cursor()
 
     metadata = read_meta_data(cursor)
-
-    envs = unique_vals('env.name', metadata)
-    fig, axs = plt.subplots(len(envs), 1, figsize=(10, 5 * len(envs)))
-    for env_idx, env in enumerate(envs):
-        ids = ids_for_value('env.name', env, metadata)
-        rows = get_rows_by_ids(cursor, 'reward', ids)
-        grouped_rows = group_by_id(rows)
-        plot_measurment_by_frame(grouped_rows, ax=axs[env_idx], title=env)
-
-    result_path = "/".join(args.results.split("/")[:-1])
-    save_path = os.path.join(result_path, 'reward.png')
-    plt.savefig(save_path)
+    plot_across(metadata, cursor, 'reward', 'env.name')
+    plot_across(metadata, cursor, 'critic_loss', 'env.name')
 
     cursor.close()
     conn.close()
