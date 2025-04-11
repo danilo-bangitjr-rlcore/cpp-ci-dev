@@ -78,7 +78,17 @@ def main():
         low_watermark=1,
     )
 
-    env = init_env(cfg.env['name'], cfg.env)
+    if cfg.env['name'] == 'WindyRoom-v0':
+       env_args = {'no_zones': False}
+    else:
+        env_args = {}
+
+    if cfg.env['name'] == 'DistractionWorld-v0':
+        trace_values = (0.,)
+    else:
+        trace_values = (0., 0.75, 0.9, 0.95)
+
+    env = init_env(cfg.env['name'], env_args)
 
     obs_bounds = gym_u.space_bounds(env.observation_space)
     act_bounds = gym_u.space_bounds(env.action_space)
@@ -95,6 +105,7 @@ def main():
         min_n_step=1,
         max_n_step=1,
         gamma=0.99,
+        trace_values=trace_values,
     )
 
     agent = GreedyAC(

@@ -45,7 +45,7 @@ class ExperimentConfig:
         )
 
 
-def set_nested_value(dictionary: dict, keys: list, value: Any, create_missing: bool=False):
+def set_nested_value(dictionary: dict, keys: list, value: Any, create_missing: bool=True):
     """
     Set a value in a nested dictionary using a list of keys as the path.
     """
