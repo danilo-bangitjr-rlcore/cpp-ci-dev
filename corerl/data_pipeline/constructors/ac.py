@@ -4,48 +4,57 @@ from functools import cached_property
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.constructors.constructor import Constructor
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms.base import InvertibleTransform
-from corerl.utils.list import find
+from corerl.data_pipeline.constructors.preprocess import Preprocessor
+from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.tag_config import TagConfig, get_action_bounds
 from corerl.utils.maybe import Maybe
 
 
-class ActionConstructor(Constructor):
-    def __init__(self, tag_cfgs: list[TagConfig]):
-        super().__init__(tag_cfgs)
+class ActionConstructor:
+    def __init__(self, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
+        self.action_tags = [tag for tag in tag_cfgs if tag.action_constructor is not None]
+
         # make sure operating ranges are specified for actions
-        for name, tag_cfg in self._tag_cfgs.items():
-            if tag_cfg.action_constructor is None:
-                continue
-            Maybe(tag_cfg.operating_range).map(lambda r: r[0]).expect(
+        for action_tag in self.action_tags:
+            name = action_tag.name
+            Maybe(action_tag.operating_range).map(lambda r: r[0]).expect(
                 f"Action {name} did not specify an operating range lower bound."
             )
-            Maybe(tag_cfg.operating_range).map(lambda r: r[1]).expect(
+            Maybe(action_tag.operating_range).map(lambda r: r[1]).expect(
                 f"Action {name} did not specify an operating range upper bound."
             )
-
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]):
-        return {
-            tag.name: tag.action_constructor
-            for tag in tag_cfgs
-            if not tag.is_meta and tag.action_constructor is not None
-        }
-
+        self._prep_stage = prep_stage # used to denormalize tags
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        transformed_parts, _ = self._transform_tags(pf, StageCode.AC)
+        # denormalize all tags before computing action bounds
+        raw_data = self.denormalize_tags(pf.data)
 
-        if len(transformed_parts) == 0:
-            return pf
+        a_los: list[dict[str, float]] = []
+        a_his: list[dict[str, float]] = []
+        for _, row_series in raw_data.iterrows():
+            """
+            Generate one dict each for action lower bounds and upper bounds
+            """
+            row = row_series.to_frame().transpose()
+            a_lo = {}
+            a_hi = {}
+            for action_tag in self.action_tags:
+                lo, hi = get_action_bounds(action_tag, row)
+                operating_range = Maybe(action_tag.operating_range).expect()
 
-        # put resultant data on PipeFrame
-        pf.actions = pd.concat(transformed_parts, axis=1, copy=False)
+                lo_val = max(Maybe(operating_range[0]).expect(), lo)
+                hi_val = min(Maybe(operating_range[1]).expect(), hi)
 
-        # guarantee an ordering over columns
-        sorted_cols = self.sort_cols(pf.actions.columns)
-        pf.actions = pf.actions.loc[:, sorted_cols]
+                a_lo[action_tag.name] = self._prep_stage.normalize(action_tag.name, lo_val)
+                a_hi[action_tag.name] = self._prep_stage.normalize(action_tag.name, hi_val)
+
+            a_los.append(a_lo)
+            a_his.append(a_hi)
+
+        pf.actions = pf.data.loc[:, self.columns] # self.columns is sorted
+        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index).loc[:, self.columns]
+        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index).loc[:, self.columns]
+        breakpoint()
 
         return pf
 
@@ -57,23 +66,12 @@ class ActionConstructor(Constructor):
 
         return df
 
-
-    def invert(self, action: np.ndarray, col: str):
-        tag_name = find(lambda tag: col.startswith(tag), self._components)
-        assert tag_name is not None, f"Could not find AC xforms for col {col}"
-
-        for xform in reversed(self._components[tag_name]):
-            if isinstance(xform, InvertibleTransform):
-                action = xform.invert(action, col)
-
-        return action
-
+    def denormalize_tags(self, df: pd.DataFrame):
+        return self._prep_stage.inverse(df)
 
     @cached_property
     def columns(self):
-        pf = self._probe_fake_data()
-        return self.sort_cols(pf.actions.columns)
-
+        return self.sort_cols([tag.name for tag in self.action_tags])
 
     def sort_cols(self, cols: Iterable[str]):
         return sorted(cols)

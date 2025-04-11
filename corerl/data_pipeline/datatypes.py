@@ -231,6 +231,8 @@ class PipelineFrame:
     last_stage : StageCode | None = None
     states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)
+    action_lo: pd.DataFrame = field(init=False)
+    action_hi: pd.DataFrame = field(init=False)
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)

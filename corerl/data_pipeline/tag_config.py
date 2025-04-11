@@ -26,13 +26,15 @@ BoundsElem = float | str | None
 Bounds = tuple[BoundsElem, BoundsElem]
 FloatBounds = tuple[float | None, float | None]
 
-BoundsFunction = tuple[Callable[...,float] | None, Callable[...,float] | None]
+BoundsFunction = tuple[Callable[..., float] | None, Callable[..., float] | None]
 BoundsTags = tuple[list[str] | None, list[str] | None]
+
 
 class Agg(StrEnum):
     avg = auto()
     last = auto()
     bool_or = auto()
+
 
 # -----------------------
 # -- Bounds Scheduling --
@@ -46,6 +48,7 @@ class GuardrailScheduleConfig:
     setpoint tag. Starts within the starting_range and slowly approaches
     the full operating range over the duration.
     """
+
     starting_range: FloatBounds = MISSING
     duration: timedelta = MISSING
 
@@ -158,7 +161,6 @@ class TagConfig:
     and the red_bounds_tags will hold the lists of tags that those functions depend on.
     """
 
-
     yellow_bounds: Bounds | None = None
     """
     Kind: optional external
@@ -177,7 +179,7 @@ class TagConfig:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
     """
 
-    yellow_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True) ] = None
+    yellow_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
     yellow_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
     """
     Kind: computed internal
@@ -281,17 +283,21 @@ class TagConfig:
     @post_processor
     def _initialize_bound_functions(self, cfg: MainConfig | PipelineConfig):
         # We can receive MainConfig or PipelineConfig
-        if "pipeline" in cfg.__dict__.keys(): # Avoids `isinstance` check which causes circular import
-            if TYPE_CHECKING: assert isinstance(cfg, MainConfig)
+        if "pipeline" in cfg.__dict__.keys():  # Avoids `isinstance` check which causes circular import
+            if TYPE_CHECKING:
+                assert isinstance(cfg, MainConfig)
             known_tags = set(tag.name for tag in cfg.pipeline.tags)
-        elif "tags" in cfg.__dict__.keys(): # Avoids `isinstance` check which causes circular import
-            if TYPE_CHECKING: assert isinstance(cfg, PipelineConfig)
+        elif "tags" in cfg.__dict__.keys():  # Avoids `isinstance` check which causes circular import
+            if TYPE_CHECKING:
+                assert isinstance(cfg, PipelineConfig)
             known_tags = set(tag.name for tag in cfg.tags)
         else:
             raise ValueError("Unknown cfg type")
 
         if self.action_bounds is not None:
-            self.action_bounds_func, self.action_bounds_tags = self._bounds_parse_sympy(self.action_bounds, known_tags)
+            self.action_bounds_func, self.action_bounds_tags = self._bounds_parse_sympy(
+                self.action_bounds, known_tags, allow_circular=True
+            )
 
         if self.red_bounds is not None:
             self.red_bounds_func, self.red_bounds_tags = self._bounds_parse_sympy(self.red_bounds, known_tags)
@@ -299,8 +305,9 @@ class TagConfig:
         if self.yellow_bounds is not None:
             self.yellow_bounds_func, self.yellow_bounds_tags = self._bounds_parse_sympy(self.yellow_bounds, known_tags)
 
-
-    def _bounds_parse_sympy(self, input_bounds: Bounds, known_tags: set[str]) -> tuple[BoundsFunction, BoundsTags]:
+    def _bounds_parse_sympy(
+        self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False
+    ) -> tuple[BoundsFunction, BoundsTags]:
         lo_func, hi_func = None, None
         lo_tags, hi_tags = None, None
 
@@ -308,14 +315,18 @@ class TagConfig:
             expression_lo, lo_func, lo_tags = to_sympy(input_bounds[0])
             for tag in lo_tags:
                 assert tag in known_tags, f"Unknown tag name in lower bound or range expression of {self.name}"
-                assert tag != self.name, f"Circular definition in lower bound or rage expression of {self.name}"
+                assert (
+                    allow_circular or tag != self.name
+                ), f"Circular definition in lower bound or rage expression of {self.name}"
             assert is_affine(expression_lo), f"Expression on the lower bound or range of {self.name} is not affine"
 
         if input_bounds is not None and isinstance(input_bounds[1], str):
             expression_hi, hi_func, hi_tags = to_sympy(input_bounds[1])
             for tag in hi_tags:
                 assert tag in known_tags, f"Unknown tag name in upper bound or range expression of {self.name}"
-                assert tag != self.name, f"Circular definition in upper bound or rage expression of {self.name}"
+                assert (
+                    allow_circular or tag != self.name
+                ), f"Circular definition in upper bound or rage expression of {self.name}"
             assert is_affine(expression_hi), f"Expression on the upper bound or range of {self.name} is not affine"
 
         bounds_func: BoundsFunction = (lo_func, hi_func)
@@ -323,10 +334,8 @@ class TagConfig:
 
         return bounds_func, bounds_tags
 
-
     @post_processor
     def _default_normalize_preprocessor(self, cfg: MainConfig):
-
         # Since we don't have a dataframe, the sympy expressions are treated as None
         lo, hi = get_tag_bounds_no_eval(self)
 
@@ -336,30 +345,21 @@ class TagConfig:
         if norm_cfg is None:
             return
 
-        norm_cfg.min = (
-            Maybe(norm_cfg.min)
-            .flat_otherwise(lambda: lo)
-            .unwrap()
-        )
+        norm_cfg.min = Maybe(norm_cfg.min).flat_otherwise(lambda: lo).unwrap()
 
-        norm_cfg.max = (
-            Maybe(norm_cfg.max)
-            .flat_otherwise(lambda: hi)
-            .unwrap()
-        )
+        norm_cfg.max = Maybe(norm_cfg.max).flat_otherwise(lambda: hi).unwrap()
 
         if norm_cfg.min is None or norm_cfg.max is None:
             norm_cfg.from_data = True
-
 
     @post_processor
     def _optional_delta_preprocessor(self, cfg: MainConfig):
         # Make sure delta transform happens before normalization
         norm_ind = find_index(lambda x_form: isinstance(x_form, NormalizerConfig), self.preprocess)
         delta_ind = find_index(lambda x_form: isinstance(x_form, DeltaConfig), self.preprocess)
-        assert norm_ind is None or delta_ind is None or delta_ind < norm_ind, \
-            f"{self.name} must have the delta transform before the normalization transform in the preprocess stage"
-
+        assert (
+            norm_ind is None or delta_ind is None or delta_ind < norm_ind
+        ), f"{self.name} must have the delta transform before the normalization transform in the preprocess stage"
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
@@ -370,10 +370,10 @@ class TagConfig:
                 and self.operating_range[1] is not None
             ), "AI-controlled setpoints must have an operating range."
 
-
         if self.guardrail_schedule is not None:
-            assert self.change_bounds is not None or self.action_constructor is not None, \
-                "A guardrail schedule was specified, but the tag is not an AI-controlled setpoint."
+            assert (
+                self.change_bounds is not None or self.action_constructor is not None
+            ), "A guardrail schedule was specified, but the tag is not an AI-controlled setpoint."
 
             # clean error message already handled above
             assert self.operating_range is not None
@@ -381,12 +381,15 @@ class TagConfig:
             assert lo is not None and hi is not None
 
             if isinstance(lo, float) and self.guardrail_schedule.starting_range[0] is not None:
-                assert self.guardrail_schedule.starting_range[0] >= lo, \
-                    "Guardrail starting range must be greater than or equal to the operating range."
+                assert (
+                    self.guardrail_schedule.starting_range[0] >= lo
+                ), "Guardrail starting range must be greater than or equal to the operating range."
 
             if isinstance(hi, float) and self.guardrail_schedule.starting_range[1] is not None:
-                assert self.guardrail_schedule.starting_range[1] <= hi, \
-                    "Guardrail starting range must be less than or equal to the operating range."
+                assert (
+                    self.guardrail_schedule.starting_range[1] <= hi
+                ), "Guardrail starting range must be less than or equal to the operating range."
+
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
@@ -395,9 +398,7 @@ def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], May
         Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
         .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
         .map(widen_bound_types)
-
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-
         .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
         .map(partial(eval_bound, row, "lo", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
     )
@@ -406,37 +407,32 @@ def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], May
         Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
         .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
         .map(widen_bound_types)
-
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-
         .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
         .map(partial(eval_bound, row, "hi", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
     )
 
     return lo, hi
 
+
 def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
     lo = (
         # the next lowest bound is either the red zone if one exists
         Maybe(cfg.action_bounds and cfg.action_bounds[0])
         .map(partial(eval_bound, row, "lo", cfg.action_bounds_func, cfg.action_bounds_tags))
-
         # or the operating bound if one exists
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-
         # and if neither exists, we're in trouble
-        .expect(f'Tag {cfg.name} is configured as an action, but no lower bound found')
+        .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
     hi = (
         # the next lowest bound is either the red zone if one exists
         Maybe(cfg.action_bounds and cfg.action_bounds[1])
         .map(partial(eval_bound, row, "hi", cfg.action_bounds_func, cfg.action_bounds_tags))
-
         # or the operating bound if one exists
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-
         # and if neither exists, we're in trouble
-        .expect(f'Tag {cfg.name} is configured as an action, but no lower bound found')
+        .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
     return lo, hi
 
@@ -454,19 +450,25 @@ def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
     Prefer to use red zone, fallback to black zone then yellow
     """
     lo = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0]).is_instance(float)
+        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
+        .is_instance(float)
         .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0]).is_instance(float)
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
+        .is_instance(float)
         .map(widen_bound_types)
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0]).is_instance(float)
+        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
+        .is_instance(float)
     )
 
     hi = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1]).is_instance(float)
+        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
+        .is_instance(float)
         .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1]).is_instance(float)
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
+        .is_instance(float)
         .map(widen_bound_types)
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1]).is_instance(float)
+        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
+        .is_instance(float)
     )
 
     return lo, hi
@@ -477,15 +479,14 @@ def eval_bound(
     side: Literal["lo", "hi"],
     bounds_func: BoundsFunction | None,
     bounds_tags: BoundsTags | None,
-    bound: BoundsElem, # This is the last argument for cleaner mapping in Maybe with functools partial
+    bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
 ) -> float | None:
-
     index = {"lo": 0, "hi": 1}[side]
 
     if isinstance(bound, str):
-        assert bounds_func and bounds_tags # Assertion for pyright
+        assert bounds_func and bounds_tags  # Assertion for pyright
         res_func, res_tags = bounds_func[index], bounds_tags[index]
-        assert res_func and res_tags # Assertion for pyright
+        assert res_func and res_tags  # Assertion for pyright
 
         values = [data[res_tag].item() for res_tag in res_tags]
         bound = res_func(*values)
@@ -494,6 +495,7 @@ def eval_bound(
         bound = float(bound)
 
     return bound
+
 
 def widen_bound_types(x: float | None) -> BoundsElem:
     return x

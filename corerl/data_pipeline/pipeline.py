@@ -159,7 +159,7 @@ class Pipeline:
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier, app_state) for tag in self.tags}
         self.imputers = init_imputer(cfg.imputer, self.tags)
-        self.action_constructor = ActionConstructor(self.tags)
+        self.action_constructor = ActionConstructor(self.tags, self.preprocessor)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
         self.reward_constructor = (
             RewardConstructor(self.tags, self.preprocessor)
