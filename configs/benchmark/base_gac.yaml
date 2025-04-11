@@ -1,5 +1,5 @@
 name: example
-max_steps: 100
+max_steps: 5000
 
 agent:
   name: base
