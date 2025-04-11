@@ -5,6 +5,9 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 120
+exclude = [
+    '.worktree/',
+]
 
 [tool.ruff.lint]
 select = ['F', 'E', 'W', 'B', 'I']
@@ -33,6 +36,7 @@ exclude = [
     'corerl/environment/third_party',
     'corerl/sql_logging/examples',
     'client',
+    '.worktree/',
 ]
 venvPath = '.'
 venv = '.venv'

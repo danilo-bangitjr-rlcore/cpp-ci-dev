@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import SupportsFloat
@@ -5,11 +6,24 @@ from typing import SupportsFloat
 import numpy as np
 import pandas as pd
 
+from corerl.data_pipeline.db.data_reader import DataReader
+from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.async_env import AsyncEnv, SimAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnvConfig
+from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.factory import init_environment
+from corerl.utils.coreio import CoreIOThinClient
 from corerl.utils.gym import space_bounds, space_shape
 
+logger = logging.getLogger(__name__)
+
+class DummyThinClient(CoreIOThinClient):
+    def __init__(self, coreio_origin: str):
+        ...
+
+class DummyDataReader(DataReader):
+    def __init__(self, db_cfg: TagDBConfig) -> None:
+        ...
 
 @dataclass
 class StepData:
@@ -20,12 +34,16 @@ class StepData:
     terminated: bool
 
 
-class SimAsyncEnv(AsyncEnv):
+class SimAsyncEnv(DeploymentAsyncEnv):
     """AsyncEnv which directly runs and steps through a Farama Gymnasium environment.
     """
-    def __init__(self, cfg: SimAsyncEnvConfig, tags: list[TagConfig]):
-        self._env = init_environment(cfg)
-        self._cfg = cfg
+    def __init__(self, cfg: AsyncEnvConfig, tag_configs: list[TagConfig]):
+        super().__init__(cfg, tag_configs)
+
+        ### simulation specific initialization ###
+        assert self._cfg.gym is not None
+        self._sim_cfg = self._cfg.gym
+        self._env = init_environment(self._cfg.gym)
 
         shape = self._env.observation_space.shape
         assert shape is not None
@@ -34,16 +52,7 @@ class SimAsyncEnv(AsyncEnv):
         self._action_bounds = space_bounds(self._env.action_space)
         self._action_shape = space_shape(self._env.action_space)
 
-        self.tags = tags
-
-        self._action_tag_names = [tag.name for tag in tags if tag.action_constructor is not None]
-        self._meta_tag_names = [tag.name for tag in tags if tag.is_meta]
-        self._observation_tag_names = [
-            tag.name for tag in tags
-            if not tag.is_meta and tag.action_constructor is None
-        ]
-
-        self._all_tag_names = set(self._action_tag_names + self._meta_tag_names + self._observation_tag_names)
+        self._all_tag_names = {tag.name for tag in tag_configs}
 
         self.clock = datetime(1984, 1, 1, tzinfo=UTC)
         self._clock_inc = cfg.obs_period
@@ -51,10 +60,22 @@ class SimAsyncEnv(AsyncEnv):
         self._action: np.ndarray | None = None
         self._last_step: StepData | None = None
 
+    def _init_thinclient(self):
+        return DummyThinClient(self._cfg.coreio_origin)
+
+    def _init_datareader(self):
+        return DummyDataReader(self._cfg.db)
+
+    def _register_action_nodes(self):
+        ...
+
     # ------------------
     # -- AsyncEnv API --
     # ------------------
-    def emit_action(self, action: pd.DataFrame) -> None:
+    def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
+        if log_action:
+            logger.info("--- Emitting action ---")
+            [logger.info(line) for line in action.to_string().splitlines()]
         self._action = action.iloc[0].to_numpy()
 
     def get_latest_obs(self) -> pd.DataFrame:
@@ -71,7 +92,7 @@ class SimAsyncEnv(AsyncEnv):
     # -- Gym API Translation --
     # -------------------------
     def _reset(self):
-        observation, _info = self._env.reset(seed=self._cfg.seed)
+        observation, _info = self._env.reset(seed=self._sim_cfg.seed)
 
         self._last_step = StepData(
             observation=observation,

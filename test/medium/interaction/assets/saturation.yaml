@@ -1,11 +1,12 @@
 env:
   name: sim_async_env
-  gym_name : Saturation-v0
+  gym:
+    gym_name : Saturation-v0
 
 interaction:
   name: sim_interaction
-  obs_period: 00:00:01
-  action_period: 00:00:01
+  obs_period: 00:01:00
+  action_period: 00:01:00
 
 experiment :
   exp_name : "saturation"

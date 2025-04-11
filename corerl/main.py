@@ -16,7 +16,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.async_env.async_env import AsyncEnv
+from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
@@ -38,7 +38,7 @@ logging.basicConfig(
 logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 
-def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: AsyncEnv):
+def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: DeploymentAsyncEnv):
     column_desc = pipeline.column_descriptions
     agent = GreedyAC(
         cfg.agent,

@@ -82,6 +82,7 @@ def get_nodes(tags: list[str], initial_vals: np.ndarray, folder: SyncNode, clien
     return nodes
 
 def run(env: gym.Env, client: Client, cfg: OPCSimConfig):
+    assert cfg.gym is not None
     seed = cfg.gym.seed
 
     initial_observation, info = env.reset(seed=seed)

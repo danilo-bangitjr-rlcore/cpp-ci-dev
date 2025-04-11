@@ -9,12 +9,12 @@ from corerl.configs.config import config
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.environment.async_env.deployment_async_env import DepAsyncEnvConfig, DeploymentAsyncEnv
+from corerl.environment.async_env.deployment_async_env import AsyncEnvConfig, DeploymentAsyncEnv
 
 
 @config(allow_extra=True)
 class Config:
-    env: DepAsyncEnvConfig = Field(default_factory=DepAsyncEnvConfig)
+    env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
 
 

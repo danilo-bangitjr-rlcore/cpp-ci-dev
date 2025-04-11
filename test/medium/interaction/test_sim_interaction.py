@@ -47,6 +47,7 @@ def test_action_bounds():
 
         for _ in range(100):
             interaction._on_emit_action()
+            assert interaction._last_action_df is not None
             last_a = interaction._last_action_df.to_numpy().item()
 
             p = step/5
@@ -54,4 +55,3 @@ def test_action_bounds():
             high = (1-p)*0.26 + p*0.5
             assert low <= last_a <= high
 
-        interaction._sim_time += interaction._cfg.obs_period

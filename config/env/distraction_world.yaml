@@ -1,2 +1,6 @@
 name: sim_async_env
-gym_name : DistractionWorld-v0
+
+gym:
+  init_type : gym.make
+  gym_name : DistractionWorld-v0
+

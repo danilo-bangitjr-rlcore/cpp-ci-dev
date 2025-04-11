@@ -5,14 +5,12 @@ from pydantic import Field
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.environment.async_env.async_env import DepAsyncEnvConfig
-from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics import MetricsDBConfig
 from corerl.experiment.config import ExperimentConfig
-from corerl.interaction.configs import DepInteractionConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
 
@@ -107,8 +105,8 @@ class MainConfig:
     # -----------
     # -- Agent --
     # -----------
-    env: AsyncEnvConfig = Field(default_factory=DepAsyncEnvConfig)
-    interaction: InteractionConfig = Field(default_factory=DepInteractionConfig)
+    env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
+    interaction: InteractionConfig = Field(default_factory=InteractionConfig)
     agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
 
     # ----------------

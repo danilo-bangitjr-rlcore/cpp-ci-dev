@@ -1,207 +1,104 @@
 import logging
+from datetime import datetime, timedelta
 
-import numpy as np
 import pandas as pd
 
-import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.async_env.async_env import AsyncEnv
-from corerl.eval.monte_carlo import MonteCarloEvaluator
-from corerl.interaction.configs import SimInteractionConfig
-from corerl.interaction.interaction import Interaction
-from corerl.messages.events import Event, EventType
+from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
+from corerl.interaction.configs import InteractionConfig
+from corerl.interaction.deployment_interaction import DeploymentInteraction
+from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
-from corerl.utils.list import find
 from corerl.utils.time import percent_time_elapsed
 
-logger = logging.getLogger(__file__)
+logger = logging.getLogger(__name__)
 
+class DummyHeartbeat(Heartbeat):
+    def __init__(self, cfg: HeartbeatConfig, coreio_origin: str) -> None:
+        ...
 
-class SimInteraction(Interaction):
+    def healthcheck(self):
+        ...
+
+class SimInteraction(DeploymentInteraction):
     def __init__(
         self,
-        cfg: SimInteractionConfig,
+        cfg: InteractionConfig,
         app_state: AppState,
         agent: GreedyAC,
-        env: AsyncEnv,
+        env: DeploymentAsyncEnv,
         pipeline: Pipeline,
     ):
-        self._pipeline = pipeline
-        self._env = env
-        self._agent = agent
-        self._app_state = app_state
-        self._cfg = cfg
+        super().__init__(cfg, app_state, agent, env, pipeline)
 
-        self._column_desc = pipeline.column_descriptions
+    def _init_offline_chunks(self):
+        ...
 
-        self._should_reset = False
-        self._last_state: np.ndarray | None = None
-        self._last_action: np.ndarray | None = None
+    def _pretrain(self):
+        ...
 
-        # evals
-        self._monte_carlo_eval = MonteCarloEvaluator(
-            app_state.cfg.eval_cfgs.monte_carlo,
-            app_state,
-            agent,
-        )
+    def _init_heartbeat(self):
+        return DummyHeartbeat(self._cfg.heartbeat, self._env.get_cfg().coreio_origin)
 
-        self._sim_time = app_state.start_time
-
-
-    # -----------------------
-    # -- Lifecycle Methods --
-    # -----------------------
-    def _on_get_obs(self):
-        o = self._env.get_latest_obs()
-        pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset)
-        self._agent.update_buffer(pipe_return)
-
-        self._should_reset = bool(o['truncated'].any() or o['terminated'].any())
-
-        # capture latest state
-        self._last_state = (
-            pipe_return.states
-            .iloc[0]
-            .to_numpy(dtype=np.float32)
-        )
-
-        self._last_action = (
-            pipe_return.actions
-            .iloc[0]
-            .to_numpy(dtype=np.float32)
-        )
-
-        # log states
-        self._write_to_metrics(pipe_return.states, prefix='STATE-')
-
-        # log rewards
-        self._write_to_metrics(pipe_return.rewards) # no prefix required
-
-        # perform evaluations
-        self._monte_carlo_eval.execute(pipe_return, "online")
-
-        self._app_state.agent_step += 1
-
-    def _on_update(self):
-        self._agent.update()
-
-        # metrics + eval
-        agent_eval.greed_dist_batch(self._app_state, self._agent)
-        agent_eval.greed_values_batch(self._app_state, self._agent)
-
-    def _on_emit_action(self):
-        sa = self._get_latest_state_action()
-        assert sa is not None
-
-        s, prev_a = sa
-        next_a = self._agent.get_action_interaction(s, prev_a)
-        norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
-        next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
-        next_a_df = self._clip_action_bounds(next_a_df)
-        self._env.emit_action(next_a_df)
-        self._last_action_df = next_a_df
-
-        # metrics + eval
-        agent_eval.policy_variance(self._app_state, self._agent, s, prev_a)
-        agent_eval.q_online(self._app_state, self._agent, s, next_a)
-        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a)
-        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a)
-        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, prev_a)
-
-        # log actions
-        self._write_to_metrics(next_a_df, prefix='ACTION-')
-    # ------------------
-    # -- No Event Bus --
-    # ------------------
-    def step(self):
-        self._on_get_obs()
-        self._on_update()
-        self._on_emit_action()
-        self._sim_time += self._cfg.obs_period
-
-    # ---------------
-    # -- Event Bus --
-    # ---------------
-    def step_event(self, event: Event):
-        logger.debug(f"Received step_event: {event}")
-        match event.type:
-            case EventType.step:
-                self.step()
-
-            case EventType.step_get_obs:
-                self._on_get_obs()
-                self._sim_time += self._cfg.obs_period
-
-            case EventType.step_agent_update:
-                self._on_update()
-
-            case EventType.step_emit_action:
-                self._on_emit_action()
-
-            case _:
-                logger.warning(f"Unexpected step_event: {event}")
+    @property
+    def _step_timestamp(self):
+        """
+        simulate passage of time as a function of agent step
+        """
+        return self._app_state.start_time + min(self._app_state.agent_step-1, 0) * self.obs_period
 
     # ---------
     # internals
     # ---------
+    def _should_reset(self, observation: pd.DataFrame) -> bool:
+        return bool(observation['truncated'].any() or observation['terminated'].any())
 
-    def _clip_action_bounds(self, df: pd.DataFrame) -> pd.DataFrame:
-        for ai_sp_tag in df.columns:
-            df = self._clip_single_action(df, ai_sp_tag)
+    def _wait_for_next_step(self):
+        ...
 
-        return df
-
-    def _clip_single_action(self, df: pd.DataFrame, ai_sp_tag: str) -> pd.DataFrame:
-        cfg = find(lambda cfg: cfg.name == ai_sp_tag, self._pipeline.tags)
-        assert cfg is not None, f'Failed to find tag config for {ai_sp_tag}'
-        assert cfg.operating_range is not None, 'AI setpoint tag must have an operating range'
-
-        guard_lo, guard_hi = cfg.operating_range
-        if cfg.guardrail_schedule is None:
-            return df
-
-        perc = percent_time_elapsed(
-            self._app_state.start_time,
-            self._app_state.start_time + cfg.guardrail_schedule.duration,
-            cur = self._sim_time,
+    def _get_elapsed_guardrail_duration(self, guardrail_duration: timedelta):
+        """
+        rely on simulated time rather than system time
+        """
+        return percent_time_elapsed(
+            start=self._app_state.start_time,
+            end=self._app_state.start_time + guardrail_duration,
+            cur=self._step_timestamp,
         )
 
-        start_lo, start_hi = cfg.guardrail_schedule.starting_range
+    def _should_take_action(self, curr_time: datetime) -> bool:
+        return True
 
-        if start_lo is not None:
-            assert guard_lo is not None
-            guard_lo = (1 - perc) * start_lo + perc * guard_lo
+    def _state_is_fresh(self):
+        """
+        check that a state has been previously observed
+        """
+        if self._last_state_timestamp is None:
+            logger.error("Interaction state is None")
+            return False
+        return True
 
-        if start_hi is not None:
-            assert guard_hi is not None
-            guard_hi = (1 - perc) * start_hi + perc * guard_hi
+    # ---------------------
+    # -- Historical Data --
+    # ---------------------
+    def warmup_pipeline(self):
+        ...
 
-        df[ai_sp_tag] = df[ai_sp_tag].clip(lower=guard_lo, upper=guard_hi)
-        return df
-
-
-    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray] | None:
-        if self._last_state is None:
-            logger.error("Tried to get interaction state, but none existed")
-            return None
-
-        if self._last_action is None:
-            logger.error("Tried to get interaction action, but none existed")
-            return None
-
-        return self._last_state, self._last_action
+    def load_historical_chunk(self):
+        ...
 
 
-    def _write_to_metrics(self, df: pd.DataFrame, prefix: str = '') -> None:
-        if len(df) != 1:
-            logger.error(f"unexpected df length: {len(df)}")
+    # -------------------
+    # -- Checkpointing --
+    # -------------------
+    def maybe_checkpoint(self):
+        ...
 
-        for feat_name in df.columns:
-            val = df[feat_name].values[0]
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=prefix + feat_name,
-                value=val,
-            )
+
+    def checkpoint(self):
+        ...
+
+
+    def restore_checkpoint(self):
+        ...

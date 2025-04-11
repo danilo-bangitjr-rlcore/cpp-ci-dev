@@ -206,3 +206,4 @@ vendor
 report/
 *.stats
 metric_outputs/
+.worktree/

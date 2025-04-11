@@ -1,6 +1,6 @@
 name: sim_async_env
-gym_name: ThreeTank-v1
-seed: 0
-obs_period: 00:00:01
-update_period: 00:00:01
-action_period: 00:00:01
+
+gym:
+  init_type : gym.make
+  gym_name: ThreeTank-v1
+
