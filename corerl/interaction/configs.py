@@ -42,6 +42,13 @@ class BaseInteractionConfig:
     by default.
     """
 
+    load_historical_data: bool = True
+    """
+    Kind: internal
+
+    Whether or not to load historical data.
+    """
+
     update_warmup: int = 0 # number of updates before interacting
     """
     Kind: internal
