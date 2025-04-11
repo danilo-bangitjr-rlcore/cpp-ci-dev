@@ -9,10 +9,16 @@ agent:
   proposal_percentile: 0.2
   uniform_weight: 1.0
   batch_size: 256
-  ensemble: 1
-  ensemble_prob: 1.0
 
   actor_lr: 0.001
   proposal_lr: 0.001
-  critic_lr: 0.1
-  polyak: 0.995
+
+  critic:
+    stepsize: 0.1
+    ensemble: 1
+    ensemble_prob: 1.0
+    batch_size: 256
+    polyak: 0.995
+
+env:
+  name: Saturation-v0
