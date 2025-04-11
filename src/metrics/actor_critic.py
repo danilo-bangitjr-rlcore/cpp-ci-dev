@@ -28,7 +28,7 @@ def ac_eval(collector: Collector, agent: GreedyAC, state: np.ndarray):
         constructed_actions = repeat_on_policy.at[:,a_dim].set(repeat_linspace)
 
         # Critic
-        q_vals = agent.get_action_values(agent.agent_state.critic.params, state, constructed_actions)
+        q_vals = agent.get_action_values(state, constructed_actions)
         reshaped_q_vals = q_vals.reshape((x_axis_actions, on_policy_samples))
         state_vals = reshaped_q_vals.mean(axis=1)
 
