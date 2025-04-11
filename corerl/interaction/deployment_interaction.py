@@ -9,7 +9,6 @@ import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
-from corerl.environment.async_env.async_env import AsyncEnv
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.configs import DepInteractionConfig
@@ -30,10 +29,11 @@ class DeploymentInteraction(Interaction):
         cfg: DepInteractionConfig,
         app_state: AppState,
         agent: GreedyAC,
-        env: AsyncEnv,
+        env: DeploymentAsyncEnv,
         pipeline: Pipeline,
     ):
-        assert isinstance(env, DeploymentAsyncEnv)
+
+        ### Core config ###
         self._cfg = cfg
 
         self._heartbeat = Heartbeat(cfg.heartbeat, env.get_cfg().coreio_origin)

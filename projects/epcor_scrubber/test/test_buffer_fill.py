@@ -10,7 +10,6 @@ from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.async_env.async_env import DepAsyncEnvConfig
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.interaction.configs import DepInteractionConfig
@@ -42,7 +41,6 @@ def test_buffer_load():
     )
 
     pipeline = Pipeline(app_state, cfg.pipeline)
-    assert isinstance(cfg.env, DepAsyncEnvConfig)
     assert isinstance(cfg.interaction, DepInteractionConfig)
     data_reader = DataReader(db_cfg=cfg.env.db)
     time_stats = data_reader.get_time_stats()

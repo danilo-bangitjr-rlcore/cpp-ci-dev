@@ -8,7 +8,6 @@ from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.environment.config import EnvironmentConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -18,11 +17,21 @@ if TYPE_CHECKING:
 # -- Configs --
 # -------------
 @config()
-class BaseAsyncEnvConfig(EnvironmentConfig):
+class AsyncEnvConfig:
+    name: Literal["dep_async_env", "sim_async_env"] = "dep_async_env"
     obs_period: timedelta = MISSING
     update_period: timedelta = MISSING
     action_period: timedelta = MISSING
     setpoint_ping_period: timedelta | None = None
+    action_tolerance: timedelta = MISSING
+    coreio_origin: str = "http://coreio:2222"
+    db: TagDBConfig = Field(default_factory=TagDBConfig)
+    gym: GymEnvConfig | None = None
+
+    @computed('action_tolerance')
+    @classmethod
+    def _action_tolerance(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
 
     @computed('obs_period')
     @classmethod
@@ -38,12 +47,6 @@ class BaseAsyncEnvConfig(EnvironmentConfig):
     @classmethod
     def _update_period(cls, cfg: MainConfig):
         return cfg.interaction.obs_period
-
-
-@config()
-class TSDBEnvConfig(BaseAsyncEnvConfig):
-    db: TagDBConfig = Field(default_factory=TagDBConfig)
-
 
 @config()
 class GymEnvConfig:
@@ -63,31 +66,6 @@ class GymEnvConfig:
     def _seed(cls, cfg: 'MainConfig'):
         return cfg.experiment.seed
 
-
-@config()
-class DepAsyncEnvConfig(TSDBEnvConfig):
-    """Configuration for the deployment async environment.
-
-    Attributes:
-        name                Discriminator for configuration dispatcher.
-        action_tolerance    Computed from interaction obs_period.
-        coreio_origin       Endpoint for CoreIO Thin Client web service. Defaults to docker-compose up expected value.
-    """
-
-    name: Literal["dep_async_env"] = "dep_async_env"
-    action_tolerance: timedelta = MISSING
-    coreio_origin: str = "http://coreio:2222"
-
-    @computed('action_tolerance')
-    @classmethod
-    def _action_tolerance(cls, cfg: MainConfig):
-        return cfg.interaction.obs_period
-
-
-@config()
-class SimAsyncEnvConfig(GymEnvConfig, BaseAsyncEnvConfig):
-    name: Literal["sim_async_env"] = "sim_async_env"
-
 # ---------------
 # -- Interface --
 # ---------------
@@ -104,4 +82,4 @@ class AsyncEnv:
     def cleanup(self) -> None:
         return
 
-    def get_cfg(self) -> BaseAsyncEnvConfig: ...
+    def get_cfg(self) -> AsyncEnvConfig: ...

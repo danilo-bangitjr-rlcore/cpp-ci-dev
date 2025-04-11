@@ -9,7 +9,7 @@ import pandas as pd
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import FloatBounds, TagConfig, eval_bound
-from corerl.environment.async_env.async_env import AsyncEnv, DepAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
 from corerl.utils.coreio import CoreIOThinClient, OPCUADataType, OPCUANodeWriteValue
 from corerl.utils.maybe import Maybe
 
@@ -27,10 +27,9 @@ class DeploymentAsyncEnv(AsyncEnv):
     Ensure that TimescaleDB, Telegraf, our OPC Server, and our simulated OPC environment is running prior to use.
     """
 
-    def __init__(self, cfg: DepAsyncEnvConfig, tag_configs: list[TagConfig]):
-        self.cfg = cfg
-
-        self.coreio_client = CoreIOThinClient(cfg.coreio_origin)
+    def __init__(self, cfg: AsyncEnvConfig, tag_configs: list[TagConfig]):
+        self._cfg = cfg
+        self.coreio_client = self._init_thinclient()
 
         self.tag_configs = tag_configs
         self.obs_period = cfg.obs_period
@@ -39,10 +38,9 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.tag_names = [tag.name for tag in tag_configs]
         self.tag_aggs = {tag.name: tag.agg for tag in tag_configs}
-        self._meta_tags = [tag for tag in tag_configs if tag.is_meta]
         self._observation_tags = [tag for tag in tag_configs if not tag.is_meta and tag.action_constructor is None]
 
-        self.data_reader = DataReader(db_cfg=cfg.db)
+        self.data_reader = self._init_datareader()
 
         # create dict of action tags
         action_cfgs = [tag for tag in tag_configs if tag.action_constructor is not None]
@@ -52,8 +50,16 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         # define opc action nodes
         self.action_nodes: dict[str, ActionNodeData] = {}
+        self._register_action_nodes()
 
-        for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
+    def _init_thinclient(self):
+        return CoreIOThinClient(self._cfg.coreio_origin)
+
+    def _init_datareader(self):
+        return DataReader(db_cfg=self._cfg.db)
+
+    def _register_action_nodes(self):
+        for tag_cfg in sorted(self.tag_configs, key=lambda cfg: cfg.name):
             if tag_cfg.action_constructor is None:
                 continue
 
@@ -137,7 +143,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return step
 
     def get_cfg(self):
-        return self.cfg
+        return self._cfg
 
 
 def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:

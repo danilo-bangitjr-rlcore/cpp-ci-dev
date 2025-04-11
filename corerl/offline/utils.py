@@ -10,7 +10,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
-from corerl.environment.async_env.async_env import DepAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
@@ -23,7 +23,7 @@ def load_entire_dataset(
     end_time: dt.datetime | None = None
 ) -> pd.DataFrame:
 
-    assert isinstance(cfg.env, DepAsyncEnvConfig)
+    assert isinstance(cfg.env, AsyncEnvConfig)
     data_reader = DataReader(db_cfg=cfg.env.db)
     if start_time is None or end_time is None:
         time_stats = data_reader.get_time_stats()
@@ -57,7 +57,7 @@ class OfflineTraining:
 
     def load_offline_transitions(self, pipeline: Pipeline):
         # Configure DataReader
-        assert isinstance(self.cfg.env, DepAsyncEnvConfig)
+        assert isinstance(self.cfg.env, AsyncEnvConfig)
         data_reader = DataReader(db_cfg=self.cfg.env.db)
 
         # Infer missing start or end time

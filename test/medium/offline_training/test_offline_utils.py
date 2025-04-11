@@ -14,7 +14,7 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.environment.async_env.async_env import DepAsyncEnvConfig
+from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
 from corerl.messages.event_bus import EventBus
@@ -61,7 +61,7 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     cfg.agent.critic.buffer.online_weight = 0.0
     cfg.agent.policy.buffer.online_weight = 0.0
 
-    assert isinstance(cfg.env, DepAsyncEnvConfig)
+    assert isinstance(cfg.env, AsyncEnvConfig)
     cfg.env.db = test_db_config
 
     assert isinstance(cfg.metrics, MetricsDBConfig)
