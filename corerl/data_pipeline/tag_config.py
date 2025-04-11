@@ -290,6 +290,9 @@ class TagConfig:
         else:
             raise ValueError("Unknown cfg type")
 
+        if self.action_bounds is not None:
+            self.action_bounds_func, self.action_bounds_tags = self._bounds_parse_sympy(self.action_bounds, known_tags)
+
         if self.red_bounds is not None:
             self.red_bounds_func, self.red_bounds_tags = self._bounds_parse_sympy(self.red_bounds, known_tags)
 
@@ -410,6 +413,31 @@ def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], May
         .map(partial(eval_bound, row, "hi", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
     )
 
+    return lo, hi
+
+def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
+    lo = (
+        # the next lowest bound is either the red zone if one exists
+        Maybe(cfg.action_bounds and cfg.action_bounds[0])
+        .map(partial(eval_bound, row, "lo", cfg.action_bounds_func, cfg.action_bounds_tags))
+
+        # or the operating bound if one exists
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
+
+        # and if neither exists, we're in trouble
+        .expect(f'Tag {cfg.name} is configured as an action, but no lower bound found')
+    )
+    hi = (
+        # the next lowest bound is either the red zone if one exists
+        Maybe(cfg.action_bounds and cfg.action_bounds[1])
+        .map(partial(eval_bound, row, "hi", cfg.action_bounds_func, cfg.action_bounds_tags))
+
+        # or the operating bound if one exists
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
+
+        # and if neither exists, we're in trouble
+        .expect(f'Tag {cfg.name} is configured as an action, but no lower bound found')
+    )
     return lo, hi
 
 
