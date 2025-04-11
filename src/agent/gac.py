@@ -14,10 +14,47 @@ from ml_instrumentation.Collector import Collector
 import agent.components.networks.networks as nets
 import utils.jax as jax_u
 from agent.components.buffer import EnsembleReplayBuffer
-from agent.components.networks.activations import ActivationConfig, TanhConfig, get_output_activation, scale_shift
+from agent.components.networks.activations import (
+    ActivationConfig,
+    IdentityConfig,
+    get_output_activation,
+)
 from agent.components.q_critic import SARSAConfig, SARSACritic
 from interaction.transition_creator import Transition
 
+
+class SquashedGaussian:
+    def __init__(self, mean: jax.Array, std: jax.Array):
+        dist = distrax.Transformed(
+            distribution=distrax.MultivariateNormalDiag(loc=mean, scale_diag=std),
+            bijector=distrax.Block(
+                distrax.Tanh(),
+                ndims=1,
+            )
+        )
+        dist = distrax.Transformed(
+            distribution=dist,
+            bijector=distrax.Block(
+                distrax.ScalarAffine(shift=1, scale=1.0),
+                ndims=1,
+            )
+        )
+        self.dist = distrax.Transformed(
+            distribution=dist,
+            bijector=distrax.Block(
+                distrax.ScalarAffine(shift=0, scale=0.5),
+                ndims=1,
+            )
+        )
+
+    def sample(self, seed: chex.PRNGKey):
+        return self.dist.sample(seed=seed)
+
+    def log_prob(self, action: jax.Array):
+        return self.dist.log_prob(action)
+
+    def prob(self, action: jax.Array):
+        return self.dist.prob(action)
 
 class UpdateActions(NamedTuple):
     actor: jax.Array
@@ -54,23 +91,21 @@ class GreedyACConfig:
 
     critic: dict[str, Any]
 
-
 class ActorOutputs(NamedTuple):
-    alpha: jax.Array
-    beta: jax.Array
-
+    mu: jax.Array
+    sigma: jax.Array
 
 def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int):
     def _inner(x: jax.Array):
         torso = nets.torso_builder(cfg)
         phi = torso(x)
         output_act = get_output_activation(act_cfg)
-        alpha_head_out = output_act(hk.Linear(act_dim)(phi))
-        beta_head_out = output_act(hk.Linear(act_dim)(phi))
+        mu_head_out = output_act(hk.Linear(act_dim)(phi))
+        sigma_head_out = output_act(hk.Linear(act_dim)(phi))
 
         return ActorOutputs(
-            alpha=scale_shift(alpha_head_out, 1, 10000),
-            beta=scale_shift(beta_head_out, 1, 10000),
+            mu=mu_head_out,
+            sigma=jnp.exp(jnp.clip(sigma_head_out, -20, 2))
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
@@ -106,7 +141,7 @@ class GreedyAC:
                 nets.LinearConfig(size=256, activation='relu'),
             ]
         )
-        actor_output_act_cfg = TanhConfig(shift=-4.0)
+        actor_output_act_cfg = IdentityConfig()
         self.actor = actor_builder(actor_torso_cfg, actor_output_act_cfg, action_dim)
         self.proposal = self.actor
 
@@ -151,9 +186,9 @@ class GreedyAC:
         self._critic.update_buffer(transition)
         self.policy_buffer.add(transition)
 
-    def _get_dist(self, params: chex.ArrayTree, state: jax.Array) -> distrax.Distribution:
+    def _get_dist(self, params: chex.ArrayTree, state: jax.Array):
         out: ActorOutputs = self.actor.apply(params=params, x=state)
-        dist = distrax.Beta(out.alpha, out.beta)
+        dist = SquashedGaussian(out.mu, out.sigma)
         return dist
 
     @jax_u.method_jit
@@ -173,11 +208,11 @@ class GreedyAC:
             a=jnp.asarray(actions),
         )
 
-    def _get_prob(self, dist: distrax.Distribution, action: jax.Array):
+    def _get_prob(self, dist: SquashedGaussian, action: jax.Array):
         log_prob = dist.log_prob(action)
         return jnp.exp(log_prob)
 
-    def _get_probs(self, dist: distrax.Distribution, actions: jax.Array):
+    def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):
         probs = jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
         return probs
 
@@ -334,7 +369,7 @@ class GreedyAC:
 
     def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: jax.Array, top_actions: jax.Array):
         out: ActorOutputs = policy.apply(params=params, x=state)
-        dist = distrax.Beta(out.alpha, out.beta)
+        dist = SquashedGaussian(out.mu, out.sigma)
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)
 
