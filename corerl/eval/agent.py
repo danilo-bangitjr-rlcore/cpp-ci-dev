@@ -410,7 +410,7 @@ def q_values_and_act_prob(
         lin_spaced_actions_in_da_space = direct_actions[:, a_dim_idx].unique()
         measure = XYEval(data=[
             XY(x=x, y=float(y))
-            for x, y in zip(lin_spaced_actions_in_da_space, probs, strict=True)
+            for x, y in zip(lin_spaced_actions_in_da_space, probs, strict=False)
         ])
         app_state.evals.write(
             agent_step=app_state.agent_step,
