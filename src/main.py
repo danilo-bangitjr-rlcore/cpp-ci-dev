@@ -13,6 +13,7 @@ import utils.gym as gym_u
 from agent.gac import GreedyAC, GreedyACConfig
 from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
+from interaction.transition_creator import TransitionCreator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
@@ -79,7 +80,7 @@ def main():
     )
 
     if cfg.env['name'] == 'WindyRoom-v0':
-       env_args = {'no_zones': False}
+        env_args = {'no_zones': False}
     else:
         env_args = {}
 
@@ -102,11 +103,9 @@ def main():
             'low': obs_bounds[0],
             'high': obs_bounds[1],
         },
-        min_n_step=1,
-        max_n_step=1,
-        gamma=0.99,
         trace_values=trace_values,
     )
+    tc = TransitionCreator(n_step=1, gamma=0.99)
 
     agent = GreedyAC(
         GreedyACConfig(**cfg.agent),
@@ -117,6 +116,8 @@ def main():
     )
 
     state, _ = wrapper_env.reset()
+    reward: float | None = None
+    done = False
     episode_reward = 0.0
     steps = 0
     # +1 to ensure we don't reject any metrics that are subsampling
@@ -125,8 +126,9 @@ def main():
         collector.next_frame()
         # ac_eval(collector, agent, state)
         action = agent.get_actions(state)
+        transitions = tc(state, action, reward, done)
 
-        next_state, reward, terminated, truncated, info, transitions = wrapper_env.step(action)
+        next_state, reward, terminated, truncated, _ = wrapper_env.step(action)
         for t in transitions:
             agent.update_buffer(t)
 
@@ -135,14 +137,17 @@ def main():
         episode_reward += reward
         steps += 1
 
+        done = terminated or truncated
         if terminated or truncated:
             collector.collect('return', episode_reward)
             collector.collect('num_steps', steps)
 
             steps = 0
             episode_reward = 0
+            reward = None
 
             state, _ = wrapper_env.reset()
+            tc.flush()
 
         else:
             state = next_state
