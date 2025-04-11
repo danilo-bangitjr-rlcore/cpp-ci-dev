@@ -4,7 +4,6 @@ import sqlite3
 
 import matplotlib.pyplot as plt
 from matplotlib.axes import Axes
-from numpy import save
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-r", "--results", type=str, required=True)
