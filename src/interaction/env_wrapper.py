@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from typing import Any
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 from gymnasium import Env
 
