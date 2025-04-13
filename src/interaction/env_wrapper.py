@@ -33,14 +33,10 @@ class EnvWrapper:
         return state, info
 
     def step(self, action: jax.Array) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
-        observation, reward, terminated, truncated, info = self.env.step(np.array(action))
+        raw_action = self.state_constructor.denormalize_action(np.array(action))
+        observation, reward, terminated, truncated, info = self.env.step(raw_action)
         state = self.state_constructor(observation, np.asarray(action))
         return state, float(reward), terminated, truncated, info
-
-    def denormalize(self, normalized_observation: jax.Array) -> jax.Array:
-        low = jnp.array(self.state_constructor.obs_low)
-        range_val = jnp.array(self.state_constructor.range)
-        return normalized_observation * range_val + low
 
     def get_state_dim(self) -> int:
         return self.state_constructor.get_state_dim()

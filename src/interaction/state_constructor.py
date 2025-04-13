@@ -47,8 +47,11 @@ class StateConstructor:
 
         return self._mu.flatten()
 
-    def denormalize(self, normalized_observation: np.ndarray) -> np.ndarray:
+    def denormalize_obs(self, normalized_observation: np.ndarray) -> np.ndarray:
         return _denormalize(normalized_observation, self.obs_low, self.obs_high)
+
+    def denormalize_action(self, normalized_action: np.ndarray) -> np.ndarray:
+        return _denormalize(normalized_action, self.act_low, self.act_high)
 
 
     def get_state_dim(self) -> int:
