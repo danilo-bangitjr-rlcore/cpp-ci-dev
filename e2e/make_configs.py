@@ -79,8 +79,8 @@ def generate_tag_yaml(
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)
         action_tags = [tag for tag in raw_tags if 'action' in tag['name']]
-        other_tags = [tag for tag in raw_tags if 'action' not in tag['name'] and not tag['is_meta']]
-        meta_tags =  [tag for tag in raw_tags if tag['is_meta']]
+        other_tags = [tag for tag in raw_tags if 'action' not in tag['name'] and tag['type'] != 'meta']
+        meta_tags =  [tag for tag in raw_tags if tag['type'] == 'meta']
 
         if action_entries is not None:
             action_tags = prune_tags(action_tags, action_entries)

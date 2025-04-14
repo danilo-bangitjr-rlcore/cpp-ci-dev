@@ -57,21 +57,21 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
                 name="gym_reward",
                 outlier=IdentityFilterConfig(),
                 state_constructor=[],
-                is_meta=True,
+                type=TagType.meta,
             )
         )
         tag_configs.append(
             TagConfig(
                 name="terminated",
                 outlier=IdentityFilterConfig(),
-                is_meta=True,
+                type=TagType.meta,
             )
         )
         tag_configs.append(
             TagConfig(
                 name="truncated",
                 outlier=IdentityFilterConfig(),
-                is_meta=True,
+                type=TagType.meta,
             )
         )
 

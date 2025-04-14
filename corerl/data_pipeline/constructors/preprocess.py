@@ -6,7 +6,7 @@ import pandas as pd
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.base import InvertibleTransform
 from corerl.data_pipeline.transforms.norm import Normalizer
 from corerl.utils.list import find_instance
@@ -20,7 +20,7 @@ class Preprocessor(Constructor):
             # while technically we can avoid this check
             # it's epsilon more performant to skip empty preprocess steps
             # because it avoids some pandas column mutation logic
-            if len(tag.preprocess) > 0 and not tag.is_meta
+            if len(tag.preprocess) > 0 and tag.type != TagType.meta
         }
 
     def __call__(self, pf: PipelineFrame):
