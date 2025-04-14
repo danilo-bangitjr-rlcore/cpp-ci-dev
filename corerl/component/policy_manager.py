@@ -152,6 +152,8 @@ class GACPolicyManager:
     def ensure_direct_action(
             self,
             prev_direct_actions: torch.Tensor,
+            action_lo: torch.Tensor,
+            action_hi: torch.Tensor,
             policy_actions: torch.Tensor
         ) -> torch.Tensor:
         """
@@ -161,7 +163,7 @@ class GACPolicyManager:
             delta_actions = policy_actions * self.delta_scale + self.delta_bias
             direct_actions = prev_direct_actions + delta_actions
         else:
-            direct_actions = policy_actions
+            direct_actions = policy_actions * (action_hi - action_lo) + action_lo
         return direct_actions
 
     def _sample_actor(self, states: torch.Tensor) -> torch.Tensor:
@@ -217,7 +219,7 @@ class GACPolicyManager:
             invalid_mask = invalid_mask.any(dim=1)
             # resample invalid actions
             policy_actions[invalid_mask] = sampler(states[invalid_mask])
-            direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
+            direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions, action_lo, action_hi)
 
             if itr == max_itr - 1:
                 logging.warning(
@@ -225,7 +227,7 @@ class GACPolicyManager:
                     + "defaulting to sampling uniform"
                 )
                 policy_actions[invalid_mask] = self._sample_uniform(states[invalid_mask])
-                direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
+                direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions, action_lo, action_hi)
 
         # Clip the direct actions. This should be unnecessary if rejection sampling is successful
         direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
@@ -240,7 +242,7 @@ class GACPolicyManager:
         action_hi: torch.Tensor,
     ) -> ActionReturn:
         policy_actions = sampler(states)
-        direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
+        direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
         if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
             direct_actions, policy_actions = self._rejection_sample(
@@ -296,7 +298,7 @@ class GACPolicyManager:
             critic=critic,
         )
         policy_actions = sampler(states)
-        direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions)
+        direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions, action_lo, action_hi)
 
         if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
             direct_actions, policy_actions = self._rejection_sample(

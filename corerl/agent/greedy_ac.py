@@ -132,11 +132,17 @@ class GreedyAC(BaseAgent):
 
         return to_np(direct_action)[0]
 
-    def policy_to_direct_action(self, prev_direct_actions: torch.Tensor,  policy_actions: torch.Tensor) -> torch.Tensor:
+    def policy_to_direct_action(
+        self,
+        prev_direct_actions: torch.Tensor,
+        policy_actions: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+    ) -> torch.Tensor:
         """
         Converts policy actions to direct actions.
         """
-        return self._policy_manager.ensure_direct_action(prev_direct_actions, policy_actions)
+        return self._policy_manager.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
     def get_actor_actions(
         self,
