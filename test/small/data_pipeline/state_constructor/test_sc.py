@@ -6,7 +6,7 @@ import pandas as pd
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
@@ -341,7 +341,7 @@ def test_sc_decision_point_detection():
     sc = StateConstructor(
         tag_cfgs=[
             TagConfig(name='tag-1'),
-            TagConfig(name='tag-action', action_constructor=[], state_constructor=[]),
+            TagConfig(name='tag-action', action_constructor=[], state_constructor=[], type=TagType.ai_setpoint),
         ],
         cfg=SCConfig(
             defaults=[

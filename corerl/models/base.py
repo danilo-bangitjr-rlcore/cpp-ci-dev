@@ -5,7 +5,7 @@ from torch import Tensor
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 
 
 @config()
@@ -28,7 +28,7 @@ class BaseModel:
         self.exo_tags = []
         for tag_config in tag_configs:
             name = tag_config.name
-            if tag_config.action_constructor is not None:
+            if tag_config.type == TagType.ai_setpoint:
                 pass
             elif name in ['reward', 'trunc', 'term']:
                 pass

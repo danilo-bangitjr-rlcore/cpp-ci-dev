@@ -25,6 +25,7 @@ class ActionConstructor:
             )
         self._prep_stage = prep_stage # used to denormalize tags
 
+
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         # denormalize all tags before computing action bounds
         raw_data = self.denormalize_tags(pf.data)

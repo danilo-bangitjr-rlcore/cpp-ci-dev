@@ -11,7 +11,7 @@ from corerl.data_pipeline.datatypes import DataMode, StageCode
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
@@ -89,8 +89,8 @@ def test_state_action_dim(dummy_app_state: AppState):
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', operating_range=(0, 1), action_constructor=[]),
-            TagConfig(name='tag-4', operating_range=(0, 1), action_constructor=[]),
+            TagConfig(name='tag-3', operating_range=(0, 1), action_constructor=[], type=TagType.ai_setpoint),
+            TagConfig(name='tag-4', operating_range=(0, 1), action_constructor=[], type=TagType.ai_setpoint),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(

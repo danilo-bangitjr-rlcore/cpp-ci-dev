@@ -14,7 +14,7 @@ from corerl.data_pipeline.imputers.per_tag.copy import CopyImputerConfig
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms import IdentityConfig, NullConfig, ScaleConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
@@ -70,6 +70,7 @@ def test_pipeline1(dummy_app_state: AppState):
             ),
             TagConfig(
                 name='action-1',
+                type=TagType.ai_setpoint,
                 operating_range=(0, 1),
                 preprocess=[],
                 action_constructor=[],
@@ -208,6 +209,7 @@ def test_pipeline2(dummy_app_state: AppState):
             ),
             TagConfig(
                 name='action-1',
+                type=TagType.ai_setpoint,
                 preprocess=[],
                 operating_range=(0, 1),
                 action_constructor=[],

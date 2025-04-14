@@ -5,6 +5,7 @@ from pydantic import Field
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
+from corerl.data_pipeline.tag_config import TagType
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
@@ -128,21 +129,13 @@ class MainConfig:
 
         sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
         for tag in sorted_tags:
-            # if not an action, continue
-            if tag.change_bounds is None:
+            if tag.type != TagType.ai_setpoint:
                 continue
 
-            if tag.action_constructor is None:
-                tag.action_constructor = []
+            if tag.change_bounds is None:
+                tag.change_bounds = (-1, 1)
 
             self.agent.policy.delta_bounds.append(tag.change_bounds)
-
-        for tag in sorted_tags:
-            # if not an action, continue
-
-            if tag.action_constructor is not None:
-                assert tag.change_bounds is not None, \
-                    f"Delta actions enabled, but change bounds for tag {tag.name} unspecified."
 
 
     @post_processor
