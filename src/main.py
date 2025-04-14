@@ -112,7 +112,7 @@ def main():
         GreedyACConfig(**cfg.agent),
         seed=args.seed,
         state_dim=wrapper_env.get_state_dim(),
-        action_dim=1,
+        action_dim=len(act_bounds[0]),
         collector=collector,
     )
 
