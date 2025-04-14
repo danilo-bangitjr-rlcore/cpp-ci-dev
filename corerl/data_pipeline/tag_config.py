@@ -74,8 +74,8 @@ class TagConfig:
 
     The UUID associated to the OPC-UA server connection, used within the CoreIO thin client.
     """
-    connection_id: str | None = None
 
+    connection_id: str | None = None
     """
     Kind: required external
 
