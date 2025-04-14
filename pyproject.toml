@@ -92,6 +92,7 @@ dependencies = [
     "sqlalchemy>=2.0.40",
     "sqlalchemy-utils>=0.41.2",
     "tqdm~=4.67",
+    "pandas==2.2.3",
 ]
 
 [dependency-groups]
