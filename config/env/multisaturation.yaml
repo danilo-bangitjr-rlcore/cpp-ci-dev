@@ -1,0 +1,6 @@
+name: sim_async_env
+
+gym:
+  init_type : custom
+  gym_name : MultiActionSaturation-v0
+
