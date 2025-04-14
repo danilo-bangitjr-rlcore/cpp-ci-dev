@@ -3,110 +3,60 @@ import os
 import sqlite3
 
 import matplotlib.pyplot as plt
-from matplotlib.axes import Axes
+import pandas as pd
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-r", "--results", type=str, required=True)
 
 args = parser.parse_args()
 
-def read_meta_data(cursor: sqlite3.Cursor) -> dict:
-    """
-    Read metadata from the SQLite database.
-    """
-    table_name = '_metadata_'
-    cursor.execute(f"SELECT * FROM {table_name}")
-    rows = cursor.fetchall()
-
-    result_dict = {}
-    for row in rows:
-        row_dict = {key: row[key] for key in row.keys()}
-        row_id = row_dict.pop('id')
-        result_dict[row_id] = row_dict
-    return result_dict
-
-
-def ids_for_value(key: str, value: str, metadata: dict) -> list:
-    ids = []
-    for id, row in metadata.items():
-        if key in row and row[key] == value:
-            ids.append(id)
-    return ids
-
-def unique_vals(key: str, metadata: dict) -> list:
-    vals = []
-    for _, row in metadata.items():
-        if key in row and row[key] not in vals:
-            vals.append(row[key])
-    return vals
-
-
-def get_rows_by_ids(cursor: sqlite3.Cursor, table_name: str, id_list: list[int]):
-    # Convert id_list to tuple for SQL query
-    # Use placeholders to prevent SQL injection
-    placeholders = ','.join(['?'] * len(id_list))
-
-    # Execute query filtering by IDs
-    query = f"SELECT * FROM {table_name} WHERE id IN ({placeholders})"
-
-    try:
-        cursor.execute(query, id_list)
-        results = cursor.fetchall()
-
-        # Convert sqlite3.Row objects to dictionaries
-        rows = [dict(row) for row in results]
-
-        return rows
-
-    except sqlite3.Error as e:
-        print(f"SQLite error: {e}")
-        return []
-
-def group_by_id(rows: list[dict]):
-    grouped = dict()
-    for row in rows:
-        if row['id'] not in grouped:
-            grouped[row['id']] = []
-        grouped[row['id']].append(row)
-    return grouped
-
-def plot_measurment_by_frame(
-        grouped_rows: dict[int, list[dict]],
-        ax: Axes,
-        title: str,
+def plot_across(
+        metadata: pd.DataFrame,
+        data: pd.DataFrame,
+        key: str,
+        save_path: str,
     ):
+    results = pd.merge(data, metadata, on='id') # joins metadata with data
+    grouped_by_key = results.groupby(key)
 
-    for _, group in grouped_rows.items():
-        xs = [row['frame'] for row in group]
-        ys = [row['measurement'] for row in group]
+    group_size = len(grouped_by_key)
+    _, axs = plt.subplots(group_size, 1, figsize=(10, 5*group_size))
 
-        ax.plot(xs, ys, color='blue', alpha=0.2)
-        ax.set_title(title)
+    ax_idx = 0
+    for key_name, group_data in grouped_by_key:
+        grouped_by_id = group_data.groupby('id') # iterate through runs
+        for _, id_group_data in grouped_by_id:
+            xs = id_group_data['frame']
+            ys = id_group_data['measurement']
 
-def plot_across(metadata: dict, cursor: sqlite3.Cursor, table_name: str, key: str):
-    vals = unique_vals(key, metadata)
-    fig, axs = plt.subplots(len(vals), 1, figsize=(10, 5 * len(vals)))
-    for idx, val in enumerate(vals):
-        ids = ids_for_value(key, val, metadata)
-        rows = get_rows_by_ids(cursor, table_name, ids)
-        grouped_rows = group_by_id(rows)
-        plot_measurment_by_frame(grouped_rows, ax=axs[idx], title=val)
+            axs[ax_idx].plot(xs, ys, color='blue', alpha=0.2)
+            axs[ax_idx].set_title(key_name)
 
-    result_path = "/".join(args.results.split("/")[:-1])
-    save_path = os.path.join(result_path, f'{table_name}.png')
+        ax_idx += 1
+
     plt.savefig(save_path)
 
-def main():
+def read_table(table_name: str):
     conn = sqlite3.connect(args.results)
-    conn.row_factory = sqlite3.Row
-    cursor = conn.cursor()
-
-    metadata = read_meta_data(cursor)
-    plot_across(metadata, cursor, 'reward', 'env.name')
-    plot_across(metadata, cursor, 'critic_loss', 'env.name')
-
-    cursor.close()
+    df = pd.read_sql(f'SELECT * FROM {table_name}', conn)
     conn.close()
+    return df
+
+
+def main():
+    metadata = read_table('_metadata_')
+
+    # REWARD
+    result_path = "/".join(args.results.split("/")[:-1])
+    save_path = os.path.join(result_path, 'reward.png')
+    rewards = read_table('reward')
+    plot_across(metadata, rewards, 'env.name', save_path)
+
+
+    # CRITIC LOSS
+    save_path = os.path.join(result_path, 'critic_loss.png')
+    rewards = read_table('critic_loss')
+    plot_across(metadata, rewards, 'env.name', save_path)
 
 
 if __name__ == "__main__":
