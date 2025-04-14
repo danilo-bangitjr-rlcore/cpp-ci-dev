@@ -5,7 +5,6 @@ from typing import Any
 
 from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
-from ml_instrumentation.metadata import attach_metadata
 from ml_instrumentation.Sampler import Identity, Subsample, Window
 from tqdm import tqdm
 
@@ -60,7 +59,9 @@ def main():
     save_path = Path('results/test/results.db')
     save_path.parent.mkdir(exist_ok=True, parents=True)
 
-    exp_id = get_next_id(save_path)
+    hyperparams = cfg.flatten()
+    hyperparams['seed'] = args.seed
+    exp_id = get_next_id(save_path, hyperparams)
 
     collector = Collector(
         tmp_file=str(save_path),
@@ -70,7 +71,7 @@ def main():
         #  - Window(n)  take a window average of size n
         #  - Subsample(n) save one of every n elements
         config={
-            'reward': Window(100),
+            'reward': Window(25),
             'critic_loss': Subsample(100),
         },
         # by default, ignore keys that are not explicitly listed above
@@ -154,10 +155,6 @@ def main():
 
     env.close()
 
-    # add the hyperparameters to the results database
-    hyperparams = cfg.flatten()
-    hyperparams['seed'] = args.seed
-    attach_metadata(save_path, collector.get_current_experiment_id(), hyperparams)
     collector.reset()
     collector.close()
 
