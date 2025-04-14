@@ -5,6 +5,7 @@ from typing import Any
 
 import yaml
 from filelock import FileLock
+from ml_instrumentation.metadata import attach_metadata
 
 from utils.dict import flatten
 
@@ -64,16 +65,19 @@ def set_nested_value(dictionary: dict, keys: list, value: Any, create_missing: b
     current[keys[-1]] = value
 
 
-def get_next_id(db_path: Path):
-    with FileLock(f'{db_path}.lock'):
-        con = sqlite3.connect(db_path)
+def get_next_id(save_path: Path, hyperparams: dict[str, Any]):
+    with FileLock(f'{save_path}.lock') as lock:
+        con = sqlite3.connect(save_path)
         cur = con.cursor()
 
         try:
             cur.execute('SELECT max(id) FROM _metadata_;')
             ids = cur.fetchone()
             con.close()
-            return ids[0] + 1
+            h_id = ids[0] + 1
 
         except Exception:
-            return 0
+            h_id = 0
+
+        attach_metadata(save_path, h_id, hyperparams, lock)
+        return h_id
