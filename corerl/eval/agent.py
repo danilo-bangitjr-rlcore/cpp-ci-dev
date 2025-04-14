@@ -425,7 +425,7 @@ def q_values_and_act_prob(
         cfg.primary_action_samples*cfg.other_action_samples, 1)
 
     # sample actions for the actor
-    ar = agent.get_actor_actions(repeated_states, repeated_prev_a, repeated_action_lo, repeated_action_hi)
+    policy_actions = agent._policy_manager._sample_actor(repeated_states)
 
     # get actions for each action dimension we are interested in.
     lin_spaced_actions = torch.linspace(
@@ -437,13 +437,8 @@ def q_values_and_act_prob(
     for a_dim_idx in range(agent.action_dim):
         # augmented actions are the actions we are interested in,
         # but with the primary action dimension replaced with the lin_spaced actions
-        augmented_policy_actions = ar.policy_actions.clone()
+        augmented_policy_actions = policy_actions.clone()
         augmented_policy_actions[:, a_dim_idx] = repeated_lin_spaced_actions
-        # convert these policy actions to direct action
-        direct_actions = agent.policy_to_direct_action(
-            repeated_prev_a, augmented_policy_actions, repeated_action_lo, repeated_action_hi
-        )
-        direct_actions = torch.clip(direct_actions, 0, 1)
         probs = agent.prob(
             repeated_states,
             augmented_policy_actions, # probability is calculated using policy actions
@@ -452,6 +447,11 @@ def q_values_and_act_prob(
             cfg.primary_action_samples,
             cfg.other_action_samples,
         ).mean(dim=1)
+        # convert these policy actions to direct action
+        direct_actions = agent.policy_to_direct_action(
+            repeated_prev_a, augmented_policy_actions, repeated_action_lo, repeated_action_hi
+        )
+        direct_actions = torch.clip(direct_actions, 0, 1)
 
         lin_spaced_actions_in_da_space = direct_actions[:, a_dim_idx].unique()
         measure = XYEval(data=[
