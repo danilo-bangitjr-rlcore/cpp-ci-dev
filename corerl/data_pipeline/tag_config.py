@@ -414,8 +414,15 @@ class TagConfig:
                     self.guardrail_schedule.starting_range[1] <= hi
                 ), "Guardrail starting range must be less than or equal to the operating range."
 
+        if self.type == TagType.computed:
+            assert self.value is not None, \
+                "A value string must be specified for computed virtual tags."
 
+            known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            _, _, dependent_tags = to_sympy(self.value)
 
+            for dep in dependent_tags:
+                assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
 
 
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
@@ -424,11 +431,6 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 
     elif len(tag_cfg.action_constructor) == 0:
         tag_cfg.action_constructor.append(IdentityConfig())
-
-
-        if tag_cfg.type == TagType.computed:
-            assert tag_cfg.value is not None, \
-                "A value string must be specified for computed virtual tags."
 
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
