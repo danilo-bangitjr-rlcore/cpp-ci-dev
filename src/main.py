@@ -73,6 +73,8 @@ def main():
         config={
             'reward': Window(25),
             'critic_loss': Subsample(100),
+            'policy_entropy': Subsample(100),
+            'actor_loss': Subsample(100),
         },
         # by default, ignore keys that are not explicitly listed above
         default=Identity(),
