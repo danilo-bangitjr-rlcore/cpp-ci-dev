@@ -334,7 +334,7 @@ class GreedyAC:
         states: jax.Array,
         update_actions: jax.Array
     ):
-        def loss_fn(params):
+        def loss_fn(params: chex.ArrayTree):
             return self._batch_policy_loss(params, policy, states, update_actions)
 
         loss_value = loss_fn(policy_state.params)
