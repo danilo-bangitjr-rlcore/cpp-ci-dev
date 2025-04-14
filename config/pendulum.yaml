@@ -29,12 +29,9 @@ pipeline:
 
   tags:
   - name: action-0
+    type: ai_setpoint
     operating_range: [-2, 2]
     change_bounds: [-0.5, 0.5]
-    state_constructor:
-      - name: "null"
-    action_constructor:
-      - name: "identity"
 
   # observations
   # x
@@ -53,10 +50,10 @@ pipeline:
 
 
   - name: reward
-    is_meta: True
+    type: meta
 
   - name: terminated
-    is_meta: True
+    type: meta
 
   - name: truncated
-    is_meta: True
+    type: meta

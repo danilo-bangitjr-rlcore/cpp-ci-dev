@@ -18,10 +18,10 @@ pipeline:
   tags:
   # meta tags
   - name: terminated
-    is_meta: True
+    type: meta
 
   - name: truncated
-    is_meta: True
+    type: meta
 
   # observations
   - name: tag-0
@@ -76,24 +76,21 @@ pipeline:
 
   # actions
   - name: action-0
+    type: ai_setpoint
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
     action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
-    action_constructor:
-      - name: identity
 
   # actions
   - name: action-1
+    type: ai_setpoint
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
     action_bounds: ['{action-1}-0.1', '{action-1}+0.1']
-    action_constructor:
-      - name: identity
 
   # actions
   - name: action-2
+    type: ai_setpoint
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
     action_bounds: ['{action-2}-0.1', '{action-2}+0.1']
-    action_constructor:
-      - name: identity

@@ -151,19 +151,17 @@ pipeline:
   tags:
     # Actions
     - name: SCADA1.ELS_SLR_BESS1_SOC_SP_LGC.F_CV # BESS1 SOC SP
+      type: ai_setpoint
       # node_identifier: 14
       operating_range: [20.0, 80.0]
       agg: last
-      action_constructor:
-        - name: identity
 
 
     - name: SCADA1.ELS_SLR_BESS2_SOC_SP_LGC.F_CV # BESS2 SOC SP
+      type: ai_setpoint
       # node_identifier: 14
       operating_range: [ 20.0, 80.0 ]
       agg: last
-      action_constructor:
-        - name: identity
 
 #    # BESS enable/disable charging from grid probably not necessary
 #    - name: SCADA1.ELS_SLR_BESS1_GRID_MODE_CMD.A_CV

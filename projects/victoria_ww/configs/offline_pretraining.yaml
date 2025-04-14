@@ -75,7 +75,6 @@ pipeline:
   tags:
     # Observation
     - name: "dd1_tank_level"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -86,7 +85,6 @@ pipeline:
           from_data: False
 
     - name: "dd1_recirculation_flow_rate"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -97,7 +95,6 @@ pipeline:
           from_data: False
 
     - name: "dd1_frequency_time_sp"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -108,7 +105,6 @@ pipeline:
           from_data: False
 
     - name: "dd1_flow_between_blowdowns"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -119,7 +115,6 @@ pipeline:
           from_data: False
 
     - name: "dd1_duration_time_sp"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -130,7 +125,7 @@ pipeline:
           from_data: False
 
 #    - name: "dd_influent_tss"
-#      is_meta: False
+
 #      operating_range:
 #        - 0.0
 #        -
@@ -146,7 +141,7 @@ pipeline:
 #        imputation_horizon: 384
 #
 #    - name: "dd_influent_cod"
-#      is_meta: False
+
 #      operating_range:
 #        - 0.0
 #        -
@@ -162,7 +157,7 @@ pipeline:
 #        imputation_horizon: 384
 #
 #    - name: "dd_influent_cbod5"
-#      is_meta: False
+
 #      operating_range:
 #        - 0.0
 #        -
@@ -178,7 +173,7 @@ pipeline:
 #        imputation_horizon: 384
 #
 #    - name: "dd_effluent_tss"
-#      is_meta: False
+
 #      operating_range:
 #        - 0.0
 #        -
@@ -194,7 +189,7 @@ pipeline:
 #        imputation_horizon: 384
 #
 #    - name: "dd_effluent_cod"
-#      is_meta: False
+
 #      operating_range:
 #        - 0.0
 #        -
@@ -210,7 +205,7 @@ pipeline:
 #        imputation_horizon: 384
 #
 #    - name: "dd_effluent_cbod5"
-#      is_meta: False
+
 #      operating_range:
 #        - 0.0
 #        -
@@ -226,7 +221,6 @@ pipeline:
 #        imputation_horizon: 384
 
     - name: "db_tank_water_level"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -237,7 +231,6 @@ pipeline:
           from_data: False
 
     - name: "db_tank_flow_rate"
-      is_meta: False
       operating_range:
         - 0.0
         -
@@ -249,7 +242,7 @@ pipeline:
 
     # Action
     - name: "dd1_polymer_dose"
-      is_meta: False
+      type: ai_setpoint
       operating_range:
         - 1.5
         - 2.5
@@ -259,8 +252,6 @@ pipeline:
           min: 1.5
           max: 2.5
           from_data: False
-      action_constructor:
-        - name: identity
 #      reward_constructor: # $/sec
 #        - name: "affine"
 #          scale: -0.00000132277 # TODO: Update cost of polymer per mg
@@ -308,7 +299,7 @@ pipeline:
               threshold: 100.0 # Randomly chose this. TODO: ask Sadra
 
     - name: "dd1_ferric_dose"
-      is_meta: False
+      type: ai_setpoint
       operating_range:
         - 20.0
         - 60.0
@@ -318,8 +309,6 @@ pipeline:
           min: 20.0
           max: 60.0
           from_data: False
-      action_constructor:
-        - name: identity
 #      reward_constructor: # $/sec
 #        - name: "affine"
 #          scale: -0.00003398 # TODO: Update cost of ferric chloride per mg
@@ -367,7 +356,6 @@ pipeline:
 
     # Reward
     - name: "dd1_effluent_turbidity"
-      is_meta: False
       operating_range:
         - 0.0
         -

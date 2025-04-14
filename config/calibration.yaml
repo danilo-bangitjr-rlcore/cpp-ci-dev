@@ -19,7 +19,7 @@ experiment:
 
 metrics:
   enabled: True
-    
+
 pipeline:
   reward:
     priorities:
@@ -34,27 +34,20 @@ pipeline:
   # meta tags
   - name: reward
     operating_range: [0, 1]
-    reward_constructor:
-    - name: 'null'
-    state_constructor:
-    - name: 'null'
+    type: meta
 
   - name: terminated
-    is_meta: True
+    type: meta
 
   - name: truncated
-    is_meta: True
-      
+    type: meta
+
   - name: action-0
     operating_range: [0, 1]
-    action_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
-    
+    type: ai_setpoint
+
   - name: tag-0 # cost
     operating_range: [0, 1]
-    
+
   - name: tag-1 # efficiency
     operating_range: [0, 1]
-

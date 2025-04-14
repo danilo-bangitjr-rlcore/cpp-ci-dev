@@ -47,22 +47,10 @@ interaction:
     heartbeat_period: 00:00:01
     max_counter: 10
 
-agent:
-  name: greedy_ac
-
-  policy:
-    optimizer:
-      lr: 0.01
-
-
 pipeline:
-  state_constructor:
-    defaults:
-      - name: multi_trace
-        trace_values: [0, 0.9]
-
   tags:
   - name: action-0
+    type: ai_setpoint
     # UUID determined from core-io default connection seed, see also:
     # https://github.com/rlcoretech/coreio/blob/2dbd99feba82fd2e148fc0a0aa5d939ade640baf/server/src/bin/seed.ts#L14
     connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
@@ -77,10 +65,6 @@ pipeline:
       pow: 2
     - name: scale
       factor: -0.1
-    state_constructor:
-      - name: 'null'
-    action_constructor:
-    - name: identity
 
   - name: tag-0
     operating_range: [-1.2, 0.6]

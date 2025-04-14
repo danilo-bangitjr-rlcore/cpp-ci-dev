@@ -23,25 +23,17 @@ agent:
 pipeline:
   tags:
   - name: reward
-    preprocess:
-    - name: identity
-    reward_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
+    type: meta
 
   - name: terminated
-    is_meta: true
+    type: meta
 
   - name: truncated
-    is_meta: true
+    type: meta
 
   - name: action-0
+    type: ai_setpoint
     operating_range: [-1, 1]
-    state_constructor:
-      - name: 'null'
-    action_constructor:
-      - name: identity
 
   - name: tag-0
     operating_range: [-1.2, 0.6]

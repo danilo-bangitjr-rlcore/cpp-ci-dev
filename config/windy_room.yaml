@@ -6,9 +6,6 @@ env:
   gym:
     gym_name: WindyRoom-v0
 
-xy_metrics:
-  enabled: True
-
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
@@ -22,65 +19,36 @@ experiment:
 
 metrics:
   enabled: True
-    
-pipeline:
-  state_constructor:
-    defaults:
-    - name: identity
 
+pipeline:
   tags:
   # meta tags
   - name: reward
-    preprocess:
-    - name: identity
-    outlier:
-      name: identity
-    reward_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
-    preprocess:
-    - name: identity
+    type: meta
 
   - name: terminated
-    preprocess:
-    - name: identity
-    is_meta: True
-    outlier:
-      name: identity
+    type: meta
 
   - name: truncated
-    preprocess:
-    - name: identity
-    is_meta: True
-    outlier:
-      name: identity
-      
+    type: meta
+
   - name: action-0
+    type: ai_setpoint
     operating_range: [-1, 1]
-    action_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
-    
+
   - name: action-1
+    type: ai_setpoint
     operating_range: [-1, 1]
-    action_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
 
   - name: tag-0 # x position`
     operating_range: [0, 1]
     red_bounds: [0.05, 0.95]
     yellow_bounds: [0.3, 0.7]
-    
+
   - name: tag-1 # y position
     operating_range: [0, 1]
     red_bounds: [0.05, 0.95]
     yellow_bounds: [0.3, 0.7]
 
   - name: tag-2 # wind angle in radians
-    operating_range:
-    - 0.0
-    - 6.29
+    operating_range: [0., 6.29]

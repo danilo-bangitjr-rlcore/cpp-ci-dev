@@ -102,25 +102,23 @@ pipeline:
 
   tags:
   - name: PERM_SP.BW_SP # flow rate setpoint
+    type: ai_setpoint
     connection_id: 49430a53-0b67-4bb9-ae9f-1de9c1583dec
     node_identifier: "ns=1;s=[pilot]Program:ZW.PERM_SP.BW_SP"
     operating_range: [0.9, 1.4]
     guardrail_schedule:
       starting_range: [1.1, 1.2]
       duration: 24:00:00
-    action_constructor:
-      - name: identity
     agg: last
 
   - name: BW_SP.KY2 # backpulse duration setpoint
+    type: ai_setpoint
     connection_id: 49430a53-0b67-4bb9-ae9f-1de9c1583dec
     node_identifier: "ns=1;s=[pilot]Program:ZW.BW_SP.KY2"
     operating_range: [20, 40]
     guardrail_schedule:
       starting_range: [28, 32]
       duration: 24:00:00
-    action_constructor:
-      - name: identity
     agg: last
 
   - name: PRC_INFO.PERMEABILITY # permeability

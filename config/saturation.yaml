@@ -33,18 +33,13 @@ pipeline:
   tags:
   # meta tags
   - name: reward
-    preprocess:
-    - name: identity
-    reward_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
+    type: meta
 
   - name: terminated
-    is_meta: True
+    type: meta
 
   - name: truncated
-    is_meta: True
+    type: meta
 
   # observations
   - name: tag-0
@@ -52,8 +47,5 @@ pipeline:
 
   # actions
   - name: action-0
+    type: ai_setpoint
     operating_range: [0, 0.5]
-    state_constructor:
-      - name: 'null'
-    action_constructor:
-      - name: identity

@@ -21,6 +21,7 @@ env:
 pipeline:
   tags:
   - name: action-0
+    type: ai_setpoint
     change_bounds: [-1, 1]
     operating_range: [-1.5, 1.5]
     action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
@@ -29,8 +30,6 @@ pipeline:
       pow: 2
     - name: scale
       factor: -1
-    action_constructor:
-    - name: identity
 
   - name: tag-0
     operating_range: [-1.2, 0.6]
@@ -42,7 +41,7 @@ pipeline:
     red_bounds: [-0.06, 0.06]
 
   - name: terminated
-    is_meta: True
+    type: meta
 
   - name: truncated
-    is_meta: True
+    type: meta

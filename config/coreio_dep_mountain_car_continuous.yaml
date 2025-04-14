@@ -6,7 +6,7 @@ pipeline:
     connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
     node_identifier: ns=2;s=action-0
     is_endogenous: true
-    is_meta: false
+    type: meta
     operating_range:
     - -1.5
     - 1.5
@@ -41,7 +41,7 @@ pipeline:
     connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
     node_identifier: ns=2;s=tag-0
     is_endogenous: true
-    is_meta: false
+    type: meta
     operating_range:
     - -1.2
     - 0.6
@@ -76,7 +76,7 @@ pipeline:
     connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
     node_identifier: ns=2;s=tag-1
     is_endogenous: true
-    is_meta: false
+    type: meta
     operating_range:
     - -0.07
     - 0.07
