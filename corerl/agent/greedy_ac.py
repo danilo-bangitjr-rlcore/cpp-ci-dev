@@ -102,7 +102,13 @@ class GreedyAC(BaseAgent):
     def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         return torch.exp(self.log_prob(states, actions)[0])
 
-    def get_action_interaction(self, state: np.ndarray, prev_direct_action: np.ndarray) -> np.ndarray:
+    def get_action_interaction(
+        self,
+        state: np.ndarray,
+        prev_direct_action: np.ndarray,
+        action_lo: np.ndarray,
+        action_hi: np.ndarray,
+    ) -> np.ndarray:
         """
         Samples a single action during interaction.
         """
@@ -112,10 +118,14 @@ class GreedyAC(BaseAgent):
         tensor_state = tensor_state.unsqueeze(0)
         tensor_prev_direct_action = tensor(prev_direct_action, device.device)
         tensor_prev_direct_action = tensor_prev_direct_action.unsqueeze(0)
+        tensor_action_lo = tensor(action_lo, device.device).unsqueeze(0)
+        tensor_action_hi = tensor(action_hi, device.device).unsqueeze(0)
 
         ar = self._policy_manager.get_actor_actions(
             tensor_state,
             tensor_prev_direct_action,
+            tensor_action_lo,
+            tensor_action_hi,
             self.critic
         )
         direct_action = ar.direct_actions
@@ -128,32 +138,56 @@ class GreedyAC(BaseAgent):
         """
         return self._policy_manager.ensure_direct_action(prev_direct_actions, policy_actions)
 
-    def get_actor_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
+    def get_actor_actions(
+        self,
+        states: torch.Tensor,
+        prev_direct_actions: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+    ) -> ActionReturn:
         """
         Sample actions from actor and return both direct and policy actions.
         """
         return self._policy_manager.get_actor_actions(
             states,
             prev_direct_actions,
+            action_lo,
+            action_hi,
             self.critic,
         )
 
-    def get_sampler_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
+    def get_sampler_actions(
+        self,
+        states: torch.Tensor,
+        prev_direct_actions: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+    ) -> ActionReturn:
         """
         Sample actions from sampler and return both direct and policy actions.
         """
         return self._policy_manager.get_sampler_actions(
             states,
             prev_direct_actions,
+            action_lo,
+            action_hi
         )
 
-    def get_uniform_actions(self, states: torch.Tensor, prev_direct_actions: torch.Tensor) -> ActionReturn:
+    def get_uniform_actions(
+        self,
+        states: torch.Tensor,
+        prev_direct_actions: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+    ) -> ActionReturn:
         """
         Sample actions UAR and return both direct and policy actions.
         """
         return self._policy_manager.get_uniform_actions(
             states,
             prev_direct_actions,
+            action_lo,
+            action_hi
         )
 
     def update_buffer(self, pr: PipelineReturn) -> None:
@@ -208,7 +242,13 @@ class GreedyAC(BaseAgent):
             with torch.no_grad():
                 cur_action = batch.post.action
                 dp_mask = batch.post.dp
-                ar = self._policy_manager.get_actor_actions(batch.post.state,  cur_action, self.critic)
+                ar = self._policy_manager.get_actor_actions(
+                    batch.post.state,
+                    cur_action,
+                    batch.post.action_lo,
+                    batch.post.action_hi,
+                    self.critic,
+                )
                 next_direct_actions = ar.direct_actions
                 next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
 

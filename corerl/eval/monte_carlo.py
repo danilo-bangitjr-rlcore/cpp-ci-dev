@@ -70,7 +70,7 @@ class MonteCarloEvaluator:
         self.app_state = app_state
         self.agent = agent
 
-    def _get_state_value(self, state: Tensor, prev_a: Tensor) -> float:
+    def _get_state_value(self, state: Tensor, prev_a: Tensor, action_lo: Tensor, action_hi: Tensor) -> float:
         """
         Estimates the given state's value under the agent's current policy
         by evaluating the agent's Q function at the given state
@@ -79,7 +79,7 @@ class MonteCarloEvaluator:
         """
         repeat_state = state.repeat((self.critic_samples, 1))
         repeat_prev_a = prev_a.repeat((self.critic_samples, 1))
-        ar = self.agent.get_actor_actions(repeat_state, repeat_prev_a)
+        ar = self.agent.get_actor_actions(repeat_state, repeat_prev_a, action_lo, action_hi)
         sampled_actions = ar.direct_actions
         sampled_a_qs = self.agent.critic.get_values(
             [repeat_state],
@@ -156,6 +156,8 @@ class MonteCarloEvaluator:
 
         states = pipe_return.states
         actions = pipe_return.actions
+        action_lo = pipe_return.action_lo
+        action_hi = pipe_return.action_hi
         rewards = pipe_return.rewards['reward'].to_numpy()
         for i in range(len(states)):
             curr_state = tensor(states.iloc[i].to_numpy())
@@ -163,6 +165,8 @@ class MonteCarloEvaluator:
                 action_np = actions.iloc[i].to_numpy()
                 action = tensor(action_np)
                 reward = float(rewards[i])
+                action_lo_i = tensor(action_lo.iloc[i].to_numpy())
+                action_hi_i = tensor(action_hi.iloc[i].to_numpy())
 
                 # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
                 if self.prev_state.isnan().any() or action.isnan().any() or np.isnan(reward):
@@ -172,7 +176,7 @@ class MonteCarloEvaluator:
                     continue
 
                 curr_time = actions.index[i].isoformat()
-                state_v = self._get_state_value(self.prev_state, action)
+                state_v = self._get_state_value(self.prev_state, action, action_lo_i, action_hi_i)
                 observed_a_q = self._get_observed_a_q(self.prev_state, action)
 
                 self._step_queue.appendleft(_MonteCarloPoint(

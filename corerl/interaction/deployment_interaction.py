@@ -45,6 +45,8 @@ class DeploymentInteraction:
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
         self._last_action = np.full(self._column_desc.action_dim, np.nan)
         self._last_action_df: pd.DataFrame | None = None # used to ping setpoints
+        self._interaction_action_lo = np.full(self._column_desc.action_dim, np.nan)
+        self._interaction_action_hi = np.full(self._column_desc.action_dim, np.nan)
 
         ### Timing logic ###
         self.obs_period = env.obs_period
@@ -126,6 +128,18 @@ class DeploymentInteraction:
             .to_numpy(dtype=np.float32)
         )
 
+        self._interaction_action_lo = (
+            pipe_return.action_lo
+            .iloc[-1]
+            .to_numpy(dtype=np.float32)
+        )
+
+        self._interaction_action_hi = (
+            pipe_return.action_hi
+            .iloc[-1]
+            .to_numpy(dtype=np.float32)
+        )
+
         # log states
         self._write_to_metrics(pipe_return.states, prefix='STATE-')
 
@@ -158,8 +172,8 @@ class DeploymentInteraction:
 
         logger.info("Querying agent policy for new action")
 
-        s, prev_a = sa
-        next_a = self._agent.get_action_interaction(s, prev_a)
+        s, prev_a, action_lo, action_hi = sa
+        next_a = self._agent.get_action_interaction(s, prev_a, action_lo, action_hi)
         norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
         next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
         next_a_df = self._clip_action_bounds(next_a_df)
@@ -167,11 +181,11 @@ class DeploymentInteraction:
         self._last_action_df = next_a_df
 
         # metrics + eval
-        agent_eval.policy_variance(self._app_state, self._agent, s, prev_a)
+        agent_eval.policy_variance(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
         agent_eval.q_online(self._app_state, self._agent, s, next_a)
-        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a)
-        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a)
-        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, prev_a)
+        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
+        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
+        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
 
         # log actions
         self._write_to_metrics(next_a_df, prefix='ACTION-')
@@ -286,13 +300,13 @@ class DeploymentInteraction:
         return False
 
 
-    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray] | None:
+    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
         if (
             self._state_is_fresh() and
             self._state_has_no_nans() and
             self._action_has_no_nans()
         ):
-            return self._last_state, self._last_action
+            return self._last_state, self._last_action, self._interaction_action_lo, self._interaction_action_hi
 
         return None
 
@@ -314,6 +328,12 @@ class DeploymentInteraction:
     def _action_has_no_nans(self):
         if np.any(np.isnan(self._last_action)):
             logger.error("Last action contains nan values")
+            return False
+        if np.any(np.isnan(self._interaction_action_lo)):
+            logger.error("Action lower bound contains nan values")
+            return False
+        if np.any(np.isnan(self._interaction_action_hi)):
+            logger.error("Action upper bound contains nan values")
             return False
         return True
 
