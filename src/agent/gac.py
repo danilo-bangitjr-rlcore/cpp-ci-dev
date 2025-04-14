@@ -200,20 +200,19 @@ class GreedyAC:
         state = jnp.asarray(state)
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         action = self._get_actions(self.agent_state.actor.params, sample_rng, state)
-        
-        entropy = self._calculate_policy_entropy(self.agent_state.actor.params, state[None])
+
+        self._calculate_policy_entropy(self.agent_state.actor.params, state[None])
         return action
 
     def _calculate_policy_entropy(self, actor_params: chex.ArrayTree, states: jax.Array):
         def entropy_fn(state: jax.Array):
             out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
-            dist = SquashedGaussian(out.mu, out.sigma)
             # for Gaussian, entropy is 0.5 * log(2πe * det(sigma))
             # det(sigma) = product of diagonal elements
             log_det = jnp.sum(jnp.log(out.sigma))
             entropy = 0.5 * (self.action_dim * (1.0 + jnp.log(2 * jnp.pi)) + log_det)
             return entropy
-        
+
         entropies = jax.vmap(entropy_fn)(states)
         mean_entropy = jnp.mean(entropies)
         self._collector.collect('policy_entropy', float(mean_entropy))
@@ -282,7 +281,7 @@ class GreedyAC:
         batch = self.policy_buffer.sample()
         self.rng, update_rng = jax.random.split(self.rng, 2)
         actor_state, proposal_state, actor_loss = self._policy_update(self.agent_state, batch.state[0], update_rng)
-        
+
         # Log actor loss outside the JIT-compiled function
         self._collector.collect("actor_loss", float(actor_loss))
 
@@ -335,12 +334,14 @@ class GreedyAC:
         states: jax.Array,
         update_actions: jax.Array
     ):
-        loss_fn = lambda params: self._batch_policy_loss(params, policy, states, update_actions)
+        def loss_fn(params):
+            return self._batch_policy_loss(params, policy, states, update_actions)
+
         loss_value = loss_fn(policy_state.params)
         grads = jax.grad(loss_fn)(policy_state.params)
         updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state)
         new_params = optax.apply_updates(policy_state.params, updates)
-        
+
         return PolicyState(
             new_params,
             new_opt_state,
