@@ -90,15 +90,21 @@ class PipelineReturn:
     states: DataFrame
     actions: DataFrame
     rewards: DataFrame
+    action_lo: DataFrame
+    action_hi: DataFrame
     transitions: list[Transition] | None
 
-    def _add(self, other: Self) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+    def _add(
+        self, other: Self
+    ) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
         states = pd.concat([self.states, other.states])
         actions = pd.concat([self.actions, other.actions])
         rewards = pd.concat([self.rewards, other.rewards])
+        action_lo = pd.concat([self.action_lo, other.action_lo])
+        action_hi = pd.concat([self.action_hi, other.action_hi])
 
         transitions = []
         if self.transitions is None:
@@ -106,23 +112,25 @@ class PipelineReturn:
         elif other.transitions is not None:
             transitions = self.transitions + other.transitions
 
-        return df, states, actions, rewards, transitions
+        return df, states, actions, rewards, action_lo, action_hi, transitions
 
     def __iadd__(self, other: Self):
-        df, states, actions, rewards, transitions = self._add(other)
+        df, states, actions, rewards, action_lo, action_hi, transitions = self._add(other)
 
         self.df = df
         self.states = states
         self.actions = actions
         self.rewards = rewards
+        self.action_lo = action_lo
+        self.action_hi = action_hi
         self.transitions = transitions
 
         return self
 
     def __add__(self, other: Self):
-        df, states, actions, rewards, transitions = self._add(other)
+        df, states, actions, rewards, action_lo, action_hi, transitions = self._add(other)
 
-        return PipelineReturn(self.data_mode, df, states, actions, rewards, transitions)
+        return PipelineReturn(self.data_mode, df, states, actions, rewards, action_lo, action_hi, transitions)
 
 
 @dataclass
@@ -250,6 +258,8 @@ class Pipeline:
                 states=data,
                 actions=data,
                 rewards=data,
+                action_lo=data,
+                action_hi=data,
                 transitions=[],
             )
 
@@ -278,6 +288,8 @@ class Pipeline:
             states=pf.states,
             actions=pf.actions,
             rewards=pf.rewards,
+            action_lo=pf.action_lo,
+            action_hi=pf.action_hi,
             transitions=pf.transitions,
         )
 
