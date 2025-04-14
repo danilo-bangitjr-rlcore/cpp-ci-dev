@@ -38,6 +38,7 @@ class Agg(StrEnum):
 
 class TagType(StrEnum):
     ai_setpoint = auto()
+    computed = auto()
     meta = auto()
     default = auto()
 
@@ -286,6 +287,14 @@ class TagConfig:
     a clear signal of data degradation.
     """
 
+    value: str | None = None
+    """
+    Kind: optional external
+
+    If this is a computed virtual tag, then a value string must be specified
+    in order to construct the value of the tag as a function of other tags.
+    """
+
     @post_processor
     def _initialize_bound_functions(self, cfg: MainConfig | PipelineConfig):
         # We can receive MainConfig or PipelineConfig
@@ -343,6 +352,7 @@ class TagConfig:
     @post_processor
     def _default_for_tag_types(self, cfg: MainConfig):
         match self.type:
+            case TagType.computed: return
             case TagType.default: return
             case TagType.meta: return
             case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
@@ -406,12 +416,19 @@ class TagConfig:
 
 
 
+
+
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
     if tag_cfg.action_constructor is None:
         tag_cfg.action_constructor = [IdentityConfig()]
 
     elif len(tag_cfg.action_constructor) == 0:
         tag_cfg.action_constructor.append(IdentityConfig())
+
+
+        if tag_cfg.type == TagType.computed:
+            assert tag_cfg.value is not None, \
+                "A value string must be specified for computed virtual tags."
 
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
