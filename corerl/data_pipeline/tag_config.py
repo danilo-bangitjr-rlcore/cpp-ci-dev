@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Callable, Literal
+from typing import TYPE_CHECKING, Annotated, Callable, Literal, assert_never
 
 import pandas as pd
 from pydantic import Field
@@ -12,7 +12,7 @@ from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.transforms import DeltaConfig, NormalizerConfig, NullConfig, TransformConfig
+from corerl.data_pipeline.transforms import DeltaConfig, IdentityConfig, NormalizerConfig, NullConfig, TransformConfig
 from corerl.utils.list import find_index, find_instance
 from corerl.utils.maybe import Maybe
 from corerl.utils.sympy import is_affine, to_sympy
@@ -35,6 +35,11 @@ class Agg(StrEnum):
     last = auto()
     bool_or = auto()
 
+
+class TagType(StrEnum):
+    ai_setpoint = auto()
+    meta = auto()
+    default = auto()
 
 # -----------------------
 # -- Bounds Scheduling --
@@ -100,12 +105,13 @@ class TagConfig:
     to simplify counterfactual reasoning.
     """
 
-    is_meta: bool = False
+    type: TagType = TagType.default
     """
-    Kind: internal
+    Kind: optional external
 
-    Exposed only for the purposes of tests in order to pass meta-test information through
-    the pipeline. For example truncation/termination or environment synchronization step.
+    The type of values that this tag represents -- i.e. AI-controlled setpoints, lab tests,
+    process values, etc. Specifying this value allows the data pipeline to pick smarter
+    defaults.
     """
 
     # tag zones
@@ -335,6 +341,15 @@ class TagConfig:
         return bounds_func, bounds_tags
 
     @post_processor
+    def _default_for_tag_types(self, cfg: MainConfig):
+        match self.type:
+            case TagType.default: return
+            case TagType.meta: return
+            case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
+            case _: assert_never(self.type)
+
+
+    @post_processor
     def _default_normalize_preprocessor(self, cfg: MainConfig):
         # Since we don't have a dataframe, the sympy expressions are treated as None
         lo, hi = get_tag_bounds_no_eval(self)
@@ -363,7 +378,7 @@ class TagConfig:
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
-        if self.change_bounds is not None and self.action_constructor is None:
+        if self.type == TagType.ai_setpoint:
             assert (
                 self.operating_range is not None
                 and self.operating_range[0] is not None
@@ -371,9 +386,8 @@ class TagConfig:
             ), "AI-controlled setpoints must have an operating range."
 
         if self.guardrail_schedule is not None:
-            assert (
-                self.change_bounds is not None or self.action_constructor is not None
-            ), "A guardrail schedule was specified, but the tag is not an AI-controlled setpoint."
+            assert self.type == TagType.ai_setpoint, \
+                "A guardrail schedule was specified, but the tag is not an AI-controlled setpoint."
 
             # clean error message already handled above
             assert self.operating_range is not None
@@ -389,6 +403,15 @@ class TagConfig:
                 assert (
                     self.guardrail_schedule.starting_range[1] <= hi
                 ), "Guardrail starting range must be less than or equal to the operating range."
+
+
+
+def set_ai_setpoint_defaults(tag_cfg: TagConfig):
+    if tag_cfg.action_constructor is None:
+        tag_cfg.action_constructor = [IdentityConfig()]
+
+    elif len(tag_cfg.action_constructor) == 0:
+        tag_cfg.action_constructor.append(IdentityConfig())
 
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
