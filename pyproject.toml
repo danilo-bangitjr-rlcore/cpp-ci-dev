@@ -128,7 +128,7 @@ dependencies = [
     "tqdm~=4.66",
     "scikit-learn~=1.5",
     "psycopg2-binary~=2.9",
-    "pyzmq~=26.3.0",
+    "pyzmq~=26.4.0",
 ]
 readme = "README.md"
 
