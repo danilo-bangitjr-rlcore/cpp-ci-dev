@@ -54,7 +54,6 @@ class ActionConstructor:
         pf.actions = pf.data.loc[:, self.columns] # self.columns is sorted
         pf.action_lo = pd.DataFrame(a_los, index=pf.data.index).loc[:, self.columns]
         pf.action_hi = pd.DataFrame(a_his, index=pf.data.index).loc[:, self.columns]
-        breakpoint()
 
         return pf
 
