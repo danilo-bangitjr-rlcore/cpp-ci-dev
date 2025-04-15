@@ -58,6 +58,16 @@ def main():
     rewards = read_table('critic_loss')
     plot_across(metadata, rewards, 'env.name', save_path)
 
+    # ACTOR LOSS
+    save_path = os.path.join(result_path, 'actor_loss.png')
+    rewards = read_table('actor_loss')
+    plot_across(metadata, rewards, 'env.name', save_path)
+
+    # POLICY ENTROPY
+    save_path = os.path.join(result_path, 'policy_entropy.png')
+    rewards = read_table('policy_entropy')
+    plot_across(metadata, rewards, 'env.name', save_path)
+
 
 if __name__ == "__main__":
     main()
