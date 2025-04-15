@@ -32,6 +32,8 @@ def pf_from_actions(actions: np.ndarray, ts: dict | None = None) -> PipelineFram
 
     # stub out action constructor
     pf.actions = pd.DataFrame({ "action": actions }, index=datetime_index)
+    pf.action_lo = pd.DataFrame({ "action": np.zeros_like(actions) }, index=datetime_index)
+    pf.action_hi = pd.DataFrame({ "action": np.ones_like(actions) }, index=datetime_index)
     pf.rewards = pd.DataFrame({ "reward": [1] * n }, index=datetime_index)
     return pf
 

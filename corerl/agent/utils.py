@@ -77,11 +77,13 @@ class SampledQReturn(NamedTuple):
     direct_actions : torch.Tensor
     policy_actions : torch.Tensor
 
-Sampler = Callable[[torch.Tensor, torch.Tensor], "ActionReturn"]
+Sampler = Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], "ActionReturn"]
 
 def get_sampled_qs(
     states: torch.Tensor,
     prev_actions: torch.Tensor,
+    action_lo: torch.Tensor,
+    action_hi: torch.Tensor,
     n_samples: int,
     sampler: Sampler ,
     critic: "EnsembleCritic"
@@ -91,9 +93,13 @@ def get_sampled_qs(
 
     repeated_states = states.repeat_interleave(n_samples, dim=0)
     repeated_prev_a = prev_actions.repeat_interleave(n_samples, dim=0)
+    repeated_action_lo = action_lo.repeat_interleave(n_samples, dim=0)
+    repeated_action_hi = action_hi.repeat_interleave(n_samples, dim=0)
     ar = sampler(
         repeated_states,
         repeated_prev_a,
+        repeated_action_lo,
+        repeated_action_hi,
     )
     q_values = critic.get_values([repeated_states], [ar.direct_actions]).reduced_value
     q_values = q_values.reshape(batch_size, n_samples)

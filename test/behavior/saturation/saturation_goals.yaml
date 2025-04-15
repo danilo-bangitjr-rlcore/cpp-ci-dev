@@ -46,5 +46,6 @@ pipeline:
   - name: action-0
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
+    action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
     action_constructor:
       - name: identity

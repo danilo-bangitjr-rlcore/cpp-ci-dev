@@ -48,6 +48,7 @@ ZERO_ONE_FEATURES = [
     'delta_actions',
     'zone_violations',
     'action_embedding',
+    'action_bounds',
 ]
 
 

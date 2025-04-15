@@ -23,13 +23,12 @@ pipeline:
   - name: action-0
     change_bounds: [-1, 1]
     operating_range: [-1.5, 1.5]
+    action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
     reward_constructor:
     - name: power
       pow: 2
     - name: scale
       factor: -1
-    state_constructor:
-      - name: 'null'
     action_constructor:
     - name: identity
 

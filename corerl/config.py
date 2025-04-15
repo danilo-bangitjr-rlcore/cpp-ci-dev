@@ -76,6 +76,8 @@ class FeatureFlags:
     # 2025-03-24
     wide_nets: bool = True
 
+    # 2025-04-14
+    action_bounds: bool = False
 
 @config()
 class MainConfig:
@@ -120,6 +122,7 @@ class MainConfig:
     # ---------------
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
+        assert not self.feature_flags.action_bounds, "Behavior of delta actions + action bounds undefined"
         if not self.feature_flags.delta_actions:
             return
 

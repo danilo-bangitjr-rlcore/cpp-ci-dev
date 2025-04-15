@@ -59,8 +59,10 @@ def test_grab_percentile_multi_key():
 
 
 class MockSampler:
-    def get_actions(self, states: torch.Tensor, prev_actions: torch.Tensor,):
-        policy_actions = torch.ones_like(prev_actions)*.5
+    def get_actions(
+        self, states: torch.Tensor, prev_actions: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
+    ):
+        policy_actions = torch.ones_like(prev_actions) * 0.5
         direct_actions = prev_actions + policy_actions
         return ActionReturn(direct_actions, policy_actions)
 
@@ -83,7 +85,15 @@ def test_get_sampled_qs():
     sampler = MockSampler()
     critic = MockCritic()
 
-    result = get_sampled_qs(states, prev_actions, n_samples, sampler.get_actions, critic) # type: ignore
+    result = get_sampled_qs(
+        states,
+        prev_actions,
+        torch.zeros_like(prev_actions),
+        torch.ones_like(prev_actions),
+        n_samples,
+        sampler.get_actions,
+        critic, # type: ignore
+    )
 
     # equal to state[0] + 0.5 + prev_actions[0]
     expected_q_values = torch.tensor([

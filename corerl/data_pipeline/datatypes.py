@@ -36,6 +36,8 @@ class Step:
     action: Tensor
     gamma: float
     state: Tensor
+    action_lo: Tensor
+    action_hi: Tensor
     dp: bool # decision point
     ac: bool # action change
     timestamp: datetime.datetime | None = None
@@ -134,6 +136,8 @@ class StepBatch:
     action: Tensor
     gamma: Tensor
     state: Tensor
+    action_lo: Tensor
+    action_hi:Tensor
     dp: Tensor
     ac: Tensor
 
@@ -165,6 +169,8 @@ class StepBatch:
             action=self.action[idx],
             gamma=self.gamma[idx],
             state=self.state[idx],
+            action_lo=self.action_lo[idx],
+            action_hi=self.action_hi[idx],
             dp=self.dp[idx],
             ac=self.ac[idx]
         )
@@ -231,6 +237,8 @@ class PipelineFrame:
     last_stage : StageCode | None = None
     states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)
+    action_lo: pd.DataFrame = field(init=False)
+    action_hi: pd.DataFrame = field(init=False)
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)

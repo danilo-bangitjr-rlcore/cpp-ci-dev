@@ -4,7 +4,8 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from torch import tensor
+import torch
+from torch import Tensor, tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
@@ -22,6 +23,25 @@ from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.state import AppState
 from test.infrastructure.utils.pandas import dfs_close
 
+
+def mkstep(
+    reward: float,
+    action: Tensor,
+    gamma: float,
+    state: Tensor,
+    dp: bool, # decision point
+    ac: bool, # action change
+):
+    return Step(
+        reward=reward,
+        action=action,
+        gamma=gamma,
+        state=state,
+        action_lo=torch.zeros_like(action),
+        action_hi=torch.ones_like(action),
+        dp=dp,
+        ac=ac
+    )
 
 def test_pipeline1(dummy_app_state: AppState):
     cfg = PipelineConfig(
@@ -149,16 +169,16 @@ def test_pipeline1(dummy_app_state: AppState):
         Transition(
             steps=[
                 # expected state order: states sorted. Thus, [tag-1, countdown.[0], tag-2_norm_trace-0.1]
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0.0, 0, 0.18]), dp=True, ac=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0, 0.378]), dp=True, ac=True),
+                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0.0, 0, 0.18]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0, 0.378]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0,  0.378]), dp=True, ac=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0,  0.5778]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0,  0.378]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0,  0.5778]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
@@ -271,48 +291,48 @@ def test_pipeline2(dummy_app_state: AppState):
         Transition(
             steps=[
                 # countdown comes first in the state
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 0, 0.0]), dp=True, ac=True),
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 0, 0.0]), dp=True, ac=True),
+                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
             ],
             n_step_reward=3.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
+                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
+                mkstep(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                Step(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
-                Step(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 0, 0.981482]), dp=True, ac=True),
+                mkstep(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 0, 0.981482]), dp=True, ac=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,

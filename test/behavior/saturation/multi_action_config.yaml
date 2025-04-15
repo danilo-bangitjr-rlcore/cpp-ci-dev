@@ -78,6 +78,7 @@ pipeline:
   - name: action-0
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
+    action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
     action_constructor:
       - name: identity
 
@@ -85,6 +86,7 @@ pipeline:
   - name: action-1
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
+    action_bounds: ['{action-1}-0.1', '{action-1}+0.1']
     action_constructor:
       - name: identity
 
@@ -92,5 +94,6 @@ pipeline:
   - name: action-2
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
+    action_bounds: ['{action-2}-0.1', '{action-2}+0.1']
     action_constructor:
       - name: identity

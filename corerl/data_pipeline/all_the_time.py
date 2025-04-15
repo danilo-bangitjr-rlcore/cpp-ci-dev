@@ -98,6 +98,10 @@ class AllTheTimeTC:
         actions = tensor(pf.actions.to_numpy())
         rewards = pf.rewards['reward'].to_numpy()
 
+        # dynamic action bounds
+        action_lo = tensor(pf.action_lo.to_numpy())
+        action_hi = tensor(pf.action_hi.to_numpy())
+
         dps = pf.decision_points
         acs = pf.action_change
 
@@ -111,6 +115,8 @@ class AllTheTimeTC:
                 action=actions[i],
                 gamma=self.gamma,
                 state=states[i],
+                action_lo=action_lo[i],
+                action_hi=action_hi[i],
                 dp=bool(dps[i]),
                 ac=bool(acs[i]),
                 timestamp=( # curse you pandas
