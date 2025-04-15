@@ -5,6 +5,25 @@
 - styles again
 - fix agent test utils
 
+## [0.139.0](https://github.com/rlcoretech/core-rl/compare/v0.138.0...v0.139.0) (2025-04-15)
+
+
+### Features
+
+* **PROD-223:** enable action embeddings by default ([1571e60](https://github.com/rlcoretech/core-rl/commit/1571e609229af2e03bf17221c424a2b8909acfc9))
+* **PROD-284:** add computed virtual tag type ([c08a227](https://github.com/rlcoretech/core-rl/commit/c08a2277fb7404431d4a3fa3d9c2c2590095232b))
+* **PROD-284:** add MVP virtual tags implementation ([0e93619](https://github.com/rlcoretech/core-rl/commit/0e936194101cafb447be49a14e44b2d630fc2280))
+* **PROD-284:** add unhappy path config validation for virtual tag dependencies ([3a85d75](https://github.com/rlcoretech/core-rl/commit/3a85d7518c8fb278b99a887c45f62191d2091951))
+* **PROD-339:** add type attribute to tags ([ffb26aa](https://github.com/rlcoretech/core-rl/commit/ffb26aa96c4ed64a63d89e31f84bbc1d976e55b6))
+* **PROD-339:** make tag type the source of truth for actions ([2ddd49b](https://github.com/rlcoretech/core-rl/commit/2ddd49bfeea10de126901504f87ededfbc33f909))
+* **PROD-339:** make tag type the source of truth for is_meta ([2ebd583](https://github.com/rlcoretech/core-rl/commit/2ebd58302bea2302bc79f1d1ab3ed0049a94982c))
+
+
+### Bug Fixes
+
+* improve interaction between wide_nets and action_embedding ([bdc7b65](https://github.com/rlcoretech/core-rl/commit/bdc7b656f8f27c244e79a176cc00bc5347a3f1c4))
+* integrate ai_setpoint changes into action_bounds ([b1f4b23](https://github.com/rlcoretech/core-rl/commit/b1f4b233ace9cbf33dfd840cee2ec7b0357032be))
+
 ## [0.138.0](https://github.com/rlcoretech/core-rl/compare/v0.137.1...v0.138.0) (2025-04-15)
 
 
