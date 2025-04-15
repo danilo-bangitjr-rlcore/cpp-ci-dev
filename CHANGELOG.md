@@ -5,6 +5,22 @@
 - styles again
 - fix agent test utils
 
+## [0.138.0](https://github.com/rlcoretech/core-rl/compare/v0.137.1...v0.138.0) (2025-04-15)
+
+
+### Features
+
+* add option to disable loading offline data ([bd58c2b](https://github.com/rlcoretech/core-rl/commit/bd58c2bb24b1f3b174aef632c46b5e31e4f150f0))
+
+
+### Bug Fixes
+
+* linspaced delta actions are not same size as probs in ac eval ([05f018f](https://github.com/rlcoretech/core-rl/commit/05f018f696eb6aebb5474e8b5e75548ba31fe01a))
+* re-enable e2e dep-mountain-car with coreio ([7c23b33](https://github.com/rlcoretech/core-rl/commit/7c23b336ed7681ac7a044762a215faa16794270f))
+* re-enable e2e dep-mountain-car with coreio ([31f07dc](https://github.com/rlcoretech/core-rl/commit/31f07dc039c317def82487560f02a0536d61b007))
+* update configs to new sim env structure ([a10d346](https://github.com/rlcoretech/core-rl/commit/a10d3468e374880fc1b0b902a0c4688bab4bb495))
+* update write endpoint to use connections url, server url removed ([98cd4c4](https://github.com/rlcoretech/core-rl/commit/98cd4c447dad8ce4950ae772ede7305d2739ecf4))
+
 ## [0.137.1](https://github.com/rlcoretech/core-rl/compare/v0.137.0...v0.137.1) (2025-04-10)
 
 
