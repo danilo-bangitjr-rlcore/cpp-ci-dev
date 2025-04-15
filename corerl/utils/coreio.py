@@ -71,7 +71,7 @@ class CoreIOThinClient:
         :param connection_id: the UUID for the CoreIO configured OPC-UA server connection
         :param nodes_to_write: list of :class:`OPCUANodeWriteValue <OPCUANodeWriteValue` instances to write.
         """
-        endpoint = urljoin(self.coreio_origin, f"/api/opcua/servers/{connection_id}/write")
+        endpoint = urljoin(self.coreio_origin, f"/api/opcua/connections/{connection_id}/write")
         payload = {"nodesToWrite": [node.to_post_payload() for node in nodes_to_write]}
         response = requests.post(endpoint, json=payload)
         response.raise_for_status()
@@ -80,7 +80,7 @@ class CoreIOThinClient:
     @backoff.on_exception(backoff.expo, (requests.exceptions.RequestException), max_time=30)
     def read_opcua_node(self, connection_id: str, node_identifier: str):
         search_params = urlencode({"rawNodeToRead": node_identifier})
-        endpoint = urljoin(self.coreio_origin, f"/api/opcua/servers/{connection_id}/read?{search_params}")
+        endpoint = urljoin(self.coreio_origin, f"/api/opcua/connections/{connection_id}/read?{search_params}")
         response = requests.get(endpoint)
         response.raise_for_status()
         return response.json()
