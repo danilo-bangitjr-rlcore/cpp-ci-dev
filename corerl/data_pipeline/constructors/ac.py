@@ -6,13 +6,13 @@ import pandas as pd
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig, get_action_bounds
+from corerl.data_pipeline.tag_config import TagConfig, TagType, get_action_bounds
 from corerl.utils.maybe import Maybe
 
 
 class ActionConstructor:
     def __init__(self, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
-        self.action_tags = [tag for tag in tag_cfgs if tag.action_constructor is not None]
+        self.action_tags = [tag for tag in tag_cfgs if tag.type == TagType.ai_setpoint]
 
         # make sure operating ranges are specified for actions
         for action_tag in self.action_tags:
