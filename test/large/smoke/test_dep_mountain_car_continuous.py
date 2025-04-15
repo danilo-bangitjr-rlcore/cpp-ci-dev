@@ -154,10 +154,9 @@ def check_sim_farama_environment_ready(run_docker_compose: None, request: Fixtur
                 data_reader.close()
 
 
-# @pytest.mark.skipif(
-#     should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
-# )
-@pytest.mark.skip
+@pytest.mark.skipif(
+    should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
+)
 @pytest.mark.timeout(500)
 def test_dep_mountain_car_continuous(
     check_sim_farama_environment_ready: None,
@@ -180,11 +179,11 @@ def test_dep_mountain_car_continuous(
             "experiment.run_forever=false",
         ],
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
         text=True,
         cwd=request.config.rootpath,
     )
-    proc.check_returncode()
+    assert proc.returncode == 0, proc.stdout
 
 def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     cfg = direct_load_config(
