@@ -16,38 +16,17 @@ metrics:
 evals:
   enabled: True
 
-agent:
-  name: greedy_ac
-
-  critic:
-    critic_network:
-      ensemble: 10
-
-  policy:
-    optimizer:
-      lr : 0.0005
-
 pipeline:
-  state_constructor:
-    defaults:
-      - name: multi_trace
-        trace_values: [0.0, 0.9, 0.95, 0.99]
-
   tags:
   # meta tags
   - name: reward
-    preprocess:
-    - name: identity
-    reward_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
+    type: meta
 
   - name: terminated
-    is_meta: True
+    type: meta
 
   - name: truncated
-    is_meta: True
+    type: meta
 
   # observations
   - name: tag-0
@@ -59,22 +38,19 @@ pipeline:
 
   # actions
   - name: action-0
+    type: ai_setpoint
     operating_range: [0, 0.5]
     action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
     # action_bounds: ['{action-0}-0.5', '{action-0}+0.5']
-    action_constructor:
-      - name: identity
 
   - name: action-1
+    type: ai_setpoint
     operating_range: [0, 0.5]
     action_bounds: ['{action-1}-0.1', '{action-1}+0.1']
     # action_bounds: ['{action-1}-0.5', '{action-1}+0.5']
-    action_constructor:
-      - name: identity
 
   - name: action-2
+    type: ai_setpoint
     operating_range: [0, 0.5]
     action_bounds: ['{action-2}-0.1', '{action-2}+0.1']
     # action_bounds: ['{action-2}-0.5', '{action-2}+0.5']
-    action_constructor:
-      - name: identity

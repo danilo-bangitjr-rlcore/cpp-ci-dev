@@ -11,7 +11,7 @@ from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add_seasonal_features
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms import TraceConfig, TransformConfig
 
 
@@ -34,7 +34,7 @@ class StateConstructor(Constructor):
         return {
             tag.name: tag.state_constructor if tag.state_constructor is not None else self._cfg.defaults
             for tag in tag_cfgs
-            if not tag.is_meta
+            if tag.type != TagType.meta
         }
 
 
@@ -51,15 +51,11 @@ class StateConstructor(Constructor):
         pf.data = pd.concat([df] + transformed_parts, axis=1, copy=False)
 
         # guarantee an ordering over columns
-        sorted_cols = self.sort_cols(pf.data.columns)
+        meta_cols = set(name for name, cfg in self._tag_cfgs.items() if cfg.type == TagType.meta)
+        cols = [col for col in pf.data.columns if col not in meta_cols]
+        sorted_cols = self.sort_cols(cols)
         pf.data = pf.data.loc[:, sorted_cols]
-
-        meta_tags = [tag for tag in self._tag_cfgs if self._tag_cfgs[tag].is_meta]
-        state_cols = [
-            col for col in sorted_cols
-            if col not in meta_tags
-        ]
-        pf.states = pf.data[state_cols]
+        pf.states = pf.data[sorted_cols]
 
         return pf
 
@@ -78,19 +74,11 @@ class StateConstructor(Constructor):
                 lambda tag: (
                     tag in self._tag_cfgs
                     and self._tag_cfgs[tag].is_endogenous
-                    and not self._tag_cfgs[tag].is_meta
                 ),
                 # exo observations
                 lambda tag: (
                     tag in self._tag_cfgs
-                    and not self._tag_cfgs[tag].is_meta
                 ),
-                # states
-                lambda tag: not (
-                    tag in self._tag_cfgs
-                    and self._tag_cfgs[tag].is_meta
-                ),
-                # meta tags should be all that are left
             ],
         )
 

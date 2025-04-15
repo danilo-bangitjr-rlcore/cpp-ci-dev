@@ -1,6 +1,6 @@
 from pandas import DataFrame
 
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms import NullConfig
 from corerl.environment.async_env.deployment_async_env import clip_action, sanitize_actions
 from test.infrastructure.utils.pandas import dfs_close
@@ -10,6 +10,7 @@ def test_action_clipping():
     tag_cfgs = {
         "action-1": TagConfig(
             name="action-1",
+            type=TagType.ai_setpoint,
             operating_range=(5.0, 15.0),
             red_bounds=(None, 12),
             preprocess=[],
@@ -18,6 +19,7 @@ def test_action_clipping():
         ),
         "action-2": TagConfig(
             name="action-2",
+            type=TagType.ai_setpoint,
             operating_range=(0.0, 60.0),
             preprocess=[],
             action_constructor=[],
@@ -64,6 +66,7 @@ def test_action_sanitizer():
     tag_cfgs = {
         "action-1": TagConfig(
             name="action-1",
+            type=TagType.ai_setpoint,
             operating_range=(5.0, 15.0),
             red_bounds=(None, 12),
             preprocess=[],
@@ -72,6 +75,7 @@ def test_action_sanitizer():
         ),
         "action-2": TagConfig(
             name="action-2",
+            type=TagType.ai_setpoint,
             operating_range=(0.0, 60.0),
             preprocess=[],
             action_constructor=[],

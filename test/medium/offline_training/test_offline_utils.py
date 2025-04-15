@@ -14,6 +14,7 @@ from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
+from corerl.data_pipeline.tag_config import TagType
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig, EvalsTable
@@ -120,7 +121,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
-            if tag_cfg.action_constructor is not None:
+            if tag_cfg.type == TagType.ai_setpoint:
                 val = int(i / steps_per_decision) % 2
             else:
                 val = i
@@ -251,7 +252,7 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
             tag = tag_cfg.name
-            if tag_cfg.action_constructor is not None:
+            if tag_cfg.type == TagType.ai_setpoint:
                 val = int(i / steps_per_decision) % 2
             else:
                 val = i

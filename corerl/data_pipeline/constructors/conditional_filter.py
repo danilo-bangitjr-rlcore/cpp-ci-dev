@@ -5,7 +5,7 @@ import numpy as np
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.utils import update_missing_info
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class ConditionalFilter(Constructor):
         return {
             tag.name: tag.filter
             for tag in tag_cfgs
-            if tag.filter is not None and not tag.is_meta
+            if tag.filter is not None and tag.type != TagType.meta
         }
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:

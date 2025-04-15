@@ -17,44 +17,24 @@ metrics:
 
 feature_flags:
   action_embedding : True
-    
+
 pipeline:
   tags:
   # meta tags
   - name: reward
-    preprocess:
-    - name: identity
-    outlier:
-      name: identity
-    reward_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
-    preprocess:
-    - name: identity
+    type: meta
 
   - name: terminated
-    preprocess:
-    - name: identity
-    is_meta: True
-    outlier:
-      name: identity
+    type: meta
 
   - name: truncated
-    preprocess:
-    - name: identity
-    is_meta: True
-    outlier:
-      name: identity
+    type: meta
 
   - name: action-0
+    type: ai_setpoint
     operating_range:
     - 0.0
     - 1.0
-    action_constructor:
-    - name: identity
-    state_constructor:
-    - name: 'null'
   - name: tag-0
     operating_range:
     - -1.0

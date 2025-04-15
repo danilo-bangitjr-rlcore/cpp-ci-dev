@@ -1,9 +1,8 @@
 import gymnasium as gym
 
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms import NullConfig, TraceConfig
-from corerl.data_pipeline.transforms.identity import IdentityConfig
 
 
 def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[TagConfig]:
@@ -34,7 +33,7 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
                 name=f"action-{i}",
                 operating_range=(action_space.low[i].item(), action_space.high[i].item()),
                 state_constructor=[NullConfig()],
-                action_constructor=[IdentityConfig()]
+                type=TagType.ai_setpoint,
             )
         )
 
@@ -58,21 +57,21 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
                 name="gym_reward",
                 outlier=IdentityFilterConfig(),
                 state_constructor=[],
-                is_meta=True,
+                type=TagType.meta,
             )
         )
         tag_configs.append(
             TagConfig(
                 name="terminated",
                 outlier=IdentityFilterConfig(),
-                is_meta=True,
+                type=TagType.meta,
             )
         )
         tag_configs.append(
             TagConfig(
                 name="truncated",
                 outlier=IdentityFilterConfig(),
-                is_meta=True,
+                type=TagType.meta,
             )
         )
 

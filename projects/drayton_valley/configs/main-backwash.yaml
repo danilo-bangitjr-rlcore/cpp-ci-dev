@@ -104,17 +104,15 @@ pipeline:
 
   tags:
   - name: DEP_BP_FLOW_SP_WA
+    type: ai_setpoint
     node_identifier: "ns=1;s=ai_flow_sp"
     operating_range: [120, 179]
-    action_constructor:
-    - name: identity
     agg: last
 
   - name: DEP_BP_DUR_SP_WA
+    type: ai_setpoint
     node_identifier: "ns=1;s=ai_dur_sp"
     operating_range: [10, 30]
-    action_constructor:
-    - name: identity
     agg: last
 
   - name: UF2_FIT301_PV # permeate flow rate

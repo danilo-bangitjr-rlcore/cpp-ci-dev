@@ -133,6 +133,7 @@ pipeline:
   tags:
   - name: AIC3730_SP # pH SP
     # node_identifier: 14
+    type: ai_setpoint
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
@@ -141,6 +142,7 @@ pipeline:
 
   - name: AIC3731_SP # ORP SP
     # node_identifier: 15
+    type: ai_setpoint
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
@@ -149,6 +151,7 @@ pipeline:
 
   - name: FIC3734_SP # flow SP
     # node_identifier: 17
+    type: ai_setpoint
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]

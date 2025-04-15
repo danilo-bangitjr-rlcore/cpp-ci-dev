@@ -19,14 +19,6 @@ env:
   db:
     table_name: tags
 
-agent:
-  name: greedy_ac
-
-  critic:
-    buffer:
-      ensemble: 1
-      ensemble_probability: 1.0
-
 evals:
   enabled: True
 
@@ -51,13 +43,10 @@ pipeline:
 
   tags:
   - name: Action
+    type: ai_setpoint
     operating_range: [0., 1.]
-    preprocess:
-    - name: identity
     state_constructor:
     - name: 'null'
-    action_constructor:
-    - name: identity
 
   - name: Tag_1
     preprocess:

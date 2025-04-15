@@ -8,7 +8,7 @@ import pandas as pd
 
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.tag_config import FloatBounds, TagConfig, eval_bound
+from corerl.data_pipeline.tag_config import FloatBounds, TagConfig, TagType, eval_bound
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
 from corerl.utils.coreio import CoreIOThinClient, OPCUADataType, OPCUANodeWriteValue
 from corerl.utils.maybe import Maybe
@@ -42,7 +42,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.data_reader = self._init_datareader()
 
         # create dict of action tags
-        action_cfgs = [tag for tag in tag_configs if tag.action_constructor is not None]
+        action_cfgs = [tag for tag in tag_configs if tag.type == TagType.ai_setpoint]
         self._action_cfgs: dict[str, TagConfig] = {}
         for tag_cfg in sorted(action_cfgs, key=lambda cfg: cfg.name):
             self._action_cfgs[tag_cfg.name] = tag_cfg
@@ -59,7 +59,7 @@ class DeploymentAsyncEnv(AsyncEnv):
 
     def _register_action_nodes(self):
         for tag_cfg in sorted(self.tag_configs, key=lambda cfg: cfg.name):
-            if tag_cfg.action_constructor is None:
+            if tag_cfg.type != TagType.ai_setpoint:
                 continue
 
             tag_name = tag_cfg.name
