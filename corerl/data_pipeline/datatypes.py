@@ -214,6 +214,7 @@ class DataMode(Enum):
 
 class StageCode(Enum):
     INIT = auto()
+    VIRTUAL = auto()
     FILTER = auto()
     BOUNDS = auto()
     PREPROCESS = auto()

@@ -33,6 +33,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
+from corerl.data_pipeline.virtual_tags import VirtualTagComputer
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
@@ -156,6 +157,7 @@ class Pipeline:
 
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
+        self.virtual_tags = VirtualTagComputer(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
             tag.name: bound_checker_builder(tag.operating_range, self.preprocessor)
@@ -187,7 +189,8 @@ class Pipeline:
             data_mode: defaultdict(list) for data_mode in DataMode}
 
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
-            StageCode.INIT:       lambda pf: pf,
+            StageCode.VIRTUAL:    self.virtual_tags,
+            StageCode.INIT:       lambda pf: invoke_stage_per_tag(pf, self.missing_data_checkers),
             StageCode.FILTER:     self.conditional_filter,
             StageCode.PREPROCESS: self.preprocessor,
             StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
@@ -202,6 +205,7 @@ class Pipeline:
         }
 
         self.default_stages = (
+            StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.FILTER,
             StageCode.PREPROCESS,
@@ -268,7 +272,6 @@ class Pipeline:
         pf = PipelineFrame(data, data_mode)
         pf.temporal_state = self._init_temporal_state(pf, reset_temporal_state)
 
-        pf = invoke_stage_per_tag(pf, self.missing_data_checkers)
         for stage in stages:
             for hook in self._pre_invoke_hooks[data_mode][stage]:
                 hook(pf)
