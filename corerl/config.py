@@ -76,6 +76,8 @@ class FeatureFlags:
     # 2025-03-24
     wide_nets: bool = True
 
+    # 2025-04-14
+    action_bounds: bool = False
 
 @config()
 class MainConfig:

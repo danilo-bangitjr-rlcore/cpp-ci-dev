@@ -56,6 +56,7 @@ class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
     delta_actions: bool = MISSING
     delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
+    action_bounds: bool = MISSING
     greedy: bool = False
 
     # hyperparameters
@@ -85,6 +86,11 @@ class GACPolicyManagerConfig:
     @classmethod
     def _delta_actions(cls, cfg: "MainConfig"):
         return cfg.feature_flags.delta_actions
+
+    @computed("action_bounds")
+    @classmethod
+    def _action_bounds(cls, cfg: "MainConfig"):
+        return cfg.feature_flags.action_bounds
 
     @post_processor
     def _default_stepsize(self, cfg: 'MainConfig'):
@@ -162,8 +168,10 @@ class GACPolicyManager:
         if self.cfg.delta_actions:
             delta_actions = policy_actions * self.delta_scale + self.delta_bias
             direct_actions = prev_direct_actions + delta_actions
-        else:
+        elif self.cfg.action_bounds:
             direct_actions = policy_actions * (action_hi - action_lo) + action_lo
+        else:
+            direct_actions = policy_actions
         return direct_actions
 
     def _sample_actor(self, states: torch.Tensor) -> torch.Tensor:
