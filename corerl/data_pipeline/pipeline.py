@@ -308,7 +308,7 @@ class Pipeline:
 
         for data_mode in data_modes:
             for stage in stages:
-               hook_dict[data_mode][stage].append(f)
+                hook_dict[data_mode][stage].append(f)
 
     def reset(self):
         self.state_constructor.reset()

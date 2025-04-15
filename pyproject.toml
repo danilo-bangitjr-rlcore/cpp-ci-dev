@@ -73,7 +73,6 @@ disable = [
     "arguments-differ",
     "arguments-renamed",
     "attribute-defined-outside-init",
-    "bad-indentation",
     "bare-except",
     "broad-exception-caught",
     "broad-exception-raised",
