@@ -58,8 +58,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -68,7 +67,24 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "x"
+            },
+            "properties": [
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 1
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
@@ -94,13 +110,13 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.1",
+      "pluginVersion": "11.6.0",
       "targets": [
         {
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT evaluator, (data->'x')::float as x, (data->'y')::float as y\nFROM evals, jsonb_array_elements(value->'data') as data\nWHERE $__timeFilter(\"time\") AND agent_step = (\n  SELECT max(agent_step) FROM evals WHERE $__timeFilter(time) AND evaluator LIKE 'pdf%'\n)\nAND evaluator LIKE 'pdf%'\nORDER BY \"time\"",
+          "rawSql": "SELECT evaluator, (data->'x')::float as x, (data->'y')::float as y\nFROM evals, jsonb_array_elements(value->'data') as data\nWHERE $__timeFilter(\"time\") AND agent_step = (\n  SELECT agent_step FROM evals WHERE $__timeFilter(time) AND evaluator LIKE 'pdf%' ORDER BY time desc LIMIT 1\n)\nAND evaluator LIKE 'pdf%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -175,8 +191,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -211,7 +226,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.1",
+      "pluginVersion": "11.6.0",
       "targets": [
         {
           "editorMode": "code",
@@ -303,8 +318,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -335,7 +349,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.1",
+      "pluginVersion": "11.6.0",
       "targets": [
         {
           "editorMode": "code",
@@ -421,8 +435,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -478,7 +491,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.1",
+      "pluginVersion": "11.6.0",
       "targets": [
         {
           "editorMode": "code",
@@ -564,8 +577,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -621,7 +633,7 @@
           "sort": "none"
         }
       },
-      "pluginVersion": "11.5.1",
+      "pluginVersion": "11.6.0",
       "targets": [
         {
           "datasource": {
@@ -711,8 +723,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -833,8 +844,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -980,8 +990,7 @@
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
-                "value": null
+                "color": "green"
               },
               {
                 "color": "red",
@@ -1679,7 +1688,7 @@
   ],
   "preload": false,
   "refresh": "5s",
-  "schemaVersion": 40,
+  "schemaVersion": 41,
   "tags": [],
   "templating": {
     "list": []
@@ -1692,6 +1701,5 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 4,
-  "weekStart": ""
+  "version": 9
 }
