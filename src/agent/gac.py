@@ -199,7 +199,24 @@ class GreedyAC:
     def get_actions(self, state: jax.Array | np.ndarray):
         state = jnp.asarray(state)
         self.rng, sample_rng = jax.random.split(self.rng, 2)
-        return self._get_actions(self.agent_state.actor.params, sample_rng, state)
+        action = self._get_actions(self.agent_state.actor.params, sample_rng, state)
+
+        self._calculate_policy_entropy(self.agent_state.actor.params, state[None])
+        return action
+
+    def _calculate_policy_entropy(self, actor_params: chex.ArrayTree, states: jax.Array):
+        def entropy_fn(state: jax.Array):
+            out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
+            # for Gaussian, entropy is 0.5 * log(2πe * det(sigma))
+            # det(sigma) = product of diagonal elements
+            log_det = jnp.sum(jnp.log(out.sigma))
+            entropy = 0.5 * (self.action_dim * (1.0 + jnp.log(2 * jnp.pi)) + log_det)
+            return entropy
+
+        entropies = jax.vmap(entropy_fn)(states)
+        mean_entropy = jnp.mean(entropies)
+        self._collector.collect('policy_entropy', float(mean_entropy))
+        return mean_entropy
 
     def get_action_values(self, state: jax.Array | np.ndarray, actions: jax.Array | np.ndarray):
         return self._critic.forward(
@@ -263,7 +280,10 @@ class GreedyAC:
 
         batch = self.policy_buffer.sample()
         self.rng, update_rng = jax.random.split(self.rng, 2)
-        actor_state, proposal_state = self._policy_update(self.agent_state, batch.state[0], update_rng)
+        actor_state, proposal_state, actor_loss = self._policy_update(self.agent_state, batch.state[0], update_rng)
+
+        # Log actor loss outside the JIT-compiled function
+        self._collector.collect("actor_loss", float(actor_loss))
 
         self.agent_state = self.agent_state._replace(
             actor=actor_state,
@@ -288,7 +308,7 @@ class GreedyAC:
         )
 
         # Actor Update
-        new_actor_state = self._compute_policy_update(
+        new_actor_state, actor_loss = self._compute_policy_update(
             agent_state.actor,
             self.actor,
             self.actor_opt,
@@ -297,14 +317,14 @@ class GreedyAC:
         )
 
         # Proposal Update
-        new_proposal_state = self._compute_policy_update(
+        new_proposal_state, _ = self._compute_policy_update(
             agent_state.proposal,
             self.proposal,
             self.proposal_opt,
             states,
             top_ranked_actions.proposal,
         )
-        return new_actor_state, new_proposal_state
+        return new_actor_state, new_proposal_state, actor_loss
 
     def _compute_policy_update(
         self,
@@ -314,14 +334,18 @@ class GreedyAC:
         states: jax.Array,
         update_actions: jax.Array
     ):
-        grads = jax.grad(self._batch_policy_loss)(policy_state.params, policy, states, update_actions)
+        def loss_fn(params: chex.ArrayTree):
+            return self._batch_policy_loss(params, policy, states, update_actions)
+
+        loss_value = loss_fn(policy_state.params)
+        grads = jax.grad(loss_fn)(policy_state.params)
         updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state)
         new_params = optax.apply_updates(policy_state.params, updates)
 
         return PolicyState(
             new_params,
             new_opt_state,
-        )
+        ), loss_value
 
     def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: jax.Array, rng: chex.PRNGKey):
         uniform_samples = int(self.num_samples * self.uniform_weight)
