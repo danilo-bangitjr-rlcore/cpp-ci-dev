@@ -47,6 +47,8 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
     # stub out action constructor
     pf.states = df
     pf.actions = pd.DataFrame({ "action": [0] * length }, index=datetime_index)
+    pf.action_lo = pd.DataFrame({ "action": [0] * length }, index=datetime_index)
+    pf.action_hi = pd.DataFrame({ "action": [1] * length }, index=datetime_index)
     pf.rewards = pd.DataFrame({ "reward": [1] * length }, index=datetime_index)
     return pf
 

@@ -3,6 +3,7 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 from torch import Tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
@@ -34,6 +35,8 @@ def make_test_step(
         gamma=gamma,
         ac=ac,
         dp=dp,
+        action_lo=torch.zeros_like(Tensor([action])),
+        action_hi=torch.zeros_like(Tensor([action])),
     )
 
 

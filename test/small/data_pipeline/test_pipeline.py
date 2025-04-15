@@ -172,7 +172,14 @@ def test_sub_pipeline1(dummy_app_state: AppState):
     got = pipeline(
         df,
         data_mode=DataMode.ONLINE,
-        stages=(StageCode.PREPROCESS, StageCode.BOUNDS, StageCode.ODDITY, StageCode.IMPUTER, StageCode.SC),
+        stages=(
+            StageCode.PREPROCESS,
+            StageCode.BOUNDS,
+            StageCode.ODDITY,
+            StageCode.IMPUTER,
+            StageCode.AC,
+            StageCode.SC,
+        ),
     )
 
     cols = ['tag-1', 'tag-2_trace-0.1']

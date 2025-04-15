@@ -3,6 +3,7 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 import pytest
+import torch
 from sqlalchemy import Engine
 from torch import Tensor
 
@@ -22,6 +23,25 @@ from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.state import AppState
 
+
+def make_step(
+    reward: float,
+    action: Tensor,
+    gamma: float,
+    state: Tensor,
+    dp: bool, # decision point
+    ac: bool, # action change
+):
+    return Step(
+        reward=reward,
+        action=action,
+        gamma=gamma,
+        state=state,
+        action_lo=torch.zeros_like(action),
+        action_hi=torch.ones_like(action),
+        dp=dp,
+        ac=ac
+    )
 
 @pytest.fixture()
 def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
@@ -127,11 +147,11 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
 
     # Expected transitions
     gamma = offline_cfg.experiment.gamma
-    step_0 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0]), dp=False, ac=False)
-    step_1 = Step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0]), dp=True,  ac=False) # dp
-    step_2 = Step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=False, ac=True)  # ac
-    step_3 = Step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0]), dp=True,  ac=False) # dp
-    step_4 = Step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4.0]), dp=False, ac=True)  # ac
+    step_0 = make_step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0]), dp=False, ac=False)
+    step_1 = make_step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0]), dp=True,  ac=False) # dp
+    step_2 = make_step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=False, ac=True)  # ac
+    step_3 = make_step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3.0]), dp=True,  ac=False) # dp
+    step_4 = make_step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4.0]), dp=False, ac=True)  # ac
     expected_transitions = [Transition([step_0, step_1], 1.0, gamma),
                             Transition([step_1, step_2], 1.0, gamma),
                             Transition([step_2, step_3], 0.0, gamma),
