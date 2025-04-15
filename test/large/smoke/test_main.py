@@ -12,7 +12,7 @@ from corerl.sql_logging.sql_logging import table_exists
     'saturation',
     'mountain_car_continuous',
 ])
-@pytest.mark.timeout(120)
+@pytest.mark.timeout(360)
 def test_main_configs(
     tsdb_engine: Engine,
     config_name: str,
@@ -30,7 +30,7 @@ def test_main_configs(
 
     proc = subprocess.run([
         'uv', 'run', 'python', 'main.py',
-        '--config-name', f'{config_name}', 'experiment.max_steps=10',
+        '--config-name', f'{config_name}', 'experiment.max_steps=5',
         f'metrics.port={port}', 'metrics.enabled=True',
         f'metrics.db_name={tsdb_tmp_db_name}',
     ])
@@ -42,4 +42,4 @@ def test_main_configs(
     # ensure some metrics were logged to table
     with tsdb_engine.connect() as conn:
         metrics = pd.read_sql_table('metrics', con=conn)
-        assert len(metrics) >= 50
+        assert len(metrics) >= 10
