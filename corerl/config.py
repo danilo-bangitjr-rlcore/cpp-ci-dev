@@ -122,6 +122,7 @@ class MainConfig:
     # ---------------
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
+        assert not self.feature_flags.action_bounds, "Behavior of delta actions + action bounds undefined"
         if not self.feature_flags.delta_actions:
             return
 
