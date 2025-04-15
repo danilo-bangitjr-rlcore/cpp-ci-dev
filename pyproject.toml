@@ -58,6 +58,100 @@ reportUnusedClass = true
 reportUnusedExpression = true
 reportUnusedFunction = true
 
+[tool.pylint]
+[tool.pylint.main]
+jobs = 0
+
+[tool.pylint.format]
+indent-after-paren = 4
+max-line-length = 140
+max-module-lines = 1000
+
+[tool.pylint."messages control"]
+disable = [
+    "abstract-method",
+    "arguments-differ",
+    "arguments-renamed",
+    "attribute-defined-outside-init",
+    "bare-except",
+    "broad-exception-caught",
+    "broad-exception-raised",
+    "consider-merging-isinstance",
+    "consider-using-enumerate",
+    "consider-using-from-import",
+    "consider-using-in",
+    "consider-using-with",
+    "cyclic-import",
+    "dangerous-default-value",
+    "duplicate-code",
+    "expression-not-assigned",
+    "fixme",
+    "global-statement",
+    "import-error",
+    "import-outside-toplevel",
+    "inconsistent-return-statements",
+    "invalid-name",
+    "invalid-overridden-method",
+    "line-too-long",
+    "logging-fstring-interpolation",
+    "logging-not-lazy",
+    "logging-too-many-args",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "missing-timeout",
+    "multiple-statements",
+    "no-else-continue",
+    "no-else-return",
+    "no-member",
+    "no-value-for-parameter",
+    "not-callable",
+    "pointless-string-statement",
+    "possibly-used-before-assignment",
+    "protected-access",
+    "raise-missing-from",
+    "redefined-builtin",
+    "redefined-outer-name",
+    "redundant-u-string-prefix",
+    "self-assigning-variable",
+    "signature-differs",
+    "simplifiable-if-statement",
+    "super-init-not-called",
+    "super-with-arguments",
+    "superfluous-parens",
+    "trailing-newlines",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-positional-arguments",
+    "too-many-return-statements",
+    "too-many-statements",
+    "unbalanced-tuple-unpacking",
+    "unidiomatic-typecheck",
+    "unknown-option-value",
+    "unnecessary-comprehension",
+    "unnecessary-dunder-call",
+    "unnecessary-ellipsis",
+    "unnecessary-lambda",
+    "unnecessary-pass",
+    "unpacking-non-sequence",
+    "unspecified-encoding",
+    "unsubscriptable-object",
+    "unused-argument",
+    "unused-variable",
+    "unused-wildcard-import",
+    "use-a-generator",
+    "use-list-literal",
+    "useless-import-alias",
+    "useless-object-inheritance",
+    "useless-parent-delegation",
+    "useless-return",
+    "warnings.warn",
+    "wildcard-import",
+]
 
 [tool.deadcode]
 exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl", "client"]
@@ -162,5 +256,6 @@ dev = [
     "ruff>=0.9.3",
     "seaborn>=0.13.2",
     "uv>=0.5.24",
-    "coreenv"
+    "coreenv",
+    "pylint>=3.3.6",
 ]

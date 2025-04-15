@@ -247,7 +247,7 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
     )
 
     # we are not supporting config defaults when loading from dict
-    if "defaults" in raw_config.keys():
+    if "defaults" in raw_config:
         del raw_config['defaults']
 
     # handle any cli overrides
