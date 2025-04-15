@@ -76,7 +76,6 @@ disable = [
     "bare-except",
     "broad-exception-caught",
     "broad-exception-raised",
-    "consider-iterating-dictionary",
     "consider-merging-isinstance",
     "consider-using-enumerate",
     "consider-using-from-import",

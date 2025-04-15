@@ -172,7 +172,7 @@ def init_activation(cfg: ActivationConfig) -> nn.Module:
         "hard_swish": torch.nn.Hardswish,
     }
 
-    if name.lower() not in activations.keys():
+    if name.lower() not in activations:
         raise NotImplementedError(
             f"unknown activation function '{name}', known activations include " +
             f"{list(activations.keys())}",
