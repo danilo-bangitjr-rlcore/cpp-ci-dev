@@ -47,7 +47,6 @@ ZERO_ONE_FEATURES = [
     'base', # special feature indicating "no features enabled"
     'delta_actions',
     'zone_violations',
-    'action_embedding',
     'action_bounds',
 ]
 
