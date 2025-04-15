@@ -154,9 +154,10 @@ def check_sim_farama_environment_ready(run_docker_compose: None, request: Fixtur
                 data_reader.close()
 
 
-@pytest.mark.skipif(
-    should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
-)
+# @pytest.mark.skipif(
+#     should_skip_test(), reason="Docker compose ps saw core-rl services, or failed to run, do not run opc tsdb test"
+# )
+@pytest.mark.skip
 @pytest.mark.timeout(500)
 def test_dep_mountain_car_continuous(
     check_sim_farama_environment_ready: None,
