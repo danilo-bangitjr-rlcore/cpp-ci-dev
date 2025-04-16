@@ -47,4 +47,4 @@ pipeline:
     type: ai_setpoint
     change_bounds: [-1, 1]
     operating_range: [0, 0.5]
-    action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
+    action_bounds: ['{action-0}-0.2', '{action-0}+0.2']
