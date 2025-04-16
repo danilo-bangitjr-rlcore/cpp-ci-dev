@@ -12,7 +12,7 @@ from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.transforms import DeltaConfig, IdentityConfig, NormalizerConfig, NullConfig, TransformConfig
+from corerl.data_pipeline.transforms import DeltaConfig, NormalizerConfig, NullConfig, TransformConfig
 from corerl.utils.list import find_index, find_instance
 from corerl.utils.maybe import Maybe
 from corerl.utils.sympy import is_affine, to_sympy
@@ -256,16 +256,6 @@ class TagConfig:
     Exposed primarily for testing.
     """
 
-    action_constructor: list[TransformConfig] | None = None
-    """
-    Kind: internal
-
-    Specifies a transformation pipeline to produce actions from tags.
-    Used to decouple AI-controlled setpoints (i.e. the outputs) from
-    the effects on the plant (i.e. the inputs). In most cases, these
-    will be the same.
-    """
-
     state_constructor: list[TransformConfig] | None = None
     """
     Kind: internal
@@ -355,7 +345,7 @@ class TagConfig:
             case TagType.computed: return
             case TagType.default: return
             case TagType.meta: return
-            case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
+            case TagType.ai_setpoint: return
             case _: assert_never(self.type)
 
 
@@ -423,14 +413,6 @@ class TagConfig:
 
             for dep in dependent_tags:
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
-
-
-def set_ai_setpoint_defaults(tag_cfg: TagConfig):
-    if tag_cfg.action_constructor is None:
-        tag_cfg.action_constructor = [IdentityConfig()]
-
-    elif len(tag_cfg.action_constructor) == 0:
-        tag_cfg.action_constructor.append(IdentityConfig())
 
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:

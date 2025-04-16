@@ -73,7 +73,6 @@ def test_pipeline1(dummy_app_state: AppState):
                 type=TagType.ai_setpoint,
                 operating_range=(0, 1),
                 preprocess=[],
-                action_constructor=[],
                 state_constructor=[NullConfig()],
             ),
             TagConfig(
@@ -212,7 +211,6 @@ def test_pipeline2(dummy_app_state: AppState):
                 type=TagType.ai_setpoint,
                 preprocess=[],
                 operating_range=(0, 1),
-                action_constructor=[],
                 state_constructor=[],
             ),
             TagConfig(

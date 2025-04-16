@@ -89,8 +89,8 @@ def test_state_action_dim(dummy_app_state: AppState):
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', operating_range=(0, 1), action_constructor=[], type=TagType.ai_setpoint),
-            TagConfig(name='tag-4', operating_range=(0, 1), action_constructor=[], type=TagType.ai_setpoint),
+            TagConfig(name='tag-3', operating_range=(0, 1), type=TagType.ai_setpoint),
+            TagConfig(name='tag-4', operating_range=(0, 1), type=TagType.ai_setpoint),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(

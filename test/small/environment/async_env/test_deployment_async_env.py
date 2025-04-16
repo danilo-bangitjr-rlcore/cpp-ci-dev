@@ -14,7 +14,6 @@ def test_action_clipping():
             operating_range=(5.0, 15.0),
             red_bounds=(None, 12),
             preprocess=[],
-            action_constructor=[],
             state_constructor=[NullConfig()],
         ),
         "action-2": TagConfig(
@@ -22,7 +21,6 @@ def test_action_clipping():
             type=TagType.ai_setpoint,
             operating_range=(0.0, 60.0),
             preprocess=[],
-            action_constructor=[],
             state_constructor=[NullConfig()],
         ),
     }
@@ -70,7 +68,6 @@ def test_action_sanitizer():
             operating_range=(5.0, 15.0),
             red_bounds=(None, 12),
             preprocess=[],
-            action_constructor=[],
             state_constructor=[NullConfig()],
         ),
         "action-2": TagConfig(
@@ -78,7 +75,6 @@ def test_action_sanitizer():
             type=TagType.ai_setpoint,
             operating_range=(0.0, 60.0),
             preprocess=[],
-            action_constructor=[],
             state_constructor=[NullConfig()],
         ),
     }

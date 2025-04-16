@@ -7,8 +7,6 @@ tags:
       - name: normalize
         min: 64.3878913092831
         max: 71.54707736724436
-    action_constructor:
-      - name: 'null'
 
   
   - name: BW_Flow
@@ -19,8 +17,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 60.30093
-    action_constructor:
-      - name: 'null'
 
   
   - name: Bed Profile - Central Mix Zone
@@ -31,8 +27,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 30.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Bed Profile - Reaction Zone
@@ -43,8 +37,6 @@ tags:
       - name: normalize
         min: 2.0
         max: 40.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Bed Profile - Tap 1
@@ -55,8 +47,6 @@ tags:
       - name: normalize
         min: 8.0
         max: 99.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Bed Profile - Tap 2
@@ -67,8 +57,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 50.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Bed Profile - Tap 3
@@ -79,8 +67,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 40.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: CDE_PW_xOver_DOTk_Flow
@@ -91,8 +77,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 509.9978631591797
-    action_constructor:
-      - name: 'null'
 
   
   - name: Coagulant Concentration
@@ -103,8 +87,6 @@ tags:
       - name: normalize
         min: -0.35402339696884155
         max: 46.41282653808594
-    action_constructor:
-      - name: 'null'
 
   
   - name: Coagulant Flow Rate
@@ -115,8 +97,6 @@ tags:
       - name: normalize
         min: -7.014660358428394
         max: 1078.3374023436636
-    action_constructor:
-      - name: 'null'
 
   
   - name: FWKO_Inlet_Flow
@@ -127,8 +107,6 @@ tags:
       - name: normalize
         min: 106.260628
         max: 1284.91272
-    action_constructor:
-      - name: 'null'
 
   
   - name: FWKO_RBW_FlowA
@@ -139,8 +117,6 @@ tags:
       - name: normalize
         min: 6e-323
         max: 20.57544783214297
-    action_constructor:
-      - name: 'null'
 
   
   - name: FWKO_RBW_FlowB
@@ -151,8 +127,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 42.39501
-    action_constructor:
-      - name: 'null'
 
   
   - name: FWKO_RBW_Total_Flow
@@ -163,8 +137,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 42.39501
-    action_constructor:
-      - name: 'null'
 
   
   - name: Filter Aid Concentration
@@ -175,8 +147,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 0.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Filter Aid Flow Rate
@@ -187,8 +157,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 0.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Heater_Steam_Flow
@@ -199,8 +167,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 11137.59225204419
-    action_constructor:
-      - name: 'null'
 
   
   - name: IGF_Oil_Flow
@@ -211,8 +177,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 76.736
-    action_constructor:
-      - name: 'null'
 
   
   - name: IGF_POLY_PPM
@@ -223,8 +187,6 @@ tags:
       - name: normalize
         min: 4.0
         max: 37.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: IGF_Poly_Flow
@@ -235,8 +197,6 @@ tags:
       - name: normalize
         min: 4.0
         max: 37.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Inlet Oil and Grease Concentration
@@ -247,8 +207,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 195.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Inlet Oil and Grease Flow Rate
@@ -259,8 +217,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 176.6137361368976
-    action_constructor:
-      - name: 'null'
 
   
   - name: Inlet Produced Water Flow Rate
@@ -271,8 +227,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 1012.5806274414062
-    action_constructor:
-      - name: 'null'
 
   
   - name: Inlet_Degasser_DMO_FlowA
@@ -283,8 +237,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 0.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Inlet_Degasser_DMO_FlowB
@@ -295,8 +247,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 0.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Inlet_Degasser_DMO_Total_Flow
@@ -307,8 +257,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 0.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Lime Slurry Flow Rate
@@ -319,8 +267,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 43.449092864990234
-    action_constructor:
-      - name: 'null'
 
   
   - name: Lime Slurry Strength
@@ -331,8 +277,6 @@ tags:
       - name: normalize
         min: 1.5
         max: 18.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: MagOx Slurry Flow Rate
@@ -343,8 +287,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 49.745574951171875
-    action_constructor:
-      - name: 'null'
 
   
   - name: MagOx Slurry Strength
@@ -355,8 +297,6 @@ tags:
       - name: normalize
         min: 0.3
         max: 6.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: ORF_Bypass_Flow
@@ -367,8 +307,6 @@ tags:
       - name: normalize
         min: -9.15769457844759
         max: 790.0190021377844
-    action_constructor:
-      - name: 'null'
 
   
   - name: ORF_Feed_Flow
@@ -379,8 +317,6 @@ tags:
       - name: normalize
         min: 391.85437
         max: 1219.80164
-    action_constructor:
-      - name: 'null'
 
   
   - name: Outlet Hardness
@@ -391,8 +327,6 @@ tags:
       - name: normalize
         min: 12.0
         max: 205.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Outlet Oil and Grease Concentration
@@ -403,8 +337,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 9.4
-    action_constructor:
-      - name: 'null'
 
   
   - name: Outlet Oil and Grease Flow Rate
@@ -415,8 +347,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 8.229918755709846
-    action_constructor:
-      - name: 'null'
 
   
   - name: Outlet Silica
@@ -427,8 +357,6 @@ tags:
       - name: normalize
         min: 14.42
         max: 221.41
-    action_constructor:
-      - name: 'null'
 
   
   - name: Outlet Turbidity
@@ -439,8 +367,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 36.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Outlet pH
@@ -451,8 +377,6 @@ tags:
       - name: normalize
         min: 8.5
         max: 96.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: PW_BW_Flow
@@ -463,8 +387,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 1012.58063
-    action_constructor:
-      - name: 'null'
 
   
   - name: PW_Treated_Recyc
@@ -475,8 +397,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 655.937866
-    action_constructor:
-      - name: 'null'
 
   
   - name: PolyA_PPM
@@ -487,8 +407,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 3.063157
-    action_constructor:
-      - name: 'null'
 
   
   - name: PolyB_PPM
@@ -499,8 +417,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 8.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Polymer Concentration
@@ -511,8 +427,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 8.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Polymer Flow Rate
@@ -523,8 +437,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 164.28433227537747
-    action_constructor:
-      - name: 'null'
 
   
   - name: Rake Lift
@@ -535,8 +447,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 5.984619617462158
-    action_constructor:
-      - name: 'null'
 
   
   - name: Rake Torque
@@ -547,8 +457,6 @@ tags:
       - name: normalize
         min: 0.021901726722717285
         max: 30.11444854736328
-    action_constructor:
-      - name: 'null'
 
   
   - name: Reaction Zone pH
@@ -559,8 +467,6 @@ tags:
       - name: normalize
         min: 9.1
         max: 10.7
-    action_constructor:
-      - name: 'null'
 
   
   - name: Silica_In
@@ -571,8 +477,6 @@ tags:
       - name: normalize
         min: 2.0
         max: 121.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Skim_PW_Flow
@@ -583,8 +487,6 @@ tags:
       - name: normalize
         min: 17.6106873
         max: 1264.51257
-    action_constructor:
-      - name: 'null'
 
   
   - name: Skim_Poly_Flow
@@ -595,8 +497,6 @@ tags:
       - name: normalize
         min: 138.0
         max: 278.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Skim_Poly_PPM
@@ -607,8 +507,6 @@ tags:
       - name: normalize
         min: 138.0
         max: 278.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Sludge Recycle Flow Rate
@@ -619,8 +517,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 164.40896606445312
-    action_constructor:
-      - name: 'null'
 
   
   - name: Sludge_Centrifuge
@@ -631,8 +527,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 12.770114421844482
-    action_constructor:
-      - name: 'null'
 
   
   - name: Sludge_Recycle_Ratio
@@ -643,8 +537,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 48.89717235342511
-    action_constructor:
-      - name: 'null'
 
   
   - name: Slug_Catcher_Liquids_Flow
@@ -655,8 +547,6 @@ tags:
       - name: normalize
         min: 1e-323
         max: 150.4712279743713
-    action_constructor:
-      - name: 'null'
 
   
   - name: Tap_4
@@ -667,8 +557,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 40.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Tap_5
@@ -679,8 +567,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 35.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Tap_6
@@ -691,8 +577,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 1.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Tap_7
@@ -703,8 +587,6 @@ tags:
       - name: normalize
         min: 0.0
         max: 0.0
-    action_constructor:
-      - name: 'null'
 
   
   - name: Temp_In
@@ -715,8 +597,6 @@ tags:
       - name: normalize
         min: 81.86226081848145
         max: 95.16987991333008
-    action_constructor:
-      - name: 'null'
 
   
   - name: Temperature
@@ -727,8 +607,6 @@ tags:
       - name: normalize
         min: 78.88799285888672
         max: 91.90753173828125
-    action_constructor:
-      - name: 'null'
 
   
   - name: Water Recycle Flow Rate
@@ -739,6 +617,4 @@ tags:
       - name: normalize
         min: 0.0
         max: 655.9378662109375
-    action_constructor:
-      - name: 'null'
 
