@@ -1,6 +1,6 @@
 name: Style and Tests
 
-on: [pull_request]
+on: [pull_request_target]
 permissions: write-all # Needed to comment coverage% on PR
 
 concurrency:
