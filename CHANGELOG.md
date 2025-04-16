@@ -5,6 +5,17 @@
 - styles again
 - fix agent test utils
 
+## [0.139.1](https://github.com/rlcoretech/core-rl/compare/v0.139.0...v0.139.1) (2025-04-16)
+
+
+### Bug Fixes
+
+* ai setpoint defaults to last aggregator ([03e6344](https://github.com/rlcoretech/core-rl/commit/03e6344e56ad6078cde1087c4571b2f6ba59b330))
+* fix argument order for ensure_direct_action ([3c5bc4d](https://github.com/rlcoretech/core-rl/commit/3c5bc4d58c4da3c65519313c6c757abb198554a7))
+* only check action_bounds+delta_actions when da enabled ([f940fac](https://github.com/rlcoretech/core-rl/commit/f940fac2e888def819ad0b5088395eef2b3a49bd))
+* **PROD-342:** improve ws log buffering to ui ([4802bb2](https://github.com/rlcoretech/core-rl/commit/4802bb27c6efe8fa3581262059909d4ed46f3452))
+* **PROD-342:** improve ws log buffering to ui ([5620f20](https://github.com/rlcoretech/core-rl/commit/5620f200fe492985506df1a4993ab8781eb4b520))
+
 ## [0.139.0](https://github.com/rlcoretech/core-rl/compare/v0.138.0...v0.139.0) (2025-04-15)
 
 
