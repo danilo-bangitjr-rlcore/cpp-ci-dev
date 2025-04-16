@@ -227,7 +227,7 @@ class GACPolicyManager:
             invalid_mask = invalid_mask.any(dim=1)
             # resample invalid actions
             policy_actions[invalid_mask] = sampler(states[invalid_mask])
-            direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions, action_lo, action_hi)
+            direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
             if itr == max_itr - 1:
                 logging.warning(
@@ -235,7 +235,7 @@ class GACPolicyManager:
                     + "defaulting to sampling uniform"
                 )
                 policy_actions[invalid_mask] = self._sample_uniform(states[invalid_mask])
-                direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions, action_lo, action_hi)
+                direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
         # Clip the direct actions. This should be unnecessary if rejection sampling is successful
         direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
@@ -306,7 +306,7 @@ class GACPolicyManager:
             critic=critic,
         )
         policy_actions = sampler(states)
-        direct_actions = self.ensure_direct_action(prev_direct_actions, policy_actions, action_lo, action_hi)
+        direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
         if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
             direct_actions, policy_actions = self._rejection_sample(
