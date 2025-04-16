@@ -148,7 +148,6 @@ disable = [
     "useless-import-alias",
     "useless-object-inheritance",
     "useless-parent-delegation",
-    "useless-return",
     "warnings.warn",
     "wrong-import-order",
     "wrong-import-position",
