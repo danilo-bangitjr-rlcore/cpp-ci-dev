@@ -228,7 +228,6 @@ def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
         norm_cfg = find_instance(
             NormalizerConfig,
             (tag.state_constructor or []) +\
-            (tag.action_constructor or []) +\
             (tag.reward_constructor)
         )
 

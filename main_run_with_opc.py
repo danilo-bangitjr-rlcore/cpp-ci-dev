@@ -8,7 +8,7 @@ from pydantic import Field
 from corerl.configs.config import config
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.environment.async_env.deployment_async_env import AsyncEnvConfig, DeploymentAsyncEnv
 
 
@@ -33,7 +33,7 @@ def dumb_policy(action_tags: list[TagConfig]):
 def main(cfg: Config):
     dep_env = DeploymentAsyncEnv(cfg.env, cfg.pipeline.tags)
 
-    action_tags = [tag_config for tag_config in cfg.pipeline.tags if tag_config.action_constructor is not None]
+    action_tags = [tag_config for tag_config in cfg.pipeline.tags if tag_config.type == TagType.ai_setpoint]
     for _ in range(1000):
         action = dumb_policy(action_tags)
         dep_env.emit_action(action)

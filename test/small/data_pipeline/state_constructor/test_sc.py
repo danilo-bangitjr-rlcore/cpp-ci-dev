@@ -341,7 +341,7 @@ def test_sc_decision_point_detection():
     sc = StateConstructor(
         tag_cfgs=[
             TagConfig(name='tag-1'),
-            TagConfig(name='tag-action', action_constructor=[], state_constructor=[], type=TagType.ai_setpoint),
+            TagConfig(name='tag-action', state_constructor=[], type=TagType.ai_setpoint),
         ],
         cfg=SCConfig(
             defaults=[
