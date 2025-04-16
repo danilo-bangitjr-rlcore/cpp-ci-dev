@@ -279,11 +279,9 @@ class GreedyAC:
     ):
         chex.assert_shape(states, (self._cfg.batch_size, self.state_dim))
 
-        # Log mu and sigma values for a sample state
         sample_state = states[0]
         actor_out: ActorOutputs = self.actor.apply(params=agent_state.actor.params, x=sample_state)
-        
-        # Use JAX callbacks to log mu and sigma
+
         for i in range(actor_out.mu.shape[0]):
             jax.debug.callback(lambda x, i=i: self._collector.collect(f'actor_mu_{i}', float(x)), actor_out.mu[i])
             jax.debug.callback(lambda x, i=i: self._collector.collect(f'actor_sigma_{i}', float(x)), actor_out.sigma[i])
@@ -337,8 +335,7 @@ class GreedyAC:
         if grad_leaves:
             grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
             jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_grad_norm', float(x)), grad_norm)
-        
-        # Apply updates
+
         updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state)
         new_params = optax.apply_updates(policy_state.params, updates)
 
