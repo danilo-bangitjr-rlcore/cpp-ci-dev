@@ -123,10 +123,10 @@ class MainConfig:
     # ---------------
     @post_processor
     def _enable_delta_actions(self, cfg: 'MainConfig'):
-        assert not self.feature_flags.action_bounds, "Behavior of delta actions + action bounds undefined"
         if not self.feature_flags.delta_actions:
             return
 
+        assert not self.feature_flags.action_bounds, "Behavior of delta actions + action bounds undefined"
         sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
         for tag in sorted_tags:
             if tag.type != TagType.ai_setpoint:
