@@ -82,7 +82,6 @@ disable = [
     "consider-using-in",
     "consider-using-with",
     "cyclic-import",
-    "dangerous-default-value",
     "duplicate-code",
     "expression-not-assigned",
     "fixme",
