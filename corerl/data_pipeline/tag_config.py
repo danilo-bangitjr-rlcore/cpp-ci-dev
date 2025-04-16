@@ -345,7 +345,7 @@ class TagConfig:
             case TagType.computed: return
             case TagType.default: return
             case TagType.meta: return
-            case TagType.ai_setpoint: return
+            case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
             case _: assert_never(self.type)
 
 
@@ -413,6 +413,10 @@ class TagConfig:
 
             for dep in dependent_tags:
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
+
+
+def set_ai_setpoint_defaults(tag_cfg: TagConfig):
+    tag_cfg.agg = Agg.last
 
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
