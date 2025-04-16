@@ -23,8 +23,6 @@ logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True)
 
-EPSILON = 1e-6
-
 
 @config()
 class GreedyACConfig(BaseAgentConfig):
@@ -59,7 +57,6 @@ class GreedyACConfig(BaseAgentConfig):
 
     # metrics
     ingress_loss : bool = True
-    most_recent_batch_loss : bool = True
 
 
 class GreedyAC(BaseAgent):

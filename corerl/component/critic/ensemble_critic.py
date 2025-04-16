@@ -93,7 +93,6 @@ class EnsembleCritic(BaseCritic):
             ensemble=True,
         )
         self.polyak = cfg.polyak
-        self.target_sync_counter = 0
         self.optimizer_name = cfg.critic_optimizer.name
 
     # -------------
@@ -117,7 +116,6 @@ class EnsembleCritic(BaseCritic):
         else:
             self.optimizer.step(closure=closure)
 
-        self.target_sync_counter += 1
         self.polyak_avg_target()
 
 
