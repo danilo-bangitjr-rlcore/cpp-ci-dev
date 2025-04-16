@@ -76,6 +76,7 @@ disable = [
     "bare-except",
     "broad-exception-caught",
     "broad-exception-raised",
+    "comparison-with-callable",
     "consider-merging-isinstance",
     "consider-using-enumerate",
     "consider-using-from-import",
@@ -104,7 +105,9 @@ disable = [
     "no-else-continue",
     "no-else-return",
     "no-member",
+    "no-name-in-module",
     "no-value-for-parameter",
+    "non-ascii-name",
     "not-callable",
     "pointless-string-statement",
     "possibly-used-before-assignment",
@@ -116,6 +119,7 @@ disable = [
     "self-assigning-variable",
     "signature-differs",
     "simplifiable-if-statement",
+    "subprocess-run-check",
     "super-init-not-called",
     "super-with-arguments",
     "superfluous-parens",
@@ -144,6 +148,7 @@ disable = [
     "unused-variable",
     "unused-wildcard-import",
     "use-a-generator",
+    "use-dict-literal",
     "use-list-literal",
     "useless-import-alias",
     "useless-object-inheritance",
@@ -151,6 +156,8 @@ disable = [
     "useless-return",
     "warnings.warn",
     "wildcard-import",
+    "wrong-import-order",
+    "wrong-import-position",
 ]
 
 [tool.deadcode]
