@@ -136,11 +136,6 @@ class DeploymentAsyncEnv(AsyncEnv):
         )
         return obs
 
-    def maybe_write_agent_step(self, step: int):
-        # removed within https://github.com/rlcoretech/core-rl/commit/fff373f4018a7a3d9ffee36868f354b89a9ee640
-        # also currently incompatible with thin client
-        return step
-
     def get_cfg(self):
         return self._cfg
 
