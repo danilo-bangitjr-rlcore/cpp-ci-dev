@@ -14,7 +14,7 @@ from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionF
 
 def pf_from_actions(actions: np.ndarray, ts: dict | None = None) -> PipelineFrame:
     if ts is None:
-        ts = dict()
+        ts = {}
 
     n = len(actions)
     obs_col = np.random.random(size=n)
