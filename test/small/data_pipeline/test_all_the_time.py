@@ -29,7 +29,8 @@ def test_get_n_step_reward_1():
 
 def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> PipelineFrame:
     if ts is None:
-        ts = dict()
+        ts = {}
+
     state_col = np.arange(start_state, end_state)
     length = end_state - start_state
     cols = {"state": state_col}

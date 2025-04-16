@@ -148,7 +148,7 @@ def check_sim_farama_environment_ready(run_docker_compose: None, request: Fixtur
             # sqlalchemy.exc.ProgrammingError: (psycopg2.errors.UndefinedTable) relation "public.opcua" does not exist
             query_attempts += 1
             time.sleep(1)
-            pass
+
         finally:
             if data_reader is not None:
                 data_reader.close()

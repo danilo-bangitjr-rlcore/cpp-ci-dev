@@ -42,7 +42,7 @@ jobs:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review
           level: warning
-          glob_pattern: "corerl/"
+          glob_pattern: "corerl/ test/"
 
       # type checking
       - uses: jakebailey/pyright-action@v2

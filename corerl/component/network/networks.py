@@ -238,7 +238,6 @@ class EnsembleNetwork(nn.Module):
     def load_state_dict(self, state_dict_list: list) -> None: # type: ignore
         for i in range(self.ensemble):
             self.subnetworks[i].load_state_dict(state_dict_list[i])
-        return
 
     def parameters(self, independent: bool = False) -> list: # type: ignore
         param_list = []
