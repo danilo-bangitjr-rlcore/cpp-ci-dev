@@ -13,8 +13,9 @@ import tempfile
 import uuid
 from collections import deque
 from pathlib import Path
+from queue import Empty, Queue
 from threading import Thread
-from typing import Dict, List, Literal, Optional, TypedDict
+from typing import IO, Dict, List, Literal, Optional, TypedDict
 
 import yaml
 from anyio import ClosedResourceError
@@ -57,6 +58,10 @@ class StartAgentRequestPayload(BaseModel):
 
     extra_options: Optional[List[str]] = None
 
+def output_reader(stream: IO[bytes], queue: Queue):
+    for line in iter(stream.readline, b""):
+        queue.put(line.decode("utf-8"))
+
 
 async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: StartAgentRequestPayload):
     """Start our process, send all stdout and stderr to connected websocket clients."""
@@ -96,23 +101,31 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
     stream = process.stdout
     assert stream is not None
 
-    while (return_code := process.poll()) is None:
-        try:
-            async with asyncio.timeout(5):
-                line = await asyncio.to_thread(stream.readline)
-        except TimeoutError:
-            line = None
-        if not line:
+    outq = Queue()
+    t = Thread(target=output_reader, args=(stream, outq), daemon=True)
+    t.start()
+
+    while (return_code := process.poll()) is None or outq.qsize() > 0:
+        output_lines = []
+        while True:
+            try:
+                line = outq.get(block=False)
+                output_lines.append(line)
+            except Empty:
+                break
+        if not output_lines:
+            await asyncio.sleep(1.0)
             continue
 
         if os.path.exists(temp_file.name):
             os.remove(temp_file.name)
 
-        line = line.decode("utf-8").rstrip()
-        ws_msg = WSMessage(message=line)
+        msg_payload = "".join(output_lines)
+
+        ws_msg = WSMessage(message=msg_payload)
         log_buffer.append(ws_msg)
 
-        logger.debug(f"[{config_id}] {line}")
+        logger.debug(f"[{config_id}] {msg_payload}")
 
         if config_id not in clients:
             continue
@@ -144,6 +157,7 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
                 logger.exception("Error sending websocket message")
                 continue
 
+    t.join()
 
 class AgentStartErrorResponse(BaseModel):
     status: Literal["error"]
