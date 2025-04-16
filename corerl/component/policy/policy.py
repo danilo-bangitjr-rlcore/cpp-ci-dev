@@ -71,7 +71,6 @@ class Policy(ABC):
         """
         The names of the policy distribution parameters
         """
-        pass
 
     @property
     def n_params(self) -> int:
@@ -86,14 +85,12 @@ class Policy(ABC):
         """
         The support of the policy distribution
         """
-        pass
 
     @abstractmethod
     def forward(self, state: torch.Tensor, rsample: bool = True) -> tuple[torch.Tensor, dict]:
         """
         Return a sample from the policy in state `state`
         """
-        pass
 
     @abstractmethod
     def log_prob(
@@ -103,7 +100,6 @@ class Policy(ABC):
         Return the log density/probability of the action `action` in the state
         `state`
         """
-        pass
 
 
 class ContinuousIIDPolicy(Policy,ABC):
@@ -169,7 +165,6 @@ class ContinuousIIDPolicy(Policy,ABC):
         Similar to _transform_from_params, but takes the underlying
         distribution object to transform, rather than its parameters.
         """
-        pass
 
     @Policy.param_names.getter
     @abstractmethod

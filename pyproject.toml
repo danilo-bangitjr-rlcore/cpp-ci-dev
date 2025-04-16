@@ -138,7 +138,6 @@ disable = [
     "unnecessary-dunder-call",
     "unnecessary-ellipsis",
     "unnecessary-lambda",
-    "unnecessary-pass",
     "unpacking-non-sequence",
     "unspecified-encoding",
     "unsubscriptable-object",
