@@ -72,7 +72,6 @@ disable = [
     "abstract-method",
     "arguments-differ",
     "arguments-renamed",
-    "attribute-defined-outside-init",
     "bare-except",
     "broad-exception-caught",
     "broad-exception-raised",

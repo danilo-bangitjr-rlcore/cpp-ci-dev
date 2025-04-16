@@ -52,6 +52,7 @@ class DumbCoverage:
     def __init__(self, cfg: BaseCoverageConfig):
         self.cfg = cfg
         self.normalization = None
+        self.dataset: Dataset | None = None
 
     def unnorm_cov(self, state_action: np.ndarray) -> np.ndarray:
         assert self.dataset is not None

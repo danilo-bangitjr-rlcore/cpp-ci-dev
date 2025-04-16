@@ -136,6 +136,8 @@ class AECoverage:
         self._model = None
         self._optimizer = None
         self._buffer = None
+        self._input_dim: int | None = None
+        self._scheduler: optim.lr_scheduler.ReduceLROnPlateau | None = None
 
     def unnorm_cov(self, state_action: np.ndarray) -> np.ndarray:
         state_action_tensor = tensor(state_action)
@@ -185,6 +187,7 @@ class AECoverage:
 
         assert self._buffer is not None
         assert self._optimizer is not None
+        assert self._scheduler is not None
 
         data_tensor = tensor(dataset.data.to_numpy())
         for row in data_tensor:
