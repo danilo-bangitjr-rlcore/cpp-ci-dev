@@ -372,8 +372,7 @@ class GACPolicyManager:
         if pr.transitions is None:
             return
 
-        valid_transitions = [t for t in pr.transitions if t.prior.dp]
-        recent_idxs = self.buffer.feed(valid_transitions, pr.data_mode)
+        recent_idxs = self.buffer.feed(pr.transitions, pr.data_mode)
         # ---------------------------------- ingress loss metic --------------------------------- #
         if self.cfg.ingress_loss and len(recent_idxs) > 0:
             recent_batch = self.buffer.get_batch(recent_idxs)
