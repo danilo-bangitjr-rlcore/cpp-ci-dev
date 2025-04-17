@@ -16,7 +16,9 @@ def _get_tag_names(input_string: str) -> list[str]:
             current_content = ""
         elif char == "}":
             in_braces = False
-            result.append(current_content.strip())
+            tag_name = current_content.strip()
+            if tag_name not in result:
+                result.append(tag_name)
         elif in_braces:
             current_content += char
 

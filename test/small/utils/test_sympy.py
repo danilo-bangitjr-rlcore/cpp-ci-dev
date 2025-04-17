@@ -57,6 +57,10 @@ def test_get_symbol_names():
     proc_tag = _preprocess_tag_names("action-0")
     assert proc_tag == "action_0"
 
+def test_get_symbol_names_with_duplicate():
+    res = _get_tag_names("{tag-0} * {tag-1} + (1 - {tag-0}) * {tag-2}") # tag-0 appears twice
+    assert res == ["tag-0", "tag-1", "tag-2"]
+
 def test_is_expression():
     res = is_expression("abc")
     assert not res
