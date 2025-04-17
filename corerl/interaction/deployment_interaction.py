@@ -380,9 +380,8 @@ class DeploymentInteraction:
         if end_time - start_time < self.obs_period:
             return
 
-        tag_names = [tag_cfg.name for tag_cfg in self._pipeline.tags]
         chunk_data = self._env.data_reader.batch_aggregated_read(
-            names=tag_names,
+            names=self._env.tag_names,
             start_time=start_time,
             end_time=end_time,
             bucket_width=self.obs_period,
