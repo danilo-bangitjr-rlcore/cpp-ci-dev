@@ -34,7 +34,7 @@ class EnvWrapper:
     def step(self, action: jax.Array) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         raw_action = self.state_constructor.denormalize_action(np.array(action))
         observation, reward, terminated, truncated, info = self.env.step(raw_action)
-        state = self.state_constructor(observation, np.asarray(action))
+        state = self.state_constructor(observation, raw_action)
         return state, float(reward), terminated, truncated, info
 
     def get_state_dim(self) -> int:
