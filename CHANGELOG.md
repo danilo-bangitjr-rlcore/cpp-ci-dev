@@ -5,6 +5,14 @@
 - styles again
 - fix agent test utils
 
+## [0.139.2](https://github.com/rlcoretech/core-rl/compare/v0.139.1...v0.139.2) (2025-04-17)
+
+
+### Bug Fixes
+
+* **PROD-342:** improve ws message listener in unit test ([2c1998c](https://github.com/rlcoretech/core-rl/commit/2c1998c9297b6e10728ec98f12742a05324d01d6))
+* use `pull_request` for style and tests target ([d57d877](https://github.com/rlcoretech/core-rl/commit/d57d877ed5b9d22330b301d8f637f6a4908ad17e))
+
 ## [0.139.1](https://github.com/rlcoretech/core-rl/compare/v0.139.0...v0.139.1) (2025-04-16)
 
 
