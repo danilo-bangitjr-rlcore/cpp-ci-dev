@@ -26,6 +26,6 @@ class VirtualTagComputer:
             # so we can prefill the missing_info with NULL here
             # and depend on the "missingness_checker" to do the
             # work for us.
-            pf.missing_info[tag] = MissingType.NULL
+            pf.missing_info[tag] = [MissingType.NULL] * len(pf.data)
 
         return pf
