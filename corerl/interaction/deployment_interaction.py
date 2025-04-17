@@ -11,6 +11,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
+from corerl.eval.hindsight_return import HindsightReturnEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.configs import InteractionConfig
 from corerl.messages.events import Event, EventType
@@ -61,6 +62,11 @@ class DeploymentInteraction:
             app_state.cfg.eval_cfgs.monte_carlo,
             app_state,
             agent,
+        )
+
+        self._hs_return_eval = HindsightReturnEval(
+            app_state.cfg.eval_cfgs.avg_reward,
+            app_state,
         )
 
         ### Heartbeat (to be replaced by coreio)###
@@ -147,6 +153,7 @@ class DeploymentInteraction:
         self._write_to_metrics(pipe_return.rewards) # no prefix required
 
         # perform evaluations
+        self._hs_return_eval.execute(pipe_return.rewards)
         self._monte_carlo_eval.execute(pipe_return, "online")
 
         state_timestamp = pipe_return.states.index[-1]
