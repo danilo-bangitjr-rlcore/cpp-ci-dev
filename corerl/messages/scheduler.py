@@ -1,8 +1,8 @@
 import logging
 import threading
 import time
-from collections import namedtuple
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from typing import NamedTuple
 
 import zmq
 
@@ -11,6 +11,10 @@ from corerl.messages.events import Event, EventTopic, EventType
 
 logger = logging.getLogger(__name__)
 
+class EventPeriodTime(NamedTuple):
+    period: timedelta
+    next_event_ts: datetime
+
 def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: threading.Event):
     """
     Thread worker that emits ZMQ messages using our messages Event class.
@@ -18,8 +22,6 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
     """
 
     topic = EventTopic.corerl_scheduler
-
-    EventPeriodTime = namedtuple('EventPeriodTime', ['period', 'next_event_ts'])
 
     thread_start_time = datetime.now(UTC)
     next_event_dict = {
