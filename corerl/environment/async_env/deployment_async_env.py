@@ -36,8 +36,8 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.action_period = cfg.action_period
         self.action_tolerance = cfg.action_tolerance
 
-        self.tag_names = [tag.name for tag in tag_configs]
-        self.tag_aggs = {tag.name: tag.agg for tag in tag_configs}
+        self.tag_names = [tag.name for tag in tag_configs if not tag.is_computed]
+        self.tag_aggs = {tag.name: tag.agg for tag in tag_configs if not tag.is_computed}
 
         self.data_reader = self._init_datareader()
 
