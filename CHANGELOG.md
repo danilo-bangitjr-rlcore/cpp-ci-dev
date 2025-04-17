@@ -5,6 +5,15 @@
 - styles again
 - fix agent test utils
 
+## [0.139.3](https://github.com/rlcoretech/core-rl/compare/v0.139.2...v0.139.3) (2025-04-17)
+
+
+### Bug Fixes
+
+* dont read computed tags (they dont exist in db) ([a014b8f](https://github.com/rlcoretech/core-rl/commit/a014b8fd6a8f451ffcf02112d0df21cf5a6128fc))
+* dont read computed tags (they dont exist in db) ([caa83be](https://github.com/rlcoretech/core-rl/commit/caa83bed723ca5a6cb022db0878adc19a0d77b6d))
+* support duplicate tags in sympy parsing ([825850e](https://github.com/rlcoretech/core-rl/commit/825850ee0bfa6761bd2194085b6043927d245c3e))
+
 ## [0.139.2](https://github.com/rlcoretech/core-rl/compare/v0.139.1...v0.139.2) (2025-04-17)
 
 
