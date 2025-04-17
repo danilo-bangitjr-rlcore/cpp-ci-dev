@@ -38,7 +38,6 @@ class Agg(StrEnum):
 
 class TagType(StrEnum):
     ai_setpoint = auto()
-    computed = auto()
     meta = auto()
     default = auto()
 
@@ -277,6 +276,13 @@ class TagConfig:
     a clear signal of data degradation.
     """
 
+    is_computed: bool = False
+    """
+    Kind: optional external
+
+    Specifies whether this is a computed virtual tag.
+    """
+
     value: str | None = None
     """
     Kind: optional external
@@ -342,7 +348,6 @@ class TagConfig:
     @post_processor
     def _default_for_tag_types(self, cfg: MainConfig):
         match self.type:
-            case TagType.computed: return
             case TagType.default: return
             case TagType.meta: return
             case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
@@ -404,7 +409,7 @@ class TagConfig:
                     self.guardrail_schedule.starting_range[1] <= hi
                 ), "Guardrail starting range must be less than or equal to the operating range."
 
-        if self.type == TagType.computed:
+        if self.is_computed:
             assert self.value is not None, \
                 "A value string must be specified for computed virtual tags."
 
