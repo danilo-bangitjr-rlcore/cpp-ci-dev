@@ -5,6 +5,13 @@
 - styles again
 - fix agent test utils
 
+## [0.139.4](https://github.com/rlcoretech/core-rl/compare/v0.139.3...v0.139.4) (2025-04-17)
+
+
+### Bug Fixes
+
+* add correct number of nulls to missing_info in virtual tag computer ([5d63075](https://github.com/rlcoretech/core-rl/commit/5d630759979b17deaffa4e2f42cd0b70398605db))
+
 ## [0.139.3](https://github.com/rlcoretech/core-rl/compare/v0.139.2...v0.139.3) (2025-04-17)
 
 
