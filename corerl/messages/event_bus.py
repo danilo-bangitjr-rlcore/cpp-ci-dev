@@ -95,8 +95,7 @@ class EventBus:
                 self.queue.task_done()
 
 
-    def listen_forever(self, max_steps: int | None = None):
-        steps = 0
+    def listen_forever(self):
         while True:
             event = self.recv_event()
             if event is None:
@@ -106,9 +105,6 @@ class EventBus:
                 cb(event)
 
             yield event
-            steps += 1
-            if max_steps is not None and steps >= max_steps:
-                break
 
 
     def attach_callback(self, event_type: EventType, cb: Callback):
@@ -144,14 +140,9 @@ class EventBus:
 
 
 class DummyEventBus:
-    def listen_forever(self, max_steps: int | None = None):
-        steps = 0
+    def listen_forever(self):
         while True:
             yield
-            steps += 1
-
-            if max_steps is not None and steps >= max_steps:
-                break
 
     def start(self): ...
     def attach_callback(self, event_type: EventType, cb: Callback): ...

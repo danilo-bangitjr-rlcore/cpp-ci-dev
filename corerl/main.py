@@ -56,7 +56,7 @@ def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: Dep
     pbar = tqdm(total=max_steps, disable=not cfg.experiment.is_simulation)
 
     app_state.event_bus.start()
-    event_stream = app_state.event_bus.listen_forever(max_steps)
+    event_stream = app_state.event_bus.listen_forever()
 
     for event in event_stream:
         if event and event.type == EventType.step_get_obs:
@@ -65,6 +65,9 @@ def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: Dep
         if cfg.experiment.is_simulation:
             interaction.step()
             pbar.update(1)
+
+        if max_steps is not None and app_state.agent_step >= max_steps:
+            break
 
 
 def retryable_main(cfg: MainConfig):
