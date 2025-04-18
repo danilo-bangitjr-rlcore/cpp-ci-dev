@@ -1,7 +1,10 @@
 import logging
 import threading
+from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from queue import Empty, Queue
+from typing import Any
 
 import zmq
 
@@ -18,6 +21,10 @@ class EventBusState:
     scheduler_thread: None | threading.Thread = None
     subscriber_socket: None | zmq.Socket = None
     publisher_socket: None | zmq.Socket = None
+
+
+
+Callback = Callable[[Event], Any]
 
 
 class EventBus:
@@ -62,6 +69,9 @@ class EventBus:
         self.subscriber_socket.bind(self.cfg_event_bus.cli_connection)
         self.publisher_socket.connect(self.cfg_event_bus.app_connection)
 
+        self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
+
+
     def enabled(self) -> bool:
         return self.cfg_event_bus.enabled
 
@@ -95,6 +105,31 @@ class EventBus:
         finally:
             if event:
                 self.queue.task_done()
+
+
+    def listen_forever(self, max_steps: int | None = None):
+        steps = 0
+        while True:
+            event = self.recv_event()
+            if event is None:
+                continue
+
+            for cb in self._callbacks[event.type]:
+                cb(event)
+
+            yield event
+            steps += 1
+            if max_steps is not None and steps >= max_steps:
+                break
+
+
+    def attach_callback(self, event_type: EventType, cb: Callback):
+        self._callbacks[event_type].append(cb)
+
+
+    def attach_callbacks(self, cbs: dict[EventType, Callback]):
+        for event_type, cb in cbs.items():
+            self.attach_callback(event_type, cb)
 
 
     def cleanup(self):

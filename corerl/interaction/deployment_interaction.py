@@ -1,5 +1,7 @@
+import functools
 import logging
 import shutil
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, Generator
 
@@ -78,6 +80,14 @@ class DeploymentInteraction:
 
         ### Warmup Pipeline ###
         self.warmup_pipeline()
+
+        ### Lifecycle methods ###
+        self._app_state.event_bus.attach_callbacks({
+            EventType.step_emit_action:     self._handle_event(self._on_emit_action),
+            EventType.step_get_obs:         self._handle_event(self._on_get_obs),
+            EventType.step_agent_update:    self._handle_event(self._on_update),
+            EventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
+        })
 
     def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any, None] | None:
         if not self._cfg.load_historical_data:
@@ -190,6 +200,7 @@ class DeploymentInteraction:
         # log actions
         self._write_to_metrics(next_a_df, prefix='ACTION-')
 
+
     def _on_update(self):
         self._agent.update()
 
@@ -198,6 +209,12 @@ class DeploymentInteraction:
         agent_eval.greed_values_batch(self._app_state, self._agent)
 
 
+    def _on_ping_setpoint(self):
+        if self._last_action_df is None:
+            return
+
+        logger.debug("Pinging setpoints")
+        self._env.emit_action(self._last_action_df)
 
     # ------------------
     # -- No Event Bus --
@@ -205,7 +222,6 @@ class DeploymentInteraction:
     def step(self):
         self._wait_for_next_step()
         logger.info("Beginning step logic")
-        self._heartbeat.healthcheck()
 
         self._on_get_obs()
         self._on_update()
@@ -214,32 +230,15 @@ class DeploymentInteraction:
     # ---------------
     # -- Event Bus --
     # ---------------
-    def step_event(self, event: Event):
-        logger.debug(f"Interaction received Event: {event}")
-        self._heartbeat.healthcheck()
-        match event.type:
-            case EventType.step:
-                self.step()
+    def _handle_event(self, f: Callable[[], None]):
+        @functools.wraps(f)
+        def _inner(event: Event):
+            logger.debug(f"Interaction received Event: {event}")
+            self._heartbeat.healthcheck()
+            return f()
 
-            case EventType.step_get_obs:
-                self._on_get_obs()
+        return _inner
 
-            case EventType.step_agent_update:
-                self._on_update()
-
-            case EventType.step_emit_action:
-                self._on_emit_action()
-
-            case EventType.ping_setpoints:
-                if self._last_action_df is not None:
-                    logger.debug("Pinging setpoints")
-                    self._env.emit_action(self._last_action_df)
-
-            case EventType.agent_step:
-                self._app_state.agent_step += 1
-
-            case _:
-                logger.warning(f"Unexpected step_event: {event}")
 
     # ---------
     # internals
@@ -291,8 +290,9 @@ class DeploymentInteraction:
 
 
     def _should_take_action(self, curr_time: datetime) -> bool:
-        if self._app_state.event_bus.enabled():
+        if self._app_state.cfg.experiment.is_simulation:
             return True
+
         if curr_time >= self._next_action_timestamp:
             self._next_action_timestamp = curr_time + self.action_period
             return True
@@ -435,5 +435,3 @@ class DeploymentInteraction:
         logger.info(f"Loading agent weights from checkpoint {checkpoint}")
         self._agent.load(checkpoint)
         self._app_state.load(checkpoint)
-
-
