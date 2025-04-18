@@ -55,6 +55,8 @@ def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: Dep
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(total=max_steps, disable=not cfg.experiment.is_simulation)
 
+    # event bus owns orchestration of interactions
+    # driving loop below gives access to event stream
     app_state.event_bus.start()
     event_stream = app_state.event_bus.listen_forever()
 
