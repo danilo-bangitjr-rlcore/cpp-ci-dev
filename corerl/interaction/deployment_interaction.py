@@ -20,7 +20,7 @@ from corerl.messages.heartbeat import Heartbeat
 from corerl.state import AppState
 from corerl.utils.list import find
 from corerl.utils.maybe import Maybe
-from corerl.utils.time import clock_generator, percent_time_elapsed, split_into_chunks, wait_for_timestamp
+from corerl.utils.time import clock_generator, percent_time_elapsed, split_into_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -175,8 +175,7 @@ class DeploymentInteraction:
     def _on_emit_action(self):
         sa = self._get_latest_state_action()
 
-        now = datetime.now(UTC)
-        if sa is None or not self._should_take_action(now):
+        if sa is None:
             logger.warning(f'Tried to take action, however was unable: {sa}')
             return
 
@@ -220,9 +219,6 @@ class DeploymentInteraction:
     # -- No Event Bus --
     # ------------------
     def step(self):
-        self._wait_for_next_step()
-        logger.info("Beginning step logic")
-
         self._on_get_obs()
         self._on_update()
         self._on_emit_action()
@@ -246,10 +242,6 @@ class DeploymentInteraction:
     def _should_reset(self, observation: pd.DataFrame) -> bool:
         return False
 
-
-    def _wait_for_next_step(self):
-        next_step_timestamp = next(self._step_clock)
-        wait_for_timestamp(next_step_timestamp)
 
     def _clip_action_bounds(self, df: pd.DataFrame) -> pd.DataFrame:
         for ai_sp_tag in df.columns:
@@ -287,18 +279,6 @@ class DeploymentInteraction:
             start=self._app_state.start_time,
             end=self._app_state.start_time + guardrail_duration,
         )
-
-
-    def _should_take_action(self, curr_time: datetime) -> bool:
-        if self._app_state.cfg.experiment.is_simulation:
-            return True
-
-        if curr_time >= self._next_action_timestamp:
-            self._next_action_timestamp = curr_time + self.action_period
-            return True
-
-        return False
-
 
     def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
         if (
