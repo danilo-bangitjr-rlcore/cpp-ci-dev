@@ -7,7 +7,7 @@ infra:
 experiment:
   exp_name: epcor_solar_offline/
   gamma: 0.99
-  run_forever: True # Necessary for online deployment
+  is_simulation: False
   max_steps: 0 # Offline training
   offline_steps: 1000
   offline_eval_iters:

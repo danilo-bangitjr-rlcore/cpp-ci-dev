@@ -176,7 +176,7 @@ def test_dep_mountain_car_continuous(
             "env.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
             "env.coreio_origin=" + coreio_origin,
-            "experiment.run_forever=false",
+            "experiment.is_simulation=true",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

@@ -181,7 +181,7 @@ experiment:
   param_from_hash: false
   save_path: output
   seed: 0
-  run_forever: false
+  is_simulation: true
 feature_flags:
   delta_actions: false
   ensemble: 1
