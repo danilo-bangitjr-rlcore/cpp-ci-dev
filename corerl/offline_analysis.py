@@ -11,7 +11,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import load_entire_dataset
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -36,7 +36,7 @@ def main(cfg: MainConfig):
         cfg,
         evals=EvalsTable(cfg.evals),
         metrics=MetricsTable(cfg.metrics),
-        event_bus=EventBus(cfg.event_bus, cfg.env),
+        event_bus=DummyEventBus(),
     )
 
     pipeline = Pipeline(app_state, cfg.pipeline)

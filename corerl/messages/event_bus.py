@@ -35,9 +35,6 @@ class EventBus:
         self.cfg_event_bus = cfg_event_bus
         self.cfg_env = cfg_env
 
-        if not self.enabled():
-            return
-
         self.queue = Queue()
         self.zmq_context = zmq.Context()
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
@@ -72,20 +69,11 @@ class EventBus:
         self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
 
 
-    def enabled(self) -> bool:
-        return self.cfg_event_bus.enabled
-
     def start(self):
-        if not self.enabled():
-            return
-
         self.consumer_thread.start()
         self.scheduler_thread.start()
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
-        if not self.enabled():
-            return
-
         if isinstance(event, EventType):
             event = Event(type=event)
 
@@ -93,7 +81,7 @@ class EventBus:
         self.publisher_socket.send_string(f"{topic} {message_data}")
 
     def recv_event(self) -> None | Event:
-        if not self.enabled() or self.event_bus_stop_event.is_set():
+        if self.event_bus_stop_event.is_set():
             return None
 
         event = None
@@ -133,9 +121,6 @@ class EventBus:
 
 
     def cleanup(self):
-        if not self.enabled():
-            return
-
         self.event_bus_stop_event.set()
         self.scheduler_thread.join()
 
@@ -156,3 +141,20 @@ class EventBus:
         self.zmq_context.term()
 
         _logger.info("Cleaned up event bus")
+
+
+class DummyEventBus:
+    def listen_forever(self, max_steps: int | None = None):
+        steps = 0
+        while True:
+            yield
+            steps += 1
+
+            if max_steps is not None and steps >= max_steps:
+                break
+
+    def start(self): ...
+    def attach_callback(self, event_type: EventType, cb: Callback): ...
+    def attach_callbacks(self, cbs: dict[EventType, Callback]): ...
+    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app): ...
+    def cleanup(self): ...

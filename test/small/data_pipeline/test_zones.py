@@ -11,7 +11,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
 
@@ -28,12 +28,11 @@ def cfg():
 def app_state(cfg: MainConfig):
     cfg.metrics.enabled = False
     cfg.evals.enabled = False
-    cfg.event_bus.enabled = False
     return AppState(
         cfg=cfg,
         evals=EvalsTable(cfg.evals),
         metrics=MetricsTable(cfg.metrics),
-        event_bus=EventBus(cfg.event_bus, cfg.env),
+        event_bus=DummyEventBus(),
     )
 
 

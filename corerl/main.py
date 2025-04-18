@@ -22,7 +22,7 @@ from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.interaction.factory import init_interaction
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -81,7 +81,11 @@ def retryable_main(cfg: MainConfig):
     device.update_device(cfg.experiment.device)
 
     # build global objects
-    event_bus = EventBus(cfg.event_bus, cfg.env)
+    event_bus = (
+        EventBus(cfg.event_bus, cfg.env)
+        if cfg.event_bus.enabled else
+        DummyEventBus()
+    )
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),

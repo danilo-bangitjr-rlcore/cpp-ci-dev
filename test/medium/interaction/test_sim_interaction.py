@@ -8,7 +8,7 @@ from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.interaction.factory import init_interaction
 from corerl.interaction.sim_interaction import SimInteraction
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
 
@@ -18,7 +18,7 @@ def test_action_bounds():
     assert isinstance(cfg, MainConfig)
 
     # build global objects
-    event_bus = EventBus(cfg.event_bus, cfg.env)
+    event_bus = DummyEventBus()
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),
@@ -54,4 +54,3 @@ def test_action_bounds():
             low = (1-p)*0.25 + p*0
             high = (1-p)*0.26 + p*0.5
             assert low <= last_a <= high
-
