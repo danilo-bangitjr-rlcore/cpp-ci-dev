@@ -2,7 +2,6 @@ import logging
 import threading
 from collections import defaultdict
 from collections.abc import Callable
-from dataclasses import dataclass
 from queue import Empty, Queue
 from typing import Any
 
@@ -15,14 +14,6 @@ from corerl.messages.factory import EventBusConfig
 from corerl.messages.scheduler import scheduler_task
 
 _logger = logging.getLogger(__name__)
-
-@dataclass
-class EventBusState:
-    scheduler_thread: None | threading.Thread = None
-    subscriber_socket: None | zmq.Socket = None
-    publisher_socket: None | zmq.Socket = None
-
-
 
 Callback = Callable[[Event], Any]
 
