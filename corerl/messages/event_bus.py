@@ -11,7 +11,6 @@ from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.messages.consumer import consumer_task
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig
-from corerl.messages.scheduler import scheduler_task
 
 _logger = logging.getLogger(__name__)
 
@@ -42,16 +41,6 @@ class EventBus:
             daemon=True,
             name= "corerl_event_bus_consumer",
         )
-        self.scheduler_thread = threading.Thread(
-            target=scheduler_task,
-            args=(
-                self.publisher_socket,
-                self.cfg_env,
-                self.event_bus_stop_event
-            ),
-            daemon=True,
-            name= "corerl_event_bus_scheduler",
-        )
 
         self.subscriber_socket.bind(self.cfg_event_bus.app_connection)
         self.subscriber_socket.bind(self.cfg_event_bus.cli_connection)
@@ -62,7 +51,6 @@ class EventBus:
 
     def start(self):
         self.consumer_thread.start()
-        self.scheduler_thread.start()
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
         if isinstance(event, EventType):
@@ -109,7 +97,6 @@ class EventBus:
 
     def cleanup(self):
         self.event_bus_stop_event.set()
-        self.scheduler_thread.join()
 
         # queue.shutdown introduced in Python 3.13, for now consume all items and then join
         empty_raised = False

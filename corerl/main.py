@@ -16,11 +16,11 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
+from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import EventType
@@ -38,34 +38,21 @@ logging.basicConfig(
 logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 
-def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: DeploymentAsyncEnv):
-    column_desc = pipeline.column_descriptions
-    agent = GreedyAC(
-        cfg.agent,
-        app_state,
-        column_desc,
-    )
-
-    register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
-
-    interaction = init_interaction(
-        cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
-    )
-
+def main_loop(
+    cfg: MainConfig,
+    app_state: AppState,
+    interaction: DeploymentInteraction,
+):
     max_steps = cfg.experiment.max_steps
     pbar = tqdm(total=max_steps, disable=not cfg.experiment.is_simulation)
 
     # event bus owns orchestration of interactions
     # driving loop below gives access to event stream
     app_state.event_bus.start()
-    event_stream = app_state.event_bus.listen_forever()
+    event_stream = interaction.interact_forever()
 
     for event in event_stream:
-        if event and event.type == EventType.step_get_obs:
-            pbar.update(1)
-
-        if cfg.experiment.is_simulation:
-            interaction.step()
+        if cfg.experiment.is_simulation or (event and event.type == EventType.step_get_obs):
             pbar.update(1)
 
         if max_steps is not None and app_state.agent_step >= max_steps:
@@ -100,23 +87,41 @@ def retryable_main(cfg: MainConfig):
     pipeline = Pipeline(app_state, cfg.pipeline)
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
+    column_desc = pipeline.column_descriptions
+    agent = GreedyAC(
+        cfg.agent,
+        app_state,
+        column_desc,
+    )
+
+    register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
+
+    interaction = init_interaction(
+        cfg=cfg.interaction,
+        app_state=app_state,
+        agent=agent, env=env,
+        pipeline=pipeline,
+    )
+
     try:
-        main_loop(cfg, app_state, pipeline, env)
+        main_loop(cfg, app_state, interaction)
 
     except Exception as e:
         log.exception(e)
 
     finally:
+        app_state.stop_event.set()
         app_state.metrics.close()
         app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
+        interaction.close()
 
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
     # only do retry logic if we want to "run forever"
-    if cfg.experiment.is_simulation:
+    if cfg.experiment.is_simulation or cfg.experiment.max_steps is not None:
         return retryable_main(cfg)
 
     # retry logic
