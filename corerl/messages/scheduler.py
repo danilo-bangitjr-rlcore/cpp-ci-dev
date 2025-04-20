@@ -29,10 +29,11 @@ def scheduler_task(app_state: AppState):
     Responsible for emitting the step events based on configured observation windows.
     """
     cfg = app_state.cfg.env
+    action_clock = Clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
     clocks = [
+        action_clock,
         Clock(EventType.step_get_obs, cfg.obs_period),
         Clock(EventType.step_agent_update, cfg.update_period),
-        Clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1)),
         Clock(EventType.agent_step, cfg.obs_period),
     ]
 
@@ -40,6 +41,11 @@ def scheduler_task(app_state: AppState):
         clocks += [
             Clock(EventType.ping_setpoints, cfg.setpoint_ping_period, offset=cfg.setpoint_ping_period),
         ]
+
+    app_state.event_bus.attach_callback(
+        EventType.action_period_reset,
+        lambda _: action_clock.reset(datetime.now(UTC)),
+    )
 
     while not app_state.stop_event.is_set():
         try:
