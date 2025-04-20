@@ -1,0 +1,44 @@
+env:
+  name: sim_async_env
+  gym:
+    init_type : custom
+    gym_name : Saturation-v0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:05:00
+  action_period: 00:10:00
+
+experiment:
+  exp_name: "saturation"
+  max_steps: 10000
+
+
+pipeline:
+  tags:
+  # meta tags
+  - name: reward
+    type: meta
+
+  - name: terminated
+    type: meta
+
+  - name: truncated
+    type: meta
+
+  # observations
+  - name: tag-0
+    operating_range: [0, 1]
+    trigger:
+      event: action_period_reset
+      condition:
+        - name: delta
+          time_thresh: 00:10:00
+        - name: comparator
+          op: '!='
+          val: 0
+
+  # actions
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [0, 0.5]

@@ -13,6 +13,7 @@ from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.transforms import DeltaConfig, NormalizerConfig, NullConfig, TransformConfig
+from corerl.messages.events import EventType
 from corerl.utils.list import find_index, find_instance
 from corerl.utils.maybe import Maybe
 from corerl.utils.sympy import is_affine, to_sympy
@@ -57,7 +58,17 @@ class GuardrailScheduleConfig:
     starting_range: FloatBounds = MISSING
     duration: timedelta = MISSING
 
+# -----------------
+# -- Tag Trigger --
+# -----------------
+@config()
+class TagTriggerConfig:
+    condition: list[TransformConfig] = MISSING
+    event: EventType = MISSING
 
+# ----------------
+# -- Tag Config --
+# ----------------
 @config()
 class TagConfig:
     """
@@ -274,6 +285,14 @@ class TagConfig:
 
     Used when certain operating modes, such as maintenance mode, are
     a clear signal of data degradation.
+    """
+
+    trigger: TagTriggerConfig | None = None
+    """
+    Kind: optional external
+
+    Allows triggering an event based on a transformation pipeline that
+    evaluates truthy.
     """
 
     is_computed: bool = False
