@@ -14,7 +14,7 @@ experiment:
   save_path: outputs/main_bw
   seed: 1
   gamma: 0.9928 # half life 24h
-  run_forever: True
+  is_simulation: False
 
 interaction:
   name: dep_interaction

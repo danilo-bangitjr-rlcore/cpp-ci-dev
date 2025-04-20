@@ -16,7 +16,7 @@ from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
 raw_service_names = [
@@ -176,7 +176,7 @@ def test_dep_mountain_car_continuous(
             "env.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
             "env.coreio_origin=" + coreio_origin,
-            "experiment.run_forever=false",
+            "experiment.is_simulation=true",
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -197,7 +197,7 @@ def test_agent_checkpoint(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     )
     assert isinstance(cfg, MainConfig)
 
-    event_bus = EventBus(cfg.event_bus, cfg.env)
+    event_bus = DummyEventBus()
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),

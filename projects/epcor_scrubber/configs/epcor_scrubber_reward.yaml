@@ -14,7 +14,7 @@ experiment:
   save_path: outputs/scrubber_evals
   seed: 1
   gamma: 0.944 # ~50% of return occurs after 1 hrs (@ 5 min obs period)
-  run_forever: True
+  is_simulation: false
 
 feature_flags:
   delta_actions: True

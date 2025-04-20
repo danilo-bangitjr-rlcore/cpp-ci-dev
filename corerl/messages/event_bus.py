@@ -1,7 +1,10 @@
 import logging
 import threading
+from collections import defaultdict
+from collections.abc import Callable
 from dataclasses import dataclass
 from queue import Empty, Queue
+from typing import Any
 
 import zmq
 
@@ -20,6 +23,10 @@ class EventBusState:
     publisher_socket: None | zmq.Socket = None
 
 
+
+Callback = Callable[[Event], Any]
+
+
 class EventBus:
     """EventBus enables asynchronous communication through a ZMQ pub-sub messaging pattern.
     Spins up the scheduler thread, the consumer thread, and the FIFO subscriber queue.
@@ -27,9 +34,6 @@ class EventBus:
     def __init__(self, cfg_event_bus: EventBusConfig, cfg_env: AsyncEnvConfig):
         self.cfg_event_bus = cfg_event_bus
         self.cfg_env = cfg_env
-
-        if not self.enabled():
-            return
 
         self.queue = Queue()
         self.zmq_context = zmq.Context()
@@ -62,20 +66,14 @@ class EventBus:
         self.subscriber_socket.bind(self.cfg_event_bus.cli_connection)
         self.publisher_socket.connect(self.cfg_event_bus.app_connection)
 
-    def enabled(self) -> bool:
-        return self.cfg_event_bus.enabled
+        self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
+
 
     def start(self):
-        if not self.enabled():
-            return
-
         self.consumer_thread.start()
         self.scheduler_thread.start()
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
-        if not self.enabled():
-            return
-
         if isinstance(event, EventType):
             event = Event(type=event)
 
@@ -83,7 +81,7 @@ class EventBus:
         self.publisher_socket.send_string(f"{topic} {message_data}")
 
     def recv_event(self) -> None | Event:
-        if not self.enabled() or self.event_bus_stop_event.is_set():
+        if self.event_bus_stop_event.is_set():
             return None
 
         event = None
@@ -97,10 +95,28 @@ class EventBus:
                 self.queue.task_done()
 
 
-    def cleanup(self):
-        if not self.enabled():
-            return
+    def listen_forever(self):
+        while True:
+            event = self.recv_event()
+            if event is None:
+                continue
 
+            for cb in self._callbacks[event.type]:
+                cb(event)
+
+            yield event
+
+
+    def attach_callback(self, event_type: EventType, cb: Callback):
+        self._callbacks[event_type].append(cb)
+
+
+    def attach_callbacks(self, cbs: dict[EventType, Callback]):
+        for event_type, cb in cbs.items():
+            self.attach_callback(event_type, cb)
+
+
+    def cleanup(self):
         self.event_bus_stop_event.set()
         self.scheduler_thread.join()
 
@@ -121,3 +137,15 @@ class EventBus:
         self.zmq_context.term()
 
         _logger.info("Cleaned up event bus")
+
+
+class DummyEventBus:
+    def listen_forever(self):
+        while True:
+            yield
+
+    def start(self): ...
+    def attach_callback(self, event_type: EventType, cb: Callback): ...
+    def attach_callbacks(self, cbs: dict[EventType, Callback]): ...
+    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app): ...
+    def cleanup(self): ...

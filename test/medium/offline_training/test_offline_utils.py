@@ -19,7 +19,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.sql_logging.sql_logging import table_exists
 from corerl.state import AppState
@@ -177,7 +177,7 @@ def test_offline_training(
         cfg=offline_cfg,
         metrics=MetricsTable(offline_cfg.metrics),
         evals=EvalsTable(offline_cfg.evals),
-        event_bus=EventBus(offline_cfg.event_bus, offline_cfg.env),
+        event_bus=DummyEventBus(),
     )
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)

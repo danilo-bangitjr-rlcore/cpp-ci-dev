@@ -15,7 +15,7 @@ class ExperimentConfig:
     num_threads: int = 4
     exp_name: str = 'experiment'
     gamma: float = 0.9
-    max_steps: int = 200
+    max_steps: int | None = None
     offline_steps: int = 0
     offline_eval_iters: list[int] = list_()
     offline_start_time: datetime | None = None
@@ -26,4 +26,4 @@ class ExperimentConfig:
     param_from_hash: bool = False
     save_path: str = 'output'
     seed: int = 0
-    run_forever: bool = False
+    is_simulation: bool = True

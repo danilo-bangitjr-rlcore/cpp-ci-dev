@@ -22,7 +22,7 @@ from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.interaction.factory import init_interaction
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -52,32 +52,23 @@ def main_loop(cfg: MainConfig, app_state: AppState, pipeline: Pipeline, env: Dep
         cfg=cfg.interaction, app_state=app_state, agent=agent, env=env, pipeline=pipeline,
     )
 
-    steps = 0
     max_steps = cfg.experiment.max_steps
-    run_forever = cfg.experiment.run_forever
-    disable_pbar = False
-    if run_forever:
-        max_steps = 0
-        disable_pbar = True
-    pbar = tqdm(total=max_steps, disable=disable_pbar)
+    pbar = tqdm(total=max_steps, disable=not cfg.experiment.is_simulation)
 
+    # event bus owns orchestration of interactions
+    # driving loop below gives access to event stream
     app_state.event_bus.start()
+    event_stream = app_state.event_bus.listen_forever()
 
-    while True:
-        if app_state.event_bus.enabled():
-            event = app_state.event_bus.recv_event()
-            if not event:
-                continue
-            interaction.step_event(event)
-            if event.type == EventType.step_get_obs:
-                pbar.update(1)
-                steps += 1
-        else:
+    for event in event_stream:
+        if event and event.type == EventType.step_get_obs:
+            pbar.update(1)
+
+        if cfg.experiment.is_simulation:
             interaction.step()
             pbar.update(1)
-            steps += 1
 
-        if not run_forever and steps >= max_steps:
+        if max_steps is not None and app_state.agent_step >= max_steps:
             break
 
 
@@ -95,7 +86,11 @@ def retryable_main(cfg: MainConfig):
     device.update_device(cfg.experiment.device)
 
     # build global objects
-    event_bus = EventBus(cfg.event_bus, cfg.env)
+    event_bus = (
+        EventBus(cfg.event_bus, cfg.env)
+        if not cfg.experiment.is_simulation else
+        DummyEventBus()
+    )
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),
@@ -121,7 +116,7 @@ def retryable_main(cfg: MainConfig):
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
     # only do retry logic if we want to "run forever"
-    if not cfg.experiment.run_forever:
+    if cfg.experiment.is_simulation:
         return retryable_main(cfg)
 
     # retry logic

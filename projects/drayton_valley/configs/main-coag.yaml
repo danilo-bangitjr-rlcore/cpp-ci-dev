@@ -255,7 +255,7 @@ experiment:
   param_from_hash: false
   save_path: output
   seed: 0
-  run_forever: true
+  is_simulation: false
 feature_flags:
   delta_actions: false
   ensemble: 1

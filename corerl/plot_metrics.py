@@ -6,7 +6,7 @@ from corerl.configs.loader import load_config
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.eval.plotting.metrics import MetricsPlottingConfig, plot_metrics
-from corerl.messages.event_bus import EventBus
+from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
 
@@ -49,7 +49,7 @@ def _create_plot_cfg(app_state: AppState) -> MetricsPlottingConfig:
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
-    event_bus = EventBus(cfg.event_bus, cfg.env)
+    event_bus = DummyEventBus()
     app_state = AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),

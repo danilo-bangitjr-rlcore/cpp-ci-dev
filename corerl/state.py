@@ -11,7 +11,7 @@ from corerl.eval.metrics import MetricsTable
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
-    from corerl.messages.event_bus import EventBus
+    from corerl.messages.event_bus import DummyEventBus, EventBus
 
 
 @dataclass
@@ -19,7 +19,7 @@ class AppState:
     cfg: MainConfig
     evals: EvalsTable
     metrics: MetricsTable
-    event_bus: EventBus
+    event_bus: EventBus | DummyEventBus
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
 
