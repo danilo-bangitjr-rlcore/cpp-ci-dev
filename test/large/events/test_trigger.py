@@ -12,6 +12,7 @@ from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import EventType
 from corerl.state import AppState
+from test.infrastructure.networking import get_free_port
 
 
 @pytest.fixture(scope="function")
@@ -30,6 +31,8 @@ def main_cfg():
 def test_no_trigger(
     main_cfg: MainConfig,
 ):
+    port = get_free_port('localhost')
+    main_cfg.event_bus.cli_connection = f'tcp://localhost:{port}'
     event_bus = EventBus(
         main_cfg.event_bus,
         main_cfg.env,
@@ -66,6 +69,8 @@ def test_no_trigger(
 def test_trigger(
     main_cfg: MainConfig,
 ):
+    port = get_free_port('localhost')
+    main_cfg.event_bus.cli_connection = f'tcp://localhost:{port}'
     event_bus = EventBus(
         main_cfg.event_bus,
         main_cfg.env,
