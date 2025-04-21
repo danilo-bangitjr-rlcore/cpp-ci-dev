@@ -46,10 +46,17 @@ class TagTrigger(Constructor):
             if filter_mask.any():
                 trigger_cfg = self._tag_cfgs[tag].trigger
                 assert trigger_cfg is not None
-                self._app_state.event_bus.emit_event(
-                    trigger_cfg.event,
-                    topic=EventTopic.corerl,
+
+                events = (
+                    trigger_cfg.event if isinstance(trigger_cfg.event, list)
+                    else [trigger_cfg.event]
                 )
+
+                for event in events:
+                    self._app_state.event_bus.emit_event(
+                        event,
+                        topic=EventTopic.corerl,
+                    )
 
         return pf
 

@@ -64,7 +64,7 @@ class GuardrailScheduleConfig:
 @config()
 class TagTriggerConfig:
     condition: list[TransformConfig] = MISSING
-    event: EventType = MISSING
+    event: EventType | list[EventType] = MISSING
 
 # ----------------
 # -- Tag Config --
