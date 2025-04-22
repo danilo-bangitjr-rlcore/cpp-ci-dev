@@ -348,7 +348,7 @@ class GreedyAC:
             loss = self._batch_policy_loss(params, policy, states, update_actions)
             jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_loss', float(x)), loss)
             return loss
-
+        loss_value = loss_fn(policy_state.params)
         grads = jax.grad(loss_fn)(policy_state.params)
 
         grad_leaves = jax.tree_util.tree_leaves(grads)
