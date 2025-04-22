@@ -94,7 +94,6 @@ disable = [
     "missing-class-docstring",
     "missing-function-docstring",
     "missing-module-docstring",
-    "missing-timeout",
     "multiple-statements",
     "no-else-continue",
     "no-else-return",
