@@ -15,7 +15,6 @@ from corerl.agent.utils import (
     grab_percentile,
     grab_top_n,
     mix_uniform_actions,
-    mix_uniform_actions_evenly_dispersed,
 )
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
@@ -64,7 +63,6 @@ class GACPolicyManagerConfig:
     prop_percentile_learned: float = 0.
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
-    even_dispersed_uniform: bool = False
 
     # metrics
     ingress_loss: bool = True
@@ -176,10 +174,8 @@ class GACPolicyManager:
 
         with torch.no_grad():
             policy_actions, _ = self.sampler.forward(states)  # actions in [0, 1]
-        if self.cfg.even_dispersed_uniform:
-            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions, self._uniform_weight)
-        else:
-            policy_actions = mix_uniform_actions(policy_actions, self._uniform_weight)
+
+        policy_actions = mix_uniform_actions(policy_actions, self._uniform_weight)
         return policy_actions
 
     def _sample_uniform(self, states: torch.Tensor):
