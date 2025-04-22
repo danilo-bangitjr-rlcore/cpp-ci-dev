@@ -68,7 +68,7 @@ def init_env(name: str, overrides: dict | None = None):
         )
         name = 'Saturation-v0'
         overrides = {
-            'decay' : 1.0,
+            'decay' : 0.75,
             'effect' : None,
             'effect_period' : 500,
             'trace_val' : 0.9
