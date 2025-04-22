@@ -8,111 +8,89 @@ import numpy as np
 class Step:
     state: np.ndarray
     action: np.ndarray
-    reward: float
-    done: bool
+    reward: float | None
     gamma: float
 
 
 @dataclass
 class Transition:
-    steps: list[Step]
-    n_step_reward: float
-    n_step_gamma: float
+    state: np.ndarray
+    action: np.ndarray
+    reward: float
+    gamma: float
+    next_state: np.ndarray
 
     @property
-    def prior(self) -> Step:
-        return self.steps[0]
+    def state_dim(self):
+        return self.state.shape[-1]
 
     @property
-    def post(self) -> Step:
-        return self.steps[-1]
-
-    @property
-    def prior_state(self) -> np.ndarray:
-        return self.steps[0].state
-
-    @property
-    def post_state(self)  -> np.ndarray:
-        return self.steps[-1].state
-
-    @property
-    def n_steps(self) -> int:
-        return len(self.steps) - 1
-
-    @property
-    def state_dim(self) -> int:
-        return self.prior.state.shape[0]
-
-    @property
-    def action_dim(self) -> int:
-        return self.prior.action.shape[0]
-
-
-type StepInfo = dict[int, deque[Step]]
-
-
-def get_n_step_reward(step_q: deque[Step]) -> tuple[float, float]:
-    steps = step_q.copy()  # deque is mutable
-    steps.popleft()  # drop first step, it does not contribute to return
-
-    partial_return = 0
-    discount = 1
-
-    while len(steps) > 0:
-        step = steps.popleft()
-        partial_return += discount * step.reward
-        discount *= step.gamma
-        if step.done:
-            break
-
-    return partial_return, discount
-
-
-def _reset_step_info(min_n_step: int, max_n_step: int) -> StepInfo:
-    return {
-        n: deque(maxlen=n+1) for n in range(min_n_step, max_n_step + 1)
-    }
+    def action_dim(self):
+        return self.action.shape[-1]
 
 
 class TransitionCreator:
-    def __init__(self, min_n_step: int = 1, max_n_step: int = 1, gamma: float = 1.0):
-        self.min_n_step = min_n_step
-        self.max_n_step = max_n_step
-        self.gamma = gamma
-        assert self.min_n_step > 0
-        assert self.max_n_step >= self.min_n_step
+    def __init__(self, n_step: int, gamma: float = 1.0):
+        self._gamma = gamma
+        self._n_step = n_step
 
-        self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
+        self._buffer = deque[Step](maxlen=n_step + 1)
 
-    def __call__(self,
-                 state: np.ndarray,
-                 action: np.ndarray,
-                 reward: float,
-                 done: bool) -> list[Transition]:
-        step = Step(
-            state=state,
-            action=action,
-            reward=reward,
-            done=done,
-            gamma=self.gamma
-        )
+    def __call__(
+        self,
+        state: np.ndarray,
+        action: np.ndarray,
+        reward: float | None,
+        done: bool,
+    ) -> list[Transition]:
+        gamma = float(done) * self._gamma
+        self._buffer.append(Step(
+            state,
+            action,
+            reward,
+            gamma,
+        ))
 
-        transitions = []
-        for n in range(self.min_n_step, self.max_n_step + 1):
-            step_q = self.step_info[n]
-            step_q.append(step)
+        # if the reward is None, we know this is the first
+        # step of the episode
+        if reward is None:
+            return []
 
-            if len(step_q) >= self.min_n_step + 1:  # +1 because we need start and end states
-                if len(step_q) == step_q.maxlen or done:
-                    n_step_reward, n_step_gamma = get_n_step_reward(step_q)
-                    new_transition = Transition(
-                        steps=list(step_q),
-                        n_step_reward=n_step_reward,
-                        n_step_gamma=n_step_gamma
-                    )
-                    transitions.append(new_transition)
+        if not self._buffer_full():
+            return []
 
-        if done:
-            self.step_info = _reset_step_info(self.min_n_step, self.max_n_step)
+        trans = _build_n_step_transitions(self._buffer, self._n_step)
+        return [trans]
 
-        return transitions
+    def flush(self):
+        self._buffer.clear()
+
+    def _buffer_full(self):
+        return len(self._buffer) == (self._n_step + 1)
+
+
+
+def _build_n_step_transitions(buffer: deque[Step], n: int):
+    ret = 0
+    gamma = 1.0
+
+    first = buffer[0]
+    for i, step in enumerate(buffer):
+        # deque doesn't support slicing like buffer[1:]
+        if i == 0: continue
+        if i == n+1: break
+
+        r = step.reward
+        assert r is not None
+        ret += gamma * r
+        gamma *= step.gamma
+
+    last = buffer[n]
+
+    return Transition(
+        state=first.state,
+        action=first.action,
+        reward=ret,
+        gamma=gamma,
+        next_state=last.state,
+    )

@@ -12,7 +12,6 @@ class VectorizedTransition(NamedTuple):
     action: jax.Array
     reward: jax.Array
     next_state: jax.Array
-    done: jax.Array
     gamma: jax.Array
 
 class NPVectorizedTransition(NamedTuple):
@@ -20,16 +19,14 @@ class NPVectorizedTransition(NamedTuple):
     action: np.ndarray
     reward: np.ndarray
     next_state: np.ndarray
-    done: np.ndarray
     gamma: np.ndarray
 
     def add(self, ptr: int, transition: Transition):
-        self.state[ptr, :] = transition.prior.state
-        self.action[ptr, :] = transition.post.action
-        self.reward[ptr, :] = transition.n_step_reward
-        self.next_state[ptr, :] = transition.post.state
-        self.done[ptr, :] = transition.post.done
-        self.gamma[ptr, :] = transition.n_step_gamma
+        self.state[ptr, :] = transition.state
+        self.action[ptr, :] = transition.action
+        self.reward[ptr, :] = transition.reward
+        self.next_state[ptr, :] = transition.next_state
+        self.gamma[ptr, :] = transition.gamma
 
     def get_index(self, indices: np.ndarray):
         return NPVectorizedTransition(
@@ -37,7 +34,6 @@ class NPVectorizedTransition(NamedTuple):
             self.action[indices, :],
             self.reward[indices, :],
             self.next_state[indices, :] ,
-            self.done[indices, :],
             self.gamma[indices, :],
         )
 
@@ -47,14 +43,12 @@ def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTr
     stacked_action = jnp.stack([t.action for t in transitions])
     stacked_reward = jnp.stack([t.reward for t in transitions])
     stacked_next_state = jnp.stack([t.next_state for t in transitions])
-    stacked_done = jnp.stack([t.done for t in transitions])
     stacked_gamma = jnp.stack([t.gamma for t in transitions])
     return VectorizedTransition(
         state=stacked_state,
         action=stacked_action,
         reward=stacked_reward,
         next_state=stacked_next_state,
-        done=stacked_done,
         gamma=stacked_gamma
     )
 
@@ -79,7 +73,6 @@ class EnsembleReplayBuffer:
             action=np.zeros((self.max_size,transition.action_dim)),
             reward=np.zeros((self.max_size, 1)),
             next_state=np.zeros((self.max_size, transition.state_dim)),
-            done=np.zeros((self.max_size, 1)),
             gamma=np.zeros((self.max_size, 1)),
         )
 
