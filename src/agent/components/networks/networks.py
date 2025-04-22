@@ -5,6 +5,7 @@ from typing import assert_never
 import haiku as hk
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from agent.components.networks.activations import get_activation
 
@@ -34,8 +35,10 @@ class Linear(hk.Module):
     def __init__(self, cfg: LinearConfig):
         super().__init__(name=cfg.name)
         self.cfg = cfg
+        ortho = hk.initializers.Orthogonal(np.sqrt(2))
         self._linear = hk.Linear(
             self.cfg.size,
+            w_init=ortho,
         )
 
     def __call__(self, x: jax.Array):
@@ -47,8 +50,9 @@ class FusionNet(hk.Module):
     def __init__(self, cfg: LateFusionConfig):
         super().__init__(name=cfg.name)
         self.cfg = cfg
+        ortho = hk.initializers.Orthogonal(np.sqrt(2))
         self.torso_branches = [
-            hk.Linear(size)
+            hk.Linear(size, w_init=ortho)
             for size in cfg.sizes
         ]
 
