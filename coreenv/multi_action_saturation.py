@@ -61,7 +61,7 @@ class MultiActionSaturation(gym.Env):
         self.noise_std = cfg.noise_std
 
         self._action_min = np.zeros(self.num_controllers)
-        self._action_max = np.ones(self.num_controllers)
+        self._action_max = np.ones(self.num_controllers)*0.5
         self.action_space = gym.spaces.Box(self._action_min, self._action_max)
 
         self.time_step = 0

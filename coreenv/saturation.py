@@ -30,7 +30,7 @@ class Saturation(gym.Env):
 
         self._action_dim = 1
         self._action_min = np.array([0])
-        self._action_max = np.array([1])
+        self._action_max = np.array([0.5])
         self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
         self.time_step = 0
