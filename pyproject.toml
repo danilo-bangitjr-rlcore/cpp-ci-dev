@@ -77,7 +77,6 @@ disable = [
     "broad-exception-caught",
     "broad-exception-raised",
     "consider-using-from-import",
-    "consider-using-in",
     "consider-using-with",
     "cyclic-import",
     "duplicate-code",

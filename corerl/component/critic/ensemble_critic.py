@@ -111,7 +111,7 @@ class EnsembleCritic(BaseCritic):
         log_critic_weight_norm(self._app_state, self.model)
         log_critic_stable_rank(self._app_state, self.model)
 
-        if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
+        if self.optimizer_name not in {'armijo_adam', 'lso'}:
             self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(closure=closure)
