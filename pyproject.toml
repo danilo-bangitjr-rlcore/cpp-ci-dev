@@ -80,7 +80,6 @@ disable = [
     "consider-using-with",
     "cyclic-import",
     "duplicate-code",
-    "expression-not-assigned",
     "fixme",
     "global-statement",
     "import-error",

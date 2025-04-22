@@ -75,7 +75,9 @@ class SimAsyncEnv(DeploymentAsyncEnv):
     def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
         if log_action:
             logger.info("--- Emitting action ---")
-            [logger.info(line) for line in action.to_string().splitlines()]
+            for line in action.to_string().splitlines():
+                logger.info(line)
+
         self._action = action.iloc[0].to_numpy()
 
     def get_latest_obs(self) -> pd.DataFrame:
