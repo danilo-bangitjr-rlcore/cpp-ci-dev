@@ -217,10 +217,10 @@ class EnsembleCritic(BaseCritic):
         target_values = self.get_target_values(next_states, next_actions)
 
         loss = torch.tensor(0.0, device=device.device)
-        for i in range(len(rewards)):
+        for i, reward in enumerate(rewards):
             q = values.ensemble_values[i]
             qp = target_values.ensemble_values[i]
-            target = rewards[i] + gammas[i] * qp
+            target = reward + gammas[i] * qp
             loss_i = torch.nn.functional.mse_loss(target, q)
             loss += loss_i
 

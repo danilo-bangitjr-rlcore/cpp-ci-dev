@@ -76,7 +76,6 @@ disable = [
     "bare-except",
     "broad-exception-caught",
     "broad-exception-raised",
-    "consider-using-enumerate",
     "consider-using-from-import",
     "consider-using-in",
     "consider-using-with",

@@ -53,18 +53,18 @@ class Delta:
             assert ts.time is not None
             assert ts.last is not None
 
-            for ind in range(len(row)):
-                if np.isnan(row[ind]) or (time - ts.time[ind] > self._cfg.time_thresh):
-                    carry.transform_data.iloc[i, ind] = np.nan
-                    if not np.isnan(row[ind]):
-                        ts.last[ind] = row[ind]
-                        ts.time[ind] = time
+            for j, x in enumerate(row):
+                if np.isnan(x) or (time - ts.time[j] > self._cfg.time_thresh):
+                    carry.transform_data.iloc[i, j] = np.nan
+                    if not np.isnan(x):
+                        ts.last[j] = x
+                        ts.time[j] = time
                     continue
 
-                delta = row[ind] - ts.last[ind]
-                ts.last[ind] = row[ind]
-                ts.time[ind] = time
-                carry.transform_data.iloc[i, ind] = delta
+                delta = x - ts.last[j]
+                ts.last[j] = x
+                ts.time[j] = time
+                carry.transform_data.iloc[i, j] = delta
 
         carry.transform_data.rename(columns=lambda col: f'{col}_Δ', inplace=True)
         return carry, ts

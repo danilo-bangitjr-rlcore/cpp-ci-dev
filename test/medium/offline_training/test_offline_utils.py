@@ -160,8 +160,8 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
                             Transition([step_3, step_4], 0.0, gamma)]
 
     assert len(created_transitions) == len(expected_transitions)
-    for i in range(len(created_transitions)):
-        assert created_transitions[i] == expected_transitions[i]
+    for i, created_transition in enumerate(created_transitions):
+        assert created_transition == expected_transitions[i]
 
 def test_offline_training(
     offline_cfg: MainConfig,
