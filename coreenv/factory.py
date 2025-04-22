@@ -70,7 +70,7 @@ def init_env(name: str, overrides: dict | None = None):
         overrides = {
             'decay' : 1.0,
             'effect' : None,
-            'effect_period' : 100,
+            'effect_period' : 500,
             'trace_val' : 0.9
         }
 
