@@ -299,6 +299,13 @@ class GreedyAC:
     ):
         chex.assert_shape(states, (self._cfg.batch_size, self.state_dim))
 
+        sample_state = states[0]
+        actor_out: ActorOutputs = self.actor.apply(params=agent_state.actor.params, x=sample_state)
+
+        for i in range(actor_out.mu.shape[0]):
+            jax.debug.callback(lambda x, i=i: self._collector.collect(f'actor_mu_{i}', float(x)), actor_out.mu[i])
+            jax.debug.callback(lambda x, i=i: self._collector.collect(f'actor_sigma_{i}', float(x)), actor_out.sigma[i])
+
         top_ranked_actions_over_batch = jax_u.vmap_only(self._get_policy_update_actions, ['state'])
         top_ranked_actions = top_ranked_actions_over_batch(
             agent_state.critic.params,
@@ -334,11 +341,21 @@ class GreedyAC:
         states: jax.Array,
         update_actions: jax.Array
     ):
-        def loss_fn(params: chex.ArrayTree):
-            return self._batch_policy_loss(params, policy, states, update_actions)
+        is_actor = policy is self.actor
+        prefix = "actor" if is_actor else "proposal"
 
+        def loss_fn(params: chex.ArrayTree):
+            loss = self._batch_policy_loss(params, policy, states, update_actions)
+            jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_loss', float(x)), loss)
+            return loss
         loss_value = loss_fn(policy_state.params)
         grads = jax.grad(loss_fn)(policy_state.params)
+
+        grad_leaves = jax.tree_util.tree_leaves(grads)
+        if grad_leaves:
+            grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
+            jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_grad_norm', float(x)), grad_norm)
+
         updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state)
         new_params = optax.apply_updates(policy_state.params, updates)
 
@@ -373,6 +390,8 @@ class GreedyAC:
         chex.assert_shape(state, (self.state_dim, ))
 
         proposal_actions = self._get_proposal_samples(proposal_params, state, rng)
+        # clip proposal action to prevent log prob from being nan
+        proposal_actions = jnp.clip(proposal_actions, 1e-5, 1 - 1e-5)
         chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
 
         q_over_ens = jax_u.vmap_only(self._critic.forward, ['params'])
