@@ -1,4 +1,5 @@
 import logging
+import warnings
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, Concatenate, Protocol, TypeVar
@@ -47,7 +48,6 @@ env_group = Group[[], Any]()
 def init_env(name: str, overrides: dict | None = None):
     # register environments
     import coreenv.calibration  # noqa: F401
-    import coreenv.delayed_saturation  # noqa: F401
     import coreenv.distraction_world  # noqa: F401
     import coreenv.four_rooms  # noqa: F401
     import coreenv.multi_action_saturation  # noqa: F401
@@ -59,5 +59,20 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.windy_room  # noqa: F401
 
     logger.info(f"instantiaing {name} with overrides {overrides}")
+
+    if name == 'DelayedSaturation-v0':
+        warnings.warn(
+            "Delayed-Saturation-v0 is deprecated. Use Saturation-v0 instead.",
+            DeprecationWarning,
+            stacklevel=2
+        )
+        name = 'Saturation-v0'
+        overrides = {
+            'decay' : 1.0,
+            'effect' : None,
+            'effect_period' : 100,
+            'trace_val' : 0.9
+        }
+
 
     return env_group.dispatch(name, overrides)
