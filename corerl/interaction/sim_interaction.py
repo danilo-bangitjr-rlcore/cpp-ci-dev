@@ -48,6 +48,12 @@ class SimInteraction(DeploymentInteraction):
         """
         return self._app_state.start_time + min(self._app_state.agent_step-1, 0) * self.obs_period
 
+
+    def interact_forever(self):
+        while True:
+            self.step()
+            yield
+
     # ---------
     # internals
     # ---------

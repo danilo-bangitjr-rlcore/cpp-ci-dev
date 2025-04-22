@@ -1,6 +1,7 @@
 import functools
 import logging
 import shutil
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Any, Generator
@@ -18,6 +19,7 @@ from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.configs import InteractionConfig
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
+from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
 from corerl.utils.list import find
 from corerl.utils.maybe import Maybe
@@ -88,6 +90,7 @@ class DeploymentInteraction:
         self.warmup_pipeline()
 
         ### Lifecycle methods ###
+        self._scheduler: threading.Thread | None = None
         self._app_state.event_bus.attach_callbacks({
             EventType.step_emit_action:     self._handle_event(self._on_emit_action),
             EventType.step_get_obs:         self._handle_event(self._on_get_obs),
@@ -120,6 +123,11 @@ class DeploymentInteraction:
         ### Comms management to be replaced by interaction with coreio ###
         return Heartbeat(self._cfg.heartbeat, self._env.get_cfg().coreio_origin)
 
+
+    def interact_forever(self):
+        self._scheduler = start_scheduler_thread(self._app_state)
+        event_stream = self._app_state.event_bus.listen_forever()
+        yield from event_stream
 
     # -----------------------
     # -- Lifecycle Methods --
@@ -241,6 +249,12 @@ class DeploymentInteraction:
             return f()
 
         return _inner
+
+    def close(self):
+        if self._scheduler is None:
+            return
+
+        self._scheduler.join(timeout=1)
 
 
     # ---------

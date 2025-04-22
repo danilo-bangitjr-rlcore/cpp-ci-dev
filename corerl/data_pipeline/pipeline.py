@@ -23,6 +23,7 @@ from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
+from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
@@ -164,6 +165,7 @@ class Pipeline:
             for tag in self.tags
             if tag.operating_range is not None
         }
+        self.tag_trigger = TagTrigger(app_state, self.tags)
         self.conditional_filter = ConditionalFilter(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
@@ -192,6 +194,7 @@ class Pipeline:
             StageCode.VIRTUAL:    self.virtual_tags,
             StageCode.INIT:       lambda pf: invoke_stage_per_tag(pf, self.missing_data_checkers),
             StageCode.FILTER:     self.conditional_filter,
+            StageCode.TRIGGER:    self.tag_trigger,
             StageCode.PREPROCESS: self.preprocessor,
             StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
             StageCode.ODDITY:     lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
@@ -208,6 +211,7 @@ class Pipeline:
             StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.FILTER,
+            StageCode.TRIGGER,
             StageCode.PREPROCESS,
             StageCode.BOUNDS,
             StageCode.ODDITY,

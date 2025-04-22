@@ -12,6 +12,7 @@ experiment:
   exp_name: OPC_MountainCarContinuous
   seed: 1
   gamma: 0.99
+  is_simulation: False
 
 env:
   name: dep_async_env

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import pickle
+import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,6 +23,7 @@ class AppState:
     event_bus: EventBus | DummyEventBus
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
+    stop_event: threading.Event = field(default_factory=threading.Event)
 
     def __getstate__(self):
         return {

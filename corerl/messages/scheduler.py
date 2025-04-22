@@ -5,22 +5,35 @@ from datetime import UTC, datetime, timedelta
 
 import zmq
 
-from corerl.environment.async_env.factory import AsyncEnvConfig
+from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import Event, EventTopic, EventType
+from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
 
 
-def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: threading.Event):
+def start_scheduler_thread(app_state: AppState):
+    scheduler_thread = threading.Thread(
+        target=scheduler_task,
+        args=(app_state, ),
+        daemon=True,
+        name= "corerl_interaction_scheduler",
+    )
+    scheduler_thread.start()
+    return scheduler_thread
+
+
+def scheduler_task(app_state: AppState):
     """
     Thread worker that emits ZMQ messages using our messages Event class.
     Responsible for emitting the step events based on configured observation windows.
     """
-
+    cfg = app_state.cfg.env
+    action_clock = Clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
     clocks = [
+        action_clock,
         Clock(EventType.step_get_obs, cfg.obs_period),
         Clock(EventType.step_agent_update, cfg.update_period),
-        Clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1)),
         Clock(EventType.agent_step, cfg.obs_period),
     ]
 
@@ -29,11 +42,16 @@ def scheduler_task(pub_socket: zmq.Socket, cfg: AsyncEnvConfig, stop_event: thre
             Clock(EventType.ping_setpoints, cfg.setpoint_ping_period, offset=cfg.setpoint_ping_period),
         ]
 
-    while not stop_event.is_set():
+    app_state.event_bus.attach_callback(
+        EventType.action_period_reset,
+        lambda _: action_clock.reset(datetime.now(UTC)),
+    )
+
+    while not app_state.stop_event.is_set():
         try:
             now = datetime.now(UTC)
             for clock in clocks:
-                clock.maybe_emit(pub_socket, now)
+                clock.maybe_emit(app_state.event_bus, now)
 
             shortest_duration = min(clock.get_next_ts() for clock in clocks) - datetime.now(UTC)
             shortest_duration = max(shortest_duration.total_seconds(), 0)
@@ -53,14 +71,10 @@ class Clock:
 
         self._next_ts = datetime.now(UTC) + offset
 
-    def emit(self, socket: zmq.Socket, now: datetime):
+    def emit(self, event_bus: EventBus | DummyEventBus, now: datetime):
         event = Event(type=self._event_type)
-        logger.debug(f"Scheduling Event: {event}")
-        message_data = event.model_dump_json()
-        payload = f"{EventTopic.corerl_scheduler} {message_data}"
-
         try:
-            socket.send_string(payload)
+            event_bus.emit_event(event, topic=EventTopic.corerl_scheduler)
         except zmq.ZMQError as e:
             if isinstance(e, zmq.error.Again):
                 # temporarily unavailable, retry
@@ -73,9 +87,9 @@ class Clock:
     def should_emit(self, now: datetime):
         return now > self._next_ts
 
-    def maybe_emit(self, socket: zmq.Socket, now: datetime):
+    def maybe_emit(self, event_bus: EventBus | DummyEventBus, now: datetime):
         if self.should_emit(now):
-            self.emit(socket, now)
+            self.emit(event_bus, now)
 
     def get_next_ts(self):
         return self._next_ts

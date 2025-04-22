@@ -36,6 +36,7 @@ class EventType(StrEnum):
     # --------------
     red_zone_violation = auto()
     yellow_zone_violation = auto()
+    action_period_reset = auto()
 
     # ----------
     # -- Coms --

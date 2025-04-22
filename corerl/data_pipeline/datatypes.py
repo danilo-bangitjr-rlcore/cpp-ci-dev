@@ -216,6 +216,7 @@ class StageCode(Enum):
     INIT = auto()
     VIRTUAL = auto()
     FILTER = auto()
+    TRIGGER = auto()
     BOUNDS = auto()
     PREPROCESS = auto()
     IMPUTER = auto()
