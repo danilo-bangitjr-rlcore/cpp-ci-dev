@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,9 @@ class SaturationConfig(EnvConfig):
     decay: float | None = None
     effect: float | None = 1.0
     trace_val: float = 0.0
+    setpoint_schedule: dict = field(default_factory=lambda:{0: 0.5})
+    delta_schedule: dict = field(default_factory=lambda:{0: 0.})
+    anchor_schedule: dict = field(default_factory=lambda:{0: 0.})
 
 class Saturation(gym.Env):
     def __init__(self, cfg: SaturationConfig):
@@ -24,8 +27,8 @@ class Saturation(gym.Env):
             cfg = SaturationConfig()
 
         self._random = np.random.default_rng(cfg.seed)
-        self._obs_min = np.array([0.])
-        self._obs_max = np.array([1.])
+        self._obs_min = np.zeros(3) # for [saturation, delta, anchor]
+        self._obs_max = np.ones(3)
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
 
         self._action_dim = 1
@@ -34,21 +37,39 @@ class Saturation(gym.Env):
         self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
         self.time_step = 0
-        self.saturation = np.array([0.])
-        self.saturation_sp = np.array([0.5])
+        self.saturation = 0.
+
+        self.setpoint_schedule = cfg.setpoint_schedule
+        if 0 not in self.setpoint_schedule:
+            raise AssertionError("setpoint schedule must start at 0")
+        self.saturation_sp = self.setpoint_schedule[0]
+
+        self.delta_schedule = cfg.delta_schedule
+        if 0 not in self.delta_schedule:
+            raise AssertionError("delta schedule must start at 0")
+        self.delta = self.delta_schedule[0]
+
+        self.anchor_schedule = cfg.anchor_schedule
+        if 0 not in self.anchor_schedule:
+            raise AssertionError("delta schedule must start at 0")
+        self.anchor = self.anchor_schedule[0]
 
         self.decay = cfg.decay
         self.effect = cfg.effect
         self.decay_period = cfg.decay_period
         self.effect_period = cfg.effect_period
+        self.action_trace = np.array([0])
+        self.trace_val = cfg.trace_val
 
+        # for plotting
         self.saturations = []
         self.decays = []
         self.effects = []
         self.actions = []
         self.raw_actions = []
-        self.action_trace = np.array([0])
-        self.trace_val = cfg.trace_val
+        self.deltas = []
+        self.anchors = []
+        self.saturation_sps = []
 
     def seed(self, seed: int):
         self._random = np.random.default_rng(seed)
@@ -66,23 +87,38 @@ class Saturation(gym.Env):
             return self.effect
 
     def step(self, action: np.ndarray):
-        self.time_step += 1
+        # adjust scheduled attributes
+        if self.time_step in self.setpoint_schedule:
+            self.saturation_sp = self.setpoint_schedule[self.time_step]
+
+        if self.time_step in self.delta_schedule:
+            self.delta = self.delta_schedule[self.time_step]
+
+        if self.time_step in self.anchor_schedule:
+            self.anchor = self.anchor_schedule[self.time_step]
 
         self.action_trace = self.trace_val * self.action_trace + (1 - self.trace_val) * action
         decay =  self.get_decay()
         effect = self.get_effect()
 
         self.saturation = self.saturation*decay + self.action_trace*effect
-        self.saturation = np.clip(self.saturation, 0, 1)
-        reward = -np.abs(self.saturation - self.saturation_sp).item() # type: ignore
+        self.saturation = np.clip(self.saturation, 0, 1).item()
+        reward = -np.abs(self.saturation - self.saturation_sp).item()
 
         self.decays.append(decay)
         self.effects.append(effect)
         self.saturations.append(self.saturation)
         self.raw_actions.append(action)
         self.actions.append(self.action_trace)
+        self.deltas.append(self.delta)
+        self.anchors.append(self.anchor)
+        self.saturation_sps.append(self.saturation_sp)
 
-        return self.saturation, reward, False, False, {}
+        self.time_step += 1
+
+        state = np.array([self.saturation, self.delta, self.anchor])
+
+        return state, reward, False, False, {}
 
     def plot(self, save_path: Path):
         import matplotlib.pyplot as plt
@@ -90,6 +126,10 @@ class Saturation(gym.Env):
         plt.plot(self.actions, label="actions")
         plt.plot(self.saturations, label="saturation")
         plt.plot(self.effects, label="effects")
+        plt.plot(self.decays, label="decay")
+        plt.plot(self.saturation_sps, label="saturation sp")
+        plt.plot(self.deltas, label="delta")
+        plt.plot(self.anchors, label="anchor")
         plt.legend()
         plt.savefig(save_path / 'env.png', bbox_inches='tight')
         # plt.show()
@@ -100,7 +140,12 @@ class Saturation(gym.Env):
         seed: int | None = None,
         options: dict[str, Any] | None = None,
     ):
-        return self.saturation, {}
+        self.time_step = 0
+        self.saturation_sp = self.setpoint_schedule[0]
+        self.delta = self.delta_schedule[0]
+        self.anchor = self.anchor_schedule[0]
+        state = np.array([self.saturation, self.delta, self.anchor])
+        return state, {}
 
     def close(self):
         pass
