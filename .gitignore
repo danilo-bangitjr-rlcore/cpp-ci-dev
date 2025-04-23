@@ -12,3 +12,4 @@ results/
 **/*.nbi
 local_tests/
 commands.txt
+results.zip

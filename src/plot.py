@@ -29,8 +29,11 @@ def plot_across(
             xs = id_group_data['frame']
             ys = id_group_data['measurement']
 
-            axs[ax_idx].plot(xs, ys, color='blue', alpha=0.2)
-            axs[ax_idx].set_title(key_name)
+            if group_size == 1:
+                axs.plot(xs, ys, color='blue', alpha=0.2)
+            else:
+                axs[ax_idx].plot(xs, ys, color='blue', alpha=0.2)
+                axs[ax_idx].set_title(key_name)
 
         ax_idx += 1
 
