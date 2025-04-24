@@ -4,6 +4,7 @@ from typing import Any
 import jax
 import numpy as np
 from gymnasium import Env
+from ml_instrumentation.Collector import Collector
 
 from interaction.state_constructor import StateConstructor
 
@@ -14,9 +15,11 @@ class EnvWrapper:
         env: Env,
         action_space_info: dict[str, Any],
         observation_space_info: dict[str, Any],
+        collector: Collector,
         trace_values: Sequence[float] = (0, 0.75, 0.9, 0.95),
     ):
         self.env = env
+        self._collector = collector
         self.state_constructor = StateConstructor(
             action_space_info=action_space_info,
             observation_space_info=observation_space_info,
@@ -33,6 +36,10 @@ class EnvWrapper:
 
     def step(self, action: jax.Array) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         raw_action = self.state_constructor.denormalize_action(np.array(action))
+
+        for i, ra in enumerate(raw_action):
+            self._collector.collect(f'raw_action_{i}', float(ra))
+
         observation, reward, terminated, truncated, info = self.env.step(raw_action)
         state = self.state_constructor(observation, raw_action)
         return state, float(reward), terminated, truncated, info

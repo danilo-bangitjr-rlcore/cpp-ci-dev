@@ -79,9 +79,7 @@ def main():
             'actor_grad_norm': Subsample(100),
             'proposal_loss': Subsample(100),
             'proposal_grad_norm': Subsample(100),
-
         },
-        # by default, ignore keys that are not explicitly listed above
         default=Identity(),
         experiment_id=exp_id,
         low_watermark=1,
@@ -103,6 +101,7 @@ def main():
     act_bounds = gym_u.space_bounds(env.action_space)
     wrapper_env = EnvWrapper(
         env=env,
+        collector=collector,
         action_space_info={
             'low': act_bounds[0],
             'high': act_bounds[1],
