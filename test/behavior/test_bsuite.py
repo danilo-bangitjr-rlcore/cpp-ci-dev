@@ -11,6 +11,7 @@ from test.behavior.saturation.cases import (
     GoalSaturationTest,
     MultiActionSaturationTest,
     SaturationTest,
+    SetpointChangeSaturationTest,
 )
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
@@ -42,7 +43,8 @@ TEST_CASES = [
     SaturationTest(),
     StandStillMountainCar(),
     WindyRoomTest(),
-    ExpandingBoundsSaturationTest()
+    ExpandingBoundsSaturationTest(),
+    SetpointChangeSaturationTest(),
 ]
 
 ZERO_ONE_FEATURES = [
