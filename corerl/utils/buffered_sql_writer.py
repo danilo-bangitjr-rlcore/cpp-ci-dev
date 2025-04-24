@@ -231,7 +231,12 @@ class BufferedWriter(Generic[T], ABC):
             connection.commit()
 
 
-    def _ensure_columns_exist(self, connection: Connection, column_names: list[str], column_types: Dict[str, str] = None):
+    def _ensure_columns_exist(
+        self,
+        connection: Connection,
+        column_names: list[str],
+        column_types: Dict[str, str] | None = None,
+    ):
         for name in column_names:
             connection.execute(
                 text(f"""
