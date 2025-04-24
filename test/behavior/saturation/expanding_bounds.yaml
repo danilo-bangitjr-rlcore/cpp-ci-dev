@@ -22,7 +22,7 @@ experiment:
   exp_name: "saturation"
   seed: 1
   gamma: 0.99
-  max_steps: 
+  max_steps: 1000
 
 pipeline:
   tags:
