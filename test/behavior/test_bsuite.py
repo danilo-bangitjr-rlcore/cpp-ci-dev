@@ -7,6 +7,7 @@ from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
+    DeltaChangeSaturationTest,
     ExpandingBoundsSaturationTest,
     GoalSaturationTest,
     MultiActionSaturationTest,
@@ -47,6 +48,7 @@ TEST_CASES = [
     ExpandingBoundsSaturationTest(),
     SetpointChangeSaturationTest(),
     SlowExpandingBoundsSaturationTest(),
+    DeltaChangeSaturationTest(),
 ]
 
 ZERO_ONE_FEATURES = [

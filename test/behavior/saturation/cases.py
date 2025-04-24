@@ -47,3 +47,9 @@ class SetpointChangeSaturationTest(BSuiteTestCase):
     config = 'test/behavior/saturation/setpoint_change.yaml'
     required_features = {'action_bounds'}
     lower_bounds = { 'reward': -0.085}
+
+class DeltaChangeSaturationTest(BSuiteTestCase):
+    name = 'delta change saturation'
+    config = 'test/behavior/saturation/changing_delta.yaml'
+    required_features = {'action_bounds'}
+    lower_bounds = { 'reward': -0.085}
