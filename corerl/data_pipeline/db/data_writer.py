@@ -48,6 +48,8 @@ class DataWriter(BufferedWriter[Point]):
         self.cfg = cfg
         self.host = "localhost"
         self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)
+        self.point = None
+        self.val = None
 
     def write(
         self,
