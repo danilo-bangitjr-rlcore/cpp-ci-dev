@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 
 class DataReader:
     def __init__(self, db_cfg: TagDBConfig) -> None:
-        self.db_cfg = db_cfg
-        self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
         self.wide_format = db_cfg.wide_format
+        self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
 
         self.db_metadata = MetaData()
         self.db_metadata.reflect(bind=self.engine)
@@ -93,12 +92,13 @@ class DataReader:
             end_time = end_time.replace(tzinfo=end_tz).astimezone(UTC)
 
         if self.wide_format:
+            if tag_aggregations is None:
+                raise ValueError("tag_aggregations is required for wide format")
             return self._batch_aggregated_read_wide(
                 names,
                 start_time,
                 end_time,
                 bucket_width,
-                aggregation,
                 tag_aggregations
             )
         else:
@@ -117,11 +117,12 @@ class DataReader:
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        aggregation: Agg = Agg.avg,
-        tag_aggregations: dict[str, Agg] | None = None,
+        tag_aggregations: dict[str, Agg],
     ) -> pd.DataFrame:
-        tag_aggregations = tag_aggregations or {}
         bucket_width_str = f"{bucket_width.total_seconds()} seconds"
+
+        table_schema = self.sensor_table.schema
+        table_name = self.sensor_table.name
 
         column_types = {}
         with TryConnectContextManager(self.engine) as connection:
@@ -130,8 +131,8 @@ class DataReader:
                     type_query = f"""
                         SELECT data_type
                         FROM information_schema.columns
-                        WHERE table_schema = '{self.db_cfg.table_schema}'
-                        AND table_name = '{self.db_cfg.table_name}'
+                        WHERE table_schema = '{table_schema}'
+                        AND table_name = '{table_name}'
                         AND column_name = '{name}'
                     """
                     result = connection.execute(text(type_query)).fetchone()
@@ -149,16 +150,16 @@ class DataReader:
         ]
 
         for name in names:
-            agg_type = tag_aggregations.get(name, aggregation)
+            agg_type = tag_aggregations[name]
             column_type = column_types.get(name, "unknown")
 
             if column_type == "boolean":
-                if agg_type == Agg.avg:
-                    select_parts.append(f'bool_or("{name}") as "{name}"')
-                elif agg_type == Agg.last:
+                if agg_type == Agg.last:
                     select_parts.append(f'last("{name}", time) as "{name}"')
                 elif agg_type == Agg.bool_or:
                     select_parts.append(f'bool_or("{name}") as "{name}"')
+                else:
+                    raise ValueError(f"Unsupported aggregation {agg_type} for boolean column {name}")
             else:
                 if agg_type == Agg.avg:
                     select_parts.append(f'avg("{name}") as "{name}"')
@@ -166,10 +167,12 @@ class DataReader:
                     select_parts.append(f'last("{name}", time) as "{name}"')
                 elif agg_type == Agg.bool_or:
                     select_parts.append(f'bool_or("{name}"::boolean) as "{name}"')
+                else:
+                    raise ValueError(f"Unsupported aggregation {agg_type} for column {name}")
 
         query = f"""
             SELECT {', '.join(select_parts)}
-            FROM {self.db_cfg.table_schema}.{self.db_cfg.table_name}
+            FROM {table_schema}.{table_name}
             WHERE time > '{start_time.isoformat()}'::timestamptz
             AND time <= '{end_time.isoformat()}'::timestamptz
             GROUP BY time_bucket
@@ -197,7 +200,7 @@ class DataReader:
                     sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
                 for col in sensor_data.columns:
-                    col_agg = tag_aggregations.get(col, aggregation)
+                    col_agg = tag_aggregations.get(col)
                     col_type = column_types.get(col, "unknown")
 
                     if col_type == "boolean" or col_agg == Agg.bool_or:

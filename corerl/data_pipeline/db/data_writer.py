@@ -48,8 +48,6 @@ class DataWriter(BufferedWriter[Point]):
         self.cfg = cfg
         self.host = "localhost"
         self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)
-        self.point = None
-        self.val = None
 
     def write(
         self,
@@ -60,28 +58,20 @@ class DataWriter(BufferedWriter[Point]):
         id: str | None = None
     ) -> None:
         assert timestamp.tzinfo == UTC
+        ts_iso = timestamp.isoformat()
 
         if not self.cfg.wide_format:
             jsonb = json.dumps({"val": val})
             point = Point(
-                ts=timestamp.isoformat(),
+                ts=ts_iso,
                 name=name,
                 jsonb=jsonb,
                 host=host or self.host,
                 id=id or name,
             )
+            self._write(point)
         else:
-            self.point = Point(
-                ts=timestamp.isoformat(),
-                name=name,
-                jsonb="",
-                host="",
-                id="",
-            )
-            self.val = val
-            return self._write_wide(timestamp, name, val)
-
-        self._write(point)
+            self._write_wide(ts_iso, name, val)
 
     def _insert_sql(self):
         if not self.cfg.wide_format:
@@ -91,12 +81,7 @@ class DataWriter(BufferedWriter[Point]):
                 VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
             """)
         else:
-            column_name = self.point.name if self.point else "value"
-            return text(f"""
-                INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-                (time, {column_name})
-                VALUES (TIMESTAMP :ts, :val);
-            """)
+            return text("")  # Not used for wide format
 
     def _create_table_sql(self):
         if not self.cfg.wide_format:
@@ -115,7 +100,6 @@ class DataWriter(BufferedWriter[Point]):
                 chunk_time_interval='7d',
             )
         else:
-            # for wide format, we need a primary key on time for ON CONFLICT to work
             return text(f"""
                 CREATE SCHEMA IF NOT EXISTS {self.cfg.table_schema};
                 CREATE TABLE IF NOT EXISTS {self.cfg.table_schema}.{self.cfg.table_name} (
@@ -130,43 +114,5 @@ class DataWriter(BufferedWriter[Point]):
                 );
             """)
 
-    def _write_wide(self, timestamp: datetime, name: str, val: float) -> None:
-        if self.engine is None:
-            self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
-
-        column_type = "FLOAT"
-        if isinstance(val, bool):
-            column_type = "BOOLEAN"
-
-        with self.engine.connect() as conn:
-            conn.execute(
-                text(f"""
-                    DO $$
-                    BEGIN
-                        IF NOT EXISTS (
-                            SELECT FROM information_schema.columns
-                            WHERE table_schema = '{self.cfg.table_schema}'
-                            AND table_name = '{self.cfg.table_name}'
-                            AND column_name = '{name}'
-                        ) THEN
-                            ALTER TABLE {self.cfg.table_schema}.{self.cfg.table_name}
-                            ADD COLUMN "{name}" {column_type};
-                        END IF;
-                    END $$;
-                """)
-            )
-
-            conn.execute(
-                text(f"""
-                    INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name} (time, "{name}")
-                    VALUES (TIMESTAMP :ts, :val)
-                    ON CONFLICT (time) DO UPDATE SET "{name}" = :val;
-                """),
-                {"ts": timestamp.isoformat(), "val": val}
-            )
-            conn.commit()
-
     def flush(self) -> None:
-        if not self.cfg.wide_format:
-            self.blocking_sync()
-        # for wide format, no buffering is used, so flush is a no-op
+        self.blocking_sync()

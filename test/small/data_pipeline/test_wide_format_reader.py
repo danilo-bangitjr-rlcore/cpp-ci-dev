@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 from sqlalchemy import Engine, text
 
-from corerl.data_pipeline.db.data_reader import DataReader
+from corerl.data_pipeline.db.data_reader import Agg, DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 
@@ -12,6 +12,10 @@ from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 def wide_format_db(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     port = tsdb_engine.url.port
     assert port is not None
+
+    with tsdb_engine.connect() as conn:
+        conn.execute(text("DROP TABLE IF EXISTS public.wide_sensors CASCADE"))
+        conn.commit()
 
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
@@ -52,13 +56,20 @@ class TestWideFormatWriter:
         min_time = min(timestamps)
         max_time = max(timestamps)
 
+        # Define tag_aggregations for each sensor
+        tag_aggregations = {
+            "sensor_a": Agg.avg,
+            "sensor_b": Agg.avg,
+            "sensor_c": Agg.bool_or
+        }
+
         result_df = reader.batch_aggregated_read(
             names=["sensor_a", "sensor_b", "sensor_c"],
             start_time=min_time - timedelta(seconds=1),
             end_time=max_time + timedelta(seconds=1),
-            bucket_width=timedelta(seconds=10)
+            bucket_width=timedelta(seconds=10),
+            tag_aggregations=tag_aggregations
         )
-
 
         assert not result_df.empty, "Result dataframe should not be empty"
         assert "sensor_a" in result_df.columns
@@ -75,7 +86,8 @@ class TestWideFormatWriter:
         single_df = reader.single_aggregated_read(
             names=["sensor_a"],
             start_time=base_time - timedelta(seconds=1),
-            end_time=base_time
+            end_time=base_time,
+            tag_aggregations={"sensor_a": Agg.avg}
         )
 
         assert single_df["sensor_a"].iloc[0] == 99.9
