@@ -91,9 +91,10 @@ class DataWriter(BufferedWriter[Point]):
                 VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
             """)
         else:
+            column_name = self.point.name if self.point else "value"
             return text(f"""
                 INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-                (time, {self.point.name})
+                (time, {column_name})
                 VALUES (TIMESTAMP :ts, :val);
             """)
 
