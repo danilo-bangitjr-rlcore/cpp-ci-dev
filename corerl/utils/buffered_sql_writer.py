@@ -212,7 +212,7 @@ class BufferedWriter(Generic[T], ABC):
 
                 self._ensure_columns_exist(connection, list(values.keys()), column_types)
 
-                columns = ", ".join([f'"{col}"' for col in processed_values.keys()])
+                columns = ", ".join([f'"{col}"' for col in processed_values])
                 placeholders = ", ".join([f":{i}" for i in range(len(processed_values))])
 
                 params = {"ts": timestamp}
@@ -224,7 +224,7 @@ class BufferedWriter(Generic[T], ABC):
                     (time, {columns})
                     VALUES (TIMESTAMP :ts, {placeholders})
                     ON CONFLICT (time) DO UPDATE SET
-                    {', '.join([f'"{col}" = EXCLUDED."{col}"' for col in processed_values.keys()])}
+                    {', '.join([f'"{col}" = EXCLUDED."{col}"' for col in processed_values])}
                 """)
 
                 connection.execute(query, params)
@@ -237,6 +237,7 @@ class BufferedWriter(Generic[T], ABC):
         column_names: list[str],
         column_types: Dict[str, str] | None = None,
     ):
+        column_types = column_types or {}
         for name in column_names:
             connection.execute(
                 text(f"""
