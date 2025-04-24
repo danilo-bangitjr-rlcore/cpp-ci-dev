@@ -36,6 +36,12 @@ class ExpandingBoundsSaturationTest(BSuiteTestCase):
     required_features = {'action_bounds'}
     lower_bounds = { 'reward': -0.085}
 
+class SlowExpandingBoundsSaturationTest(BSuiteTestCase):
+    name = 'slow expanding bounds saturation'
+    config = 'test/behavior/saturation/slow_expanding_bounds.yaml'
+    required_features = {'action_bounds'}
+    lower_bounds = { 'reward': -0.085}
+
 class SetpointChangeSaturationTest(BSuiteTestCase):
     name = 'setpoint change saturation'
     config = 'test/behavior/saturation/setpoint_change.yaml'
