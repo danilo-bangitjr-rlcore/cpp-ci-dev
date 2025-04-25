@@ -150,6 +150,7 @@ class BufferedWriter(Generic[T], ABC):
 
         data = self._buffer
         self._buffer = {}
+        assert isinstance(data, dict)
         self._write_future = self._exec.submit(self._deferred_write_wide, data)
 
 
