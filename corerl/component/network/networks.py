@@ -99,6 +99,11 @@ class LateFusionConfig:
             activation=[{'name': 'relu'}],
         )
 
+    @computed('use_residual')
+    @classmethod
+    def _use_residual(cls, cfg: 'MainConfig'):
+        return cfg.feature_flags.use_residual
+
 
 class ResidualBlock(nn.Module):
     def __init__(self, input_size: int, output_size: int, activation: str = "relu"):
