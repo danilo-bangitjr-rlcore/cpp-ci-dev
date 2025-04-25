@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any, Dict, Generic, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, Any, Dict, Generic, NamedTuple, TypeVar, Union
 
 from sqlalchemy import Engine, TextClause, text
 from sqlalchemy.engine import Connection
@@ -39,6 +39,8 @@ class BufferedWriterConfig(SQLEngineConfig):
 
 
 T = TypeVar('T', bound=NamedTuple)
+WideBufferType = Dict[str, Dict[str, Any]]
+
 class BufferedWriter(Generic[T], ABC):
     def __init__(
         self,
@@ -50,8 +52,8 @@ class BufferedWriter(Generic[T], ABC):
 
         self._low_wm = low_watermark
         self._hi_wm = high_watermark
-        self._buffer: list[T] = []
-        self._wide_buffer: Dict[str, Dict[str, Any]] = {}
+
+        self._buffer: Union[list[T], WideBufferType] = [] if not cfg.wide_format else {}
 
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
@@ -79,8 +81,9 @@ class BufferedWriter(Generic[T], ABC):
         if not self.cfg.enabled:
             return
 
-        self._buffer.append(data)
-
+        if not self.cfg.wide_format:
+            assert isinstance(self._buffer, list)
+            self._buffer.append(data)
         if len(self._buffer) > self._hi_wm:
             logger.warning('Buffer reached high watermark')
             # forcibly pause main thread until writer is finished
@@ -98,16 +101,20 @@ class BufferedWriter(Generic[T], ABC):
         if not self.cfg.enabled:
             return
 
-        if timestamp not in self._wide_buffer:
-            self._wide_buffer[timestamp] = {}
+        if not self.cfg.wide_format:
+            return
 
-        self._wide_buffer[timestamp][name] = value
-        if len(self._wide_buffer) > self._hi_wm:
+        assert isinstance(self._buffer, dict)
+        if timestamp not in self._buffer:
+            self._buffer[timestamp] = {}
+
+        self._buffer[timestamp][name] = value
+        if len(self._buffer) > self._hi_wm:
             logger.warning('Wide buffer reached high watermark')
             if self._write_future is not None:
                 self._write_future.result()
             self.background_sync_wide()
-        elif len(self._wide_buffer) > self._low_wm:
+        elif len(self._buffer) > self._low_wm:
             self.background_sync_wide()
 
 
@@ -118,10 +125,20 @@ class BufferedWriter(Generic[T], ABC):
         if self.is_writing():
             return
 
-        # swap out buffer pointer to start accumulating in new buffer
-        data = self._buffer
-        self._buffer = []
-        self._write_future = self._exec.submit(self._deferred_write, data)
+        if self.cfg.wide_format:
+            if self._buffer:
+                # swap out buffer pointer to start accumulating in new buffer
+                assert isinstance(self._buffer, dict)
+                data = self._buffer
+                self._buffer = {}
+                self._write_future = self._exec.submit(self._deferred_write_wide, data)
+        else:
+            if self._buffer:
+                # swap out buffer pointer to start accumulating in new buffer
+                assert isinstance(self._buffer, list)
+                data = self._buffer
+                self._buffer = []
+                self._write_future = self._exec.submit(self._deferred_write, data)
 
 
     def background_sync_wide(self):
@@ -131,8 +148,8 @@ class BufferedWriter(Generic[T], ABC):
         if self.is_writing():
             return
 
-        data = self._wide_buffer
-        self._wide_buffer = {}
+        data = self._buffer
+        self._buffer = {}
         self._write_future = self._exec.submit(self._deferred_write_wide, data)
 
 
@@ -143,15 +160,10 @@ class BufferedWriter(Generic[T], ABC):
         # wrap up in-progress sync
         if self._write_future is not None:
             self._write_future.result()
+        self.background_sync()
 
-        if self.cfg.wide_format and self._wide_buffer:
-            self.background_sync_wide()
-            if self._write_future is not None:
-                self._write_future.result()
-        elif not self.cfg.wide_format and self._buffer:
-            self.background_sync()
-            if self._write_future is not None:
-                self._write_future.result()
+        if self._write_future is not None:
+            self._write_future.result()
 
 
     def is_writing(self):
@@ -239,6 +251,7 @@ class BufferedWriter(Generic[T], ABC):
     ):
         column_types = column_types or {}
         for name in column_names:
+            col_type = column_types.get(name, "float")
             connection.execute(
                 text(f"""
                     DO $$
@@ -250,7 +263,7 @@ class BufferedWriter(Generic[T], ABC):
                             AND column_name = '{name}'
                         ) THEN
                             ALTER TABLE {self.cfg.table_schema}.{self.cfg.table_name}
-                            ADD COLUMN "{name}" {column_types[name]};
+                            ADD COLUMN "{name}" {col_type};
                         END IF;
                     END $$;
                 """)

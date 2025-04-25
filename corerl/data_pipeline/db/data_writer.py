@@ -1,7 +1,7 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from sqlalchemy import text
 
@@ -53,7 +53,7 @@ class DataWriter(BufferedWriter[Point]):
         self,
         timestamp: datetime,
         name: str,
-        val: float,
+        val: float | int | bool | str | None,
         host: str | None = None,
         id: str | None = None
     ) -> None:
@@ -116,3 +116,39 @@ class DataWriter(BufferedWriter[Point]):
 
     def flush(self) -> None:
         self.blocking_sync()
+
+    def _write_wide(self, timestamp: str, name: str, value: Any) -> None:
+        if not self.cfg.enabled:
+            return
+
+        if timestamp not in self._buffer:
+            assert isinstance(self._buffer, dict)
+            self._buffer[timestamp] = {}
+
+        column_type = None
+        if value is None:
+            # default to float for all none values
+            column_type = "float"
+        elif isinstance(value, bool):
+            column_type = "boolean"
+        elif isinstance(value, int):
+            column_type = "integer"
+        elif isinstance(value, float):
+            column_type = "float"
+        elif isinstance(value, str):
+            column_type = "text"
+
+        # Store both the value and its type
+        assert isinstance(self._buffer, dict)
+        self._buffer[timestamp][name] = {
+            "value": value,
+            "type": column_type
+        }
+
+        if len(self._buffer) > self._hi_wm:
+            logger.warning('Wide buffer reached high watermark')
+            if self._write_future is not None:
+                self._write_future.result()
+            self.background_sync_wide()
+        elif len(self._buffer) > self._low_wm:
+            self.background_sync_wide()

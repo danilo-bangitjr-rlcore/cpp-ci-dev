@@ -136,10 +136,13 @@ class DataReader:
                         AND column_name = '{name}'
                     """
                     result = connection.execute(text(type_query)).fetchone()
-                    if result:
-                        column_types[name] = result[0].lower()
+                    if not result:
+                        raise ValueError(f"Column '{name}' does not exist in the database")
+                    column_types[name] = result[0].lower()
                 except Exception as e:
-                    logger.warning(f"Could not determine type for column {name}: {e}")
+                    if isinstance(e, ValueError):
+                        raise
+                    raise ValueError(f"Error checking column '{name}': {e}") from e
 
         # add 1 microsecond to the origin to match the narrow format behavior
         # align with bucket end time by adding bucket_width - 1 microsecond
@@ -160,6 +163,11 @@ class DataReader:
                     select_parts.append(f'bool_or("{name}") as "{name}"')
                 else:
                     raise ValueError(f"Unsupported aggregation {agg_type} for boolean column {name}")
+            elif column_type == "text":
+                if agg_type == Agg.last:
+                    select_parts.append(f'last("{name}", time) as "{name}"')
+                else:
+                    raise ValueError(f"Unsupported aggregation {agg_type} for text column {name}")
             else:
                 if agg_type == Agg.avg:
                     select_parts.append(f'avg("{name}") as "{name}"')
@@ -205,6 +213,8 @@ class DataReader:
 
                     if col_type == "boolean" or col_agg == Agg.bool_or:
                         sensor_data[col] = sensor_data[col].astype(bool)
+                    elif col_type == "text":
+                        pass
                     else:
                         sensor_data[col] = pd.to_numeric(sensor_data[col])
 
@@ -363,6 +373,18 @@ class DataReader:
 
     def get_tag_stats(self, tag_name: str):
         if self.wide_format:
+            with TryConnectContextManager(self.engine) as connection:
+                check_query = f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = '{self.sensor_table.schema}'
+                    AND table_name = '{self.sensor_table.name}'
+                    AND column_name = '{tag_name}'
+                """
+                result = connection.execute(text(check_query)).fetchone()
+                if not result:
+                    raise ValueError(f"Column '{tag_name}' does not exist in the database")
+
             q = """
                 SELECT
                   MIN("{tag}") as min,
@@ -373,6 +395,18 @@ class DataReader:
             """.format(tag=tag_name)
             df = self.query(q)
         else:
+            # for narrow format, check if the tag exists
+            with TryConnectContextManager(self.engine) as connection:
+                check_query = f"""
+                    SELECT name
+                    FROM {self.sensor_table.schema}.{self.sensor_table.name}
+                    WHERE name = '{tag_name}'
+                    LIMIT 1
+                """
+                result = connection.execute(text(check_query)).fetchone()
+                if not result:
+                    raise ValueError(f"Tag '{tag_name}' does not exist in the database")
+
             q = """
                 SELECT
                   MIN(:val) as min,
