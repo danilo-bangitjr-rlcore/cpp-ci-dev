@@ -218,8 +218,6 @@ class BufferedWriter(Generic[T], ABC):
                             column_types[col] = "integer"
                         elif isinstance(val, float):
                             column_types[col] = "float"
-                        elif isinstance(val, str):
-                            column_types[col] = "text"
                         else:
                             column_types[col] = "float"
 

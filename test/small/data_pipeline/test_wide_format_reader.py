@@ -92,29 +92,20 @@ class TestWideFormatWriter:
 
         assert single_df["sensor_a"].iloc[0] == 99.9
 
-    def test_edge_cases(self, wide_format_db: tuple[DataWriter, DataReader]):
+    def test_primitive_types(self, wide_format_db: tuple[DataWriter, DataReader]):
         writer, reader = wide_format_db
         base_time = datetime.now(UTC).replace(microsecond=0)
 
-        # writing with different primitive types
         writer.write(base_time, "float_sensor", 3.14)
         writer.write(base_time, "int_sensor", 42)
         writer.write(base_time, "bool_sensor", True)
-        writer.write(base_time, "text_sensor", "word")
-
-        writer.write(base_time, "new_column", 123.45)
-        writer.write(base_time, "null_sensor", None)
 
         writer.flush()
 
-        # reading with different aggregations
         tag_aggregations = {
             "bool_sensor": Agg.bool_or,
             "int_sensor": Agg.avg,
             "float_sensor": Agg.avg,
-            "text_sensor": Agg.last,
-            "new_column": Agg.avg,
-            "null_sensor": Agg.avg,
         }
 
         result_df = reader.batch_aggregated_read(
@@ -129,19 +120,34 @@ class TestWideFormatWriter:
         assert result_df["bool_sensor"].iloc[0]
         assert result_df["int_sensor"].iloc[0] == 42
         assert result_df["float_sensor"].iloc[0] == 3.14
+
+    def test_null_values(self, wide_format_db: tuple[DataWriter, DataReader]):
+        writer, reader = wide_format_db
+        base_time = datetime.now(UTC).replace(microsecond=0)
+
+        writer.write(base_time, "null_sensor", None)
+        writer.flush()
+
+        result_df = reader.batch_aggregated_read(
+            names=["null_sensor"],
+            start_time=base_time - timedelta(seconds=5),
+            end_time=base_time + timedelta(seconds=5),
+            bucket_width=timedelta(seconds=10),
+            tag_aggregations={"null_sensor": Agg.avg}
+        )
+
+        assert not result_df.empty
         assert pd.isna(result_df["null_sensor"].iloc[0])
 
-        # reading a column that doesn't exist in DB
-        with pytest.raises(ValueError):
-            reader.batch_aggregated_read(
-                names=["non_existent_column"],
-                start_time=base_time - timedelta(seconds=1),
-                end_time=base_time + timedelta(seconds=1),
-                bucket_width=timedelta(seconds=10),
-                tag_aggregations={"non_existent_column": Agg.avg}
-            )
+        all_null_stats = reader.get_tag_stats("null_sensor")
+        assert pd.isna(all_null_stats.min)
+        assert pd.isna(all_null_stats.max)
+        assert pd.isna(all_null_stats.avg)
 
-        # column with some nulls
+    def test_partial_nulls(self, wide_format_db: tuple[DataWriter, DataReader]):
+        writer, reader = wide_format_db
+        base_time = datetime.now(UTC).replace(microsecond=0)
+
         writer.write(base_time - timedelta(seconds=10), "partial_null", 1.0)
         writer.write(base_time, "partial_null", None)
         writer.flush()
@@ -158,18 +164,48 @@ class TestWideFormatWriter:
         assert not pd.isna(partial_null_df["partial_null"].iloc[0])
         assert pd.isna(partial_null_df["partial_null"].iloc[1])
 
-        # get_tag_stats function
+    def test_new_column(self, wide_format_db: tuple[DataWriter, DataReader]):
+        writer, reader = wide_format_db
+        base_time = datetime.now(UTC).replace(microsecond=0)
+
+        writer.write(base_time, "new_column", 123.45)
+        writer.flush()
+
+        result_df = reader.batch_aggregated_read(
+            names=["new_column"],
+            start_time=base_time - timedelta(seconds=5),
+            end_time=base_time + timedelta(seconds=5),
+            bucket_width=timedelta(seconds=10),
+            tag_aggregations={"new_column": Agg.avg}
+        )
+
+        assert not result_df.empty
+        assert result_df["new_column"].iloc[0] == 123.45
+
+    def test_nonexistent_column(self, wide_format_db: tuple[DataWriter, DataReader]):
+        writer, reader = wide_format_db
+        base_time = datetime.now(UTC).replace(microsecond=0)
+
+        with pytest.raises(ValueError):
+            reader.batch_aggregated_read(
+                names=["non_existent_column"],
+                start_time=base_time - timedelta(seconds=1),
+                end_time=base_time + timedelta(seconds=1),
+                bucket_width=timedelta(seconds=10),
+                tag_aggregations={"non_existent_column": Agg.avg}
+            )
+
+        with pytest.raises(ValueError):
+            reader.get_tag_stats("non_existent_column")
+
+    def test_tag_stats(self, wide_format_db: tuple[DataWriter, DataReader]):
+        writer, reader = wide_format_db
+        base_time = datetime.now(UTC).replace(microsecond=0)
+
+        writer.write(base_time, "float_sensor", 3.14)
+        writer.flush()
+
         stats = reader.get_tag_stats("float_sensor")
         assert stats.min == 3.14
         assert stats.max == 3.14
         assert stats.avg == 3.14
-
-        # get_tag_stats on non-existent column
-        with pytest.raises(ValueError):
-            reader.get_tag_stats("non_existent_column")
-
-        # get_tag_stats on column with all nulls
-        all_null_stats = reader.get_tag_stats("null_sensor")
-        assert pd.isna(all_null_stats.min)
-        assert pd.isna(all_null_stats.max)
-        assert pd.isna(all_null_stats.avg)

@@ -163,11 +163,6 @@ class DataReader:
                     select_parts.append(f'bool_or("{name}") as "{name}"')
                 else:
                     raise ValueError(f"Unsupported aggregation {agg_type} for boolean column {name}")
-            elif column_type == "text":
-                if agg_type == Agg.last:
-                    select_parts.append(f'last("{name}", time) as "{name}"')
-                else:
-                    raise ValueError(f"Unsupported aggregation {agg_type} for text column {name}")
             else:
                 if agg_type == Agg.avg:
                     select_parts.append(f'avg("{name}") as "{name}"')
@@ -213,8 +208,6 @@ class DataReader:
 
                     if col_type == "boolean" or col_agg == Agg.bool_or:
                         sensor_data[col] = sensor_data[col].astype(bool)
-                    elif col_type == "text":
-                        pass
                     else:
                         sensor_data[col] = pd.to_numeric(sensor_data[col])
 
