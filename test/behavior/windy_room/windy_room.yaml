@@ -10,7 +10,7 @@ interaction:
 
 experiment:
   exp_name: "windy_room"
-  max_steps: 5000
+  max_steps: 1500
   gamma: 0.95
 
 pipeline:
