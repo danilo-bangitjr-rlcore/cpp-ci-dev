@@ -72,7 +72,7 @@ class MockCritic:
         action_batches: list[torch.Tensor],
     ):
         v = state_batches[0][:, 0] + action_batches[0][:, 0]
-        var = torch.ones_like(v) * 0.00
+        var = torch.zeros_like(v)
         return EnsembleNetworkReturn(v, v, var)
 
 def test_get_sampled_qs():
