@@ -18,15 +18,15 @@ def test_ctor():
     assert torch.all(dist.scale == scale)
 
     # Ensure batch/event shapes match default torch behaviour
-    assert dist.batch_shape == d.Normal(loc, scale).batch_shape
-    assert dist.event_shape == d.Normal(loc, scale).event_shape
+    assert dist.batch_shape == d.Normal(loc, scale).batch_shape # pylint: disable=comparison-with-callable
+    assert dist.event_shape == d.Normal(loc, scale).event_shape # pylint: disable=comparison-with-callable
 
     # Ensure batch/event shapes match default torch behaviour
     loc = torch.Tensor([[0, 0]])
     scale = torch.Tensor([[1, 1]])
     dist = ArctanhNormal(loc, scale)
-    assert dist.batch_shape == d.Normal(loc, scale).batch_shape
-    assert dist.event_shape == d.Normal(loc, scale).event_shape
+    assert dist.batch_shape == d.Normal(loc, scale).batch_shape # pylint: disable=comparison-with-callable
+    assert dist.event_shape == d.Normal(loc, scale).event_shape # pylint: disable=comparison-with-callable
 
 
 # -------------

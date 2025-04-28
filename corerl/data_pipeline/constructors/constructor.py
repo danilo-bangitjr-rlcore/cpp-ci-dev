@@ -120,8 +120,7 @@ class Constructor(ABC):
         sub_ts = ts.get(tag_name, [None] * len(transforms))
         ts[tag_name] = sub_ts
 
-        for i in range(len(transforms)):
-            transform = transforms[i]
+        for i, transform in enumerate(transforms):
             carry, sub_ts[i] = transform(carry, sub_ts[i])
 
         return carry.transform_data

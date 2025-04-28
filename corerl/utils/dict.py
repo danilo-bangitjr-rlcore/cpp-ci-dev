@@ -175,8 +175,7 @@ def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
     parts = path.split('.')
 
     sub: Any = d
-    for i in range(len(parts)):
-        part = parts[i]
+    for i, part in enumerate(parts):
         is_last = i == len(parts) - 1
 
         # check if this path component is a list index

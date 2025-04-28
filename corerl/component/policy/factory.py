@@ -45,16 +45,16 @@ def _create_continuous_mlp(
     head_bias = cfg.head_bias
     head_layer_init = utils.init_layer(cfg.head_layer_init)
 
-    # Create head layer(s) to the network
+    # Create one path for each head.
+    # Paths are compositions of activations.
     head_layers = [[] for _ in range(paths)]
-    for i in range(len(head_layers)):
+    for i, path in enumerate(head_layers):
         head_layer = nn.Linear(cfg.base.hidden[-1], output_dim, head_bias, device=device.device)
         head_layer = head_layer_init(head_layer)
-        head_layers[i].append(head_layer)
+        path.append(head_layer)
 
         for k in range(len(head_act[i])):
-            # Head layers may have multiple activation functions
-            head_layers[i].append(init_activation(head_act[i][k]))
+            path.append(init_activation(head_act[i][k]))
 
     head = Parallel(*(nn.Sequential(*path) for path in head_layers))
 

@@ -111,7 +111,7 @@ class EnsembleCritic(BaseCritic):
         log_critic_weight_norm(self._app_state, self.model)
         log_critic_stable_rank(self._app_state, self.model)
 
-        if self.optimizer_name != "armijo_adam" and self.optimizer_name != "lso":
+        if self.optimizer_name not in {'armijo_adam', 'lso'}:
             self.optimizer.step(closure=lambda: 0.)
         else:
             self.optimizer.step(closure=closure)
@@ -217,10 +217,10 @@ class EnsembleCritic(BaseCritic):
         target_values = self.get_target_values(next_states, next_actions)
 
         loss = torch.tensor(0.0, device=device.device)
-        for i in range(len(rewards)):
+        for i, reward in enumerate(rewards):
             q = values.ensemble_values[i]
             qp = target_values.ensemble_values[i]
-            target = rewards[i] + gammas[i] * qp
+            target = reward + gammas[i] * qp
             loss_i = torch.nn.functional.mse_loss(target, q)
             loss += loss_i
 

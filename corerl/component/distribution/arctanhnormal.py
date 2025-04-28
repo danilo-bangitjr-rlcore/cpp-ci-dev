@@ -22,8 +22,9 @@ class ArctanhNormal(d.Distribution):
         "loc": d.constraints.real, "scale": d.constraints.positive,     # pyright: ignore [reportAttributeAccessIssue]
     }
 
-    def __init__(self, loc: torch.Tensor, scale: torch.Tensor, validate_args: object | None = None):
+    def __init__(self, loc: torch.Tensor, scale: torch.Tensor, validate_args: bool | None = None):
         self._underlying = d.Normal(loc, scale, validate_args)
+        super().__init__(validate_args=validate_args)
 
     @property
     def loc(self):

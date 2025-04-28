@@ -234,7 +234,7 @@ class MaskedABDistribution:
 
 
 def _to_tensor(elem: object):
-    if isinstance(elem, torch.Tensor) or isinstance(elem, np.ndarray) or isinstance(elem, list):
+    if isinstance(elem, torch.Tensor | np.ndarray | list):
         return torch.Tensor(elem)
     elif elem is None:
         return torch.empty((1, 0))
@@ -249,7 +249,7 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append(elem.shape)
         elif isinstance(elem, torch.Tensor):
             size.append(tuple(elem.shape))
-        elif isinstance(elem, int) or isinstance(elem, float) or isinstance(elem, bool):
+        elif isinstance(elem, int | float | bool):
             size.append((1,))
         elif isinstance(elem, list):
             size.append((len(elem),))

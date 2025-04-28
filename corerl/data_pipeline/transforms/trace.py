@@ -42,8 +42,7 @@ class TraceConstructor:
             mu[col] = new_mu
             carry.transform_data.drop(col, axis=1, inplace=True)
 
-            for i in range(len(self._decays)):
-                decay = self._decays[i]
+            for i, decay in enumerate(self._decays):
                 new_name = f'{col}_trace-{decay}'
                 carry.transform_data[new_name] = trace_vals[:, i]
 

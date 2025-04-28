@@ -75,7 +75,9 @@ class SimAsyncEnv(DeploymentAsyncEnv):
     def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
         if log_action:
             logger.info("--- Emitting action ---")
-            [logger.info(line) for line in action.to_string().splitlines()]
+            for line in action.to_string().splitlines():
+                logger.info(line)
+
         self._action = action.iloc[0].to_numpy()
 
     def get_latest_obs(self) -> pd.DataFrame:
@@ -117,12 +119,12 @@ class SimAsyncEnv(DeploymentAsyncEnv):
 
     def _obs_as_df(self, step: StepData):
         obs_data = {}
-        for i in range(len(step.observation)):
-            obs_data[f'tag-{i}'] = step.observation[i]
+        for i, obs in enumerate(step.observation):
+            obs_data[f'tag-{i}'] = obs
 
         action_data = {}
-        for i in range(len(step.action)):
-            action_data[f'action-{i}'] = step.action[i]
+        for i, act in enumerate(step.action):
+            action_data[f'action-{i}'] = act
 
         meta_data = {
             "reward": step.reward,

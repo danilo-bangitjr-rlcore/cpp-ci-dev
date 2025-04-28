@@ -73,7 +73,7 @@ class CoreIOThinClient:
         """
         endpoint = urljoin(self.coreio_origin, f"/api/opcua/connections/{connection_id}/write")
         payload = {"nodesToWrite": [node.to_post_payload() for node in nodes_to_write]}
-        response = requests.post(endpoint, json=payload)
+        response = requests.post(endpoint, json=payload, timeout=60)
         response.raise_for_status()
         return response.json()
 
@@ -81,6 +81,6 @@ class CoreIOThinClient:
     def read_opcua_node(self, connection_id: str, node_identifier: str):
         search_params = urlencode({"rawNodeToRead": node_identifier})
         endpoint = urljoin(self.coreio_origin, f"/api/opcua/connections/{connection_id}/read?{search_params}")
-        response = requests.get(endpoint)
+        response = requests.get(endpoint, timeout=60)
         response.raise_for_status()
         return response.json()
