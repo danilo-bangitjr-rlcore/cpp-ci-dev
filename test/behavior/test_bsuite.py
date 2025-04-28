@@ -56,6 +56,7 @@ ZERO_ONE_FEATURES = [
     'delta_actions',
     'zone_violations',
     'action_bounds',
+    'use_residual',
 ]
 
 

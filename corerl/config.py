@@ -80,6 +80,9 @@ class FeatureFlags:
     # 2025-04-14
     action_bounds: bool = False
 
+    # 2025-04-25
+    use_residual: bool = False
+
 @config()
 class MainConfig:
     """
