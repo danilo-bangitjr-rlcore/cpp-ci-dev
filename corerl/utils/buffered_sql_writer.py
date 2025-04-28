@@ -81,9 +81,9 @@ class BufferedWriter(Generic[T], ABC):
         if not self.cfg.enabled:
             return
 
-        if not self.cfg.wide_format:
-            assert isinstance(self._buffer, list)
-            self._buffer.append(data)
+        assert isinstance(self._buffer, list)
+        self._buffer.append(data)
+
         if len(self._buffer) > self._hi_wm:
             logger.warning('Buffer reached high watermark')
             # forcibly pause main thread until writer is finished
@@ -101,9 +101,6 @@ class BufferedWriter(Generic[T], ABC):
         if not self.cfg.enabled:
             return
 
-        if not self.cfg.wide_format:
-            return
-
         assert isinstance(self._buffer, dict)
         if timestamp not in self._buffer:
             self._buffer[timestamp] = {}
@@ -113,9 +110,9 @@ class BufferedWriter(Generic[T], ABC):
             logger.warning('Wide buffer reached high watermark')
             if self._write_future is not None:
                 self._write_future.result()
-            self.background_sync_wide()
+            self.background_sync()
         elif len(self._buffer) > self._low_wm:
-            self.background_sync_wide()
+            self.background_sync()
 
 
     def background_sync(self):
@@ -125,33 +122,21 @@ class BufferedWriter(Generic[T], ABC):
         if self.is_writing():
             return
 
+        if not self._buffer:
+            return
+
         if self.cfg.wide_format:
-            if self._buffer:
-                # swap out buffer pointer to start accumulating in new buffer
-                assert isinstance(self._buffer, dict)
-                data = self._buffer
-                self._buffer = {}
-                self._write_future = self._exec.submit(self._deferred_write_wide, data)
+            # swap out buffer pointer to start accumulating in new buffer
+            assert isinstance(self._buffer, dict)
+            data = self._buffer
+            self._buffer = {}
+            self._write_future = self._exec.submit(self._deferred_write_wide, data)
         else:
-            if self._buffer:
-                # swap out buffer pointer to start accumulating in new buffer
-                assert isinstance(self._buffer, list)
-                data = self._buffer
-                self._buffer = []
-                self._write_future = self._exec.submit(self._deferred_write, data)
-
-
-    def background_sync_wide(self):
-        if not self.cfg.enabled:
-            return
-
-        if self.is_writing():
-            return
-
-        data = self._buffer
-        self._buffer = {}
-        assert isinstance(data, dict)
-        self._write_future = self._exec.submit(self._deferred_write_wide, data)
+            # swap out buffer pointer to start accumulating in new buffer
+            assert isinstance(self._buffer, list)
+            data = self._buffer
+            self._buffer = []
+            self._write_future = self._exec.submit(self._deferred_write, data)
 
 
     def blocking_sync(self):
