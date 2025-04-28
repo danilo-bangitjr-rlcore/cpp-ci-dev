@@ -149,6 +149,6 @@ class DataWriter(BufferedWriter[Point]):
             logger.warning('Wide buffer reached high watermark')
             if self._write_future is not None:
                 self._write_future.result()
-            self.background_sync_wide()
+            self.background_sync()
         elif len(self._buffer) > self._low_wm:
-            self.background_sync_wide()
+            self.background_sync()
