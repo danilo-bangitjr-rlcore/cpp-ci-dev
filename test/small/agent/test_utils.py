@@ -66,8 +66,12 @@ class MockSampler:
         return ActionReturn(direct_actions, policy_actions)
 
 class MockCritic:
-    def get_values(self, states: list[torch.Tensor], actions: list[torch.Tensor]):
-        v =states[0][:, 0] + actions[0][:, 0]
+    def get_values(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+    ):
+        v = state_batches[0][:, 0] + action_batches[0][:, 0]
         var = torch.ones_like(v) * 0.00
         return EnsembleNetworkReturn(v, v, var)
 
@@ -90,7 +94,7 @@ def test_get_sampled_qs():
         torch.ones_like(prev_actions),
         n_samples,
         sampler.get_actions,
-        critic, # type: ignore
+        critic,
     )
 
     # equal to state[0] + 0.5

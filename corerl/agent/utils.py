@@ -1,12 +1,12 @@
 from math import ceil
-from typing import TYPE_CHECKING, Callable, NamedTuple
+from typing import TYPE_CHECKING, Callable, NamedTuple, Protocol
 
 import torch
 
+from corerl.component.network.networks import EnsembleNetworkReturn
 from corerl.utils.device import device
 
 if TYPE_CHECKING:
-    from corerl.component.critic.ensemble_critic import EnsembleCritic
     from corerl.component.policy_manager import ActionReturn
 
 
@@ -79,13 +79,21 @@ class SampledQReturn(NamedTuple):
 
 Sampler = Callable[[torch.Tensor, torch.Tensor, torch.Tensor], "ActionReturn"]
 
+class ValueEstimator(Protocol):
+    def get_values(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+    ) -> EnsembleNetworkReturn: ...
+
+
 def get_sampled_qs(
     states: torch.Tensor,
     action_lo: torch.Tensor,
     action_hi: torch.Tensor,
     n_samples: int,
     sampler: Sampler ,
-    critic: "EnsembleCritic"
+    critic: ValueEstimator
     ) -> SampledQReturn:
 
     batch_size = states.size(0)
