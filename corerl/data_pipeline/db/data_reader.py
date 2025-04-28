@@ -6,7 +6,7 @@ from math import floor
 from typing import Any, List, assert_never
 
 import pandas as pd
-from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Engine, Float, MetaData, Table, cast, func, select, union_all
+from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
 
@@ -21,21 +21,32 @@ logger = logging.getLogger(__name__)
 
 class DataReader:
     def __init__(self, db_cfg: TagDBConfig) -> None:
-        self.engine: Engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
+        self.wide_format = db_cfg.wide_format
+        self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
 
         self.db_metadata = MetaData()
         self.db_metadata.reflect(bind=self.engine)
-        self.sensor_table = Table(
-            db_cfg.table_name,
-            self.db_metadata,
-            Column("time", TIMESTAMP, nullable=False, default=None, autoincrement=False, comment=None),
-            Column("host", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
-            Column("id", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
-            Column("name", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
-            Column("fields", JSONB, nullable=True, default=None, autoincrement=False, comment=None),
-            schema=db_cfg.table_schema,
-            extend_existing=True,
-        )
+
+        if not self.wide_format:
+            self.sensor_table = Table(
+                db_cfg.table_name,
+                self.db_metadata,
+                Column("time", TIMESTAMP, nullable=False, default=None, autoincrement=False, comment=None),
+                Column("host", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
+                Column("id", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
+                Column("name", TEXT, nullable=True, default=None, autoincrement=False, comment="tag"),
+                Column("fields", JSONB, nullable=True, default=None, autoincrement=False, comment=None),
+                schema=db_cfg.table_schema,
+                extend_existing=True,
+            )
+        else:
+            self.sensor_table = Table(
+                db_cfg.table_name,
+                self.db_metadata,
+                Column("time", TIMESTAMP, nullable=False, primary_key=True),
+                schema=db_cfg.table_schema,
+                extend_existing=True
+            )
 
     def batch_aggregated_read(
         self,
@@ -71,7 +82,6 @@ class DataReader:
         Please see the tests in the TestDataReaderLogic class in test/medium/data_loaders/test_data_reader.py
         for concrete examples of input and expected output.
         """
-        # If timezone unaware, assume we are using naive system timezone and convert to UTC.
         if start_time.tzinfo is None:
             start_tz = start_time.astimezone().tzinfo
             logger.warning(f"naive start_time passed, assuming {start_tz} and converting to UTC")
@@ -81,6 +91,141 @@ class DataReader:
             logger.warning(f"naive end_time passed, assuming {end_tz} and converting to UTC")
             end_time = end_time.replace(tzinfo=end_tz).astimezone(UTC)
 
+        if self.wide_format:
+            if tag_aggregations is None:
+                raise ValueError("tag_aggregations is required for wide format")
+            return self._batch_aggregated_read_wide(
+                names,
+                start_time,
+                end_time,
+                bucket_width,
+                tag_aggregations
+            )
+        else:
+            return self._batch_aggregated_read_narrow(
+                names,
+                start_time,
+                end_time,
+                bucket_width,
+                aggregation,
+                tag_aggregations
+            )
+
+    def _batch_aggregated_read_wide(
+        self,
+        names: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        bucket_width: timedelta,
+        tag_aggregations: dict[str, Agg],
+    ) -> pd.DataFrame:
+        bucket_width_str = f"{bucket_width.total_seconds()} seconds"
+
+        table_schema = self.sensor_table.schema
+        table_name = self.sensor_table.name
+
+        column_types = {}
+        with TryConnectContextManager(self.engine) as connection:
+            for name in names:
+                try:
+                    type_query = f"""
+                        SELECT data_type
+                        FROM information_schema.columns
+                        WHERE table_schema = '{table_schema}'
+                        AND table_name = '{table_name}'
+                        AND column_name = '{name}'
+                    """
+                    result = connection.execute(text(type_query)).fetchone()
+                    if not result:
+                        raise ValueError(f"Column '{name}' does not exist in the database")
+                    column_types[name] = result[0].lower()
+                except Exception as e:
+                    if isinstance(e, ValueError):
+                        raise
+                    raise ValueError(f"Error checking column '{name}': {e}") from e
+
+        # add 1 microsecond to the origin to match the narrow format behavior
+        # align with bucket end time by adding bucket_width - 1 microsecond
+        select_parts = [
+            f"time_bucket(INTERVAL '{bucket_width_str}', time, "
+            f"origin => '{(end_time+timedelta(microseconds=1)).isoformat()}'::timestamptz, "
+            f"timezone => 'UTC') + INTERVAL '{bucket_width_str}' - INTERVAL '1 microsecond' AS time_bucket"
+        ]
+
+        for name in names:
+            agg_type = tag_aggregations[name]
+            column_type = column_types.get(name, "unknown")
+
+            if column_type == "boolean":
+                if agg_type == Agg.last:
+                    select_parts.append(f'last("{name}", time) as "{name}"')
+                elif agg_type == Agg.bool_or:
+                    select_parts.append(f'bool_or("{name}") as "{name}"')
+                else:
+                    raise ValueError(f"Unsupported aggregation {agg_type} for boolean column {name}")
+            else:
+                if agg_type == Agg.avg:
+                    select_parts.append(f'avg("{name}") as "{name}"')
+                elif agg_type == Agg.last:
+                    select_parts.append(f'last("{name}", time) as "{name}"')
+                elif agg_type == Agg.bool_or:
+                    select_parts.append(f'bool_or("{name}"::boolean) as "{name}"')
+                else:
+                    raise ValueError(f"Unsupported aggregation {agg_type} for column {name}")
+
+        query = f"""
+            SELECT {', '.join(select_parts)}
+            FROM {table_schema}.{table_name}
+            WHERE time > '{start_time.isoformat()}'::timestamptz
+            AND time <= '{end_time.isoformat()}'::timestamptz
+            GROUP BY time_bucket
+            ORDER BY time_bucket ASC
+        """
+
+        n_buckets = floor((end_time - start_time).total_seconds() / bucket_width.total_seconds())
+
+        full_range = pd.date_range(
+            start=end_time - (n_buckets - 1) * bucket_width,
+            end=end_time,
+            freq=bucket_width,
+            tz='UTC',
+            name=None
+        )
+
+        with TryConnectContextManager(self.engine) as connection:
+            try:
+                sensor_data = pd.read_sql(sql=text(query), con=connection)
+
+                if not sensor_data.empty:
+                    sensor_data.set_index('time_bucket', inplace=True)
+                    sensor_data = sensor_data.reindex(full_range)
+                else:
+                    sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
+
+                for col in sensor_data.columns:
+                    col_agg = tag_aggregations.get(col)
+                    col_type = column_types.get(col, "unknown")
+
+                    if col_type == "boolean" or col_agg == Agg.bool_or:
+                        sensor_data[col] = sensor_data[col].astype(bool)
+                    else:
+                        sensor_data[col] = pd.to_numeric(sensor_data[col])
+
+            except Exception as e:
+                logger.error(f"Error in wide format read: {e}")
+                sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
+
+        return sensor_data
+
+    def _batch_aggregated_read_narrow(
+        self,
+        names: List[str],
+        start_time: datetime,
+        end_time: datetime,
+        bucket_width: timedelta,
+        aggregation: Agg = Agg.avg,
+        tag_aggregations: dict[str, Agg] | None = None,
+    ) -> pd.DataFrame:
         # https://docs.timescale.com/api/latest/hyperfunctions/time_bucket/#time_bucket
         # an additional microsecond is added to the origin to capture data at the bucket
         # end time and exclude data at the bucket start time.
@@ -107,19 +252,19 @@ class DataReader:
         subqueries = []
         for agg_type, tags in agg_groups.items():
             match agg_type:
-                case "avg":
+                case Agg.avg:
                     # https://www.postgresql.org/docs/17/functions-aggregate.html
                     agg_stmt = func.cast(
                         func.avg(cast(self.sensor_table.c["fields"]["val"], Float)),
                         TEXT
                     )
-                case "last":
+                case Agg.last:
                     # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
                     agg_stmt = func.cast(
                         func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"]),
                         TEXT
                     )
-                case "bool_or":
+                case Agg.bool_or:
                     # needed to support truncated/terminated booleans
                     agg_stmt = func.cast(
                         func.bool_or(cast(self.sensor_table.c["fields"]["val"], Boolean)),
@@ -206,7 +351,9 @@ class DataReader:
         params = params or {}
 
         q = q.replace(":table", self.sensor_table.name)
-        q = q.replace(":val", _parse_jsonb("fields"))
+
+        if not self.wide_format:
+            q = q.replace(":val", _parse_jsonb("fields"))
 
         with TryConnectContextManager(self.engine) as connection:
             sensor_data = pd.read_sql(
@@ -218,16 +365,52 @@ class DataReader:
         return sensor_data
 
     def get_tag_stats(self, tag_name: str):
-        q = """
-            SELECT
-              MIN(:val) as min,
-              MAX(:val) as max,
-              AVG(:val) as avg,
-              VARIANCE(:val) as var
-            FROM :table
-            WHERE name=:tag
-        """
-        df = self.query(q, {"tag": tag_name})
+        if self.wide_format:
+            with TryConnectContextManager(self.engine) as connection:
+                check_query = f"""
+                    SELECT column_name
+                    FROM information_schema.columns
+                    WHERE table_schema = '{self.sensor_table.schema}'
+                    AND table_name = '{self.sensor_table.name}'
+                    AND column_name = '{tag_name}'
+                """
+                result = connection.execute(text(check_query)).fetchone()
+                if not result:
+                    raise ValueError(f"Column '{tag_name}' does not exist in the database")
+
+            q = """
+                SELECT
+                  MIN("{tag}") as min,
+                  MAX("{tag}") as max,
+                  AVG("{tag}") as avg,
+                  VARIANCE("{tag}") as var
+                FROM :table
+            """.format(tag=tag_name)
+            df = self.query(q)
+        else:
+            # for narrow format, check if the tag exists
+            with TryConnectContextManager(self.engine) as connection:
+                check_query = f"""
+                    SELECT name
+                    FROM {self.sensor_table.schema}.{self.sensor_table.name}
+                    WHERE name = '{tag_name}'
+                    LIMIT 1
+                """
+                result = connection.execute(text(check_query)).fetchone()
+                if not result:
+                    raise ValueError(f"Tag '{tag_name}' does not exist in the database")
+
+            q = """
+                SELECT
+                  MIN(:val) as min,
+                  MAX(:val) as max,
+                  AVG(:val) as avg,
+                  VARIANCE(:val) as var
+                FROM :table
+                WHERE name=:tag
+            """
+            df = self.query(q, {"tag": tag_name})
+
         return TagStats(
             tag=tag_name,
             min=df["min"].item(),

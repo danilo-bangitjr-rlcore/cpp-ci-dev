@@ -1,12 +1,13 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from sqlalchemy import text
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.tag_config import Agg
+from corerl.sql_logging.sql_logging import get_sql_engine
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 
@@ -20,6 +21,7 @@ class TagDBConfig(BufferedWriterConfig):
     table_name: str = "sensors"
     data_agg: Agg = Agg.avg
     table_schema: str = MISSING
+    wide_format: bool = False
 
     @computed('table_schema')
     @classmethod
@@ -45,49 +47,108 @@ class DataWriter(BufferedWriter[Point]):
         super().__init__(cfg, low_watermark, high_watermark)
         self.cfg = cfg
         self.host = "localhost"
+        self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)
 
     def write(
         self,
         timestamp: datetime,
         name: str,
-        val: float,
+        val: float | int | bool | str | None,
         host: str | None = None,
         id: str | None = None
     ) -> None:
         assert timestamp.tzinfo == UTC
+        ts_iso = timestamp.isoformat()
 
-        jsonb = json.dumps({"val": val})
-        point = Point(
-            ts=timestamp.isoformat(),
-            name=name,
-            jsonb=jsonb,
-            host=host or self.host,
-            id=id or name,
-        )
-
-        self._write(point)
-
+        if not self.cfg.wide_format:
+            jsonb = json.dumps({"val": val})
+            point = Point(
+                ts=ts_iso,
+                name=name,
+                jsonb=jsonb,
+                host=host or self.host,
+                id=id or name,
+            )
+            self._write(point)
+        else:
+            self._write_wide(ts_iso, name, val)
 
     def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, host, id, name, fields)
-            VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
-        """)
-
+        if not self.cfg.wide_format:
+            return text(f"""
+                INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
+                (time, host, id, name, fields)
+                VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
+            """)
+        else:
+            return text("")  # Not used for wide format
 
     def _create_table_sql(self):
-        return create_tsdb_table_query(
-            schema=self.cfg.table_schema,
-            table=self.cfg.table_name,
-            columns=[
-                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
-                SQLColumn(name='host', type='TEXT', nullable=True),
-                SQLColumn(name='id', type='TEXT', nullable=True),
-                SQLColumn(name='name', type='TEXT', nullable=True),
-                SQLColumn(name='fields', type='jsonb', nullable=True),
-            ],
-            partition_column='name',
-            index_columns=['name'],
-            chunk_time_interval='7d',
-        )
+        if not self.cfg.wide_format:
+            return create_tsdb_table_query(
+                schema=self.cfg.table_schema,
+                table=self.cfg.table_name,
+                columns=[
+                    SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                    SQLColumn(name='host', type='TEXT', nullable=True),
+                    SQLColumn(name='id', type='TEXT', nullable=True),
+                    SQLColumn(name='name', type='TEXT', nullable=True),
+                    SQLColumn(name='fields', type='jsonb', nullable=True),
+                ],
+                partition_column='name',
+                index_columns=['name'],
+                chunk_time_interval='7d',
+            )
+        else:
+            return text(f"""
+                CREATE SCHEMA IF NOT EXISTS {self.cfg.table_schema};
+                CREATE TABLE IF NOT EXISTS {self.cfg.table_schema}.{self.cfg.table_name} (
+                    time TIMESTAMP WITH TIME ZONE NOT NULL PRIMARY KEY
+                );
+                SELECT create_hypertable('{self.cfg.table_schema}.{self.cfg.table_name}', 'time',
+                                         if_not_exists => TRUE,
+                                         chunk_time_interval => INTERVAL '7d');
+                ALTER TABLE {self.cfg.table_schema}.{self.cfg.table_name} SET (
+                    timescaledb.compress,
+                    timescaledb.compress_segmentby='time'
+                );
+            """)
+
+    def flush(self) -> None:
+        self.blocking_sync()
+
+    def _write_wide(self, timestamp: str, name: str, value: Any) -> None:
+        if not self.cfg.enabled:
+            return
+
+        if timestamp not in self._buffer:
+            assert isinstance(self._buffer, dict)
+            self._buffer[timestamp] = {}
+
+        column_type = None
+        if value is None:
+            # default to float for all none values
+            column_type = "float"
+        elif isinstance(value, bool):
+            column_type = "boolean"
+        elif isinstance(value, int):
+            column_type = "integer"
+        elif isinstance(value, float):
+            column_type = "float"
+        elif isinstance(value, str):
+            column_type = "text"
+
+        # Store both the value and its type
+        assert isinstance(self._buffer, dict)
+        self._buffer[timestamp][name] = {
+            "value": value,
+            "type": column_type
+        }
+
+        if len(self._buffer) > self._hi_wm:
+            logger.warning('Wide buffer reached high watermark')
+            if self._write_future is not None:
+                self._write_future.result()
+            self.background_sync()
+        elif len(self._buffer) > self._low_wm:
+            self.background_sync()
