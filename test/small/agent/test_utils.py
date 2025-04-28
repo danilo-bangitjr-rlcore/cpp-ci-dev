@@ -78,11 +78,13 @@ class MockCritic:
 def test_get_sampled_qs():
     states = torch.tensor([
         [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0]])
+        [4.0, 5.0, 6.0],
+    ])
 
     prev_actions = torch.tensor([
         [0.5, 0.5],
-        [0.,  1.]])
+        [0.,  1.],
+    ])
 
     n_samples = 2
     sampler = MockSampler()
@@ -100,7 +102,8 @@ def test_get_sampled_qs():
     # equal to state[0] + 0.5
     expected_q_values = torch.tensor([
         [1.5, 1.5],
-        [4.5, 4.5]])
+        [4.5, 4.5],
+    ])
 
     assert torch.equal(result.q_values, expected_q_values), "Q values mismatch"
 
@@ -109,7 +112,7 @@ def test_get_sampled_qs():
          [1.0, 2.0, 3.0]],
 
         [[4.0, 5.0, 6.0],
-         [4.0, 5.0, 6.0]]
+         [4.0, 5.0, 6.0]],
     ])
 
     assert torch.equal(result.states, expected_states), "States mismatch"
@@ -119,7 +122,7 @@ def test_get_sampled_qs():
          [0.5, 0.5]],
 
         [[0.5, 0.5],
-         [0.5, 0.5]]
+         [0.5, 0.5]],
     ])
 
     assert torch.equal(result.direct_actions, expected_direct_actions), "Direct actions mismatch"
