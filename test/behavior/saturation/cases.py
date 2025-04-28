@@ -29,3 +29,27 @@ class MultiActionSaturationTest(BSuiteTestCase):
     config = 'test/behavior/saturation/multi_action_config.yaml'
 
     lower_bounds = { 'reward': -0.1}
+
+class ExpandingBoundsSaturationTest(BSuiteTestCase):
+    name = 'expanding bounds saturation'
+    config = 'test/behavior/saturation/expanding_bounds.yaml'
+    required_features = {'action_bounds'}
+    lower_bounds = { 'reward': -0.085}
+
+class SlowExpandingBoundsSaturationTest(BSuiteTestCase):
+    name = 'slow expanding bounds saturation'
+    config = 'test/behavior/saturation/slow_expanding_bounds.yaml'
+    required_features = {'action_bounds'}
+    lower_bounds = { 'reward': -0.085}
+
+class SetpointChangeSaturationTest(BSuiteTestCase):
+    name = 'setpoint change saturation'
+    config = 'test/behavior/saturation/setpoint_change.yaml'
+    required_features = {'action_bounds'}
+    lower_bounds = { 'reward': -0.085}
+
+class DeltaChangeSaturationTest(BSuiteTestCase):
+    name = 'delta change saturation'
+    config = 'test/behavior/saturation/changing_delta.yaml'
+    required_features = {'action_bounds'}
+    lower_bounds = { 'reward': -0.085}
