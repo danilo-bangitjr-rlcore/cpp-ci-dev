@@ -17,7 +17,7 @@ from corerl.agent.utils import (
     mix_uniform_actions,
     mix_uniform_actions_evenly_dispersed,
 )
-from corerl.component.buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
 from corerl.component.network.utils import tensor, to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
@@ -75,11 +75,12 @@ class GACPolicyManagerConfig:
     # components
     network: PolicyConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
-    buffer: MixedHistoryBufferConfig = Field(
+    buffer: BufferConfig = Field(
         default_factory=lambda: MixedHistoryBufferConfig(
             ensemble=1,
             ensemble_probability=1.0,
         ),
+        discriminator='name',
     )
 
     @computed("delta_actions")
@@ -132,7 +133,7 @@ class GACPolicyManager:
         if cfg.init_sampler_with_actor_weights:
             self.sampler.load_state_dict(self.actor.state_dict())
 
-        self.buffer = MixedHistoryBuffer(cfg.buffer, app_state)
+        self.buffer = buffer_group.dispatch(cfg.buffer, app_state)
 
         self.optimizer_name = cfg.optimizer.name
         self.actor_optimizer = init_optimizer(cfg.optimizer, app_state, self.actor.parameters())
