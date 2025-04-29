@@ -83,6 +83,9 @@ class FeatureFlags:
     # 2025-04-25
     use_residual: bool = False
 
+    # 2025-04-29
+    recency_bias_buffer: bool = False
+
 @config()
 class MainConfig:
     """
@@ -149,3 +152,11 @@ class MainConfig:
 
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
+
+    @post_processor
+    def _enable_recency_bias_buffer(self, cfg: 'MainConfig'):
+        if not self.feature_flags.recency_bias_buffer:
+            return
+
+        assert self.agent.critic.buffer.name == 'recency_bias_buffer'
+        assert self.agent.policy.buffer.name == 'recency_bias_buffer'
