@@ -2,7 +2,7 @@ import datetime
 from abc import abstractmethod
 from collections import deque
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol
 
 import numpy as np
 import torch
@@ -10,8 +10,10 @@ from discrete_dists.distribution import Support
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from discrete_dists.utils.SumTree import SumTree
+from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config
+from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
 from corerl.state import AppState
 from corerl.utils.device import device
@@ -486,5 +488,17 @@ class RecencyBiasBuffer(BaseBuffer):
                 ) for _ in range(self._cfg.ensemble)
         ]
 
+BufferConfig = Annotated[(
+    MixedHistoryBufferConfig
+    | RecencyBiasBufferConfig
+), Field(discriminator='name')]
 
+
+buffer_group = Group[
+    [AppState],
+    MixedHistoryBuffer | RecencyBiasBuffer,
+]()
+
+buffer_group.dispatcher(MixedHistoryBuffer)
+buffer_group.dispatcher(RecencyBiasBuffer)
 
