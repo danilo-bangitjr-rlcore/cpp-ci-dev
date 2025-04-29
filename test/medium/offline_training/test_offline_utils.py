@@ -79,8 +79,11 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     )
     assert isinstance(cfg, MainConfig)
 
-    cfg.agent.critic.buffer.online_weight = 0.0
-    cfg.agent.policy.buffer.online_weight = 0.0
+    if cfg.agent.critic.buffer.name == 'mixed_history_buffer':
+        cfg.agent.critic.buffer.online_weight = 0.0
+
+    if cfg.agent.policy.buffer.name == 'mixed_history_buffer':
+        cfg.agent.policy.buffer.online_weight = 0.0
 
     assert isinstance(cfg.env, AsyncEnvConfig)
     cfg.env.db = test_db_config
