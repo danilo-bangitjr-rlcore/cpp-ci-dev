@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 from pydantic import Field
 
-from corerl.component.buffer import MixedHistoryBufferConfig
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig
 from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig, EnsembleNetworkReturn
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
@@ -28,7 +28,10 @@ class CriticConfig:
     """
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: MixedHistoryBufferConfig = Field(default_factory=MixedHistoryBufferConfig)
+    buffer: BufferConfig = Field(
+        default_factory=MixedHistoryBufferConfig,
+        discriminator='name',
+    )
     polyak: float = 0.995
     """
     Retention coefficient for polyak averaged target networks.
