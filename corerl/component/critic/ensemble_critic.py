@@ -176,13 +176,8 @@ class EnsembleCritic(BaseCritic):
             reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
             gamma_batch = batch.n_step_gamma
-            dp_mask = batch.post.dp
 
-            # For the 'Anytime' paradigm, only states at decision points can sample next_actions
-            # If a state isn't at a decision point, its next_action is set to the current action
-            with torch.no_grad():
-                next_action_batches.append((dp_mask * next_actions[i]) + ((1.0 - dp_mask) * direct_action_batch))
-
+            next_action_batches.append(next_actions[i])
             state_batches.append(state_batch)
             action_batches.append(direct_action_batch)
             reward_batches.append(reward_batch)
