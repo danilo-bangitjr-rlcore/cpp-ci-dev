@@ -1,3 +1,4 @@
+import datetime
 from abc import abstractmethod
 from collections import deque
 from collections.abc import Sequence
@@ -5,8 +6,10 @@ from typing import TYPE_CHECKING, Any, Literal, Protocol
 
 import numpy as np
 import torch
+from discrete_dists.distribution import Support
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
+from discrete_dists.utils.SumTree import SumTree
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
@@ -325,6 +328,162 @@ class MixedHistoryBuffer(BaseBuffer):
                 self._cfg.online_weight,
                 self._cfg.ensemble_probability,
             ) for _ in range(self._cfg.ensemble)
+        ]
+
+# ---------------------------------------------------------------------------- #
+#                              Recency Bias Buffer                             #
+# ---------------------------------------------------------------------------- #
+
+class Geometric(Proportional):
+    def __init__(self, support: Support | int):
+        if isinstance(support, int):
+            support = (0, support)
+
+        self._support = support
+        rang = support[1] - support[0]
+        self.tree = SumTree(rang)
+
+    def discount(self, discount_factor: float):
+        """
+        Discount the values in the distribution by the given discount factor.
+        """
+        old_values = self.tree.get_values(np.arange(self._support[0], self._support[1]))
+        new_values = old_values * discount_factor
+        self.tree.update(np.arange(self._support[0], self._support[1]), new_values)
+
+
+class MaskedAUDistribution:
+    def __init__(self, support: int, left_prob: float, mask_prob: float):
+        self._mask_prob = mask_prob
+
+        self._uniform = Proportional(support)
+        self._geometric = Geometric(support)
+        self._dist = MixtureDistribution(
+            [
+                SubDistribution(d=self._uniform, p=left_prob),
+                SubDistribution(d=self._geometric, p=1-left_prob),
+            ]
+        )
+
+    def size(self):
+        return int(self._geometric.tree.total())
+
+    def probs(self, elements: np.ndarray) -> np.ndarray:
+        return self._dist.probs(elements)
+
+    def sample(self, rng: np.random.Generator, n: int) -> np.ndarray:
+        return self._dist.sample(rng, n)
+
+    def update_uniform(
+        self,
+        elements: np.ndarray,
+        ensemble_mask: np.ndarray,
+    ):
+        self._uniform.update(elements, ensemble_mask)
+
+    def update_geometric(
+        self,
+        elements: np.ndarray,
+        initial_prob: np.ndarray,
+    ):
+        self._geometric.update(elements, initial_prob)
+
+    def discount_geometric(
+        self,
+        discount: float,
+    ):
+        self._geometric.discount(discount)
+
+
+@config()
+class RecencyBiasBufferConfig(BaseBufferConfig):
+    name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
+    uniform_weight: float = 0.01
+    obs_period : datetime.timedelta = MISSING
+    gamma_extension_factor: float = 100.
+    gamma: float = MISSING
+
+    @computed("obs_period")
+    @classmethod
+    def _obs_period(cls, cfg: "MainConfig"):
+        return cfg.interaction.obs_period
+
+    @computed('gamma')
+    @classmethod
+    def _gamma(cls, cfg: "MainConfig"):
+        return cfg.experiment.gamma
+
+
+class RecencyBiasBuffer(BaseBuffer):
+    def __init__(self, cfg: RecencyBiasBufferConfig, app_state: AppState):
+        super().__init__(cfg, app_state)
+
+        self._obs_period = np.timedelta64(cfg.obs_period, 'us')
+        self._last_timestamp = None
+        self._discount_factor = np.power(cfg.gamma, 1./cfg.gamma_extension_factor)
+
+        self._sub_dists = [
+            MaskedAUDistribution(self.memory, cfg.uniform_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
+        ]
+
+    def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
+        """
+        Adds transitions to the buffer.
+        """
+
+        idxs = self._feed(transitions)
+
+        batch_size = len(idxs)
+        if batch_size == 0:
+            return idxs
+
+        ensemble_masks = self._get_ensemble_masks(batch_size)
+
+        # get the timestamps of the transitions
+        timestamps = []
+        for t in transitions:
+            assert t.post.timestamp is not None
+            utc_ts = t.post.timestamp.astimezone(datetime.timezone.utc)
+            naive_ts = utc_ts.replace(tzinfo=None)
+            timestamps.append(naive_ts)
+        timestamps = np.array(timestamps, dtype='datetime64[us]')
+        most_recent_ts = np.max(timestamps)
+
+        # for each transition, get the time difference between the most recent timestamp and the current timestamp
+        # this will be used to discount their initial probability
+        steps_since_transition = (most_recent_ts - timestamps) / self._obs_period
+        weights = np.power(self._discount_factor, steps_since_transition)
+
+        assert self._sub_dists is not None
+        for dist, mask in zip(self._sub_dists, ensemble_masks, strict=False):
+            assert isinstance(dist, MaskedAUDistribution)
+            # first, discount old elements according the amount of time that has passed since the last timestamp
+            if self._last_timestamp is not None:
+                steps_since_last_call = (most_recent_ts - self._last_timestamp) / self._obs_period
+                dist.discount_geometric(self._discount_factor**steps_since_last_call)
+
+            # add new elements
+            dist.update_uniform(idxs, mask)
+            # some of the transitions may have happened earlier than most_recent_ts, so discount them
+            dist.update_geometric(idxs, weights*mask)
+
+        self._last_timestamp = most_recent_ts
+
+        self._write_buffer_sizes()
+        self._update_n_most_recent(idxs, data_mode)
+
+        return idxs
+
+    def reset(self):
+        super().reset()
+        self._last_timestamp = None
+        assert isinstance(self._cfg, RecencyBiasBufferConfig)
+        self._sub_dists = [
+            MaskedAUDistribution(
+                self.memory,
+                self._cfg.uniform_weight,
+                self._cfg.ensemble_probability,
+                ) for _ in range(self._cfg.ensemble)
         ]
 
 
