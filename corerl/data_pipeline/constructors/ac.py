@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from datetime import timedelta
 from functools import cached_property
 
 import numpy as np
@@ -9,6 +10,7 @@ from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig, TagType, get_action_bounds
 from corerl.state import AppState
 from corerl.utils.maybe import Maybe
+from corerl.utils.time import percent_time_elapsed
 
 
 class ActionConstructor:
@@ -44,12 +46,19 @@ class ActionConstructor:
             for action_tag in self.action_tags:
                 lo, hi = get_action_bounds(action_tag, row)
                 operating_range = Maybe(action_tag.operating_range).expect()
+                lo = max(Maybe(operating_range[0]).expect(), lo)
+                hi = min(Maybe(operating_range[1]).expect(), hi)
 
-                lo_val = max(Maybe(operating_range[0]).expect(), lo)
-                hi_val = min(Maybe(operating_range[1]).expect(), hi)
+                # overwrite the action bounds/operating range with the guardrails if they exist
+                maybe_guard = self._get_guardrails(action_tag, lo, hi)
+                maybe_guard_lo = Maybe(maybe_guard[0])
+                maybe_guard_hi = Maybe(maybe_guard[1])
+                # Apply the guardrails if they exist
+                lo = maybe_guard_lo.or_else(lo)
+                hi = maybe_guard_hi.or_else(hi)
 
-                a_lo[action_tag.name] = self._prep_stage.normalize(action_tag.name, lo_val)
-                a_hi[action_tag.name] = self._prep_stage.normalize(action_tag.name, hi_val)
+                a_lo[action_tag.name] = self._prep_stage.normalize(action_tag.name, lo)
+                a_hi[action_tag.name] = self._prep_stage.normalize(action_tag.name, hi)
 
             a_los.append(a_lo)
             a_his.append(a_hi)
@@ -77,3 +86,26 @@ class ActionConstructor:
 
     def sort_cols(self, cols: Iterable[str]):
         return sorted(cols)
+
+    def _get_guardrails(self, cfg: TagConfig, a_lo: float, a_hi: float):
+        if cfg.guardrail_schedule is None:
+            return None, None
+
+        perc = self._get_elapsed_guardrail_duration(cfg.guardrail_schedule.duration)
+
+        if perc >= 1:
+            return None, None
+
+        start_lo, start_hi = cfg.guardrail_schedule.starting_range
+        assert start_lo is not None
+        assert start_hi is not None
+        guard_lo = (1 - perc) * start_lo + perc * a_lo
+        guard_hi = (1 - perc) * start_hi + perc * a_hi
+
+        return guard_lo, guard_hi
+
+    def _get_elapsed_guardrail_duration(self, guardrail_duration: timedelta):
+        return percent_time_elapsed(
+            start=self._app_state.start_time,
+            end=self._app_state.start_time + guardrail_duration,
+        )
