@@ -54,9 +54,10 @@ class ActionConstructor:
                 maybe_guard_lo = Maybe(maybe_guard[0])
                 maybe_guard_hi = Maybe(maybe_guard[1])
                 # Apply the guardrails if they exist
-                lo = maybe_guard_lo.or_else(lo)
-                hi = maybe_guard_hi.or_else(hi)
+                lo = max(maybe_guard_lo.or_else(lo), lo)
+                hi = min(maybe_guard_hi.or_else(hi), hi)
 
+                # normalize the action bounds to the operating range
                 a_lo[action_tag.name] = self._prep_stage.normalize(action_tag.name, lo)
                 a_hi[action_tag.name] = self._prep_stage.normalize(action_tag.name, hi)
 
