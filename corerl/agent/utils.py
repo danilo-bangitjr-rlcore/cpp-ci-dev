@@ -110,20 +110,29 @@ def get_sampled_qs(
 
     return SampledQReturn(q_values, states, direct_actions, policy_actions)
 
-def mix_uniform_actions(policy_actions: torch.Tensor, uniform_weight: float) -> torch.Tensor:
+def mix_uniform_actions(
+    policy_actions: torch.Tensor,
+    action_lo: torch.Tensor,
+    action_hi: torch.Tensor,
+    uniform_weight: float,
+    ) -> torch.Tensor:
+
     batch_size = policy_actions.size(0)
     action_dim = policy_actions.size(1)
     num_rows_to_sample = ceil(batch_size * uniform_weight)
     indices = torch.randperm(batch_size)[:num_rows_to_sample]
-    rand_actions = torch.rand(num_rows_to_sample, action_dim, device=device.device)
-    rand_actions = torch.clip(rand_actions, 0, 1)
+    uniform_actions = torch.rand(num_rows_to_sample, action_dim, device=device.device)
+    rand_actions = (action_hi - action_lo) * uniform_actions + action_lo
     policy_actions[indices, :] = rand_actions
     return policy_actions
 
 def mix_uniform_actions_evenly_dispersed(
-        policy_actions: torch.Tensor,
-        uniform_weight: float,
+    policy_actions: torch.Tensor,
+    action_lo: torch.Tensor,
+    action_hi: torch.Tensor,
+    uniform_weight: float,
     ) -> torch.Tensor:
+
     batch_size = policy_actions.size(0)
     action_dim = policy_actions.size(1)
 
@@ -133,8 +142,8 @@ def mix_uniform_actions_evenly_dispersed(
         return policy_actions
 
     if num_rows_to_sample >= batch_size:
-        rand_actions = torch.rand(batch_size, action_dim, device=policy_actions.device)
-        rand_actions = torch.clip(rand_actions, 0, 1)
+        uniform_actions = torch.rand(batch_size, action_dim, device=policy_actions.device)
+        rand_actions = (action_hi - action_lo) * uniform_actions + action_lo
         return rand_actions
 
     # Generate evenly spaced indices
@@ -142,8 +151,8 @@ def mix_uniform_actions_evenly_dispersed(
     indices = torch.tensor([int(i * stride) for i in range(num_rows_to_sample)],
                           device=policy_actions.device)
 
-    rand_actions = torch.rand(num_rows_to_sample, action_dim, device=policy_actions.device)
-    rand_actions = torch.clip(rand_actions, 0, 1)
+    uniform_actions = torch.rand(num_rows_to_sample, action_dim, device=policy_actions.device)
+    rand_actions = (action_hi - action_lo) * uniform_actions + action_lo
     policy_actions[indices, :] = rand_actions
 
     return policy_actions

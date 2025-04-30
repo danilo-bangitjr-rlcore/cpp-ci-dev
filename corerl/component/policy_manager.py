@@ -169,7 +169,7 @@ class GACPolicyManager:
             delta_actions = policy_actions * self.delta_scale + self.delta_bias
             direct_actions = prev_direct_actions + delta_actions
         elif self.cfg.action_bounds:
-            direct_actions = policy_actions * (action_hi - action_lo) + action_lo
+            direct_actions = torch.clip(policy_actions, min=action_lo, max=action_hi)
         else:
             direct_actions = policy_actions
         return direct_actions
@@ -179,19 +179,20 @@ class GACPolicyManager:
         Samples actions from the actor
         """
         with torch.no_grad():
-            policy_actions, _ = self.actor.forward(states)  # actions in [0, 1]
+            policy_actions, _ = self.actor.forward(states)  # actions normalized with respect to the operating range
         return policy_actions
 
-    def _sample_sampler(self, states: torch.Tensor) -> torch.Tensor:
+    def _sample_sampler(self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor) -> torch.Tensor:
         """
         Samples a mixture between the sampler and a uniform distribution
         """
         if self.is_uniform_sampler:
-            policy_actions = torch.rand(states.size(0), self.action_dim, device=device.device)
+            uniform_actions = torch.rand(states.size(0), self.action_dim, device=device.device)
+            policy_actions = (action_hi - action_lo) * uniform_actions + action_lo
             return policy_actions
 
         with torch.no_grad():
-            policy_actions, _ = self.sampler.forward(states)  # actions in [0, 1]
+            policy_actions, _ = self.sampler.forward(states)  # actions normalized with respect to the operating range
         if self.cfg.even_dispersed_uniform:
             policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions, self.cfg.uniform_weight)
         else:
