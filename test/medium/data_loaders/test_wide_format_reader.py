@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 import pytest
-from sqlalchemy import Engine, text
+from sqlalchemy import Engine
 
 from corerl.data_pipeline.db.data_reader import Agg, DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
@@ -12,10 +12,6 @@ from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 def wide_format_db(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     port = tsdb_engine.url.port
     assert port is not None
-
-    with tsdb_engine.connect() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS public.wide_sensors CASCADE"))
-        conn.commit()
 
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
@@ -33,10 +29,6 @@ def wide_format_db(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     reader = DataReader(db_cfg)
 
     yield writer, reader
-
-    with tsdb_engine.connect() as conn:
-        conn.execute(text("DROP TABLE IF EXISTS public.wide_sensors CASCADE"))
-        conn.commit()
 
 
 class TestWideFormatWriter:
