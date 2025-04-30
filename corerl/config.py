@@ -83,6 +83,9 @@ class FeatureFlags:
     # 2025-04-25
     use_residual: bool = False
 
+    # 2025-04-28
+    prod_265_ignore_oob_tags_in_compound_goals: bool = False
+
 @config()
 class MainConfig:
     """

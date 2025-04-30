@@ -21,6 +21,13 @@ def cfg():
         config_name='reward_config.yaml',
     )
 
+@pytest.fixture
+def cfg_with_oob():
+    return direct_load_config(
+        MainConfig,
+        base='test/small/data_pipeline/constructors/assets',
+        config_name='oob_reward_config.yaml',
+    )
 
 @pytest.fixture
 def pipeline(cfg: MainConfig, dummy_app_state: AppState):
@@ -95,6 +102,80 @@ def test_goal1(cfg: MainConfig, pipeline: Pipeline):
             [-0.861111],
             [-0.775000],
             # priority 3 - [-0.5, 0]
+            [-0.4],
+            [-0.2],
+            [-0.1],
+        ],
+    )
+
+    pd.testing.assert_frame_equal(out.rewards, expected_rewards)
+
+def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline):
+    assert cfg_with_oob.pipeline.reward
+    assert cfg_with_oob.pipeline.reward.ignore_oob_tags_in_compound_goals, "feature flag is not set"
+
+    rc = GoalConstructor(cfg_with_oob.pipeline.reward, cfg_with_oob.pipeline.tags, pipeline.preprocessor)
+
+    stages = []
+    for stage in pipeline.default_stages:
+        if stage == StageCode.RC:
+            break
+
+        stages.append(stage)
+
+    start = datetime.now(UTC)
+    dt = timedelta(minutes=5)
+
+    dates = [start + i * dt for i in range(12)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'tag-1', 'tag-2', 'tag-3']
+    df = pd.DataFrame(
+        data=[
+            # priority 1 - tag-0 up to 5
+            [0,     0,     0,     0],
+            [2.5,   3,     7,     1],
+            [4.9,   8,     2,     7],
+            # priority 2 - tag-0 up to 8 AND tag-1 down to 2
+            [5,     5,     3,     6],
+            [6,     3,     3,     1],
+            [7,     2,     3,     1],
+            [8,     -0.1,  3,     1], # tag-1 below operating range of 0, assume violation percent of 0
+            # priority 3 - tag-1 down to 1 OR tag-2 down to 1
+            [8,     1.1,   1.1,     3],
+            [8,     1.5,   -4,    4], # tag-2 below operating range of 0, assume violation percent of 100
+            # priority 4 - optimize tag-3
+            [8,     1.5,   0.5,   4],
+            [8,     1.5,   0.5,   2],
+            [8,     1.5,   0.5,   1],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pr = pipeline(df, stages=stages)
+    pf = PipelineFrame(pr.df, pr.data_mode)
+    pf.actions = pr.actions
+
+    out = rc(pf)
+
+    expected_rewards = pd.DataFrame(
+        index=idx,
+        columns=['reward'],
+        data=[
+            # priority 1
+            [-1.0],
+            [-0.9166666666666667],
+            [-0.8366666666666667],
+            # priority 2
+            [-0.7291666666666667],
+            [-0.7083333333333334],
+            [-0.6875],
+            [-0.6666666666666667], # should handle tag-0 out of bounds with a violation percent of 0
+            # priority 3
+            [-0.5018518518518519],
+            [-0.5092592592592593], # failed the OR condition, violation percent of 100
+            # priority 4
             [-0.4],
             [-0.2],
             [-0.1],
