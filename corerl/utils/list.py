@@ -65,3 +65,13 @@ def multi_level_sort(
 
     sorted_vals += sorted(rest)
     return sorted_vals
+
+
+def sort_by(a: list[Any], b:list[Any]):
+    """
+    sorts a and b by b, then returns both lists sorted
+    """
+    paired = list(zip(a, b, strict=True))
+    sorted_pairs = sorted(paired, key=lambda pair: pair[1])
+    sorted_a, sorted_b = zip(*sorted_pairs, strict=True)
+    return list(sorted_a), list(sorted_b)
