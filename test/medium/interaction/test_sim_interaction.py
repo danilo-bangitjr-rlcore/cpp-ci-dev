@@ -1,4 +1,6 @@
 
+from datetime import timedelta
+
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
@@ -10,6 +12,7 @@ from corerl.interaction.factory import init_interaction
 from corerl.interaction.sim_interaction import SimInteraction
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
+from corerl.utils.time import percent_time_elapsed
 
 
 def test_action_bounds():
@@ -41,7 +44,7 @@ def test_action_bounds():
 
     assert isinstance(interaction, SimInteraction)
 
-    for step in range(NUM_STEPS+1):
+    for _ in range(NUM_STEPS+1):
         interaction._on_get_obs()
         interaction._on_update()
 
@@ -49,8 +52,11 @@ def test_action_bounds():
             interaction._on_emit_action()
             assert interaction._last_action_df is not None
             last_a = interaction._last_action_df.to_numpy().item()
+            p = percent_time_elapsed(
+                start=app_state.start_time,
+                end=app_state.start_time + timedelta(minutes=5),
+            )
 
-            p = step/5
             low = (1-p)*0.25 + p*0
             high = (1-p)*0.26 + p*0.5
             assert low <= last_a <= high

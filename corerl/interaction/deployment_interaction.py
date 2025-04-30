@@ -21,9 +21,8 @@ from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
-from corerl.utils.list import find
 from corerl.utils.maybe import Maybe
-from corerl.utils.time import clock_generator, percent_time_elapsed, split_into_chunks
+from corerl.utils.time import clock_generator, split_into_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -199,8 +198,9 @@ class DeploymentInteraction:
         s, prev_a, action_lo, action_hi = sa
         next_a = self._agent.get_action_interaction(s, prev_a, action_lo, action_hi)
         norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
+        # clip to the normalized action bounds
+        norm_next_a_df = self._clip_action_bounds(norm_next_a_df, action_lo, action_hi)
         next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
-        next_a_df = self._clip_action_bounds(next_a_df)
         self._env.emit_action(next_a_df, log_action=True)
         self._last_action_df = next_a_df
 
@@ -260,46 +260,12 @@ class DeploymentInteraction:
     # ---------
     # internals
     # ---------
+
+    def _clip_action_bounds(self, df: pd.DataFrame, action_lo : np.ndarray, action_hi: np.ndarray) -> pd.DataFrame:
+       return df.clip(lower=action_lo, upper=action_hi)
+
     def _should_reset(self, observation: pd.DataFrame) -> bool:
         return False
-
-
-    def _clip_action_bounds(self, df: pd.DataFrame) -> pd.DataFrame:
-        for ai_sp_tag in df.columns:
-            df = self._clip_single_action(df, ai_sp_tag)
-
-        return df
-
-
-    def _clip_single_action(self, df: pd.DataFrame, ai_sp_tag: str) -> pd.DataFrame:
-        cfg = find(lambda cfg: cfg.name == ai_sp_tag, self._pipeline.tags)
-        assert cfg is not None, f'Failed to find tag config for {ai_sp_tag}'
-        assert cfg.operating_range is not None, 'AI setpoint tag must have an operating range'
-
-        guard_lo, guard_hi = cfg.operating_range
-        if cfg.guardrail_schedule is None:
-            return df
-
-        perc = self._get_elapsed_guardrail_duration(cfg.guardrail_schedule.duration)
-
-        start_lo, start_hi = cfg.guardrail_schedule.starting_range
-
-        if start_lo is not None:
-            assert guard_lo is not None
-            guard_lo = (1 - perc) * start_lo + perc * guard_lo
-
-        if start_hi is not None:
-            assert guard_hi is not None
-            guard_hi = (1 - perc) * start_hi + perc * guard_hi
-
-        df[ai_sp_tag] = df[ai_sp_tag].clip(lower=guard_lo, upper=guard_hi)
-        return df
-
-    def _get_elapsed_guardrail_duration(self, guardrail_duration: timedelta):
-        return percent_time_elapsed(
-            start=self._app_state.start_time,
-            end=self._app_state.start_time + guardrail_duration,
-        )
 
     def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
         if (
