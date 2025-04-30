@@ -64,6 +64,7 @@ class BSuiteTestCase:
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.config,
+            'experiment.silent=true',
         ] + parts)
         proc.check_returncode()
 
