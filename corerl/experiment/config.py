@@ -26,4 +26,5 @@ class ExperimentConfig:
     param_from_hash: bool = False
     save_path: str = 'output'
     seed: int = 0
+    silent: bool = False
     is_simulation: bool = True

@@ -68,7 +68,6 @@ def all_except(flags: list[str]):
 
 KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
     WindyRoomTest.name: True,
-    DistractionWorldTest.name: all_except(['action_embedding']),
     MountainCar.name: { 'zone_violations': True },
 }
 
