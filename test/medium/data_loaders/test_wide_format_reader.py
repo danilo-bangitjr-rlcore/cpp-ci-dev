@@ -72,8 +72,6 @@ class TestWideFormatWriter:
         assert pd.api.types.is_numeric_dtype(result_df["sensor_b"])
         assert pd.api.types.is_bool_dtype(result_df["sensor_c"])
 
-        writer.write(base_time, "sensor_a", 99.9)
-        writer.flush()
 
         single_df = reader.single_aggregated_read(
             names=["sensor_a"],
