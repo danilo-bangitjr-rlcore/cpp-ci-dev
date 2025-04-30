@@ -107,6 +107,14 @@ class TagConfig:
     server. If unspecified, the tag name is used instead.
     """
 
+    dtype: str = 'float'
+    """
+    Kind: optional external
+
+    The datatype of the OPC data. Typically this will just be a float. In rare cases, this
+    may be a boolean, integer, or string.
+    """
+
     is_endogenous: bool = True
     """
     Kind: optional external
