@@ -29,12 +29,6 @@ from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
-logging.basicConfig(
-    format=log_fmt,
-    encoding="utf-8",
-    level=logging.INFO,
-)
-
 logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 
@@ -44,7 +38,8 @@ def main_loop(
     interaction: DeploymentInteraction,
 ):
     max_steps = cfg.experiment.max_steps
-    pbar = tqdm(total=max_steps, disable=not cfg.experiment.is_simulation)
+    disable_pbar = not cfg.experiment.is_simulation or cfg.experiment.silent
+    pbar = tqdm(total=max_steps, disable=disable_pbar)
 
     # event bus owns orchestration of interactions
     # driving loop below gives access to event stream
@@ -120,6 +115,12 @@ def retryable_main(cfg: MainConfig):
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
+    logging.basicConfig(
+        format=log_fmt,
+        encoding="utf-8",
+        level=logging.INFO if not cfg.experiment.silent else logging.WARN,
+    )
+
     # only do retry logic if we want to "run forever"
     if cfg.experiment.is_simulation or cfg.experiment.max_steps is not None:
         return retryable_main(cfg)
