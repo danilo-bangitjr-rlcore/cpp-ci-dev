@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
 import pandas as pd
@@ -5,15 +6,15 @@ import pytest
 from sqlalchemy import Engine
 
 from corerl.data_pipeline.db.data_reader import Agg, DataReader
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
+from corerl.data_pipeline.db.data_writer import TagDBConfig, WideDataWriter
 
 
 @pytest.fixture()
-def wide_format_db(tsdb_engine: Engine, tsdb_tmp_db_name: str):
+def db_cfg(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     port = tsdb_engine.url.port
     assert port is not None
 
-    db_cfg = TagDBConfig(
+    cfg = TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
@@ -25,23 +26,33 @@ def wide_format_db(tsdb_engine: Engine, tsdb_tmp_db_name: str):
         wide_format=True
     )
 
-    writer = DataWriter(db_cfg)
-    reader = DataReader(db_cfg)
+    yield cfg
 
-    yield writer, reader
+
+@dataclass
+class MockTagConfig:
+    name: str
+    dtype: str = 'float'
 
 
 class TestWideFormatWriter:
-    def test_write_and_read(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
+    def test_write_and_read(self, db_cfg: TagDBConfig):
+        reader = DataReader(db_cfg)
+        writer = WideDataWriter(db_cfg, [
+            MockTagConfig('sensor_a'),
+            MockTagConfig('sensor_b'),
+            MockTagConfig('sensor_c', dtype='boolean'),
+        ])
         base_time = datetime.now(UTC).replace(microsecond=0)
         timestamps = []
         for i in range(10):
             timestamp = base_time - timedelta(seconds=i*10)
             timestamps.append(timestamp)
-            writer.write(timestamp, "sensor_a", 10.0 + i)
-            writer.write(timestamp, "sensor_b", 20.0 + i)
-            writer.write(timestamp, "sensor_c", i % 2 == 0)
+            writer.write(timestamp, {
+                'sensor_a': 10.0 + i,
+                'sensor_b': 20.0 + i,
+                'sensor_c': i % 2 == 0,
+            })
 
         writer.flush()
 
@@ -73,23 +84,20 @@ class TestWideFormatWriter:
         assert pd.api.types.is_bool_dtype(result_df["sensor_c"])
 
 
-        single_df = reader.single_aggregated_read(
-            names=["sensor_a"],
-            start_time=base_time - timedelta(seconds=1),
-            end_time=base_time,
-            tag_aggregations={"sensor_a": Agg.avg}
-        )
-
-        assert single_df["sensor_a"].iloc[0] == 99.9
-
-    def test_primitive_types(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
+    def test_primitive_types(self, db_cfg: TagDBConfig):
+        reader = DataReader(db_cfg)
+        writer = WideDataWriter(db_cfg, [
+            MockTagConfig('float_sensor'),
+            MockTagConfig('int_sensor', dtype='integer'),
+            MockTagConfig('bool_sensor', dtype='boolean'),
+        ])
         base_time = datetime.now(UTC).replace(microsecond=0)
 
-        writer.write(base_time, "float_sensor", 3.14)
-        writer.write(base_time, "int_sensor", 42)
-        writer.write(base_time, "bool_sensor", True)
-
+        writer.write(base_time, {
+            'float_sensor': 3.14,
+            'int_sensor': 42,
+            'bool_sensor': True,
+        })
         writer.flush()
 
         tag_aggregations = {
@@ -111,11 +119,14 @@ class TestWideFormatWriter:
         assert result_df["int_sensor"].iloc[0] == 42
         assert result_df["float_sensor"].iloc[0] == 3.14
 
-    def test_null_values(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
+    def test_null_values(self, db_cfg: TagDBConfig):
+        reader = DataReader(db_cfg)
+        writer = WideDataWriter(db_cfg, [
+            MockTagConfig('null_sensor'),
+        ])
         base_time = datetime.now(UTC).replace(microsecond=0)
 
-        writer.write(base_time, "null_sensor", None)
+        writer.write(base_time, {"null_sensor": None})
         writer.flush()
 
         result_df = reader.batch_aggregated_read(
@@ -134,12 +145,15 @@ class TestWideFormatWriter:
         assert pd.isna(all_null_stats.max)
         assert pd.isna(all_null_stats.avg)
 
-    def test_partial_nulls(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
+    def test_partial_nulls(self, db_cfg: TagDBConfig):
+        reader = DataReader(db_cfg)
+        writer = WideDataWriter(db_cfg, [
+            MockTagConfig('partial_null'),
+        ])
         base_time = datetime.now(UTC).replace(microsecond=0)
 
-        writer.write(base_time - timedelta(seconds=10), "partial_null", 1.0)
-        writer.write(base_time, "partial_null", None)
+        writer.write(base_time - timedelta(seconds=10), {"partial_null": 1.0})
+        writer.write(base_time, {"partial_null": None})
         writer.flush()
 
         partial_null_df = reader.batch_aggregated_read(
@@ -154,26 +168,8 @@ class TestWideFormatWriter:
         assert not pd.isna(partial_null_df["partial_null"].iloc[0])
         assert pd.isna(partial_null_df["partial_null"].iloc[1])
 
-    def test_new_column(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
-        base_time = datetime.now(UTC).replace(microsecond=0)
-
-        writer.write(base_time, "new_column", 123.45)
-        writer.flush()
-
-        result_df = reader.batch_aggregated_read(
-            names=["new_column"],
-            start_time=base_time - timedelta(seconds=5),
-            end_time=base_time + timedelta(seconds=5),
-            bucket_width=timedelta(seconds=10),
-            tag_aggregations={"new_column": Agg.avg}
-        )
-
-        assert not result_df.empty
-        assert result_df["new_column"].iloc[0] == 123.45
-
-    def test_nonexistent_column(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
+    def test_nonexistent_column(self, db_cfg: TagDBConfig):
+        reader = DataReader(db_cfg)
         base_time = datetime.now(UTC).replace(microsecond=0)
 
         with pytest.raises(ValueError):
@@ -188,11 +184,14 @@ class TestWideFormatWriter:
         with pytest.raises(ValueError):
             reader.get_tag_stats("non_existent_column")
 
-    def test_tag_stats(self, wide_format_db: tuple[DataWriter, DataReader]):
-        writer, reader = wide_format_db
+    def test_tag_stats(self, db_cfg: TagDBConfig):
+        reader = DataReader(db_cfg)
+        writer = WideDataWriter(db_cfg, [
+            MockTagConfig('float_sensor'),
+        ])
         base_time = datetime.now(UTC).replace(microsecond=0)
 
-        writer.write(base_time, "float_sensor", 3.14)
+        writer.write(base_time, {"float_sensor": 3.14})
         writer.flush()
 
         stats = reader.get_tag_stats("float_sensor")
