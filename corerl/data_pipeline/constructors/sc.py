@@ -47,7 +47,7 @@ class StateConstructor(Constructor):
 
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_names, axis=1, inplace=False)
-        pf.data = pd.concat([df] + transformed_parts, axis=1, copy=False)
+        pf.data = pd.concat([df, pf.action_lo, pf.action_hi] + transformed_parts, axis=1, copy=False)
 
         # guarantee an ordering over columns
         meta_cols = set(name for name, cfg in self._tag_cfgs.items() if cfg.type == TagType.meta)
