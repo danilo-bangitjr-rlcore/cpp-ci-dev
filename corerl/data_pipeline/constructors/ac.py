@@ -88,19 +88,24 @@ class ActionConstructor:
         return sorted(cols)
 
     def _get_guardrails(self, cfg: TagConfig, a_lo: float, a_hi: float):
+        guard_lo, guard_hi = None, None
+
         if cfg.guardrail_schedule is None:
-            return None, None
+            return guard_lo, guard_hi
 
         perc = self._get_elapsed_guardrail_duration(cfg.guardrail_schedule.duration)
 
-        if perc >= 1:
-            return None, None
+        # if we are at the end of the guardrail duration, return None to signal to over the operating range in call()
+        if perc > 1:
+            return guard_lo, guard_hi
 
         start_lo, start_hi = cfg.guardrail_schedule.starting_range
-        assert start_lo is not None
-        assert start_hi is not None
-        guard_lo = (1 - perc) * start_lo + perc * a_lo
-        guard_hi = (1 - perc) * start_hi + perc * a_hi
+
+        if start_lo is not None:
+            guard_lo = (1 - perc) * start_lo + perc * a_lo
+
+        if start_hi is not None:
+            guard_hi = (1 - perc) * start_hi + perc * a_hi
 
         return guard_lo, guard_hi
 
