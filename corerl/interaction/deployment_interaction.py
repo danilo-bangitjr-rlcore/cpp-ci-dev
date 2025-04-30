@@ -1,5 +1,6 @@
 import functools
 import logging
+import math
 import shutil
 import threading
 from collections.abc import Callable
@@ -21,7 +22,7 @@ from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
-from corerl.utils.list import find
+from corerl.utils.list import find, sort_by
 from corerl.utils.maybe import Maybe
 from corerl.utils.time import clock_generator, percent_time_elapsed, split_into_chunks
 
@@ -409,6 +410,9 @@ class DeploymentInteraction:
 
 
     def checkpoint(self):
+        """
+        Checkpoints and removes old checkpoints to maintain a set of checkpoints that get incresingly sparse with age.
+        """
         now = datetime.now(UTC)
         path = self._cfg.checkpoint_path / f'{str(now).replace(':','_')}'
         path.mkdir(exist_ok=True, parents=True)
@@ -416,11 +420,39 @@ class DeploymentInteraction:
         self._app_state.save(path)
         self._last_checkpoint = now
 
-        chkpoints = self._cfg.checkpoint_path.glob('*')
-        for chk in chkpoints:
-            time = datetime.fromisoformat(chk.name.replace('_',':'))
-            if now - time > timedelta(days=1):
-                shutil.rmtree(chk)
+        chkpoints = list(self._cfg.checkpoint_path.glob('*'))
+        times = [datetime.fromisoformat(chk.name.replace('_',':')) for chk in chkpoints]
+        chkpoints, times = sort_by(chkpoints, times) # sorted oldest to youngest
+
+        # keep all checkpoints more recent than the cliff
+        cliff = now - timedelta(hours=24)
+
+        # iterate through the checkpoints to determine which to delete
+        to_delete = []
+        for i, chk in enumerate(chkpoints):
+            # keep latest and first checkpoint
+            if i == 0 or i == len(chkpoints) - 1:
+                continue
+
+            # keep all checkpoints more recent than the cliff
+            if times[i] > cliff:
+                continue
+
+            hours_since_cliff_chk = hours_since(times[i], cliff)
+            hours_since_clif_prev_chk = hours_since(times[i-1], cliff)
+            hours_since_cliff_next_chk = hours_since(times[i+1], cliff)
+
+            # having checkpoints at powers of two is our goal. Get the next and previous powers of two in hours
+            next_power_2 = next_power_of_2(hours_since_cliff_chk)
+            prev_power_2 = prev_power_of_2(hours_since_cliff_chk)
+
+            # we will delete a checkoint if there is an older checkpoint closer to the next power of two
+            # and there is a younger checkpoint closer to the previous power of two
+            if hours_since_clif_prev_chk <= next_power_2 and hours_since_cliff_next_chk >= prev_power_2:
+                to_delete.append(chk)
+
+        for chk in to_delete:
+            shutil.rmtree(chk)
 
 
     def restore_checkpoint(self):
@@ -436,3 +468,16 @@ class DeploymentInteraction:
         logger.info(f"Loading agent weights from checkpoint {checkpoint}")
         self._agent.load(checkpoint)
         self._app_state.load(checkpoint)
+
+def next_power_of_2(x: int):
+    if x <= 1:
+        return 1
+    return 1 << (x - 1).bit_length()
+
+def prev_power_of_2(x: int):
+    if x <= 1:
+        return 1
+    return 1 << (x.bit_length() - 1)
+
+def hours_since(start: datetime, end: datetime):
+    return math.floor((end - start).total_seconds() / 3600)
