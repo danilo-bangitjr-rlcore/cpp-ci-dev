@@ -449,11 +449,15 @@ class RecencyBiasBuffer(BaseBuffer):
             naive_ts = utc_ts.replace(tzinfo=None)
             timestamps.append(naive_ts)
         timestamps = np.array(timestamps, dtype='datetime64[us]')
-        most_recent_ts = np.max(timestamps)
+
+        curr_timestamp = max(
+            np.max(timestamps),
+            self._last_timestamp if self._last_timestamp is not None else np.max(timestamps)
+        )
 
         # for each transition, get the time difference between the most recent timestamp and the current timestamp
         # this will be used to discount their initial probability
-        steps_since_transition = (most_recent_ts - timestamps) / self._obs_period
+        steps_since_transition = (curr_timestamp - timestamps) / self._obs_period
         weights = np.power(self._discount_factor, steps_since_transition)
 
         assert self._ens_dists is not None
@@ -461,7 +465,7 @@ class RecencyBiasBuffer(BaseBuffer):
             assert isinstance(dist, MaskedUGDistribution)
             # first, discount old elements according the amount of time that has passed since the last timestamp
             if self._last_timestamp is not None:
-                steps_since_last_call = (most_recent_ts - self._last_timestamp) / self._obs_period
+                steps_since_last_call = (curr_timestamp - self._last_timestamp) / self._obs_period
                 dist.discount_geometric(self._discount_factor**steps_since_last_call)
 
             # add new elements
@@ -469,7 +473,7 @@ class RecencyBiasBuffer(BaseBuffer):
             # some of the transitions may have happened earlier than most_recent_ts, so discount them
             dist.update_geometric(idxs, weights*mask)
 
-        self._last_timestamp = most_recent_ts
+        self._last_timestamp = curr_timestamp
 
         self._write_buffer_sizes()
         self._update_n_most_recent(idxs, data_mode)
