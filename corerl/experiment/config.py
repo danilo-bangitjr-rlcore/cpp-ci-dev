@@ -10,7 +10,6 @@ class ExperimentConfig:
     clear home. An effort to rename this config is tracked
     in [PROD-153]
     """
-    debug: bool = False
     device: str = 'cpu'
     num_threads: int = 4
     exp_name: str = 'experiment'
@@ -21,7 +20,6 @@ class ExperimentConfig:
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
-    render: int = 0
     param: str = ''
     param_from_hash: bool = False
     save_path: str = 'output'
