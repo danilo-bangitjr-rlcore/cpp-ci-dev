@@ -43,17 +43,12 @@ pipeline:
 
   - name: tag-1 # the delta
     operating_range: [0, 1.0]
-    state_constructor:
-    - name: identity
 
   - name: tag-2 # the anchor
     operating_range: [0, 1.0]
-    state_constructor:
-    - name: identity
 
   # actions
   - name: action-0
     type: ai_setpoint
-    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
     action_bounds: ['{tag-2}-{tag-1}', '{tag-2}+{tag-1}']

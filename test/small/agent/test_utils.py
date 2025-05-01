@@ -1,4 +1,3 @@
-
 import torch
 
 from corerl.agent.utils import get_sampled_qs, grab_percentile
@@ -60,10 +59,10 @@ def test_grab_percentile_multi_key():
 
 class MockSampler:
     def get_actions(
-        self, states: torch.Tensor, prev_actions: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
+        self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
     ):
-        policy_actions = torch.ones_like(prev_actions) * 0.5
-        direct_actions = prev_actions + policy_actions
+        policy_actions = torch.ones_like(action_lo) * 0.5
+        direct_actions = action_lo + policy_actions
         return ActionReturn(direct_actions, policy_actions)
 
 class MockCritic:
@@ -87,7 +86,6 @@ def test_get_sampled_qs():
 
     result = get_sampled_qs(
         states,
-        prev_actions,
         torch.zeros_like(prev_actions),
         torch.ones_like(prev_actions),
         n_samples,
@@ -95,9 +93,9 @@ def test_get_sampled_qs():
         critic, # type: ignore
     )
 
-    # equal to state[0] + 0.5 + prev_actions[0]
+    # equal to state[0] + 0.5
     expected_q_values = torch.tensor([
-        [2.0, 2.0],
+        [1.5, 1.5],
         [4.5, 4.5]])
 
     assert torch.equal(result.q_values, expected_q_values), "Q values mismatch"
@@ -113,16 +111,6 @@ def test_get_sampled_qs():
     assert torch.equal(result.states, expected_states), "States mismatch"
 
     expected_direct_actions = torch.tensor([
-        [[1.0, 1.0],
-         [1.0, 1.0]],
-
-        [[0.5, 1.5],
-         [0.5, 1.5]]
-    ])
-
-    assert torch.equal(result.direct_actions, expected_direct_actions), "Direct actions mismatch"
-
-    expected_policy_actions = torch.tensor([
         [[0.5, 0.5],
          [0.5, 0.5]],
 
@@ -130,4 +118,4 @@ def test_get_sampled_qs():
          [0.5, 0.5]]
     ])
 
-    assert torch.equal(result.policy_actions, expected_policy_actions), "Policy actions mismatch"
+    assert torch.equal(result.direct_actions, expected_direct_actions), "Direct actions mismatch"
