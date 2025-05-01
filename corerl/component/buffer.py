@@ -72,7 +72,7 @@ class BaseBuffer:
         self.pos = 0
         self.full = False
         self.id = cfg.id
-        self._sub_dists: list[SampleDistributionProtocol] | None = None
+        self._ens_dists: list[SampleDistributionProtocol] | None = None
 
         self._most_recent_online_idxs = deque(maxlen=cfg.n_most_recent)
 
@@ -94,8 +94,8 @@ class BaseBuffer:
             raise Exception('One of the sub-distributions is empty.')
 
         ensemble_batch: list[TransitionBatch] = []
-        assert self._sub_dists is not None
-        for dist in self._sub_dists:
+        assert self._ens_dists is not None
+        for dist in self._ens_dists:
             idxs = dist.sample(self.rng, self.batch_size)
             idxs = self._add_n_most_recent(idxs)
             batch = self.get_batch(idxs)
@@ -108,8 +108,8 @@ class BaseBuffer:
         """
         Size of each sub-distribution.
         """
-        assert self._sub_dists is not None
-        return [d.size() for d in self._sub_dists]
+        assert self._ens_dists is not None
+        return [d.size() for d in self._ens_dists]
 
     @property
     def is_sampleable(self) -> bool:
@@ -294,7 +294,7 @@ class MixedHistoryBufferConfig(BaseBufferConfig):
 class MixedHistoryBuffer(BaseBuffer):
     def __init__(self, cfg: MixedHistoryBufferConfig, app_state: AppState):
         super().__init__(cfg, app_state)
-        self._sub_dists = [
+        self._ens_dists = [
             MaskedABDistribution(
                 self.memory,
                 cfg.online_weight,
@@ -311,8 +311,8 @@ class MixedHistoryBuffer(BaseBuffer):
         batch_size = len(idxs)
         ensemble_masks = self._get_ensemble_masks(batch_size)
 
-        assert self._sub_dists is not None
-        for dist, mask in zip(self._sub_dists, ensemble_masks, strict=False):
+        assert self._ens_dists is not None
+        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=False):
             assert isinstance(dist, MaskedABDistribution)
             dist.update(self.rng, idxs, data_mode, mask)
 
@@ -324,7 +324,7 @@ class MixedHistoryBuffer(BaseBuffer):
     def reset(self):
         super().reset()
         assert isinstance(self._cfg, MixedHistoryBufferConfig)
-        self._sub_dists = [
+        self._ens_dists = [
             MaskedABDistribution(
                 self.memory,
                 self._cfg.online_weight,
@@ -424,7 +424,7 @@ class RecencyBiasBuffer(BaseBuffer):
         self._last_timestamp = None
         self._discount_factor = np.power(cfg.gamma, 1./cfg.gamma_extension_factor)
 
-        self._sub_dists = [
+        self._ens_dists = [
             MaskedAUDistribution(self.memory, cfg.uniform_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
         ]
 
@@ -456,8 +456,8 @@ class RecencyBiasBuffer(BaseBuffer):
         steps_since_transition = (most_recent_ts - timestamps) / self._obs_period
         weights = np.power(self._discount_factor, steps_since_transition)
 
-        assert self._sub_dists is not None
-        for dist, mask in zip(self._sub_dists, ensemble_masks, strict=False):
+        assert self._ens_dists is not None
+        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=False):
             assert isinstance(dist, MaskedAUDistribution)
             # first, discount old elements according the amount of time that has passed since the last timestamp
             if self._last_timestamp is not None:
@@ -480,7 +480,7 @@ class RecencyBiasBuffer(BaseBuffer):
         super().reset()
         self._last_timestamp = None
         assert isinstance(self._cfg, RecencyBiasBufferConfig)
-        self._sub_dists = [
+        self._ens_dists = [
             MaskedAUDistribution(
                 self.memory,
                 self._cfg.uniform_weight,
