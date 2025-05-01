@@ -4,24 +4,16 @@ from pathlib import Path
 
 import yaml
 
-import corerl.utils.dict as dict_u
 from corerl.config import MainConfig
-from corerl.configs.loader import config_to_dict, config_to_json
+from corerl.configs.loader import config_to_json
 
 log = logging.getLogger(__name__)
 
 
 def prepare_save_dir(cfg: MainConfig):
-    dict_config = config_to_dict(MainConfig, cfg)
-    if cfg.experiment.param_from_hash:
-        cfg_hash = dict_u.hash(dict_config, ignore={'experiment.seed'})
-        log.debug("Creating experiment param from hash:", cfg_hash)
-        cfg.experiment.param = cfg_hash
-
     save_path = (
             Path(cfg.experiment.save_path) /
             cfg.agent_name /
-            (f'param-{cfg.experiment.param}') /
             (f'seed-{cfg.experiment.seed}')
     )
 
