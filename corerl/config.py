@@ -1,10 +1,13 @@
+import json
 from datetime import datetime, timedelta
 from pathlib import Path
 
+import yaml
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.configs.config import config, list_, post_processor
+from corerl.configs.config import MISSING, computed, config, list_, post_processor
+from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
@@ -110,6 +113,7 @@ class MainConfig:
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
     offline: OfflineConfig = Field(default_factory=OfflineConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
+    save_path: Path = MISSING
     log_path: Path | None = None
 
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
@@ -151,3 +155,19 @@ class MainConfig:
 
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
+
+    @computed('save_path')
+    @classmethod
+    def _save_path(cls, cfg: 'MainConfig'):
+        save_path = (
+                Path('outputs') /
+                cfg.agent_name /
+                (f'seed-{cfg.experiment.seed}')
+        )
+
+        cfg_json = config_to_json(MainConfig, cfg)
+        save_path.mkdir(parents=True, exist_ok=True)
+        with open(save_path / "config.yaml", "w") as f:
+            yaml.safe_dump(json.loads(cfg_json), f)
+
+        return save_path

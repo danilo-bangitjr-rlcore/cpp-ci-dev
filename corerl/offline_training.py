@@ -4,7 +4,6 @@ import random
 import numpy as np
 import torch
 
-import corerl.main_utils as utils
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
@@ -24,7 +23,7 @@ def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
-    save_path = utils.prepare_save_dir(cfg)
+    save_path = cfg.save_path
     device.update_device(cfg.infra.device)
 
     # set the random seeds

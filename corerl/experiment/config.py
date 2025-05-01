@@ -8,7 +8,6 @@ class ExperimentConfig:
     clear home. An effort to rename this config is tracked
     in [PROD-153]
     """
-    save_path: str = 'output'
     seed: int = 0
     silent: bool = False
     is_simulation: bool = True
