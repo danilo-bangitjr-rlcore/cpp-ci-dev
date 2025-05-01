@@ -38,7 +38,7 @@ def main_loop(
     interaction: DeploymentInteraction,
 ):
     max_steps = cfg.max_steps
-    disable_pbar = not cfg.is_simulation or cfg.experiment.silent
+    disable_pbar = not cfg.is_simulation or cfg.silent
     pbar = tqdm(total=max_steps, disable=disable_pbar)
 
     # event bus owns orchestration of interactions
@@ -118,7 +118,7 @@ def main(cfg: MainConfig):
     logging.basicConfig(
         format=log_fmt,
         encoding="utf-8",
-        level=logging.INFO if not cfg.experiment.silent else logging.WARN,
+        level=logging.INFO if not cfg.silent else logging.WARN,
     )
 
     # only do retry logic if we want to "run forever"

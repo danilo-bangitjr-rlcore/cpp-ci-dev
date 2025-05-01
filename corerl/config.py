@@ -14,7 +14,6 @@ from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics import MetricsDBConfig
-from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
 
@@ -110,11 +109,11 @@ class MainConfig:
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
     offline: OfflineConfig = Field(default_factory=OfflineConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     save_path: Path = MISSING
     log_path: Path | None = None
+    silent: bool = False
 
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
     metrics: MetricsDBConfig = Field(default_factory=MetricsDBConfig)
