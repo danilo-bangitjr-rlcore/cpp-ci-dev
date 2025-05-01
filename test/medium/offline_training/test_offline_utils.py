@@ -147,7 +147,7 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
     created_transitions = offline_trainer.pipeline_out.transitions
 
     # Expected transitions
-    gamma = offline_cfg.experiment.gamma
+    gamma = offline_cfg.agent.gamma
     step_0 = make_step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0.0]), dp=False, ac=False)
     step_1 = make_step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1.0]), dp=True,  ac=False) # dp
     step_2 = make_step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2.0]), dp=False, ac=True)  # ac

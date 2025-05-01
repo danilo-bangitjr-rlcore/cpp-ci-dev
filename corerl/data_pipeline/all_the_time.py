@@ -45,7 +45,7 @@ class AllTheTimeTCConfig:
     @computed('gamma')
     @classmethod
     def _gamma(cls, cfg: MainConfig):
-        return cfg.experiment.gamma
+        return cfg.agent.gamma
 
 
 type StepInfo = dict[int, deque[Step]]

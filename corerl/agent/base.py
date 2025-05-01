@@ -29,14 +29,8 @@ class BaseAgentConfig:
     Number of algorithm updates per step.
     """
 
-    gamma: float = MISSING
+    gamma: float = 0.9
     seed: int = MISSING
-
-    @computed('gamma')
-    @classmethod
-    def _gamma(cls, cfg: 'MainConfig'):
-        return cfg.experiment.gamma
-
 
     @computed('seed')
     @classmethod
