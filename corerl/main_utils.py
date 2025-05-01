@@ -20,7 +20,7 @@ def prepare_save_dir(cfg: MainConfig):
 
     save_path = (
             Path(cfg.experiment.save_path) /
-            cfg.experiment.exp_name /
+            cfg.agent_name /
             (f'param-{cfg.experiment.param}') /
             (f'seed-{cfg.experiment.seed}')
     )

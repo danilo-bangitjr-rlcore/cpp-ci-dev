@@ -8,7 +8,6 @@ class ExperimentConfig:
     clear home. An effort to rename this config is tracked
     in [PROD-153]
     """
-    exp_name: str = 'experiment'
     param: str = ''
     param_from_hash: bool = False
     save_path: str = 'output'

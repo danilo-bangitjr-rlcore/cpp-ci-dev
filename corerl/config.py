@@ -129,6 +129,7 @@ class MainConfig:
     # -----------
     # -- Agent --
     # -----------
+    agent_name: str = 'corey' # typically should indicate the process the agent is controlling
     env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
     interaction: InteractionConfig = Field(default_factory=InteractionConfig)
     agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
