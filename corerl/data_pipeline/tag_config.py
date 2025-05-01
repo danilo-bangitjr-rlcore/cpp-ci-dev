@@ -214,17 +214,6 @@ class TagConfig:
     and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
     """
 
-    change_bounds: tuple[float, float] | None = None
-    """
-    Kind: required external
-    Requires: feature_flags.delta_actions
-
-
-    The maximal change between consecutive AI-controlled setpoint values, specified
-    as a percentage change between [-1, 1] inclusive.
-    If specified, this tag _must_ be an AI-controlled setpoint.
-    """
-
     guardrail_schedule: GuardrailScheduleConfig | None = None
     """
     Kind: optional external

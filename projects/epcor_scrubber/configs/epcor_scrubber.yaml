@@ -17,7 +17,7 @@ experiment:
   is_simulation: False
 
 feature_flags:
-  delta_actions: True
+  action_bounds: True
 
 interaction:
   name: dep_interaction
@@ -137,7 +137,6 @@ pipeline:
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
-    change_bounds: [-.334, .334] # +/- 0.2 pH
     agg: last
 
   - name: AIC3731_SP # ORP SP
@@ -146,7 +145,6 @@ pipeline:
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
-    change_bounds: [-.2, .2] # +/- 10 mV
     agg: last
 
   - name: FIC3734_SP # flow SP
@@ -155,7 +153,6 @@ pipeline:
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
-    change_bounds: [-.334, .334] # +/- 5
     agg: last
 
   - name: AIC3730_PV # pH process value

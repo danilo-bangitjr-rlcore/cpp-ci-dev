@@ -5,7 +5,6 @@ from pydantic import Field
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import config, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.data_pipeline.tag_config import TagType
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
@@ -62,9 +61,6 @@ class FeatureFlags:
     See documentation:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.4238yb3saoju
     """
-    # 2025-02-01
-    delta_actions: bool = False
-
     # 2025-02-01
     ensemble: int = 1
 
@@ -127,23 +123,6 @@ class MainConfig:
     # ---------------
     # -- Computeds --
     # ---------------
-    @post_processor
-    def _enable_delta_actions(self, cfg: 'MainConfig'):
-        if not self.feature_flags.delta_actions:
-            return
-
-        assert not self.feature_flags.action_bounds, "Behavior of delta actions + action bounds undefined"
-        sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
-        for tag in sorted_tags:
-            if tag.type != TagType.ai_setpoint:
-                continue
-
-            if tag.change_bounds is None:
-                tag.change_bounds = (-1, 1)
-
-            self.agent.policy.delta_bounds.append(tag.change_bounds)
-
-
     @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble

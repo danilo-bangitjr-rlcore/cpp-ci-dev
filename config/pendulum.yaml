@@ -1,9 +1,6 @@
 defaults:
   - env: env/pendulum
 
-feature_flags:
-  delta_actions: True
-
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
@@ -31,7 +28,6 @@ pipeline:
   - name: action-0
     type: ai_setpoint
     operating_range: [-2, 2]
-    change_bounds: [-0.5, 0.5]
 
   # observations
   # x

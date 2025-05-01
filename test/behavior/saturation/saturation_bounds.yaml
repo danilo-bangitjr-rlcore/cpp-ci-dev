@@ -14,24 +14,7 @@ experiment:
   gamma: 0.99
   max_steps: 4000
 
-agent:
-  name: greedy_ac
-  policy:
-    optimizer:
-      lr: 0.001
-
-
-eval_cfgs:
-  monte_carlo:
-    enabled: True
-    precision: 0.9
-
 pipeline:
-  state_constructor:
-    defaults:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-
   reward:
     priorities:
       - op: up_to
