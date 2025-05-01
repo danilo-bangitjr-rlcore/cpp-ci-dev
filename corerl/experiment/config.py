@@ -9,8 +9,6 @@ class ExperimentConfig:
     in [PROD-153]
     """
     exp_name: str = 'experiment'
-    gamma: float = 0.9
-    max_steps: int | None = None
     param: str = ''
     param_from_hash: bool = False
     save_path: str = 'output'

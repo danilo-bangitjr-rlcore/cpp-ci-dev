@@ -37,7 +37,7 @@ def main_loop(
     app_state: AppState,
     interaction: DeploymentInteraction,
 ):
-    max_steps = cfg.experiment.max_steps
+    max_steps = cfg.max_steps
     disable_pbar = not cfg.experiment.is_simulation or cfg.experiment.silent
     pbar = tqdm(total=max_steps, disable=disable_pbar)
 
@@ -122,7 +122,7 @@ def main(cfg: MainConfig):
     )
 
     # only do retry logic if we want to "run forever"
-    if cfg.experiment.is_simulation or cfg.experiment.max_steps is not None:
+    if cfg.experiment.is_simulation or cfg.max_steps is not None:
         return retryable_main(cfg)
 
     # retry logic

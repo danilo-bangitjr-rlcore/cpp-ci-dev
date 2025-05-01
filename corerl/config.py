@@ -121,6 +121,11 @@ class MainConfig:
     database. Optionally can point to a local csv file.
     """
 
+    # -------------
+    # -- Problem --
+    # -------------
+    max_steps: int | None = None
+
     # -----------
     # -- Agent --
     # -----------
