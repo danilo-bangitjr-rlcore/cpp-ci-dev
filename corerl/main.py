@@ -59,7 +59,7 @@ def retryable_main(cfg: MainConfig):
         enable_log_files(cfg.log_path)
 
     # set the random seeds
-    seed = cfg.experiment.seed
+    seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)

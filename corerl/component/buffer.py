@@ -34,7 +34,7 @@ class MixedHistoryBufferConfig:
     @computed("seed")
     @classmethod
     def _seed(cls, cfg: "MainConfig"):
-        return cfg.experiment.seed
+        return cfg.seed
 
     @computed("ensemble")
     @classmethod

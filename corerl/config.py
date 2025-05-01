@@ -129,6 +129,7 @@ class MainConfig:
     # -- Problem --
     # -------------
     max_steps: int | None = None
+    seed: int = 0 # affects agent and env
 
     # -----------
     # -- Agent --
@@ -162,7 +163,7 @@ class MainConfig:
         save_path = (
                 Path('outputs') /
                 cfg.agent_name /
-                (f'seed-{cfg.experiment.seed}')
+                (f'seed-{cfg.seed}')
         )
 
         cfg_json = config_to_json(MainConfig, cfg)
