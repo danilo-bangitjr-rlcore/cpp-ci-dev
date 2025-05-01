@@ -30,7 +30,7 @@ def test_main_configs(
 
     proc = subprocess.run([
         'uv', 'run', 'python', 'main.py',
-        '--config-name', f'{config_name}', 'experiment.max_steps=5',
+        '--config-name', f'{config_name}', 'max_steps=5',
         f'metrics.port={port}', 'metrics.enabled=True',
         f'metrics.db_name={tsdb_tmp_db_name}',
     ])

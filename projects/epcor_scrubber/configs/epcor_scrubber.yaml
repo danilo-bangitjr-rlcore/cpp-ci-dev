@@ -9,12 +9,9 @@ infra:
     port: 5432
     db_name: "postgres"
 
-experiment:
-  exp_name: epcor_scrubber
-  save_path: outputs/scrubber_evals
-  seed: 1
-  gamma: 0.9727 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
-  is_simulation: False
+agent_name: epcor_scrubber
+seed: 1
+is_simulation: False
 
 feature_flags:
   action_bounds: True
@@ -57,6 +54,7 @@ env:
 
 agent:
   name: greedy_ac
+  gamma: 0.9727 # ~50% of return occurs after 2 hrs (@ 5 min obs period)
 
   critic:
     buffer:

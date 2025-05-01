@@ -8,8 +8,9 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment:
-  seed: 1
+seed: 1
+
+agent:
   gamma: 0.99
 
 pipeline:

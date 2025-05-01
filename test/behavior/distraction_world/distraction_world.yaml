@@ -8,9 +8,9 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment :
-  exp_name : "distraction_world"
-  max_steps: 300
+max_steps: 300
+
+agent:
   gamma: 0
 
 pipeline:

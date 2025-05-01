@@ -6,9 +6,7 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment :
-  exp_name : "saturation"
-  max_steps : 10000
+max_steps : 10000
 
 metrics:
   enabled: False

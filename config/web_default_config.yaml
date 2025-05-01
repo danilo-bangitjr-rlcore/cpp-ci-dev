@@ -16,5 +16,3 @@ infra:
     db_name: postgres
 
 
-experiment:
-  exp_name: CoreRL_Experiment

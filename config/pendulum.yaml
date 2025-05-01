@@ -11,12 +11,11 @@ metrics:
 
 agent:
   name: greedy_ac
-
-experiment:
-  exp_name: pendulum_test/
-  max_steps: 10000
-  seed : 1
   gamma : 0.99
+
+agent_name: pendulum_test
+max_steps: 10000
+seed : 1
 
 pipeline:
   state_constructor:

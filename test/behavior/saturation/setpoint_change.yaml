@@ -19,11 +19,11 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment:
-  exp_name: "saturation"
-  seed: 1
+seed: 1
+max_steps: 1000
+
+agent:
   gamma: 0.99
-  max_steps: 1000
 
 pipeline:
   tags:

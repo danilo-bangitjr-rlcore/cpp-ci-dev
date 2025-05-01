@@ -8,11 +8,11 @@
 # --------------------
 log_path: "outputs/e2e_smoke"
 
-experiment:
-  exp_name: OPC_MountainCarContinuous
-  seed: 1
+seed: 1
+is_simulation: False
+
+agent:
   gamma: 0.99
-  is_simulation: False
 
 env:
   name: dep_async_env

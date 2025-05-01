@@ -1,11 +1,10 @@
 log_path: "outputs/e2e_smoke"
 
-experiment:
-  exp_name: stand_still_mountain_car
-  param_from_hash: True
-  seed: 1
+seed: 1
+max_steps: 1500
+
+agent:
   gamma: 0.95
-  max_steps: 1500
 
 interaction:
   name: sim_interaction
