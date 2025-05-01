@@ -38,7 +38,7 @@ def main_loop(
     interaction: DeploymentInteraction,
 ):
     max_steps = cfg.max_steps
-    disable_pbar = not cfg.experiment.is_simulation or cfg.experiment.silent
+    disable_pbar = not cfg.is_simulation or cfg.experiment.silent
     pbar = tqdm(total=max_steps, disable=disable_pbar)
 
     # event bus owns orchestration of interactions
@@ -47,7 +47,7 @@ def main_loop(
     event_stream = interaction.interact_forever()
 
     for event in event_stream:
-        if cfg.experiment.is_simulation or (event and event.type == EventType.step_get_obs):
+        if cfg.is_simulation or (event and event.type == EventType.step_get_obs):
             pbar.update(1)
 
         if max_steps is not None and app_state.agent_step >= max_steps:
@@ -70,7 +70,7 @@ def retryable_main(cfg: MainConfig):
     # build global objects
     event_bus = (
         EventBus(cfg.event_bus, cfg.env)
-        if not cfg.experiment.is_simulation else
+        if not cfg.is_simulation else
         DummyEventBus()
     )
     app_state = AppState(
@@ -122,7 +122,7 @@ def main(cfg: MainConfig):
     )
 
     # only do retry logic if we want to "run forever"
-    if cfg.experiment.is_simulation or cfg.max_steps is not None:
+    if cfg.is_simulation or cfg.max_steps is not None:
         return retryable_main(cfg)
 
     # retry logic

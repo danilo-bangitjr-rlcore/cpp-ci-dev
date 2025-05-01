@@ -9,4 +9,3 @@ class ExperimentConfig:
     in [PROD-153]
     """
     silent: bool = False
-    is_simulation: bool = True
