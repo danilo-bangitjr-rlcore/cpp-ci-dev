@@ -44,6 +44,7 @@ class InfraConfig:
     """
     db: DBConfig = Field(default_factory=DBConfig)
     device: str = 'cpu'
+    num_threads: int = 4
 
 
 @config()

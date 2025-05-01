@@ -64,7 +64,7 @@ def retryable_main(cfg: MainConfig):
     random.seed(seed)
     torch.manual_seed(seed)
 
-    torch.set_num_threads(cfg.experiment.num_threads)
+    torch.set_num_threads(cfg.infra.num_threads)
     device.update_device(cfg.infra.device)
 
     # build global objects
