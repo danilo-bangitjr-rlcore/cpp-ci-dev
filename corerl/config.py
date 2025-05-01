@@ -1,9 +1,10 @@
+from datetime import datetime, timedelta
 from pathlib import Path
 
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.configs.config import config, post_processor
+from corerl.configs.config import config, list_, post_processor
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
@@ -84,6 +85,16 @@ class FeatureFlags:
     # 2025-04-28
     prod_265_ignore_oob_tags_in_compound_goals: bool = False
 
+
+@config()
+class OfflineConfig:
+    offline_steps: int = 0
+    offline_eval_iters: list[int] = list_()
+    offline_start_time: datetime | None = None
+    offline_end_time: datetime | None = None
+    pipeline_batch_duration: timedelta = timedelta(days=7)
+
+
 @config()
 class MainConfig:
     """
@@ -97,6 +108,7 @@ class MainConfig:
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
     experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
+    offline: OfflineConfig = Field(default_factory=OfflineConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     log_path: Path | None = None
 

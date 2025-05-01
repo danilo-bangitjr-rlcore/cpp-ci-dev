@@ -106,7 +106,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
     # Generate timestamps
     step_timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
-    offline_cfg.experiment.offline_start_time = start_time
+    offline_cfg.offline.offline_start_time = start_time
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
@@ -262,8 +262,8 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
     data_writer.blocking_sync()
 
     # Produce offline transitions
-    offline_cfg.experiment.offline_start_time = first_step
-    offline_cfg.experiment.offline_end_time = first_step + 2 * obs_period
+    offline_cfg.offline.offline_start_time = first_step
+    offline_cfg.offline.offline_end_time = first_step + 2 * obs_period
     offline_training = OfflineTraining(offline_cfg)
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     offline_training.load_offline_transitions(pipeline)
@@ -272,4 +272,4 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
     assert isinstance(offline_training.pipeline_out, PipelineReturn)
     df = offline_training.pipeline_out.df
-    assert len(df) == (offline_cfg.experiment.offline_end_time - offline_cfg.experiment.offline_start_time) / obs_period
+    assert len(df) == (offline_cfg.offline.offline_end_time - offline_cfg.offline.offline_start_time) / obs_period
