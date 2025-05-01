@@ -312,7 +312,7 @@ class MixedHistoryBuffer(BaseBuffer):
         ensemble_masks = self._get_ensemble_masks(batch_size)
 
         assert self._ens_dists is not None
-        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=False):
+        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=True):
             assert isinstance(dist, MaskedABDistribution)
             dist.update(self.rng, idxs, data_mode, mask)
 
@@ -457,7 +457,7 @@ class RecencyBiasBuffer(BaseBuffer):
         weights = np.power(self._discount_factor, steps_since_transition)
 
         assert self._ens_dists is not None
-        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=False):
+        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=True):
             assert isinstance(dist, MaskedAUDistribution)
             # first, discount old elements according the amount of time that has passed since the last timestamp
             if self._last_timestamp is not None:
