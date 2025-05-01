@@ -10,7 +10,6 @@ class ExperimentConfig:
     clear home. An effort to rename this config is tracked
     in [PROD-153]
     """
-    device: str = 'cpu'
     num_threads: int = 4
     exp_name: str = 'experiment'
     gamma: float = 0.9

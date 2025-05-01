@@ -24,7 +24,7 @@ def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
-    device.update_device(cfg.experiment.device)
+    device.update_device(cfg.infra.device)
 
     # set the random seeds
     seed = cfg.experiment.seed

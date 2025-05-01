@@ -43,6 +43,7 @@ class InfraConfig:
     into the external system.
     """
     db: DBConfig = Field(default_factory=DBConfig)
+    device: str = 'cpu'
 
 
 @config()

@@ -65,7 +65,7 @@ def retryable_main(cfg: MainConfig):
     torch.manual_seed(seed)
 
     torch.set_num_threads(cfg.experiment.num_threads)
-    device.update_device(cfg.experiment.device)
+    device.update_device(cfg.infra.device)
 
     # build global objects
     event_bus = (
