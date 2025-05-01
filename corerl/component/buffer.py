@@ -492,6 +492,11 @@ class RecencyBiasBuffer(BaseBuffer):
                 ) for _ in range(self._cfg.ensemble)
         ]
 
+    def get_probability(self, ens_i: int, idxs: np.ndarray):
+        assert 0 <= ens_i < self._cfg.ensemble
+        assert self._ens_dists is not None
+        return self._ens_dists[ens_i].probs(idxs)
+
 BufferConfig = Annotated[(
     MixedHistoryBufferConfig
     | RecencyBiasBufferConfig
