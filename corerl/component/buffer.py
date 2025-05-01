@@ -354,7 +354,7 @@ class Geometric(Proportional):
         self.tree.update(np.arange(self._support[0], self._support[1]), new_values)
 
 
-class MaskedAUDistribution:
+class MaskedUGDistribution:
     def __init__(self, support: int, left_prob: float, mask_prob: float):
         self._mask_prob = mask_prob
 
@@ -425,7 +425,7 @@ class RecencyBiasBuffer(BaseBuffer):
         self._discount_factor = np.power(cfg.gamma, 1./cfg.gamma_extension_factor)
 
         self._ens_dists = [
-            MaskedAUDistribution(self.memory, cfg.uniform_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
+            MaskedUGDistribution(self.memory, cfg.uniform_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
         ]
 
     def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
@@ -458,7 +458,7 @@ class RecencyBiasBuffer(BaseBuffer):
 
         assert self._ens_dists is not None
         for dist, mask in zip(self._ens_dists, ensemble_masks, strict=True):
-            assert isinstance(dist, MaskedAUDistribution)
+            assert isinstance(dist, MaskedUGDistribution)
             # first, discount old elements according the amount of time that has passed since the last timestamp
             if self._last_timestamp is not None:
                 steps_since_last_call = (most_recent_ts - self._last_timestamp) / self._obs_period
@@ -481,7 +481,7 @@ class RecencyBiasBuffer(BaseBuffer):
         self._last_timestamp = None
         assert isinstance(self._cfg, RecencyBiasBufferConfig)
         self._ens_dists = [
-            MaskedAUDistribution(
+            MaskedUGDistribution(
                 self.memory,
                 self._cfg.uniform_weight,
                 self._cfg.ensemble_probability,
