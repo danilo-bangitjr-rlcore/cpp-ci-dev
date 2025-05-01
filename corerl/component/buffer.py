@@ -368,7 +368,7 @@ class MaskedUGDistribution:
         )
 
     def size(self):
-        return int(self._geometric.tree.total())
+        return int(self._uniform.tree.total())
 
     def probs(self, elements: np.ndarray) -> np.ndarray:
         return self._dist.probs(elements)
