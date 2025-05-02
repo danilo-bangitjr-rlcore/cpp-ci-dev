@@ -83,6 +83,8 @@ class DeploymentInteraction:
         self._pretrain()
 
         ### Checkpointing state ###
+        self._checkpoint_freq = cfg.checkpoint_freq
+        self._checkpoint_cliff = cfg.checkpoint_cliff
         self._last_checkpoint = datetime.now(UTC)
         if cfg.restore_checkpoint:
             self.restore_checkpoint()
@@ -405,7 +407,7 @@ class DeploymentInteraction:
     # -------------------
     def maybe_checkpoint(self):
         now = datetime.now(UTC)
-        if now - self._last_checkpoint > timedelta(hours=1):
+        if now - self._last_checkpoint > self._checkpoint_freq:
             self.checkpoint()
 
 
@@ -425,7 +427,7 @@ class DeploymentInteraction:
         chkpoints, times = sort_by(chkpoints, times) # sorted oldest to youngest
 
         # keep all checkpoints more recent than the cliff
-        cliff = now - timedelta(hours=24)
+        cliff = now - self._checkpoint_cliff
 
         # iterate through the checkpoints to determine which to delete
         to_delete = []
@@ -438,17 +440,17 @@ class DeploymentInteraction:
             if times[i] > cliff:
                 continue
 
-            hours_since_cliff_chk = hours_since(times[i], cliff)
-            hours_since_clif_prev_chk = hours_since(times[i-1], cliff)
-            hours_since_cliff_next_chk = hours_since(times[i+1], cliff)
+            periods_since_cliff_chk = periods_since(times[i], cliff, self._checkpoint_freq)
+            periods_since_clif_prev_chk = periods_since(times[i-1], cliff, self._checkpoint_freq)
+            periods_since_cliff_next_chk = periods_since(times[i+1], cliff, self._checkpoint_freq)
 
-            # having checkpoints at powers of two is our goal. Get the next and previous powers of two in hours
-            next_power_2 = next_power_of_2(hours_since_cliff_chk)
-            prev_power_2 = prev_power_of_2(hours_since_cliff_chk)
+            # having checkpoints at powers of two is our goal. Get the next and previous powers of two in periods
+            next_power_2 = next_power_of_2(periods_since_cliff_chk)
+            prev_power_2 = prev_power_of_2(periods_since_cliff_chk)
 
             # we will delete a checkoint if there is an older checkpoint closer to the next power of two
             # and there is a younger checkpoint closer to the previous power of two
-            if hours_since_clif_prev_chk <= next_power_2 and hours_since_cliff_next_chk >= prev_power_2:
+            if periods_since_clif_prev_chk <= next_power_2 and periods_since_cliff_next_chk >= prev_power_2:
                 to_delete.append(chk)
 
         for chk in to_delete:
@@ -479,5 +481,5 @@ def prev_power_of_2(x: int):
         return 1
     return 1 << (x.bit_length() - 1)
 
-def hours_since(start: datetime, end: datetime):
-    return math.floor((end - start).total_seconds() / 3600)
+def periods_since(start: datetime, end: datetime, period: timedelta):
+    return math.floor((end - start) / period)
