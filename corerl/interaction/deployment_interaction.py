@@ -431,7 +431,7 @@ class DeploymentInteraction:
         to_delete = []
         for i, chk in enumerate(chkpoints):
             # keep latest and first checkpoint
-            if i == 0 or i == len(chkpoints) - 1:
+            if i in (0, len(chkpoints) - 1):
                 continue
 
             # keep all checkpoints more recent than the cliff
