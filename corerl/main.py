@@ -29,12 +29,6 @@ from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
-logging.basicConfig(
-    format=log_fmt,
-    encoding="utf-8",
-    level=logging.INFO,
-)
-
 logging.getLogger('asyncua').setLevel(logging.CRITICAL)
 
 
@@ -43,8 +37,9 @@ def main_loop(
     app_state: AppState,
     interaction: DeploymentInteraction,
 ):
-    max_steps = cfg.experiment.max_steps
-    pbar = tqdm(total=max_steps, disable=not cfg.experiment.is_simulation)
+    max_steps = cfg.max_steps
+    disable_pbar = not cfg.is_simulation or cfg.silent
+    pbar = tqdm(total=max_steps, disable=disable_pbar)
 
     # event bus owns orchestration of interactions
     # driving loop below gives access to event stream
@@ -52,7 +47,7 @@ def main_loop(
     event_stream = interaction.interact_forever()
 
     for event in event_stream:
-        if cfg.experiment.is_simulation or (event and event.type == EventType.step_get_obs):
+        if cfg.is_simulation or (event and event.type == EventType.step_get_obs):
             pbar.update(1)
 
         if max_steps is not None and app_state.agent_step >= max_steps:
@@ -64,18 +59,18 @@ def retryable_main(cfg: MainConfig):
         enable_log_files(cfg.log_path)
 
     # set the random seeds
-    seed = cfg.experiment.seed
+    seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
 
-    torch.set_num_threads(cfg.experiment.num_threads)
-    device.update_device(cfg.experiment.device)
+    torch.set_num_threads(cfg.infra.num_threads)
+    device.update_device(cfg.infra.device)
 
     # build global objects
     event_bus = (
         EventBus(cfg.event_bus, cfg.env)
-        if not cfg.experiment.is_simulation else
+        if not cfg.is_simulation else
         DummyEventBus()
     )
     app_state = AppState(
@@ -120,8 +115,14 @@ def retryable_main(cfg: MainConfig):
 
 @load_config(MainConfig, base='config/')
 def main(cfg: MainConfig):
+    logging.basicConfig(
+        format=log_fmt,
+        encoding="utf-8",
+        level=logging.INFO if not cfg.silent else logging.WARN,
+    )
+
     # only do retry logic if we want to "run forever"
-    if cfg.experiment.is_simulation or cfg.experiment.max_steps is not None:
+    if cfg.is_simulation or cfg.max_steps is not None:
         return retryable_main(cfg)
 
     # retry logic

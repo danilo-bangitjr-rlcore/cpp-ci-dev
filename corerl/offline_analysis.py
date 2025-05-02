@@ -24,10 +24,10 @@ def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
-    device.update_device(cfg.experiment.device)
+    device.update_device(cfg.infra.device)
 
     # set the random seeds
-    seed = cfg.experiment.seed
+    seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)

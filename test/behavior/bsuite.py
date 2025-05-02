@@ -64,6 +64,7 @@ class BSuiteTestCase:
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.config,
+            'experiment.silent=true',
         ] + parts)
         proc.check_returncode()
 
@@ -197,8 +198,8 @@ class BSuiteTestCase:
         elif name == 'min':
             return values.min()
         elif name == 'percent_of_steps':
-            assert self._cfg.experiment.max_steps is not None
-            return float(np.sum(values > 0) / self._cfg.experiment.max_steps)
+            assert self._cfg.max_steps is not None
+            return float(np.sum(values > 0) / self._cfg.max_steps)
         else:
             raise NotImplementedError
 

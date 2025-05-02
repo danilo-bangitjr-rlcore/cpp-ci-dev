@@ -170,7 +170,7 @@ def test_dep_mountain_car_continuous(
             "corerl_main",
             "--config-name",
             "dep_mountain_car_continuous",
-            "experiment.max_steps=25",
+            "max_steps=25",
             "env.obs_period=00:00:01",
             "env.update_period=00:00:01",
             "env.action_period=00:00:01",

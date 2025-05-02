@@ -4,7 +4,6 @@ import random
 import numpy as np
 import torch
 
-import corerl.main_utils as utils
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
@@ -24,11 +23,11 @@ def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
-    save_path = utils.prepare_save_dir(cfg)
-    device.update_device(cfg.experiment.device)
+    save_path = cfg.save_path
+    device.update_device(cfg.infra.device)
 
     # set the random seeds
-    seed = cfg.experiment.seed
+    seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)
@@ -45,7 +44,7 @@ def main(cfg: MainConfig):
     agent = GreedyAC(cfg.agent, app_state, column_desc)
 
     # Offline training
-    assert cfg.experiment.offline_steps > 0
+    assert cfg.offline.offline_steps > 0
     offline_training = OfflineTraining(cfg)
     offline_training.load_offline_transitions(pipeline)
     offline_training.train(app_state, agent, pipeline, column_desc)

@@ -25,7 +25,7 @@ from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
 from corerl.utils.list import find, sort_by
 from corerl.utils.maybe import Maybe
-from corerl.utils.time import clock_generator, percent_time_elapsed, split_into_chunks
+from corerl.utils.time import clock_generator, split_into_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,6 @@ class DeploymentInteraction:
         ### State-Action Management ###
         self._column_desc = pipeline.column_descriptions
         self._last_state = np.full(self._column_desc.state_dim, np.nan)
-        self._last_action = np.full(self._column_desc.action_dim, np.nan)
         self._last_action_df: pd.DataFrame | None = None # used to ping setpoints
         self._interaction_action_lo = np.full(self._column_desc.action_dim, np.nan)
         self._interaction_action_hi = np.full(self._column_desc.action_dim, np.nan)
@@ -150,12 +149,6 @@ class DeploymentInteraction:
             .to_numpy(dtype=np.float32)
         )
 
-        self._last_action = (
-            pipe_return.actions
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
-
         self._interaction_action_lo = (
             pipe_return.action_lo
             .iloc[-1]
@@ -200,20 +193,21 @@ class DeploymentInteraction:
 
         logger.info("Querying agent policy for new action")
 
-        s, prev_a, action_lo, action_hi = sa
-        next_a = self._agent.get_action_interaction(s, prev_a, action_lo, action_hi)
+        s, action_lo, action_hi = sa
+        next_a = self._agent.get_action_interaction(s, action_lo, action_hi)
         norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
+        # clip to the normalized action bounds
+        norm_next_a_df = self._clip_action_bounds(norm_next_a_df, action_lo, action_hi)
         next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
-        next_a_df = self._clip_action_bounds(next_a_df)
         self._env.emit_action(next_a_df, log_action=True)
         self._last_action_df = next_a_df
 
         # metrics + eval
-        agent_eval.policy_variance(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
+        agent_eval.policy_variance(self._app_state, self._agent, s, action_lo, action_hi)
         agent_eval.q_online(self._app_state, self._agent, s, next_a)
-        agent_eval.greed_dist_online(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
-        agent_eval.greed_values_online(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
-        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, prev_a, action_lo, action_hi)
+        agent_eval.greed_dist_online(self._app_state, self._agent, s, action_lo, action_hi)
+        agent_eval.greed_values_online(self._app_state, self._agent, s, action_lo, action_hi)
+        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, action_lo, action_hi)
 
         # log actions
         self._write_to_metrics(next_a_df, prefix='ACTION-')
@@ -264,54 +258,20 @@ class DeploymentInteraction:
     # ---------
     # internals
     # ---------
+
+    def _clip_action_bounds(self, df: pd.DataFrame, action_lo : np.ndarray, action_hi: np.ndarray) -> pd.DataFrame:
+        return df.clip(lower=action_lo, upper=action_hi)
+
     def _should_reset(self, observation: pd.DataFrame) -> bool:
         return False
 
-
-    def _clip_action_bounds(self, df: pd.DataFrame) -> pd.DataFrame:
-        for ai_sp_tag in df.columns:
-            df = self._clip_single_action(df, ai_sp_tag)
-
-        return df
-
-
-    def _clip_single_action(self, df: pd.DataFrame, ai_sp_tag: str) -> pd.DataFrame:
-        cfg = find(lambda cfg: cfg.name == ai_sp_tag, self._pipeline.tags)
-        assert cfg is not None, f'Failed to find tag config for {ai_sp_tag}'
-        assert cfg.operating_range is not None, 'AI setpoint tag must have an operating range'
-
-        guard_lo, guard_hi = cfg.operating_range
-        if cfg.guardrail_schedule is None:
-            return df
-
-        perc = self._get_elapsed_guardrail_duration(cfg.guardrail_schedule.duration)
-
-        start_lo, start_hi = cfg.guardrail_schedule.starting_range
-
-        if start_lo is not None:
-            assert guard_lo is not None
-            guard_lo = (1 - perc) * start_lo + perc * guard_lo
-
-        if start_hi is not None:
-            assert guard_hi is not None
-            guard_hi = (1 - perc) * start_hi + perc * guard_hi
-
-        df[ai_sp_tag] = df[ai_sp_tag].clip(lower=guard_lo, upper=guard_hi)
-        return df
-
-    def _get_elapsed_guardrail_duration(self, guardrail_duration: timedelta):
-        return percent_time_elapsed(
-            start=self._app_state.start_time,
-            end=self._app_state.start_time + guardrail_duration,
-        )
-
-    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
+    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
         if (
             self._state_is_fresh() and
             self._state_has_no_nans() and
             self._action_has_no_nans()
         ):
-            return self._last_state, self._last_action, self._interaction_action_lo, self._interaction_action_hi
+            return self._last_state, self._interaction_action_lo, self._interaction_action_hi
 
         return None
 
@@ -331,9 +291,6 @@ class DeploymentInteraction:
         return True
 
     def _action_has_no_nans(self):
-        if np.any(np.isnan(self._last_action)):
-            logger.error("Last action contains nan values")
-            return False
         if np.any(np.isnan(self._interaction_action_lo)):
             logger.error("Action lower bound contains nan values")
             return False
