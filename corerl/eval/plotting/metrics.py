@@ -80,7 +80,7 @@ def plot_metrics(
     if cfg.labels is None or len(cfg.labels) == 0:
         cfg.labels = [""]
 
-    save_path = Path(cfg.app_state.cfg.experiment.save_path)
+    save_path = Path(cfg.app_state.cfg.save_path)
     save_path.mkdir(parents=True, exist_ok=True)
 
     make_mc_eval_plot(cfg, save_path)

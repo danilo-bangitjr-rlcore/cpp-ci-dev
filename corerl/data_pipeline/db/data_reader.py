@@ -314,7 +314,7 @@ class DataReader:
 
             for col in sensor_data.columns:
                 col_agg = aggregation_map.get(col)
-                if col_agg == "avg" or col_agg == "last":
+                if col_agg in {'avg', 'last'}:
                     sensor_data[col] = pd.to_numeric(sensor_data[col])
                 elif col_agg == "bool_or":
                     sensor_data[col] = sensor_data[col].replace({"true": True, "false": False})

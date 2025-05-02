@@ -15,7 +15,7 @@ class HindsightReturnEval:
         self._app_state = app_state
         self.enabled = cfg.enabled
 
-        self.gamma = app_state.cfg.experiment.gamma
+        self.gamma = app_state.cfg.agent.gamma
         self.trace = None
 
     def execute(self, rewards: pd.DataFrame):

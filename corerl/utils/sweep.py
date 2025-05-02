@@ -42,9 +42,9 @@ def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[dict]]:
             runs = new_runs
 
     runs_with_seeds = []
-    for i in range(len(runs)):
+    for i, run in enumerate(runs):
         for seed in seeds:
-            seed_run = runs[i].copy()
+            seed_run = run.copy()
             seed_run['experiment.seed'] = seed
             seed_run['experiment.param'] = i
             runs_with_seeds.append(seed_run)

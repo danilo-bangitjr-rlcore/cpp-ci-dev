@@ -1,7 +1,8 @@
-experiment:
-  exp_name: victoria_ww_offline/
-  gamma: 0.95
-  max_steps: 0 # Offline training
+agent_name: victoria_ww_offline/
+max_steps: 0 # Offline training
+seed: 1
+
+offline:
   offline_steps: 1000
   offline_eval_iters:
     - 0
@@ -9,8 +10,6 @@ experiment:
     - 100
     - 999
   pipeline_batch_duration: 100 days
-  save_path: output
-  seed: 1
 
 infra:
   db:
@@ -47,6 +46,7 @@ eval_cfgs:
 
 agent:
   name: greedy_ac
+  gamma: 0.95
 
 pipeline:
   imputer:

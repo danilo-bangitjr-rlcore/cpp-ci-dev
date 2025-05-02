@@ -52,5 +52,4 @@ def test_raw_data_eval_for_tag(sample_dataframe: pd.DataFrame):
     for tag in sample_dataframe.columns:
         return_dict = raw_data_eval_for_tag(sample_dataframe, tag)
         for k, v in return_dict.items():
-            assert isinstance(k, str) and (isinstance(v, float) or isinstance(v, int))
-
+            assert isinstance(k, str) and isinstance(v, float | int)

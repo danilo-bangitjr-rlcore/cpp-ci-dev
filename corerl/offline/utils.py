@@ -50,9 +50,9 @@ class OfflineTraining:
         cfg: MainConfig
     ):
         self.cfg = cfg
-        self.start_time = cfg.experiment.offline_start_time
-        self.end_time = cfg.experiment.offline_end_time
-        self.offline_steps = self.cfg.experiment.offline_steps
+        self.start_time = cfg.offline.offline_start_time
+        self.end_time = cfg.offline.offline_end_time
+        self.offline_steps = self.cfg.offline.offline_steps
         self.pipeline_out: PipelineReturn | None = None
 
     def load_offline_transitions(self, pipeline: Pipeline):
@@ -64,7 +64,7 @@ class OfflineTraining:
         self.start_time, self.end_time = get_data_start_end_times(data_reader, self.start_time, self.end_time)
 
         # chunk offline reads
-        chunk_width = self.cfg.experiment.pipeline_batch_duration
+        chunk_width = self.cfg.offline.pipeline_batch_duration
         time_chunks = split_into_chunks(self.start_time, self.end_time, width=chunk_width)
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
@@ -107,7 +107,7 @@ class OfflineTraining:
         q_losses: list[float] = []
         pbar = tqdm(range(self.offline_steps))
         for i in pbar:
-            if i in self.cfg.experiment.offline_eval_iters:
+            if i in self.cfg.offline.offline_eval_iters:
                 mc_eval.execute_offline(i, self.pipeline_out)
 
             critic_loss = agent.update()

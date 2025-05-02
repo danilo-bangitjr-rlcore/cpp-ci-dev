@@ -62,8 +62,7 @@ def copy_forward(x: np.ndarray, prev: float, horizon: int, prev_horizon: int):
     out = np.zeros_like(x)
 
     num_nans = prev_horizon
-    for i in range(len(x)):
-        v = x[i]
+    for i, v in enumerate(x):
         if np.isnan(v):
             num_nans += 1
 

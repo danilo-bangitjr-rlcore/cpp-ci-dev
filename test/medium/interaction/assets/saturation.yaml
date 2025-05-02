@@ -3,14 +3,15 @@ env:
   gym:
     gym_name : Saturation-v0
 
+feature_flags:
+  action_bounds : True
+
 interaction:
   name: sim_interaction
   obs_period: 00:01:00
   action_period: 00:01:00
 
-experiment :
-  exp_name : "saturation"
-  max_steps : 100
+max_steps : 100
 
 metrics:
   enabled: False

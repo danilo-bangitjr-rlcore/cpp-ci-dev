@@ -77,9 +77,11 @@ def create_mlp(
 class LateFusionConfig:
     name: Literal['late_fusion'] = 'late_fusion'
     input_scales: list[float] = list_([0.25, 0.75])
-    input_cfg : NNTorsoConfig =  MISSING
-    skip_input : bool = False
-    combined_cfg : NNTorsoConfig =  MISSING
+    input_cfg: NNTorsoConfig = MISSING
+    skip_input: bool = False
+    combined_cfg: NNTorsoConfig = MISSING
+    use_residual: bool = True
+    activation: str = 'relu'
 
     @computed('input_cfg')
     @classmethod
@@ -97,6 +99,37 @@ class LateFusionConfig:
             activation=[{'name': 'relu'}],
         )
 
+    @computed('use_residual')
+    @classmethod
+    def _use_residual(cls, cfg: 'MainConfig'):
+        return cfg.feature_flags.use_residual
+
+
+class ResidualBlock(nn.Module):
+    def __init__(self, input_size: int, output_size: int, activation: str = "relu"):
+        super().__init__()
+        self.output_size = output_size
+        self.activation = activation
+
+        self.linear1 = nn.Linear(input_size, output_size)
+        self.linear2 = nn.Linear(output_size, output_size)
+
+        # projection layer for residual connection if dimensions don't match
+        self.projection = nn.Linear(input_size, output_size) if input_size != output_size else nn.Identity()
+
+        self.act_fn = layer.init_activation({"name": activation})
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        identity = x
+
+        out = self.linear1(x)
+        out = self.act_fn(out)
+        out = self.linear2(out)
+
+        # residual connection
+        out = out + self.projection(identity)
+        return out
+
 
 class LateFusionNetwork(nn.Module):
     def __init__(
@@ -112,21 +145,34 @@ class LateFusionNetwork(nn.Module):
         super().__init__()
 
         self.skip_input = cfg.skip_input
+        self.use_residual = cfg.use_residual
 
         if not self.skip_input:
             # Create multiple subnets - one for each input
             self.input_nets = nn.ModuleList()
             combined_input_dim = 0
-            for input_dim, scale in zip(input_dims, cfg.input_scales, strict=True):
-                sub_cfg = copy.deepcopy(cfg.input_cfg)
-                sub_cfg.hidden = [
-                    int(h * scale)
-                    for h in cfg.input_cfg.hidden
-                ]
-                input_net = create_mlp(sub_cfg, input_dim, output_dim=None)
-                self.input_nets.append(input_net)
-                combined_input_dim += sub_cfg.hidden[-1]
 
+            for input_dim, scale in zip(input_dims, cfg.input_scales, strict=True):
+                if self.use_residual:
+                    layers = []
+                    hidden_sizes = [int(h * scale) for h in cfg.input_cfg.hidden]
+
+                    layers.append(ResidualBlock(input_dim, hidden_sizes[0], cfg.activation))
+                    for i in range(1, len(hidden_sizes)):
+                        layers.append(ResidualBlock(hidden_sizes[i-1], hidden_sizes[i], cfg.activation))
+
+                    input_net = nn.Sequential(*layers)
+                    self.input_nets.append(input_net)
+                    combined_input_dim += hidden_sizes[-1]
+                else:
+                    sub_cfg = copy.deepcopy(cfg.input_cfg)
+                    sub_cfg.hidden = [
+                        int(h * scale)
+                        for h in cfg.input_cfg.hidden
+                    ]
+                    input_net = create_mlp(sub_cfg, input_dim, output_dim=None)
+                    self.input_nets.append(input_net)
+                    combined_input_dim += sub_cfg.hidden[-1]
         else:
             combined_input_dim = sum(input_dims)
 
@@ -135,6 +181,7 @@ class LateFusionNetwork(nn.Module):
             input_dim=combined_input_dim,
             output_dim=output_dim,
         )
+
         if output_dim is None:
             self.output_dim = cfg.combined_cfg.hidden[-1]
         else:
@@ -146,16 +193,13 @@ class LateFusionNetwork(nn.Module):
             return self.combined_net(combined)
 
         assert len(inputs) == len(self.input_nets), f"Expected {len(self.input_nets)} inputs, got {len(inputs)}"
-        # Process each input through its respective subnet
         subnet_outputs = []
         for i, input_tensor in enumerate(inputs):
             output = self.input_nets[i](input_tensor)
             subnet_outputs.append(output)
 
-        # Concatenate the outputs from all subnets
         combined = torch.cat(subnet_outputs, dim=1)
 
-        # Process through the combined layers
         output = self.combined_net(combined)
         return output
 

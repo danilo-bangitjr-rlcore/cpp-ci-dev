@@ -7,9 +7,13 @@ from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
+    DeltaChangeSaturationTest,
+    ExpandingBoundsSaturationTest,
     GoalSaturationTest,
     MultiActionSaturationTest,
     SaturationTest,
+    SetpointChangeSaturationTest,
+    SlowExpandingBoundsSaturationTest,
 )
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
@@ -41,13 +45,17 @@ TEST_CASES = [
     SaturationTest(),
     StandStillMountainCar(),
     WindyRoomTest(),
+    ExpandingBoundsSaturationTest(),
+    SetpointChangeSaturationTest(),
+    SlowExpandingBoundsSaturationTest(),
+    DeltaChangeSaturationTest(),
 ]
 
 ZERO_ONE_FEATURES = [
     'base', # special feature indicating "no features enabled"
-    'delta_actions',
     'zone_violations',
     'action_bounds',
+    'use_residual',
 ]
 
 
@@ -59,7 +67,6 @@ def all_except(flags: list[str]):
 
 KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
     WindyRoomTest.name: True,
-    DistractionWorldTest.name: all_except(['action_embedding']),
     MountainCar.name: { 'zone_violations': True },
 }
 

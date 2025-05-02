@@ -93,7 +93,8 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         if log_action:
             logger.info("--- Emitting action ---")
-            [logger.info(line) for line in action.to_string().splitlines()]
+            for line in action.to_string().splitlines():
+                logger.info(line)
 
         # if action df got nuked in sanitizer, this for loop does nothing
         write_payloads: dict[str, list[OPCUANodeWriteValue]] = {}

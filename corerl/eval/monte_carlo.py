@@ -29,7 +29,7 @@ class MonteCarloEvalConfig:
     @computed('gamma')
     @classmethod
     def _gamma(cls, cfg: 'MainConfig'):
-        return cfg.experiment.gamma
+        return cfg.agent.gamma
 
 
 @dataclass
@@ -70,7 +70,7 @@ class MonteCarloEvaluator:
         self.app_state = app_state
         self.agent = agent
 
-    def _get_state_value(self, state: Tensor, prev_a: Tensor, action_lo: Tensor, action_hi: Tensor) -> float:
+    def _get_state_value(self, state: Tensor, action_lo: Tensor, action_hi: Tensor) -> float:
         """
         Estimates the given state's value under the agent's current policy
         by evaluating the agent's Q function at the given state
@@ -78,8 +78,7 @@ class MonteCarloEvaluator:
         Returns a given state's value when the partial return horizon has elapsed.
         """
         repeat_state = state.repeat((self.critic_samples, 1))
-        repeat_prev_a = prev_a.repeat((self.critic_samples, 1))
-        ar = self.agent.get_actor_actions(repeat_state, repeat_prev_a, action_lo, action_hi)
+        ar = self.agent.get_actor_actions(repeat_state, action_lo, action_hi)
         sampled_actions = ar.direct_actions
         sampled_a_qs = self.agent.critic.get_values(
             [repeat_state],
@@ -176,7 +175,7 @@ class MonteCarloEvaluator:
                     continue
 
                 curr_time = actions.index[i].isoformat()
-                state_v = self._get_state_value(self.prev_state, action, action_lo_i, action_hi_i)
+                state_v = self._get_state_value(self.prev_state, action_lo_i, action_hi_i)
                 observed_a_q = self._get_observed_a_q(self.prev_state, action)
 
                 self._step_queue.appendleft(_MonteCarloPoint(

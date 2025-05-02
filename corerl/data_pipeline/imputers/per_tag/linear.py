@@ -75,8 +75,7 @@ def linear_interpolation(x: np.ndarray, prev: float, num_nans: int, max_gap: int
     the index are separated by at most 'max_gap' NaNs
     """
     insert_ind = 0 # Where to insert the imputed list of vals in 'x'
-    for i in range(len(x)):
-        v = x[i]
+    for i, v in enumerate(x):
         assert isinstance(v, float)
         reset_prev = False
         if np.isnan(prev):

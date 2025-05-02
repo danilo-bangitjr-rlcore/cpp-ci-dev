@@ -103,8 +103,8 @@ class Transition:
         if self.n_step_gamma != other.n_step_gamma:
             return False
 
-        for i in range(len(self.steps)):
-            if self.steps[i] != other.steps[i]:
+        for i, step in enumerate(self.steps):
+            if step != other.steps[i]:
                 return False
 
         return True

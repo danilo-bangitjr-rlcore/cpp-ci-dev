@@ -31,8 +31,7 @@ class RewardComponentConstructor:
             default=lambda: [None] * len(self._transforms),
         )
 
-        for i in range(len(self._transforms)):
-            transform = self._transforms[i]
+        for i, transform in enumerate(self._transforms):
             transform_ts = tag_ts[i]
 
             carry, transform_ts = transform(carry, transform_ts)

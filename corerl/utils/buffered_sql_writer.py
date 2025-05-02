@@ -4,10 +4,9 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Dict, Generic, NamedTuple, TypeVar, Union
+from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
 
-from sqlalchemy import Engine, TextClause, text
-from sqlalchemy.engine import Connection
+from sqlalchemy import Engine, TextClause
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.utils import TryConnectContextManager
@@ -41,7 +40,6 @@ class BufferedWriterConfig(SQLEngineConfig):
 
 
 T = TypeVar('T', bound=NamedTuple)
-WideBufferType = Dict[str, Dict[str, Any]]
 
 class BufferedWriter(Generic[T], ABC):
     def __init__(
@@ -55,7 +53,7 @@ class BufferedWriter(Generic[T], ABC):
         self._low_wm = low_watermark
         self._hi_wm = high_watermark
 
-        self._buffer: Union[list[T], WideBufferType] = [] if not cfg.wide_format else {}
+        self._buffer: list[T] = []
 
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
@@ -83,7 +81,6 @@ class BufferedWriter(Generic[T], ABC):
         if not self.cfg.enabled:
             return
 
-        assert isinstance(self._buffer, list)
         self._buffer.append(data)
 
         if len(self._buffer) > self._hi_wm:
@@ -141,21 +138,9 @@ class BufferedWriter(Generic[T], ABC):
         if self.is_writing():
             return
 
-        if not self._buffer:
-            return
-
-        if self.cfg.wide_format:
-            # swap out buffer pointer to start accumulating in new buffer
-            assert isinstance(self._buffer, dict)
-            data = self._buffer
-            self._buffer = {}
-            self._write_future = self._exec.submit(self._deferred_write_wide, data)
-        else:
-            # swap out buffer pointer to start accumulating in new buffer
-            assert isinstance(self._buffer, list)
-            data = self._buffer
-            self._buffer = []
-            self._write_future = self._exec.submit(self._deferred_write, data)
+        data = self._buffer
+        self._buffer = []
+        self._write_future = self._exec.submit(self._deferred_write, data)
 
 
     def blocking_sync(self):
@@ -165,6 +150,7 @@ class BufferedWriter(Generic[T], ABC):
         # wrap up in-progress sync
         if self._write_future is not None:
             self._write_future.result()
+
         self.background_sync()
 
         if self._write_future is not None:
@@ -186,6 +172,7 @@ class BufferedWriter(Generic[T], ABC):
 
         if not self.cfg.enabled:
             return
+
         assert self.engine is not None
 
         with TryConnectContextManager(self.engine) as connection:
@@ -194,80 +181,3 @@ class BufferedWriter(Generic[T], ABC):
                 [point._asdict() for point in points]
             )
             connection.commit()
-
-
-    def _deferred_write_wide(self, points: Dict[str, Dict[str, Any]]):
-        if not points:
-            return
-
-        if not self.cfg.enabled:
-            return
-        assert self.engine is not None
-
-        with TryConnectContextManager(self.engine) as connection:
-            for timestamp, values in points.items():
-                processed_values = {}
-                column_types = {}
-
-                for col, val in values.items():
-                    if isinstance(val, dict) and "value" in val:
-                        processed_values[col] = val["value"]
-                        if "type" in val:
-                            column_types[col] = val["type"]
-                    else:
-                        processed_values[col] = val
-                        if isinstance(val, bool):
-                            column_types[col] = "boolean"
-                        elif isinstance(val, int):
-                            column_types[col] = "integer"
-                        elif isinstance(val, float):
-                            column_types[col] = "float"
-                        else:
-                            column_types[col] = "float"
-
-                self._ensure_columns_exist(connection, list(values.keys()), column_types)
-
-                columns = ", ".join([f'"{col}"' for col in processed_values])
-                placeholders = ", ".join([f":{i}" for i in range(len(processed_values))])
-
-                params = {"ts": timestamp}
-                for i, (_col, val) in enumerate(processed_values.items()):
-                    params[str(i)] = val
-
-                query = text(f"""
-                    INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-                    (time, {columns})
-                    VALUES (TIMESTAMP :ts, {placeholders})
-                    ON CONFLICT (time) DO UPDATE SET
-                    {', '.join([f'"{col}" = EXCLUDED."{col}"' for col in processed_values])}
-                """)
-
-                connection.execute(query, params)
-            connection.commit()
-
-
-    def _ensure_columns_exist(
-        self,
-        connection: Connection,
-        column_names: list[str],
-        column_types: Dict[str, str] | None = None,
-    ):
-        column_types = column_types or {}
-        for name in column_names:
-            col_type = column_types.get(name, "float")
-            connection.execute(
-                text(f"""
-                    DO $$
-                    BEGIN
-                        IF NOT EXISTS (
-                            SELECT FROM information_schema.columns
-                            WHERE table_schema = '{self.cfg.table_schema}'
-                            AND table_name = '{self.cfg.table_name}'
-                            AND column_name = '{name}'
-                        ) THEN
-                            ALTER TABLE {self.cfg.table_schema}.{self.cfg.table_name}
-                            ADD COLUMN "{name}" {col_type};
-                        END IF;
-                    END $$;
-                """)
-            )

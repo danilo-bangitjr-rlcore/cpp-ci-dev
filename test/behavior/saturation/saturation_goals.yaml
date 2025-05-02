@@ -8,11 +8,11 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment:
-  exp_name: "saturation-goals"
-  seed: 1
+seed: 1
+max_steps: 2000
+
+agent:
   gamma: 0.99
-  max_steps: 2000
 
 pipeline:
   reward:
@@ -45,6 +45,5 @@ pipeline:
   # actions
   - name: action-0
     type: ai_setpoint
-    change_bounds: [-1, 1]
     operating_range: [0, 0.5]
     action_bounds: ['{action-0}-0.2', '{action-0}+0.2']

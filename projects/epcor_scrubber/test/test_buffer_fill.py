@@ -27,7 +27,7 @@ def test_buffer_load():
     assert isinstance(cfg, MainConfig)
 
     # set the random seeds
-    seed = cfg.experiment.seed
+    seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
     torch.manual_seed(seed)

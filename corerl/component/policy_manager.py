@@ -17,9 +17,9 @@ from corerl.agent.utils import (
     mix_uniform_actions,
     mix_uniform_actions_evenly_dispersed,
 )
-from corerl.component.buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
-from corerl.component.network.utils import tensor, to_np
+from corerl.component.network.utils import to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
@@ -54,13 +54,10 @@ Optimizer = torch.optim.Optimizer | EnsembleOptimizer
 @config()
 class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
-    delta_actions: bool = MISSING
-    delta_bounds: list[tuple[float, float]] = Field(default_factory=list)
     action_bounds: bool = MISSING
     greedy: bool = False
 
     # hyperparameters
-    delta_rejection_sample: bool = True
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
@@ -75,17 +72,13 @@ class GACPolicyManagerConfig:
     # components
     network: PolicyConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
-    buffer: MixedHistoryBufferConfig = Field(
+    buffer: BufferConfig = Field(
         default_factory=lambda: MixedHistoryBufferConfig(
             ensemble=1,
             ensemble_probability=1.0,
         ),
+        discriminator='name',
     )
-
-    @computed("delta_actions")
-    @classmethod
-    def _delta_actions(cls, cfg: "MainConfig"):
-        return cfg.feature_flags.delta_actions
 
     @computed("action_bounds")
     @classmethod
@@ -132,7 +125,7 @@ class GACPolicyManager:
         if cfg.init_sampler_with_actor_weights:
             self.sampler.load_state_dict(self.actor.state_dict())
 
-        self.buffer = MixedHistoryBuffer(cfg.buffer, app_state)
+        self.buffer = buffer_group.dispatch(cfg.buffer, app_state)
 
         self.optimizer_name = cfg.optimizer.name
         self.actor_optimizer = init_optimizer(cfg.optimizer, app_state, self.actor.parameters())
@@ -140,12 +133,6 @@ class GACPolicyManager:
         assert isinstance(self.actor_optimizer, Optimizer)
         assert isinstance(self.sampler_optimizer, Optimizer)
 
-        if self.cfg.delta_actions:
-            self.delta_low = tensor([db[0] for db in cfg.delta_bounds], device.device)
-            self.delta_high = tensor([db[1] for db in cfg.delta_bounds], device.device)
-
-            self.delta_scale = (self.delta_high - self.delta_low) / (OUTPUT_MAX - OUTPUT_MIN)
-            self.delta_bias = self.delta_low
 
     @property
     def support(self):
@@ -157,7 +144,6 @@ class GACPolicyManager:
 
     def ensure_direct_action(
             self,
-            prev_direct_actions: torch.Tensor,
             action_lo: torch.Tensor,
             action_hi: torch.Tensor,
             policy_actions: torch.Tensor
@@ -165,10 +151,7 @@ class GACPolicyManager:
         """
         Ensures that the output of this function is a direct action
         """
-        if self.cfg.delta_actions:
-            delta_actions = policy_actions * self.delta_scale + self.delta_bias
-            direct_actions = prev_direct_actions + delta_actions
-        elif self.cfg.action_bounds:
+        if self.cfg.action_bounds:
             direct_actions = policy_actions * (action_hi - action_lo) + action_lo
         else:
             direct_actions = policy_actions
@@ -201,63 +184,16 @@ class GACPolicyManager:
     def _sample_uniform(self, states: torch.Tensor):
         return torch.rand(states.size(0), self.action_dim, device=device.device)
 
-    def _rejection_sample(
-            self,
-            sampler: Callable[[torch.Tensor], torch.Tensor],
-            states: torch.Tensor,
-            prev_direct_actions: torch.Tensor,
-            action_lo: torch.Tensor,
-            action_hi: torch.Tensor,
-            direct_actions: torch.Tensor,
-            policy_actions: torch.Tensor,
-        ) -> tuple[torch.Tensor, torch.Tensor]:
-        """
-        Perform rejection sampling on actions to ensure they are within valid bounds
-
-        This method checks if the provided `direct_actions` are within the valid range [0, 1]
-        If any actions are out of bounds, it resamples them using a mixture policy until all actions are valid.
-        """
-        max_itr = 100
-        for itr in range(max_itr):
-            # check if in valid range for normalized direct actions
-            if torch.all((direct_actions>=OUTPUT_MIN) & (direct_actions<=OUTPUT_MAX)):
-                break
-            # set up mask which rows were invalid
-            invalid_mask = (direct_actions<OUTPUT_MIN) | (direct_actions>OUTPUT_MAX)
-            invalid_mask = invalid_mask.any(dim=1)
-            # resample invalid actions
-            policy_actions[invalid_mask] = sampler(states[invalid_mask])
-            direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
-
-            if itr == max_itr - 1:
-                logging.warning(
-                    f"Maximum iterations ({max_itr}) in rejection sampling reached..."
-                    + "defaulting to sampling uniform"
-                )
-                policy_actions[invalid_mask] = self._sample_uniform(states[invalid_mask])
-                direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
-
-        # Clip the direct actions. This should be unnecessary if rejection sampling is successful
-        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
-        return direct_actions, policy_actions
-
     def _get_actions(
         self,
         sampler: Callable[[torch.Tensor], torch.Tensor],
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
         policy_actions = sampler(states)
-        direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
-
-        if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
-            direct_actions, policy_actions = self._rejection_sample(
-                sampler, states, prev_direct_actions, action_lo, action_hi, direct_actions, policy_actions
-            )
-        else:
-            direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
+        direct_actions = self.ensure_direct_action(action_lo, action_hi, policy_actions)
+        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
 
         return ActionReturn(direct_actions, policy_actions)
 
@@ -268,14 +204,12 @@ class GACPolicyManager:
     def _sample_greedy(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
         critic: EnsembleCritic,
     ) -> torch.Tensor:
         qr = get_sampled_qs(
             states=states,
-            prev_actions=prev_direct_actions,
             action_lo=action_lo,
             action_hi=action_hi,
             n_samples=self.cfg.num_samples,
@@ -289,7 +223,6 @@ class GACPolicyManager:
     def get_greedy_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
         critic: EnsembleCritic,
@@ -300,33 +233,19 @@ class GACPolicyManager:
         """
         sampler = functools.partial(
             self._sample_greedy,
-            prev_direct_actions=prev_direct_actions,
             action_lo=action_lo,
             action_hi=action_hi,
             critic=critic,
         )
         policy_actions = sampler(states)
-        direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
-
-        if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
-            direct_actions, policy_actions = self._rejection_sample(
-                sampler=sampler,
-                states=states,
-                prev_direct_actions=prev_direct_actions,
-                action_lo=action_lo,
-                action_hi=action_hi,
-                direct_actions=direct_actions,
-                policy_actions=policy_actions,
-            )
-        else:
-            direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
+        direct_actions = self.ensure_direct_action(action_lo, action_hi, policy_actions)
+        direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
 
         return ActionReturn(direct_actions, policy_actions)
 
     def get_actor_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
         critic: EnsembleCritic | None = None,
@@ -335,15 +254,14 @@ class GACPolicyManager:
         Samples direct actions for states from the actor.
         """
         if not self.cfg.greedy:
-            return self._get_actions(self._sample_actor, states, prev_direct_actions, action_lo, action_hi)
+            return self._get_actions(self._sample_actor, states, action_lo, action_hi)
 
         assert critic is not None
-        return self.get_greedy_actions(states, prev_direct_actions, action_lo, action_hi, critic)
+        return self.get_greedy_actions(states, action_lo, action_hi, critic)
 
     def get_sampler_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
@@ -351,19 +269,18 @@ class GACPolicyManager:
         Samples direct actions for states.
         If uniform_weight is greater than 0, will sample actions from a mixture between the policy and uniform.
         """
-        return self._get_actions(self._sample_sampler, states, prev_direct_actions, action_lo, action_hi)
+        return self._get_actions(self._sample_sampler, states, action_lo, action_hi)
 
     def get_uniform_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
         """
         Samples direct actions for states UAR
         """
-        return self._get_actions(self._sample_uniform, states, prev_direct_actions, action_lo, action_hi)
+        return self._get_actions(self._sample_uniform, states, action_lo, action_hi)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         """
@@ -376,11 +293,7 @@ class GACPolicyManager:
         # ---------------------------------- ingress loss metic --------------------------------- #
         if self.cfg.ingress_loss and len(recent_idxs) > 0:
             recent_batch = self.buffer.get_batch(recent_idxs)
-
-            if self.cfg.delta_actions:
-                recent_actions = recent_batch.post.action - recent_batch.prior.action
-            else:
-                recent_actions = recent_batch.post.action
+            recent_actions = recent_batch.post.action
 
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
@@ -470,7 +383,6 @@ class GACPolicyManager:
         # (batch_size, n, action_dim), where n = floor(self.percentile*batch_size)
         qr = get_sampled_qs(
             states=update_batch.prior.state,
-            prev_actions=update_batch.prior.action,
             action_lo=update_batch.prior.action_lo,
             action_hi=update_batch.prior.action_hi,
             n_samples=self.cfg.num_samples,
@@ -486,7 +398,6 @@ class GACPolicyManager:
             if self.cfg.resample_for_sampler_update:
                 qr = get_sampled_qs(
                     states=update_batch.prior.state,
-                    prev_actions=update_batch.prior.action,
                     action_lo=update_batch.prior.action_lo,
                     action_hi=update_batch.prior.action_hi,
                     n_samples=self.cfg.num_samples,
@@ -519,7 +430,6 @@ class GACPolicyManager:
         sampler = self.get_sampler_actions
         qr = get_sampled_qs(
             states=batch.prior.state,
-            prev_actions=batch.prior.action,
             action_lo=batch.prior.action_lo,
             action_hi=batch.prior.action_hi,
             n_samples=self.cfg.num_samples,
