@@ -1,4 +1,4 @@
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
@@ -28,9 +28,33 @@ class OddityFilterConstructor:
         }
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        for tag_name, filters in self._components.items():
-            for f in filters:
-                pf = f(pf, tag_name)
+        ts = pf.temporal_state.get(StageCode.ODDITY, {})
+        assert isinstance(ts, dict)
+
+        tag_names = list(self._components.keys())
+        if len(tag_names) == 0:
+            return pf
+
+        for tag_name in tag_names:
+            pf = self._invoke_per_tag(pf, tag_name, ts)
+
+        # put new temporal state on PipeFrame
+        pf.temporal_state[StageCode.ODDITY] = ts
+
+        return pf
+
+    def _invoke_per_tag(self, pf: PipelineFrame, tag_name: str, ts: dict[str, list[object | None]]) -> PipelineFrame:
+
+        filters = self._components[tag_name]
+
+        # make a default ts if one doesn't already exist
+        # and attach it back to the shared ts
+        sub_ts = ts.get(tag_name, [None] * len(filters))
+        ts[tag_name] = sub_ts
+
+        for i, f in enumerate(filters):
+            carry, sub_ts[i] = f(pf, tag_name, sub_ts[i])
+
         return pf
 
     def _construct_components(self, sub_cfgs: list[OddityFilterConfig]):

@@ -15,8 +15,8 @@ class IdentityFilter(BaseOddityFilter):
     def __init__(self, cfg: IdentityFilterConfig, app_state: AppState):
         super().__init__(cfg, app_state)
 
-    def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
-        return pf
+    def __call__(self, pf: PipelineFrame, tag: str, ts: object | None, update_stats: bool = True):
+        return pf, ts
 
 
 outlier_group.dispatcher(IdentityFilter)
