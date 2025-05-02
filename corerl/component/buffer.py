@@ -413,7 +413,7 @@ class RecencyBiasBufferConfig(BaseBufferConfig):
     @computed('gamma')
     @classmethod
     def _gamma(cls, cfg: "MainConfig"):
-        return cfg.experiment.gamma
+        return cfg.agent.gamma
 
 
 class RecencyBiasBuffer(BaseBuffer):
