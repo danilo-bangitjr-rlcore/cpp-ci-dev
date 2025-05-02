@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from datetime import datetime
 from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
 
 from sqlalchemy import Engine, TextClause
@@ -25,8 +24,6 @@ class BufferedWriterConfig(SQLEngineConfig):
     table_name: str = MISSING
     enabled: bool = True
     table_schema: str = MISSING
-    wide_format: bool = False
-    wide_bucket_seconds: float = 1.0
 
     @computed('table_schema')
     @classmethod
@@ -92,41 +89,6 @@ class BufferedWriter(Generic[T], ABC):
             # kick off a new background sync, since buffer is full
             self.background_sync()
 
-        elif len(self._buffer) > self._low_wm:
-            self.background_sync()
-
-
-    def _bucket_timestamp(self, timestamp: str) -> str:
-        if not hasattr(self.cfg, 'wide_bucket_seconds') or self.cfg.wide_bucket_seconds <= 0:
-            return timestamp
-
-        try:
-            dt = datetime.fromisoformat(timestamp)
-            epoch_seconds = dt.timestamp()
-            bucketed_seconds = int(epoch_seconds // self.cfg.wide_bucket_seconds) * self.cfg.wide_bucket_seconds
-            bucketed_dt = datetime.fromtimestamp(bucketed_seconds, dt.tzinfo)
-            return bucketed_dt.isoformat()
-        except (ValueError, TypeError):
-            logger.warning(f"Could not parse timestamp for bucketing: {timestamp}, using as-is")
-            return timestamp
-
-
-    def _write_wide(self, timestamp: str, name: str, value: Any) -> None:
-        if not self.cfg.enabled:
-            return
-
-        bucketed_timestamp = self._bucket_timestamp(timestamp)
-
-        assert isinstance(self._buffer, dict)
-        if bucketed_timestamp not in self._buffer:
-            self._buffer[bucketed_timestamp] = {}
-
-        self._buffer[bucketed_timestamp][name] = value
-        if len(self._buffer) > self._hi_wm:
-            logger.warning('Wide buffer reached high watermark')
-            if self._write_future is not None:
-                self._write_future.result()
-            self.background_sync()
         elif len(self._buffer) > self._low_wm:
             self.background_sync()
 
