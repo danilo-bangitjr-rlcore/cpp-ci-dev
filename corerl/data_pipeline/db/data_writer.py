@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 class TagDBConfig(BufferedWriterConfig):
     table_name: str = "sensors"
     data_agg: Agg = Agg.avg
+    wide_format: bool = False
 
 
 class Point(NamedTuple):
