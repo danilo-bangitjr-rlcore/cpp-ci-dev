@@ -174,7 +174,7 @@ class GACPolicyManager:
             direct_actions = policy_actions
         return direct_actions
 
-    def _sample_actor(self, states: torch.Tensor) -> torch.Tensor:
+    def _sample_actor(self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor) -> torch.Tensor:
         """
         Samples actions from the actor
         """
@@ -194,17 +194,23 @@ class GACPolicyManager:
         with torch.no_grad():
             policy_actions, _ = self.sampler.forward(states)  # actions normalized with respect to the operating range
         if self.cfg.even_dispersed_uniform:
-            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions, self.cfg.uniform_weight)
+            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions,
+                                                                  action_lo,
+                                                                  action_hi,
+                                                                  self.cfg.uniform_weight)
         else:
-            policy_actions = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
+            policy_actions = mix_uniform_actions(policy_actions, action_lo, action_hi, self.cfg.uniform_weight)
         return policy_actions
 
-    def _sample_uniform(self, states: torch.Tensor):
-        return torch.rand(states.size(0), self.action_dim, device=device.device)
+    def _sample_uniform(self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor):
+        uniform_actions = torch.rand(states.size(0), self.action_dim, device=device.device)
+        bounded_uniform_actions = (action_hi - action_lo) * uniform_actions + action_lo
+
+        return bounded_uniform_actions
 
     def _rejection_sample(
             self,
-            sampler: Callable[[torch.Tensor], torch.Tensor],
+            sampler: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
             states: torch.Tensor,
             prev_direct_actions: torch.Tensor,
             action_lo: torch.Tensor,
@@ -227,7 +233,7 @@ class GACPolicyManager:
             invalid_mask = (direct_actions<OUTPUT_MIN) | (direct_actions>OUTPUT_MAX)
             invalid_mask = invalid_mask.any(dim=1)
             # resample invalid actions
-            policy_actions[invalid_mask] = sampler(states[invalid_mask])
+            policy_actions[invalid_mask] = sampler(states[invalid_mask], action_lo, action_hi)
             direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
             if itr == max_itr - 1:
@@ -235,7 +241,7 @@ class GACPolicyManager:
                     f"Maximum iterations ({max_itr}) in rejection sampling reached..."
                     + "defaulting to sampling uniform"
                 )
-                policy_actions[invalid_mask] = self._sample_uniform(states[invalid_mask])
+                policy_actions[invalid_mask] = self._sample_uniform(states[invalid_mask], action_lo, action_hi)
                 direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
         # Clip the direct actions. This should be unnecessary if rejection sampling is successful
@@ -244,13 +250,13 @@ class GACPolicyManager:
 
     def _get_actions(
         self,
-        sampler: Callable[[torch.Tensor], torch.Tensor],
+        sampler: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
         states: torch.Tensor,
         prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
-        policy_actions = sampler(states)
+        policy_actions = sampler(states, action_lo, action_hi)
         direct_actions = self.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
 
         if self.cfg.delta_actions and self.cfg.delta_rejection_sample:
