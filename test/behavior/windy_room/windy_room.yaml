@@ -8,9 +8,9 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment:
-  exp_name: "windy_room"
-  max_steps: 5000
+max_steps: 1500
+
+agent:
   gamma: 0.95
 
 pipeline:
@@ -27,13 +27,11 @@ pipeline:
 
   - name: action-0
     type: ai_setpoint
-    change_bounds: [-1, 1]
     operating_range: [-1, 1]
     action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
 
   - name: action-1
     type: ai_setpoint
-    change_bounds: [-1, 1]
     operating_range: [-1, 1]
     action_bounds: ['{action-1}-0.3', '{action-1}+0.3']
 

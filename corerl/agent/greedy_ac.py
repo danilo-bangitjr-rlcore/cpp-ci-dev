@@ -78,10 +78,6 @@ class GreedyAC(BaseAgent):
         self.ensemble = self.cfg.critic.buffer.ensemble
 
     @property
-    def delta_actions(self) -> bool:
-        return self._policy_manager.cfg.delta_actions
-
-    @property
     def actor_percentile(self) -> float:
         return self._policy_manager.cfg.actor_percentile
 
@@ -102,7 +98,6 @@ class GreedyAC(BaseAgent):
     def get_action_interaction(
         self,
         state: np.ndarray,
-        prev_direct_action: np.ndarray,
         action_lo: np.ndarray,
         action_hi: np.ndarray,
     ) -> np.ndarray:
@@ -113,14 +108,11 @@ class GreedyAC(BaseAgent):
 
         tensor_state = tensor(state, device.device)
         tensor_state = tensor_state.unsqueeze(0)
-        tensor_prev_direct_action = tensor(prev_direct_action, device.device)
-        tensor_prev_direct_action = tensor_prev_direct_action.unsqueeze(0)
         tensor_action_lo = tensor(action_lo, device.device).unsqueeze(0)
         tensor_action_hi = tensor(action_hi, device.device).unsqueeze(0)
 
         ar = self._policy_manager.get_actor_actions(
             tensor_state,
-            tensor_prev_direct_action,
             tensor_action_lo,
             tensor_action_hi,
             self.critic
@@ -131,7 +123,6 @@ class GreedyAC(BaseAgent):
 
     def policy_to_direct_action(
         self,
-        prev_direct_actions: torch.Tensor,
         policy_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -139,12 +130,11 @@ class GreedyAC(BaseAgent):
         """
         Converts policy actions to direct actions.
         """
-        return self._policy_manager.ensure_direct_action(prev_direct_actions, action_lo, action_hi, policy_actions)
+        return self._policy_manager.ensure_direct_action(action_lo, action_hi, policy_actions)
 
     def get_actor_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
@@ -153,7 +143,6 @@ class GreedyAC(BaseAgent):
         """
         return self._policy_manager.get_actor_actions(
             states,
-            prev_direct_actions,
             action_lo,
             action_hi,
             self.critic,
@@ -162,7 +151,6 @@ class GreedyAC(BaseAgent):
     def get_sampler_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
@@ -171,7 +159,6 @@ class GreedyAC(BaseAgent):
         """
         return self._policy_manager.get_sampler_actions(
             states,
-            prev_direct_actions,
             action_lo,
             action_hi
         )
@@ -179,7 +166,6 @@ class GreedyAC(BaseAgent):
     def get_uniform_actions(
         self,
         states: torch.Tensor,
-        prev_direct_actions: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
@@ -188,7 +174,6 @@ class GreedyAC(BaseAgent):
         """
         return self._policy_manager.get_uniform_actions(
             states,
-            prev_direct_actions,
             action_lo,
             action_hi
         )
@@ -247,7 +232,6 @@ class GreedyAC(BaseAgent):
                 dp_mask = batch.post.dp
                 ar = self._policy_manager.get_actor_actions(
                     batch.post.state,
-                    cur_action,
                     batch.post.action_lo,
                     batch.post.action_hi,
                     self.critic,

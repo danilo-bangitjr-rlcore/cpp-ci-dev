@@ -17,6 +17,7 @@ interaction:
 
 agent:
   name: greedy_ac
+  gamma: 0.99
 
 env:
   name: dep_async_env
@@ -26,11 +27,11 @@ env:
   # opc_conn_url: "opc.tcp://ignition-services:62541"
   action_tolerance: 01:00:00
 
-experiment:
-  exp_name: cenovus
-  save_path: output
-  max_steps: 10000
-  seed: 1
+agent_name: cenovus
+save_path: output
+max_steps: 10000
+seed: 1
+
+offline:
   offline_steps: 10
   pipeline_batch_duration: 7 days
-  gamma: 0.99

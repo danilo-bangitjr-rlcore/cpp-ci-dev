@@ -8,30 +8,13 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment:
-  exp_name: "saturation-goals"
-  seed: 1
-  gamma: 0.99
-  max_steps: 4000
+seed: 1
+max_steps: 4000
 
 agent:
-  name: greedy_ac
-  policy:
-    optimizer:
-      lr: 0.001
-
-
-eval_cfgs:
-  monte_carlo:
-    enabled: True
-    precision: 0.9
+  gamma: 0.99
 
 pipeline:
-  state_constructor:
-    defaults:
-    - name: multi_trace
-      trace_values: [0., 0.75, 0.95]
-
   reward:
     priorities:
       - op: up_to

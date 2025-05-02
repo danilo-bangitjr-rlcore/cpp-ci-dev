@@ -1,3 +1,4 @@
+import logging
 from functools import partial
 
 import numpy as np
@@ -10,12 +11,14 @@ from corerl.environment.reward.config import Goal, JointGoal, Optimization, Rewa
 from corerl.utils.math import put_in_range
 from corerl.utils.maybe import Maybe
 
+logger = logging.getLogger(__name__)
 
 class GoalConstructor:
     def __init__(self, reward_cfg: RewardConfig, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         self._cfg = reward_cfg
         self._tag_cfgs = tag_cfgs
         self._prep_stage = prep_stage
+        self.ignore_oob_tags_in_compound_goals = reward_cfg.ignore_oob_tags_in_compound_goals
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         # denormalize all tags before checking constraint violations
@@ -89,6 +92,32 @@ class GoalConstructor:
         return (x - lo) / (hi - lo)
 
 
+    def _row_is_out_of_operating_range(self, goal: Goal, row: pd.DataFrame) -> bool:
+        """
+        Check if the row goal is out of bounds with respect to the tag configuration operating range.
+        """
+        tag_config = (
+            Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
+            .expect(f'Was unable to find tag config for tag: {goal.tag}')
+        )
+        if tag_config.operating_range is None:
+            # no operating range, so no out of bounds
+            return False
+
+        x = row[goal.tag].to_numpy()[0]
+        if np.isnan(x):
+            return True
+
+        [op_lo, op_high] = tag_config.operating_range
+        if op_lo is not None and x < op_lo:
+            return True
+
+        if op_high is not None and x > op_high:
+            return True
+
+        return False
+
+
     def _priority_violation_percent(self, priority: Goal | JointGoal, row: pd.DataFrame) -> float:
         """
         Because a priority can be composed of an arbitrary tree of Goals,
@@ -103,12 +132,40 @@ class GoalConstructor:
           - E.g. min tag1 -> 0.5 OR max tag2 -> 0.9
         then the violation percent is the min violation between the two goals, indicating a
         pressure to focus on whichever goal is closest to being achieved.
+
+        If oob_tags_in_compound_goals is enabled, we drop tags that are out of operating range bounds.
+        The nuance here is that we treat or/and differently.
+        Dropping a tag from an AND is equivalent to satisfied subgoal (AND-ing with True identity).
+        If the tag is part of an OR compound goal, it should be failing (OR-ing with Fail identity).
         """
         if isinstance(priority, JointGoal):
-            violation_percents = [self._priority_violation_percent(goal, row) for goal in priority.goals]
+            violation_percents = [
+                (goal, self._priority_violation_percent(goal, row))
+                for goal in priority.goals
+            ]
+
+            for idx, (goal, _) in enumerate(violation_percents):
+                if (
+                    self.ignore_oob_tags_in_compound_goals
+                    and isinstance(goal, Goal)
+                    and self._row_is_out_of_operating_range(goal, row)
+                ):
+                    if priority.op == 'and':
+                        # drop the tag from the AND
+                        violation_percents[idx] = (goal, 0)
+                        logger.warning(
+                            f"Goal {goal.tag} is out of operating range. Setting violation percent to 0 for AND goal."
+                        )
+                    else:
+                        # drop the tag from the OR
+                        violation_percents[idx] = (goal, 1)
+                        logger.warning(
+                            f"Goal {goal.tag} is out of operating range. Setting violation percent to 1 for OR goal."
+                        )
+
             if priority.op == 'and':
-                return np.max(violation_percents)
-            return np.min(violation_percents)
+                return np.max([pct[1] for pct in violation_percents])
+            return np.min([pct[1] for pct in violation_percents])
 
         return self._goal_violation_percent(priority, row)
 

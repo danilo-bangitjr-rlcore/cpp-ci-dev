@@ -1,7 +1,4 @@
-experiment:
-  exp_name: MountainCarContinuous
-  seed: 1
-  gamma: 0.99
+seed: 1
 
 interaction:
   name: sim_interaction
@@ -19,6 +16,7 @@ env:
 
 agent:
   name: greedy_ac
+  gamma: 0.99
 
 pipeline:
   tags:

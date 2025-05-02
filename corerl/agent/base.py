@@ -29,19 +29,13 @@ class BaseAgentConfig:
     Number of algorithm updates per step.
     """
 
-    gamma: float = MISSING
+    gamma: float = 0.9
     seed: int = MISSING
-
-    @computed('gamma')
-    @classmethod
-    def _gamma(cls, cfg: 'MainConfig'):
-        return cfg.experiment.gamma
-
 
     @computed('seed')
     @classmethod
     def _seed(cls, cfg: 'MainConfig'):
-        return cfg.experiment.seed
+        return cfg.seed
 
 
 class BaseAgent(ABC):
@@ -58,7 +52,6 @@ class BaseAgent(ABC):
     def get_action_interaction(
         self,
         state: numpy.ndarray,
-        prev_direct_action: numpy.ndarray,
         action_lo: numpy.ndarray,
         action_hi: numpy.ndarray,
     ) -> numpy.ndarray:  # must return a numpy array, not a tensor.

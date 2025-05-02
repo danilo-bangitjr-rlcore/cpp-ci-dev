@@ -8,9 +8,9 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-experiment :
-  exp_name : "distraction_world"
-  max_steps: 300
+max_steps: 300
+
+agent:
   gamma: 0
 
 pipeline:
@@ -27,7 +27,6 @@ pipeline:
 
   - name: action-0
     type: ai_setpoint
-    change_bounds: [-1, 1]
     action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
     operating_range:
     - 0.0
