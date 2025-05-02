@@ -84,6 +84,9 @@ class FeatureFlags:
     # 2025-04-25
     use_residual: bool = False
 
+    # 2025-04-29
+    recency_bias_buffer: bool = False
+
     # 2025-04-28
     prod_265_ignore_oob_tags_in_compound_goals: bool = False
 
@@ -157,6 +160,14 @@ class MainConfig:
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
 
+    @post_processor
+    def _enable_recency_bias_buffer(self, cfg: 'MainConfig'):
+        if not self.feature_flags.recency_bias_buffer:
+            return
+
+        assert self.agent.critic.buffer.name == 'recency_bias_buffer'
+        assert self.agent.policy.buffer.name == 'recency_bias_buffer'
+
     @computed('save_path')
     @classmethod
     def _save_path(cls, cfg: 'MainConfig'):
@@ -172,3 +183,4 @@ class MainConfig:
             yaml.safe_dump(json.loads(cfg_json), f)
 
         return save_path
+

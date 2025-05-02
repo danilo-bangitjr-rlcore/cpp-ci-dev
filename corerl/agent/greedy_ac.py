@@ -8,7 +8,7 @@ import torch
 from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.buffer import MixedHistoryBuffer
+from corerl.component.buffer import buffer_group
 from corerl.component.critic.ensemble_critic import CriticConfig, EnsembleCritic
 from corerl.component.network.utils import tensor, to_np
 from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
@@ -73,7 +73,7 @@ class GreedyAC(BaseAgent):
 
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
         self.critic = EnsembleCritic(cfg.critic, app_state, self.state_dim, self.action_dim)
-        self.critic_buffer = MixedHistoryBuffer(cfg.critic.buffer, app_state)
+        self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
 
