@@ -387,7 +387,7 @@ class QPDFPlotsConfig:
     # number of samples for the primary action (i.e. the values on the x-axis)
     primary_action_samples: int = 100
     # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
-    other_action_samples: int = 100
+    other_action_samples: int = 10
 
 def q_values_and_act_prob(
         app_state: AppState,
@@ -425,7 +425,11 @@ def q_values_and_act_prob(
         cfg.primary_action_samples*cfg.other_action_samples, 1)
 
     # sample actions for the actor
-    policy_actions = agent._policy_manager._sample_actor(repeated_states)
+    ar = agent._policy_manager.get_actor_actions(repeated_states,
+                                                 repeated_prev_a,
+                                                 repeated_action_lo,
+                                                 repeated_action_hi)
+    policy_actions = ar.direct_actions
 
     # get actions for each action dimension we are interested in.
     lin_spaced_actions = torch.linspace(
@@ -447,11 +451,7 @@ def q_values_and_act_prob(
             cfg.primary_action_samples,
             cfg.other_action_samples,
         ).mean(dim=1)
-        # convert these policy actions to direct action
-        direct_actions = agent.policy_to_direct_action(
-            repeated_prev_a, augmented_policy_actions, repeated_action_lo, repeated_action_hi
-        )
-        direct_actions = torch.clip(direct_actions, 0, 1)
+        direct_actions = augmented_policy_actions
 
         lin_spaced_actions_in_da_space = direct_actions[:, a_dim_idx].unique()
         measure = XYEval(data=[
