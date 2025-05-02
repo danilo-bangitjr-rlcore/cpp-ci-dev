@@ -23,7 +23,7 @@ from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
-from corerl.utils.list import find, sort_by
+from corerl.utils.list import sort_by
 from corerl.utils.maybe import Maybe
 from corerl.utils.time import clock_generator, split_into_chunks
 
