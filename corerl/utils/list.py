@@ -72,6 +72,6 @@ def sort_by[T, U](a: list[T], b: list[U]) -> tuple[list[T], list[U]]:
     sorts a and b by b, then returns both lists sorted
     """
     paired = list(zip(a, b, strict=True))
-    sorted_pairs = sorted(paired, key=lambda pair: pair[1])
+    sorted_pairs = sorted(paired, key=lambda pair: pair[1]) # type: ignore
     sorted_a, sorted_b = zip(*sorted_pairs, strict=True)
     return list(sorted_a), list(sorted_b)
