@@ -176,7 +176,7 @@ class SquashedGaussianPolicyConfig(BaseNNConfig):
 
     head_activation: HeadActivation = list_([
         [{"name": "identity"}],
-        [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}],
+        [{"name": "clamp", "args": [-8, 2]}, {"name": "exp"}],
     ])
 
 
