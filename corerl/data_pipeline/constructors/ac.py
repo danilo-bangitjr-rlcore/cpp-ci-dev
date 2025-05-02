@@ -46,15 +46,15 @@ class ActionConstructor:
                 lo_val = max(Maybe(operating_range[0]).expect(), lo)
                 hi_val = min(Maybe(operating_range[1]).expect(), hi)
 
-                a_lo[action_tag.name] = self._prep_stage.normalize(action_tag.name, lo_val)
-                a_hi[action_tag.name] = self._prep_stage.normalize(action_tag.name, hi_val)
+                a_lo[f"{action_tag.name}-lo"] = self._prep_stage.normalize(action_tag.name, lo_val)
+                a_hi[f"{action_tag.name}-hi"] = self._prep_stage.normalize(action_tag.name, hi_val)
 
             a_los.append(a_lo)
             a_his.append(a_hi)
 
         pf.actions = pf.data.loc[:, self.columns] # self.columns is sorted
-        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index).loc[:, self.columns]
-        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index).loc[:, self.columns]
+        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index)
+        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index)
 
         return pf
 
