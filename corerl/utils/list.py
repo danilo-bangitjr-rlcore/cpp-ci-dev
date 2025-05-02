@@ -67,7 +67,7 @@ def multi_level_sort(
     return sorted_vals
 
 
-def sort_by(a: list[Any], b:list[Any]):
+def sort_by[T, U](a: list[T], b: list[U]) -> tuple[list[T], list[U]]:
     """
     sorts a and b by b, then returns both lists sorted
     """
