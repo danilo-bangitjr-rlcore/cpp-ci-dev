@@ -246,7 +246,7 @@ class GreedyAC(BaseAgent):
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
-            return []
+            return [0 for _ in range(self.ensemble)]
 
         batches = self.critic_buffer.sample()
         bootstrap_actions = self._get_bootstrap_actions(batches)
