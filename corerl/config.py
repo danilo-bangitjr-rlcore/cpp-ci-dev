@@ -190,12 +190,13 @@ class MainConfig:
             return
 
         self.agent.critic.critic_optimizer = AdamConfig(
-            lr=0.0005,
+            lr=0.001,
+            weight_decay=0.001,
         )
         self.agent.policy.optimizer = AdamConfig(
-            lr=0.0005,
+            lr=0.001,
+            weight_decay=0.001,
         )
 
-        # note this is n updates **per actor update**
-        self.agent.n_critic_updates = 1
-        self.agent.n_actor_updates = 5
+        self.agent.max_critic_updates = 10
+        self.agent.policy.prop_percentile_learned = 0.9
