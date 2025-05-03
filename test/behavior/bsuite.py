@@ -56,6 +56,7 @@ class BSuiteTestCase:
             'seed': self.seed,
             'metrics.enabled': True,
             'evals.enabled': True,
+            'silent': True,
         } | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
@@ -64,7 +65,6 @@ class BSuiteTestCase:
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.config,
-            'experiment.silent=true',
         ] + parts)
         proc.check_returncode()
 
