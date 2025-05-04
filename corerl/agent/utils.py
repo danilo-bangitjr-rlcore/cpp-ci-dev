@@ -104,26 +104,23 @@ def get_sampled_qs(
     sampler: Sampler,
     critic: ValueEstimator
 ) -> SampledQReturn:
-
     batch_size = states.size(0)
 
-    repeated_states = states.repeat_interleave(n_samples, dim=0)
-    repeated_action_lo = action_lo.repeat_interleave(n_samples, dim=0)
-    repeated_action_hi = action_hi.repeat_interleave(n_samples, dim=0)
     ar = sampler(
         n_samples,
-        repeated_states,
-        repeated_action_lo,
-        repeated_action_hi,
+        states,
+        action_lo,
+        action_hi,
     )
-    q_values = critic.get_values([repeated_states], [ar.direct_actions]).reduced_value
+
+    repeated_states = states.repeat_interleave(n_samples, dim=0)
+    actions = ar.direct_actions.reshape(batch_size * n_samples, -1)
+    q_values = critic.get_values([repeated_states], [actions]).reduced_value
     q_values = q_values.reshape(batch_size, n_samples)
 
     states = repeated_states.reshape(batch_size, n_samples, -1)
-    direct_actions = ar.direct_actions.reshape(batch_size, n_samples, -1)
-    policy_actions = ar.policy_actions.reshape(batch_size, n_samples, -1)
 
-    return SampledQReturn(q_values, states, direct_actions, policy_actions)
+    return SampledQReturn(q_values, states, ar.direct_actions, ar.policy_actions)
 
 def mix_uniform_actions(policy_actions: torch.Tensor, uniform_weight: float) -> torch.Tensor:
     batch_size = policy_actions.size(0)

@@ -77,9 +77,15 @@ class MonteCarloEvaluator:
         under a few actions sampled from the agent's policy and averaging them.
         Returns a given state's value when the partial return horizon has elapsed.
         """
-        repeat_state = state.repeat((self.critic_samples, 1))
-        ar = self.agent.get_actor_actions(self.critic_samples, repeat_state, action_lo, action_hi)
-        sampled_actions = ar.direct_actions
+        # add batch dimension to everything
+        state = state.unsqueeze(0)
+        action_lo = action_lo.unsqueeze(0)
+        action_hi = action_hi.unsqueeze(0)
+
+        ar = self.agent.get_actor_actions(self.critic_samples, state, action_lo, action_hi)
+
+        repeat_state = state.repeat_interleave(self.critic_samples, dim=0)
+        sampled_actions = ar.direct_actions.reshape(state.size(0) * self.critic_samples, -1)
         sampled_a_qs = self.agent.critic.get_values(
             [repeat_state],
             [sampled_actions],

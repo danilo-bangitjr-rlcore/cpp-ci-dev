@@ -142,8 +142,8 @@ class GreedyAC(BaseAgent):
             self.critic
         )
         direct_action = ar.direct_actions
-
-        return to_np(direct_action)[0]
+        assert direct_action.shape == (1, 1, self.action_dim)
+        return to_np(direct_action.squeeze(0, 1))
 
     def policy_to_direct_action(
         self,
@@ -259,7 +259,6 @@ class GreedyAC(BaseAgent):
         for batch in batches:
             with torch.no_grad():
                 cur_action = batch.post.action
-                dp_mask = batch.post.dp
                 ar = self._policy_manager.get_actor_actions(
                     1,
                     batch.post.state,
@@ -267,6 +266,12 @@ class GreedyAC(BaseAgent):
                     batch.post.action_hi,
                     self.critic,
                 )
+                # add a singleton dimension over action_dim to forcefully broadcast
+                # over the action_dim
+                dp_mask = batch.post.dp.unsqueeze(2)
+                # add a singleton dimension over n_samples to forcefully broadcast
+                # across action samples
+                cur_action = cur_action.unsqueeze(1)
                 next_direct_actions = ar.direct_actions
                 next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
 

@@ -61,7 +61,9 @@ class MockSampler:
     def get_actions(
         self, n_samples: int, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
     ):
-        policy_actions = torch.ones_like(action_lo) * 0.5
+        batch_size = action_lo.size(0)
+        action_dim = action_lo.size(1)
+        policy_actions = torch.ones((batch_size, n_samples, action_dim)) * 0.5
         direct_actions = action_lo + policy_actions
         return ActionReturn(direct_actions, policy_actions)
 
@@ -117,7 +119,7 @@ def test_get_sampled_qs():
 
     assert torch.equal(result.states, expected_states), "States mismatch"
 
-    expected_direct_actions = torch.tensor([
+    expected_policy_actions = torch.tensor([
         [[0.5, 0.5],
          [0.5, 0.5]],
 
@@ -125,4 +127,4 @@ def test_get_sampled_qs():
          [0.5, 0.5]],
     ])
 
-    assert torch.equal(result.direct_actions, expected_direct_actions), "Direct actions mismatch"
+    assert torch.equal(result.policy_actions, expected_policy_actions), "Policy actions mismatch"
