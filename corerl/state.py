@@ -2,25 +2,37 @@ from __future__ import annotations
 
 import pickle
 import threading
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Protocol
 
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
+from corerl.messages.events import Event, EventTopic, EventType
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
-    from corerl.messages.event_bus import DummyEventBus, EventBus
+
+
+type Callback = Callable[[Event], Any]
+class IEventBus(Protocol):
+    def start(self): ...
+    def cleanup(self): ...
+    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app): ...
+    def attach_callback(self, event_type: EventType, cb: Callback): ...
+    def attach_callbacks(self, cbs: dict[EventType, Callback]): ...
 
 
 @dataclass
-class AppState:
+class AppState[
+    EventBus: IEventBus
+]:
     cfg: MainConfig
     evals: EvalsTable
     metrics: MetricsTable
-    event_bus: EventBus | DummyEventBus
+    event_bus: EventBus
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
     stop_event: threading.Event = field(default_factory=threading.Event)

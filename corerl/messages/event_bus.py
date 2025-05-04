@@ -1,6 +1,6 @@
 import logging
 import threading
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Callable
 from queue import Empty, Queue
 from typing import Any
@@ -118,12 +118,26 @@ class EventBus:
 
 
 class DummyEventBus:
+    def __init__(self, queue_size: int = 10):
+        self._queue = deque[Event](maxlen=queue_size)
+
     def listen_forever(self):
         while True:
             yield
 
+    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
+        if isinstance(event, EventType):
+            event = Event(type=event)
+
+        self._queue.append(event)
+
+    def get_last_events(self, n: int | None = None):
+        if n is None:
+            return list(self._queue)
+
+        return [self._queue[-i] for i in range(1, n + 1)]
+
     def start(self): ...
     def attach_callback(self, event_type: EventType, cb: Callback): ...
     def attach_callbacks(self, cbs: dict[EventType, Callback]): ...
-    def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app): ...
     def cleanup(self): ...
