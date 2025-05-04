@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 from math import ceil
-from typing import TYPE_CHECKING, Callable, NamedTuple, Protocol
+from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 import torch
 
@@ -77,7 +79,13 @@ class SampledQReturn(NamedTuple):
     direct_actions: torch.Tensor
     policy_actions: torch.Tensor
 
-Sampler = Callable[[torch.Tensor, torch.Tensor, torch.Tensor], "ActionReturn"]
+class Sampler(Protocol):
+    def __call__(
+        self,
+        states: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+    ) -> ActionReturn: ...
 
 class ValueEstimator(Protocol):
     def get_values(
