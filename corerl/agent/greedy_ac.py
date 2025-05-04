@@ -135,6 +135,7 @@ class GreedyAC(BaseAgent):
         tensor_action_hi = tensor(action_hi, device.device).unsqueeze(0)
 
         ar = self._policy_manager.get_actor_actions(
+            1,
             tensor_state,
             tensor_action_lo,
             tensor_action_hi,
@@ -157,6 +158,7 @@ class GreedyAC(BaseAgent):
 
     def get_actor_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -165,6 +167,7 @@ class GreedyAC(BaseAgent):
         Sample actions from actor and return both direct and policy actions.
         """
         return self._policy_manager.get_actor_actions(
+            n_samples,
             states,
             action_lo,
             action_hi,
@@ -173,6 +176,7 @@ class GreedyAC(BaseAgent):
 
     def get_sampler_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -181,6 +185,7 @@ class GreedyAC(BaseAgent):
         Sample actions from sampler and return both direct and policy actions.
         """
         return self._policy_manager.get_sampler_actions(
+            n_samples,
             states,
             action_lo,
             action_hi
@@ -188,6 +193,7 @@ class GreedyAC(BaseAgent):
 
     def get_uniform_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -196,6 +202,7 @@ class GreedyAC(BaseAgent):
         Sample actions UAR and return both direct and policy actions.
         """
         return self._policy_manager.get_uniform_actions(
+            n_samples,
             states,
             action_lo,
             action_hi
@@ -254,6 +261,7 @@ class GreedyAC(BaseAgent):
                 cur_action = batch.post.action
                 dp_mask = batch.post.dp
                 ar = self._policy_manager.get_actor_actions(
+                    1,
                     batch.post.state,
                     batch.post.action_lo,
                     batch.post.action_hi,

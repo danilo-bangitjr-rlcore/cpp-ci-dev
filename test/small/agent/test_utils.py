@@ -59,7 +59,7 @@ def test_grab_percentile_multi_key():
 
 class MockSampler:
     def get_actions(
-        self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
+        self, n_samples: int, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
     ):
         policy_actions = torch.ones_like(action_lo) * 0.5
         direct_actions = action_lo + policy_actions

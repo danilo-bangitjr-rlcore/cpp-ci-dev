@@ -78,7 +78,7 @@ class MonteCarloEvaluator:
         Returns a given state's value when the partial return horizon has elapsed.
         """
         repeat_state = state.repeat((self.critic_samples, 1))
-        ar = self.agent.get_actor_actions(repeat_state, action_lo, action_hi)
+        ar = self.agent.get_actor_actions(self.critic_samples, repeat_state, action_lo, action_hi)
         sampled_actions = ar.direct_actions
         sampled_a_qs = self.agent.critic.get_values(
             [repeat_state],

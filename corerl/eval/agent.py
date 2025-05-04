@@ -117,6 +117,7 @@ def _policy_variance(
     repeated_action_hi = action_hi.repeat_interleave(cfg.n_samples, dim=0)
 
     ar = agent.get_actor_actions(
+        cfg.n_samples,
         repeated_state,
         repeated_action_lo,
         repeated_action_hi,
@@ -125,6 +126,7 @@ def _policy_variance(
     actor_sample_var = torch.var(sampled_policy_actions, dim=0)
 
     ar = agent.get_sampler_actions(
+        cfg.n_samples,
         repeated_state,
         repeated_action_lo,
         repeated_action_hi,

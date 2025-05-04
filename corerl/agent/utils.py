@@ -82,6 +82,7 @@ class SampledQReturn(NamedTuple):
 class Sampler(Protocol):
     def __call__(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -110,6 +111,7 @@ def get_sampled_qs(
     repeated_action_lo = action_lo.repeat_interleave(n_samples, dim=0)
     repeated_action_hi = action_hi.repeat_interleave(n_samples, dim=0)
     ar = sampler(
+        n_samples,
         repeated_states,
         repeated_action_lo,
         repeated_action_hi,

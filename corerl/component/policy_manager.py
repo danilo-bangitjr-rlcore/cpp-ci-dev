@@ -242,6 +242,7 @@ class GACPolicyManager:
 
     def get_actor_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -258,6 +259,7 @@ class GACPolicyManager:
 
     def get_sampler_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -270,6 +272,7 @@ class GACPolicyManager:
 
     def get_uniform_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
