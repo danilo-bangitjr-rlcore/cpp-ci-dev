@@ -11,10 +11,10 @@ if TYPE_CHECKING:
 
 
 def grab_top_n(
-        values: torch.Tensor,
-        keys: list[torch.Tensor],
-        n: int,
-    ) -> list[torch.Tensor]:
+    values: torch.Tensor,
+    keys: list[torch.Tensor],
+    n: int,
+) -> list[torch.Tensor]:
     sanitize_grab_top_n(values, keys)
     if n == 1:
         sorted_inds = torch.argmax(values, dim=1, keepdim=True)
@@ -35,8 +35,8 @@ def grab_top_n(
 
 def sanitize_grab_top_n(
         values: torch.Tensor,
-        keys: list[torch.Tensor],
-    ):
+    keys: list[torch.Tensor],
+):
     """
     In policy update:
         values  <- action values with dim: batch x samples
@@ -53,18 +53,18 @@ def sanitize_grab_top_n(
     assert values.dim() == 2
 
 def grab_percentile(
-        values: torch.Tensor,
-        keys: list[torch.Tensor],
-        percentile: float,
-    ) -> list[torch.Tensor]:
+    values: torch.Tensor,
+    keys: list[torch.Tensor],
+    percentile: float,
+) -> list[torch.Tensor]:
     n_samples = values.size(1)
     top_n = ceil(percentile * n_samples)
     return grab_top_n(values, keys, top_n)
 
 def get_percentile_threshold(
-        q_vals: torch.Tensor,
-        percentile: float,
-    ):
+    q_vals: torch.Tensor,
+    percentile: float,
+):
     assert q_vals.dim() == 2
     n_samples = q_vals.size(1)
     top_n = ceil(percentile*n_samples)
@@ -72,10 +72,10 @@ def get_percentile_threshold(
     return top_n_values.min(dim=1).values
 
 class SampledQReturn(NamedTuple):
-    q_values : torch.Tensor
-    states : torch.Tensor
-    direct_actions : torch.Tensor
-    policy_actions : torch.Tensor
+    q_values: torch.Tensor
+    states: torch.Tensor
+    direct_actions: torch.Tensor
+    policy_actions: torch.Tensor
 
 Sampler = Callable[[torch.Tensor, torch.Tensor, torch.Tensor], "ActionReturn"]
 
@@ -92,9 +92,9 @@ def get_sampled_qs(
     action_lo: torch.Tensor,
     action_hi: torch.Tensor,
     n_samples: int,
-    sampler: Sampler ,
+    sampler: Sampler,
     critic: ValueEstimator
-    ) -> SampledQReturn:
+) -> SampledQReturn:
 
     batch_size = states.size(0)
 
