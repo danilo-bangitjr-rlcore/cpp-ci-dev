@@ -40,7 +40,11 @@ def create_tsdb_table_query(
         CREATE TABLE {schema_table} (
             {cols}
         );
-        SELECT create_hypertable('{schema_table}', '{time_column}', chunk_time_interval => INTERVAL '{cti}');
+        SELECT create_hypertable(
+            '{schema_table}', '{time_column}',
+            if_not_exists => TRUE,
+            chunk_time_interval => INTERVAL '{cti}'
+        );
         {idxs}
         ALTER TABLE {schema_table} SET (
             timescaledb.compress,

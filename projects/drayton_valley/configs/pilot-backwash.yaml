@@ -12,12 +12,9 @@ infra:
     port: 5432
     db_name: "postgres"
 
-experiment:
-  exp_name: pilot_backwash
-  save_path: outputs/pilot_bw
-  seed: 1
-  gamma: 0.99
-  is_simulation: False
+agent_name: pilot_backwash
+seed: 1
+is_simulation: False
 
 interaction:
   name: dep_interaction
@@ -43,6 +40,7 @@ env:
 
 agent:
   name: greedy_ac
+  gamma: 0.99
 
   critic:
     buffer:

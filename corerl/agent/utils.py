@@ -77,11 +77,10 @@ class SampledQReturn(NamedTuple):
     direct_actions : torch.Tensor
     policy_actions : torch.Tensor
 
-Sampler = Callable[[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], "ActionReturn"]
+Sampler = Callable[[torch.Tensor, torch.Tensor, torch.Tensor], "ActionReturn"]
 
 def get_sampled_qs(
     states: torch.Tensor,
-    prev_actions: torch.Tensor,
     action_lo: torch.Tensor,
     action_hi: torch.Tensor,
     n_samples: int,
@@ -92,12 +91,10 @@ def get_sampled_qs(
     batch_size = states.size(0)
 
     repeated_states = states.repeat_interleave(n_samples, dim=0)
-    repeated_prev_a = prev_actions.repeat_interleave(n_samples, dim=0)
     repeated_action_lo = action_lo.repeat_interleave(n_samples, dim=0)
     repeated_action_hi = action_hi.repeat_interleave(n_samples, dim=0)
     ar = sampler(
         repeated_states,
-        repeated_prev_a,
         repeated_action_lo,
         repeated_action_hi,
     )

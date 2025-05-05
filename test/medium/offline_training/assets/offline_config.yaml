@@ -1,7 +1,9 @@
-experiment:
-  gamma: 0.9
+offline:
   offline_steps: 100
   offline_eval_iters: [0]
+
+agent:
+  gamma: 0.9
 
 interaction:
   name: sim_interaction

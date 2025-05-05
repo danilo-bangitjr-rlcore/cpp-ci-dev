@@ -62,6 +62,12 @@ Priority = Goal | JointGoal | Optimization
 @config()
 class RewardConfig:
     priorities: list[Priority] = Field(default_factory=list, min_length=1)
+    ignore_oob_tags_in_compound_goals: bool = MISSING
+
+    @computed("ignore_oob_tags_in_compound_goals")
+    @classmethod
+    def _ignore_oob_tags_in_compound_goals(cls, cfg: MainConfig):
+        return cfg.feature_flags.prod_265_ignore_oob_tags_in_compound_goals
 
     # ----------------
     # -- Validators --

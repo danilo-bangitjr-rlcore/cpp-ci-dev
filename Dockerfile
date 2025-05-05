@@ -19,7 +19,7 @@ COPY ./pyproject.toml /app/pyproject.toml
 
 # Install the corerl dependencies
 RUN --mount=type=ssh \
-  uv pip compile --extra=coreenv_gh pyproject.toml -o deps.txt && \
+  uv pip compile pyproject.toml -o deps.txt && \
   # This step ensures that our dependencies exist in a folder called 'vendor'
   # which can be referenced within setuptools and added to our generated corerl wheel
   uv pip install --system --target /app/vendor -r deps.txt
@@ -32,7 +32,7 @@ RUN uv build --wheel
 
 # See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
 # Convert our wheel such that we only include .pyc files
-RUN uv pip install --system pyc_wheel &&\
+RUN uv pip install --system "pyc_wheel==1.3.0" &&\
   whl_file_name=$(ls /app/dist/corerl-*.whl) &&\
   python -m pyc_wheel "$whl_file_name"
 

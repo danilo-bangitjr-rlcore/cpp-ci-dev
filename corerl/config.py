@@ -1,17 +1,19 @@
+import json
+from datetime import datetime, timedelta
 from pathlib import Path
 
+import yaml
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.configs.config import config, post_processor
+from corerl.configs.config import MISSING, computed, config, list_, post_processor
+from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
-from corerl.data_pipeline.tag_config import TagType
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics import MetricsDBConfig
-from corerl.experiment.config import ExperimentConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
 
@@ -44,6 +46,8 @@ class InfraConfig:
     into the external system.
     """
     db: DBConfig = Field(default_factory=DBConfig)
+    device: str = 'cpu'
+    num_threads: int = 4
 
 
 @config()
@@ -63,9 +67,6 @@ class FeatureFlags:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.4238yb3saoju
     """
     # 2025-02-01
-    delta_actions: bool = False
-
-    # 2025-02-01
     ensemble: int = 1
 
     # 2025-03-01
@@ -83,6 +84,22 @@ class FeatureFlags:
     # 2025-04-25
     use_residual: bool = False
 
+    # 2025-04-29
+    recency_bias_buffer: bool = False
+
+    # 2025-04-28
+    prod_265_ignore_oob_tags_in_compound_goals: bool = False
+
+
+@config()
+class OfflineConfig:
+    offline_steps: int = 0
+    offline_eval_iters: list[int] = list_()
+    offline_start_time: datetime | None = None
+    offline_end_time: datetime | None = None
+    pipeline_batch_duration: timedelta = timedelta(days=7)
+
+
 @config()
 class MainConfig:
     """
@@ -95,9 +112,11 @@ class MainConfig:
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    experiment: ExperimentConfig = Field(default_factory=ExperimentConfig)
+    offline: OfflineConfig = Field(default_factory=OfflineConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
+    save_path: Path = MISSING
     log_path: Path | None = None
+    silent: bool = False
 
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
     metrics: MetricsDBConfig = Field(default_factory=MetricsDBConfig)
@@ -108,9 +127,17 @@ class MainConfig:
     database. Optionally can point to a local csv file.
     """
 
+    # -------------
+    # -- Problem --
+    # -------------
+    max_steps: int | None = None
+    seed: int = 0 # affects agent and env
+    is_simulation: bool = True
+
     # -----------
     # -- Agent --
     # -----------
+    agent_name: str = 'corey' # typically should indicate the process the agent is controlling
     env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
     interaction: InteractionConfig = Field(default_factory=InteractionConfig)
     agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
@@ -125,23 +152,6 @@ class MainConfig:
     # -- Computeds --
     # ---------------
     @post_processor
-    def _enable_delta_actions(self, cfg: 'MainConfig'):
-        if not self.feature_flags.delta_actions:
-            return
-
-        assert not self.feature_flags.action_bounds, "Behavior of delta actions + action bounds undefined"
-        sorted_tags = sorted(self.pipeline.tags, key=lambda x: x.name)
-        for tag in sorted_tags:
-            if tag.type != TagType.ai_setpoint:
-                continue
-
-            if tag.change_bounds is None:
-                tag.change_bounds = (-1, 1)
-
-            self.agent.policy.delta_bounds.append(tag.change_bounds)
-
-
-    @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble
         self.agent.critic.critic_network.ensemble = ensemble_size
@@ -149,3 +159,28 @@ class MainConfig:
 
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
+
+    @post_processor
+    def _enable_recency_bias_buffer(self, cfg: 'MainConfig'):
+        if not self.feature_flags.recency_bias_buffer:
+            return
+
+        assert self.agent.critic.buffer.name == 'recency_bias_buffer'
+        assert self.agent.policy.buffer.name == 'recency_bias_buffer'
+
+    @computed('save_path')
+    @classmethod
+    def _save_path(cls, cfg: 'MainConfig'):
+        save_path = (
+                Path('outputs') /
+                cfg.agent_name /
+                (f'seed-{cfg.seed}')
+        )
+
+        cfg_json = config_to_json(MainConfig, cfg)
+        save_path.mkdir(parents=True, exist_ok=True)
+        with open(save_path / "config.yaml", "w") as f:
+            yaml.safe_dump(json.loads(cfg_json), f)
+
+        return save_path
+

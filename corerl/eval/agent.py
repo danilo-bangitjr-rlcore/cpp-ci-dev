@@ -62,7 +62,7 @@ def agent_eval(
         for k, v in metrics.items():
             app_state.metrics.write(app_state.agent_step, k, v)
 
-SAEvalFn = Callable[[T, GreedyAC, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor], Sequence[torch.Tensor]]
+SAEvalFn = Callable[[T, GreedyAC, torch.Tensor, torch.Tensor, torch.Tensor], Sequence[torch.Tensor]]
 BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[torch.Tensor]]
 def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
     def batchified(cfg: EvalConfig, agent: GreedyAC):
@@ -73,11 +73,10 @@ def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
         assert len(batches) == 1
         batch = batches[0]
         state_batch = batch.prior.state
-        action_batch = batch.prior.action
         action_lo_batch = batch.prior.action_lo
         action_hi_batch = batch.prior.action_hi
 
-        return eval_fn(cfg, agent, state_batch, action_batch, action_lo_batch, action_hi_batch)
+        return eval_fn(cfg, agent, state_batch, action_lo_batch, action_hi_batch)
 
     return batchified
 
@@ -103,7 +102,6 @@ def _policy_variance(
     cfg: PolicyVarianceConfig,
     agent: GreedyAC,
     state: np.ndarray | torch.Tensor,
-    prev_action: np.ndarray | torch.Tensor,
     action_lo: np.ndarray | torch.Tensor,
     action_hi: np.ndarray | torch.Tensor,
 ) -> Sequence[torch.Tensor]:
@@ -111,19 +109,15 @@ def _policy_variance(
     Records the variance of the actions sampled by the actor and the sampler.
     """
     state = ensure_2d_tensor(state)
-    prev_action = ensure_2d_tensor(prev_action)
     action_lo = ensure_2d_tensor(action_lo)
     action_hi = ensure_2d_tensor(action_hi)
     assert state.size(0) == 1
-    assert prev_action.size(0) == 1
     repeated_state = state.repeat_interleave(cfg.n_samples, dim=0)
-    repeated_prev_action = prev_action.repeat_interleave(cfg.n_samples, dim=0)
     repeated_action_lo = action_lo.repeat_interleave(cfg.n_samples, dim=0)
     repeated_action_hi = action_hi.repeat_interleave(cfg.n_samples, dim=0)
 
     ar = agent.get_actor_actions(
         repeated_state,
-        repeated_prev_action,
         repeated_action_lo,
         repeated_action_hi,
     )
@@ -132,7 +126,6 @@ def _policy_variance(
 
     ar = agent.get_sampler_actions(
         repeated_state,
-        repeated_prev_action,
         repeated_action_lo,
         repeated_action_hi,
     )
@@ -144,7 +137,6 @@ def policy_variance(
         app_state: AppState,
         agent: BaseAgent,
         state: np.ndarray | torch.Tensor,
-        prev_action: np.ndarray | torch.Tensor,
         action_lo: np.ndarray | torch.Tensor,
         action_hi: np.ndarray | torch.Tensor,
         ):
@@ -155,7 +147,6 @@ def policy_variance(
         eval_fn=_policy_variance,
         metric_names=['actor_var', 'sampler_var'],
         state=state,
-        prev_action=prev_action,
         action_lo=action_lo,
         action_hi=action_hi
     )
@@ -219,7 +210,6 @@ def _greed_dist(
     cfg: GreedDistConfig,
     agent: GreedyAC,
     states: np.ndarray | torch.Tensor,
-    prev_actions: np.ndarray | torch.Tensor,
     action_lo: np.ndarray | torch.Tensor,
     action_hi: np.ndarray | torch.Tensor,
 ) -> Sequence[torch.Tensor]:
@@ -233,7 +223,6 @@ def _greed_dist(
     Returns the metric for each state in the batch.
     """
     states = ensure_2d_tensor(states)
-    prev_actions = ensure_2d_tensor(prev_actions)
     action_lo = ensure_2d_tensor(action_lo)
     action_hi = ensure_2d_tensor(action_hi)
     BATCH_SIZE = states.shape[0]
@@ -243,7 +232,6 @@ def _greed_dist(
 
     qr = get_sampled_qs(
         states=states,
-        prev_actions=prev_actions,
         action_lo=action_lo,
         action_hi=action_hi,
         n_samples=N_SAMPLES,
@@ -276,7 +264,6 @@ def greed_dist_online(
         app_state: AppState,
         agent: BaseAgent,
         states: np.ndarray | torch.Tensor,
-        prev_actions: np.ndarray | torch.Tensor,
         action_lo: np.ndarray | torch.Tensor,
         action_hi: np.ndarray | torch.Tensor,
     ):
@@ -287,7 +274,6 @@ def greed_dist_online(
         eval_fn=_greed_dist,
         metric_names=['greed_dist_online'],
         states=states,
-        prev_actions=prev_actions,
         action_lo=action_lo,
         action_hi=action_hi
     )
@@ -314,7 +300,6 @@ def _greed_values(
     cfg : GreedValuesConfig,
     agent: GreedyAC,
     states: np.ndarray | torch.Tensor,
-    prev_actions: np.ndarray | torch.Tensor,
     action_lo: np.ndarray | torch.Tensor,
     action_hi: np.ndarray | torch.Tensor,
 ) -> Sequence[torch.Tensor]:
@@ -328,12 +313,11 @@ def _greed_values(
         percentile = agent.actor_percentile
 
     states = ensure_2d_tensor(states)
-    prev_actions = ensure_2d_tensor(prev_actions)
     action_lo = ensure_2d_tensor(action_lo)
     action_hi = ensure_2d_tensor(action_hi)
 
     qr_sampler = get_sampled_qs(
-        states, prev_actions, action_lo, action_hi, n_samples,
+        states, action_lo, action_hi, n_samples,
         sampler=agent.get_sampler_actions,
         critic=agent.critic
     )
@@ -341,7 +325,7 @@ def _greed_values(
     percentile_q_threshold = get_percentile_threshold(q_values_sampler, percentile)
 
     qr_actor = get_sampled_qs(
-        states, prev_actions, action_lo, action_hi, n_samples,
+        states, action_lo, action_hi, n_samples,
         sampler=agent.get_actor_actions,
         critic=agent.critic
     )
@@ -354,7 +338,6 @@ def greed_values_online(
         app_state: AppState,
         agent: BaseAgent,
         states: np.ndarray | torch.Tensor,
-        prev_actions: np.ndarray | torch.Tensor,
         action_lo: np.ndarray | torch.Tensor,
         action_hi: np.ndarray | torch.Tensor,
     ):
@@ -365,7 +348,6 @@ def greed_values_online(
         eval_fn=_greed_values,
         metric_names=['greed_values_online'],
         states=states,
-        prev_actions=prev_actions,
         action_lo=action_lo,
         action_hi=action_hi
     )
@@ -393,7 +375,6 @@ def q_values_and_act_prob(
         app_state: AppState,
         agent: BaseAgent,
         state: np.ndarray | torch.Tensor,
-        prev_action: np.ndarray | torch.Tensor,
         action_lo: np.ndarray | torch.Tensor,
         action_hi: np.ndarray | torch.Tensor,
         ):
@@ -412,12 +393,9 @@ def q_values_and_act_prob(
         return
 
     state = ensure_2d_tensor(state)
-    prev_action = ensure_2d_tensor(prev_action)
     action_lo = ensure_2d_tensor(action_lo)
     action_hi = ensure_2d_tensor(action_hi)
     repeated_states = state.repeat(
-        cfg.primary_action_samples*cfg.other_action_samples, 1)
-    repeated_prev_a = prev_action.repeat(
         cfg.primary_action_samples*cfg.other_action_samples, 1)
     repeated_action_lo = action_lo.repeat(
         cfg.primary_action_samples*cfg.other_action_samples, 1)
@@ -426,7 +404,6 @@ def q_values_and_act_prob(
 
     # sample actions for the actor
     ar = agent._policy_manager.get_actor_actions(repeated_states,
-                                                 repeated_prev_a,
                                                  repeated_action_lo,
                                                  repeated_action_hi)
     policy_actions = ar.direct_actions

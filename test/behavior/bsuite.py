@@ -52,10 +52,11 @@ class BSuiteTestCase:
             'infra.db.port': port,
             'infra.db.db_name': db_name,
             'infra.db.schema': schema,
-            'experiment.num_threads': 1,
-            'experiment.seed': self.seed,
+            'infra.num_threads': 1,
+            'seed': self.seed,
             'metrics.enabled': True,
             'evals.enabled': True,
+            'silent': True,
         } | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
@@ -197,8 +198,8 @@ class BSuiteTestCase:
         elif name == 'min':
             return values.min()
         elif name == 'percent_of_steps':
-            assert self._cfg.experiment.max_steps is not None
-            return float(np.sum(values > 0) / self._cfg.experiment.max_steps)
+            assert self._cfg.max_steps is not None
+            return float(np.sum(values > 0) / self._cfg.max_steps)
         else:
             raise NotImplementedError
 

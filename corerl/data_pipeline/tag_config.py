@@ -107,6 +107,14 @@ class TagConfig:
     server. If unspecified, the tag name is used instead.
     """
 
+    dtype: str = 'float'
+    """
+    Kind: optional external
+
+    The datatype of the OPC data. Typically this will just be a float. In rare cases, this
+    may be a boolean, integer, or string.
+    """
+
     is_endogenous: bool = True
     """
     Kind: optional external
@@ -204,17 +212,6 @@ class TagConfig:
     In case that the yellow_bounds are specified as strings representing sympy functions,
     the yellow_bounds_function will hold the functions for computing the lower and/or upper ranges,
     and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    change_bounds: tuple[float, float] | None = None
-    """
-    Kind: required external
-    Requires: feature_flags.delta_actions
-
-
-    The maximal change between consecutive AI-controlled setpoint values, specified
-    as a percentage change between [-1, 1] inclusive.
-    If specified, this tag _must_ be an AI-controlled setpoint.
     """
 
     guardrail_schedule: GuardrailScheduleConfig | None = None

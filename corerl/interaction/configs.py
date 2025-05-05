@@ -74,7 +74,7 @@ class InteractionConfig:
     The start time of the first historical chunk to fetch.
     """
 
-    checkpoint_path: Path = Path('outputs/checkpoints')
+    checkpoint_path: Path = MISSING
     """
     Kind: internal
 
@@ -105,3 +105,7 @@ class InteractionConfig:
     def _update_period(cls, cfg: MainConfig):
         return cfg.interaction.obs_period
 
+    @computed('checkpoint_path')
+    @classmethod
+    def _checkpoint_path(cls, cfg: 'MainConfig'):
+        return Path('outputs') / cfg.agent_name / (f'seed-{cfg.seed}') / 'checkpoints'

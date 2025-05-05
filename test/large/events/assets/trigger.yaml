@@ -9,9 +9,7 @@ interaction:
   obs_period: 00:05:00
   action_period: 00:10:00
 
-experiment:
-  exp_name: "saturation"
-  max_steps: 10000
+max_steps: 10000
 
 
 pipeline:
