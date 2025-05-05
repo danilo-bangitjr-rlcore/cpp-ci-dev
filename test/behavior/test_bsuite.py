@@ -3,6 +3,7 @@ import pytest
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.behavior.bsuite import BSuiteTestCase
+from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.saturation.cases import (
@@ -49,6 +50,7 @@ TEST_CASES = [
     SetpointChangeSaturationTest(),
     SlowExpandingBoundsSaturationTest(),
     DeltaChangeSaturationTest(),
+    CalibrationTest()
 ]
 
 ZERO_ONE_FEATURES = [
