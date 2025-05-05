@@ -6,6 +6,7 @@ import yaml
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
@@ -184,3 +185,18 @@ class MainConfig:
 
         return save_path
 
+    def _enable_zone_violations(self, cfg: 'MainConfig'):
+        if not self.feature_flags.zone_violations:
+            return
+
+        self.agent.critic.critic_optimizer = AdamConfig(
+            lr=0.001,
+            weight_decay=0.001,
+        )
+        self.agent.policy.optimizer = AdamConfig(
+            lr=0.001,
+            weight_decay=0.001,
+        )
+
+        self.agent.max_critic_updates = 10
+        self.agent.policy.prop_percentile_learned = 0.9

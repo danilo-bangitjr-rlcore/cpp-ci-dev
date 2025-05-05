@@ -18,6 +18,7 @@ from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+from corerl.utils.math import exp_moving_avg
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +40,32 @@ class GreedyACConfig(BaseAgentConfig):
     critic: CriticConfig = Field(default_factory=CriticConfig)
     policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
-    n_actor_updates: int = 1
+    loss_threshold: float = 0.0001
     """
-    Number of actor updates per algorithm update.
+    Kind: internal
+
+    Minimum desired change in loss between updates. If the loss value changes
+    by more than this magnitude, then continue performing updates.
     """
 
-    n_critic_updates: int = 1
+    loss_ema_factor: float = 0.75
     """
-    Number of critic updates per actor update.
+    Kind: internal
+
+    Exponential moving average factor for early stopping based on loss.
+    Closer to 1 means slower update to avg, closer to 0 means less averaging.
+    """
+
+    max_internal_actor_updates: int = 1
+    """
+    Number of actor updates per critic update. Early stopping is done
+    using the loss_threshold. A minimum of 1 update will always be performed.
+    """
+
+    max_critic_updates: int = 1
+    """
+    Number of critic updates. Early stopping is done using the loss_threshold.
+    A minimum of 1 update will always be performed.
     """
 
     eval_batch : bool = False
@@ -66,9 +85,6 @@ class GreedyAC(BaseAgent):
         self._col_desc = col_desc
         self.eval_batch = cfg.eval_batch
 
-        self.n_actor_updates = cfg.n_actor_updates
-        self.n_critic_updates = cfg.n_critic_updates
-
         self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
 
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
@@ -76,6 +92,13 @@ class GreedyAC(BaseAgent):
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
+
+        # for early stopping
+        self._last_critic_loss = 0.
+        self._avg_critic_delta: float | None = None
+        self._last_actor_loss = 0.
+        self._avg_actor_delta: float | None = None
+
 
     @property
     def actor_percentile(self) -> float:
@@ -246,7 +269,7 @@ class GreedyAC(BaseAgent):
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
-            return []
+            return [0 for _ in range(self.ensemble)]
 
         batches = self.critic_buffer.sample()
         bootstrap_actions = self._get_bootstrap_actions(batches)
@@ -264,12 +287,31 @@ class GreedyAC(BaseAgent):
 
     def update(self) -> list[float]:
         q_losses = []
-        for _ in range(self.n_actor_updates):
-            for _ in range(self.n_critic_updates):
-                q_loss = self.update_critic()
-                q_losses += q_loss
 
-            self._policy_manager.update(self.critic)
+        alpha = self.cfg.loss_ema_factor
+        for _ in range(self.cfg.max_critic_updates):
+            losses = self.update_critic()
+            q_losses += losses
+            avg_critic_loss = np.mean(losses)
+
+            for _ in range(self.cfg.max_internal_actor_updates):
+                actor_loss = self._policy_manager.update(self.critic)
+
+                last = self._last_actor_loss
+                self._last_actor_loss = actor_loss
+                delta = actor_loss - last
+                self._avg_actor_delta = exp_moving_avg(alpha, self._avg_actor_delta, delta)
+
+                if np.abs(self._avg_actor_delta) < self.cfg.loss_threshold:
+                    break
+
+            last = self._last_critic_loss
+            self._last_critic_loss = avg_critic_loss
+            delta = avg_critic_loss - last
+            self._avg_critic_delta = exp_moving_avg(alpha, self._avg_critic_delta, delta)
+
+            if np.abs(self._avg_critic_delta) < self.cfg.loss_threshold:
+                break
 
         return q_losses
 

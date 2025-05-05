@@ -61,7 +61,7 @@ class GACPolicyManagerConfig:
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    uniform_weight: float = 1.0
+    prop_percentile_learned: float = 0.
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
     even_dispersed_uniform: bool = False
@@ -104,7 +104,8 @@ class GACPolicyManager:
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        self.is_uniform_sampler = self.cfg.uniform_weight== 1.
+        self.is_uniform_sampler = self.cfg.prop_percentile_learned == 0.
+        self._uniform_weight = 1 - (self.cfg.prop_percentile_learned * self.cfg.actor_percentile)
 
         self.actor = create(
             cfg.network,
@@ -176,9 +177,9 @@ class GACPolicyManager:
         with torch.no_grad():
             policy_actions, _ = self.sampler.forward(states)  # actions in [0, 1]
         if self.cfg.even_dispersed_uniform:
-            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions, self.cfg.uniform_weight)
+            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions, self._uniform_weight)
         else:
-            policy_actions = mix_uniform_actions(policy_actions, self.cfg.uniform_weight)
+            policy_actions = mix_uniform_actions(policy_actions, self._uniform_weight)
         return policy_actions
 
     def _sample_uniform(self, states: torch.Tensor):
@@ -365,13 +366,13 @@ class GACPolicyManager:
             logger.exception('Failed to load buffer from checkpoint. Reinitializing...')
 
 
-    def update(self, critic: EnsembleCritic) -> None:
+    def update(self, critic: EnsembleCritic):
         """
         Performs a percentile-based update to the policy.
         """
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
         if min(self.buffer.size) <= 0:
-            return None
+            return 0
 
         # Assuming we don't have an ensemble of policies
         batches = self.buffer.sample()
@@ -392,8 +393,14 @@ class GACPolicyManager:
 
         assert isinstance(self.actor_optimizer, Optimizer)
         actor_closure = self._get_closure(self.actor, critic, self.cfg.actor_percentile)
-        self._regress_towards_percentile(qr, self.actor, self.actor_optimizer,
-                                         self.cfg.actor_percentile , 'actor', actor_closure)
+        actor_loss = self._regress_towards_percentile(
+            qr,
+            self.actor,
+            self.actor_optimizer,
+            self.cfg.actor_percentile ,
+            'actor',
+            actor_closure,
+        )
         if not self.is_uniform_sampler:
             if self.cfg.resample_for_sampler_update:
                 qr = get_sampled_qs(
@@ -408,6 +415,8 @@ class GACPolicyManager:
             sampler_closure = self._get_closure(self.sampler, critic, self.cfg.sampler_percentile)
             self._regress_towards_percentile(qr, self.sampler,  self.sampler_optimizer,
                                             self.cfg.sampler_percentile, 'sampler', sampler_closure)
+
+        return actor_loss
 
     # ---------------------------------------------------------------------------- #
     #                            updating helper methods                           #
@@ -494,6 +503,8 @@ class GACPolicyManager:
         opt_args = tuple()
         opt_kwargs = {"closure": closure}
         optimizer.step(*opt_args, **opt_kwargs)
+
+        return float(loss.item())
 
     def _policy_err(
         self,
