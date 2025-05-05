@@ -4,6 +4,8 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, Concatenate, Protocol, TypeVar
 
+from coreenv.pertube_env import PerturbationConfig, wrap_env_with_perturbation
+
 logger = logging.getLogger(__name__)
 
 MISSING: Any = "|???|"
@@ -45,7 +47,7 @@ class Group[**P, R]:
 
 env_group = Group[[], Any]()
 
-def init_env(name: str, overrides: dict | None = None):
+def init_env(name: str, overrides: dict | None = None, perturbation_config: PerturbationConfig = None):
     # register environments
     import coreenv.calibration  # noqa: F401
     import coreenv.distraction_world  # noqa: F401
@@ -58,7 +60,7 @@ def init_env(name: str, overrides: dict | None = None):
     import coreenv.three_tanks  # noqa: F401
     import coreenv.windy_room  # noqa: F401
 
-    logger.info(f"instantiaing {name} with overrides {overrides}")
+    logger.info(f"instantiating {name} with overrides {overrides}")
 
     if name == 'DelayedSaturation-v0':
         warnings.warn(
@@ -68,11 +70,15 @@ def init_env(name: str, overrides: dict | None = None):
         )
         name = 'Saturation-v0'
         overrides = {
-            'decay' : 0.75,
-            'effect' : None,
-            'effect_period' : 500,
-            'trace_val' : 0.9
+            'decay': 0.75,
+            'effect': None,
+            'effect_period': 500,
+            'trace_val': 0.9
         }
 
+    env = env_group.dispatch(name, overrides)
 
-    return env_group.dispatch(name, overrides)
+    if perturbation_config is not None:
+        env = wrap_env_with_perturbation(env, perturbation_config)
+
+    return env
