@@ -97,6 +97,20 @@ class InteractionConfig:
     history-tracking features, such as state traces.
     """
 
+    checkpoint_freq: timedelta = Field(default_factory=lambda: timedelta(hours=1))
+    """
+    Kind: internal
+
+    How frequently we perform checkpointing.
+    """
+
+    checkpoint_cliff: timedelta = Field(default_factory=lambda: timedelta(hours=24))
+    """
+    Kind: internal
+
+    Specifies period in time where we keep all checkpoints, before beginning to delete them.
+    """
+
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
 
 

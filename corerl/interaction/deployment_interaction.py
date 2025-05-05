@@ -1,9 +1,11 @@
 import functools
 import logging
+import math
 import shutil
 import threading
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any, Generator
 
 import numpy as np
@@ -21,6 +23,7 @@ from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
+from corerl.utils.list import sort_by
 from corerl.utils.maybe import Maybe
 from corerl.utils.time import clock_generator, split_into_chunks
 
@@ -80,6 +83,8 @@ class DeploymentInteraction:
         self._pretrain()
 
         ### Checkpointing state ###
+        self._checkpoint_freq = cfg.checkpoint_freq
+        self._checkpoint_cliff = cfg.checkpoint_cliff
         self._last_checkpoint = datetime.now(UTC)
         if cfg.restore_checkpoint:
             self.restore_checkpoint()
@@ -360,11 +365,14 @@ class DeploymentInteraction:
     # -------------------
     def maybe_checkpoint(self):
         now = datetime.now(UTC)
-        if now - self._last_checkpoint > timedelta(hours=1):
+        if now - self._last_checkpoint > self._checkpoint_freq:
             self.checkpoint()
 
 
     def checkpoint(self):
+        """
+        Checkpoints and removes old checkpoints to maintain a set of checkpoints that get incresingly sparse with age.
+        """
         now = datetime.now(UTC)
         path = self._cfg.checkpoint_path / f'{str(now).replace(':','_')}'
         path.mkdir(exist_ok=True, parents=True)
@@ -372,12 +380,16 @@ class DeploymentInteraction:
         self._app_state.save(path)
         self._last_checkpoint = now
 
-        chkpoints = self._cfg.checkpoint_path.glob('*')
-        for chk in chkpoints:
-            time = datetime.fromisoformat(chk.name.replace('_',':'))
-            if now - time > timedelta(days=1):
-                shutil.rmtree(chk)
+        chkpoints = list(self._cfg.checkpoint_path.glob('*'))
+        times = [datetime.fromisoformat(chk.name.replace('_',':')) for chk in chkpoints]
+        chkpoints, times = sort_by(chkpoints, times) # sorted oldest to youngest
 
+        # keep all checkpoints more recent than the cliff
+        cliff = now - self._checkpoint_cliff
+        to_delete = prune_checkpoints(chkpoints, times, cliff, self._checkpoint_freq)
+
+        for chk in to_delete:
+            shutil.rmtree(chk)
 
     def restore_checkpoint(self):
         if not self._cfg.restore_checkpoint:
@@ -392,3 +404,47 @@ class DeploymentInteraction:
         logger.info(f"Loading agent weights from checkpoint {checkpoint}")
         self._agent.load(checkpoint)
         self._app_state.load(checkpoint)
+
+def next_power_of_2(x: int):
+    if x <= 1:
+        return 1
+    return 1 << (x - 1).bit_length()
+
+def prev_power_of_2(x: int):
+    if x <= 1:
+        return 1
+    return 1 << (x.bit_length() - 1)
+
+def periods_since(start: datetime, end: datetime, period: timedelta):
+    return math.floor((end - start) / period)
+
+def prune_checkpoints(
+        chkpoints: list[Path],
+        times: list[datetime],
+        cliff: datetime,
+        checkpoint_freq: timedelta
+    ) -> list[Path]:
+
+    to_delete = []
+    for i, chk in enumerate(chkpoints):
+        # keep latest and first checkpoint
+        if i in (0, len(chkpoints) - 1):
+            continue
+
+        # keep all checkpoints more recent than the cliff
+        if times[i] > cliff:
+            continue
+
+        periods_since_cliff_chk = periods_since(times[i], cliff, checkpoint_freq)
+        periods_since_clif_prev_chk = periods_since(times[i-1], cliff, checkpoint_freq)
+        periods_since_cliff_next_chk = periods_since(times[i+1], cliff, checkpoint_freq)
+
+        # having checkpoints at powers of two is our goal. Get the next and previous powers of two in periods
+        next_power_2 = next_power_of_2(periods_since_cliff_chk)
+        prev_power_2 = prev_power_of_2(periods_since_cliff_chk)
+
+        # we will delete a checkoint if there is an older checkpoint closer to the next power of two
+        # and there is a younger checkpoint closer to the previous power of two
+        if periods_since_clif_prev_chk <= next_power_2 and periods_since_cliff_next_chk >= prev_power_2:
+            to_delete.append(chk)
+    return to_delete
