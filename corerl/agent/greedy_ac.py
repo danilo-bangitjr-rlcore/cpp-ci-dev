@@ -19,6 +19,7 @@ from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
 from corerl.utils.math import exp_moving_avg
+from corerl.utils.random import get_dist_stats, rejection_sample
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,13 @@ class GreedyACConfig(BaseAgentConfig):
     """
     Toggle for using a separate batch for evaluation of the
     linesearch stopping condition.
+    """
+
+    max_action_stddev: float = 1.0
+    """
+    Maximum number of stddevs from the mean for the action
+    taken during an interaction step. Forcefully prevents
+    very long-tailed events from occurring.
     """
 
     # metrics
@@ -134,14 +142,43 @@ class GreedyAC(BaseAgent):
         tensor_action_lo = tensor(action_lo, device.device).unsqueeze(0)
         tensor_action_hi = tensor(action_hi, device.device).unsqueeze(0)
 
-        ar = self._policy_manager.get_actor_actions(
-            1,
-            tensor_state,
+        dist, _ = self._policy_manager.actor.get_dist(tensor_state)
+
+        # ensure these statistics have a (batch_size, 1) shape for broadcasting
+        # over the n_samples dimension
+        mean, std = get_dist_stats(dist)
+        mean = mean.unsqueeze(1)
+        std = std.unsqueeze(1)
+
+        def policy_action_sampler(n: int):
+            # gives shape (n, batch_size, action_dim)
+            samples = dist.sample((n, ))
+            return samples.permute(1, 0, 2)
+
+        def to_keep(samples: torch.Tensor):
+            stds_from_mean = torch.abs(samples - mean) / std
+            # fold over action_dim and batch_dim
+            return (stds_from_mean < self.cfg.max_action_stddev).all(dim=-1).all(dim=0)
+
+        def fallback(n: int):
+            return mean.repeat(n, 1)
+
+        if self._app_state.cfg.feature_flags.interaction_action_variance:
+            policy_actions = rejection_sample(
+                sampler=policy_action_sampler,
+                predicate=to_keep,
+                n_samples=1,
+                fallback=fallback,
+            )
+        else:
+            policy_actions = policy_action_sampler(1)
+
+        direct_action = self.policy_to_direct_action(
+            policy_actions,
             tensor_action_lo,
             tensor_action_hi,
-            self.critic
         )
-        direct_action = ar.direct_actions
+
         assert direct_action.shape == (1, 1, self.action_dim)
         return to_np(direct_action.squeeze(0, 1))
 
