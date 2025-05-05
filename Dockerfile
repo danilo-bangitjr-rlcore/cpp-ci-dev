@@ -32,7 +32,7 @@ RUN uv build --wheel
 
 # See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
 # Convert our wheel such that we only include .pyc files
-RUN uv pip install --system pyc_wheel &&\
+RUN uv pip install --system "pyc_wheel==1.3.0" &&\
   whl_file_name=$(ls /app/dist/corerl-*.whl) &&\
   python -m pyc_wheel "$whl_file_name"
 
