@@ -47,7 +47,7 @@ class Group[**P, R]:
 
 env_group = Group[[], Any]()
 
-def init_env(name: str, overrides: dict | None = None, perturbation_config: PerturbationConfig = None):
+def init_env(name: str, overrides: dict | None = None, perturbation_config: PerturbationConfig | None = None):
     # register environments
     import coreenv.calibration  # noqa: F401
     import coreenv.distraction_world  # noqa: F401
