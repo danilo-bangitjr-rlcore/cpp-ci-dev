@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import NamedTuple
 
 import torch
 
@@ -39,3 +40,18 @@ def rejection_sample(
 
     fb = fallback(needed)
     return torch.concatenate((valid, fb), dim=0)
+
+
+class DistributionStatistics(NamedTuple):
+    mean: torch.Tensor
+    stddev: torch.Tensor
+
+
+def get_dist_stats(dist: torch.distributions.Distribution, n_samples: int = 100) -> DistributionStatistics:
+    samples = dist.sample((n_samples,))
+    mean = samples.mean(dim=0)
+    stddev = samples.std(dim=0)
+    return DistributionStatistics(
+        mean=mean,
+        stddev=stddev,
+    )
