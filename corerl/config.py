@@ -211,6 +211,7 @@ class MainConfig:
 
         return save_path
 
+    @post_processor
     def _enable_zone_violations(self, cfg: 'MainConfig'):
         if not self.feature_flags.zone_violations:
             return
