@@ -6,7 +6,7 @@ from typing import Literal, assert_never
 import pandas as pd
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
-from corerl.data_pipeline.datatypes import PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig, eval_bound
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -41,7 +41,7 @@ class ZoneDiscourager:
         for i, (_, row_series) in enumerate(df.iterrows()):
             row = row_series.to_frame().transpose()
 
-            penalty = self._get_penalty_for_row(row)
+            penalty = self._get_penalty_for_row(pf.data_mode, row)
             if penalty is None:
                 continue
 
@@ -65,7 +65,7 @@ class ZoneDiscourager:
         return pf
 
 
-    def _get_penalty_for_row(self, row: pd.DataFrame):
+    def _get_penalty_for_row(self, data_mode: DataMode, row: pd.DataFrame):
         red_violations = [
             self._red_violation_percent(row, tag)
             for tag in self._bounded_tag_cfgs
@@ -77,7 +77,7 @@ class ZoneDiscourager:
             tag = self._bounded_tag_cfgs[idx]
             percent = red_violations[idx]
             assert percent is not None
-            penalty = self._handle_red_violation(tag, percent)
+            penalty = self._handle_red_violation(data_mode, tag, percent)
             return ZoneViolation(tag, penalty, 'red')
 
         # then yellow zone
@@ -91,48 +91,52 @@ class ZoneDiscourager:
             tag = self._bounded_tag_cfgs[idx]
             percent = yellow_violations[idx]
             assert percent is not None
-            penalty = self._handle_yellow_violation(tag, percent)
+            penalty = self._handle_yellow_violation(data_mode, tag, percent)
             return ZoneViolation(tag, penalty, 'yellow')
 
         return None
 
 
-    def _handle_yellow_violation(self, tag: TagConfig, percent: float):
+    def _handle_yellow_violation(self, data_mode: DataMode, tag: TagConfig, percent: float):
         """
         Lifecycle method to handle yellow zone violations. Computes the reward penalty
         given degree of violation.
 
         Reward penalty ramps slowly from 0 to -2.
         """
-        self._app_state.event_bus.emit_event(EventType.yellow_zone_violation)
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric='yellow_zone_violation',
-            value=percent,
-        )
-        logger.warning(f"Yellow zone violation for tag {tag.name} at level: {percent}")
+        if data_mode == DataMode.ONLINE:
+            self._app_state.event_bus.emit_event(EventType.yellow_zone_violation)
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric='yellow_zone_violation',
+                value=percent,
+            )
+            logger.warning(f"Yellow zone violation for tag {tag.name} at level: {percent}")
+
         return -2 * (percent**2)
 
 
-    def _handle_red_violation(self, tag: TagConfig, percent: float):
+    def _handle_red_violation(self, data_mode: DataMode, tag: TagConfig, percent: float):
         """
         Lifecycle method to handle red zone violations. Computes the reward penalty
         given degree of violation.
 
         Reward penalty ramps quickly from -4 to -8.
         """
-        self._app_state.event_bus.emit_event(EventType.red_zone_violation)
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric='red_zone_violation',
-            value=percent,
-        )
-        self._app_state.metrics.write(
-            agent_step=self._app_state.agent_step,
-            metric='yellow_zone_violation',
-            value=1.0,
-        )
-        logger.error(f"Red zone violation for tag {tag.name} at level: {percent}")
+        if data_mode == DataMode.ONLINE:
+            self._app_state.event_bus.emit_event(EventType.red_zone_violation)
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric='red_zone_violation',
+                value=percent,
+            )
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric='yellow_zone_violation',
+                value=1.0,
+            )
+            logger.error(f"Red zone violation for tag {tag.name} at level: {percent}")
+
         return -4 - (4 * percent)
 
 

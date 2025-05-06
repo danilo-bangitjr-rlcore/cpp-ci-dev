@@ -12,6 +12,7 @@ from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
+from corerl.messages.events import EventType
 from corerl.state import AppState
 
 
@@ -41,7 +42,13 @@ def pipeline(cfg: MainConfig, app_state: AppState):
     return Pipeline(app_state, cfg.pipeline)
 
 
-def test_zones1(cfg: MainConfig, app_state: AppState, pipeline: Pipeline):
+@pytest.mark.parametrize('data_mode', [DataMode.OFFLINE, DataMode.ONLINE])
+def test_zones1(
+    cfg: MainConfig,
+    app_state: AppState[DummyEventBus],
+    pipeline: Pipeline,
+    data_mode: DataMode,
+):
     assert cfg.pipeline.reward is not None
 
     zone_discourager = ZoneDiscourager(app_state, cfg.pipeline.tags, pipeline.preprocessor)
@@ -66,11 +73,20 @@ def test_zones1(cfg: MainConfig, app_state: AppState, pipeline: Pipeline):
         index=idx,
     )
 
-    pf = PipelineFrame(df, data_mode=DataMode.OFFLINE)
+    pf = PipelineFrame(df, data_mode=data_mode)
     pf = pipeline.preprocessor(pf)
     pf.rewards = pd.DataFrame({ 'reward': [-1.] * 3 }, index=idx)
 
     pf = zone_discourager(pf)
+    emitted_events = app_state.event_bus.get_last_events()
+
+    if pf.data_mode == DataMode.OFFLINE:
+        assert len(emitted_events) == 0, 'Expected no events to be emitted in offline mode'
+    elif pf.data_mode == DataMode.ONLINE:
+        assert len(emitted_events) == 3
+        assert emitted_events[0].type == EventType.red_zone_violation
+        assert emitted_events[1].type == EventType.yellow_zone_violation
+        assert emitted_events[2].type == EventType.yellow_zone_violation
 
     expected_rewards = pd.DataFrame(
         index=idx,
