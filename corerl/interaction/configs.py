@@ -20,6 +20,14 @@ if TYPE_CHECKING:
 class InteractionConfig:
     name: Literal["sim_interaction", "dep_interaction"] = "dep_interaction"
 
+    time_dilation: float = 1.0
+    """
+    Kind: internal
+
+    Time dilation factor. This number will divider all time-based configs to enable
+    faster-than-life running. E.g. new_obs_period = obs_period / time_dilation
+    """
+
     obs_period: timedelta = MISSING
     """
     Kind: required external

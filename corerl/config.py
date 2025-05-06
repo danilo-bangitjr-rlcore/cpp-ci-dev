@@ -168,6 +168,29 @@ class MainConfig:
         assert self.agent.critic.buffer.name == 'recency_bias_buffer'
         assert self.agent.policy.buffer.name == 'recency_bias_buffer'
 
+    @post_processor
+    def _enable_time_dilation(self, cfg: 'MainConfig'):
+        """
+        Divides time-based configs by time_dilation in order to easily experiment
+        with running deployment interactions faster.
+        """
+        self.interaction.obs_period /= self.interaction.time_dilation
+        self.interaction.action_period /= self.interaction.time_dilation
+        self.interaction.state_age_tol /= self.interaction.time_dilation
+        self.interaction.update_period /= self.interaction.time_dilation
+
+        if self.interaction.warmup_period is not None:
+            self.interaction.warmup_period /= self.interaction.time_dilation
+
+        self.interaction.checkpoint_freq /= self.interaction.time_dilation
+        self.interaction.checkpoint_cliff /= self.interaction.time_dilation
+        self.interaction.heartbeat.heartbeat_period /= self.interaction.time_dilation
+
+        for tag_cfg in self.pipeline.tags:
+            if tag_cfg.guardrail_schedule is not None:
+                tag_cfg.guardrail_schedule.duration /= self.interaction.time_dilation
+
+
     @computed('save_path')
     @classmethod
     def _save_path(cls, cfg: 'MainConfig'):
