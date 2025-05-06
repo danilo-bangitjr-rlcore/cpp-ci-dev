@@ -55,12 +55,12 @@ class DeploymentInteraction:
         self._interaction_action_hi = np.full(self._column_desc.action_dim, np.nan)
 
         ### Timing logic ###
-        self.obs_period = env.obs_period
-        self.action_period = env.action_period
+        self.obs_period = cfg.obs_period
+        self.action_period = cfg.action_period
         self._step_clock = clock_generator(tick_period=self.obs_period)
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
         self._last_state_timestamp: datetime | None = None
-        self._state_age_tol = env.action_tolerance
+        self._state_age_tol = cfg.state_age_tol
 
         ### Evals ###
         self._monte_carlo_eval = MonteCarloEvaluator(

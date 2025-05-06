@@ -9,13 +9,13 @@ interaction:
   name: sim_interaction
   obs_period: 00:01:00
   action_period: 00:02:00
+  setpoint_ping_period: 00:00:10
 
 event_bus:
   enabled: False
 
 env:
   name: dep_async_env
-  setpoint_ping_period: 00:00:10
   # opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"
 
   db:

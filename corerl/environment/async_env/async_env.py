@@ -20,33 +20,15 @@ if TYPE_CHECKING:
 class AsyncEnvConfig:
     name: Literal["dep_async_env", "sim_async_env"] = "dep_async_env"
     obs_period: timedelta = MISSING
-    update_period: timedelta = MISSING
-    action_period: timedelta = MISSING
-    setpoint_ping_period: timedelta | None = None
-    action_tolerance: timedelta = MISSING
     coreio_origin: str = "http://coreio:2222"
     db: TagDBConfig = Field(default_factory=TagDBConfig)
     gym: GymEnvConfig | None = None
-
-    @computed('action_tolerance')
-    @classmethod
-    def _action_tolerance(cls, cfg: MainConfig):
-        return cfg.interaction.obs_period
 
     @computed('obs_period')
     @classmethod
     def _obs_period(cls, cfg: MainConfig):
         return cfg.interaction.obs_period
 
-    @computed('action_period')
-    @classmethod
-    def _action_period(cls, cfg: MainConfig):
-        return cfg.interaction.action_period
-
-    @computed('update_period')
-    @classmethod
-    def _update_period(cls, cfg: MainConfig):
-        return cfg.interaction.obs_period
 
 @config()
 class GymEnvConfig:
@@ -70,11 +52,6 @@ class GymEnvConfig:
 # -- Interface --
 # ---------------
 class AsyncEnv:
-    obs_period: timedelta
-    update_period: timedelta
-    action_period: timedelta
-    action_tolerance: timedelta
-
     def emit_action(self, action: pd.DataFrame) -> None: ...
 
     def get_latest_obs(self) -> pd.DataFrame: ...

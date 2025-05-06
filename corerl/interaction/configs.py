@@ -20,6 +20,14 @@ if TYPE_CHECKING:
 class InteractionConfig:
     name: Literal["sim_interaction", "dep_interaction"] = "dep_interaction"
 
+    time_dilation: float = 1.0
+    """
+    Kind: internal
+
+    Time dilation factor. This number will divider all time-based configs to enable
+    faster-than-life running. E.g. new_obs_period = obs_period / time_dilation
+    """
+
     obs_period: timedelta = MISSING
     """
     Kind: required external
@@ -36,12 +44,26 @@ class InteractionConfig:
     be a multiple of obs_period.
     """
 
+    state_age_tol: timedelta = MISSING
+    """
+    Kind: internal
+
+    How long until interaction state is stale
+    """
+
     update_period: timedelta = MISSING
     """
     Kind: internal
 
     The duration between agent updates. Syncronized with obs_period
     by default.
+    """
+
+    setpoint_ping_period: timedelta | None = None
+    """
+    Kind: internal
+
+    How often to ping setpoints.
     """
 
     load_historical_data: bool = True
@@ -117,6 +139,11 @@ class InteractionConfig:
     @computed('update_period')
     @classmethod
     def _update_period(cls, cfg: MainConfig):
+        return cfg.interaction.obs_period
+
+    @computed('state_age_tol')
+    @classmethod
+    def _state_age_tol(cls, cfg: MainConfig):
         return cfg.interaction.obs_period
 
     @computed('checkpoint_path')

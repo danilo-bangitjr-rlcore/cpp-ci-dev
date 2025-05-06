@@ -28,7 +28,7 @@ def scheduler_task(app_state: AppState):
     Thread worker that emits ZMQ messages using our messages Event class.
     Responsible for emitting the step events based on configured observation windows.
     """
-    cfg = app_state.cfg.env
+    cfg = app_state.cfg.interaction
     action_clock = Clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
     clocks = [
         action_clock,

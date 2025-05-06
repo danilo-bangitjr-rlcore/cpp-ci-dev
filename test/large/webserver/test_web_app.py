@@ -59,5 +59,5 @@ def test_config_file(req_type: str, res_type: str, test_client: TestClient):
 
     res_config = MainConfig(**content)
     assert response.status_code == 200
-    assert isinstance(res_config.env.obs_period, datetime.timedelta)
+    assert isinstance(res_config.interaction.obs_period, datetime.timedelta)
     assert isinstance(res_config, MainConfig)
