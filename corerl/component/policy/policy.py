@@ -147,7 +147,11 @@ class ContinuousIIDPolicy(Policy,ABC):
         -------
         ContinuousIIDPolicy
         """
-        return _get_type_from_dist(dist)(model, dist, *args, **kwargs)
+        dist_type = _get_type_from_dist(dist)
+        if dist_type == UnBounded:
+            return dist_type(model, dist)
+        else:
+            return dist_type(model, dist, *args, **kwargs)
 
     def _transform_from_params(self, *params: torch.Tensor) -> d.Distribution:
         """

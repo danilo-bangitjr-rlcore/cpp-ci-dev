@@ -166,19 +166,25 @@ class GACPolicyManager:
             # add an n_samples dim to control automatic broadcasting
             action_lo = action_lo.unsqueeze(1)
             action_hi = action_hi.unsqueeze(1)
-            direct_actions = policy_actions * (action_hi - action_lo) + action_lo
+            direct_actions = torch.clip(policy_actions, min=action_lo, max=action_hi)
         else:
             direct_actions = policy_actions
         return direct_actions
 
-    def _sample_actor(self, states: torch.Tensor, n_samples: int) -> torch.Tensor:
+    def _sample_actor(
+        self,
+        states: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+        n_samples: int
+    ) -> torch.Tensor:
         """
         Samples actions from the actor
         """
         batch_size = states.size(0)
 
         with torch.no_grad():
-            dist, _ = self.actor.get_dist(states)  # actions in [0, 1]
+            dist, _ = self.actor.get_dist(states)  # actions normalized with respect to the operating range
 
         policy_actions = dist.sample((n_samples,))
         assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
@@ -186,14 +192,20 @@ class GACPolicyManager:
         policy_actions = policy_actions.permute(1, 0, 2)
         return policy_actions
 
-    def _sample_sampler(self, states: torch.Tensor, n_samples: int) -> torch.Tensor:
+    def _sample_sampler(
+        self,
+        states: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+        n_samples: int
+    ) -> torch.Tensor:
         """
         Samples a mixture between the sampler and a uniform distribution
         """
         batch_size = states.size(0)
 
         if self.is_uniform_sampler:
-            return self._sample_uniform(batch_size, n_samples)
+            return self._sample_uniform(batch_size, n_samples, action_lo, action_hi)
 
         with torch.no_grad():
             dist, _ = self.sampler.get_dist(states)
@@ -204,13 +216,18 @@ class GACPolicyManager:
         assert policy_actions.shape == (learned_samples, batch_size, self.action_dim)
 
         policy_actions = policy_actions.permute(1, 0, 2)
-        rand_actions = self._sample_uniform(batch_size, uniform_samples)
+        rand_actions = self._sample_uniform(batch_size, uniform_samples, action_lo, action_hi)
         out = torch.concatenate([policy_actions, rand_actions], dim=1)
         assert out.shape == (batch_size, n_samples, self.action_dim)
         return out
 
-    def _sample_uniform(self, batch_size: int, n_samples: int):
-        return torch.rand(batch_size, n_samples, self.action_dim, device=device.device)
+    def _sample_uniform(self, batch_size: int, n_samples: int, action_lo: torch.Tensor, action_hi: torch.Tensor):
+        uniform_actions = torch.rand(batch_size, n_samples, self.action_dim, device=device.device)
+        action_lo = action_lo.unsqueeze(1)
+        action_hi = action_hi.unsqueeze(1)
+        bounded_uniform_actions = (action_hi - action_lo) * uniform_actions + action_lo
+
+        return bounded_uniform_actions
 
     def _get_actions(
         self,
@@ -288,7 +305,7 @@ class GACPolicyManager:
         """
         if not self.cfg.greedy:
             return self._get_actions(
-                lambda x: self._sample_actor(x, n_samples),
+                lambda x: self._sample_actor(x, action_lo, action_hi, n_samples),
                 states,
                 action_lo,
                 action_hi,
@@ -309,7 +326,7 @@ class GACPolicyManager:
         If uniform_weight is greater than 0, will sample actions from a mixture between the policy and uniform.
         """
         return self._get_actions(
-            lambda x: self._sample_sampler(x, n_samples),
+            lambda x: self._sample_sampler(x, action_lo, action_hi, n_samples),
             states,
             action_lo,
             action_hi,
@@ -326,7 +343,7 @@ class GACPolicyManager:
         Samples direct actions for states UAR
         """
         return self._get_actions(
-            lambda x: self._sample_uniform(x.size(0), n_samples),
+            lambda x: self._sample_uniform(x.size(0), n_samples, action_lo, action_hi),
             states,
             action_lo,
             action_hi,

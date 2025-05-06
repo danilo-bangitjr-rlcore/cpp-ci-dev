@@ -110,7 +110,7 @@ def test_state_action_dim(dummy_app_state: AppState):
     pipeline = Pipeline(dummy_app_state, cfg)
 
     col_desc = pipeline.column_descriptions
-    assert col_desc.state_dim == 5
+    assert col_desc.state_dim == 9
     assert col_desc.action_dim == 2
 
 

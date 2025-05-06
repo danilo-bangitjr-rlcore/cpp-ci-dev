@@ -58,15 +58,15 @@ class ActionConstructor:
                 hi = min(maybe_guard_hi.or_else(hi), hi)
 
                 # normalize the action bounds to the operating range
-                a_lo[action_tag.name] = self._prep_stage.normalize(action_tag.name, lo)
-                a_hi[action_tag.name] = self._prep_stage.normalize(action_tag.name, hi)
+                a_lo[f"{action_tag.name}-lo"] = self._prep_stage.normalize(action_tag.name, lo)
+                a_hi[f"{action_tag.name}-hi"] = self._prep_stage.normalize(action_tag.name, hi)
 
             a_los.append(a_lo)
             a_his.append(a_hi)
 
         pf.actions = pf.data.loc[:, self.columns] # self.columns is sorted
-        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index).loc[:, self.columns]
-        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index).loc[:, self.columns]
+        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index).loc[:, self.action_lo_columns]
+        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index).loc[:, self.action_hi_columns]
 
         return pf
 
@@ -84,6 +84,14 @@ class ActionConstructor:
     @cached_property
     def columns(self):
         return self.sort_cols([tag.name for tag in self.action_tags])
+
+    @cached_property
+    def action_lo_columns(self):
+        return self.sort_cols([f"{tag.name}-lo" for tag in self.action_tags])
+
+    @cached_property
+    def action_hi_columns(self):
+        return self.sort_cols([f"{tag.name}-hi" for tag in self.action_tags])
 
     def sort_cols(self, cols: Iterable[str]):
         return sorted(cols)

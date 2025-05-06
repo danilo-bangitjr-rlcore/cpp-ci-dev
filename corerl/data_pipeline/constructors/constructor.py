@@ -5,7 +5,7 @@ from functools import cached_property
 import pandas as pd
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
@@ -64,13 +64,31 @@ class Constructor(ABC):
             tag_name: [1., 0.]
             for tag_name in tag_names
         })
-        fake_data.index = pd.DatetimeIndex(["7/13/2023 10:00", "7/13/2023 11:00"])
+        fake_indices = pd.DatetimeIndex(["7/13/2023 10:00", "7/13/2023 11:00"])
+        fake_data.index = fake_indices
 
         pf = PipelineFrame(
             data=fake_data,
             data_mode=DataMode.OFFLINE,
             temporal_state=defaultdict(lambda: None),
         )
+
+        action_tags = [self._tag_cfgs[tag_name] for tag_name in self._tag_cfgs if
+                       self._tag_cfgs[tag_name].type == TagType.ai_setpoint]
+        action_los = pd.DataFrame({
+            f"{action_tag.name}-lo": [0., 0.]
+            for action_tag in action_tags
+        })
+        action_los.index = fake_indices
+
+        action_his = pd.DataFrame({
+            f"{action_tag.name}-hi": [1., 1.]
+            for action_tag in action_tags
+        })
+        action_his.index = fake_indices
+
+        pf.action_lo = action_los
+        pf.action_hi = action_his
 
         pf = self(pf)
 
