@@ -65,8 +65,8 @@ class ActionConstructor:
             a_his.append(a_hi)
 
         pf.actions = pf.data.loc[:, self.columns] # self.columns is sorted
-        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index)
-        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index)
+        pf.action_lo = pd.DataFrame(a_los, index=pf.data.index).loc[:, self.action_lo_columns]
+        pf.action_hi = pd.DataFrame(a_his, index=pf.data.index).loc[:, self.action_hi_columns]
 
         return pf
 
@@ -84,6 +84,14 @@ class ActionConstructor:
     @cached_property
     def columns(self):
         return self.sort_cols([tag.name for tag in self.action_tags])
+
+    @cached_property
+    def action_lo_columns(self):
+        return self.sort_cols([f"{tag.name}-lo" for tag in self.action_tags])
+
+    @cached_property
+    def action_hi_columns(self):
+        return self.sort_cols([f"{tag.name}-hi" for tag in self.action_tags])
 
     def sort_cols(self, cols: Iterable[str]):
         return sorted(cols)
