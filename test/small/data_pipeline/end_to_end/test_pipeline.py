@@ -132,16 +132,16 @@ def test_pipeline1(dummy_app_state: AppState):
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
-    cols = ['tag-1', 'countdown.[0]', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_norm_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [np.nan, 0,      0],
-            [0,      0,      0.18],
-            [1,      0,      0.378],
-            [2,      0,      0.5778],
-            [np.nan, 0,      0.77778],
-            [np.nan, 0,      0.977778],
-            [5,      0,      np.nan],
+            [np.nan, 1, 0, 0, 0],
+            [0,      1, 0, 0, 0.18],
+            [1,      1, 0, 0, 0.378],
+            [2,      1, 0, 0, 0.5778],
+            [np.nan, 1, 0, 0, 0.77778],
+            [np.nan, 1, 0, 0, 0.977778],
+            [5,      1, 0, 0, np.nan],
         ],
         columns=cols,
         index=idx,
@@ -168,17 +168,37 @@ def test_pipeline1(dummy_app_state: AppState):
         # notice that the first row of the DF was skipped due to the np.nan
         Transition(
             steps=[
-                # expected state order: states sorted. Thus, [tag-1, countdown.[0], tag-2_norm_trace-0.1]
-                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([0.0, 0, 0.18]), dp=True, ac=True),
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0, 0.378]), dp=True, ac=True),
+                # expected state order: [tag-1, action-1-hi, action-1-lo, countdown.[0], tag-2_norm_trace-0.1]
+                mkstep(reward=3,
+                       action=tensor([1.]),
+                       gamma=0.9,
+                       state=tensor([0.0, 1, 0, 0, 0.18]),
+                       dp=True,
+                       ac=True),
+                mkstep(reward=0,
+                       action=tensor([0.]),
+                       gamma=0.9,
+                       state=tensor([1.0, 1, 0, 0, 0.378]),
+                       dp=True,
+                       ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
         ),
         Transition(
             steps=[
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([1.0, 0,  0.378]), dp=True, ac=True),
-                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([2.0, 0,  0.5778]), dp=True, ac=True),
+                mkstep(reward=0,
+                       action=tensor([0.]),
+                       gamma=0.9,
+                       state=tensor([1.0, 1, 0, 0, 0.378]),
+                       dp=True,
+                       ac=True),
+                mkstep(reward=0,
+                       action=tensor([1.]),
+                       gamma=0.9,
+                       state=tensor([2.0, 1, 0, 0,  0.5778]),
+                       dp=True,
+                       ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9
@@ -270,16 +290,16 @@ def test_pipeline2(dummy_app_state: AppState):
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state
-    cols = ['action-1', 'tag-1', 'countdown.[0]', 'tag-2_trace-0.1']
+    cols = ['action-1', 'tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [0,    0,     0,     0],
-            [1,    0,     0,     0.15],
-            [0,    1,     0,     0.315],
-            [1,    1,     0,     0.4815],
-            [0,    1,     0,     0.64815],
-            [1,    4,     0,     0.814815],
-            [0,    4,     0,     0.981482],
+            [0, 0, 1, 0, 0, 0],
+            [1, 0, 1, 0, 0, 0.15],
+            [0, 1, 1, 0, 0, 0.315],
+            [1, 1, 1, 0, 0, 0.4815],
+            [0, 1, 1, 0, 0, 0.64815],
+            [1, 4, 1, 0, 0, 0.814815],
+            [0, 4, 1, 0, 0, 0.981482],
         ],
         columns=cols,
         index=idx,
@@ -291,48 +311,48 @@ def test_pipeline2(dummy_app_state: AppState):
         Transition(
             steps=[
                 # countdown comes first in the state
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 0, 0.0]), dp=True, ac=True),
-                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 0., 1, 0, 0, 0.0]), dp=True, ac=True),
+                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 1, 0, 0, 0.15]), dp=True, ac=True),
             ],
             n_step_reward=3.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 0, 0.15]), dp=True, ac=True),
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
+                mkstep(reward=3, action=tensor([1.]), gamma=0.9, state=tensor([1., 0., 1, 0, 0, 0.15]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0, 0, 0.315]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.315]), dp=True, ac=True),
-                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0, 0, 0.315]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 1, 0, 0, 0.4815]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 0, 0.4815]), dp=True, ac=True),
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([1.]), gamma=0.9, state=tensor([1., 1., 1, 0, 0, 0.4815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0, 0, 0.64815]), dp=True, ac=True),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 0, 0.64815]), dp=True, ac=True),
-                mkstep(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 1., 1, 0, 0, 0.64815]), dp=True, ac=True),
+                mkstep(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 1, 0, 0, 0.814815]), dp=True, ac=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                mkstep(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 0, 0.814815]), dp=True, ac=True),
-                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 0, 0.981482]), dp=True, ac=True),
+                mkstep(reward=1, action=tensor([1.]), gamma=0.9, state=tensor([1., 4., 1, 0, 0, 0.814815]), dp=True, ac=True),
+                mkstep(reward=0, action=tensor([0.]), gamma=0.9, state=tensor([0., 4., 1, 0, 0, 0.981482]), dp=True, ac=True),
             ],
             n_step_reward=1.,
             n_step_gamma=0.9,
