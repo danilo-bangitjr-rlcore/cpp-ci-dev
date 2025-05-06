@@ -39,13 +39,9 @@ pipeline:
 
   - name: tag-1 # the delta
     operating_range: [0, 1.0]
-    state_constructor:
-      - name: identity
 
   - name: tag-2 # the anchor
     operating_range: [0, 1.0]
-    state_constructor:
-      - name: identity
 
   # actions
   - name: action-0
