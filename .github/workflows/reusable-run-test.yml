@@ -71,7 +71,7 @@ jobs:
           if [ "${{ inputs.upload-coverage }}" = "true" ]; then
             uv run pytest -n auto --dist loadscope --cov=. ${{ inputs.test-flags }} test/${{ inputs.test-suite }}
           else
-            uv run pytest -n auto --dist loadsteal ${{ inputs.test-flags }} test/${{ inputs.test-suite }}
+            uv run pytest -n auto --dist worksteal ${{ inputs.test-flags }} test/${{ inputs.test-suite }}
           fi
 
       - name: Move coverage artifacts
