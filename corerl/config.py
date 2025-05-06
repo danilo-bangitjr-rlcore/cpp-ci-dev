@@ -91,6 +91,9 @@ class FeatureFlags:
     # 2025-04-28
     prod_265_ignore_oob_tags_in_compound_goals: bool = False
 
+    # 2025-05-04
+    interaction_action_variance: bool = False
+
 
 @config()
 class OfflineConfig:

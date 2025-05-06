@@ -57,6 +57,7 @@ ZERO_ONE_FEATURES = [
     'action_bounds',
     'use_residual',
     'recency_bias_buffer',
+    'interaction_action_variance',
 ]
 
 
