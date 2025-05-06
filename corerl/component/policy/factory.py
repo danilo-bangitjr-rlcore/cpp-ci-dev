@@ -150,7 +150,7 @@ class NormalPolicyConfig(BaseNNConfig):
 
     head_activation: HeadActivation = list_([
         [{"name": "identity"}],
-        [{"name": "clamp", "args": [-20, 4]}, {"name": "exp"}],
+        [{"name": "clamp", "args": [-8, 4]}, {"name": "exp"}],
     ])
 
 @policy_group.dispatcher
