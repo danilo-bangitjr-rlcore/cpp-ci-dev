@@ -32,14 +32,12 @@ class DeploymentAsyncEnv(AsyncEnv):
         self.coreio_client = self._init_thinclient()
 
         self.tag_configs = tag_configs
-        self.obs_period = cfg.obs_period
-        self.action_period = cfg.action_period
-        self.action_tolerance = cfg.action_tolerance
 
         self.tag_names = [tag.name for tag in tag_configs if not tag.is_computed]
         self.tag_aggs = {tag.name: tag.agg for tag in tag_configs if not tag.is_computed}
 
         self.data_reader = self._init_datareader()
+        self.obs_period = cfg.obs_period
 
         # create dict of action tags
         action_cfgs = [tag for tag in tag_configs if tag.type == TagType.ai_setpoint]
