@@ -1,6 +1,3 @@
-seed: 1
-max_steps: 999
-
 agent:
   gamma: 0.99
 
@@ -9,11 +6,12 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
+max_steps: 999
+
 env:
   name: sim_async_env
   gym:
     gym_name: Calibration-v0
-    init_type : gym.make
 
 pipeline:
   reward:
@@ -25,25 +23,25 @@ pipeline:
       - tags: [tag-0]
         directions: [min]
 
-tags:
-  # meta tags
-  - name: reward
-    operating_range: [0, 1]
-    type: meta
+  tags:
+    # meta tags
+    - name: reward
+      operating_range: [0, 1]
+      type: meta
 
-  - name: terminated
-    type: meta
+    - name: terminated
+      type: meta
 
-  - name: truncated
-    type: meta
+    - name: truncated
+      type: meta
 
-  - name: action-0
-    operating_range: [0, 1]
-    type: ai_setpoint
+    - name: action-0
+      operating_range: [0, 1]
+      type: ai_setpoint
 
-  - name: tag-0 # cost
-    operating_range: [0, 1]
+    - name: tag-0 # cost
+      operating_range: [0, 1]
 
-  - name: tag-1 # efficiency
-    operating_range: [0, 1]
+    - name: tag-1 # efficiency
+      operating_range: [0, 1]
 
