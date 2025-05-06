@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, NamedTuple, Protocol
 import torch
 
 from corerl.component.network.networks import EnsembleNetworkReturn
-from corerl.utils.device import device
 
 if TYPE_CHECKING:
     from corerl.component.policy_manager import ActionReturn
@@ -121,13 +120,3 @@ def get_sampled_qs(
     states = repeated_states.reshape(batch_size, n_samples, -1)
 
     return SampledQReturn(q_values, states, ar.direct_actions, ar.policy_actions)
-
-def mix_uniform_actions(policy_actions: torch.Tensor, uniform_weight: float) -> torch.Tensor:
-    batch_size = policy_actions.size(0)
-    action_dim = policy_actions.size(1)
-    num_rows_to_sample = ceil(batch_size * uniform_weight)
-    indices = torch.randperm(batch_size)[:num_rows_to_sample]
-    rand_actions = torch.rand(num_rows_to_sample, action_dim, device=device.device)
-    rand_actions = torch.clip(rand_actions, 0, 1)
-    policy_actions[indices, :] = rand_actions
-    return policy_actions

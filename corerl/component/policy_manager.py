@@ -14,7 +14,6 @@ from corerl.agent.utils import (
     get_sampled_qs,
     grab_percentile,
     grab_top_n,
-    mix_uniform_actions,
 )
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
@@ -199,12 +198,16 @@ class GACPolicyManager:
         with torch.no_grad():
             dist, _ = self.sampler.get_dist(states)
 
-        policy_actions = dist.sample((n_samples,))
-        assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
+        uniform_samples = int(self._uniform_weight * n_samples)
+        learned_samples = n_samples - uniform_samples
+        policy_actions = dist.sample((learned_samples,))
+        assert policy_actions.shape == (learned_samples, batch_size, self.action_dim)
 
         policy_actions = policy_actions.permute(1, 0, 2)
-        policy_actions = mix_uniform_actions(policy_actions, self._uniform_weight)
-        return policy_actions
+        rand_actions = self._sample_uniform(batch_size, uniform_samples)
+        out = torch.concatenate([policy_actions, rand_actions], dim=1)
+        assert out.shape == (batch_size, n_samples, self.action_dim)
+        return out
 
     def _sample_uniform(self, batch_size: int, n_samples: int):
         return torch.rand(batch_size, n_samples, self.action_dim, device=device.device)
