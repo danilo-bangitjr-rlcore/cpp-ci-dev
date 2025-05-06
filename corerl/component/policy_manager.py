@@ -4,10 +4,10 @@ import functools
 import logging
 import pickle
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, Callable, Literal, NamedTuple
 
 import torch
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
 from corerl.agent.utils import (
     SampledQReturn,
@@ -16,7 +16,7 @@ from corerl.agent.utils import (
     grab_top_n,
     mix_uniform_actions,
 )
-from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, buffer_group
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
 from corerl.component.network.utils import to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
@@ -70,18 +70,28 @@ class GACPolicyManagerConfig:
     # components
     network: PolicyConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
-    buffer: BufferConfig = Field(
-        default_factory=lambda: MixedHistoryBufferConfig(
-            ensemble=1,
-            ensemble_probability=1.0,
-        ),
-        discriminator='name',
-    )
+    buffer: BufferConfig = MISSING
 
     @computed("action_bounds")
     @classmethod
     def _action_bounds(cls, cfg: "MainConfig"):
         return cfg.feature_flags.action_bounds
+
+    @computed('buffer')
+    @classmethod
+    def _buffer(cls, cfg: 'MainConfig'):
+        default_buffer_type = (
+            RecencyBiasBufferConfig
+            if cfg.feature_flags.recency_bias_buffer else
+            MixedHistoryBufferConfig
+        )
+
+        ta = TypeAdapter(default_buffer_type)
+        default_buffer = default_buffer_type(id='critic')
+        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
+        main_cfg: Any = cfg
+        out = ta.validate_python(default_buffer_dict, context=main_cfg)
+        return out
 
     @post_processor
     def _default_stepsize(self, cfg: 'MainConfig'):

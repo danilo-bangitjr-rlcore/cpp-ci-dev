@@ -2,20 +2,24 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from pathlib import Path
+from typing import TYPE_CHECKING, Any
 
 import torch
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
-from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig
 from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig, EnsembleNetworkReturn
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
 
@@ -28,14 +32,27 @@ class CriticConfig:
     """
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
-    buffer: BufferConfig = Field(
-        default_factory=MixedHistoryBufferConfig,
-        discriminator='name',
-    )
+    buffer: BufferConfig = MISSING
     polyak: float = 0.995
     """
     Retention coefficient for polyak averaged target networks.
     """
+
+    @computed('buffer')
+    @classmethod
+    def _buffer(cls, cfg: 'MainConfig'):
+        default_buffer_type = (
+            RecencyBiasBufferConfig
+            if cfg.feature_flags.recency_bias_buffer else
+            MixedHistoryBufferConfig
+        )
+
+        ta = TypeAdapter(default_buffer_type)
+        default_buffer = default_buffer_type(id='critic')
+        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
+        main_cfg: Any = cfg
+        out = ta.validate_python(default_buffer_dict, context=main_cfg)
+        return out
 
 
 class BaseCritic(ABC):
