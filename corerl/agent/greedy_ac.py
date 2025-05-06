@@ -18,6 +18,7 @@ from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+from corerl.utils.math import exp_moving_avg
 
 logger = logging.getLogger(__name__)
 
@@ -39,14 +40,38 @@ class GreedyACConfig(BaseAgentConfig):
     critic: CriticConfig = Field(default_factory=CriticConfig)
     policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
-    n_actor_updates: int = 1
+    loss_threshold: float = 0.0001
     """
-    Number of actor updates per algorithm update.
+    Kind: internal
+
+    Minimum desired change in loss between updates. If the loss value changes
+    by more than this magnitude, then continue performing updates.
     """
 
-    n_critic_updates: int = 1
+    loss_ema_factor: float = 0.75
     """
-    Number of critic updates per actor update.
+    Kind: internal
+
+    Exponential moving average factor for early stopping based on loss.
+    Closer to 1 means slower update to avg, closer to 0 means less averaging.
+    """
+
+    max_internal_actor_updates: int = 1
+    """
+    Number of actor updates per critic update. Early stopping is done
+    using the loss_threshold. A minimum of 1 update will always be performed.
+    """
+
+    max_critic_updates: int = 1
+    """
+    Number of critic updates. Early stopping is done using the loss_threshold.
+    A minimum of 1 update will always be performed.
+    """
+
+    bootstrap_action_samples: int = 10
+    """
+    Number of action samples to use for bootstrapping,
+    producing an Expected Sarsa-like update.
     """
 
     eval_batch : bool = False
@@ -66,9 +91,6 @@ class GreedyAC(BaseAgent):
         self._col_desc = col_desc
         self.eval_batch = cfg.eval_batch
 
-        self.n_actor_updates = cfg.n_actor_updates
-        self.n_critic_updates = cfg.n_critic_updates
-
         self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
 
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
@@ -76,6 +98,13 @@ class GreedyAC(BaseAgent):
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
+
+        # for early stopping
+        self._last_critic_loss = 0.
+        self._avg_critic_delta: float | None = None
+        self._last_actor_loss = 0.
+        self._avg_actor_delta: float | None = None
+
 
     @property
     def actor_percentile(self) -> float:
@@ -112,14 +141,15 @@ class GreedyAC(BaseAgent):
         tensor_action_hi = tensor(action_hi, device.device).unsqueeze(0)
 
         ar = self._policy_manager.get_actor_actions(
+            1,
             tensor_state,
             tensor_action_lo,
             tensor_action_hi,
             self.critic
         )
         direct_action = ar.direct_actions
-
-        return to_np(direct_action)[0]
+        assert direct_action.shape == (1, 1, self.action_dim)
+        return to_np(direct_action.squeeze(0, 1))
 
     def policy_to_direct_action(
         self,
@@ -134,6 +164,7 @@ class GreedyAC(BaseAgent):
 
     def get_actor_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -142,6 +173,7 @@ class GreedyAC(BaseAgent):
         Sample actions from actor and return both direct and policy actions.
         """
         return self._policy_manager.get_actor_actions(
+            n_samples,
             states,
             action_lo,
             action_hi,
@@ -150,6 +182,7 @@ class GreedyAC(BaseAgent):
 
     def get_sampler_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -158,6 +191,7 @@ class GreedyAC(BaseAgent):
         Sample actions from sampler and return both direct and policy actions.
         """
         return self._policy_manager.get_sampler_actions(
+            n_samples,
             states,
             action_lo,
             action_hi
@@ -165,6 +199,7 @@ class GreedyAC(BaseAgent):
 
     def get_uniform_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -173,6 +208,7 @@ class GreedyAC(BaseAgent):
         Sample actions UAR and return both direct and policy actions.
         """
         return self._policy_manager.get_uniform_actions(
+            n_samples,
             states,
             action_lo,
             action_hi
@@ -229,13 +265,19 @@ class GreedyAC(BaseAgent):
         for batch in batches:
             with torch.no_grad():
                 cur_action = batch.post.action
-                dp_mask = batch.post.dp
                 ar = self._policy_manager.get_actor_actions(
+                    self.cfg.bootstrap_action_samples,
                     batch.post.state,
                     batch.post.action_lo,
                     batch.post.action_hi,
                     self.critic,
                 )
+                # add a singleton dimension over action_dim to forcefully broadcast
+                # over the action_dim
+                dp_mask = batch.post.dp.unsqueeze(2)
+                # add a singleton dimension over n_samples to forcefully broadcast
+                # across action samples
+                cur_action = cur_action.unsqueeze(1)
                 next_direct_actions = ar.direct_actions
                 next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
 
@@ -246,7 +288,7 @@ class GreedyAC(BaseAgent):
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
-            return []
+            return [0 for _ in range(self.ensemble)]
 
         batches = self.critic_buffer.sample()
         bootstrap_actions = self._get_bootstrap_actions(batches)
@@ -264,12 +306,31 @@ class GreedyAC(BaseAgent):
 
     def update(self) -> list[float]:
         q_losses = []
-        for _ in range(self.n_actor_updates):
-            for _ in range(self.n_critic_updates):
-                q_loss = self.update_critic()
-                q_losses += q_loss
 
-            self._policy_manager.update(self.critic)
+        alpha = self.cfg.loss_ema_factor
+        for _ in range(self.cfg.max_critic_updates):
+            losses = self.update_critic()
+            q_losses += losses
+            avg_critic_loss = np.mean(losses)
+
+            for _ in range(self.cfg.max_internal_actor_updates):
+                actor_loss = self._policy_manager.update(self.critic)
+
+                last = self._last_actor_loss
+                self._last_actor_loss = actor_loss
+                delta = actor_loss - last
+                self._avg_actor_delta = exp_moving_avg(alpha, self._avg_actor_delta, delta)
+
+                if np.abs(self._avg_actor_delta) < self.cfg.loss_threshold:
+                    break
+
+            last = self._last_critic_loss
+            self._last_critic_loss = avg_critic_loss
+            delta = avg_critic_loss - last
+            self._avg_critic_delta = exp_moving_avg(alpha, self._avg_critic_delta, delta)
+
+            if np.abs(self._avg_critic_delta) < self.cfg.loss_threshold:
+                break
 
         return q_losses
 

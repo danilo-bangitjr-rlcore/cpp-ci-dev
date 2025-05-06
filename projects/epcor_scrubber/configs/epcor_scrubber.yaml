@@ -23,9 +23,10 @@ interaction:
   update_period: 00:00:30
   action_period: 01:00:00
   warmup_period: 03:00:00
+  state_age_tol: 00:15:00
   update_warmup: 300 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
-  hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  hist_chunk_start: 2025-03-06 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     heartbeat_node_id: "ns=3;i=1"
@@ -34,20 +35,11 @@ interaction:
 
 event_bus:
   enabled: True
+  cli_connection: "tcp://localhost:5556"
 
 env:
   name: dep_async_env
-  update_period: 00:00:30
-  action_tolerance: 00:15:00
-  setpoint_ping_period: 00:00:10
   coreio_origin: http://localhost:2222
-
-  # opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"
-  # opc_ns: 3
-  # client_cert_path: certs/agent_cert.der
-  # client_private_key_path: certs/agent_key.pem
-  # server_cert_path: certs/application_rsa_sha256_9DC14599CE158BB8E063798EDC3744A80CE560B4.der
-  # application_uri: urn:agent
 
   db:
     table_name: scrubber4_tz
@@ -78,13 +70,9 @@ agent:
 
 metrics:
   enabled: True
-
 evals:
   enabled: True
 
-eval_cfgs:
-  monte_carlo:
-    enabled: True
 
 pipeline:
   reward:
@@ -130,27 +118,27 @@ pipeline:
 
   tags:
   - name: AIC3730_SP # pH SP
-    # node_identifier: 14
     type: ai_setpoint
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
+    action_bounds: ['{AIC3730_SP} - 0.2', '{AIC3730_SP} + 0.2']
     agg: last
 
   - name: AIC3731_SP # ORP SP
-    # node_identifier: 15
     type: ai_setpoint
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
+    action_bounds: ['{AIC3731_SP} - 10', '{AIC3731_SP} + 10']
     agg: last
 
   - name: FIC3734_SP # flow SP
-    # node_identifier: 17
     type: ai_setpoint
     connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
     node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
+    action_bounds: ['{FIC3734_SP} - 5', '{FIC3734_SP} + 5']
     agg: last
 
   - name: AIC3730_PV # pH process value
@@ -186,7 +174,7 @@ pipeline:
         from_data: False
 
   - name: LI3734 # scrubber tower sump level
-    operating_range: [500, 700]
+    operating_range: [0, 700]
     preprocess:
       - name: normalize
         min: 585
@@ -226,7 +214,7 @@ pipeline:
         from_data: False
 
   - name: PI0169 # blower discharge pressure
-    operating_range: [-0.1, 1]
+    operating_range: [-0.1, 3]
     preprocess:
       - name: normalize
         min: 0.3
@@ -259,6 +247,7 @@ pipeline:
 
   - name: AI0879B # H2S outlet
     operating_range: [0., 30000]
+    red_bounds: [null, 5000]
     preprocess:
       - name: normalize
         min: 0.

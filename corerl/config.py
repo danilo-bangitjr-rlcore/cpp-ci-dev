@@ -6,6 +6,7 @@ import yaml
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
@@ -168,6 +169,29 @@ class MainConfig:
         assert self.agent.critic.buffer.name == 'recency_bias_buffer'
         assert self.agent.policy.buffer.name == 'recency_bias_buffer'
 
+    @post_processor
+    def _enable_time_dilation(self, cfg: 'MainConfig'):
+        """
+        Divides time-based configs by time_dilation in order to easily experiment
+        with running deployment interactions faster.
+        """
+        self.interaction.obs_period /= self.interaction.time_dilation
+        self.interaction.action_period /= self.interaction.time_dilation
+        self.interaction.state_age_tol /= self.interaction.time_dilation
+        self.interaction.update_period /= self.interaction.time_dilation
+
+        if self.interaction.warmup_period is not None:
+            self.interaction.warmup_period /= self.interaction.time_dilation
+
+        self.interaction.checkpoint_freq /= self.interaction.time_dilation
+        self.interaction.checkpoint_cliff /= self.interaction.time_dilation
+        self.interaction.heartbeat.heartbeat_period /= self.interaction.time_dilation
+
+        for tag_cfg in self.pipeline.tags:
+            if tag_cfg.guardrail_schedule is not None:
+                tag_cfg.guardrail_schedule.duration /= self.interaction.time_dilation
+
+
     @computed('save_path')
     @classmethod
     def _save_path(cls, cfg: 'MainConfig'):
@@ -184,3 +208,18 @@ class MainConfig:
 
         return save_path
 
+    def _enable_zone_violations(self, cfg: 'MainConfig'):
+        if not self.feature_flags.zone_violations:
+            return
+
+        self.agent.critic.critic_optimizer = AdamConfig(
+            lr=0.001,
+            weight_decay=0.001,
+        )
+        self.agent.policy.optimizer = AdamConfig(
+            lr=0.001,
+            weight_decay=0.001,
+        )
+
+        self.agent.max_critic_updates = 10
+        self.agent.policy.prop_percentile_learned = 0.9

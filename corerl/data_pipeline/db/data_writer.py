@@ -1,8 +1,7 @@
 import json
 import logging
-from collections import namedtuple
 from datetime import UTC, datetime
-from typing import Any, NamedTuple, Protocol
+from typing import NamedTuple
 
 from sqlalchemy import text
 
@@ -82,74 +81,6 @@ class DataWriter(BufferedWriter[Point]):
             ],
             partition_column='name',
             index_columns=['name'],
-            chunk_time_interval='7d',
-        )
-
-    def flush(self) -> None:
-        self.blocking_sync()
-
-
-
-
-class WideTagConfig(Protocol):
-    name: str
-    dtype: str
-
-
-class WideDataWriter(BufferedWriter[NamedTuple]):
-    def __init__(
-        self,
-        cfg: TagDBConfig,
-        tag_cfgs: list[WideTagConfig],
-        low_watermark: int = 1024,
-        high_watermark: int = 2048,
-    ):
-        self._tag_cfgs = tag_cfgs
-        super().__init__(cfg, low_watermark, high_watermark)
-        self.cfg = cfg
-
-        self._tag_names = [tag.name for tag in tag_cfgs]
-        self._point_builder = namedtuple('Point', ['time'] + self._tag_names)
-
-    def write(
-        self,
-        timestamp: datetime,
-        tag_values: dict[str, Any],
-    ) -> None:
-        assert timestamp.tzinfo == UTC
-        ts_iso = timestamp.isoformat()
-
-        data = { 'time': ts_iso } | {
-            name: tag_values.get(name)
-            for name in self._tag_names
-        }
-        point = self._point_builder(**data)
-        self._write(point)
-
-    def _insert_sql(self):
-        tag_name_strs = ','.join(self._tag_names)
-        variable_bindings = ','.join(map(
-            lambda n: f':{n}',
-            self._tag_names,
-        ))
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, {tag_name_strs})
-            VALUES (TIMESTAMP :time, {variable_bindings});
-        """)
-
-    def _create_table_sql(self):
-        return create_tsdb_table_query(
-            schema=self.cfg.table_schema,
-            table=self.cfg.table_name,
-            columns=[
-                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
-            ] + [
-                SQLColumn(name=tag.name, type=tag.dtype, nullable=True)
-                for tag in self._tag_cfgs
-            ],
-            partition_column='time',
-            index_columns=[],
             chunk_time_interval='7d',
         )
 

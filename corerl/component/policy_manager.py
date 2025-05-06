@@ -15,7 +15,6 @@ from corerl.agent.utils import (
     grab_percentile,
     grab_top_n,
     mix_uniform_actions,
-    mix_uniform_actions_evenly_dispersed,
 )
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
@@ -61,10 +60,9 @@ class GACPolicyManagerConfig:
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    uniform_weight: float = 1.0
+    prop_percentile_learned: float = 0.
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
-    even_dispersed_uniform: bool = False
 
     # metrics
     ingress_loss: bool = True
@@ -104,7 +102,8 @@ class GACPolicyManager:
         self.state_dim = state_dim
         self.action_dim = action_dim
 
-        self.is_uniform_sampler = self.cfg.uniform_weight== 1.
+        self.is_uniform_sampler = self.cfg.prop_percentile_learned == 0.
+        self._uniform_weight = 1 - (self.cfg.prop_percentile_learned * self.cfg.actor_percentile)
 
         self.actor = create(
             cfg.network,
@@ -151,54 +150,81 @@ class GACPolicyManager:
         """
         Ensures that the output of this function is a direct action
         """
+        assert policy_actions.dim() == 3, 'Expected policy_actions to be (batch_size, n_samples, action_dim)'
+        assert action_lo.dim() == 2, 'Expected action_lo to be (batch_size, action_dim)'
+
         if self.cfg.action_bounds:
+            # add an n_samples dim to control automatic broadcasting
+            action_lo = action_lo.unsqueeze(1)
+            action_hi = action_hi.unsqueeze(1)
             direct_actions = torch.clip(policy_actions, min=action_lo, max=action_hi)
         else:
             direct_actions = policy_actions
         return direct_actions
 
-    def _sample_actor(self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor) -> torch.Tensor:
+    def _sample_actor(
+        self,
+        states: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+        n_samples: int
+    ) -> torch.Tensor:
         """
         Samples actions from the actor
         """
+        batch_size = states.size(0)
+
         with torch.no_grad():
-            policy_actions, _ = self.actor.forward(states)  # actions normalized with respect to the operating range
+            dist, _ = self.actor.get_dist(states)  # actions normalized with respect to the operating range
+
+        policy_actions = dist.sample((n_samples,))
+        assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
+
+        policy_actions = policy_actions.permute(1, 0, 2)
         return policy_actions
 
-    def _sample_sampler(self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor) -> torch.Tensor:
+    def _sample_sampler(
+        self,
+        states: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+        n_samples: int
+    ) -> torch.Tensor:
         """
         Samples a mixture between the sampler and a uniform distribution
         """
+        batch_size = states.size(0)
+
         if self.is_uniform_sampler:
-            uniform_actions = torch.rand(states.size(0), self.action_dim, device=device.device)
-            policy_actions = (action_hi - action_lo) * uniform_actions + action_lo
-            return policy_actions
+            return self._sample_uniform(batch_size, n_samples, action_lo, action_hi)
 
         with torch.no_grad():
-            policy_actions, _ = self.sampler.forward(states)  # actions normalized with respect to the operating range
-        if self.cfg.even_dispersed_uniform:
-            policy_actions = mix_uniform_actions_evenly_dispersed(policy_actions,
-                                                                  action_lo,
-                                                                  action_hi,
-                                                                  self.cfg.uniform_weight)
-        else:
-            policy_actions = mix_uniform_actions(policy_actions, action_lo, action_hi, self.cfg.uniform_weight)
+            dist, _ = self.sampler.get_dist(states)
+
+        policy_actions = dist.sample((n_samples,))
+        assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
+
+        policy_actions = policy_actions.permute(1, 0, 2)
+        policy_actions = mix_uniform_actions(policy_actions, action_lo, action_hi, self._uniform_weight)
         return policy_actions
 
-    def _sample_uniform(self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor):
-        uniform_actions = torch.rand(states.size(0), self.action_dim, device=device.device)
+    def _sample_uniform(self, batch_size: int, n_samples: int, action_lo: torch.Tensor, action_hi: torch.Tensor):
+        uniform_actions = torch.rand(batch_size, n_samples, device=device.device)
         bounded_uniform_actions = (action_hi - action_lo) * uniform_actions + action_lo
 
         return bounded_uniform_actions
 
     def _get_actions(
         self,
-        sampler: Callable[[torch.Tensor, torch.Tensor, torch.Tensor], torch.Tensor],
+        sampler: Callable[[torch.Tensor], torch.Tensor],
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
     ) -> ActionReturn:
-        policy_actions = sampler(states, action_lo, action_hi)
+        policy_actions = sampler(states)
+        assert policy_actions.dim() == 3
+        assert policy_actions.size(0) == states.size(0)
+
         direct_actions = self.ensure_direct_action(action_lo, action_hi, policy_actions)
         direct_actions = torch.clip(direct_actions, OUTPUT_MIN, OUTPUT_MAX)
 
@@ -225,7 +251,8 @@ class GACPolicyManager:
         )
 
         _, policy_actions = grab_top_n(values=qr.q_values, keys=[qr.states, qr.policy_actions], n=1)
-        return policy_actions.squeeze(1)
+        assert policy_actions.shape == (states.size(0), 1, self.action_dim)
+        return policy_actions
 
     def get_greedy_actions(
         self,
@@ -252,6 +279,7 @@ class GACPolicyManager:
 
     def get_actor_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -261,13 +289,19 @@ class GACPolicyManager:
         Samples direct actions for states from the actor.
         """
         if not self.cfg.greedy:
-            return self._get_actions(self._sample_actor, states, action_lo, action_hi)
+            return self._get_actions(
+                lambda x: self._sample_actor(x, action_lo, action_hi, n_samples),
+                states,
+                action_lo,
+                action_hi,
+            )
 
         assert critic is not None
         return self.get_greedy_actions(states, action_lo, action_hi, critic)
 
     def get_sampler_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -276,10 +310,16 @@ class GACPolicyManager:
         Samples direct actions for states.
         If uniform_weight is greater than 0, will sample actions from a mixture between the policy and uniform.
         """
-        return self._get_actions(self._sample_sampler, states, action_lo, action_hi)
+        return self._get_actions(
+            lambda x: self._sample_sampler(x, action_lo, action_hi, n_samples),
+            states,
+            action_lo,
+            action_hi,
+        )
 
     def get_uniform_actions(
         self,
+        n_samples: int,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
@@ -287,7 +327,12 @@ class GACPolicyManager:
         """
         Samples direct actions for states UAR
         """
-        return self._get_actions(self._sample_uniform, states, action_lo, action_hi)
+        return self._get_actions(
+            lambda x: self._sample_uniform(x.size(0), n_samples, action_lo, action_hi),
+            states,
+            action_lo,
+            action_hi,
+        )
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         """
@@ -372,13 +417,13 @@ class GACPolicyManager:
             logger.exception('Failed to load buffer from checkpoint. Reinitializing...')
 
 
-    def update(self, critic: EnsembleCritic) -> None:
+    def update(self, critic: EnsembleCritic):
         """
         Performs a percentile-based update to the policy.
         """
         self._app_state.event_bus.emit_event(EventType.agent_update_actor)
         if min(self.buffer.size) <= 0:
-            return None
+            return 0
 
         # Assuming we don't have an ensemble of policies
         batches = self.buffer.sample()
@@ -399,8 +444,14 @@ class GACPolicyManager:
 
         assert isinstance(self.actor_optimizer, Optimizer)
         actor_closure = self._get_closure(self.actor, critic, self.cfg.actor_percentile)
-        self._regress_towards_percentile(qr, self.actor, self.actor_optimizer,
-                                         self.cfg.actor_percentile , 'actor', actor_closure)
+        actor_loss = self._regress_towards_percentile(
+            qr,
+            self.actor,
+            self.actor_optimizer,
+            self.cfg.actor_percentile ,
+            'actor',
+            actor_closure,
+        )
         if not self.is_uniform_sampler:
             if self.cfg.resample_for_sampler_update:
                 qr = get_sampled_qs(
@@ -415,6 +466,8 @@ class GACPolicyManager:
             sampler_closure = self._get_closure(self.sampler, critic, self.cfg.sampler_percentile)
             self._regress_towards_percentile(qr, self.sampler,  self.sampler_optimizer,
                                             self.cfg.sampler_percentile, 'sampler', sampler_closure)
+
+        return actor_loss
 
     # ---------------------------------------------------------------------------- #
     #                            updating helper methods                           #
@@ -501,6 +554,8 @@ class GACPolicyManager:
         opt_args = tuple()
         opt_kwargs = {"closure": closure}
         optimizer.step(*opt_args, **opt_kwargs)
+
+        return float(loss.item())
 
     def _policy_err(
         self,

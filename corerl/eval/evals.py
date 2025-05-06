@@ -25,7 +25,7 @@ class _EvalPoint(NamedTuple):
 @config()
 class EvalDBConfig(BufferedWriterConfig):
     table_name: str = 'evals'
-    lo_wm: int = 10
+    lo_wm: int = 1
     enabled: bool = False
 
 

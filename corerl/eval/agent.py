@@ -112,24 +112,23 @@ def _policy_variance(
     action_lo = ensure_2d_tensor(action_lo)
     action_hi = ensure_2d_tensor(action_hi)
     assert state.size(0) == 1
-    repeated_state = state.repeat_interleave(cfg.n_samples, dim=0)
-    repeated_action_lo = action_lo.repeat_interleave(cfg.n_samples, dim=0)
-    repeated_action_hi = action_hi.repeat_interleave(cfg.n_samples, dim=0)
 
     ar = agent.get_actor_actions(
-        repeated_state,
-        repeated_action_lo,
-        repeated_action_hi,
+        cfg.n_samples,
+        state,
+        action_lo,
+        action_hi,
     )
-    sampled_policy_actions = ar.policy_actions
+    sampled_policy_actions = ar.policy_actions.squeeze(0)
     actor_sample_var = torch.var(sampled_policy_actions, dim=0)
 
     ar = agent.get_sampler_actions(
-        repeated_state,
-        repeated_action_lo,
-        repeated_action_hi,
+        cfg.n_samples,
+        state,
+        action_lo,
+        action_hi,
     )
-    sampled_policy_actions = ar.policy_actions
+    sampled_policy_actions = ar.policy_actions.squeeze(0)
     sampler_sample_var = torch.var(sampled_policy_actions, dim=0)
     return actor_sample_var, sampler_sample_var
 
@@ -395,42 +394,33 @@ def q_values_and_act_prob(
     state = ensure_2d_tensor(state)
     action_lo = ensure_2d_tensor(action_lo)
     action_hi = ensure_2d_tensor(action_hi)
-    repeated_states = state.repeat(
-        cfg.primary_action_samples*cfg.other_action_samples, 1)
-    repeated_action_lo = action_lo.repeat(
-        cfg.primary_action_samples*cfg.other_action_samples, 1)
-    repeated_action_hi = action_hi.repeat(
-        cfg.primary_action_samples*cfg.other_action_samples, 1)
 
     # sample actions for the actor
-    ar = agent._policy_manager.get_actor_actions(repeated_states,
-                                                 repeated_action_lo,
-                                                 repeated_action_hi)
-    policy_actions = ar.direct_actions
+    n_samples = cfg.primary_action_samples * cfg.other_action_samples
+    dist, _ = agent._policy_manager.actor.get_dist(state)
+    policy_actions = dist.sample((n_samples, ))
+    policy_actions = policy_actions.permute(1, 0, 2)
 
     # get actions for each action dimension we are interested in.
-    lin_spaced_actions = torch.linspace(
-        0, 1, cfg.primary_action_samples, device=device.device)
+    lin_spaced_actions = torch.linspace(0, 1, cfg.primary_action_samples, device=device.device)
     # since we are averaging across samples for the other action dimensions, repeat these samples
-    repeated_lin_spaced_actions = torch.repeat_interleave(
-        lin_spaced_actions, cfg.other_action_samples)
+    repeated_lin_spaced_actions = torch.repeat_interleave(lin_spaced_actions, cfg.other_action_samples)
 
+    repeated_states = state.repeat(n_samples, 1)
     for a_dim_idx in range(agent.action_dim):
         # augmented actions are the actions we are interested in,
         # but with the primary action dimension replaced with the lin_spaced actions
         augmented_policy_actions = policy_actions.clone()
-        augmented_policy_actions[:, a_dim_idx] = repeated_lin_spaced_actions
-        probs = agent.prob(
-            repeated_states,
-            augmented_policy_actions, # probability is calculated using policy actions
-        )
+        augmented_policy_actions[:, :, a_dim_idx] = repeated_lin_spaced_actions
+        log_probs = dist.log_prob(augmented_policy_actions.squeeze(0))
+        probs = torch.exp(log_probs)
         probs = probs.reshape(
             cfg.primary_action_samples,
             cfg.other_action_samples,
         ).mean(dim=1)
         direct_actions = augmented_policy_actions
 
-        lin_spaced_actions_in_da_space = direct_actions[:, a_dim_idx].unique()
+        lin_spaced_actions_in_da_space = direct_actions[:, :, a_dim_idx].unique()
         measure = XYEval(data=[
             XY(x=x, y=float(y))
             for x, y in zip(lin_spaced_actions_in_da_space, probs, strict=False)
@@ -443,10 +433,10 @@ def q_values_and_act_prob(
 
         # Next, plot q values for the entire range of direct actions
         augmented_direct_actions = direct_actions.clone()
-        augmented_direct_actions[:, a_dim_idx] = repeated_lin_spaced_actions
+        augmented_direct_actions[:, :, a_dim_idx] = repeated_lin_spaced_actions
         qs = agent.critic.get_values(
             [repeated_states],
-            [augmented_direct_actions],
+            [augmented_direct_actions.reshape(n_samples, -1)],
         ).reduced_value
         qs = qs.reshape(
             cfg.primary_action_samples,

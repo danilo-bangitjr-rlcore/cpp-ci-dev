@@ -16,8 +16,6 @@ agent:
 
 env:
   name: dep_async_env
-  setpoint_ping_period: 00:00:10
-  action_tolerance: 00:00:01
   coreio_origin: http://coreio:2222       # coreio hostname derived from docker-compose up app name
   # coreio_origin: http://localhost:2222  # use localhost or 0.0.0.0 for when agent running outside of docker network
 
@@ -38,10 +36,12 @@ interaction:
   name: dep_interaction
   restore_checkpoint: False
   historical_batch_size: 100
+  setpoint_ping_period: 00:00:10
   hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
   obs_period: 00:00:01
   action_period: 00:00:03
   update_period: 00:00:01
+  state_age_tol: 00:00:01
   heartbeat:
     connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
     heartbeat_node_id: "ns=2;s=heartbeat"
