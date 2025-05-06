@@ -207,3 +207,4 @@ report/
 *.stats
 metric_outputs/
 .worktree/
+projects/epcor_scrubber/syed_exports/
