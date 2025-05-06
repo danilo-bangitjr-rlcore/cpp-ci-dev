@@ -23,6 +23,7 @@ interaction:
   update_period: 00:00:30
   action_period: 01:00:00
   warmup_period: 03:00:00
+  state_age_tol: 00:15:00
   update_warmup: 300 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
   hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
@@ -37,9 +38,6 @@ event_bus:
 
 env:
   name: dep_async_env
-  update_period: 00:00:30
-  action_tolerance: 00:15:00
-  setpoint_ping_period: 00:00:10
   coreio_origin: http://localhost:2222
 
   # opc_conn_url: "opc.tcp://admin:admin@localhost:62000" # f"opc.tcp://{self.ip_address}:{self.port}"

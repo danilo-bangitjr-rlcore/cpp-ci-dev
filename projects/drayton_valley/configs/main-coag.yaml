@@ -288,11 +288,6 @@ metrics:
   lo_wm: 1
 env:
   name: dep_async_env
-  obs_period: PT15M
-  update_period: PT15M
-  action_period: PT2H
-  setpoint_ping_period: null
-  action_tolerance: PT15M
   coreio_origin: http://coreio:2222
   db:
     drivername: postgresql+psycopg2
@@ -311,6 +306,8 @@ interaction:
   obs_period: PT15M
   action_period: PT2H
   update_period: PT15M
+  setpoint_ping_period: null
+  state_age_tol: PT15M
   load_historical_data: true
   update_warmup: 0
   historical_batch_size: 10000

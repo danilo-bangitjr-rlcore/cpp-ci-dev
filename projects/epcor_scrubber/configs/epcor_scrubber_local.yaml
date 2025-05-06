@@ -25,6 +25,9 @@ interaction:
   obs_period: 00:05:00
   action_period: 01:00:00
   warmup_period: 03:00:00
+  update_period: 00:00:30
+  state_age_tol: 00:15:00
+  setpoint_ping_period: 00:00:10
   historical_batch_size: 25920 # 90 days @ 5 minute obs period
   hist_chunk_start: 2024-10-09 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
@@ -37,9 +40,6 @@ event_bus:
 
 env:
   name: dep_async_env
-  update_period: 00:00:30
-  action_tolerance: 00:15:00
-  setpoint_ping_period: 00:00:10
   seed: ${experiment.seed}
 
   # opc_conn_url: "opc.tcp://admin@0.0.0.0:4840/rlcore/server/"

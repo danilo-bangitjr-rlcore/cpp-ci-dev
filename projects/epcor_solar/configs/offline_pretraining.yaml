@@ -29,7 +29,9 @@ interaction:
   obs_period: 00:01:00
   update_period: 00:00:30
   action_period: 00:05:00
+  state_age_tol: 00:05:00
   warmup_period: 24:00:00
+  setpoint_ping_period: 00:00:10 # Previously used to frequently write to OPC to make sure value wasn't considered stale
   update_warmup: 300 # Want the agent to learn something but not get too deterministic
   historical_batch_size: 272160 # 189 days @ 1 minute obs period
   hist_chunk_start: 2024-01-25 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
@@ -43,9 +45,6 @@ event_bus:
 
 env:
   name: dep_async_env
-  action_tolerance: 00:05:00
-  setpoint_ping_period: 00:00:10 # Previously used to frequently write to OPC to make sure value wasn't considered stale
-
   db:
     table_name: "tag_data"
 
