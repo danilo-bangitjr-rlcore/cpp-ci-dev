@@ -144,11 +144,22 @@ class GreedyAC(BaseAgent):
 
         dist, _ = self._policy_manager.actor.get_dist(tensor_state)
 
+        dist_stats = get_dist_stats(dist)
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            "interaction_action_mean",
+            dist_stats.mean.item(),
+        )
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            "interaction_action_stddev",
+            dist_stats.stddev.item(),
+        )
+
         # ensure these statistics have a (batch_size, 1) shape for broadcasting
         # over the n_samples dimension
-        mean, std = get_dist_stats(dist)
-        mean = mean.unsqueeze(1)
-        std = std.unsqueeze(1)
+        mean = dist_stats.mean.unsqueeze(1)
+        std = dist_stats.stddev.unsqueeze(1)
 
         def policy_action_sampler(n: int):
             # gives shape (n, batch_size, action_dim)
