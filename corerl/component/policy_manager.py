@@ -4,19 +4,18 @@ import functools
 import logging
 import pickle
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, Callable, Literal, NamedTuple
 
 import torch
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
 from corerl.agent.utils import (
     SampledQReturn,
     get_sampled_qs,
     grab_percentile,
     grab_top_n,
-    mix_uniform_actions,
 )
-from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, buffer_group
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
 from corerl.component.critic.ensemble_critic import EnsembleCritic
 from corerl.component.network.utils import to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
@@ -70,18 +69,28 @@ class GACPolicyManagerConfig:
     # components
     network: PolicyConfig = Field(default_factory=SquashedGaussianPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
-    buffer: BufferConfig = Field(
-        default_factory=lambda: MixedHistoryBufferConfig(
-            ensemble=1,
-            ensemble_probability=1.0,
-        ),
-        discriminator='name',
-    )
+    buffer: BufferConfig = MISSING
 
     @computed("action_bounds")
     @classmethod
     def _action_bounds(cls, cfg: "MainConfig"):
         return cfg.feature_flags.action_bounds
+
+    @computed('buffer')
+    @classmethod
+    def _buffer(cls, cfg: 'MainConfig'):
+        default_buffer_type = (
+            RecencyBiasBufferConfig
+            if cfg.feature_flags.recency_bias_buffer else
+            MixedHistoryBufferConfig
+        )
+
+        ta = TypeAdapter(default_buffer_type)
+        default_buffer = default_buffer_type(id='critic')
+        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
+        main_cfg: Any = cfg
+        out = ta.validate_python(default_buffer_dict, context=main_cfg)
+        return out
 
     @post_processor
     def _default_stepsize(self, cfg: 'MainConfig'):
@@ -201,12 +210,16 @@ class GACPolicyManager:
         with torch.no_grad():
             dist, _ = self.sampler.get_dist(states)
 
-        policy_actions = dist.sample((n_samples,))
-        assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
+        uniform_samples = int(self._uniform_weight * n_samples)
+        learned_samples = n_samples - uniform_samples
+        policy_actions = dist.sample((learned_samples,))
+        assert policy_actions.shape == (learned_samples, batch_size, self.action_dim)
 
         policy_actions = policy_actions.permute(1, 0, 2)
-        policy_actions = mix_uniform_actions(policy_actions, action_lo, action_hi, self._uniform_weight)
-        return policy_actions
+        rand_actions = self._sample_uniform(batch_size, uniform_samples, action_lo, action_hi)
+        out = torch.concatenate([policy_actions, rand_actions], dim=1)
+        assert out.shape == (batch_size, n_samples, self.action_dim)
+        return out
 
     def _sample_uniform(self, batch_size: int, n_samples: int, action_lo: torch.Tensor, action_hi: torch.Tensor):
         uniform_actions = torch.rand(batch_size, n_samples, self.action_dim, device=device.device)

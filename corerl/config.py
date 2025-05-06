@@ -91,6 +91,9 @@ class FeatureFlags:
     # 2025-04-28
     prod_265_ignore_oob_tags_in_compound_goals: bool = False
 
+    # 2025-05-04
+    interaction_action_variance: bool = False
+
 
 @config()
 class OfflineConfig:
@@ -208,6 +211,7 @@ class MainConfig:
 
         return save_path
 
+    @post_processor
     def _enable_zone_violations(self, cfg: 'MainConfig'):
         if not self.feature_flags.zone_violations:
             return
