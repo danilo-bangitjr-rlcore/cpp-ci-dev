@@ -209,7 +209,9 @@ class GACPolicyManager:
         return policy_actions
 
     def _sample_uniform(self, batch_size: int, n_samples: int, action_lo: torch.Tensor, action_hi: torch.Tensor):
-        uniform_actions = torch.rand(batch_size, n_samples, device=device.device)
+        uniform_actions = torch.rand(batch_size, n_samples, self.action_dim, device=device.device)
+        action_lo = action_lo.unsqueeze(1)
+        action_hi = action_hi.unsqueeze(1)
         bounded_uniform_actions = (action_hi - action_lo) * uniform_actions + action_lo
 
         return bounded_uniform_actions
