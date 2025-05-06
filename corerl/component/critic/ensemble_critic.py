@@ -176,13 +176,8 @@ class EnsembleCritic(BaseCritic):
             reward_batch = batch.n_step_reward
             next_state_batch = batch.post.state
             gamma_batch = batch.n_step_gamma
-            dp_mask = batch.post.dp
 
-            # For the 'Anytime' paradigm, only states at decision points can sample next_actions
-            # If a state isn't at a decision point, its next_action is set to the current action
-            with torch.no_grad():
-                next_action_batches.append((dp_mask * next_actions[i]) + ((1.0 - dp_mask) * direct_action_batch))
-
+            next_action_batches.append(next_actions[i])
             state_batches.append(state_batch)
             action_batches.append(direct_action_batch)
             reward_batches.append(reward_batch)
@@ -217,7 +212,7 @@ class EnsembleCritic(BaseCritic):
         gammas: list[torch.Tensor],
     ):
         values = self.get_values(states, actions, with_grad=True)
-        target_values = self.get_target_values(next_states, next_actions)
+        target_values = self.get_avg_target_values(next_states, next_actions)
 
         loss = torch.tensor(0.0, device=device.device)
         for i, reward in enumerate(rewards):
@@ -280,6 +275,48 @@ class EnsembleCritic(BaseCritic):
     )-> EnsembleNetworkReturn:
         with torch.no_grad():
             return self.target.forward([state_batches, action_batches])
+
+    def get_avg_target_values(
+        self,
+        states: list[torch.Tensor],
+        actions: list[torch.Tensor],
+    ) -> EnsembleNetworkReturn:
+        """
+        Takes an ensemble batch of states and actions
+          states.shape == (batch_size, state_dim)
+          actions.shape == (batch_size, n_samples, action_dim)
+
+        and returns the target network values averaged over the
+        n_samples axis of the actions.
+        """
+        ens_states = states.copy()
+        ens_actions = actions.copy()
+
+        ensemble_size = len(ens_states)
+        batch_size = ens_states[0].size(0)
+        n_samples = ens_actions[0].size(1)
+
+        for i, (member_states, member_actions) in enumerate(zip(states, actions, strict=True)):
+            assert len(member_states.shape) == 2
+            assert len(member_actions.shape) == 3
+
+            ens_states[i] = member_states.repeat_interleave(n_samples, dim=0)
+            ens_actions[i] = member_actions.reshape(batch_size * n_samples, -1)
+
+        out = self.get_target_values(ens_states, ens_actions)
+        return EnsembleNetworkReturn(
+            reduced_value=(
+                out.reduced_value
+                    .reshape(batch_size, n_samples, 1)
+                    .mean(1)
+            ),
+            ensemble_values=(
+                out.ensemble_values
+                    .reshape(ensemble_size, batch_size, n_samples, 1)
+                    .mean(2)
+            ),
+            ensemble_variance=out.ensemble_variance,
+        )
 
 
 # ---------------------------------------------------------------------------- #

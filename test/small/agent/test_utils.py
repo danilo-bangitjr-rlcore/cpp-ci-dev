@@ -59,26 +59,34 @@ def test_grab_percentile_multi_key():
 
 class MockSampler:
     def get_actions(
-        self, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
+        self, n_samples: int, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
     ):
-        policy_actions = torch.ones_like(action_lo) * 0.5
+        batch_size = action_lo.size(0)
+        action_dim = action_lo.size(1)
+        policy_actions = torch.ones((batch_size, n_samples, action_dim)) * 0.5
         direct_actions = action_lo + policy_actions
         return ActionReturn(direct_actions, policy_actions)
 
 class MockCritic:
-    def get_values(self, states: list[torch.Tensor], actions: list[torch.Tensor]):
-        v =states[0][:, 0] + actions[0][:, 0]
-        var = torch.ones_like(v) * 0.00
+    def get_values(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+    ):
+        v = state_batches[0][:, 0] + action_batches[0][:, 0]
+        var = torch.zeros_like(v)
         return EnsembleNetworkReturn(v, v, var)
 
 def test_get_sampled_qs():
     states = torch.tensor([
         [1.0, 2.0, 3.0],
-        [4.0, 5.0, 6.0]])
+        [4.0, 5.0, 6.0],
+    ])
 
     prev_actions = torch.tensor([
         [0.5, 0.5],
-        [0.,  1.]])
+        [0.,  1.],
+    ])
 
     n_samples = 2
     sampler = MockSampler()
@@ -90,13 +98,14 @@ def test_get_sampled_qs():
         torch.ones_like(prev_actions),
         n_samples,
         sampler.get_actions,
-        critic, # type: ignore
+        critic,
     )
 
     # equal to state[0] + 0.5
     expected_q_values = torch.tensor([
         [1.5, 1.5],
-        [4.5, 4.5]])
+        [4.5, 4.5],
+    ])
 
     assert torch.equal(result.q_values, expected_q_values), "Q values mismatch"
 
@@ -105,17 +114,17 @@ def test_get_sampled_qs():
          [1.0, 2.0, 3.0]],
 
         [[4.0, 5.0, 6.0],
-         [4.0, 5.0, 6.0]]
+         [4.0, 5.0, 6.0]],
     ])
 
     assert torch.equal(result.states, expected_states), "States mismatch"
 
-    expected_direct_actions = torch.tensor([
+    expected_policy_actions = torch.tensor([
         [[0.5, 0.5],
          [0.5, 0.5]],
 
         [[0.5, 0.5],
-         [0.5, 0.5]]
+         [0.5, 0.5]],
     ])
 
-    assert torch.equal(result.direct_actions, expected_direct_actions), "Direct actions mismatch"
+    assert torch.equal(result.policy_actions, expected_policy_actions), "Policy actions mismatch"
