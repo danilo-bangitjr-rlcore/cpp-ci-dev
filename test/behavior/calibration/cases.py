@@ -46,5 +46,4 @@ class CalibrationTest(BSuiteTestCase):
 
         if pre_stable is not None and post_avg is not None:
             recovery_percent = post_avg / pre_stable * 100 if pre_stable != 0 else 0
-            assert recovery_percent > 80, f"Expected recovery to at least 80% of pre-calibration performance, got {recovery_percent:.2f}%"
-
+            assert recovery_percent > 80, f"Recovery {recovery_percent:.2f}% below 80% threshold"
