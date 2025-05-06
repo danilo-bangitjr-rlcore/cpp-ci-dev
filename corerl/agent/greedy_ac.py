@@ -68,6 +68,12 @@ class GreedyACConfig(BaseAgentConfig):
     A minimum of 1 update will always be performed.
     """
 
+    bootstrap_action_samples: int = 10
+    """
+    Number of action samples to use for bootstrapping,
+    producing an Expected Sarsa-like update.
+    """
+
     eval_batch : bool = False
     """
     Toggle for using a separate batch for evaluation of the
@@ -260,7 +266,7 @@ class GreedyAC(BaseAgent):
             with torch.no_grad():
                 cur_action = batch.post.action
                 ar = self._policy_manager.get_actor_actions(
-                    1,
+                    self.cfg.bootstrap_action_samples,
                     batch.post.state,
                     batch.post.action_lo,
                     batch.post.action_hi,
