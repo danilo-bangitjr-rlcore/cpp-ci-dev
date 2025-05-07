@@ -402,7 +402,7 @@ class RecencyBiasBufferConfig(BaseBufferConfig):
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
     uniform_weight: float = 0.01
     obs_period : datetime.timedelta = MISSING
-    gamma_extension_factor: float = 100.
+    effective_episodes: float = 100.
     gamma: float = MISSING
 
     @computed("obs_period")
@@ -422,7 +422,7 @@ class RecencyBiasBuffer(BaseBuffer):
 
         self._obs_period = np.timedelta64(cfg.obs_period, 'us')
         self._last_timestamp = None
-        self._discount_factor = np.power(cfg.gamma, 1./cfg.gamma_extension_factor)
+        self._discount_factor = np.power(cfg.gamma, 1./cfg.effective_episodes)
 
         self._ens_dists = [
             MaskedUGDistribution(self.memory, cfg.uniform_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
