@@ -6,6 +6,7 @@ from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
+from corerl.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.state import AppState
 from test.infrastructure.utils.pandas import dfs_close
@@ -172,6 +173,74 @@ def test_oddity3(dummy_app_state: AppState):
         {
             "obs_1": [np.nan, 1.0],
             "obs_2": [1.0, np.nan],
+        }
+    )
+
+    assert dfs_close(pf.data, expected_data)
+
+
+def test_stuck1(dummy_app_state: AppState):
+    """
+    Same as oddity filter 2, with identity filter added to the chain of oddity detectors
+    """
+
+    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[StuckDetectorConfig(step_tol=2)])
+    oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
+
+    raw_obs = pd.DataFrame(
+        {
+            "obs_1": [np.nan, 1, 1, 1, np.nan],
+            "obs_2": [1, 1, 2, np.nan, 1],
+        }
+    )
+
+    pf = PipelineFrame(
+        data=raw_obs,
+        data_mode=DataMode.REFRESH,
+    )
+
+
+    pf = oddity_filter(pf)
+
+    expected_data = pd.DataFrame(
+        {
+            "obs_1": [np.nan, 1.0, 1.0, np.nan, np.nan],
+            "obs_2": [1.0, 1.0, 2.0, np.nan, 1.0],
+        }
+    )
+
+    assert dfs_close(pf.data, expected_data)
+
+
+def test_stuck_and_ema(dummy_app_state: AppState):
+    """
+    Same as oddity filter 2, with identity filter added to the chain of oddity detectors
+    """
+
+    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[StuckDetectorConfig(step_tol=2), EMAFilterConfig(warmup=3)])
+    oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
+
+    raw_obs = pd.DataFrame(
+        {
+            "obs_1": [np.nan, 1, 2, 1.5, 1, 1, 1], # last 1 is stuck
+            "obs_2": [1, 1, 1, np.nan, 2, 1.5, -5],
+        }
+    )
+
+    pf = PipelineFrame(
+        data=raw_obs,
+        data_mode=DataMode.REFRESH,
+    )
+
+
+    pf = oddity_filter(pf)
+
+    expected_data = pd.DataFrame(
+        {
+            "obs_1": [np.nan, 1.0, 2.0, 1.5, 1., 1., np.nan],
+            "obs_2": [1.0, 1.0, np.nan, np.nan, 2.0, 1.5, np.nan],
         }
     )
 
