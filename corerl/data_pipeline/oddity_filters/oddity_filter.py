@@ -53,7 +53,7 @@ class OddityFilterConstructor:
         ts[tag_name] = sub_ts
 
         for i, f in enumerate(filters):
-            carry, sub_ts[i] = f(pf, tag_name, sub_ts[i])
+            pf, sub_ts[i] = f(pf, tag_name, sub_ts[i])
 
         return pf
 

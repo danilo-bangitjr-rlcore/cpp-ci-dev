@@ -130,8 +130,10 @@ class EMAFilter(BaseOddityFilter):
                 # Prevent classifying a val as an outlier due to np.mean()'s float imprecision
                 # when it's the only value that's been observed thus far
                 tag_ts.ema.mu = warmup_queue[0]
+                tag_ts.emv._ema.mu = warmup_queue[0]
             else:
                 tag_ts.ema.mu = np.array(warmup_queue).mean()
+                tag_ts.emv._ema.mu = np.array(warmup_queue).mean()
             tag_ts.emv.var = np.array(warmup_queue).var()
 
         return i
