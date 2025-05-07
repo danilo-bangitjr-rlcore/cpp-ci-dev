@@ -404,6 +404,10 @@ class RecencyBiasBufferConfig(BaseBufferConfig):
     obs_period : datetime.timedelta = MISSING
     effective_episodes: float = 100.
     gamma: float = MISSING
+    # if gamma = 0, use the fallback_gamma. RBB will use a discount_factor = fallback_gamma^{1/effective_episodes}
+    # which means that the effective_episodes-th entry in the buffer has unformalized weight fallback_gamma
+    # since discount_factor^effective_episodes = fallback_gamma
+    fallback_gamma: float = 0.01
 
     @computed("obs_period")
     @classmethod
@@ -413,6 +417,8 @@ class RecencyBiasBufferConfig(BaseBufferConfig):
     @computed('gamma')
     @classmethod
     def _gamma(cls, cfg: "MainConfig"):
+        if cfg.agent.gamma == 0:
+            return cls.fallback_gamma
         return cfg.agent.gamma
 
 
