@@ -74,6 +74,7 @@ class BSuiteTestCase:
         with tsdb.connect() as conn:
             # ensure some metrics were logged to table
             metrics_table = pd.read_sql_table('metrics', schema=schema, con=conn)
+            metrics_table = metrics_table[metrics_table['seed'] == self.seed]
 
             # ensure tables have retention policies
             add_retention_policy(conn, 'metrics', schema, days=3)
