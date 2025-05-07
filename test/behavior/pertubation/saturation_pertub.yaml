@@ -1,0 +1,50 @@
+env:
+  name: sim_async_env
+  gym:
+    gym_name : Saturation-v0
+    perturb_config:
+      frequency: 0.05
+      magnitude: 5.0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+seed: 1
+max_steps: 600
+
+agent:
+  gamma: 0.99
+
+pipeline:
+  tags:
+  # meta tags
+  - name: terminated
+    type: meta
+
+  - name: truncated
+    type: meta
+
+  # observations
+  - name: tag-0
+    operating_range: [0, 1.0]
+    reward_constructor:
+    # subtract saturation SP
+    - name: affine
+      scale: 1
+      bias: -0.5
+    # take absolute value
+    - name: power
+      pow: 2.0
+    - name: power
+      pow: 0.5
+    # invert for penalty
+    - name: scale
+      factor: -1
+
+  # actions
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [0, 0.5]
+    action_bounds: ['{action-0}-0.1', '{action-0}+0.1']

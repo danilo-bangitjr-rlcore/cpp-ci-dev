@@ -6,6 +6,11 @@ from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
+from test.behavior.pertubation.cases import (
+    MultiActionSaturationPerturbationTest,
+    SaturationPerturbationTest,
+    StandStillMountainCarPerturbationTest,
+)
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
     DeltaChangeSaturationTest,
@@ -50,7 +55,10 @@ TEST_CASES = [
     SetpointChangeSaturationTest(),
     SlowExpandingBoundsSaturationTest(),
     DeltaChangeSaturationTest(),
-    CalibrationTest()
+    CalibrationTest(),
+    SaturationPerturbationTest(),
+    MultiActionSaturationPerturbationTest(),
+    StandStillMountainCarPerturbationTest(),
 ]
 
 ZERO_ONE_FEATURES = [

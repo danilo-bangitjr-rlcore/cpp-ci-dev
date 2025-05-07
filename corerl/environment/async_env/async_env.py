@@ -4,6 +4,7 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
+from coreenv.pertube_env import PerturbationConfig
 from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config
@@ -61,6 +62,8 @@ class GymEnvConfig:
     # env config for custom gym environments
     env_config: Any | None = None
 
+    # perturb config for perturbation resilience tests
+    perturb_config: PerturbationConfig | None = None
     @computed('seed')
     @classmethod
     def _seed(cls, cfg: 'MainConfig'):
