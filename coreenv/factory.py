@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, Concatenate, Protocol, TypeVar
 
-from coreenv.pertube_env import PerturbationConfig, wrap_env_with_perturbation
+from coreenv.pertube_env import ObservationPerturbationWrapper, PerturbationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -77,8 +77,7 @@ def init_env(name: str, overrides: dict | None = None, perturbation_config: Pert
         }
 
     env = env_group.dispatch(name, overrides)
-
-    if perturbation_config is not None:
-        env = wrap_env_with_perturbation(env, perturbation_config)
-
+    if perturbation_config:
+        print("perturbation_config", perturbation_config)
+        env = ObservationPerturbationWrapper(env, perturbation_config)
     return env

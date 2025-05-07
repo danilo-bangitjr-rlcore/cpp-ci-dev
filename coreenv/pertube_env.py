@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any
 
 import gymnasium as gym
 import numpy as np
@@ -8,39 +8,34 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 @dataclass
-class PerturbationConfig:
-    enabled: bool = False
+class PerturbationConfig():
+    name: str = "Perturbed-v0"
     frequency: float = 0.05
     magnitude: float = 5.0
-    seed: Optional[int] = None
-
+    seed: int = 0
 
 class ObservationPerturbationWrapper(gym.Wrapper):
-    def __init__(self, env: gym.Env, config: PerturbationConfig):
+    def __init__(self, env: gym.Env, cfg: PerturbationConfig):
         super().__init__(env)
-        self.config = config
-        self._random = np.random.default_rng(config.seed)
+        self.env = env
+        self.config = cfg
+        self._random = np.random.default_rng(cfg.seed)
 
-        if config.enabled:
-            logger.info(f"Observation perturbation enabled with "
-                        f"frequency={config.frequency}, "
-                        f"magnitude={config.magnitude}")
-        else:
-            logger.info("Observation perturbation disabled")
+        logger.info(f"Observation perturbation enabled with "
+                        f"frequency={cfg.frequency}, "
+                        f"magnitude={cfg.magnitude}")
 
     def reset(self, **kwargs: Any) -> tuple[Any, dict[str, Any]]:
         obs, info = self.env.reset(**kwargs)
 
-        if self.config.enabled:
-            obs, info = self._maybe_perturb_observation(obs, info)
+        obs, info = self._maybe_perturb_observation(obs, info)
 
         return obs, info
 
     def step(self, action: Any) -> tuple[Any, float, bool, bool, dict[str, Any]]:
         obs, reward, terminated, truncated, info = self.env.step(action)
 
-        if self.config.enabled:
-            obs, info = self._maybe_perturb_observation(obs, info)
+        obs, info = self._maybe_perturb_observation(obs, info)
 
         return obs, reward, terminated, truncated, info
 
@@ -61,7 +56,4 @@ class ObservationPerturbationWrapper(gym.Wrapper):
                 logger.warning(f"Unsupported observation type: {type(obs)}")
         return obs, info
 
-def wrap_env_with_perturbation(env: gym.Env, config: PerturbationConfig) -> gym.Env:
-    if config.enabled:
-        return ObservationPerturbationWrapper(env, config)
-    return env
+
