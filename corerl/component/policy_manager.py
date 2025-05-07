@@ -21,7 +21,7 @@ from corerl.component.network.utils import to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.component.policy.factory import PolicyConfig, SquashedGaussianPolicyConfig, create
+from corerl.component.policy.factory import NormalPolicyConfig, PolicyConfig, create
 from corerl.component.policy.policy import Policy
 from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.pipeline import PipelineReturn
@@ -67,7 +67,7 @@ class GACPolicyManagerConfig:
     ingress_loss: bool = True
 
     # components
-    network: PolicyConfig = Field(default_factory=SquashedGaussianPolicyConfig)
+    network: PolicyConfig = Field(default_factory=NormalPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING
 
