@@ -15,6 +15,8 @@ is_simulation: False
 
 feature_flags:
   action_bounds: True
+  # zone_violations: True
+  use_residual: True
 
 interaction:
   name: dep_interaction
@@ -28,7 +30,7 @@ interaction:
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
   hist_chunk_start: 2025-03-06 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     heartbeat_node_id: "ns=3;i=1"
     heartbeat_period: 00:00:05
     max_counter: 1000
@@ -119,7 +121,7 @@ pipeline:
   tags:
   - name: AIC3730_SP # pH SP
     type: ai_setpoint
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
     action_bounds: ['{AIC3730_SP} - 0.2', '{AIC3730_SP} + 0.2']
@@ -127,7 +129,7 @@ pipeline:
 
   - name: AIC3731_SP # ORP SP
     type: ai_setpoint
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
     action_bounds: ['{AIC3731_SP} - 10', '{AIC3731_SP} + 10']
@@ -135,7 +137,7 @@ pipeline:
 
   - name: FIC3734_SP # flow SP
     type: ai_setpoint
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
     action_bounds: ['{FIC3734_SP} - 5', '{FIC3734_SP} + 5']
