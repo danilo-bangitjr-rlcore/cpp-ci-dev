@@ -183,7 +183,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "corerl"
-version = "0.139.4"
+version = "0.140.0"
 description = ""
 requires-python = ">=3.12,<3.13"
 authors = []
