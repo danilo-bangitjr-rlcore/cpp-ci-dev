@@ -29,6 +29,7 @@ from corerl.eval.torch import get_layers_stable_rank
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+from corerl.utils.torch import clip_gradients
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -62,6 +63,7 @@ class GACPolicyManagerConfig:
     prop_percentile_learned: float = 0.
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
+    grad_clip: float = 5
 
     # metrics
     ingress_loss: bool = True
@@ -516,6 +518,13 @@ class GACPolicyManager:
         # take a step with the optimizer
         optimizer.zero_grad()
         loss.backward()
+
+        grad_clip_delta = clip_gradients(policy.model, self.cfg.grad_clip)
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric=metric_id + "_max_grad_clip",
+            value=grad_clip_delta,
+        )
 
         # log to metrics table
         log_policy_gradient_norm(self._app_state, policy, prefix=metric_id)
