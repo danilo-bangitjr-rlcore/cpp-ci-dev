@@ -56,11 +56,7 @@ class TMaze(gym.Env):
         else:
             self.pos += DELTA*float_action
             self.pos = np.maximum(0, self.pos)
-
-            if float_action > 0:
-                reward = 0
-            else:
-                reward = 0.1*float_action
+            reward = -0.1*abs(float_action - 1)
 
             return np.array([0, self.pos, self._in_endzone()]), reward, False, False, {}
 
