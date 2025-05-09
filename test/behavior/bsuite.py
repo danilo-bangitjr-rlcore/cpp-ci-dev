@@ -23,6 +23,7 @@ class Behaviour(Enum):
 class BSuiteTestCase:
     name: str
     config: str
+    setup_cfgs: list[str] = []
     required_features: set[str] = set()
     behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
@@ -40,7 +41,16 @@ class BSuiteTestCase:
         self._cfg = cfg
         self.seed = np.random.randint(0, 1_000_000)
 
+    def setup(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
+        """
+        Individual test cases can define their own setup method to produce offline data, pretrained agents, etc.
+        """
+        ...
+
     def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
+        # Produce offline data, pretrained agents, etc. needed for the test
+        self.setup(tsdb, db_name, schema, features)
+
         ip = tsdb.url.host
         port = tsdb.url.port
 
