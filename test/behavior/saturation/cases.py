@@ -1,6 +1,7 @@
 import shutil
 import subprocess
 from pathlib import Path
+
 from sqlalchemy import Engine
 
 from test.behavior.bsuite import BSuiteTestCase
