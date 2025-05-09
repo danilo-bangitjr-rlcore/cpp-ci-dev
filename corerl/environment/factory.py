@@ -32,10 +32,6 @@ def init_environment(cfg: GymEnvConfig) -> gym.Env:
                 kwargs["cfg"] = cfg.env_config
             return gym.make(cfg.gym_name, *args, **kwargs)
         case "custom":
-            # If pertub config is not None, we need to pass it to the init_env function
-            if cfg.perturb_config is not None:
-                return init_env(cfg.gym_name, overrides=cfg.env_config, perturbation_config=cfg.perturb_config)
-            else:
-                return init_env(cfg.gym_name, overrides=cfg.env_config)
+            return init_env(cfg.gym_name, overrides=cfg.env_config, perturbation_config=cfg.perturb_config)
         case _:
             raise NotImplementedError
