@@ -57,6 +57,7 @@ def init_env(name: str, overrides: dict | None = None, perturbation_config: Pert
     import coreenv.saturation  # noqa: F401
     import coreenv.saturation_goals  # noqa: F401
     import coreenv.stand_still_mc  # noqa: F401
+    import coreenv.t_maze  # noqa: F401
     import coreenv.three_tanks  # noqa: F401
     import coreenv.windy_room  # noqa: F401
 
