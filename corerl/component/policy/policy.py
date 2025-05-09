@@ -93,6 +93,10 @@ class Policy(ABC):
         """
 
     @abstractmethod
+    def get_dist(self, state: torch.Tensor) -> tuple[torch.distributions.Distribution, dict]:
+        ...
+
+    @abstractmethod
     def log_prob(
         self, state: torch.Tensor, action: torch.Tensor,
     ) -> tuple[torch.Tensor, dict]:
@@ -143,7 +147,11 @@ class ContinuousIIDPolicy(Policy,ABC):
         -------
         ContinuousIIDPolicy
         """
-        return _get_type_from_dist(dist)(model, dist, *args, **kwargs)
+        dist_type = _get_type_from_dist(dist)
+        if dist_type == UnBounded:
+            return dist_type(model, dist)
+        else:
+            return dist_type(model, dist, *args, **kwargs)
 
     def _transform_from_params(self, *params: torch.Tensor) -> d.Distribution:
         """
@@ -186,6 +194,16 @@ class ContinuousIIDPolicy(Policy,ABC):
         state: torch.Tensor,
         rsample: bool = True,
     ) -> tuple[torch.Tensor, dict]:
+        dist, info = self.get_dist(state)
+
+        if rsample:
+            samples = dist.rsample()
+        else:
+            samples = dist.sample()
+
+        return samples, info
+
+    def get_dist(self, state: torch.Tensor):
         params = self._model(state)
         dist = self._transform_from_params(*params)
 
@@ -195,12 +213,7 @@ class ContinuousIIDPolicy(Policy,ABC):
             strict=True,
         ))
 
-        if rsample:
-            samples = dist.rsample()
-        else:
-            samples = dist.sample()
-
-        return samples, info
+        return dist, info
 
     def sample(self, state: torch.Tensor) -> tuple[torch.Tensor, dict]:
         return self.forward(state, False)

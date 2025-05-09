@@ -18,7 +18,7 @@ class BaseOddityFilter(ABC):
         self._app_state = app_state
 
     @abstractmethod
-    def __call__(self, pf: PipelineFrame, tag: str) -> PipelineFrame:
+    def __call__(self, pf: PipelineFrame, tag: str, ts: object | None) -> tuple[PipelineFrame, object | None]:
         raise NotImplementedError
 
 

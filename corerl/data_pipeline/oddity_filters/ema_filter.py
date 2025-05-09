@@ -6,9 +6,9 @@ import numpy as np
 
 from corerl.configs.config import config
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
-from corerl.data_pipeline.utils import get_tag_temporal_state, update_missing_info
+from corerl.data_pipeline.utils import update_missing_info
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -48,17 +48,15 @@ class EMAFilter(BaseOddityFilter):
         self.tolerance = cfg.tolerance
         self.warmup = cfg.warmup
 
-    def __call__(self, pf: PipelineFrame, tag: str, update_stats: bool = True) -> PipelineFrame:
+    def __call__(self, pf: PipelineFrame, tag: str, ts: object | None, update_stats: bool = True):
         """
         If update_stats is True, data in the DataFrame is used to update
         the running statistics. It may not be desirable to update the running
         statistics if, for example, historical data should be re-processed with
         the most up-to-date running statistics.
         """
-        tag_ts = get_tag_temporal_state(
-            StageCode.ODDITY, tag, pf.temporal_state,
-            default=lambda: EMAFilterTemporalState(ExpMovingAvg(self.alpha), ExpMovingVar(self.alpha)),
-        )
+        tag_ts = ts if ts is not None else EMAFilterTemporalState(ExpMovingAvg(self.alpha), ExpMovingVar(self.alpha))
+        assert isinstance(tag_ts, EMAFilterTemporalState)
         tag_data = pf.data[tag].to_numpy()
 
         oddity_mask = np.full(tag_data.shape, False)
@@ -84,7 +82,7 @@ class EMAFilter(BaseOddityFilter):
         update_missing_info(pf.missing_info, name=tag, missing_mask=oddity_mask, new_val=MissingType.OUTLIER)
         tag_data[oddity_mask] = np.nan
 
-        return pf
+        return pf, tag_ts
 
     def _log_moving_stats(self, tag: str, tag_ts: EMAFilterTemporalState, data_mode: DataMode):
         ema = tag_ts.ema
@@ -132,8 +130,10 @@ class EMAFilter(BaseOddityFilter):
                 # Prevent classifying a val as an outlier due to np.mean()'s float imprecision
                 # when it's the only value that's been observed thus far
                 tag_ts.ema.mu = warmup_queue[0]
+                tag_ts.emv._ema.mu = warmup_queue[0]
             else:
                 tag_ts.ema.mu = np.array(warmup_queue).mean()
+                tag_ts.emv._ema.mu = np.array(warmup_queue).mean()
             tag_ts.emv.var = np.array(warmup_queue).var()
 
         return i

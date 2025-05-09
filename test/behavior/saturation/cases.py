@@ -45,7 +45,6 @@ class SlowExpandingBoundsSaturationTest(BSuiteTestCase):
 class SetpointChangeSaturationTest(BSuiteTestCase):
     name = 'setpoint change saturation'
     config = 'test/behavior/saturation/setpoint_change.yaml'
-    required_features = {'action_bounds'}
     lower_bounds = { 'reward': -0.085}
 
 class DeltaChangeSaturationTest(BSuiteTestCase):

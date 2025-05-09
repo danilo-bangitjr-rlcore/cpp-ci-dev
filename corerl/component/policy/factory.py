@@ -74,10 +74,7 @@ class BetaPolicyConfig(BaseNNConfig):
 
     head_activation: HeadActivation = list_([
         [{'name': 'softplus'}, {'name': 'bias', 'args': [1]}],
-        [{
-            'name': 'tanh_shift',
-            'kwargs': { 'shift': -4, 'denom': 1, 'high': 10_000, 'low': 1 },
-        }],
+        [{'name': 'softplus'}, {'name': 'bias', 'args': [1]}],
     ])
 
 
@@ -152,8 +149,8 @@ class NormalPolicyConfig(BaseNNConfig):
     name: Literal['normal'] = 'normal'
 
     head_activation: HeadActivation = list_([
-        [{"name": "functional", "args": ["sigmoid"]}],
-        [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}],
+        [{"name": "identity"}],
+        [{"name": "clamp", "args": [-8, 4]}, {"name": "exp"}],
     ])
 
 @policy_group.dispatcher
@@ -176,7 +173,7 @@ class SquashedGaussianPolicyConfig(BaseNNConfig):
 
     head_activation: HeadActivation = list_([
         [{"name": "identity"}],
-        [{"name": "clamp", "args": [-20, 2]}, {"name": "exp"}],
+        [{"name": "clamp", "args": [-8, 2]}, {"name": "exp"}],
     ])
 
 

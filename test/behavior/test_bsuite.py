@@ -66,6 +66,8 @@ ZERO_ONE_FEATURES = [
     'zone_violations',
     'action_bounds',
     'use_residual',
+    'recency_bias_buffer',
+    'interaction_action_variance',
 ]
 
 

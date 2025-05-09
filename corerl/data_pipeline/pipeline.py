@@ -29,7 +29,7 @@ from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imput
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
-from corerl.data_pipeline.oddity_filters.factory import init_oddity_filter
+from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
@@ -70,15 +70,6 @@ class PipelineConfig:
                 continue
 
             tag.imputer = self.imputer.default
-
-    @post_processor
-    def _default_oddity_filter(self, cfg: MainConfig):
-        for tag in self.tags:
-            if tag.outlier is not None:
-                continue
-
-            tag.outlier = self.oddity_filter.default
-
 
     @computed('max_data_gap')
     @classmethod
@@ -169,7 +160,7 @@ class Pipeline:
         self.conditional_filter = ConditionalFilter(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
-        self.outlier_detectors = {tag.name: init_oddity_filter(tag.outlier, app_state) for tag in self.tags}
+        self.outlier_detectors = OddityFilterConstructor(self.tags, app_state, cfg.oddity_filter)
         self.imputers = init_imputer(cfg.imputer, self.tags)
         self.action_constructor = ActionConstructor(app_state, self.tags, self.preprocessor)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
@@ -197,7 +188,7 @@ class Pipeline:
             StageCode.TRIGGER:    self.tag_trigger,
             StageCode.PREPROCESS: self.preprocessor,
             StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
-            StageCode.ODDITY:     lambda pf: invoke_stage_per_tag(pf, self.outlier_detectors),
+            StageCode.ODDITY:     self.outlier_detectors,
             StageCode.IMPUTER:    self.imputers,
             StageCode.AC:         self.action_constructor,
             StageCode.RC:         self.reward_constructor,

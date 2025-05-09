@@ -1,3 +1,5 @@
+import pytest
+
 import corerl.utils.list as list_u
 
 
@@ -65,3 +67,26 @@ def test_multi_level_sort():
         'b.2',
         'b.4',
     ]
+
+
+
+# ----------------------
+# --    sort by       --
+# ----------------------
+
+def test_sort_by():
+    l1 = ['b', 'a', 'c']
+    l2 = [1, 0, 2]
+    got1, got2 = list_u.sort_by(l1, l2)
+
+    assert got1 == ['a', 'b', 'c']
+    assert got2 == [0, 1, 2]
+
+
+def test_sort_by_fail():
+    l1 = ['b', 'a', 'c']
+    l2 = [1, 0, 2, 3] # too many elements, so sort_by should fail
+
+    with pytest.raises(ValueError):
+        _ = list_u.sort_by(l1, l2)
+

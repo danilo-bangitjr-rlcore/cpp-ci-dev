@@ -20,7 +20,7 @@ def test_filter_no_warmup(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, expected, equal_nan=True)
 
@@ -36,7 +36,7 @@ def test_filter_warmup(dummy_app_state: AppState):
 
     data_0 = pd.DataFrame({name: values_0})
     pf_0 = PipelineFrame(data_0, DataMode.ONLINE)
-    pf_0_out = outlier_detector(pf_0, name)
+    pf_0_out, ts = outlier_detector(pf_0, name, None)
     filtered_data_0 = pf_0_out.data[name].to_numpy()
 
     assert np.allclose(filtered_data_0, expected_0, equal_nan=True)
@@ -53,7 +53,7 @@ def test_filter_warmup(dummy_app_state: AppState):
 
     data_1 = pd.DataFrame({name: values_1})
     pf_1 = PipelineFrame(data_1, DataMode.ONLINE, temporal_state=pf_0_out.temporal_state)
-    pf_1_out = outlier_detector(pf_1, name)
+    pf_1_out, ts = outlier_detector(pf_1, name, ts)
     filtered_data_1 = pf_1_out.data[name].to_numpy()
 
     assert np.allclose(filtered_data_1, expected_1, equal_nan=True)
@@ -67,7 +67,7 @@ def test_leading_nan_data(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
     filtered_data = pf.data
 
     assert np.isnan(filtered_data[name].iloc[0])  # first val remains nan
@@ -89,7 +89,7 @@ def test_trailing_nan_data(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
     filtered_data = pf.data
 
     assert not np.isnan(filtered_data[name].iloc[:10]).all()
@@ -111,7 +111,7 @@ def test_full_nan_data(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
     filtered_data = pf.data
 
     assert np.isnan(filtered_data[name]).all()
@@ -121,7 +121,7 @@ def test_full_nan_data(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
     filtered_data = pf.data
 
     assert not np.isnan(filtered_data[name].iloc[:10]).all()
@@ -138,7 +138,7 @@ def test_interspersed_nan_data(dummy_app_state: AppState):
     pf = PipelineFrame(data, DataMode.ONLINE)
 
     # feed oddity filter
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
 
     expected = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, np.nan])
     filtered_data = pf.data[name].to_numpy()
@@ -160,19 +160,18 @@ def test_streamed_nans(dummy_app_state: AppState):
     expected_missing_types = np.array([MissingType.NULL] * len(values))
     expected_missing_types[-2] = MissingType.OUTLIER
 
-    ts = {}
+    ts = None
     for in_val, expected_val, expected_missing_type in zip(values, expected, expected_missing_types, strict=True):
         data = pd.DataFrame({name: [in_val]})
-        pf = PipelineFrame(data, DataMode.ONLINE, temporal_state=ts)
+        pf = PipelineFrame(data, DataMode.ONLINE)
 
         # feed oddity filter
-        pf = outlier_detector(pf, name)
+        pf, ts = outlier_detector(pf, name, ts)
         out_val = pf.data[name].to_numpy()[0]
         assert np.isclose(out_val, expected_val, equal_nan=True)
 
         missing_info = pf.missing_info
         assert missing_info[name].iloc[0] == expected_missing_type
-        ts = pf.temporal_state
 
 
 def test_obvious_outlier_in_first_batch(dummy_app_state: AppState):
@@ -193,7 +192,7 @@ def test_obvious_outlier_in_first_batch(dummy_app_state: AppState):
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
-    filtered_pf = outlier_detector(pf, name)
+    filtered_pf, _ = outlier_detector(pf, name, None)
     filtered_data = filtered_pf.data
 
     assert not np.isnan(filtered_data[name].iloc[-2])
@@ -213,14 +212,14 @@ def test_obvious_outlier_in_second_batch(dummy_app_state: AppState):
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
-    pf = outlier_detector(pf, name)  # <- stats get initialized here
+    pf, ts = outlier_detector(pf, name, None)  # <- stats get initialized here
 
     values2 = [1.0] * 10
     values2[-1] = 100.0  # <- this is the outlier
 
     data2 = pd.DataFrame({name: values2})
     pf2 = PipelineFrame(data=data2, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
-    filtered_pf2 = outlier_detector(pf2, name)
+    filtered_pf2, _ = outlier_detector(pf2, name, ts)
     filtered_data2 = filtered_pf2.data
 
     assert not np.isnan(filtered_data2[name].iloc[-2])
@@ -237,8 +236,9 @@ def test_obvious_outlier_in_stream(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
+    ts = None
     for _ in range(10):
-        pf = outlier_detector(pf, name)
+        pf, ts = outlier_detector(pf, name, ts)
         filtered_data = pf.data
         assert not np.isnan(filtered_data[name].iloc[0])
 
@@ -247,7 +247,7 @@ def test_obvious_outlier_in_stream(dummy_app_state: AppState):
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
-    filtered_pf = outlier_detector(pf, name)
+    filtered_pf, _ = outlier_detector(pf, name, ts)
     filtered_data = filtered_pf.data
 
     assert np.isnan(filtered_data[name].iloc[0])
@@ -266,9 +266,10 @@ def test_detection_with_multiple_cols(dummy_app_state: AppState):
     data = pd.DataFrame({name_x: values_x, name_y: values_y})
     pf = PipelineFrame(data, DataMode.ONLINE)
 
+    ts = None
     for _ in range(10):
         for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
-            pf = detector(pf, tag)
+            pf, ts = detector(pf, tag, ts)
 
         filtered_data = pf.data
         assert not filtered_data.isnull().values.any()
@@ -281,7 +282,7 @@ def test_detection_with_multiple_cols(dummy_app_state: AppState):
     pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     for tag, detector in zip([name_x, name_y], [outlier_detector_x, outlier_detector_y], strict=True):
-        pf = detector(pf, tag)
+        pf, _ = detector(pf, tag, ts)
     filtered_data = pf.data
 
     assert np.isnan(filtered_data[name_x].iloc[0])
@@ -301,7 +302,7 @@ def test_detector_does_not_change_indices(dummy_app_state: AppState):
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex(timestamps))
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = outlier_detector(pf, name)
+    pf, od_ts = outlier_detector(pf, name, None)
     filtered_data = pf.data
 
     for i, dt_index in enumerate(filtered_data.index):
@@ -314,7 +315,7 @@ def test_detector_does_not_change_indices(dummy_app_state: AppState):
     data = pd.DataFrame({name: values}, index=pd.DatetimeIndex([outlier_ts]))
     pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
-    filtered_pf = outlier_detector(pf, name)
+    filtered_pf, _ = outlier_detector(pf, name, od_ts)
     filtered_data = filtered_pf.data
 
     assert np.isnan(filtered_data[name].iloc[0])
@@ -334,7 +335,7 @@ def test_outlier_gets_correct_missingtype(dummy_app_state: AppState):
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
-    outlier_detector(pf, name)  # <- stats get initialized here
+    _, ts = outlier_detector(pf, name, None)  # <- stats get initialized here
 
     # create a batch with an outlier
     values2 = [1.0] * 10
@@ -344,7 +345,7 @@ def test_outlier_gets_correct_missingtype(dummy_app_state: AppState):
     pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
 
     # filter the outlier
-    filtered_pf = outlier_detector(pf, name)
+    filtered_pf, _ = outlier_detector(pf, name, ts)
 
     # check that the outlier has the correct missing type
     missing_info = filtered_pf.missing_info
@@ -362,7 +363,7 @@ def test_outlier_missing_type_is_added_to_existing_missing(dummy_app_state: AppS
 
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
-    outlier_detector(pf, name)  # <- stats get initialized here
+    _, ts = outlier_detector(pf, name, None)  # <- stats get initialized here
 
     # create a batch with an outlier
     values2 = [1.0] * 10
@@ -375,7 +376,7 @@ def test_outlier_missing_type_is_added_to_existing_missing(dummy_app_state: AppS
     pf.missing_info.loc[9, "sensor_x"] = MissingType.BOUNDS
 
     # filter the outlier
-    filtered_pf = outlier_detector(pf, name)
+    filtered_pf, _ = outlier_detector(pf, name, ts)
 
     # check that the outlier has both missing types
     missing_info = filtered_pf.missing_info
@@ -394,7 +395,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     values = np.array([np.nan, 1, 1, np.nan, 5])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
-    pf = outlier_detector(pf, name)
+    pf, ts = outlier_detector(pf, name, None)
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, values, equal_nan=True)
 
@@ -402,7 +403,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     values2 = np.array([1, -5, np.nan, -5])  # the -5s should be detected as outliers
     data2 = pd.DataFrame({name: values2})
     pf2 = PipelineFrame(data2, DataMode.ONLINE, temporal_state=pf.temporal_state)
-    pf2 = outlier_detector(pf2, name)
+    pf2, _ = outlier_detector(pf2, name, ts)
 
     filtered_data2 = pf2.data[name].to_numpy()
     expected2 = np.array([1, np.nan, np.nan, np.nan])  # Both 5s should be replaced with NaN
@@ -416,6 +417,6 @@ def test_warmup_same_val_no_outliers(dummy_app_state: AppState):
     values = np.array([np.nan, 0.8, 0.8, np.nan, 0.8, np.nan, 0.8, 0.8, np.nan, 0.8])
     data = pd.DataFrame({name: values})
     pf = PipelineFrame(data, DataMode.ONLINE)
-    pf = outlier_detector(pf, name)
+    pf, _ = outlier_detector(pf, name, None)
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, values, equal_nan=True)

@@ -216,10 +216,6 @@ metrics:
 env:
   name: dep_async_env
   seed: 0
-  obs_period: PT2M
-  update_period: PT2M
-  action_period: PT4M
-  setpoint_ping_period: null
   db:
     drivername: postgresql+psycopg2
     username: postgres
@@ -237,6 +233,7 @@ interaction:
   obs_period: PT2M
   action_period: PT4M
   update_period: PT2M
+  setpoint_ping_period: null
   update_warmup: 0
   name: dep_interaction
   historical_batch_size: 10000

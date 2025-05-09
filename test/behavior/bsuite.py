@@ -1,5 +1,6 @@
 import json
 import subprocess
+from datetime import UTC, datetime, timedelta
 from enum import Enum, auto
 from typing import Any
 
@@ -61,6 +62,8 @@ class BSuiteTestCase:
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
 
+        start = datetime.now(UTC)
+
         proc = subprocess.run([
             'python', 'main.py',
             '--base', '.',
@@ -74,6 +77,7 @@ class BSuiteTestCase:
         with tsdb.connect() as conn:
             # ensure some metrics were logged to table
             metrics_table = pd.read_sql_table('metrics', schema=schema, con=conn)
+            metrics_table = metrics_table[metrics_table['time'] > (start - timedelta(minutes=1))]
 
             # ensure tables have retention policies
             add_retention_policy(conn, 'metrics', schema, days=3)
