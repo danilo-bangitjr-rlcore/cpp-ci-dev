@@ -1,5 +1,5 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 
 import pandas as pd
 
@@ -31,6 +31,7 @@ class SimInteraction(DeploymentInteraction):
         pipeline: Pipeline,
     ):
         super().__init__(cfg, app_state, agent, env, pipeline)
+        self._last_checkpoint = datetime(1984, 1, 1, tzinfo=UTC)
 
     def _init_offline_chunks(self):
         ...
@@ -99,12 +100,7 @@ class SimInteraction(DeploymentInteraction):
     # -- Checkpointing --
     # -------------------
     def maybe_checkpoint(self):
-        ...
-
-
-    def checkpoint(self):
-        ...
-
-
-    def restore_checkpoint(self):
-        ...
+        now = self._last_state_timestamp
+        if now - self._last_checkpoint >= self._checkpoint_freq:
+            self.checkpoint()
+            self._last_checkpoint = now

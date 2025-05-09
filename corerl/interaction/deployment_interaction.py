@@ -365,7 +365,7 @@ class DeploymentInteraction:
     # -------------------
     def maybe_checkpoint(self):
         now = datetime.now(UTC)
-        if now - self._last_checkpoint > self._checkpoint_freq:
+        if now - self._last_checkpoint >= self._checkpoint_freq:
             self.checkpoint()
 
 
