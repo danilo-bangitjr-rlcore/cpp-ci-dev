@@ -17,6 +17,7 @@ from test.behavior.saturation.cases import (
     SetpointChangeSaturationTest,
     SlowExpandingBoundsSaturationTest,
 )
+from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
 
@@ -52,7 +53,10 @@ TEST_CASES = [
     SlowExpandingBoundsSaturationTest(),
     DeltaChangeSaturationTest(),
     CalibrationTest(),
-    MultiActionSaturationGreedificationTest()
+    MultiActionSaturationGreedificationTest(),
+    ShortTMazeTest(),
+    MediumTMazeTest(),
+    LongTMazeTest(),
 ]
 
 ZERO_ONE_FEATURES = [
