@@ -60,6 +60,7 @@ ZERO_ONE_FEATURES = [
     'use_residual',
     'recency_bias_buffer',
     'interaction_action_variance',
+    'gtd_critic',
 ]
 
 
