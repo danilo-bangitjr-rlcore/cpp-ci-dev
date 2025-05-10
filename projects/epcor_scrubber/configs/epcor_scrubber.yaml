@@ -119,29 +119,47 @@ pipeline:
     - "only_no_action_change"
 
   tags:
-  - name: AIC3730_SP # pH SP
+  - name: DEP_AIC3730_SP # pH SP
     type: ai_setpoint
     connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
-    action_bounds: ['{AIC3730_SP} - 0.2', '{AIC3730_SP} + 0.2']
+    action_bounds: ['{DEP_AIC3730_SP} - 0.2', '{DEP_AIC3730_SP} + 0.2']
     agg: last
+    cascade:
+      mode: AIC3730_MODE
+      op_sp: AIC3730_SP
+      ai_sp: AIC3730_SPRL
+      op_mode_val: 16
+      ai_mode_val: 32
 
-  - name: AIC3731_SP # ORP SP
+  - name: DEP_AIC3731_SP # ORP SP
     type: ai_setpoint
     connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
-    action_bounds: ['{AIC3731_SP} - 10', '{AIC3731_SP} + 10']
+    action_bounds: ['{DEP_AIC3731_SP} - 10', '{DEP_AIC3731_SP} + 10']
     agg: last
+    cascade:
+      mode: AIC3731_MODE
+      op_sp: AIC3731_SP
+      ai_sp: AIC3731_SPRL
+      op_mode_val: 16
+      ai_mode_val: 32
 
-  - name: FIC3734_SP # flow SP
+  - name: DEP_FIC3734_SP # flow SP
     type: ai_setpoint
     connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
-    action_bounds: ['{FIC3734_SP} - 5', '{FIC3734_SP} + 5']
+    action_bounds: ['{DEP_FIC3734_SP} - 5', '{DEP_FIC3734_SP} + 5']
     agg: last
+    cascade:
+      mode: FIC3734_MODE
+      op_sp: FIC3734_SP
+      ai_sp: FIC3734_SPRL
+      op_mode_val: 16
+      ai_mode_val: 32
 
   - name: AIC3730_PV # pH process value
     operating_range: [0., 14.]
