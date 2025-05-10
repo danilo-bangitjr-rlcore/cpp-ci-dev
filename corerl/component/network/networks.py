@@ -174,13 +174,15 @@ class LateFusionNetwork(nn.Module):
         self.combined_net = create_mlp(
             cfg.combined_cfg,
             input_dim=combined_input_dim,
-            output_dim=output_dim,
+            output_dim=None,
         )
 
         if output_dim is None:
             self.output_dim = cfg.combined_cfg.hidden[-1]
         else:
             self.output_dim = output_dim
+
+        self.output = nn.Linear(cfg.combined_cfg.hidden[-1], self.output_dim)
 
     def forward(self, inputs: list[torch.Tensor]):
         assert len(inputs) == len(self.input_nets), f"Expected {len(self.input_nets)} inputs, got {len(inputs)}"
@@ -192,6 +194,7 @@ class LateFusionNetwork(nn.Module):
         combined = torch.cat(subnet_outputs, dim=1)
 
         output = self.combined_net(combined)
+        output = self.output(output)
         return output
 
 # ---------------------------------------------------------------------------- #
