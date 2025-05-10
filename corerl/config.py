@@ -241,6 +241,7 @@ class MainConfig:
 
         ta = TypeAdapter(GTDCriticConfig)
         gtd_critic = GTDCriticConfig()
+        gtd_critic.action_regularization = 0.0001
         gtd_critic_dict = ta.dump_python(gtd_critic, warnings=False)
         main_cfg: Any = cfg
         self.agent.critic = ta.validate_python(gtd_critic_dict, context=main_cfg)
