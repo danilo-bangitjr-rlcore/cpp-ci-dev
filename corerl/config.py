@@ -217,11 +217,11 @@ class MainConfig:
             return
 
         self.agent.critic.critic_optimizer = AdamConfig(
-            lr=0.001,
+            lr=0.0001,
             weight_decay=0.001,
         )
         self.agent.policy.optimizer = AdamConfig(
-            lr=0.001,
+            lr=0.0001,
             weight_decay=0.001,
         )
 
