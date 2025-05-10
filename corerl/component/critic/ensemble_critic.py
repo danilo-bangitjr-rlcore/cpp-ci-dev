@@ -31,6 +31,7 @@ class CriticConfig:
 
     Critic-specific hyperparameters.
     """
+    action_regularization: float = 0.0
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: BufferConfig = MISSING
@@ -260,6 +261,14 @@ class EnsembleCritic(BaseCritic):
                 value=loss_i.item(),
             )
 
+        noise_actions = [
+            torch.rand_like(na) for na in next_actions
+        ]
+        regularized_values = self.get_values_sampled_actions(states, noise_actions)
+        loss += self._cfg.action_regularization * sum(
+            torch.mean(regularized_values.ensemble_values[i].abs()) for i in range(len(states))
+        )
+
         if values.ensemble_variance is not None:
             mean_variance = torch.mean(values.ensemble_variance)
             self._app_state.metrics.write(
@@ -307,6 +316,32 @@ class EnsembleCritic(BaseCritic):
     )-> EnsembleNetworkReturn:
         with torch.no_grad():
             return self.target.forward([state_batches, action_batches])
+
+    def get_values_sampled_actions(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+    ):
+        assert action_batches[0].dim() == 3
+        ensemble = len(action_batches)
+        batch_size = action_batches[0].size(0)
+        n_samples = action_batches[0].size(1)
+        states = [
+            state_batch.repeat_interleave(n_samples, dim=0)
+            for state_batch in state_batches
+        ]
+
+        actions = [
+            action_batch.reshape(batch_size * n_samples, -1)
+            for action_batch in action_batches
+        ]
+
+        out = self.model.forward([states, actions])
+        return EnsembleNetworkReturn(
+            reduced_value=out.reduced_value.reshape(batch_size, n_samples, 1),
+            ensemble_values=out.ensemble_values.reshape(ensemble, batch_size, n_samples, 1),
+            ensemble_variance=out.ensemble_variance,
+        )
 
     def get_avg_target_values(
         self,
