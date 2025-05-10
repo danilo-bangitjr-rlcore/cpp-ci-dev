@@ -76,7 +76,7 @@ def create_mlp(
 @config()
 class LateFusionConfig:
     name: Literal['late_fusion'] = 'late_fusion'
-    input_scales: list[float] = list_([0.25, 0.75])
+    input_scales: list[float] = list_([0.5, 0.5])
     input_cfg: NNTorsoConfig = MISSING
     combined_cfg: NNTorsoConfig = MISSING
     use_residual: bool = True
@@ -86,7 +86,7 @@ class LateFusionConfig:
     @classmethod
     def _input_cfg(cls, cfg: 'MainConfig'):
         return NNTorsoConfig(
-            hidden=[128],
+            hidden=[256],
             activation=[{'name': 'relu'}],
         )
 
