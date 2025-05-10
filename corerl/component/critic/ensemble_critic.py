@@ -35,10 +35,6 @@ class CriticConfig:
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: BufferConfig = MISSING
     grad_clip: float = 5
-    polyak: float = 0.995
-    """
-    Retention coefficient for polyak averaged target networks.
-    """
 
     @computed('buffer')
     @classmethod
@@ -57,10 +53,19 @@ class CriticConfig:
         return out
 
 
+@config()
+class SARSACriticConfig(CriticConfig):
+    polyak: float = 0.995
+    """
+    Retention coefficient for polyak averaged target networks.
+    """
+
+
 class BaseCritic(ABC):
     @abstractmethod
-    def __init__(self, cfg: CriticConfig,  app_state: AppState):
-        self.app_state = app_state
+    def __init__(self, cfg: CriticConfig, app_state: AppState):
+        self._app_state = app_state
+        self._cfg = cfg
 
     @abstractmethod
     def update(
@@ -80,10 +85,11 @@ class BaseCritic(ABC):
     def load(self, path: Path) -> None:
         raise NotImplementedError
 
+
 class EnsembleCritic(BaseCritic):
     def __init__(
         self,
-        cfg: CriticConfig,
+        cfg: SARSACriticConfig,
         app_state: AppState,
         state_dim: int,
         action_dim: int,
