@@ -41,6 +41,25 @@ class TagType(StrEnum):
     meta = auto()
     default = auto()
 
+@config()
+class CascadeConfig:
+    """
+    Kind: optional external
+
+    Specifies how the value of this virtual tag should be computed.
+    The value will copy the value of the "ai setpoint" or "operator setpoint"
+    as a function of a third "mode" tag.
+
+    If the mode takes a val other than op_mode_val or ai_mode_val, the computed value
+    will be NaN.
+    """
+
+    mode: str = MISSING
+    op_sp: str = MISSING
+    ai_sp: str = MISSING
+    op_mode_val: float | int | bool = MISSING # value of mode indicating operator control
+    ai_mode_val: float | int | bool = MISSING # value of mode indicating ai control
+
 # -----------------------
 # -- Bounds Scheduling --
 # -----------------------
@@ -306,6 +325,28 @@ class TagConfig:
     in order to construct the value of the tag as a function of other tags.
     """
 
+    cascade: CascadeConfig | None = None
+    """
+    Kind: optional external
+
+    Specifies whether this tag should take the one of two values
+    (the "ai setpoint" or "operator setpoint") as a function of a third "mode" tag.
+    """
+
+    @post_processor
+    def _initialize_cascade_tag(self, cfg: MainConfig):
+        if self.cascade is None:
+            return
+
+        # mark tag as computed and define piecewise expression
+        self.is_computed = True
+        self.value = (
+            "Piecewise("
+                f"({{{self.cascade.op_sp}}}, Eq({{{self.cascade.mode}}}, {self.cascade.op_mode_val})),"
+                f"({{{self.cascade.ai_sp}}}, Eq({{{self.cascade.mode}}}, {self.cascade.ai_mode_val}))"
+            ")"
+        )
+
     @post_processor
     def _initialize_bound_functions(self, cfg: MainConfig | PipelineConfig):
         # We can receive MainConfig or PipelineConfig
@@ -429,6 +470,8 @@ class TagConfig:
                 "A value string must be specified for computed virtual tags."
 
             known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            if self.cascade is not None:
+                known_tags |= {self.cascade.mode, self.cascade.op_sp, self.cascade.ai_sp}
             _, _, dependent_tags = to_sympy(self.value)
 
             for dep in dependent_tags:
