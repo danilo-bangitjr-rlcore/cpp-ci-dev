@@ -17,6 +17,7 @@ from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+from corerl.utils.torch import clip_gradients
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -33,6 +34,7 @@ class CriticConfig:
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: BufferConfig = MISSING
+    grad_clip: float = 5
     polyak: float = 0.995
     """
     Retention coefficient for polyak averaged target networks.
@@ -125,6 +127,13 @@ class EnsembleCritic(BaseCritic):
     ) -> None:
         self.optimizer.zero_grad()
         loss.backward()
+
+        grad_clip_delta = clip_gradients(self.model, self._cfg.grad_clip)
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric="critic_max_grad_clip",
+            value=grad_clip_delta,
+        )
 
         # metrics
         log_critic_gradient_norm(self._app_state, self.model)
