@@ -13,7 +13,7 @@ env:
   gym:
     gym_name: TMaze-v0
     env_config:
-      corridor_length: 0.2
+      corridor_length: 1.0
 
 pipeline:
   tags:
