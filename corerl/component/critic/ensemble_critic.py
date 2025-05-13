@@ -275,9 +275,9 @@ class EnsembleCritic(BaseCritic):
         # Since ensemble=True in call to init_optimizer(), we know self.optimizer is an EnsembleOptimizer
         assert isinstance(self.optimizer, EnsembleOptimizer)
         ensemble_opt_state_dicts = self.optimizer.state_dict()
-        for i in range(len(ensemble_opt_state_dicts)):
+        for i, state_dict in enumerate(ensemble_opt_state_dicts):
             critic_opt_path = path / f"critic_opt_{i}"
-            torch.save(ensemble_opt_state_dicts[i], critic_opt_path)
+            torch.save(state_dict, critic_opt_path)
 
     def load(self, path: Path) -> None:
         try:
