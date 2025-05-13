@@ -9,6 +9,7 @@ interaction:
   name: sim_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
+  warmup_period: 00:01:40
   checkpoint_path: "outputs/greedification_test/checkpoints"
   load_historical_data: False
   restore_checkpoint: True
@@ -22,8 +23,6 @@ save_path: "outputs/greedification_test"
 
 agent:
   gamma: 0.99
-  policy:
-    actor_percentile: 0.05
 
 pipeline:
   tags:

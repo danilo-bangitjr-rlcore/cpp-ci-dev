@@ -4,6 +4,7 @@ from datetime import UTC, datetime, timedelta
 import pandas as pd
 
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.interaction.configs import InteractionConfig
@@ -90,7 +91,22 @@ class SimInteraction(DeploymentInteraction):
     # -- Historical Data --
     # ---------------------
     def warmup_pipeline(self):
-        ...
+        warmup_steps = int(self._cfg.warmup_period / self.obs_period)
+        for step in range(warmup_steps):
+            # Get latest state
+            o = self._env.get_latest_obs()
+            pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset(o))
+            self._capture_latest_state(pipe_return)
+
+            # Take action
+            sa = self._get_latest_state_action()
+            s, action_lo, action_hi = sa
+            next_a = self._agent.get_action_interaction(s, action_lo, action_hi)
+            norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
+            # clip to the normalized action bounds
+            norm_next_a_df = self._clip_action_bounds(norm_next_a_df, action_lo, action_hi)
+            next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
+            self._env.emit_action(next_a_df, log_action=False)
 
     def load_historical_chunk(self):
         ...
