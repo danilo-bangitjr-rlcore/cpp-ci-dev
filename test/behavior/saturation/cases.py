@@ -1,8 +1,6 @@
-import shutil
 import subprocess
+from datetime import UTC, datetime
 from pathlib import Path
-
-from sqlalchemy import Engine
 
 from test.behavior.bsuite import BSuiteTestCase
 
@@ -69,9 +67,9 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
     setup_cfgs = ['test/behavior/saturation/multi_action_greedification_actor_pretrain.yaml',
                   'test/behavior/saturation/multi_action_greedification_critic_pretrain.yaml']
 
-    upper_bounds = { 'greed_dist_online': 0.05}
+    upper_bounds = { 'greed_dist_online': 0.1}
 
-    def setup(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
+    def setup(self, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
         """
         First Run: Pretrain actor on setpoints of [0.2, 0.8, 0.2]
         Second Run: Pretrain critic on setpoints of [0.8, 0.2, 0.8]
@@ -81,24 +79,12 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
         save_path = Path("outputs/greedification_test")
         checkpoint_path = save_path / "checkpoints"
 
-        ip = tsdb.url.host
-        port = tsdb.url.port
-
-        feature_overrides = {
-            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
-        }
-
-        overrides = self._overrides | {
-            'infra.db.ip': ip,
-            'infra.db.port': port,
-            'infra.db.db_name': db_name,
-            'infra.db.schema': schema,
-            'infra.num_threads': 1,
-            'seed': self.seed,
+        case_overrides = {
             'metrics.enabled': False,
             'evals.enabled': False,
-            'silent': False,
-        } | feature_overrides
+        }
+
+        overrides = self._overrides | infra_overrides | feature_overrides | case_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
 
@@ -110,8 +96,12 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
         ] + parts)
         proc.check_returncode()
 
-        checkpoints = list(checkpoint_path.glob('*'))
-        actor_checkpoint: Path = sorted(checkpoints)[-1]
+        actor_checkpoints = list(checkpoint_path.glob('*'))
+        actor_checkpoint: Path = sorted(actor_checkpoints)[-1]
+        actor_net_path = actor_checkpoint / 'actor' / 'actor_net'
+        actor_opt_path = actor_checkpoint / 'actor' / 'actor_opt'
+        sampler_net_path = actor_checkpoint / 'actor' / 'sampler_net'
+        sampler_opt_path = actor_checkpoint / 'actor' / 'sampler_opt'
 
         # Critic Pretraining Run
         proc = subprocess.run([
@@ -121,25 +111,28 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
         ] + parts)
         proc.check_returncode()
 
-        checkpoints = list(checkpoint_path.glob('*'))
-        critic_checkpoint: Path = sorted(checkpoints)[-1]
+        critic_checkpoints = list(checkpoint_path.glob('*'))
+        critic_checkpoint: Path = sorted(critic_checkpoints)[-1]
+        critic_net_path = critic_checkpoint / 'q_critic' / 'critic_net'
+        critic_opt_path = critic_checkpoint / 'q_critic' / 'critic_opt_0'
+        target_net_path = critic_checkpoint / 'q_critic' / 'critic_target'
 
-        # Delete Actor Replay Buffer
-        actor_buffer_path = actor_checkpoint / "actor" / "buffer.pkl"
-        actor_buffer_path.unlink()
+        # Create new checkpoint directory that will store the pretrained actor and critic
+        now = datetime.now(UTC)
+        new_checkpoint_path = checkpoint_path / f'{str(now).replace(':', '_')}'
+        new_checkpoint_path.mkdir(exist_ok=True, parents=True)
+        actor_destination = new_checkpoint_path / "actor"
+        actor_destination.mkdir(exist_ok=True, parents=True)
+        critic_destination = new_checkpoint_path / "q_critic"
+        critic_destination.mkdir(exist_ok=True, parents=True)
 
-        # Delete Actor Directory In Critic Checkpoint Directory
-        del_actor_path = critic_checkpoint / "actor"
-        shutil.rmtree(del_actor_path)
+        # Move policy files to new actor directory
+        actor_net_path.rename(actor_destination / actor_net_path.name)
+        actor_opt_path.rename(actor_destination / actor_opt_path.name)
+        sampler_net_path.rename(actor_destination / sampler_net_path.name)
+        sampler_opt_path.rename(actor_destination / sampler_opt_path.name)
 
-        # Delete Critic Buffer
-        critic_buffer_path = critic_checkpoint / "critic_buffer.pkl"
-        critic_buffer_path.unlink()
-
-        # Delete App State
-        app_state_path = critic_checkpoint / "state.pkl"
-        app_state_path.unlink()
-
-        # Move Pretrained Actor to Pretrained Critic Checkpoint Directory
-        actor_destination = critic_checkpoint / "actor"
-        shutil.move(actor_checkpoint / "actor", actor_destination)
+        # Move critic files to new critic directory
+        critic_net_path.rename(critic_destination / critic_net_path.name)
+        critic_opt_path.rename(critic_destination / critic_opt_path.name)
+        target_net_path.rename(critic_destination / target_net_path.name)

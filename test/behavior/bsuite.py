@@ -41,24 +41,11 @@ class BSuiteTestCase:
         self._cfg = cfg
         self.seed = np.random.randint(0, 1_000_000)
 
-    def setup(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
-        """
-        Individual test cases can define their own setup method to produce offline data, pretrained agents, etc.
-        """
-        ...
-
-    def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
-        # Produce offline data, pretrained agents, etc. needed for the test
-        self.setup(tsdb, db_name, schema, features)
-
+    def _test_infra_overrides(self, tsdb: Engine, db_name: str, schema: str) -> dict[str, object]:
         ip = tsdb.url.host
         port = tsdb.url.port
 
-        feature_overrides = {
-            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
-        }
-
-        overrides = self._overrides | {
+        return {
             'infra.db.ip': ip,
             'infra.db.port': port,
             'infra.db.db_name': db_name,
@@ -68,7 +55,24 @@ class BSuiteTestCase:
             'metrics.enabled': True,
             'evals.enabled': True,
             'silent': True,
-        } | feature_overrides
+        }
+
+    def setup(self, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
+        """
+        Setup the given BSuiteTestCase before main.py is called in execute_test()
+        """
+        ...
+
+    def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
+        infra_overrides = self._test_infra_overrides(tsdb, db_name, schema)
+
+        feature_overrides = {
+            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
+        }
+
+        self.setup(infra_overrides, feature_overrides)
+
+        overrides = self._overrides | infra_overrides | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
 
