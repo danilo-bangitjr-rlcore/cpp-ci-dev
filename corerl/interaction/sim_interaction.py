@@ -92,7 +92,7 @@ class SimInteraction(DeploymentInteraction):
     # ---------------------
     def warmup_pipeline(self):
         warmup_steps = int(self._cfg.warmup_period / self.obs_period)
-        for step in range(warmup_steps):
+        for _ in range(warmup_steps):
             # Get latest state
             o = self._env.get_latest_obs()
             pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset(o))
