@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import pickle
 import threading
 from collections.abc import Callable
@@ -14,6 +15,8 @@ from corerl.messages.events import Event, EventTopic, EventType
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
+
+logger = logging.getLogger(__name__)
 
 
 type Callback = Callable[[Event], Any]
@@ -54,9 +57,13 @@ class AppState[
             pickle.dump(self, f)
 
     def load(self, path: Path) -> AppState:
-        with open(path / 'state.pkl', 'rb') as f:
-            state = pickle.load(f)
+        try:
+            with open(path / 'state.pkl', 'rb') as f:
+                state = pickle.load(f)
 
-        self.agent_step = state.agent_step
-        self.start_time = state.start_time
+            self.agent_step = state.agent_step
+            self.start_time = state.start_time
+        except Exception:
+            logger.exception('Failed to load app state from checkpoint. Reinitializing...')
+
         return self

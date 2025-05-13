@@ -14,7 +14,7 @@ import pandas as pd
 import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.hindsight_return import HindsightReturnEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
@@ -141,25 +141,7 @@ class DeploymentInteraction:
         o = self._env.get_latest_obs()
         pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset(o))
         self._agent.update_buffer(pipe_return)
-
-        # capture latest state
-        self._last_state = (
-            pipe_return.states
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
-
-        self._interaction_action_lo = (
-            pipe_return.action_lo
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
-
-        self._interaction_action_hi = (
-            pipe_return.action_hi
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
+        self._capture_latest_state(pipe_return)
 
         # log states
         self._write_to_metrics(pipe_return.states, prefix='STATE-')
@@ -170,12 +152,6 @@ class DeploymentInteraction:
         # perform evaluations
         self._hs_return_eval.execute(pipe_return.rewards)
         self._monte_carlo_eval.execute(pipe_return, "online")
-
-        state_timestamp = pipe_return.states.index[-1]
-        if isinstance(state_timestamp, pd.Timestamp):
-            self._last_state_timestamp = state_timestamp.to_pydatetime()
-        else:
-            self._last_state_timestamp = datetime.now(UTC)
 
         tags = self._column_desc.state_cols
         logger.info(f"captured state {self._last_state}, with columns {tags}")
@@ -258,6 +234,31 @@ class DeploymentInteraction:
     # ---------
     # internals
     # ---------
+
+    def _capture_latest_state(self, pipe_return: PipelineReturn):
+        self._last_state = (
+            pipe_return.states
+            .iloc[-1]
+            .to_numpy(dtype=np.float32)
+        )
+
+        self._interaction_action_lo = (
+            pipe_return.action_lo
+            .iloc[-1]
+            .to_numpy(dtype=np.float32)
+        )
+
+        self._interaction_action_hi = (
+            pipe_return.action_hi
+            .iloc[-1]
+            .to_numpy(dtype=np.float32)
+        )
+
+        state_timestamp = pipe_return.states.index[-1]
+        if isinstance(state_timestamp, pd.Timestamp):
+            self._last_state_timestamp = state_timestamp.to_pydatetime()
+        else:
+            self._last_state_timestamp = datetime.now(UTC)
 
     def _clip_action_bounds(self, df: pd.DataFrame, action_lo : np.ndarray, action_hi: np.ndarray) -> pd.DataFrame:
         return df.clip(lower=action_lo, upper=action_hi)
@@ -365,7 +366,7 @@ class DeploymentInteraction:
     # -------------------
     def maybe_checkpoint(self):
         now = datetime.now(UTC)
-        if now - self._last_checkpoint > self._checkpoint_freq:
+        if now - self._last_checkpoint >= self._checkpoint_freq:
             self.checkpoint()
 
 

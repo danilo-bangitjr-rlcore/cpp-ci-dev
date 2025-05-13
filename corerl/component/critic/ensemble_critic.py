@@ -10,6 +10,7 @@ from pydantic import Field, TypeAdapter
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig
 from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig, EnsembleNetworkReturn
+from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
 from corerl.component.optimizers.torch_opts import LSOConfig
 from corerl.configs.config import MISSING, computed, config
@@ -271,10 +272,25 @@ class EnsembleCritic(BaseCritic):
         self.model.save(path / "critic_net")
         self.target.save(path / "critic_target")
 
+        # Since ensemble=True in call to init_optimizer(), we know self.optimizer is an EnsembleOptimizer
+        assert isinstance(self.optimizer, EnsembleOptimizer)
+        ensemble_opt_state_dicts = self.optimizer.state_dict()
+        for i, state_dict in enumerate(ensemble_opt_state_dicts):
+            critic_opt_path = path / f"critic_opt_{i}"
+            torch.save(state_dict, critic_opt_path)
+
     def load(self, path: Path) -> None:
         try:
             self.model.load(path / "critic_net")
             self.target.load(path / "critic_target")
+
+            # Since ensemble=True in call to init_optimizer(), we know self.optimizer is an EnsembleOptimizer
+            ensemble_opt_state_dicts = []
+            for i in range(self.model.ensemble):
+                critic_opt_path = path / f"critic_opt_{i}"
+                ensemble_opt_state_dicts.append(torch.load(critic_opt_path, map_location=device.device))
+            assert isinstance(self.optimizer, EnsembleOptimizer)
+            self.optimizer.load_state_dict(ensemble_opt_state_dicts)
         except Exception:
             logger.exception('Failed to load critic state from checkpoint. Reinitializing...')
             self.model = EnsembleNetwork(

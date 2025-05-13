@@ -408,9 +408,12 @@ class GreedyAC(BaseAgent):
         q_critic_path = path / "q_critic"
         self.critic.load(q_critic_path)
 
-        critic_buffer_path = path / "critic_buffer.pkl"
-        with open(critic_buffer_path, "rb") as f:
-            self.critic_buffer = pkl.load(f)
+        try:
+            critic_buffer_path = path / "critic_buffer.pkl"
+            with open(critic_buffer_path, "rb") as f:
+                self.critic_buffer = pkl.load(f)
+        except Exception:
+            logger.exception('Failed to load critic buffer from checkpoint. Reinitializing...')
 
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {
