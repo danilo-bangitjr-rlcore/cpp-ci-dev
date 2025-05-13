@@ -288,6 +288,12 @@ class DeploymentInteraction:
     def _state_has_no_nans(self):
         if np.any(np.isnan(self._last_state)):
             logger.error("Interaction state contains nan values")
+            nan_tags = []
+            for i, tag in enumerate(self._last_state):
+                if np.isnan(tag):
+                    nan_tags.append(self._column_desc.state_cols[i])
+
+            logger.error(f"nan tags: {nan_tags}")
             return False
         return True
 
