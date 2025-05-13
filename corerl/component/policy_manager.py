@@ -64,6 +64,7 @@ class GACPolicyManagerConfig:
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
     grad_clip: float = 5
+    sort_noise: float = 0.0
 
     # metrics
     ingress_loss: bool = True
@@ -495,8 +496,13 @@ class GACPolicyManager:
             percentile: float,
             metric_id: str,
         ):
+
+        sort_noise = 0
+        if self.cfg.sort_noise > 0:
+            sort_noise = torch.normal(0, self.cfg.sort_noise, size=qr.q_values.shape)
+
         top_states, top_policy_actions = grab_percentile(
-            values=qr.q_values,
+            values=qr.q_values + sort_noise,
             keys=[qr.states, qr.policy_actions],
             percentile=percentile,
         )
