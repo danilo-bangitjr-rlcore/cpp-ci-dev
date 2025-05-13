@@ -47,17 +47,15 @@ class ActionConstructor:
                 ab_lo, ab_hi = get_action_bounds(action_tag, row)
                 operating_range = Maybe(action_tag.operating_range).expect()
                 op_lo, op_hi = Maybe(operating_range[0]).expect(), Maybe(operating_range[1]).expect()
-                ab_lo = max(op_lo, ab_lo)
-                ab_hi = min(op_hi, ab_hi)
 
-                # overwrite the action bounds/operating range with the guardrails if they exist
+                # get guardrails that work up to the operating range
                 maybe_guard = self._get_guardrails(action_tag, op_lo, op_hi)
                 maybe_guard_lo = Maybe(maybe_guard[0])
                 maybe_guard_hi = Maybe(maybe_guard[1])
 
                 # Apply the guardrails if they exist
-                ab_lo = max(maybe_guard_lo.or_else(ab_lo), ab_lo)
-                ab_hi = min(maybe_guard_hi.or_else(ab_hi), ab_hi)
+                ab_lo = max(maybe_guard_lo.or_else(op_lo), ab_lo)
+                ab_hi = min(maybe_guard_hi.or_else(op_hi), ab_hi)
 
                 # normalize the action bounds to the operating range
                 a_lo[f"{action_tag.name}-lo"] = self._prep_stage.normalize(action_tag.name, ab_lo)
