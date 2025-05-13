@@ -1,11 +1,13 @@
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import yaml
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
 from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.component.critic.gtd_critic import GTDCriticConfig
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.configs.loader import config_to_json
@@ -93,6 +95,9 @@ class FeatureFlags:
 
     # 2025-05-04
     interaction_action_variance: bool = False
+
+    # 2025-05-10
+    gtd_critic: bool = False
 
 
 @config()
@@ -217,13 +222,25 @@ class MainConfig:
             return
 
         self.agent.critic.critic_optimizer = AdamConfig(
-            lr=0.001,
+            lr=0.0001,
             weight_decay=0.001,
         )
         self.agent.policy.optimizer = AdamConfig(
-            lr=0.001,
+            lr=0.0001,
             weight_decay=0.001,
         )
 
         self.agent.max_critic_updates = 10
         self.agent.policy.prop_percentile_learned = 0.9
+
+
+    @post_processor
+    def _enable_gtd_critic(self, cfg: 'MainConfig'):
+        if not self.feature_flags.gtd_critic:
+            return
+
+        ta = TypeAdapter(GTDCriticConfig)
+        gtd_critic = GTDCriticConfig()
+        gtd_critic_dict = ta.dump_python(gtd_critic, warnings=False)
+        main_cfg: Any = cfg
+        self.agent.critic = ta.validate_python(gtd_critic_dict, context=main_cfg)
