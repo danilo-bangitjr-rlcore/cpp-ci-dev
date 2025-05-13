@@ -164,6 +164,7 @@ class DeploymentInteraction:
         sa = self._get_latest_state_action()
 
         if sa is None:
+            self._app_state.event_bus.emit(EventType.action_period_reset)
             logger.warning(f'Tried to take action, however was unable: {sa}')
             return
 
