@@ -35,7 +35,7 @@ class CriticConfig:
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
     buffer: BufferConfig = MISSING
-    grad_clip: float = 5
+    grad_clip: float = 50_000
 
     @computed('buffer')
     @classmethod
