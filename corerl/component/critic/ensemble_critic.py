@@ -289,6 +289,7 @@ class EnsembleCritic(BaseCritic):
             for i in range(self.model.ensemble):
                 critic_opt_path = path / f"critic_opt_{i}"
                 ensemble_opt_state_dicts.append(torch.load(critic_opt_path, map_location=device.device))
+            assert isinstance(self.optimizer, EnsembleOptimizer)
             self.optimizer.load_state_dict(ensemble_opt_state_dicts)
         except Exception:
             logger.exception('Failed to load critic state from checkpoint. Reinitializing...')

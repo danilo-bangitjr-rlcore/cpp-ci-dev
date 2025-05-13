@@ -91,6 +91,9 @@ class SimInteraction(DeploymentInteraction):
     # -- Historical Data --
     # ---------------------
     def warmup_pipeline(self):
+        if self._cfg.warmup_period is None:
+            return
+
         warmup_steps = int(self._cfg.warmup_period / self.obs_period)
         for _ in range(warmup_steps):
             # Get latest state
@@ -100,6 +103,7 @@ class SimInteraction(DeploymentInteraction):
 
             # Take action
             sa = self._get_latest_state_action()
+            assert sa is not None
             s, action_lo, action_hi = sa
             next_a = self._agent.get_action_interaction(s, action_lo, action_hi)
             norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
