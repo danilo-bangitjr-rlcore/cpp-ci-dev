@@ -73,7 +73,7 @@ class FeatureFlags:
     ensemble: int = 1
 
     # 2025-03-01
-    zone_violations: bool = False
+    zone_violations: bool = True
 
     # 2025-03-13
     action_embedding: bool = True
@@ -215,23 +215,6 @@ class MainConfig:
             yaml.safe_dump(json.loads(cfg_json), f)
 
         return save_path
-
-    @post_processor
-    def _enable_zone_violations(self, cfg: 'MainConfig'):
-        if not self.feature_flags.zone_violations:
-            return
-
-        self.agent.critic.critic_optimizer = AdamConfig(
-            lr=0.0001,
-            weight_decay=0.001,
-        )
-        self.agent.policy.optimizer = AdamConfig(
-            lr=0.0001,
-            weight_decay=0.001,
-        )
-
-        self.agent.max_critic_updates = 10
-        self.agent.policy.prop_percentile_learned = 0.9
 
 
     @post_processor

@@ -60,7 +60,7 @@ class GACPolicyManagerConfig:
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.
+    prop_percentile_learned: float = 0.9
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
     grad_clip: float = 50_000

@@ -63,7 +63,7 @@ class GreedyACConfig(BaseAgentConfig):
     using the loss_threshold. A minimum of 1 update will always be performed.
     """
 
-    max_critic_updates: int = 1
+    max_critic_updates: int = 10
     """
     Number of critic updates. Early stopping is done using the loss_threshold.
     A minimum of 1 update will always be performed.
