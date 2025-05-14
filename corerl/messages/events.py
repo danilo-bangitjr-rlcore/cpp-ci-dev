@@ -42,6 +42,7 @@ class EventType(StrEnum):
     # -- Coms --
     # ----------
     ping_setpoints = auto()
+    flush_buffers = auto()
 
     # -----------
     # -- Debug --

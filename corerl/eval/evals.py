@@ -57,7 +57,7 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         return text(f"""
             INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
             (time, agent_step, evaluator, value)
-            VALUES (TIMESTAMP :timestamp, :agent_step, :evaluator, :value)
+            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :agent_step, :evaluator, :value)
         """)
 
 

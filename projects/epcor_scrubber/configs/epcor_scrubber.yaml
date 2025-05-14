@@ -17,6 +17,7 @@ feature_flags:
   action_bounds: True
   zone_violations: True
   use_residual: True
+  gtd_critic: True
 
 interaction:
   name: dep_interaction
@@ -26,9 +27,9 @@ interaction:
   action_period: 01:00:00
   warmup_period: 03:00:00
   state_age_tol: 00:15:00
-  update_warmup: 300 # number of updates before interacting
+  update_warmup: 50 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
-  hist_chunk_start: 2025-03-06 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  hist_chunk_start: 2025-05-06 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
   heartbeat:
     connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     heartbeat_node_id: "ns=3;i=1"
@@ -197,8 +198,8 @@ pipeline:
     operating_range: [0, 700]
     preprocess:
       - name: normalize
-        min: 585
-        max: 595
+        min: 460
+        max: 470
         from_data: False
 
   - name: FI0872 # scrubber recirc flow
@@ -237,8 +238,8 @@ pipeline:
     operating_range: [-0.1, 3]
     preprocess:
       - name: normalize
-        min: 0.3
-        max: 0.5
+        min: 1.0
+        max: 2.0
         from_data: False
 
   - name: TI0880 # scrubber inlet temp

@@ -244,3 +244,7 @@ class MainConfig:
         gtd_critic_dict = ta.dump_python(gtd_critic, warnings=False)
         main_cfg: Any = cfg
         self.agent.critic = ta.validate_python(gtd_critic_dict, context=main_cfg)
+        self.agent.critic.critic_optimizer = AdamConfig(
+            lr=0.0001,
+            weight_decay=0.001,
+        )

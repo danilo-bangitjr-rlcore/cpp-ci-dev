@@ -8,7 +8,7 @@ import pandas as pd
 
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.tag_config import FloatBounds, TagConfig, TagType, eval_bound
+from corerl.data_pipeline.tag_config import TagConfig, TagType, eval_bound
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
 from corerl.utils.coreio import CoreIOThinClient, OPCUADataType, OPCUANodeWriteValue
 from corerl.utils.maybe import Maybe
@@ -139,7 +139,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return self._cfg
 
 
-def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
+def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
     if len(action) < 1:
         logger.error("Action df empty")
         return
@@ -148,22 +148,23 @@ def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) ->
         action.drop(columns=action.columns, inplace=True)
         return
 
-    clip_action(action, action_cfgs)
+    clip_action(action, action_cfgs, rtol)
 
-def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig]) -> None:
+def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
     for action_name in action_cfgs.keys():
         action_cfg = action_cfgs[action_name]
         action_val = action[action_name].iloc[0]
         lo, hi = get_clip_bounds(action_cfg, action)
+        atol = rtol * (hi - lo)
 
         if (action_val < lo) or (action_val > hi):
             logger.error(
                 f"Action {action_cfg.name} assigned value {action_val}, outside of operating range [{lo}, {hi}]"
             )
 
-        action[action_name] = np.clip(action_val, lo, hi)
+        action[action_name] = np.clip(action_val, lo + atol, hi - atol)
 
-def get_clip_bounds(action_cfg: TagConfig, action: pd.DataFrame) -> FloatBounds:
+def get_clip_bounds(action_cfg: TagConfig, action: pd.DataFrame):
     # prefer to use red zones, otherwise use operating range
     lo = (
         Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])
