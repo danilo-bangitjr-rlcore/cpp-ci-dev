@@ -8,12 +8,23 @@ from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 
 def get_offline_data_writer(engine: Engine, infra_overrides: dict[str, object]) -> DataWriter:
+    drivername = engine.url.drivername
+    username = engine.url.username
+    password = engine.url.password
+    ip = engine.url.host
+    port = engine.url.port
+    assert drivername is not None
+    assert username is not None
+    assert password is not None
+    assert ip is not None
+    assert port is not None
+
     db_cfg = TagDBConfig(
-        drivername=engine.url.drivername,
-        username=engine.url.username,
-        password=engine.url.password,
-        ip=engine.url.host,
-        port=engine.url.port,
+        drivername=drivername,
+        username=username,
+        password=password,
+        ip=ip,
+        port=port,
         db_name=str(infra_overrides['infra.db.db_name']),
         table_schema=str(infra_overrides['infra.db.schema'])
     )
