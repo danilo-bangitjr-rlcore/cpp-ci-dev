@@ -85,7 +85,7 @@ class FeatureFlags:
     action_bounds: bool = False
 
     # 2025-04-25
-    use_residual: bool = False
+    use_residual: bool = True
 
     # 2025-04-29
     recency_bias_buffer: bool = False
