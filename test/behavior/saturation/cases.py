@@ -72,7 +72,7 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
 
     upper_bounds = { 'greed_dist_online': 0.1}
 
-    def setup(self, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
+    def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
         """
         First Run: Pretrain actor on setpoints of [0.2, 0.8, 0.2]
         Second Run: Pretrain critic on setpoints of [0.8, 0.2, 0.8]
