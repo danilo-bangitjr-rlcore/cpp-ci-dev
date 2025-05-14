@@ -182,6 +182,14 @@ class GTDCritic(BaseCritic):
                 value=loss_i.item(),
             )
 
+        noise_actions = [
+            torch.rand_like(na) for na in next_actions
+        ]
+        regularized_values = self.get_values_sampled_actions(states, noise_actions)
+        loss += self._cfg.action_regularization * sum(
+            torch.mean(regularized_values.ensemble_values[i].abs()) for i in range(len(states))
+        )
+
         if values.ensemble_variance is not None:
             mean_variance = torch.mean(values.ensemble_variance)
             self._app_state.metrics.write(
