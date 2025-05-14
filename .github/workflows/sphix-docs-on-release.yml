@@ -39,16 +39,14 @@ jobs:
       - name: Build and Install corerl
         run: |
           uv venv
-          uv sync
-          uv pip install .
 
       - name: Build Documentation
         working-directory: ./docs
         run: |
           source ../.venv/bin/activate
           uv pip install sphinx
-          uv run sphinx-apidoc -o ./source/api ../corerl
-          uv run sphinx-build -M html source build
+          sphinx-apidoc -o ./source/api ../corerl
+          sphinx-build -M html source build
 
       - name: Deploy
         uses: peaceiris/actions-gh-pages@v3
