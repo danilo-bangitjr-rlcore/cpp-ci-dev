@@ -5,6 +5,19 @@
 - styles again
 - fix agent test utils
 
+## [0.142.0](https://github.com/rlcoretech/core-rl/compare/v0.141.1...v0.142.0) (2025-05-14)
+
+
+### Features
+
+* **PROD-419:** t maze bsuite tests ([d5577da](https://github.com/rlcoretech/core-rl/commit/d5577da07affc16cfe163875245d3583d02237e8))
+
+
+### Bug Fixes
+
+* meaningful lower bounds ([6d2751b](https://github.com/rlcoretech/core-rl/commit/6d2751b56cf6d98a0e1d331c6fae79ea8f81d354))
+* **PROD-419:** stupid mistakes on t maze bsuites ([92941c3](https://github.com/rlcoretech/core-rl/commit/92941c3e262e988cc35e1a98fc9c43b97e86e6d4))
+
 ## [0.141.1](https://github.com/rlcoretech/core-rl/compare/v0.141.0...v0.141.1) (2025-05-14)
 
 
