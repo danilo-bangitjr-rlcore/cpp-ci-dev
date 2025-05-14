@@ -1,6 +1,5 @@
-import pytest
-
 from datetime import timedelta
+
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -15,6 +14,7 @@ from corerl.interaction.sim_interaction import SimInteraction
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.utils.time import percent_time_elapsed
+
 
 def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     NUM_STEPS = 5
