@@ -12,7 +12,7 @@ from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig, EnsembleNetworkReturn
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
-from corerl.component.optimizers.torch_opts import LSOConfig
+from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.messages.events import EventType
@@ -33,7 +33,7 @@ class CriticConfig:
     Critic-specific hyperparameters.
     """
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
-    critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
+    critic_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING
     grad_clip: float = 50_000
 

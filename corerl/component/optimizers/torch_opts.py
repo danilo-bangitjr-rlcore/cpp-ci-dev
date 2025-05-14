@@ -62,7 +62,8 @@ def rmsprop(cfg: RmspropConfig, app_state: AppState, param: Iterable[torch.nn.Pa
 @config()
 class AdamConfig(OptimConfig):
     name: Literal['adam'] = 'adam'
-    lr: float = 0.001
+    lr: float = 0.0001
+    weight_decay: float = 0.001
 
 
 @optim_group.dispatcher

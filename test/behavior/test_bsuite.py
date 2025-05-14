@@ -57,7 +57,6 @@ TEST_CASES = [
 
 ZERO_ONE_FEATURES = [
     'base', # special feature indicating "no features enabled"
-    'zone_violations',
     'action_bounds',
     'use_residual',
     'recency_bias_buffer',
@@ -74,7 +73,6 @@ def all_except(flags: list[str]):
 
 KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
     WindyRoomTest.name: True,
-    MountainCar.name: { 'zone_violations': True },
 }
 
 

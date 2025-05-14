@@ -58,10 +58,7 @@ class ZoneDiscourager:
                 assert_never(penalty.kind)
 
 
-        # 2025-03-01: put zone violation reward penalties behind feature flag
-        if self._app_state.cfg.feature_flags.zone_violations:
-            pf.rewards['reward'] = rewards
-
+        pf.rewards['reward'] = rewards
         return pf
 
 
