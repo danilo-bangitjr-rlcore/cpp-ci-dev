@@ -116,7 +116,6 @@ disable = [
     "super-init-not-called",
     "super-with-arguments",
     "superfluous-parens",
-    "trailing-newlines",
     "too-few-public-methods",
     "too-many-arguments",
     "too-many-branches",

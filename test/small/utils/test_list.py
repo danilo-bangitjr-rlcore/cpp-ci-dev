@@ -89,4 +89,3 @@ def test_sort_by_fail():
 
     with pytest.raises(ValueError):
         _ = list_u.sort_by(l1, l2)
-

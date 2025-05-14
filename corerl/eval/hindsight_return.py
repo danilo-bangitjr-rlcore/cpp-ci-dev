@@ -39,4 +39,3 @@ class HindsightReturnEval:
 
     def reset(self):
         self.trace = None
-

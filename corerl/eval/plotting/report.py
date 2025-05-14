@@ -125,4 +125,3 @@ def plot_chunk_histogram(
     chunk_lengths = length_of_chunks(is_not_nan)
     chunk_lengths = pd.Series(chunk_lengths)
     plot_histogram(chunk_lengths, title, save_path, 'Chunk Length', show_mean, percentiles, bins)
-

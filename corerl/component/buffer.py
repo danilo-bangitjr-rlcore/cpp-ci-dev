@@ -516,4 +516,3 @@ buffer_group = Group[
 
 buffer_group.dispatcher(MixedHistoryBuffer)
 buffer_group.dispatcher(RecencyBiasBuffer)
-
