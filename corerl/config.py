@@ -99,6 +99,9 @@ class FeatureFlags:
     # 2025-05-10
     gtd_critic: bool = False
 
+    # 2025-05-14
+    regenerative_optimism: bool = False
+
 
 @config()
 class OfflineConfig:
@@ -232,3 +235,11 @@ class MainConfig:
             lr=0.0001,
             weight_decay=0.001,
         )
+
+    @post_processor
+    def _regenerative_optimism(self, cfg: 'MainConfig'):
+        if not self.feature_flags.regenerative_optimism:
+            return
+
+        self.agent.policy.sort_noise = 0.1
+        self.agent.critic.action_regularization = 0.001

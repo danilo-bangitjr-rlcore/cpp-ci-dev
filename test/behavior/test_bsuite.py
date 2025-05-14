@@ -61,6 +61,7 @@ ZERO_ONE_FEATURES = [
     'recency_bias_buffer',
     'interaction_action_variance',
     'gtd_critic',
+    'regenerative_optimism',
 ]
 
 
