@@ -2,6 +2,9 @@ import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from sqlalchemy import Engine
+
+import test.behavior.utils as utils
 from test.behavior.bsuite import BSuiteTestCase
 
 
@@ -136,3 +139,28 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
         critic_net_path.rename(critic_destination / critic_net_path.name)
         critic_opt_path.rename(critic_destination / critic_opt_path.name)
         target_net_path.rename(critic_destination / target_net_path.name)
+
+class MultiActionSaturationGoodOfflineDataTest(BSuiteTestCase):
+    """
+    Test whether the agent quickly converges to good performance
+    when the replay buffer is preloaded with good offline data
+    """
+    name = 'multi action saturation good offline data'
+    config = 'test/behavior/saturation/multi_action_good_offline_data.yaml'
+
+    lower_bounds = { 'reward': -0.1}
+
+    def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
+        # Read offline data from csv
+        obs_path = Path('test/behavior/saturation/good_offline_data.csv')
+        df = utils.read_offline_data(obs_path)
+        sql_tups = []
+        for col_name in df.columns:
+            sql_tups += utils.column_to_sql_tups(df[col_name])
+
+        # Write offline data to db
+        data_writer = utils.get_offline_data_writer(engine, infra_overrides)
+        for sql_tup in sql_tups:
+            data_writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
+
+        data_writer.close()
