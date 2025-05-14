@@ -50,7 +50,7 @@ jobs:
       - name: Build Python Wheel
         run: |
           uv venv
-          uv sync
+          uv sync --no-dev
           uv build
 
       - name: Upload assets to GitHub Release

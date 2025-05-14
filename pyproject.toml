@@ -220,12 +220,6 @@ dependencies = [
 ]
 readme = "README.md"
 
-
-[project.optional-dependencies]
-coreenv_gh = [
-    "coreenv",
-]
-
 [project.scripts]
 corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
