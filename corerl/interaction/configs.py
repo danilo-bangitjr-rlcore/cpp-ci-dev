@@ -133,6 +133,13 @@ class InteractionConfig:
     Specifies period in time where we keep all checkpoints, before beginning to delete them.
     """
 
+    write_obs_to_csv: bool = False
+    """
+    Kind: internal
+
+    Whether to write observations to a csv file
+    """
+
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
 
 
