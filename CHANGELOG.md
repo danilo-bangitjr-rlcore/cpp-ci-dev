@@ -5,6 +5,15 @@
 - styles again
 - fix agent test utils
 
+## [0.141.1](https://github.com/rlcoretech/core-rl/compare/v0.141.0...v0.141.1) (2025-05-14)
+
+
+### Bug Fixes
+
+* op lo/hi in or_else ([4b646ea](https://github.com/rlcoretech/core-rl/commit/4b646ea7e4264c92a4362ecbb034b71f0e887cac))
+* **PROD-444:** fix guardrails ([7ab940b](https://github.com/rlcoretech/core-rl/commit/7ab940b87f9317f1d45b01702019a99275b5c35c))
+* updating PAT on docker build action ([8dd403f](https://github.com/rlcoretech/core-rl/commit/8dd403ff12163799155a0df31d7ef217937e7e86))
+
 ## [0.141.0](https://github.com/rlcoretech/core-rl/compare/v0.140.0...v0.141.0) (2025-05-14)
 
 
