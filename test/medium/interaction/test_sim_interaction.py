@@ -16,7 +16,6 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.utils.time import percent_time_elapsed
 
-@pytest.fixture()
 def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     NUM_STEPS = 5
     cfg = direct_load_config(MainConfig, base='test/medium/interaction/assets', config_name='saturation.yaml')
