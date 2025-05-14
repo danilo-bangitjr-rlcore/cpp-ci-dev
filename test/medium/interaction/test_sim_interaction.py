@@ -1,5 +1,7 @@
+import pytest
 
 from datetime import timedelta
+from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -14,11 +16,13 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.utils.time import percent_time_elapsed
 
-
-def test_action_bounds():
+@pytest.fixture()
+def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     NUM_STEPS = 5
     cfg = direct_load_config(MainConfig, base='test/medium/interaction/assets', config_name='saturation.yaml')
     assert isinstance(cfg, MainConfig)
+    cfg.env.db.port = tsdb_engine.url.port
+    cfg.env.db.db_name = tsdb_tmp_db_name
 
     # build global objects
     event_bus = DummyEventBus()
