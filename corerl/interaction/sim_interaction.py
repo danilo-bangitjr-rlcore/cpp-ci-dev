@@ -34,12 +34,6 @@ class SimInteraction(DeploymentInteraction):
         super().__init__(cfg, app_state, agent, env, pipeline)
         self._last_checkpoint = datetime(1984, 1, 1, tzinfo=UTC)
 
-    def _init_offline_chunks(self):
-        ...
-
-    def _pretrain(self):
-        ...
-
     def _init_heartbeat(self):
         return DummyHeartbeat(self._cfg.heartbeat, self._env.get_cfg().coreio_origin)
 
@@ -111,9 +105,6 @@ class SimInteraction(DeploymentInteraction):
             norm_next_a_df = self._clip_action_bounds(norm_next_a_df, action_lo, action_hi)
             next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
             self._env.emit_action(next_a_df, log_action=False)
-
-    def load_historical_chunk(self):
-        ...
 
 
     # -------------------

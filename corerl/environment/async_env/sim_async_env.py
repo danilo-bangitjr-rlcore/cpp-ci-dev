@@ -63,9 +63,6 @@ class SimAsyncEnv(DeploymentAsyncEnv):
     def _init_thinclient(self):
         return DummyThinClient(self._cfg.coreio_origin)
 
-    def _init_datareader(self):
-        return DummyDataReader(self._cfg.db)
-
     def _register_action_nodes(self):
         ...
 
