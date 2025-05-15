@@ -107,23 +107,23 @@ class TagConfig:
     """
     Kind: required external
 
-    The UUID associated to the OPC-UA server connection, used within the CoreIO thin client.
+    This is used for all internal references to the tag, such as in the reward construction.
     """
+
 
     connection_id: str | None = None
     """
     Kind: required external
 
-    The full OPC-UA node identifier string (e.g. ns=#;i=?). This is used for all internal references to the tag,
-    such as in the reward construction.
+    The UUID associated to the OPC-UA server connection, used within the CoreIO thin client.
     """
 
     node_identifier: str | None = None
     """
-    Kind: optional external
+    Kind: required for ai_setpoint, external
 
-    The long-form OPC node identifier for the tag. This is used in communication with the OPC
-    server. If unspecified, the tag name is used instead.
+    The full OPC-UA node identifier string (e.g. ns=#;i=?). This is used by coreio in
+    communication with the OPC server.
     """
 
     dtype: str = 'float'

@@ -168,7 +168,7 @@ concurrency = ["thread", "multiprocessing"]
 # to support our docker image for running corerl.
 [tool.setuptools.packages.find]
 where = [".", "vendor"]
-include = ["corerl*", "coreenv*"]
+include = ["corerl*", "coreenv*", "coreio*"]
 
 [tool.setuptools.package-dir]
 "coreenv" = "vendor/core-env"

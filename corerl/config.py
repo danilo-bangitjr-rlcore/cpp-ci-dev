@@ -5,6 +5,7 @@ from pathlib import Path
 import yaml
 from pydantic import Field
 
+from coreio.config import CoreIOConfig
 from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.configs.loader import config_to_json
@@ -129,6 +130,12 @@ class MainConfig:
 
     evals: EvalDBConfig = Field(default_factory=EvalDBConfig)
     metrics: MetricsDBConfig = Field(default_factory=MetricsDBConfig)
+
+    """
+    Top-level configuration for coreio
+    """
+    coreio: CoreIOConfig = Field(default_factory=CoreIOConfig)
+
     """
     Kind: internal
 
