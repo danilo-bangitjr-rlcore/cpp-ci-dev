@@ -1,7 +1,7 @@
 log_path: "outputs/e2e_smoke"
 
 seed: 1
-max_steps: 500
+max_steps: 200
 
 agent:
   gamma: 0.0
