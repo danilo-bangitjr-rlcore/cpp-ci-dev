@@ -9,7 +9,7 @@ interaction:
   action_period: 00:00:01
 
 seed: 1
-max_steps: 1000
+max_steps: 750
 
 agent:
   gamma: 0.99
