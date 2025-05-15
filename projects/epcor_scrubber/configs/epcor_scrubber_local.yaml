@@ -16,9 +16,6 @@ experiment:
   gamma: 0.944 # ~50% of return occurs after 1 hrs (@ 5 min obs period)
   is_simulation: False
 
-feature_flags:
-  action_bounds: True
-
 interaction:
   name: dep_interaction
   restore_checkpoint: False

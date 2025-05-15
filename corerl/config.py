@@ -82,7 +82,7 @@ class FeatureFlags:
     wide_nets: bool = True
 
     # 2025-04-14
-    action_bounds: bool = False
+    action_bounds: bool = True
 
     # 2025-04-25
     use_residual: bool = True

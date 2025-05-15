@@ -14,9 +14,6 @@ seed: 1
 is_simulation: False
 
 feature_flags:
-  action_bounds: True
-  zone_violations: True
-  use_residual: True
   gtd_critic: True
 
 interaction:

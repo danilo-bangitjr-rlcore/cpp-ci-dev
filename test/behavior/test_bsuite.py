@@ -61,7 +61,6 @@ TEST_CASES = [
 
 ZERO_ONE_FEATURES = [
     'base', # special feature indicating "no features enabled"
-    'action_bounds',
     'recency_bias_buffer',
     'gtd_critic',
     'regenerative_optimism',

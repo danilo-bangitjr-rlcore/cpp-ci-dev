@@ -53,7 +53,6 @@ Optimizer = torch.optim.Optimizer | EnsembleOptimizer
 @config()
 class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
-    action_bounds: bool = MISSING
     greedy: bool = False
 
     # hyperparameters
@@ -73,11 +72,6 @@ class GACPolicyManagerConfig:
     network: PolicyConfig = Field(default_factory=NormalPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING
-
-    @computed("action_bounds")
-    @classmethod
-    def _action_bounds(cls, cfg: "MainConfig"):
-        return cfg.feature_flags.action_bounds
 
     @computed('buffer')
     @classmethod
@@ -165,14 +159,10 @@ class GACPolicyManager:
         assert policy_actions.dim() == 3, 'Expected policy_actions to be (batch_size, n_samples, action_dim)'
         assert action_lo.dim() == 2, 'Expected action_lo to be (batch_size, action_dim)'
 
-        if self.cfg.action_bounds:
-            # add an n_samples dim to control automatic broadcasting
-            action_lo = action_lo.unsqueeze(1)
-            action_hi = action_hi.unsqueeze(1)
-            direct_actions = torch.clip(policy_actions, min=action_lo, max=action_hi)
-        else:
-            direct_actions = policy_actions
-        return direct_actions
+        # add an n_samples dim to control automatic broadcasting
+        action_lo = action_lo.unsqueeze(1)
+        action_hi = action_hi.unsqueeze(1)
+        return torch.clip(policy_actions, min=action_lo, max=action_hi)
 
     def _sample_actor(
         self,
