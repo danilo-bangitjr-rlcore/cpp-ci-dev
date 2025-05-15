@@ -5,6 +5,63 @@
 - styles again
 - fix agent test utils
 
+## [0.142.0](https://github.com/rlcoretech/core-rl/compare/v0.141.1...v0.142.0) (2025-05-14)
+
+
+### Features
+
+* **PROD-419:** t maze bsuite tests ([d5577da](https://github.com/rlcoretech/core-rl/commit/d5577da07affc16cfe163875245d3583d02237e8))
+
+
+### Bug Fixes
+
+* meaningful lower bounds ([6d2751b](https://github.com/rlcoretech/core-rl/commit/6d2751b56cf6d98a0e1d331c6fae79ea8f81d354))
+* **PROD-419:** stupid mistakes on t maze bsuites ([92941c3](https://github.com/rlcoretech/core-rl/commit/92941c3e262e988cc35e1a98fc9c43b97e86e6d4))
+
+## [0.141.1](https://github.com/rlcoretech/core-rl/compare/v0.141.0...v0.141.1) (2025-05-14)
+
+
+### Bug Fixes
+
+* op lo/hi in or_else ([4b646ea](https://github.com/rlcoretech/core-rl/commit/4b646ea7e4264c92a4362ecbb034b71f0e887cac))
+* **PROD-444:** fix guardrails ([7ab940b](https://github.com/rlcoretech/core-rl/commit/7ab940b87f9317f1d45b01702019a99275b5c35c))
+* updating PAT on docker build action ([8dd403f](https://github.com/rlcoretech/core-rl/commit/8dd403ff12163799155a0df31d7ef217937e7e86))
+
+## [0.141.0](https://github.com/rlcoretech/core-rl/compare/v0.140.0...v0.141.0) (2025-05-14)
+
+
+### Features
+
+* add very mild gradient norm clipping to policy updates ([fbf66fd](https://github.com/rlcoretech/core-rl/commit/fbf66fde3fff78fdd1e7a2dcb4c57c752f19cbf0))
+* **AGNT-67:** enable zone violations by default ([125ff54](https://github.com/rlcoretech/core-rl/commit/125ff549438a70d79bf24ba564b01b6cbc868134))
+* **AGNT-71:** enable residual networks by default ([0016fc0](https://github.com/rlcoretech/core-rl/commit/0016fc0a73840a22d56382b0f94ca8d9c521aa16))
+* **AGNT-77:** enable regenerative optimism and randomized action ordering ([f12a05c](https://github.com/rlcoretech/core-rl/commit/f12a05c08896a9085c4492ea80fea7fb4c1981dc))
+* flush metric/eval writers every 30s ([254afa8](https://github.com/rlcoretech/core-rl/commit/254afa89e97dfd82691aaa6fd6b1a5536d51d307))
+* implement qrc-huber critic ([1fdf4b4](https://github.com/rlcoretech/core-rl/commit/1fdf4b4b7ee64b4b77e8d4baade3dcfbe0942715))
+* **PROD-139:** put gtd critic behind a feature flag ([ab875fb](https://github.com/rlcoretech/core-rl/commit/ab875fbb6afbe18f0e066c142f700b419f12caf9))
+* **PROD-415:** Add greedification test to bsuite ([8978fef](https://github.com/rlcoretech/core-rl/commit/8978fefeef8480da62e7de2ebf84d78d12afdcc2))
+* **PROD-415:** add setup method to BSuiteTestCase for pretraining and offline data production ([a9ff64d](https://github.com/rlcoretech/core-rl/commit/a9ff64d5e08fd1f47b295e7215bfa9ec4f401bb0))
+* **PROD-415:** implemented SimInteraction pipeline warmup and added it to the greedification test ([c508ff1](https://github.com/rlcoretech/core-rl/commit/c508ff1255321ed690cde972352393e842d2c0cf))
+* **PROD-415:** multi-action saturation actor greedification behaviour test ([f8f450e](https://github.com/rlcoretech/core-rl/commit/f8f450e87ae3acfbf2cc122eb7e30c515e3d0b21))
+* **PROD-415:** save critic optimizers in addition to critic and target nets ([8407d4f](https://github.com/rlcoretech/core-rl/commit/8407d4f3982f96e84aa6f701ee4dcf7ad9ef3be7))
+* **PROD-429:** add gradient clipping to critic ([520f834](https://github.com/rlcoretech/core-rl/commit/520f83491d7dc2f6e6c379197975947792f81553))
+* **PROD-448:** add action regularizaton to encourage optimism ([f350554](https://github.com/rlcoretech/core-rl/commit/f3505543da8ca5535caa81e0b2559130f3a0c05f))
+* **PROD-448:** enable action regularization for GTD feature flag by default ([b8425d6](https://github.com/rlcoretech/core-rl/commit/b8425d6dea5cb13868bf07686ef75e27d2ac9ed7))
+* **PROD-449:** add noise to q-values during action sorting ([12d5381](https://github.com/rlcoretech/core-rl/commit/12d538197412e2ed7a8665eb6654166f5a95be9b))
+* reset action period to try again if state is none ([6ea7ab7](https://github.com/rlcoretech/core-rl/commit/6ea7ab7312318943740793fc5765baf42d6ee455))
+
+
+### Bug Fixes
+
+* add buffer to ai sp operating range clip ([364c5c0](https://github.com/rlcoretech/core-rl/commit/364c5c0d81a4e4d5d627fd307f4fcdf899324c02))
+* add timzeone to eval writer ([23c706d](https://github.com/rlcoretech/core-rl/commit/23c706d3c375ecb0c7909f00703497a2ec340a83))
+* go back 50/50 action embeddings ([0f27be3](https://github.com/rlcoretech/core-rl/commit/0f27be34b9cc1e9b60ec87149fd947476d2f7a19))
+* gtd uses adam optimizer ([d5b9746](https://github.com/rlcoretech/core-rl/commit/d5b97464337a5f4d7c3883f65fe1cb439acf898a))
+* increase default gradient clipping ([9b0c6b0](https://github.com/rlcoretech/core-rl/commit/9b0c6b0b3b2bb69e3849db356fbc136e4aebb61f))
+* remove cascade dependent tags from state ([4b4d8a3](https://github.com/rlcoretech/core-rl/commit/4b4d8a3f6de6ba1e5fb30dd625eb150fc7f5bbc2))
+* take more careful adam steps ([65d5fd4](https://github.com/rlcoretech/core-rl/commit/65d5fd4845c897b16c767b2385ca3d26229e1ae9))
+* type checking ([498628d](https://github.com/rlcoretech/core-rl/commit/498628df15a632a84b663ff9ef736fa30c77cc3e))
+
 ## [0.140.0](https://github.com/rlcoretech/core-rl/compare/v0.139.4...v0.140.0) (2025-05-08)
 
 

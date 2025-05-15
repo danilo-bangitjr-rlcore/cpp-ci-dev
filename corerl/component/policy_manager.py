@@ -11,12 +11,12 @@ from pydantic import Field, TypeAdapter
 
 from corerl.agent.utils import (
     SampledQReturn,
+    ValueEstimator,
     get_sampled_qs,
     grab_percentile,
     grab_top_n,
 )
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
-from corerl.component.critic.ensemble_critic import EnsembleCritic
 from corerl.component.network.utils import to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
@@ -60,10 +60,10 @@ class GACPolicyManagerConfig:
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.
+    prop_percentile_learned: float = 0.9
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
-    grad_clip: float = 5
+    grad_clip: float = 50_000
     sort_noise: float = 0.0
 
     # metrics
@@ -257,7 +257,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        critic: EnsembleCritic,
+        critic: ValueEstimator,
     ) -> torch.Tensor:
         qr = get_sampled_qs(
             states=states,
@@ -277,7 +277,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        critic: EnsembleCritic,
+        critic: ValueEstimator,
     ) -> ActionReturn:
         """
         For each state, performs random search (with samples from proposal)
@@ -301,7 +301,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        critic: EnsembleCritic | None = None,
+        critic: ValueEstimator | None = None,
     ) -> ActionReturn:
         """
         Samples direct actions for states from the actor.
@@ -435,7 +435,7 @@ class GACPolicyManager:
             logger.exception('Failed to load buffer from checkpoint. Reinitializing...')
 
 
-    def update(self, critic: EnsembleCritic):
+    def update(self, critic: ValueEstimator):
         """
         Performs a percentile-based update to the policy.
         """

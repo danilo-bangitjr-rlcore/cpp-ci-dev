@@ -338,4 +338,3 @@ def test_capture_regular_RL():
     assert len(pf.transitions) == 2
     assert pf.transitions[0] == first_transition
     assert pf.transitions[1] == second_transition
-

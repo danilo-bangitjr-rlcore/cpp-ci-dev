@@ -27,37 +27,37 @@ def test_action_clipping():
 
     actions = DataFrame({"action-1": [2.5], "action-2": [30]})
     expected = DataFrame({"action-1": [5], "action-2": [30]})
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({"action-1": [30], "action-2": [30]})
     expected = DataFrame({"action-1": [12], "action-2": [30]}) # clip to red zone
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({"action-1": [10], "action-2": [-3]})
     expected = DataFrame({"action-1": [10], "action-2": [0]})
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({"action-1": [10], "action-2": [90]})
     expected = DataFrame({"action-1": [10], "action-2": [60]})
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({"action-1": [10], "action-2": [-3]})
     expected = DataFrame({"action-1": [10], "action-2": [0]})
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({"action-1": [30], "action-2": [90]})
     expected = DataFrame({"action-1": [12], "action-2": [60]})
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({"action-1": [3], "action-2": [-13]})
     expected = DataFrame({"action-1": [5], "action-2": [0]})
-    clip_action(actions, tag_cfgs)
+    clip_action(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
 def test_action_sanitizer():
@@ -81,16 +81,16 @@ def test_action_sanitizer():
 
     actions = DataFrame({"action-1": [30], "action-2": [30]})
     expected = DataFrame({"action-1": [12], "action-2": [30]}) # clip to red zone
-    sanitize_actions(actions, tag_cfgs)
+    sanitize_actions(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     # If there are too many actions, it's not clear what to do. Nuke the action
     actions = DataFrame({"action-1": [30, 12], "action-2": [30, 2]})
     expected = DataFrame({})
-    sanitize_actions(actions, tag_cfgs)
+    sanitize_actions(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)
 
     actions = DataFrame({})
     expected = DataFrame({})
-    sanitize_actions(actions, tag_cfgs)
+    sanitize_actions(actions, tag_cfgs, rtol=0)
     assert dfs_close(actions, expected)

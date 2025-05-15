@@ -31,7 +31,7 @@ from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.tag_config import Agg, TagConfig
-from corerl.data_pipeline.transforms import register_dispatchers
+from corerl.data_pipeline.transforms import NullConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.virtual_tags import VirtualTagComputer
@@ -65,7 +65,7 @@ class PipelineConfig:
             if tag.cascade is None:
                 continue
             for dep in [tag.cascade.mode, tag.cascade.op_sp, tag.cascade.ai_sp]:
-                self.tags.append(TagConfig(name=dep, agg=Agg.last, preprocess=[], state_constructor=None))
+                self.tags.append(TagConfig(name=dep, agg=Agg.last, preprocess=[], state_constructor=[NullConfig()]))
 
     @post_processor
     def _default_imputers(self, cfg: MainConfig):

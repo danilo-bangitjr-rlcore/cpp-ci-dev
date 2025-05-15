@@ -218,4 +218,3 @@ def test_recency_bias_buffer_uniform_mixing(dummy_app_state: AppState):
         buffer.get_probability(0, np.array([0, 1])),
         expected_mixed_probs,
     )
-

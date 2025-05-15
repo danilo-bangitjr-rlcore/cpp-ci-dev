@@ -79,7 +79,6 @@ class LateFusionConfig:
     input_scales: list[float] = list_([0.5, 0.5])
     input_cfg: NNTorsoConfig = MISSING
     combined_cfg: NNTorsoConfig = MISSING
-    use_residual: bool = True
     activation: str = 'relu'
 
     @computed('input_cfg')
@@ -97,11 +96,6 @@ class LateFusionConfig:
             hidden=[256],
             activation=[{'name': 'relu'}],
         )
-
-    @computed('use_residual')
-    @classmethod
-    def _use_residual(cls, cfg: 'MainConfig'):
-        return cfg.feature_flags.use_residual
 
 
 class ResidualBlock(nn.Module):
@@ -143,33 +137,22 @@ class LateFusionNetwork(nn.Module):
         """
         super().__init__()
 
-        self.use_residual = cfg.use_residual
-
         # Create multiple subnets - one for each input
         self.input_nets = nn.ModuleList()
         combined_input_dim = 0
 
         for input_dim, scale in zip(input_dims, cfg.input_scales, strict=True):
-            if self.use_residual:
-                layers = []
-                hidden_sizes = [int(h * scale) for h in cfg.input_cfg.hidden]
+            layers = []
+            hidden_sizes = [int(h * scale) for h in cfg.input_cfg.hidden]
 
-                layers.append(ResidualBlock(input_dim, hidden_sizes[0], cfg.activation))
-                for i in range(1, len(hidden_sizes)):
-                    layers.append(ResidualBlock(hidden_sizes[i-1], hidden_sizes[i], cfg.activation))
+            layers.append(ResidualBlock(input_dim, hidden_sizes[0], cfg.activation))
+            for i in range(1, len(hidden_sizes)):
+                layers.append(ResidualBlock(hidden_sizes[i-1], hidden_sizes[i], cfg.activation))
 
-                input_net = nn.Sequential(*layers)
-                self.input_nets.append(input_net)
-                combined_input_dim += hidden_sizes[-1]
-            else:
-                sub_cfg = copy.deepcopy(cfg.input_cfg)
-                sub_cfg.hidden = [
-                    int(h * scale)
-                    for h in cfg.input_cfg.hidden
-                ]
-                input_net = create_mlp(sub_cfg, input_dim, output_dim=None)
-                self.input_nets.append(input_net)
-                combined_input_dim += sub_cfg.hidden[-1]
+            input_net = nn.Sequential(*layers)
+            self.input_nets.append(input_net)
+            combined_input_dim += hidden_sizes[-1]
+
 
         self.combined_net = create_mlp(
             cfg.combined_cfg,

@@ -35,6 +35,7 @@ def scheduler_task(app_state: AppState):
         Clock(EventType.step_get_obs, cfg.obs_period),
         Clock(EventType.step_agent_update, cfg.update_period),
         Clock(EventType.agent_step, cfg.obs_period),
+        Clock(EventType.flush_buffers, timedelta(seconds=30)),
     ]
 
     if cfg.setpoint_ping_period is not None:

@@ -12,7 +12,7 @@ from corerl.component.network.factory import init_target_network
 from corerl.component.network.networks import EnsembleNetwork, EnsembleNetworkConfig, EnsembleNetworkReturn
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
-from corerl.component.optimizers.torch_opts import LSOConfig
+from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import TransitionBatch
 from corerl.messages.events import EventType
@@ -32,14 +32,11 @@ class CriticConfig:
 
     Critic-specific hyperparameters.
     """
+    action_regularization: float = 0.0
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
-    critic_optimizer: OptimizerConfig = Field(default_factory=LSOConfig)
+    critic_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING
-    grad_clip: float = 5
-    polyak: float = 0.995
-    """
-    Retention coefficient for polyak averaged target networks.
-    """
+    grad_clip: float = 50_000
 
     @computed('buffer')
     @classmethod
@@ -58,10 +55,19 @@ class CriticConfig:
         return out
 
 
+@config()
+class SARSACriticConfig(CriticConfig):
+    polyak: float = 0.995
+    """
+    Retention coefficient for polyak averaged target networks.
+    """
+
+
 class BaseCritic(ABC):
     @abstractmethod
-    def __init__(self, cfg: CriticConfig,  app_state: AppState):
-        self.app_state = app_state
+    def __init__(self, cfg: CriticConfig, app_state: AppState):
+        self._app_state = app_state
+        self._cfg = cfg
 
     @abstractmethod
     def update(
@@ -81,10 +87,11 @@ class BaseCritic(ABC):
     def load(self, path: Path) -> None:
         raise NotImplementedError
 
+
 class EnsembleCritic(BaseCritic):
     def __init__(
         self,
-        cfg: CriticConfig,
+        cfg: SARSACriticConfig,
         app_state: AppState,
         state_dim: int,
         action_dim: int,
@@ -255,6 +262,14 @@ class EnsembleCritic(BaseCritic):
                 value=loss_i.item(),
             )
 
+        noise_actions = [
+            torch.rand_like(na) for na in next_actions
+        ]
+        regularized_values = self.get_values_sampled_actions(states, noise_actions)
+        loss += self._cfg.action_regularization * sum(
+            torch.mean(regularized_values.ensemble_values[i].abs()) for i in range(len(states))
+        )
+
         if values.ensemble_variance is not None:
             mean_variance = torch.mean(values.ensemble_variance)
             self._app_state.metrics.write(
@@ -317,6 +332,32 @@ class EnsembleCritic(BaseCritic):
     )-> EnsembleNetworkReturn:
         with torch.no_grad():
             return self.target.forward([state_batches, action_batches])
+
+    def get_values_sampled_actions(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+    ):
+        assert action_batches[0].dim() == 3
+        ensemble = len(action_batches)
+        batch_size = action_batches[0].size(0)
+        n_samples = action_batches[0].size(1)
+        states = [
+            state_batch.repeat_interleave(n_samples, dim=0)
+            for state_batch in state_batches
+        ]
+
+        actions = [
+            action_batch.reshape(batch_size * n_samples, -1)
+            for action_batch in action_batches
+        ]
+
+        out = self.model.forward([states, actions])
+        return EnsembleNetworkReturn(
+            reduced_value=out.reduced_value.reshape(batch_size, n_samples, 1),
+            ensemble_values=out.ensemble_values.reshape(ensemble, batch_size, n_samples, 1),
+            ensemble_variance=out.ensemble_variance,
+        )
 
     def get_avg_target_values(
         self,

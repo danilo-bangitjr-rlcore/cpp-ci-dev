@@ -13,9 +13,6 @@ seed: 1
 agent:
   gamma: 0.99
 
-feature_flags:
-  zone_violations: true
-
 pipeline:
   reward:
     priorities:

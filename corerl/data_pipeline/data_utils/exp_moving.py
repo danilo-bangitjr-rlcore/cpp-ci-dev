@@ -57,4 +57,3 @@ class ExpMovingVar:
     def feed(self, x: np.ndarray) -> None:
         for x_i in x:
             self.feed_single(x_i)
-
