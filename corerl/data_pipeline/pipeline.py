@@ -64,8 +64,17 @@ class PipelineConfig:
         for tag in self.tags:
             if tag.cascade is None:
                 continue
-            for dep in [tag.cascade.mode, tag.cascade.op_sp, tag.cascade.ai_sp]:
+            for dep in [tag.cascade.op_sp, tag.cascade.ai_sp]:
                 self.tags.append(TagConfig(name=dep, agg=Agg.last, preprocess=[], state_constructor=[NullConfig()]))
+
+            self.tags.append(
+                TagConfig(
+                    name=tag.cascade.mode,
+                    agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
+                    preprocess=[],
+                    state_constructor=[NullConfig()],
+                )
+            )
 
     @post_processor
     def _default_imputers(self, cfg: MainConfig):

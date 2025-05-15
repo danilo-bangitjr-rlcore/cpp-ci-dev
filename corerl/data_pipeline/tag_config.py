@@ -59,6 +59,7 @@ class CascadeConfig:
     ai_sp: str = MISSING
     op_mode_val: float | int | bool = MISSING # value of mode indicating operator control
     ai_mode_val: float | int | bool = MISSING # value of mode indicating ai control
+    mode_is_bool: bool = False
 
 # -----------------------
 # -- Bounds Scheduling --
