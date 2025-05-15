@@ -63,7 +63,6 @@ ZERO_ONE_FEATURES = [
     'base', # special feature indicating "no features enabled"
     'action_bounds',
     'recency_bias_buffer',
-    'interaction_action_variance',
     'gtd_critic',
     'regenerative_optimism',
 ]
