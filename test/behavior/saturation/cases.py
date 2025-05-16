@@ -164,3 +164,37 @@ class MultiActionSaturationGoodOfflineDataTest(BSuiteTestCase):
             data_writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
 
         data_writer.close()
+
+class MultiActionSaturationBadOfflineDataTest(BSuiteTestCase):
+    """
+    Test whether the agent can recover and learn a good policy when its replay buffer is preloaded with data produced
+    under different environment dynamics than the environment that it is evaluated in.
+
+    The offline dataset (bad_offline_data.csv) was produced by deploying a GAC agent in MultiActionSaturation
+    with the following configuration for 2000 steps:
+        frequencies: [4.0, 10.0, 20.0]
+        phase_shifts: [pi/2, 0.0, pi/4]
+
+    In this test, our agent is evaluated for 2000 steps in MultiActionSaturation with the following configuration:
+        frequencies: [1.0, 1.5, 2.0]
+        phase_shifts: [0.0, pi/4, pi/2]
+    """
+    name = 'multi action saturation bad offline data'
+    config = 'test/behavior/saturation/multi_action_bad_offline_data.yaml'
+
+    lower_bounds = { 'reward': -0.1}
+
+    def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
+        # Read offline data from csv
+        obs_path = Path('test/behavior/saturation/bad_offline_data.csv')
+        df = utils.read_offline_data(obs_path)
+        sql_tups = []
+        for col_name in df.columns:
+            sql_tups += utils.column_to_sql_tups(df[col_name])
+
+        # Write offline data to db
+        data_writer = utils.get_offline_data_writer(engine, infra_overrides)
+        for sql_tup in sql_tups:
+            data_writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
+
+        data_writer.close()
