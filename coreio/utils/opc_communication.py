@@ -73,10 +73,17 @@ class OPC_Communication:
 
         return action_nodes
 
-    async def __aenter__(self):
+    async def start(self):
         await self.opc_client.connect()
         self._connected = True
         return self
+
+    async def cleanup(self):
+        await self.opc_client.disconnect()
+        return self
+
+    async def __aenter__(self):
+        return await self.start()
 
     async def __aexit__(
         self,
@@ -85,8 +92,7 @@ class OPC_Communication:
         _exec_tb : Optional[object]
     ):
         _ = _exec_type, _exec_val, _exec_tb # Stop LSP from complaining about unused variables
-        await self.opc_client.disconnect()
-        return self
+        return await self.cleanup()
 
     async def emit_action(self, action_nodes: dict[str, NodeData]):
         if not self._connected:

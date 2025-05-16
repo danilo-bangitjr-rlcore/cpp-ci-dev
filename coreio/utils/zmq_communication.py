@@ -2,37 +2,18 @@ from coreio.config import CoreIOConfig
 from coreio.utils.consumer_task import coreio_consumer_task
 import logging
 
-from collections import defaultdict, deque
+from collections import defaultdict
 from collections.abc import Callable
 from typing import Any
-import uuid
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import ValidationError
 
-from corerl.utils.time import now_iso
-
-from enum import StrEnum, auto
 from queue import Queue, Empty
 import threading
+from coreio.utils.io_events import IOEvent, IOEventType, IOEventTopic
 
 import zmq
 
-
 logger = logging.getLogger(__name__)
-
-class IOEventType(StrEnum):
-    # ------------
-    # -- CoreIO --
-    # ------------
-    write_opcua_nodes = auto()
-
-class IOEventTopic(StrEnum):
-    # Topic filtering occurs using subscriber-side prefixing
-    coreio = auto()
-
-class IOEvent(BaseModel):
-    id: uuid.UUID = Field(default_factory=uuid.uuid4)
-    time: str = Field(default_factory=now_iso)
-    type: IOEventType
 
 Callback = Callable[[IOEvent], Any]
 
@@ -53,7 +34,7 @@ class ZMQ_Communication:
         self.zmq_context = zmq.Context()
 
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
-        self.publisher_socket = self.zmq_context.socket(zmq.PUB)
+        # self.publisher_socket = self.zmq_context.socket(zmq.PUB)
 
         self.coreio_stop_event = threading.Event()
         self.consumer_thread = threading.Thread(
@@ -68,9 +49,9 @@ class ZMQ_Communication:
         )
 
         self.subscriber_socket.bind(cfg.coreio_connection)
-        self.publisher_socket.bind(cfg.coreio_connection)
+        # self.publisher_socket.bind(cfg.coreio_connection)
 
-        self._callbacks: dict[str, list[Callback]] = defaultdict(list)
+        # self._callbacks: dict[str, list[Callback]] = defaultdict(list)
 
     def start(self):
         self.consumer_thread.start()
@@ -90,25 +71,25 @@ class ZMQ_Communication:
             if event:
                 self.queue.task_done()
     
-    def listen_forever(self):
-        while True:
-            event = self.recv_event()
-            if event is None:
-                continue
-
-            for cb in self._callbacks[event.type]:
-                cb(event)
-
-            yield event
-
-
-    def attach_callback(self, event_type: IOEventType, cb: Callback):
-        self._callbacks[event_type].append(cb)
-
-
-    def attach_callbacks(self, cbs: dict[IOEventType, Callback]):
-        for event_type, cb in cbs.items():
-            self.attach_callback(event_type, cb)
+    # def listen_forever(self):
+    #     while True:
+    #         event = self.recv_event()
+    #         if event is None:
+    #             continue
+    #
+    #         for cb in self._callbacks[event.type]:
+    #             cb(event)
+    #
+    #         yield event
+    #
+    #
+    # def attach_callback(self, event_type: IOEventType, cb: Callback):
+    #     self._callbacks[event_type].append(cb)
+    #
+    #
+    # def attach_callbacks(self, cbs: dict[IOEventType, Callback]):
+    #     for event_type, cb in cbs.items():
+    #         self.attach_callback(event_type, cb)
 
 
     def cleanup(self):
@@ -127,11 +108,7 @@ class ZMQ_Communication:
         self.consumer_thread.join()
 
         self.subscriber_socket.close()
-        self.publisher_socket.close()
+        # self.publisher_socket.close()
         self.zmq_context.term()
 
         logger.info("Cleaned up event bus")
-
-
-
-

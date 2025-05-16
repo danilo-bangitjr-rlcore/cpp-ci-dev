@@ -60,6 +60,8 @@ def main():
 
     _logger.info(f"Sent {payload}")
 
+    socket.close()
+    context.term()
 
 if __name__ == "__main__":
     main()
