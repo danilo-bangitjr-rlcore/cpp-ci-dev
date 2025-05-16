@@ -25,7 +25,7 @@ raw_service_names = [
     "core-rl-renderer-1",
     "core-rl-grafana-1",
     "core-rl-opc-sim-1",
-    "core-rl-coreio-1",
+    "core-rl-core-ui-1",
     "core-rl-timescale-db-1",
     "core-rl-opc-server-1",
 ]

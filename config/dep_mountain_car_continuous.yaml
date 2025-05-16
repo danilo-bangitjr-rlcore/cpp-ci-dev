@@ -16,7 +16,7 @@ agent:
 
 env:
   name: dep_async_env
-  coreio_origin: http://coreio:2222       # coreio hostname derived from docker-compose up app name
+  coreio_origin: http://core-ui:2222       # coreio hostname derived from docker-compose up app name
   # coreio_origin: http://localhost:2222  # use localhost or 0.0.0.0 for when agent running outside of docker network
 
   db:
