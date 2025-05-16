@@ -180,6 +180,14 @@ class TagConfig:
     and the action_bounds_tags will hold the lists of tags that those functions depend on.
     """
 
+    expected_range: FloatBounds | None = None
+    """
+    Kind: optional external
+
+    The range of values that the tag is expected to take. If specified, this range controls
+    the min/max for normalization and reward scaling.
+    """
+
     red_bounds: Bounds | None = None
     """
     Kind: optional external
@@ -485,9 +493,11 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
-    # prefer to use red zone, fallback to black zone then yellow
+    # prefer to use expected range, fallback to red zone, then operating range, then yellow
     lo = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
+        Maybe[float](cfg.expected_range and cfg.expected_range[0])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
         .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
@@ -496,7 +506,9 @@ def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], May
     )
 
     hi = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
+        Maybe[float](cfg.expected_range and cfg.expected_range[1])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
         .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
@@ -542,7 +554,9 @@ def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
     Prefer to use red zone, fallback to black zone then yellow
     """
     lo = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
+        Maybe[float](cfg.expected_range and cfg.expected_range[0])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
         .is_instance(float)
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
@@ -553,7 +567,9 @@ def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
     )
 
     hi = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
+        Maybe[float](cfg.expected_range and cfg.expected_range[1])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
         .is_instance(float)
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
