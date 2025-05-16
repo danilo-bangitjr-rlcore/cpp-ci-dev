@@ -222,5 +222,5 @@ class MainConfig:
         if not self.feature_flags.regenerative_optimism:
             return
 
-        self.agent.policy.sort_noise = 0.1
+        self.agent.policy.sort_noise = 0.025
         self.agent.critic.action_regularization = 0.001
