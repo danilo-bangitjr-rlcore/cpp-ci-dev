@@ -38,7 +38,7 @@ class GreedyACConfig(BaseAgentConfig):
     """
     name: Literal["greedy_ac"] = "greedy_ac"
 
-    critic: SARSACriticConfig | GTDCriticConfig = Field(default_factory=SARSACriticConfig)
+    critic: SARSACriticConfig | GTDCriticConfig = Field(default_factory=GTDCriticConfig)
     policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
     loss_threshold: float = 0.0001

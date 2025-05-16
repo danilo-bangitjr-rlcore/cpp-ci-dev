@@ -1,14 +1,11 @@
 import json
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any
 
 import yaml
-from pydantic import Field, TypeAdapter
+from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.component.critic.gtd_critic import GTDCriticConfig
-from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
@@ -97,7 +94,7 @@ class FeatureFlags:
     interaction_action_variance: bool = False
 
     # 2025-05-10
-    gtd_critic: bool = False
+    gtd_critic: bool = True
 
     # 2025-05-14
     regenerative_optimism: bool = False
@@ -219,22 +216,6 @@ class MainConfig:
 
         return save_path
 
-
-    @post_processor
-    def _enable_gtd_critic(self, cfg: 'MainConfig'):
-        if not self.feature_flags.gtd_critic:
-            return
-
-        ta = TypeAdapter(GTDCriticConfig)
-        gtd_critic = GTDCriticConfig()
-        gtd_critic.action_regularization = 0.0001
-        gtd_critic_dict = ta.dump_python(gtd_critic, warnings=False)
-        main_cfg: Any = cfg
-        self.agent.critic = ta.validate_python(gtd_critic_dict, context=main_cfg)
-        self.agent.critic.critic_optimizer = AdamConfig(
-            lr=0.0001,
-            weight_decay=0.001,
-        )
 
     @post_processor
     def _regenerative_optimism(self, cfg: 'MainConfig'):
