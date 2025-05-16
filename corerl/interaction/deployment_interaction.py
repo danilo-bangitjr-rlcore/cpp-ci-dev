@@ -139,6 +139,8 @@ class DeploymentInteraction:
         self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
+        if self._cfg.write_obs_to_csv:
+            self._write_obs_to_csv(o)
         pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset(o))
         self._agent.update_buffer(pipe_return)
         self._capture_latest_state(pipe_return)
@@ -319,6 +321,13 @@ class DeploymentInteraction:
                 metric=prefix + feat_name,
                 value=val,
             )
+
+    def _write_obs_to_csv(self, df: pd.DataFrame):
+        csv_path = self._app_state.cfg.save_path / "observations.csv"
+        if csv_path.exists():
+            df.to_csv(csv_path, mode='a', index=True, header=False)
+        else:
+            df.to_csv(csv_path, index=True)
 
 
     # ---------------------

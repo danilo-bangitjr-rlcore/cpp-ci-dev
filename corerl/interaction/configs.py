@@ -66,7 +66,7 @@ class InteractionConfig:
     How often to ping setpoints.
     """
 
-    load_historical_data: bool = True
+    load_historical_data: bool = MISSING
     """
     Kind: internal
 
@@ -133,6 +133,13 @@ class InteractionConfig:
     Specifies period in time where we keep all checkpoints, before beginning to delete them.
     """
 
+    write_obs_to_csv: bool = False
+    """
+    Kind: internal
+
+    Whether to write observations to a csv file
+    """
+
     heartbeat: HeartbeatConfig = Field(default_factory=HeartbeatConfig)
 
 
@@ -150,3 +157,11 @@ class InteractionConfig:
     @classmethod
     def _checkpoint_path(cls, cfg: 'MainConfig'):
         return Path('outputs') / cfg.agent_name / (f'seed-{cfg.seed}') / 'checkpoints'
+
+    @computed('load_historical_data')
+    @classmethod
+    def _load_historical_data(cls, cfg: MainConfig):
+        if cfg.interaction.name == "sim_interaction":
+            return False
+        else:
+            return True

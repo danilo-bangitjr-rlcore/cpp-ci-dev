@@ -57,7 +57,7 @@ class BSuiteTestCase:
             'silent': True,
         }
 
-    def setup(self, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
+    def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
         """
         Setup the given BSuiteTestCase before main.py is called in execute_test()
         """
@@ -70,7 +70,7 @@ class BSuiteTestCase:
             f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
         }
 
-        self.setup(infra_overrides, feature_overrides)
+        self.setup(tsdb, infra_overrides, feature_overrides)
 
         overrides = self._overrides | infra_overrides | feature_overrides
 
