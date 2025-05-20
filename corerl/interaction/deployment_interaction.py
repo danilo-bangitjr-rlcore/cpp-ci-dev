@@ -24,8 +24,7 @@ from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
 from corerl.utils.list import sort_by
-from corerl.utils.maybe import Maybe
-from corerl.utils.time import clock_generator, split_into_chunks
+from corerl.utils.time import clock_generator, split_windows_into_chunks
 
 logger = logging.getLogger(__name__)
 
@@ -105,13 +104,21 @@ class DeploymentInteraction:
         if not self._cfg.load_historical_data:
             return None
 
+        if len(self._cfg.historical_windows) == 0:
+            # default to one window from beginning to end of recorded time
+            self._cfg.historical_windows = [(None, None)]
+
+        # impute first and/or last timestamp in sequence if necessary
         time_stats = self._env.data_reader.get_time_stats()
-        chunk_start = Maybe(self._cfg.hist_chunk_start).or_else(time_stats.start).astimezone(UTC)
-        chunk_end = time_stats.end
-        logger.info(f"Offline chunks will be loaded from {chunk_start} to {chunk_end}")
-        return split_into_chunks(
-            chunk_start,
-            chunk_end,
+        first_window = self._cfg.historical_windows[0]
+        last_window = self._cfg.historical_windows[-1]
+        if first_window[0] is None:
+            self._cfg.historical_windows[0] = (time_stats.start, first_window[1])
+        if last_window[1] is None:
+            self._cfg.historical_windows[-1] = (last_window[0], time_stats.end)
+
+        return split_windows_into_chunks(
+            windows=self._cfg.historical_windows,
             width=self.obs_period * self._cfg.historical_batch_size
         )
 

@@ -1,10 +1,12 @@
 import datetime as dt
+import logging
 from datetime import UTC, datetime, timedelta
 from time import sleep
 from typing import Generator
 
 import numpy as np
 
+logger = logging.getLogger(__name__)
 
 def clock_generator(tick_period: timedelta) -> Generator[datetime, None, None]:
     tick = datetime.now(UTC)
@@ -27,6 +29,14 @@ def wait_for_timestamp(timestamp: datetime) -> None:
 def now_iso() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat()
 
+def split_windows_into_chunks(windows: list[tuple[dt.datetime | None, dt.datetime | None]], width: dt.timedelta):
+    for start, stop in windows:
+        if start is None or stop is None:
+            logger.warning(f"Attempted to load historical window with missing datetime (start: {start}, stop:{stop})")
+            continue
+
+        logger.info(f"Offline chunks will be loaded from {start} to {stop}")
+        yield from split_into_chunks(start, stop, width)
 
 def split_into_chunks(start: dt.datetime, end: dt.datetime, width: dt.timedelta):
     s = start
