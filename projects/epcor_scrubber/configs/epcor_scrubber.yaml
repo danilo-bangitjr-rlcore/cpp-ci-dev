@@ -26,7 +26,8 @@ interaction:
   state_age_tol: 00:15:00
   update_warmup: 50 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
-  hist_chunk_start: 2025-05-06 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  historical_windows: 
+  - [2025-05-06 00:00:00+0000, null]
   heartbeat:
     connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     heartbeat_node_id: "ns=3;i=1"
