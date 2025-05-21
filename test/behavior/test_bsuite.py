@@ -11,6 +11,7 @@ from test.behavior.saturation.cases import (
     DeltaChangeSaturationTest,
     ExpandingBoundsSaturationTest,
     GoalSaturationTest,
+    MCARSaturationTest,
     MultiActionSaturationBadOfflineDataTest,
     MultiActionSaturationGoodOfflineDataTest,
     MultiActionSaturationGreedificationTest,
@@ -61,6 +62,7 @@ TEST_CASES = [
     ShortTMazeTest(),
     MediumTMazeTest(),
     LongTMazeTest(),
+    MCARSaturationTest(),
 ]
 
 ZERO_ONE_FEATURES = [
