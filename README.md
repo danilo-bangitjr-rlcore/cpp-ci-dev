@@ -10,7 +10,7 @@ We are using the [`uv` Python package and project manager](https://docs.astral.s
 
 ```bash
 # create virtual environment
-uv venv --python 3.12
+uv venv --python 3.13
 source .venv/bin/activate
 
 # install project requirements
