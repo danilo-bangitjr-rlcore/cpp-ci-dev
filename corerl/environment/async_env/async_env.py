@@ -20,9 +20,13 @@ if TYPE_CHECKING:
 class AsyncEnvConfig:
     name: Literal["dep_async_env", "sim_async_env"] = "dep_async_env"
     obs_period: timedelta = MISSING
-    coreio_origin: str = "http://coreio:2222"
     db: TagDBConfig = Field(default_factory=TagDBConfig)
     gym: GymEnvConfig | None = None
+
+    @computed('coreio_origin')
+    @classmethod
+    def _coreio_origin(cls, cfg: MainConfig):
+        return cfg.coreio.coreio_origin
 
     @computed('obs_period')
     @classmethod

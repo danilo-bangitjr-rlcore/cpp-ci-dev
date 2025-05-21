@@ -1,13 +1,17 @@
-from corerl.configs.config import MISSING, config
+from corerl.configs.config import MISSING, config, list_
 
 
 @config()
-class CoreIOConfig():
+class OPCConnectionConfig():
+    connection_id: str = MISSING
     opc_conn_url: str = MISSING
-    # opc_ns: int | None = None  # OPC node namespace, this is almost always going to be `2`
     client_cert_path: str | None = None
     client_private_key_path: str | None = None
     server_cert_path: str | None = None
     application_uri: str | None = None
-    coreio_connection: str = "tcp://localhost:5557"
+
+@config()
+class CoreIOConfig():
+    coreio_origin: str = "tcp://localhost:5557"
+    opc_connections: list[OPCConnectionConfig] = list_()
 

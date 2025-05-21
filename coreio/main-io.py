@@ -4,10 +4,9 @@
 import asyncio
 import logging
 
-import numpy as np
-
+from coreio.utils.io_events import IOEventType
+from coreio.utils.opc_communication import OPC_Connection
 from coreio.utils.zmq_communication import ZMQ_Communication
-from coreio.utils.opc_communication import OPC_Communication
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 
@@ -20,32 +19,41 @@ logger = logging.getLogger(__name__)
 
 @load_config(MainConfig, base='config/')
 async def main(cfg: MainConfig):
-    opc_communication = await OPC_Communication().init(cfg.coreio, cfg.pipeline.tags)
-    zmq_communication = ZMQ_Communication(cfg.coreio)
-    
-    zmq_communication.start()
-    await opc_communication.start()
+    opc_connections: dict[str, OPC_Connection] = {}
+    for opc_conn_cfg in cfg.coreio.opc_connections:
+        opc_connections[opc_conn_cfg.connection_id] = await OPC_Connection().init(opc_conn_cfg, cfg.pipeline.tags)
 
-    for i in range(20):
+    for opc_conn in opc_connections.values():
+        await opc_conn.start()
+
+    zmq_communication = ZMQ_Communication(cfg.coreio)
+    zmq_communication.start()
+
+    logger.info("CoreIO is ready")
+
+    while True:
         event = zmq_communication.recv_event()
         if event is None:
-            print(f"{i}: no event received (timeout)")
             continue
 
-        print(f"{i}: event received")
-        print(event)
-        
+        match event.type:
+            case IOEventType.write_opcua_nodes:
+                for connection_id, payload in event.data.items():
+                    opc_conn = opc_connections.get(connection_id)
+                    if opc_conn is None:
+                        logger.warning(f"Connection Id {connection_id} is unkown.")
+                        continue
 
-    # zmq_communication.listen_forever()
-        # for action_name in opc_communication.action_nodes.keys():
-            # opc_communication.action_nodes[action_name].value = float(np.random.randint(0, 11))
-            # print(action_name, opc_communication.action_nodes[action_name])
+                    await opc_conn.write_opcua_nodes(payload)
 
-        # await opc_communication.emit_action(opc_communication.action_nodes)
+            case IOEventType.exit_io:
+                break
 
     zmq_communication.cleanup()
-    await opc_communication.cleanup()
-    print("Finished")
+    for opc_conn in opc_connections.values():
+        await opc_conn.cleanup()
+
+    logger.info("CoreIO finished cleanup")
 
 if __name__ == "__main__":
     asyncio.run(main())

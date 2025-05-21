@@ -2,9 +2,9 @@ import logging
 import threading
 from queue import Queue
 
-from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
-
 import zmq
+
+from coreio.utils.io_events import IOEvent, IOEventTopic
 
 logging.basicConfig(
     level=logging.INFO,
@@ -23,12 +23,13 @@ def coreio_consumer_task(sub_socket: zmq.Socket, queue: Queue, stop_event: threa
             poll_resp = sub_socket.poll(timeout=1000)
 
             if poll_resp == 0:
-                logger.info("Nothing in socket")
+                # logger.info("Nothing in socket")
                 continue
+
             raw_payload = sub_socket.recv()
             raw_topic, raw_event = raw_payload.split(b" ", 1)
             event = IOEvent.model_validate_json(raw_event)
-            logger.info(f"Adding to queue IO Event: {event}")
+            logger.debug(f"Adding to queue IO Event:\n {event}")
             queue.put(event)
         except zmq.ZMQError as e:
             if isinstance(e, zmq.error.Again):

@@ -1,13 +1,13 @@
-from datetime import UTC
 import logging
-from typing import Optional, Type
-from asyncua import Client, Node, ua
+from datetime import UTC
+from typing import Any
 
+import backoff
+from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from pydantic import BaseModel, ConfigDict
 
-from coreio.config import CoreIOConfig
-
+from coreio.config import OPCConnectionConfig
 from corerl.data_pipeline.tag_config import TagConfig, TagType
 
 logger = logging.getLogger(__name__)
@@ -18,23 +18,28 @@ logger = logging.getLogger(__name__)
 #     node_id: str
 #     data_type: OPCUADataType
 
+
+class OPCUANodeWriteValue(BaseModel):
+    node_id: str
+    value: Any
+    data_type: ua.VariantType | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
 class NodeData(BaseModel):
     node: Node
-    node_id: str
     var_type: ua.VariantType
     model_config = ConfigDict(arbitrary_types_allowed=True)
-    value: None | float
 
-class OPC_Communication:
+class OPC_Connection:
     def __init__(self):
-        self.opc_client: Client 
-        self.action_nodes: dict[str, NodeData] = {}
+        self.opc_client: Client
+        self.registered_nodes: dict[str, NodeData] = {}
         self._connected = False
 
-    async def init(self, cfg: CoreIOConfig, tag_configs: list[TagConfig]):
+    async def init(self, cfg: OPCConnectionConfig, tag_configs: list[TagConfig]):
+        self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
-
-        self.action_nodes = await self._register_actions(self.opc_client, tag_configs)
+        self.registered_nodes = await self._register_nodes(tag_configs)
 
         if cfg.client_cert_path and cfg.client_private_key_path:
             assert cfg.application_uri is not None
@@ -49,70 +54,96 @@ class OPC_Communication:
             )
         return self
 
-    async def _register_actions(self, opc_client: Client, tag_configs: list[TagConfig]):
-        action_nodes: dict[str, NodeData] = {}
+    async def _register_nodes(self, tag_configs: list[TagConfig]):
+        """
+        Register nodes that:
+        1. Have the relevant connection_id
+        2. Are ai_setpoints
+        """
 
-        async with opc_client:
+        registered_nodes: dict[str, NodeData] = {}
+        async with self.opc_client:
             for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
-                if tag_cfg.type != TagType.ai_setpoint:
+
+                if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
                     continue
 
-                tag_name = tag_cfg.name
-
                 if tag_cfg.node_identifier is not None and tag_cfg.node_identifier.startswith("ns="):
-                    id = tag_cfg.node_identifier
+                    node_id = tag_cfg.node_identifier
                 else:
                     raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
                         "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
 
-                node = opc_client.get_node(id)
+                node = self.opc_client.get_node(node_id)
                 var_type = await node.read_data_type_as_variant_type()
-                logger.info(f"Registering action '{tag_name}' with OPC node id '{id}'")
+                logger.info(f"Registering action '{tag_cfg.name}' with OPC node id '{node_id}'")
 
-                action_nodes[tag_name] = NodeData(node=node, node_id=id, var_type=var_type, value=None)
+                registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
-        return action_nodes
+        return registered_nodes
 
     async def start(self):
         await self.opc_client.connect()
-        self._connected = True
         return self
 
     async def cleanup(self):
         await self.opc_client.disconnect()
         return self
 
-    async def __aenter__(self):
-        return await self.start()
+    async def ensure_connected(self):
+        try:
+            await self.opc_client.check_connection()
+        except ConnectionError:
+            await self.opc_client.connect()
 
-    async def __aexit__(
-        self,
-        _exec_type : Optional[Type[BaseException]],
-        _exec_val : Optional[BaseException],
-        _exec_tb : Optional[object]
-    ):
-        _ = _exec_type, _exec_val, _exec_tb # Stop LSP from complaining about unused variables
-        return await self.cleanup()
 
-    async def emit_action(self, action_nodes: dict[str, NodeData]):
-        if not self._connected:
-            raise RuntimeError("OPC Client is not connected")
+    @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30,)
+    async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
+        """
+        Writing core-rl values into OPC
+        Some checks might seem redundant with core-rl, but those will be removed from core-rl shortly
+        """
+        # Reconnect if connection is not ok
+        await self.ensure_connected()
 
         nodes = []
         data_values = []
 
-        for action_name in action_nodes.keys():
-            node = action_nodes[action_name].node
-            var_type = action_nodes[action_name].var_type
-            action_val = action_nodes[action_name].value
+        for node in nodes_to_write:
+            # Using get() instead of [], because it returns None instead of error if node_id is not found
+            node_entry = self.registered_nodes.get(node.node_id)
+            if node_entry is None:
+                logger.warning(f"Node {node.node_id} is unknown")
+                continue
+
+            var_type = node_entry.var_type
+            if var_type in { 
+                ua.VariantType.SByte,
+                ua.VariantType.Byte,
+                ua.VariantType.Int16,
+                ua.VariantType.UInt16,
+                ua.VariantType.Int32,
+                ua.VariantType.UInt32,
+                ua.VariantType.Int64,
+                ua.VariantType.UInt64,
+            }:
+                write_val = int(node.value)
+            elif var_type in {ua.VariantType.Double, ua.VariantType.Float}:
+                write_val = float(node.value)
+            else:
+                logger.warning(f"Var type of {var_type} is unknown in {node.node_id}")
+                write_val = node.value
+
             # the source timestamp is sent to the OPC server, which itself has a server timestamp
             # recorded when it receives the write. if these values are too far apart, some OPC
             # implementations will consider the quality of this tag to be bad, so we need
             # to ensure that the values we write have an up-to-date timestamp
             # (and that they align with the server).
             dt = ua.uatypes.DateTime.now(UTC) # this is a load bearing timestamp
-            data_value = ua.DataValue(ua.Variant(action_val, var_type), SourceTimestamp=dt)
-            nodes.append(node)
+            data_value = ua.DataValue(ua.Variant(write_val, var_type), SourceTimestamp=dt)
+            nodes.append(node_entry.node)
             data_values.append(data_value)
 
-        await self.opc_client.write_values(nodes, data_values)
+        if len(nodes) > 0:
+            await self.opc_client.write_values(nodes, data_values)
+

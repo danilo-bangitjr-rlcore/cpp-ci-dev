@@ -1,17 +1,15 @@
-from coreio.config import CoreIOConfig
-from coreio.utils.consumer_task import coreio_consumer_task
 import logging
-
-from collections import defaultdict
-from collections.abc import Callable
-from typing import Any
-from pydantic import ValidationError
-
-from queue import Queue, Empty
 import threading
-from coreio.utils.io_events import IOEvent, IOEventType, IOEventTopic
+from collections.abc import Callable
+from queue import Empty, Queue
+from typing import Any
 
 import zmq
+from pydantic import ValidationError
+
+from coreio.config import CoreIOConfig
+from coreio.utils.consumer_task import coreio_consumer_task
+from coreio.utils.io_events import IOEvent
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +32,6 @@ class ZMQ_Communication:
         self.zmq_context = zmq.Context()
 
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
-        # self.publisher_socket = self.zmq_context.socket(zmq.PUB)
-
         self.coreio_stop_event = threading.Event()
         self.consumer_thread = threading.Thread(
             target=coreio_consumer_task,
@@ -47,11 +43,7 @@ class ZMQ_Communication:
             daemon=True,
             name="coreio_consumer"
         )
-
-        self.subscriber_socket.bind(cfg.coreio_connection)
-        # self.publisher_socket.bind(cfg.coreio_connection)
-
-        # self._callbacks: dict[str, list[Callback]] = defaultdict(list)
+        self.subscriber_socket.bind(cfg.coreio_origin)
 
     def start(self):
         self.consumer_thread.start()
@@ -70,26 +62,6 @@ class ZMQ_Communication:
         finally:
             if event:
                 self.queue.task_done()
-    
-    # def listen_forever(self):
-    #     while True:
-    #         event = self.recv_event()
-    #         if event is None:
-    #             continue
-    #
-    #         for cb in self._callbacks[event.type]:
-    #             cb(event)
-    #
-    #         yield event
-    #
-    #
-    # def attach_callback(self, event_type: IOEventType, cb: Callback):
-    #     self._callbacks[event_type].append(cb)
-    #
-    #
-    # def attach_callbacks(self, cbs: dict[IOEventType, Callback]):
-    #     for event_type, cb in cbs.items():
-    #         self.attach_callback(event_type, cb)
 
 
     def cleanup(self):
@@ -108,7 +80,6 @@ class ZMQ_Communication:
         self.consumer_thread.join()
 
         self.subscriber_socket.close()
-        # self.publisher_socket.close()
         self.zmq_context.term()
 
         logger.info("Cleaned up event bus")
