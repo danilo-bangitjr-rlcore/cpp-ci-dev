@@ -4,6 +4,7 @@ from typing import Any
 import gymnasium as gym
 
 from corerl.environment.async_env.async_env import GymEnvConfig
+from corerl.environment.wrapper.wrappers import wrappers
 
 try:
     from coreenv.factory import init_env
@@ -29,8 +30,12 @@ def init_environment(cfg: GymEnvConfig) -> gym.Env:
             if cfg.env_config is not None:
                 kwargs = dict(kwargs)
                 kwargs["cfg"] = cfg.env_config
-            return gym.make(cfg.gym_name, *args, **kwargs)
+            env = gym.make(cfg.gym_name, *args, **kwargs)
         case "custom":
-            return init_env(cfg.gym_name, overrides=cfg.env_config)
+            env = init_env(cfg.gym_name, overrides=cfg.env_config)
         case _:
             raise NotImplementedError
+
+    if cfg.wrapper is not None:
+        env = wrappers[cfg.wrapper](env)
+    return env
