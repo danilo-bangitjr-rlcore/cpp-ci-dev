@@ -6,7 +6,7 @@
 
 # Stage: compile dependencies with SSH key forwarding to pull dependencies from private Github repository
 # Bookworm image is needed due to dependency on git cli
-FROM ghcr.io/astral-sh/uv:python3.12-bookworm AS base
+FROM ghcr.io/astral-sh/uv:python3.13-bookworm AS base
 
 # Setup and download public key for Github
 RUN mkdir -p -m 0600 ~/.ssh &&\
@@ -37,7 +37,7 @@ RUN uv pip install --system "pyc_wheel==1.3.0" &&\
   python -m pyc_wheel "$whl_file_name"
 
 # Stage: install corerl to minimal Python 3 image
-FROM python:3.12-slim AS corerl
+FROM python:3.13-slim AS corerl
 
 # needed for health check within compose.yaml
 RUN apt-get update && apt-get install curl -y
