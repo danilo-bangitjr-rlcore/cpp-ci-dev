@@ -17,23 +17,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-async def handle_event(event: IOEvent | None, opc_connections: dict[str, OPC_Connection]):
-    if event is None:
-        return
-
-    match event.type:
-        case IOEventType.write_opcua_nodes:
-            for connection_id, payload in event.data.items():
-                opc_conn = opc_connections.get(connection_id)
-                if opc_conn is None:
-                    logger.warning(f"Connection Id {connection_id} is unkown.")
-                    continue
-
-                await opc_conn.write_opcua_nodes(payload)
-
-        case IOEventType.exit_io:
-             raise StopIteration
-
 @load_config(MainConfig, base='config/')
 async def coreio_loop(cfg: MainConfig):
     opc_connections: dict[str, OPC_Connection] = {}
@@ -57,11 +40,22 @@ async def coreio_loop(cfg: MainConfig):
 
     while True:
         event = zmq_communication.recv_event()
-        try:
-            await handle_event(event, opc_connections)
-        except StopIteration:
-            break
 
+        if event is None:
+            return
+
+        match event.type:
+            case IOEventType.write_opcua_nodes:
+                for connection_id, payload in event.data.items():
+                    opc_conn = opc_connections.get(connection_id)
+                    if opc_conn is None:
+                        logger.warning(f"Connection Id {connection_id} is unkown.")
+                        continue
+
+                    await opc_conn.write_opcua_nodes(payload)
+
+            case IOEventType.exit_io:
+                break
 
     zmq_communication.cleanup()
     for opc_conn in opc_connections.values():
