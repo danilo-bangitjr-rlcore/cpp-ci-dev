@@ -12,12 +12,12 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.factory import init_environment
-from corerl.utils.coreio import CoreIOThinClient
+from corerl.utils.coreio import CoreIOLink
 from corerl.utils.gym import space_bounds, space_shape
 
 logger = logging.getLogger(__name__)
 
-class DummyThinClient(CoreIOThinClient):
+class DummyCoreIOLink(CoreIOLink):
     def __init__(self, coreio_origin: str):
         ...
 
@@ -61,7 +61,7 @@ class SimAsyncEnv(DeploymentAsyncEnv):
         self._last_step: StepData | None = None
 
     def _init_thinclient(self):
-        return DummyThinClient(self._cfg.coreio_origin)
+        return DummyCoreIOLink(self._cfg.coreio_origin)
 
     def _register_action_nodes(self):
         ...

@@ -1,11 +1,18 @@
 import uuid
 from enum import StrEnum, auto
+from typing import Any
 
+from asyncua import ua
 from pydantic import BaseModel, ConfigDict, Field
 
-from coreio.utils.opc_communication import OPCUANodeWriteValue
 from corerl.utils.time import now_iso
 
+
+class OPCUANodeWriteValue(BaseModel):
+    node_id: str
+    value: Any
+    data_type: ua.VariantType | None = None
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class IOEventType(StrEnum):
     # ------------

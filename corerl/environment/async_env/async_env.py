@@ -20,6 +20,7 @@ if TYPE_CHECKING:
 class AsyncEnvConfig:
     name: Literal["dep_async_env", "sim_async_env"] = "dep_async_env"
     obs_period: timedelta = MISSING
+    coreio_origin: str = MISSING
     db: TagDBConfig = Field(default_factory=TagDBConfig)
     gym: GymEnvConfig | None = None
 

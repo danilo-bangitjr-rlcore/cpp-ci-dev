@@ -1,16 +1,16 @@
 coreio:
   coreio_origin: "tcp://localhost:5557"
   opc_connections:
-    - connection_id: b37c07a6-3596-11f0-ab5f-8e3bc1cef365
+    - connection_id: b37c07a6
       opc_conn_url: opc.tcp://admin@localhost:4840
-env:
-  coreio_origin: "tcp://localhost:5557" # Can we do interpolation here?
 
 pipeline:
   tags:
     - name: MyWriteableVariable
       type: ai_setpoint
-      connection_id: b37c07a6-3596-11f0-ab5f-8e3bc1cef365
+      # connection_id just has to be consistent with the one 
+      # in coreio.opc_connections, it is not stored anywhere external
+      connection_id: b37c07a6 
       node_identifier: "ns=2;i=2"
       operating_range: [0, 10]
 

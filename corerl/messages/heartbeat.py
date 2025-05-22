@@ -3,8 +3,9 @@ import threading
 from datetime import timedelta
 from threading import Thread
 
+from coreio.utils.opc_communication import OPCUANodeWriteValue
 from corerl.configs.config import config
-from corerl.utils.coreio import CoreIOThinClient, OPCUANodeWriteValue
+from corerl.utils.coreio import CoreIOLink
 from corerl.utils.time import clock_generator, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
@@ -33,10 +34,12 @@ def heartbeat(cfg: HeartbeatConfig, coreio_origin: str):
     while True:
         def _beat(counter: int):
             # initialize client on every beat
-            coreio_client = CoreIOThinClient(coreio_origin)
+            coreio_client = CoreIOLink(coreio_origin)
 
             try:
-                coreio_client.write_opcua_nodes(connection_id, [OPCUANodeWriteValue(heartbeat_node_id, counter)])
+                coreio_client.write_opcua_nodes({
+                    connection_id: [OPCUANodeWriteValue(node_id=heartbeat_node_id, value=counter)]
+                })
             except Exception:
                 logger.exception("Heartbeat failed to write to coreio")
 

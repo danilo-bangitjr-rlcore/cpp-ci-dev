@@ -6,8 +6,7 @@ import time
 import numpy as np
 import zmq
 
-from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
-from coreio.utils.opc_communication import OPCUANodeWriteValue
+from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType, OPCUANodeWriteValue
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
 
@@ -32,7 +31,7 @@ def main(cfg: MainConfig):
         x = np.random.rand()
         messagedata = IOEvent(
             type=IOEventType.write_opcua_nodes,
-            data={"b37c07a6-3596-11f0-ab5f-8e3bc1cef365": [OPCUANodeWriteValue(node_id= "ns=2;i=2", value= x)]}
+            data={"b37c07a6": [OPCUANodeWriteValue(node_id= "ns=2;i=2", value= x)]}
         ).model_dump_json()
 
         payload = f"{topic} {messagedata}"

@@ -6,11 +6,13 @@ from typing import TypedDict
 import numpy as np
 import pandas as pd
 
+from coreio.utils.io_events import OPCUANodeWriteValue
+
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig, TagType, eval_bound
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.utils.coreio import CoreIOThinClient, OPCUADataType, OPCUANodeWriteValue
+from corerl.utils.coreio import CoreIOLink
 from corerl.utils.maybe import Maybe
 
 logger = logging.getLogger(__name__)
@@ -19,7 +21,6 @@ logger = logging.getLogger(__name__)
 class ActionNodeData(TypedDict):
     connection_id: str
     node_id: str
-    data_type: OPCUADataType
 
 
 class DeploymentAsyncEnv(AsyncEnv):
@@ -50,7 +51,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         self._register_action_nodes()
 
     def _init_thinclient(self):
-        return CoreIOThinClient(self._cfg.coreio_origin)
+        return CoreIOLink(self._cfg.coreio_origin)
 
     def _init_datareader(self):
         return DataReader(db_cfg=self._cfg.db)
@@ -67,17 +68,8 @@ class DeploymentAsyncEnv(AsyncEnv):
             connection_id = tag_cfg.connection_id
 
             logger.info(f"Registering action '{tag_name}' with OPC node id '{node_id}' on conn '{connection_id}'")
-            resp_payload = self.coreio_client.read_opcua_node(connection_id, node_id)
-            raw_data_type = resp_payload["value"]["dataType"]
-            data_type: OPCUADataType | int | None = None
-            if isinstance(raw_data_type, str):
-                data_type = OPCUADataType[raw_data_type]
-            elif isinstance(raw_data_type, int):
-                data_type = OPCUADataType(raw_data_type)
-            assert data_type is not None, "Tag Config action failed to determine data_type"
             self.action_nodes[tag_name] = ActionNodeData(
-                connection_id=connection_id, node_id=node_id, data_type=data_type
-            )
+                connection_id=connection_id, node_id=node_id )
 
     def close(self):
         """Closes the opc client and data reader
@@ -99,34 +91,17 @@ class DeploymentAsyncEnv(AsyncEnv):
         for action_name in action.columns:
             connection_id = self.action_nodes[action_name].get("connection_id")
             node_id = self.action_nodes[action_name].get("node_id")
-            data_type = self.action_nodes[action_name].get("data_type")
-            if data_type in {
-                OPCUADataType.SByte,
-                OPCUADataType.Byte,
-                OPCUADataType.Int16,
-                OPCUADataType.UInt16,
-                OPCUADataType.Int32,
-                OPCUADataType.UInt32,
-                OPCUADataType.Int64,
-                OPCUADataType.UInt64,
-            }:
-                action_val = int(action[action_name].iloc[0])
-            elif data_type in {OPCUADataType.Double, OPCUADataType.Float}:
-                action_val = float(action[action_name].iloc[0])
-            else:
-                logger.warning("Action OPC dtype undefined")
-                action_val = action[action_name].iloc[0]
+            action_val = action[action_name].iloc[0]
 
             if connection_id not in write_payloads:
                 write_payloads[connection_id] = []
 
-            write_payloads[connection_id].append(OPCUANodeWriteValue(node_id, action_val, data_type))
+            write_payloads[connection_id].append(OPCUANodeWriteValue(node_id=node_id, value=action_val))
 
-        for k, v in write_payloads.items():
-            try:
-                self.coreio_client.write_opcua_nodes(k, v)
-            except Exception:
-                logger.exception("emit_action failed to write to coreio")
+        try:
+            self.coreio_client.write_opcua_nodes(write_payloads)
+        except Exception:
+            logger.exception("emit_action failed to write to coreio")
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)

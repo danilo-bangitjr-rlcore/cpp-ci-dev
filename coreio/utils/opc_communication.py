@@ -1,6 +1,5 @@
 import logging
 from datetime import UTC
-from typing import Any
 
 import backoff
 from asyncua import Client, Node, ua
@@ -8,22 +7,11 @@ from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import OPCConnectionConfig
+from coreio.utils.io_events import OPCUANodeWriteValue
 from corerl.data_pipeline.tag_config import TagConfig, TagType
 
 logger = logging.getLogger(__name__)
 
-# See: from corerl.environment.async_env.deployment_async_env import ActionNodeData
-# class ActionNodeData(TypedDict):
-#     connection_id: str
-#     node_id: str
-#     data_type: OPCUADataType
-
-
-class OPCUANodeWriteValue(BaseModel):
-    node_id: str
-    value: Any
-    data_type: ua.VariantType | None = None
-    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 class NodeData(BaseModel):
     node: Node
@@ -117,7 +105,7 @@ class OPC_Connection:
                 continue
 
             var_type = node_entry.var_type
-            if var_type in { 
+            if var_type in {
                 ua.VariantType.SByte,
                 ua.VariantType.Byte,
                 ua.VariantType.Int16,
