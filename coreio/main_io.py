@@ -42,7 +42,7 @@ async def coreio_loop(cfg: MainConfig):
         event = zmq_communication.recv_event()
 
         if event is None:
-            return
+            continue
 
         match event.type:
             case IOEventType.write_opcua_nodes:
