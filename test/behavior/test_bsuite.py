@@ -19,7 +19,7 @@ from test.behavior.saturation.cases import (
     MultiActionSaturationTest,
     SaturationTest,
     SetpointChangeSaturationTest,
-    SlowExpandingBoundsSaturationTest
+    SlowExpandingBoundsSaturationTest,
 )
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
