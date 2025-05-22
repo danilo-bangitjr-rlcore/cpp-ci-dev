@@ -228,7 +228,7 @@ env:
     table_schema: public
     data_agg: avg
   action_tolerance: PT2M
-  coreio_origin: http://coreio:2222
+  coreio_origin: http://core-ui:2222
 interaction:
   obs_period: PT2M
   action_period: PT4M

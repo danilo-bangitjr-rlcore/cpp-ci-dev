@@ -9,7 +9,7 @@ from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import buffer_group
-from corerl.component.critic.ensemble_critic import CriticConfig, EnsembleCritic
+from corerl.component.critic.factory import GTDCriticConfig, SARSACriticConfig, create_critic
 from corerl.component.network.utils import tensor, to_np
 from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
 from corerl.configs.config import config
@@ -38,7 +38,7 @@ class GreedyACConfig(BaseAgentConfig):
     """
     name: Literal["greedy_ac"] = "greedy_ac"
 
-    critic: CriticConfig = Field(default_factory=CriticConfig)
+    critic: SARSACriticConfig | GTDCriticConfig = Field(default_factory=GTDCriticConfig)
     policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
     loss_threshold: float = 0.0001
@@ -63,7 +63,7 @@ class GreedyACConfig(BaseAgentConfig):
     using the loss_threshold. A minimum of 1 update will always be performed.
     """
 
-    max_critic_updates: int = 1
+    max_critic_updates: int = 10
     """
     Number of critic updates. Early stopping is done using the loss_threshold.
     A minimum of 1 update will always be performed.
@@ -102,7 +102,7 @@ class GreedyAC(BaseAgent):
         self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
 
         # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic = EnsembleCritic(cfg.critic, app_state, self.state_dim, self.action_dim)
+        self.critic = create_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
@@ -408,9 +408,12 @@ class GreedyAC(BaseAgent):
         q_critic_path = path / "q_critic"
         self.critic.load(q_critic_path)
 
-        critic_buffer_path = path / "critic_buffer.pkl"
-        with open(critic_buffer_path, "rb") as f:
-            self.critic_buffer = pkl.load(f)
+        try:
+            critic_buffer_path = path / "critic_buffer.pkl"
+            with open(critic_buffer_path, "rb") as f:
+                self.critic_buffer = pkl.load(f)
+        except Exception:
+            logger.exception('Failed to load critic buffer from checkpoint. Reinitializing...')
 
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {

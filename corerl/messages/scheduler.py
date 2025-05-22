@@ -5,9 +5,8 @@ from datetime import UTC, datetime, timedelta
 
 import zmq
 
-from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import Event, EventTopic, EventType
-from corerl.state import AppState
+from corerl.state import AppState, IEventBus
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +34,7 @@ def scheduler_task(app_state: AppState):
         Clock(EventType.step_get_obs, cfg.obs_period),
         Clock(EventType.step_agent_update, cfg.update_period),
         Clock(EventType.agent_step, cfg.obs_period),
+        Clock(EventType.flush_buffers, timedelta(seconds=30)),
     ]
 
     if cfg.setpoint_ping_period is not None:
@@ -71,7 +71,7 @@ class Clock:
 
         self._next_ts = datetime.now(UTC) + offset
 
-    def emit(self, event_bus: EventBus | DummyEventBus, now: datetime):
+    def emit(self, event_bus: IEventBus, now: datetime):
         event = Event(type=self._event_type)
         try:
             event_bus.emit_event(event, topic=EventTopic.corerl_scheduler)
@@ -87,7 +87,7 @@ class Clock:
     def should_emit(self, now: datetime):
         return now > self._next_ts
 
-    def maybe_emit(self, event_bus: EventBus | DummyEventBus, now: datetime):
+    def maybe_emit(self, event_bus: IEventBus, now: datetime):
         if self.should_emit(now):
             self.emit(event_bus, now)
 

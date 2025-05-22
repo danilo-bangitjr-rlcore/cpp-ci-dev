@@ -16,7 +16,7 @@ agent:
 
 env:
   name: dep_async_env
-  coreio_origin: http://coreio:2222       # coreio hostname derived from docker-compose up app name
+  coreio_origin: http://core-ui:2222       # coreio hostname derived from docker-compose up app name
   # coreio_origin: http://localhost:2222  # use localhost or 0.0.0.0 for when agent running outside of docker network
 
   db:
@@ -37,7 +37,6 @@ interaction:
   restore_checkpoint: False
   historical_batch_size: 100
   setpoint_ping_period: 00:00:10
-  hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
   obs_period: 00:00:01
   action_period: 00:00:03
   update_period: 00:00:01

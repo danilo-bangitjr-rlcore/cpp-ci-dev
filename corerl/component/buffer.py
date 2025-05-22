@@ -402,8 +402,12 @@ class RecencyBiasBufferConfig(BaseBufferConfig):
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
     uniform_weight: float = 0.01
     obs_period : datetime.timedelta = MISSING
-    gamma_extension_factor: float = 100.
+    effective_episodes: float = 100.
     gamma: float = MISSING
+    # if gamma = 0, use the fallback_gamma. RBB will use a discount_factor = fallback_gamma^{1/effective_episodes}
+    # which means that the effective_episodes-th entry in the buffer has unformalized weight fallback_gamma
+    # since discount_factor^effective_episodes = fallback_gamma
+    fallback_gamma: float = 0.01
 
     @computed("obs_period")
     @classmethod
@@ -413,6 +417,8 @@ class RecencyBiasBufferConfig(BaseBufferConfig):
     @computed('gamma')
     @classmethod
     def _gamma(cls, cfg: "MainConfig"):
+        if cfg.agent.gamma == 0:
+            return cls.fallback_gamma
         return cfg.agent.gamma
 
 
@@ -422,7 +428,7 @@ class RecencyBiasBuffer(BaseBuffer):
 
         self._obs_period = np.timedelta64(cfg.obs_period, 'us')
         self._last_timestamp = None
-        self._discount_factor = np.power(cfg.gamma, 1./cfg.gamma_extension_factor)
+        self._discount_factor = np.power(cfg.gamma, 1./cfg.effective_episodes)
 
         self._ens_dists = [
             MaskedUGDistribution(self.memory, cfg.uniform_weight, cfg.ensemble_probability) for _ in range(cfg.ensemble)
@@ -510,4 +516,3 @@ buffer_group = Group[
 
 buffer_group.dispatcher(MixedHistoryBuffer)
 buffer_group.dispatcher(RecencyBiasBuffer)
-

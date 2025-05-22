@@ -47,8 +47,8 @@ jobs:
           registry: ${{ env.REGISTRY }}
           # username: ${{ github.actor }}
           # password: ${{ github.token }}
-          username: ${{ vars.TEMP_ALEXW_GHCR_USERNAME }}
-          password: ${{ secrets.TEMP_ALEXW_GHCR_PAT }}
+          username: ${{ vars.TEMP_JAVIER_GHCR_USERNAME }}
+          password: ${{ secrets.TEMP_JAVIER_GHCR_PAT }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

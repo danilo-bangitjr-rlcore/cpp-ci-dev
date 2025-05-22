@@ -23,6 +23,7 @@ class Behaviour(Enum):
 class BSuiteTestCase:
     name: str
     config: str
+    setup_cfgs: list[str] = []
     required_features: set[str] = set()
     behaviours: dict[str, Behaviour] = {}
     lower_bounds: dict[str, float] = {}
@@ -40,15 +41,11 @@ class BSuiteTestCase:
         self._cfg = cfg
         self.seed = np.random.randint(0, 1_000_000)
 
-    def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
+    def _test_infra_overrides(self, tsdb: Engine, db_name: str, schema: str) -> dict[str, object]:
         ip = tsdb.url.host
         port = tsdb.url.port
 
-        feature_overrides = {
-            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
-        }
-
-        overrides = self._overrides | {
+        return {
             'infra.db.ip': ip,
             'infra.db.port': port,
             'infra.db.db_name': db_name,
@@ -58,7 +55,24 @@ class BSuiteTestCase:
             'metrics.enabled': True,
             'evals.enabled': True,
             'silent': True,
-        } | feature_overrides
+        }
+
+    def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
+        """
+        Setup the given BSuiteTestCase before main.py is called in execute_test()
+        """
+        ...
+
+    def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
+        infra_overrides = self._test_infra_overrides(tsdb, db_name, schema)
+
+        feature_overrides = {
+            f'feature_flags.{k}': v for k, v in features.items() if k != 'base'
+        }
+
+        self.setup(tsdb, infra_overrides, feature_overrides)
+
+        overrides = self._overrides | infra_overrides | feature_overrides
 
         parts = [f'{k}={v}' for k, v in overrides.items()]
 

@@ -75,17 +75,17 @@ services:
         source: coreio-storage
         target: /app/coreio-data
 
-  coreio:
-    # thin client: https://github.com/rlcoretech/coreio
+  core-ui:
+    # thin client: https://github.com/rlcoretech/core-ui
 
     # By default, use the latest stable image pushed to github container registry.
-    image: ghcr.io/rlcoretech/coreio:latest
+    image: ghcr.io/rlcoretech/core-ui:latest
     pull_policy: always
 
-    # When working with coreio local image, comment out the "image:" line above and
-    # uncomment "build:" and "context:" lines below. Assumes that coreio exists within the same directory as core-rl.
+    # When working with core-ui local image, comment out the "image:" line above and
+    # uncomment "build:" and "context:" lines below. Assumes that core-ui exists within the same directory as core-rl.
     # build:
-    #   context: ../coreio/
+    #   context: ../core-ui/
 
     healthcheck:
       test: ["CMD", "wget", "--spider", "http://localhost:2222"]
@@ -142,7 +142,7 @@ services:
         condition: service_healthy
       telegraf:
         condition: service_started
-      coreio:
+      core-ui:
         condition: service_healthy
       opc-sim:
         condition: service_started
@@ -159,7 +159,7 @@ services:
         "experiment.max_steps=25",
         "env.db.ip=timescale-db",
         "metrics.ip=timescale-db",
-        "env.coreio_origin=http://coreio:2222",
+        "env.coreio_origin=http://core-ui:2222",
       ]
 
   opc-sim:

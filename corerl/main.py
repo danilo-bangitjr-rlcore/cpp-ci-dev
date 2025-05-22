@@ -89,6 +89,8 @@ def retryable_main(cfg: MainConfig):
         column_desc,
     )
 
+    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.metrics.background_sync())
+    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
     register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
     interaction = init_interaction(

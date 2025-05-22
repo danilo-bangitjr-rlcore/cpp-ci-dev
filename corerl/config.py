@@ -6,7 +6,6 @@ import yaml
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
@@ -71,7 +70,7 @@ class FeatureFlags:
     ensemble: int = 1
 
     # 2025-03-01
-    zone_violations: bool = False
+    zone_violations: bool = True
 
     # 2025-03-13
     action_embedding: bool = True
@@ -80,10 +79,10 @@ class FeatureFlags:
     wide_nets: bool = True
 
     # 2025-04-14
-    action_bounds: bool = False
+    action_bounds: bool = True
 
     # 2025-04-25
-    use_residual: bool = False
+    use_residual: bool = True
 
     # 2025-04-29
     recency_bias_buffer: bool = False
@@ -93,6 +92,12 @@ class FeatureFlags:
 
     # 2025-05-04
     interaction_action_variance: bool = False
+
+    # 2025-05-10
+    gtd_critic: bool = True
+
+    # 2025-05-14
+    regenerative_optimism: bool = False
 
 
 @config()
@@ -211,19 +216,11 @@ class MainConfig:
 
         return save_path
 
+
     @post_processor
-    def _enable_zone_violations(self, cfg: 'MainConfig'):
-        if not self.feature_flags.zone_violations:
+    def _regenerative_optimism(self, cfg: 'MainConfig'):
+        if not self.feature_flags.regenerative_optimism:
             return
 
-        self.agent.critic.critic_optimizer = AdamConfig(
-            lr=0.001,
-            weight_decay=0.001,
-        )
-        self.agent.policy.optimizer = AdamConfig(
-            lr=0.001,
-            weight_decay=0.001,
-        )
-
-        self.agent.max_critic_updates = 10
-        self.agent.policy.prop_percentile_learned = 0.9
+        self.agent.policy.sort_noise = 0.025
+        self.agent.critic.action_regularization = 0.001

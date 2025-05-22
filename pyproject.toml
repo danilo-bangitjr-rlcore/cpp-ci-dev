@@ -116,7 +116,6 @@ disable = [
     "super-init-not-called",
     "super-with-arguments",
     "superfluous-parens",
-    "trailing-newlines",
     "too-few-public-methods",
     "too-many-arguments",
     "too-many-branches",
@@ -183,9 +182,9 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "corerl"
-version = "0.140.0"
+version = "0.142.0"
 description = ""
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "asyncua~=1.0",
@@ -219,12 +218,6 @@ dependencies = [
     "pyzmq~=26.4.0",
 ]
 readme = "README.md"
-
-
-[project.optional-dependencies]
-coreenv_gh = [
-    "coreenv",
-]
 
 [project.scripts]
 corerl_main = "corerl.main:main"

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import logging
 import pickle
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import TYPE_CHECKING, Any, Generic, NoReturn, Protocol, TypeVar
 
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
@@ -14,6 +15,8 @@ from corerl.messages.events import Event, EventTopic, EventType
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
+
+logger = logging.getLogger(__name__)
 
 
 type Callback = Callable[[Event], Any]
@@ -23,16 +26,20 @@ class IEventBus(Protocol):
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app): ...
     def attach_callback(self, event_type: EventType, cb: Callback): ...
     def attach_callbacks(self, cbs: dict[EventType, Callback]): ...
+    def listen_forever(self) -> Generator[Event | None, Any, NoReturn]: ...
 
+
+# Unfortunately can't make use of python 3.12's shorthand for type variables (e.g. AppState[EventBus])
+# because default type variables are inferred to be invariant. However, we need covariance here to allow
+# a default assumption of `IEventBus` if no stricter type has been specified.
+EventBus_co = TypeVar('EventBus_co', bound=IEventBus, default=IEventBus, covariant=True)
 
 @dataclass
-class AppState[
-    EventBus: IEventBus
-]:
+class AppState(Generic[EventBus_co]):
     cfg: MainConfig
     evals: EvalsTable
     metrics: MetricsTable
-    event_bus: EventBus
+    event_bus: EventBus_co
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
     stop_event: threading.Event = field(default_factory=threading.Event)
@@ -53,10 +60,14 @@ class AppState[
         with open(path / 'state.pkl', 'wb') as f:
             pickle.dump(self, f)
 
-    def load(self, path: Path) -> AppState:
-        with open(path / 'state.pkl', 'rb') as f:
-            state = pickle.load(f)
+    def load(self, path: Path):
+        try:
+            with open(path / 'state.pkl', 'rb') as f:
+                state = pickle.load(f)
 
-        self.agent_step = state.agent_step
-        self.start_time = state.start_time
+            self.agent_step = state.agent_step
+            self.start_time = state.start_time
+        except Exception:
+            logger.exception('Failed to load app state from checkpoint. Reinitializing...')
+
         return self

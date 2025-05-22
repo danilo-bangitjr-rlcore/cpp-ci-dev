@@ -6,12 +6,14 @@ interaction:
   obs_period: 00:00:01
   action_period: 00:00:01
 
-max_steps: 999
+max_steps: 499
 
 env:
   name: sim_async_env
   gym:
     gym_name: Calibration-v0
+    env_config:
+      calibration_period: 250
 
 pipeline:
   reward:
@@ -44,4 +46,3 @@ pipeline:
 
     - name: tag-1 # efficiency
       operating_range: [0, 1]
-

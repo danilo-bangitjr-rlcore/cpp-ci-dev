@@ -4,6 +4,7 @@ import math
 import shutil
 import threading
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, Generator
@@ -14,7 +15,7 @@ import pandas as pd
 import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
-from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.hindsight_return import HindsightReturnEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
@@ -24,11 +25,16 @@ from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
 from corerl.utils.list import sort_by
-from corerl.utils.maybe import Maybe
-from corerl.utils.time import clock_generator, split_into_chunks
+from corerl.utils.time import clock_generator, split_windows_into_chunks
 
 logger = logging.getLogger(__name__)
 
+@dataclass
+class AgentState:
+    feats: np.ndarray
+    action_lo: np.ndarray
+    action_hi: np.ndarray
+    timestamp: datetime | None = None
 
 class DeploymentInteraction:
     def __init__(
@@ -49,17 +55,18 @@ class DeploymentInteraction:
 
         ### State-Action Management ###
         self._column_desc = pipeline.column_descriptions
-        self._last_state = np.full(self._column_desc.state_dim, np.nan)
+        self._last_state: AgentState = AgentState(
+            feats=np.full(self._column_desc.state_dim, np.nan),
+            action_lo=np.full(self._column_desc.action_dim, np.nan),
+            action_hi=np.full(self._column_desc.action_dim, np.nan)
+        )
         self._last_action_df: pd.DataFrame | None = None # used to ping setpoints
-        self._interaction_action_lo = np.full(self._column_desc.action_dim, np.nan)
-        self._interaction_action_hi = np.full(self._column_desc.action_dim, np.nan)
 
         ### Timing logic ###
         self.obs_period = cfg.obs_period
         self.action_period = cfg.action_period
         self._step_clock = clock_generator(tick_period=self.obs_period)
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
-        self._last_state_timestamp: datetime | None = None
         self._state_age_tol = cfg.state_age_tol
 
         ### Evals ###
@@ -105,13 +112,21 @@ class DeploymentInteraction:
         if not self._cfg.load_historical_data:
             return None
 
+        if len(self._cfg.historical_windows) == 0:
+            # default to one window from beginning to end of recorded time
+            self._cfg.historical_windows = [(None, None)]
+
+        # impute first and/or last timestamp in sequence if necessary
         time_stats = self._env.data_reader.get_time_stats()
-        chunk_start = Maybe(self._cfg.hist_chunk_start).or_else(time_stats.start).astimezone(UTC)
-        chunk_end = time_stats.end
-        logger.info(f"Offline chunks will be loaded from {chunk_start} to {chunk_end}")
-        return split_into_chunks(
-            chunk_start,
-            chunk_end,
+        first_window = self._cfg.historical_windows[0]
+        last_window = self._cfg.historical_windows[-1]
+        if first_window[0] is None:
+            self._cfg.historical_windows[0] = (time_stats.start, first_window[1])
+        if last_window[1] is None:
+            self._cfg.historical_windows[-1] = (last_window[0], time_stats.end)
+
+        return split_windows_into_chunks(
+            windows=self._cfg.historical_windows,
             width=self.obs_period * self._cfg.historical_batch_size
         )
 
@@ -139,27 +154,11 @@ class DeploymentInteraction:
         self.load_historical_chunk()
 
         o = self._env.get_latest_obs()
+        if self._cfg.write_obs_to_csv:
+            self._write_obs_to_csv(o)
         pipe_return = self._pipeline(o, data_mode=DataMode.ONLINE, reset_temporal_state=self._should_reset(o))
         self._agent.update_buffer(pipe_return)
-
-        # capture latest state
-        self._last_state = (
-            pipe_return.states
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
-
-        self._interaction_action_lo = (
-            pipe_return.action_lo
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
-
-        self._interaction_action_hi = (
-            pipe_return.action_hi
-            .iloc[-1]
-            .to_numpy(dtype=np.float32)
-        )
+        self._capture_latest_state(pipe_return)
 
         # log states
         self._write_to_metrics(pipe_return.states, prefix='STATE-')
@@ -171,12 +170,6 @@ class DeploymentInteraction:
         self._hs_return_eval.execute(pipe_return.rewards)
         self._monte_carlo_eval.execute(pipe_return, "online")
 
-        state_timestamp = pipe_return.states.index[-1]
-        if isinstance(state_timestamp, pd.Timestamp):
-            self._last_state_timestamp = state_timestamp.to_pydatetime()
-        else:
-            self._last_state_timestamp = datetime.now(UTC)
-
         tags = self._column_desc.state_cols
         logger.info(f"captured state {self._last_state}, with columns {tags}")
 
@@ -185,32 +178,30 @@ class DeploymentInteraction:
 
 
     def _on_emit_action(self):
-        sa = self._get_latest_state_action()
-
-        if sa is None:
-            logger.warning(f'Tried to take action, however was unable: {sa}')
+        state = self._last_state
+        next_a = self._get_action(state)
+        if next_a is None:
             return
 
-        logger.info("Querying agent policy for new action")
-
-        s, action_lo, action_hi = sa
-        next_a = self._agent.get_action_interaction(s, action_lo, action_hi)
         norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
         # clip to the normalized action bounds
-        norm_next_a_df = self._clip_action_bounds(norm_next_a_df, action_lo, action_hi)
+        norm_next_a_df = self._clip_action_bounds(norm_next_a_df, state.action_lo, state.action_hi)
         next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
         self._env.emit_action(next_a_df, log_action=True)
         self._last_action_df = next_a_df
 
-        # metrics + eval
-        agent_eval.policy_variance(self._app_state, self._agent, s, action_lo, action_hi)
-        agent_eval.q_online(self._app_state, self._agent, s, next_a)
-        agent_eval.greed_dist_online(self._app_state, self._agent, s, action_lo, action_hi)
-        agent_eval.greed_values_online(self._app_state, self._agent, s, action_lo, action_hi)
-        agent_eval.q_values_and_act_prob(self._app_state, self._agent, s, action_lo, action_hi)
-
         # log actions
         self._write_to_metrics(next_a_df, prefix='ACTION-')
+
+        if not self._state_has_no_nans():
+            return
+
+        # eval
+        agent_eval.q_online(self._app_state, self._agent, state.feats, next_a)
+        agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+        agent_eval.greed_values_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+        agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+
 
 
     def _on_update(self):
@@ -258,6 +249,25 @@ class DeploymentInteraction:
     # ---------
     # internals
     # ---------
+    def _get_action(self, state: AgentState) -> np.ndarray | None:
+        if self._state_is_fresh() and self._state_has_no_nans():
+            logger.info("Querying agent policy for new action")
+            return self._agent.get_action_interaction(state.feats, state.action_lo, state.action_hi)
+
+        else:
+            self._app_state.event_bus.emit_event(EventType.action_period_reset)
+            logger.warning(f'Tried to take action, however was unable: {state}')
+            return None
+
+    def _capture_latest_state(self, pipe_return: PipelineReturn):
+        pr_ts = pipe_return.states.index[-1]
+        self._last_state = AgentState(
+            feats=pipe_return.states.iloc[-1].to_numpy(dtype=np.float32),
+            action_lo=pipe_return.action_lo.iloc[-1].to_numpy(dtype=np.float32),
+            action_hi=pipe_return.action_hi.iloc[-1].to_numpy(dtype=np.float32),
+            timestamp=pr_ts.to_pydatetime() if isinstance(pr_ts, pd.Timestamp) else datetime.now(UTC)
+        )
+
 
     def _clip_action_bounds(self, df: pd.DataFrame, action_lo : np.ndarray, action_hi: np.ndarray) -> pd.DataFrame:
         return df.clip(lower=action_lo, upper=action_hi)
@@ -265,38 +275,34 @@ class DeploymentInteraction:
     def _should_reset(self, observation: pd.DataFrame) -> bool:
         return False
 
-    def _get_latest_state_action(self) -> tuple[np.ndarray, np.ndarray, np.ndarray] | None:
-        if (
-            self._state_is_fresh() and
-            self._state_has_no_nans() and
-            self._action_has_no_nans()
-        ):
-            return self._last_state, self._interaction_action_lo, self._interaction_action_hi
-
-        return None
-
     def _state_is_fresh(self):
-        if self._last_state_timestamp is None:
+        if self._last_state.timestamp is None:
             logger.error("Interaction state is None")
             return False
-        if datetime.now(UTC) - self._last_state_timestamp > self._state_age_tol:
+        if datetime.now(UTC) - self._last_state.timestamp > self._state_age_tol:
             logger.error("Interaction state is stale")
             return False
         return True
 
     def _state_has_no_nans(self):
-        if np.any(np.isnan(self._last_state)):
-            logger.error("Interaction state contains nan values")
-            return False
-        return True
+        if np.any(np.isnan(self._last_state.feats)):
+            logger.error("Interaction state features contains nan values")
+            nan_tags = []
+            for i, tag in enumerate(self._last_state.feats):
+                if np.isnan(tag):
+                    nan_tags.append(self._column_desc.state_cols[i])
 
-    def _action_has_no_nans(self):
-        if np.any(np.isnan(self._interaction_action_lo)):
+            logger.error(f"nan tags: {nan_tags}")
+            return False
+
+        if np.any(np.isnan(self._last_state.action_lo)):
             logger.error("Action lower bound contains nan values")
             return False
-        if np.any(np.isnan(self._interaction_action_hi)):
+
+        if np.any(np.isnan(self._last_state.action_hi)):
             logger.error("Action upper bound contains nan values")
             return False
+
         return True
 
 
@@ -311,6 +317,13 @@ class DeploymentInteraction:
                 metric=prefix + feat_name,
                 value=val,
             )
+
+    def _write_obs_to_csv(self, df: pd.DataFrame):
+        csv_path = self._app_state.cfg.save_path / "observations.csv"
+        if csv_path.exists():
+            df.to_csv(csv_path, mode='a', index=True, header=False)
+        else:
+            df.to_csv(csv_path, index=True)
 
 
     # ---------------------
@@ -365,7 +378,7 @@ class DeploymentInteraction:
     # -------------------
     def maybe_checkpoint(self):
         now = datetime.now(UTC)
-        if now - self._last_checkpoint > self._checkpoint_freq:
+        if now - self._last_checkpoint >= self._checkpoint_freq:
             self.checkpoint()
 
 

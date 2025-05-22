@@ -11,12 +11,12 @@ from pydantic import Field, TypeAdapter
 
 from corerl.agent.utils import (
     SampledQReturn,
+    ValueEstimator,
     get_sampled_qs,
     grab_percentile,
     grab_top_n,
 )
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
-from corerl.component.critic.ensemble_critic import EnsembleCritic
 from corerl.component.network.utils import to_np
 from corerl.component.optimizers.ensemble_optimizer import EnsembleOptimizer
 from corerl.component.optimizers.factory import OptimizerConfig, init_optimizer
@@ -29,6 +29,7 @@ from corerl.eval.torch import get_layers_stable_rank
 from corerl.messages.events import EventType
 from corerl.state import AppState
 from corerl.utils.device import device
+from corerl.utils.torch import clip_gradients
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -52,16 +53,17 @@ Optimizer = torch.optim.Optimizer | EnsembleOptimizer
 @config()
 class GACPolicyManagerConfig:
     name: Literal["network"] = "network"
-    action_bounds: bool = MISSING
     greedy: bool = False
 
     # hyperparameters
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.
+    prop_percentile_learned: float = 0.9
     init_sampler_with_actor_weights: bool = True
     resample_for_sampler_update: bool = True
+    grad_clip: float = 50_000
+    sort_noise: float = 0.0
 
     # metrics
     ingress_loss: bool = True
@@ -70,11 +72,6 @@ class GACPolicyManagerConfig:
     network: PolicyConfig = Field(default_factory=NormalPolicyConfig)
     optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING
-
-    @computed("action_bounds")
-    @classmethod
-    def _action_bounds(cls, cfg: "MainConfig"):
-        return cfg.feature_flags.action_bounds
 
     @computed('buffer')
     @classmethod
@@ -162,14 +159,10 @@ class GACPolicyManager:
         assert policy_actions.dim() == 3, 'Expected policy_actions to be (batch_size, n_samples, action_dim)'
         assert action_lo.dim() == 2, 'Expected action_lo to be (batch_size, action_dim)'
 
-        if self.cfg.action_bounds:
-            # add an n_samples dim to control automatic broadcasting
-            action_lo = action_lo.unsqueeze(1)
-            action_hi = action_hi.unsqueeze(1)
-            direct_actions = torch.clip(policy_actions, min=action_lo, max=action_hi)
-        else:
-            direct_actions = policy_actions
-        return direct_actions
+        # add an n_samples dim to control automatic broadcasting
+        action_lo = action_lo.unsqueeze(1)
+        action_hi = action_hi.unsqueeze(1)
+        return torch.clip(policy_actions, min=action_lo, max=action_hi)
 
     def _sample_actor(
         self,
@@ -254,7 +247,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        critic: EnsembleCritic,
+        critic: ValueEstimator,
     ) -> torch.Tensor:
         qr = get_sampled_qs(
             states=states,
@@ -274,7 +267,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        critic: EnsembleCritic,
+        critic: ValueEstimator,
     ) -> ActionReturn:
         """
         For each state, performs random search (with samples from proposal)
@@ -298,7 +291,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        critic: EnsembleCritic | None = None,
+        critic: ValueEstimator | None = None,
     ) -> ActionReturn:
         """
         Samples direct actions for states from the actor.
@@ -432,7 +425,7 @@ class GACPolicyManager:
             logger.exception('Failed to load buffer from checkpoint. Reinitializing...')
 
 
-    def update(self, critic: EnsembleCritic):
+    def update(self, critic: ValueEstimator):
         """
         Performs a percentile-based update to the policy.
         """
@@ -458,14 +451,12 @@ class GACPolicyManager:
         )
 
         assert isinstance(self.actor_optimizer, Optimizer)
-        actor_closure = self._get_closure(self.actor, critic, self.cfg.actor_percentile)
         actor_loss = self._regress_towards_percentile(
             qr,
             self.actor,
             self.actor_optimizer,
             self.cfg.actor_percentile ,
             'actor',
-            actor_closure,
         )
         if not self.is_uniform_sampler:
             if self.cfg.resample_for_sampler_update:
@@ -478,55 +469,14 @@ class GACPolicyManager:
                     critic=critic,
                 )
             assert isinstance(self.sampler_optimizer, Optimizer)
-            sampler_closure = self._get_closure(self.sampler, critic, self.cfg.sampler_percentile)
             self._regress_towards_percentile(qr, self.sampler,  self.sampler_optimizer,
-                                            self.cfg.sampler_percentile, 'sampler', sampler_closure)
+                                            self.cfg.sampler_percentile, 'sampler')
 
         return actor_loss
 
     # ---------------------------------------------------------------------------- #
     #                            updating helper methods                           #
     # ---------------------------------------------------------------------------- #
-
-    def _get_closure(
-            self,
-            policy: Policy,
-            critic: EnsembleCritic,
-            percentile: float,
-            ) -> Callable[[], float]:
-
-        if self.optimizer_name != 'lso':
-            return lambda: 0.
-
-        batches = self.buffer.sample()
-        assert len(batches) == 1
-        batch = batches[0]
-
-        sampler = self.get_sampler_actions
-        qr = get_sampled_qs(
-            states=batch.prior.state,
-            action_lo=batch.prior.action_lo,
-            action_hi=batch.prior.action_hi,
-            n_samples=self.cfg.num_samples,
-            sampler=sampler,
-            critic=critic,
-        )
-
-        top_states, top_policy_actions = grab_percentile(
-            values=qr.q_values,
-            keys=[qr.states, qr.policy_actions],
-            percentile=percentile,
-        )
-
-        def closure():
-            loss = self._policy_err(
-                policy,
-                states=top_states.reshape(-1, self.state_dim),
-                policy_actions=top_policy_actions.reshape(-1, self.action_dim),
-            )
-            return to_np(loss).max()
-
-        return closure
 
     def _regress_towards_percentile(
             self,
@@ -535,10 +485,14 @@ class GACPolicyManager:
             optimizer: Optimizer,
             percentile: float,
             metric_id: str,
-            closure: Callable[[], float]
         ):
+
+        sort_noise = 0
+        if self.cfg.sort_noise > 0:
+            sort_noise = torch.normal(0, self.cfg.sort_noise, size=qr.q_values.shape)
+
         top_states, top_policy_actions = grab_percentile(
-            values=qr.q_values,
+            values=qr.q_values + sort_noise,
             keys=[qr.states, qr.policy_actions],
             percentile=percentile,
         )
@@ -561,14 +515,19 @@ class GACPolicyManager:
         optimizer.zero_grad()
         loss.backward()
 
+        grad_clip_delta = clip_gradients(policy.model, self.cfg.grad_clip)
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric=metric_id + "_max_grad_clip",
+            value=grad_clip_delta,
+        )
+
         # log to metrics table
         log_policy_gradient_norm(self._app_state, policy, prefix=metric_id)
         log_policy_weight_norm(self._app_state, policy, prefix=metric_id)
         log_policy_stable_rank(self._app_state, policy, prefix=metric_id)
 
-        opt_args = tuple()
-        opt_kwargs = {"closure": closure}
-        optimizer.step(*opt_args, **opt_kwargs)
+        optimizer.step()
 
         return float(loss.item())
 

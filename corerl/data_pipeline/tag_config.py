@@ -41,6 +41,26 @@ class TagType(StrEnum):
     meta = auto()
     default = auto()
 
+@config()
+class CascadeConfig:
+    """
+    Kind: optional external
+
+    Specifies how the value of this virtual tag should be computed.
+    The value will copy the value of the "ai setpoint" or "operator setpoint"
+    as a function of a third "mode" tag.
+
+    If the mode takes a val other than op_mode_val or ai_mode_val, the computed value
+    will be NaN.
+    """
+
+    mode: str = MISSING
+    op_sp: str = MISSING
+    ai_sp: str = MISSING
+    op_mode_val: float | int | bool = MISSING # value of mode indicating operator control
+    ai_mode_val: float | int | bool = MISSING # value of mode indicating ai control
+    mode_is_bool: bool = False
+
 # -----------------------
 # -- Bounds Scheduling --
 # -----------------------
@@ -158,6 +178,14 @@ class TagConfig:
     In case that the action_bounds are specified as strings representing sympy functions,
     the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
     and the action_bounds_tags will hold the lists of tags that those functions depend on.
+    """
+
+    expected_range: FloatBounds | None = None
+    """
+    Kind: optional external
+
+    The range of values that the tag is expected to take. If specified, this range controls
+    the min/max for normalization and reward scaling.
     """
 
     red_bounds: Bounds | None = None
@@ -306,6 +334,28 @@ class TagConfig:
     in order to construct the value of the tag as a function of other tags.
     """
 
+    cascade: CascadeConfig | None = None
+    """
+    Kind: optional external
+
+    Specifies whether this tag should take the one of two values
+    (the "ai setpoint" or "operator setpoint") as a function of a third "mode" tag.
+    """
+
+    @post_processor
+    def _initialize_cascade_tag(self, cfg: MainConfig):
+        if self.cascade is None:
+            return
+
+        # mark tag as computed and define piecewise expression
+        self.is_computed = True
+        self.value = (
+            "Piecewise("
+                f"({{{self.cascade.op_sp}}}, Eq({{{self.cascade.mode}}}, {self.cascade.op_mode_val})),"
+                f"({{{self.cascade.ai_sp}}}, Eq({{{self.cascade.mode}}}, {self.cascade.ai_mode_val}))"
+            ")"
+        )
+
     @post_processor
     def _initialize_bound_functions(self, cfg: MainConfig | PipelineConfig):
         # We can receive MainConfig or PipelineConfig
@@ -429,6 +479,8 @@ class TagConfig:
                 "A value string must be specified for computed virtual tags."
 
             known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            if self.cascade is not None:
+                known_tags |= {self.cascade.mode, self.cascade.op_sp, self.cascade.ai_sp}
             _, _, dependent_tags = to_sympy(self.value)
 
             for dep in dependent_tags:
@@ -441,9 +493,11 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
-    # prefer to use red zone, fallback to black zone then yellow
+    # prefer to use expected range, fallback to red zone, then operating range, then yellow
     lo = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
+        Maybe[float](cfg.expected_range and cfg.expected_range[0])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
         .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
@@ -452,7 +506,9 @@ def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], May
     )
 
     hi = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
+        Maybe[float](cfg.expected_range and cfg.expected_range[1])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
         .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
@@ -498,7 +554,9 @@ def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
     Prefer to use red zone, fallback to black zone then yellow
     """
     lo = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[0])
+        Maybe[float](cfg.expected_range and cfg.expected_range[0])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
         .is_instance(float)
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
@@ -509,7 +567,9 @@ def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
     )
 
     hi = (
-        Maybe[float | str](cfg.red_bounds and cfg.red_bounds[1])
+        Maybe[float](cfg.expected_range and cfg.expected_range[1])
+        .map(widen_bound_types)
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
         .is_instance(float)
         .map(widen_bound_types)
         .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])

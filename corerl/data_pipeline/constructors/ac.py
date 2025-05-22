@@ -44,22 +44,22 @@ class ActionConstructor:
             a_lo = {}
             a_hi = {}
             for action_tag in self.action_tags:
-                lo, hi = get_action_bounds(action_tag, row)
+                ab_lo, ab_hi = get_action_bounds(action_tag, row)
                 operating_range = Maybe(action_tag.operating_range).expect()
-                lo = max(Maybe(operating_range[0]).expect(), lo)
-                hi = min(Maybe(operating_range[1]).expect(), hi)
+                op_lo, op_hi = Maybe(operating_range[0]).expect(), Maybe(operating_range[1]).expect()
 
-                # overwrite the action bounds/operating range with the guardrails if they exist
-                maybe_guard = self._get_guardrails(action_tag, lo, hi)
+                # get guardrails that work up to the operating range
+                maybe_guard = self._get_guardrails(action_tag, op_lo, op_hi)
                 maybe_guard_lo = Maybe(maybe_guard[0])
                 maybe_guard_hi = Maybe(maybe_guard[1])
+
                 # Apply the guardrails if they exist
-                lo = max(maybe_guard_lo.or_else(lo), lo)
-                hi = min(maybe_guard_hi.or_else(hi), hi)
+                ab_lo = max(maybe_guard_lo.or_else(op_lo), ab_lo)
+                ab_hi = min(maybe_guard_hi.or_else(op_hi), ab_hi)
 
                 # normalize the action bounds to the operating range
-                a_lo[f"{action_tag.name}-lo"] = self._prep_stage.normalize(action_tag.name, lo)
-                a_hi[f"{action_tag.name}-hi"] = self._prep_stage.normalize(action_tag.name, hi)
+                a_lo[f"{action_tag.name}-lo"] = self._prep_stage.normalize(action_tag.name, ab_lo)
+                a_hi[f"{action_tag.name}-hi"] = self._prep_stage.normalize(action_tag.name, ab_hi)
 
             a_los.append(a_lo)
             a_his.append(a_hi)

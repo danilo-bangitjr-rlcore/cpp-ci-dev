@@ -96,7 +96,7 @@ def test_recency_bias_buffer_discounting(dummy_app_state: AppState):
         ensemble=1,
         ensemble_probability=1,
         uniform_weight=0.0,
-        gamma_extension_factor=2,
+        effective_episodes=2,
     )
 
     buffer = RecencyBiasBuffer(buffer_cfg, dummy_app_state)
@@ -189,7 +189,7 @@ def test_recency_bias_buffer_uniform_mixing(dummy_app_state: AppState):
         ensemble=1,
         ensemble_probability=1,
         uniform_weight=0.5,
-        gamma_extension_factor=2,
+        effective_episodes=2,
     )
 
     buffer = RecencyBiasBuffer(buffer_cfg, dummy_app_state)
@@ -218,4 +218,3 @@ def test_recency_bias_buffer_uniform_mixing(dummy_app_state: AppState):
         buffer.get_probability(0, np.array([0, 1])),
         expected_mixed_probs,
     )
-

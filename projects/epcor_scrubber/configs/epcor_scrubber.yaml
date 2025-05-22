@@ -14,7 +14,7 @@ seed: 1
 is_simulation: False
 
 feature_flags:
-  action_bounds: True
+  gtd_critic: True
 
 interaction:
   name: dep_interaction
@@ -24,11 +24,12 @@ interaction:
   action_period: 01:00:00
   warmup_period: 03:00:00
   state_age_tol: 00:15:00
-  update_warmup: 300 # number of updates before interacting
+  update_warmup: 50 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
-  hist_chunk_start: 2025-03-06 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  historical_windows: 
+  - [2025-05-06 00:00:00+0000, null]
   heartbeat:
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     heartbeat_node_id: "ns=3;i=1"
     heartbeat_period: 00:00:05
     max_counter: 1000
@@ -117,29 +118,47 @@ pipeline:
     - "only_no_action_change"
 
   tags:
-  - name: AIC3730_SP # pH SP
+  - name: DEP_AIC3730_SP # pH SP
     type: ai_setpoint
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=14"
     operating_range: [9.4, 10.]
-    action_bounds: ['{AIC3730_SP} - 0.2', '{AIC3730_SP} + 0.2']
+    action_bounds: ['{DEP_AIC3730_SP} - 0.2', '{DEP_AIC3730_SP} + 0.2']
     agg: last
+    cascade:
+      mode: AIC3730_MODE
+      op_sp: AIC3730_SP
+      ai_sp: AIC3730_SPRL
+      op_mode_val: 16
+      ai_mode_val: 32
 
-  - name: AIC3731_SP # ORP SP
+  - name: DEP_AIC3731_SP # ORP SP
     type: ai_setpoint
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=15"
     operating_range: [650., 700.]
-    action_bounds: ['{AIC3731_SP} - 10', '{AIC3731_SP} + 10']
+    action_bounds: ['{DEP_AIC3731_SP} - 10', '{DEP_AIC3731_SP} + 10']
     agg: last
+    cascade:
+      mode: AIC3731_MODE
+      op_sp: AIC3731_SP
+      ai_sp: AIC3731_SPRL
+      op_mode_val: 16
+      ai_mode_val: 32
 
-  - name: FIC3734_SP # flow SP
+  - name: DEP_FIC3734_SP # flow SP
     type: ai_setpoint
-    connection_id: 30e85ea3-36d6-4633-ad66-30c8d4778fdc
+    connection_id: e3a4d4e9-96c4-46e2-8d94-6d8a9fecf031
     node_identifier: "ns=3;i=17"
     operating_range: [15., 30.]
-    action_bounds: ['{FIC3734_SP} - 5', '{FIC3734_SP} + 5']
+    action_bounds: ['{DEP_FIC3734_SP} - 5', '{DEP_FIC3734_SP} + 5']
     agg: last
+    cascade:
+      mode: FIC3734_MODE
+      op_sp: FIC3734_SP
+      ai_sp: FIC3734_SPRL
+      op_mode_val: 16
+      ai_mode_val: 32
 
   - name: AIC3730_PV # pH process value
     operating_range: [0., 14.]
@@ -177,8 +196,8 @@ pipeline:
     operating_range: [0, 700]
     preprocess:
       - name: normalize
-        min: 585
-        max: 595
+        min: 460
+        max: 470
         from_data: False
 
   - name: FI0872 # scrubber recirc flow
@@ -217,8 +236,8 @@ pipeline:
     operating_range: [-0.1, 3]
     preprocess:
       - name: normalize
-        min: 0.3
-        max: 0.5
+        min: 1.0
+        max: 2.0
         from_data: False
 
   - name: TI0880 # scrubber inlet temp

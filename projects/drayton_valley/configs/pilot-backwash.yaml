@@ -26,7 +26,8 @@ interaction:
   update_period: 00:02:30
   update_warmup: 0 # number of updates before interacting
   historical_batch_size: 8640 # 30 days @ 5 minute obs period
-  hist_chunk_start: 2025-01-20 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  historical_windows: 
+  - [2025-01-20 00:00:00+0000, null]
 
 event_bus:
   enabled: True

@@ -42,7 +42,7 @@ def test_buffer_load():
     pipeline = Pipeline(app_state, cfg.pipeline)
     data_reader = DataReader(db_cfg=cfg.env.db)
     time_stats = data_reader.get_time_stats()
-    chunk_start = Maybe(cfg.interaction.hist_chunk_start).or_else(time_stats.start).astimezone(UTC)
+    chunk_start = Maybe(cfg.interaction.historical_windows[0][0]).or_else(time_stats.start).astimezone(UTC)
     chunk_end = time_stats.end
     chunks = split_into_chunks(
         chunk_start,

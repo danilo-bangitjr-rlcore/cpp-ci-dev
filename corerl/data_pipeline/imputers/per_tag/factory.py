@@ -1,6 +1,7 @@
 from pydantic import Field
 from typing_extensions import Annotated
 
+from corerl.data_pipeline.imputers.per_tag.backfill import BackfillImputerConfig
 from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
 from corerl.data_pipeline.imputers.per_tag.copy import CopyImputerConfig
 from corerl.data_pipeline.imputers.per_tag.identity import IdentityImputerConfig
@@ -10,6 +11,7 @@ ImputerConfig = Annotated[
     IdentityImputerConfig
     | CopyImputerConfig
     | LinearImputerConfig
+    | BackfillImputerConfig
 , Field(discriminator='name')]
 
 

@@ -19,9 +19,8 @@ from test.behavior.saturation.cases import (
     MultiActionSaturationTest,
     SaturationTest,
     SetpointChangeSaturationTest,
-    SlowExpandingBoundsSaturationTest,
+    SlowExpandingBoundsSaturationTest
 )
-from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
 
@@ -64,11 +63,8 @@ TEST_CASES = [
 
 ZERO_ONE_FEATURES = [
     'base', # special feature indicating "no features enabled"
-    'zone_violations',
-    'action_bounds',
-    'use_residual',
     'recency_bias_buffer',
-    'interaction_action_variance',
+    'regenerative_optimism',
 ]
 
 
@@ -80,7 +76,6 @@ def all_except(flags: list[str]):
 
 KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
     WindyRoomTest.name: True,
-    MountainCar.name: { 'zone_violations': True },
 }
 
 
