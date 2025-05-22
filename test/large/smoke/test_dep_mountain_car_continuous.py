@@ -124,7 +124,7 @@ def run_docker_compose(run_make_configs: None, request: FixtureRequest):
 @pytest.fixture(scope="module")
 def run_coreio(request: FixtureRequest, run_docker_compose: None):
     proc = subprocess.run(
-        ["coreio_main", "--config-name", "dep_mountain_car_continuous", "&"],
+        ["coreio_main", "--config-name", "dep_mountain_car_continuous"],
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
         text=True,

@@ -4,7 +4,7 @@
 import asyncio
 import logging
 
-from coreio.utils.io_events import IOEvent, IOEventType
+from coreio.utils.io_events import IOEventType
 from coreio.utils.opc_communication import OPC_Connection
 from coreio.utils.zmq_communication import ZMQ_Communication
 from corerl.config import MainConfig
