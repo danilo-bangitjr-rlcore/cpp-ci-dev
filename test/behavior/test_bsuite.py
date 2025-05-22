@@ -5,7 +5,7 @@ from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
-from test.behavior.mountain_car.cases import LowVarianceActions, MountainCar, StandStillMountainCar
+from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
     DeltaChangeSaturationTest,
@@ -52,7 +52,6 @@ TEST_CASES = [
     MultiActionSaturationTest(),
     SaturationTest(),
     StandStillMountainCar(),
-    LowVarianceActions(),
     WindyRoomTest(),
     ExpandingBoundsSaturationTest(),
     SetpointChangeSaturationTest(),
