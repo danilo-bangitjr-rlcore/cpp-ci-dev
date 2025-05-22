@@ -76,7 +76,7 @@ class SimInteraction(DeploymentInteraction):
         """
         check that a state has been previously observed
         """
-        if self._last_state_timestamp is None:
+        if self._last_state.timestamp is None:
             logger.error("Interaction state is None")
             return False
         return True
@@ -96,13 +96,11 @@ class SimInteraction(DeploymentInteraction):
             self._capture_latest_state(pipe_return)
 
             # Take action
-            sa = self._get_latest_state_action()
-            assert sa is not None
-            s, action_lo, action_hi = sa
-            next_a = self._agent.get_action_interaction(s, action_lo, action_hi)
+            state = self._last_state
+            next_a = self._get_action(state)
             norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
             # clip to the normalized action bounds
-            norm_next_a_df = self._clip_action_bounds(norm_next_a_df, action_lo, action_hi)
+            norm_next_a_df = self._clip_action_bounds(norm_next_a_df, state.action_lo, state.action_hi)
             next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
             self._env.emit_action(next_a_df, log_action=False)
 
@@ -111,7 +109,7 @@ class SimInteraction(DeploymentInteraction):
     # -- Checkpointing --
     # -------------------
     def maybe_checkpoint(self):
-        now = self._last_state_timestamp
+        now = self._last_state.timestamp
         assert now is not None
         assert self._last_checkpoint is not None
         if now - self._last_checkpoint >= self._checkpoint_freq:
