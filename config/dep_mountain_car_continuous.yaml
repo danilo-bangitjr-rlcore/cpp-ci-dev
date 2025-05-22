@@ -15,15 +15,13 @@ agent:
   gamma: 0.99
 
 coreio:
-  coreio_origin: "tcp://localhost:5557"
+  coreio_origin: "tcp://localhost:5558"
   opc_connections:
     - connection_id: b37c07a6
       opc_conn_url: opc.tcp://admin@localhost:4840
 
 env:
   name: dep_async_env
-  # coreio_origin: http://coreio:2222       # coreio hostname derived from docker-compose up app name
-  # coreio_origin: http://localhost:2222  # use localhost or 0.0.0.0 for when agent running outside of docker network
 
   db:
     table_name: sensors
@@ -48,7 +46,6 @@ interaction:
   update_period: 00:00:01
   state_age_tol: 00:00:02
   heartbeat:
-    # connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
     connection_id: b37c07a6
     heartbeat_node_id: "ns=2;s=heartbeat"
     heartbeat_period: 00:00:01
@@ -58,9 +55,7 @@ pipeline:
   tags:
   - name: action-0
     type: ai_setpoint
-    # UUID determined from core-io default connection seed, see also:
-    # https://github.com/rlcoretech/coreio/blob/2dbd99feba82fd2e148fc0a0aa5d939ade640baf/server/src/bin/seed.ts#L14
-    # connection_id: f2365731-eeee-4b3f-b1dc-54634735d1d9
+    # UUID determined from coreio config
     connection_id: b37c07a6
     node_identifier: "ns=2;s=action-0"
     agg: last

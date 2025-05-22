@@ -175,7 +175,7 @@ def test_dep_mountain_car_continuous(
     free_localhost_port: int,
 ):
     event_bus_url = f'tcp://localhost:{free_localhost_port}'
-    coreio_origin = 'tcp://localhost:5557'
+    # coreio_origin = 'tcp://localhost:5558'
     proc = subprocess.run(
         [
             "corerl_main",
@@ -186,7 +186,7 @@ def test_dep_mountain_car_continuous(
             "interaction.update_period=00:00:01",
             "interaction.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
-            "coreio.coreio_origin=" + coreio_origin,
+            # "coreio.coreio_origin=" + coreio_origin,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

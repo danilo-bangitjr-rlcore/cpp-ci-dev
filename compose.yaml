@@ -75,28 +75,6 @@ services:
         source: coreio-storage
         target: /app/coreio-data
 
-  # coreio:
-  #   profiles:
-  #     - coreio-beta
-  #
-  #   build:
-  #     context: .
-  #     ssh:
-  #       - default
-  #   ports:
-  #     - 5557:5557
-  #   healthcheck: 
-  #     test: ["CMD", "nc -z localhost 5557 || exit 1"]
-  #     interval: 10s
-  #     timeout: 10s
-  #     retries: 3
-  #
-  #   entrypoint: ["python", "/usr/local/bin/coreio_main"]
-  #
-  #   depends_on:
-  #     opc-server:
-  #       condition: service_healthy
-
   core-ui:
     # thin client: https://github.com/rlcoretech/core-ui
 
