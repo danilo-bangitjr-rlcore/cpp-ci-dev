@@ -7,8 +7,9 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
+from corerl.environment.async_env.sim_async_env import SimAsyncEnv
 from corerl.interaction.configs import InteractionConfig
-from corerl.interaction.deployment_interaction import DeploymentInteraction
+from corerl.interaction.deployment_interaction import AgentState, DeploymentInteraction
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
 from corerl.utils.time import percent_time_elapsed
@@ -53,6 +54,29 @@ class SimInteraction(DeploymentInteraction):
     # ---------
     # internals
     # ---------
+    def _get_action(self, state: AgentState):
+        if self._state_is_fresh() and self._state_has_no_nans():
+            return self._agent.get_action_interaction(state.feats, state.action_lo, state.action_hi)
+        else:
+            logger.warning(f'Tried to take action, however was unable: {state}')
+            if self._last_action_df is None:
+                assert isinstance(self._env, SimAsyncEnv)
+                a = self._env._env.action_space.sample()
+                logger.warning(f'Sampling random initial action {a}')
+                return a
+
+            # normalize
+            a_df = self._last_action_df
+            assert a_df is not None
+            logger.info(f"{self._last_action_df}")
+            action_cols = self._pipeline.column_descriptions.action_cols
+            for a_name in action_cols:
+                a_df[a_name] = self._pipeline.preprocessor.normalize(a_name, a_df[a_name].iloc[0])
+            last_a = a_df.loc[:, action_cols].to_numpy().squeeze()
+            logger.warning(f'Re-applying previous action: {last_a}')
+            return last_a
+
+
     def _should_reset(self, observation: pd.DataFrame) -> bool:
         return bool(observation['truncated'].any() or observation['terminated'].any())
 

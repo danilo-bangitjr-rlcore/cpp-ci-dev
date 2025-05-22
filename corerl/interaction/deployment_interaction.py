@@ -190,15 +190,18 @@ class DeploymentInteraction:
         self._env.emit_action(next_a_df, log_action=True)
         self._last_action_df = next_a_df
 
-        # metrics + eval
-        agent_eval.policy_variance(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+        # log actions
+        self._write_to_metrics(next_a_df, prefix='ACTION-')
+
+        if not self._state_has_no_nans():
+            return
+
+        # eval
         agent_eval.q_online(self._app_state, self._agent, state.feats, next_a)
         agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
         agent_eval.greed_values_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
         agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
 
-        # log actions
-        self._write_to_metrics(next_a_df, prefix='ACTION-')
 
 
     def _on_update(self):
