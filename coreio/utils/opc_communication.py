@@ -23,11 +23,12 @@ class OPC_Connection:
         self.opc_client: Client
         self.registered_nodes: dict[str, NodeData] = {}
         self._connected = False
+        self.registered_nodes: dict[str, NodeData] = {}
 
     async def init(self, cfg: OPCConnectionConfig, tag_configs: list[TagConfig]):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
-        self.registered_nodes = await self._register_nodes(tag_configs)
+        await self._register_action_nodes(tag_configs)
 
         if cfg.client_cert_path and cfg.client_private_key_path:
             assert cfg.application_uri is not None
@@ -42,14 +43,25 @@ class OPC_Connection:
             )
         return self
 
-    async def _register_nodes(self, tag_configs: list[TagConfig]):
+    async def register_node(self, node_id: str):
+        async with self.opc_client:
+            if not node_id.startswith("ns="):
+                raise ValueError(f"Problem encountered in tag config for {node_id} " +
+                    "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
+
+            node = self.opc_client.get_node(node_id)
+            var_type = await node.read_data_type_as_variant_type()
+            logger.info(f"Registering heatbeat with OPC node id '{node_id}'")
+
+            self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
+
+    async def _register_action_nodes(self, tag_configs: list[TagConfig]):
         """
         Register nodes that:
         1. Have the relevant connection_id
         2. Are ai_setpoints
         """
 
-        registered_nodes: dict[str, NodeData] = {}
         async with self.opc_client:
             for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
 
@@ -64,11 +76,9 @@ class OPC_Connection:
 
                 node = self.opc_client.get_node(node_id)
                 var_type = await node.read_data_type_as_variant_type()
-                logger.info(f"Registering action '{tag_cfg.name}' with OPC node id '{node_id}'")
+                logger.info(f"Registering node '{tag_cfg.name}' with OPC node id '{node_id}'")
 
-                registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
-
-        return registered_nodes
+                self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
     async def start(self):
         await self.opc_client.connect()
@@ -99,10 +109,11 @@ class OPC_Connection:
 
         for node in nodes_to_write:
             # Using get() instead of [], because it returns None instead of error if node_id is not found
-            node_entry = self.registered_nodes.get(node.node_id)
-            if node_entry is None:
+            if node.node_id not in self.registered_nodes:
                 logger.warning(f"Node {node.node_id} is unknown")
                 continue
+
+            node_entry = self.registered_nodes[node.node_id]
 
             var_type = node_entry.var_type
             if var_type in {

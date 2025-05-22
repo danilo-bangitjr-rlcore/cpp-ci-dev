@@ -23,6 +23,13 @@ async def main(cfg: MainConfig):
     for opc_conn_cfg in cfg.coreio.opc_connections:
         opc_connections[opc_conn_cfg.connection_id] = await OPC_Connection().init(opc_conn_cfg, cfg.pipeline.tags)
 
+        # Register heartbeat_id
+        if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
+            heartbeat_id = cfg.interaction.heartbeat.heartbeat_node_id
+
+            if heartbeat_id is not None:
+                await opc_connections[opc_conn_cfg.connection_id].register_node(heartbeat_id)
+
     for opc_conn in opc_connections.values():
         await opc_conn.start()
 
