@@ -33,7 +33,7 @@ async def handle_event(event: IOEvent | None, opc_connections: dict[str, OPC_Con
 
         case IOEventType.exit_io:
              raise StopIteration
-    
+
 @load_config(MainConfig, base='config/')
 async def coreio_loop(cfg: MainConfig):
     opc_connections: dict[str, OPC_Connection] = {}
@@ -61,7 +61,7 @@ async def coreio_loop(cfg: MainConfig):
             await handle_event(event, opc_connections)
         except StopIteration:
             break
-            
+
 
     zmq_communication.cleanup()
     for opc_conn in opc_connections.values():
