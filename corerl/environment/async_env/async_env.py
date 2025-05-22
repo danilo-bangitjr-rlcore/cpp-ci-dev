@@ -29,12 +29,16 @@ class AsyncEnvConfig:
     def _obs_period(cls, cfg: MainConfig):
         return cfg.interaction.obs_period
 
+@config()
+class WrapperConfig:
+    name: str | None = None
+    kwargs: dict[str, Any] = Field(default_factory=dict)
 
 @config()
 class GymEnvConfig:
     gym_name: str = MISSING
     init_type: Literal["gym.make", "custom", "model"] | None = "custom"
-    wrapper: str | None = None
+    wrapper: WrapperConfig = Field(default_factory=WrapperConfig)
     seed: int = MISSING
 
     # gym environment init args and kwargs, ignored for deployment_async_env

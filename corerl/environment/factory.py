@@ -36,6 +36,6 @@ def init_environment(cfg: GymEnvConfig) -> gym.Env:
         case _:
             raise NotImplementedError
 
-    if cfg.wrapper is not None:
-        env = wrappers[cfg.wrapper](env)
+    if cfg.wrapper.name is not None:
+        env = wrappers[cfg.wrapper.name](env, **cfg.wrapper.kwargs)
     return env
