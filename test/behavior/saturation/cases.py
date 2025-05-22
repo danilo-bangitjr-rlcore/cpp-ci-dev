@@ -60,9 +60,23 @@ class DeltaChangeSaturationTest(BSuiteTestCase):
     required_features = {'action_bounds'}
     lower_bounds = { 'reward': -0.085}
 
-class MCARSaturationTest(BSuiteTestCase):
-    name = 'missing at random saturation'
-    config = 'test/behavior/saturation/mcar_saturation.yaml'
+class MCARSaturationEasyTest(BSuiteTestCase):
+    name = 'easy missing at random saturation'
+    config = 'test/behavior/saturation/mcar_saturation_easy.yaml'
+
+    lower_bounds = { 'reward': -0.085}
+    upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
+
+class MCARSaturationMediumTest(BSuiteTestCase):
+    name = 'medium missing at random saturation'
+    config = 'test/behavior/saturation/mcar_saturation_medium.yaml'
+
+    lower_bounds = { 'reward': -0.085}
+    upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
+
+class MCARSaturationHardTest(BSuiteTestCase):
+    name = 'hard missing at random saturation'
+    config = 'test/behavior/saturation/mcar_saturation_hard.yaml'
 
     lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }

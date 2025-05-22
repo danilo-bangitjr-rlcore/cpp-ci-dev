@@ -5,7 +5,7 @@ env:
     wrapper: 
       name: mcar
       kwargs:
-        dropout_prob: 0.99
+        dropout_prob: 0.4
 
 interaction:
   name: sim_interaction
@@ -34,9 +34,6 @@ pipeline:
   # observations
   - name: tag-0
     operating_range: [0, 1.0]
-    # imputer:
-    #   name: copy
-    #   imputation_horizon: 5
 
   # actions
   - name: action-0
