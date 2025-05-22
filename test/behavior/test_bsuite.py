@@ -21,6 +21,7 @@ from test.behavior.saturation.cases import (
     SetpointChangeSaturationTest,
     SlowExpandingBoundsSaturationTest,
 )
+from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
 
