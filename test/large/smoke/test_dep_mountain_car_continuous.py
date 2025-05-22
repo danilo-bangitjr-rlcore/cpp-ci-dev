@@ -121,6 +121,17 @@ def run_docker_compose(run_make_configs: None, request: FixtureRequest):
     )
     proc.check_returncode()
 
+@pytest.fixture(scope="module")
+def run_coreio(request: FixtureRequest):
+    proc = subprocess.run(
+        ["coreio_main", "--config-name", "dep_mountain_car_continuous", "&"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        text=True,
+        cwd=request.config.rootpath,
+    )
+    proc.check_returncode()
+
 
 @pytest.fixture(scope="module")
 def check_sim_farama_environment_ready(run_docker_compose: None, request: FixtureRequest):
@@ -164,7 +175,7 @@ def test_dep_mountain_car_continuous(
     free_localhost_port: int,
 ):
     event_bus_url = f'tcp://localhost:{free_localhost_port}'
-    coreio_origin = 'http://localhost:2222'
+    coreio_origin = 'tcp://localhost:5557'
     proc = subprocess.run(
         [
             "corerl_main",
@@ -175,7 +186,7 @@ def test_dep_mountain_car_continuous(
             "interaction.update_period=00:00:01",
             "interaction.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
-            "env.coreio_origin=" + coreio_origin,
+            "coreio.coreio_origin=" + coreio_origin,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,

@@ -19,13 +19,7 @@ interaction:
   restore_checkpoint: False
   historical_batch_size: 100
   setpoint_ping_period: 00:00:10
-  hist_chunk_start: 2025-02-05 12:00:00+0000 # YYYY-MM-DD hh:mm:ss
   obs_period: 00:00:01
   action_period: 00:00:03
   update_period: 00:00:01
   state_age_tol: 00:00:01
-  heartbeat:
-    connection_id: b37c07a6
-    heartbeat_node_id: "ns=2;s=heartbeat"
-    heartbeat_period: 00:00:01
-    max_counter: 10
