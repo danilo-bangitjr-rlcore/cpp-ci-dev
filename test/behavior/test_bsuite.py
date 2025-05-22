@@ -21,6 +21,7 @@ from test.behavior.saturation.cases import (
     SaturationTest,
     SetpointChangeSaturationTest,
     SlowExpandingBoundsSaturationTest,
+    StickyMCARSaturationTest,
 )
 from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
@@ -67,6 +68,7 @@ TEST_CASES = [
     MCARSaturationEasyTest(),
     MCARSaturationMediumTest(),
     MCARSaturationHardTest(),
+    StickyMCARSaturationTest(),
 ]
 
 ZERO_ONE_FEATURES = [
