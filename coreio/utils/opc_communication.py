@@ -30,7 +30,7 @@ class OPC_Connection:
         self.opc_client = Client(cfg.opc_conn_url)
         await self._register_action_nodes(tag_configs)
 
-        if cfg.client_cert_path and cfg.client_private_key_path:
+        if cfg.client_cert_path and cfg.client_private_key_path: # check server cert too
             assert cfg.application_uri is not None
             self.opc_client.application_uri = cfg.application_uri
 

@@ -12,7 +12,7 @@ seed: 1
 is_simulation: False
 
 agent:
-  gamma: 0.99
+  gamma: 0.95
 
 coreio:
   coreio_origin: "tcp://localhost:5558"
@@ -38,7 +38,7 @@ metrics:
 
 interaction:
   name: dep_interaction
-  restore_checkpoint: False
+  restore_checkpoint: false
   historical_batch_size: 100
   setpoint_ping_period: 00:00:10
   obs_period: 00:00:01

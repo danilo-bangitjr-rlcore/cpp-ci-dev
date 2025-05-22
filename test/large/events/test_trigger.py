@@ -76,6 +76,12 @@ def test_trigger(
         main_cfg.env,
     )
     event_bus.start()
+    print("HELLO")
+    print("HELLO")
+    print("HELLO")
+    print("HELLO")
+    print("HELLO")
+    print("HELLO")
 
     app_state = AppState(
         cfg=main_cfg,

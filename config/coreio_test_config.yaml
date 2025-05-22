@@ -1,7 +1,7 @@
 coreio:
   coreio_origin: "tcp://localhost:5557"
   opc_connections:
-    - connection_id: b37c07a6
+    - connection_id: asdxf
       opc_conn_url: opc.tcp://admin@localhost:4840
 
 pipeline:
@@ -10,7 +10,7 @@ pipeline:
       type: ai_setpoint
       # connection_id just has to be consistent with the one 
       # in coreio.opc_connections, it is not stored anywhere external
-      connection_id: b37c07a6 
+      connection_id: asdxf 
       node_identifier: "ns=2;i=2"
       operating_range: [0, 10]
 
