@@ -20,7 +20,7 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
 raw_service_names = [
-    "core-rl-corerl-1",
+    # "core-rl-corerl-1",
     "core-rl-telegraf-1",
     "core-rl-renderer-1",
     "core-rl-grafana-1",
@@ -122,7 +122,7 @@ def run_docker_compose(run_make_configs: None, request: FixtureRequest):
     proc.check_returncode()
 
 @pytest.fixture(scope="module")
-def run_coreio(request: FixtureRequest):
+def run_coreio(request: FixtureRequest, run_docker_compose: None):
     proc = subprocess.run(
         ["coreio_main", "--config-name", "dep_mountain_car_continuous", "&"],
         stdout=subprocess.DEVNULL,
@@ -131,7 +131,6 @@ def run_coreio(request: FixtureRequest):
         cwd=request.config.rootpath,
     )
     proc.check_returncode()
-
 
 @pytest.fixture(scope="module")
 def check_sim_farama_environment_ready(run_docker_compose: None, request: FixtureRequest):
