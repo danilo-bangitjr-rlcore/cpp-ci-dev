@@ -30,8 +30,8 @@ async def coreio_loop(cfg: MainConfig):
             if heartbeat_id is not None:
                 await opc_connections[opc_conn_cfg.connection_id].register_node(heartbeat_id)
 
-    for opc_conn in opc_connections.values():
-        await opc_conn.start()
+    # for opc_conn in opc_connections.values():
+    #     await opc_conn.start()
 
     zmq_communication = ZMQ_Communication(cfg.coreio)
     zmq_communication.start()
@@ -41,6 +41,7 @@ async def coreio_loop(cfg: MainConfig):
     while True:
         event = zmq_communication.recv_event()
 
+        logger.info(f"Received {event}")
         if event is None:
             continue
 
@@ -52,14 +53,17 @@ async def coreio_loop(cfg: MainConfig):
                         logger.warning(f"Connection Id {connection_id} is unkown.")
                         continue
 
+
+                    await opc_conn.start()
                     await opc_conn.write_opcua_nodes(payload)
+                    await opc_conn.cleanup()
 
             case IOEventType.exit_io:
                 break
 
     zmq_communication.cleanup()
-    for opc_conn in opc_connections.values():
-        await opc_conn.cleanup()
+    # for opc_conn in opc_connections.values():
+    #     await opc_conn.cleanup()
 
     logger.info("CoreIO finished cleanup")
 

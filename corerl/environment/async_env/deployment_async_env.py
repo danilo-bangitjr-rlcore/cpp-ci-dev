@@ -91,7 +91,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         for action_name in action.columns:
             connection_id = self.action_nodes[action_name].get("connection_id")
             node_id = self.action_nodes[action_name].get("node_id")
-            action_val = float(action[action_name].iloc[0])
+            action_val = action[action_name].iloc[0].item()
 
 
             if connection_id not in write_payloads:

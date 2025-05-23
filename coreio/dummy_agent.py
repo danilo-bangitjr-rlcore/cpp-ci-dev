@@ -26,12 +26,12 @@ def main(cfg: MainConfig):
 
     topic = IOEventTopic.coreio
 
-    for _ in range(20):
+    for _ in range(30):
         # Make message
         x = np.random.rand()
         messagedata = IOEvent(
             type=IOEventType.write_opcua_nodes,
-            data={"b37c07a6": [OPCUANodeWriteValue(node_id= "ns=2;i=2", value= x)]}
+            data={"asdxf": [OPCUANodeWriteValue(node_id= "ns=2;i=2", value= x)]}
         ).model_dump_json()
 
         payload = f"{topic} {messagedata}"
