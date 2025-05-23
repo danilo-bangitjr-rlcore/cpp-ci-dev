@@ -99,9 +99,6 @@ class DeploymentAsyncEnv(AsyncEnv):
 
             write_payloads[connection_id].append(OPCUANodeWriteValue(node_id=node_id, value=action_val))
 
-        print("!!!!!")
-        print(write_payloads)
-        print("!!!!!")
         try:
             self.coreio_client.write_opcua_nodes(write_payloads)
         except Exception:

@@ -110,7 +110,7 @@ def run_docker_compose(run_make_configs: None, request: FixtureRequest):
 
     proc.check_returncode()
 
-    yield # This fails sometimes
+    yield
 
     proc = subprocess.run(
         ["docker", "compose", "down"],
@@ -177,7 +177,7 @@ def test_dep_mountain_car_continuous(
     free_localhost_port: int,
 ):
     event_bus_url = f'tcp://localhost:{free_localhost_port}'
-    # coreio_origin = 'tcp://localhost:5558'
+    coreio_origin = 'tcp://localhost:5558'
     proc = subprocess.run(
         [
             "corerl_main",
@@ -188,7 +188,7 @@ def test_dep_mountain_car_continuous(
             "interaction.update_period=00:00:01",
             "interaction.action_period=00:00:01",
             "event_bus.cli_connection=" + event_bus_url,
-            # "coreio.coreio_origin=" + coreio_origin,
+            "coreio.coreio_origin=" + coreio_origin,
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
@@ -264,4 +264,3 @@ def test_docker_compose_up_running(check_sim_farama_environment_ready: None):
         containers_to_check.remove(container_output["Names"])
 
     assert len(containers_to_check) == 0, f"did not find expected container(s): {containers_to_check}"
-
