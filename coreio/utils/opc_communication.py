@@ -32,7 +32,7 @@ class OPC_Connection:
         self.opc_client = Client(cfg.opc_conn_url)
         await self._register_action_nodes(tag_configs)
 
-        if cfg.client_cert_path and cfg.client_private_key_path and cfg.server_cert_path: 
+        if cfg.client_cert_path and cfg.client_private_key_path and cfg.server_cert_path:
             assert cfg.application_uri is not None
             self.opc_client.application_uri = cfg.application_uri
 
@@ -43,7 +43,7 @@ class OPC_Connection:
                 mode=ua.MessageSecurityMode.SignAndEncrypt,
                 server_certificate=cfg.server_cert_path,
             )
-        if cfg.client_cert_path or cfg.client_private_key_path or cfg.server_cert_path: 
+        if cfg.client_cert_path or cfg.client_private_key_path or cfg.server_cert_path:
             logger.warning(
                 f"OPC Clinent (connection_id: {cfg.connection_id}): " +
                 "Client cert path, client private key path and server cert path " +
