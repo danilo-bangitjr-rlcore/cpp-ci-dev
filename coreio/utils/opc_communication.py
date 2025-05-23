@@ -2,6 +2,7 @@ import logging
 from datetime import UTC
 from types import TracebackType
 from typing import Optional, Type
+
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
@@ -91,7 +92,7 @@ class OPC_Connection:
         await self.opc_client.disconnect()
         return self
 
-    async def __aenter__(self): 
+    async def __aenter__(self):
         return await self.start()
 
     async def __aexit__(

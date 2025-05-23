@@ -52,7 +52,7 @@ async def coreio_loop(cfg: MainConfig):
                         logger.warning(f"Connection Id {connection_id} is unkown.")
                         continue
 
-                    async with opc_conn: 
+                    async with opc_conn:
                         await opc_conn.write_opcua_nodes(payload)
 
             case IOEventType.exit_io:
