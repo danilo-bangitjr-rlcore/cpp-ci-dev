@@ -42,11 +42,11 @@ You should see in the OPC Client GUI that the node  `"ns=2;i=2"` is changing.
           ┌────────┐                   
           │ config │                   
           └────┬───┘                   
-               │                       
     ┌──────────┴──────────────┐        
-┌───▼───┐                ┌────▼───┐    
+    ▼                         ▼
+┌───────┐                ┌────────┐    
 │ Agent ├───────────────►│ CoreIO │    
-└───────┘ ZMQ Pub/Sub    └────────┘    
+└───────┘  ZMQ Pub/Sub   └────────┘    
                               ▲
                               │ 
                               │ asyncua
