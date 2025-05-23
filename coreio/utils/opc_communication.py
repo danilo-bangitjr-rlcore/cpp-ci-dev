@@ -1,6 +1,7 @@
 import logging
 from datetime import UTC
-
+from types import TracebackType
+from typing import Optional, Type
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
@@ -80,6 +81,8 @@ class OPC_Connection:
 
                 self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
+
+    @backoff.on_exception(backoff.expo, (OSError), max_time=30,)
     async def start(self):
         await self.opc_client.connect()
         return self
@@ -88,12 +91,23 @@ class OPC_Connection:
         await self.opc_client.disconnect()
         return self
 
+    async def __aenter__(self): 
+        return await self.start()
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc: Optional[BaseException],
+        tb: Optional[TracebackType],
+    ):
+        _ = exc_type, exc, tb
+        await self.cleanup()
+
     async def ensure_connected(self):
         try:
             await self.opc_client.check_connection()
         except ConnectionError:
             await self.opc_client.connect()
-
 
     @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30,)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):

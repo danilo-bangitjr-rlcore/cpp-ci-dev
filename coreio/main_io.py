@@ -17,6 +17,9 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+logging.getLogger("asyncua").setLevel(logging.WARNING)
+logging.getLogger("asyncuagds").setLevel(logging.WARNING)
+
 @load_config(MainConfig, base='config/')
 async def coreio_loop(cfg: MainConfig):
     opc_connections: dict[str, OPC_Connection] = {}
@@ -30,9 +33,6 @@ async def coreio_loop(cfg: MainConfig):
             if heartbeat_id is not None:
                 await opc_connections[opc_conn_cfg.connection_id].register_node(heartbeat_id)
 
-    # for opc_conn in opc_connections.values():
-    #     await opc_conn.start()
-
     zmq_communication = ZMQ_Communication(cfg.coreio)
     zmq_communication.start()
 
@@ -40,31 +40,25 @@ async def coreio_loop(cfg: MainConfig):
 
     while True:
         event = zmq_communication.recv_event()
-
-        logger.info(f"Received {event}")
         if event is None:
             continue
 
         match event.type:
             case IOEventType.write_opcua_nodes:
+                logger.info(f"Writing {event}")
                 for connection_id, payload in event.data.items():
                     opc_conn = opc_connections.get(connection_id)
                     if opc_conn is None:
                         logger.warning(f"Connection Id {connection_id} is unkown.")
                         continue
 
-
-                    await opc_conn.start()
-                    await opc_conn.write_opcua_nodes(payload)
-                    await opc_conn.cleanup()
+                    async with opc_conn: 
+                        await opc_conn.write_opcua_nodes(payload)
 
             case IOEventType.exit_io:
                 break
 
     zmq_communication.cleanup()
-    # for opc_conn in opc_connections.values():
-    #     await opc_conn.cleanup()
-
     logger.info("CoreIO finished cleanup")
 
 def main():
