@@ -201,6 +201,7 @@ class DeploymentInteraction:
         agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
         agent_eval.greed_values_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
         agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+        agent_eval.policy_variance(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
 
 
 
