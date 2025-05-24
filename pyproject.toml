@@ -47,11 +47,7 @@ quote-style = "double"
 include = ['.']
 exclude = [
     '.venv/',
-    'sweep/',
-    'scripts/',
-    'build/',
     'corerl/sql_logging/examples',
-    'client',
     '.worktree/',
 ]
 venvPath = '.'
