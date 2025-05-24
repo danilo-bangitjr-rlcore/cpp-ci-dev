@@ -1,0 +1,249 @@
+[tool]
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
+
+[tool.ruff]
+line-length = 120
+exclude = [
+    '.worktree/',
+    'projects/drayton_valley/workaround/'
+]
+
+[tool.ruff.lint]
+select = ['F', 'E', 'W', 'B', 'I']
+ignore = [
+    'E402',
+
+    # multiple statements on one line. Incompatible with:
+    # if cond: break
+    'E701',
+
+    # syntax error in forward declaration - incompatible with jaxtyping
+    'F722',
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pyright]
+include = ['.']
+exclude = [
+    '.venv/',
+    'sweep/',
+    'scripts/',
+    'build/',
+    'corerl/environment/smpl',
+    'corerl/environment/third_party',
+    'corerl/sql_logging/examples',
+    'client',
+    '.worktree/',
+]
+venvPath = '.'
+venv = '.venv'
+typeCheckingMode = 'standard'
+
+# common overrides
+useLibraryCodeForTypes = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+enableReachabilityAnalysis = true
+
+# stricter overrides
+reportInconsistentConstructor = true
+reportMissingParameterType = true
+reportUnnecessaryCast = true
+reportUnnecessaryIsInstance = true
+reportUnusedClass = true
+reportUnusedExpression = true
+reportUnusedFunction = true
+
+[tool.pylint]
+[tool.pylint.main]
+jobs = 0
+
+[tool.pylint.format]
+indent-after-paren = 4
+max-line-length = 140
+max-module-lines = 1000
+
+[tool.pylint."messages control"]
+disable = [
+    "abstract-method",
+    "arguments-differ",
+    "arguments-renamed",
+    "bare-except",
+    "broad-exception-caught",
+    "broad-exception-raised",
+    "consider-using-from-import",
+    "consider-using-with",
+    "cyclic-import",
+    "duplicate-code",
+    "fixme",
+    "global-statement",
+    "import-error",
+    "import-outside-toplevel",
+    "inconsistent-return-statements",
+    "invalid-name",
+    "invalid-overridden-method",
+    "line-too-long",
+    "logging-fstring-interpolation",
+    "logging-not-lazy",
+    "logging-too-many-args",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "multiple-statements",
+    "no-else-continue",
+    "no-else-return",
+    "no-member",
+    "no-name-in-module",
+    "no-value-for-parameter",
+    "non-ascii-name",
+    "not-callable",
+    "pointless-string-statement",
+    "possibly-used-before-assignment",
+    "protected-access",
+    "raise-missing-from",
+    "redefined-builtin",
+    "redefined-outer-name",
+    "redundant-u-string-prefix",
+    "self-assigning-variable",
+    "signature-differs",
+    "simplifiable-if-statement",
+    "subprocess-run-check",
+    "super-init-not-called",
+    "super-with-arguments",
+    "superfluous-parens",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-positional-arguments",
+    "too-many-return-statements",
+    "too-many-statements",
+    "unbalanced-tuple-unpacking",
+    "unidiomatic-typecheck",
+    "unknown-option-value",
+    "unnecessary-comprehension",
+    "unnecessary-dunder-call",
+    "unnecessary-ellipsis",
+    "unnecessary-lambda",
+    "unpacking-non-sequence",
+    "unspecified-encoding",
+    "unsubscriptable-object",
+    "unused-argument",
+    "unused-variable",
+    "use-a-generator",
+    "useless-import-alias",
+    "useless-object-inheritance",
+    "useless-parent-delegation",
+    "warnings.warn",
+    "wrong-import-order",
+    "wrong-import-position",
+]
+
+[tool.deadcode]
+exclude = [".venv", "docs", "test", "build", "corerl/environment/smpl", "client"]
+ignore-names = ["_*"]
+ignore-names-in-files = []
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[tool.coverage.run]
+omit = ["test/*"]
+concurrency = ["thread", "multiprocessing"]
+
+# If the vendor directory exists and contains coreenv dependency
+# this will be included in our generated wheel. Otherwise coreenv
+# will need to be installed manually prior to corerl. This is necessary
+# to support our docker image for running corerl.
+[tool.setuptools.packages.find]
+where = [".", "vendor"]
+include = ["corerl*", "coreenv*", "coreio*"]
+
+[tool.setuptools.package-dir]
+"coreenv" = "vendor/core-env"
+
+[tool.uv.sources]
+coreenv = { git = "ssh://git@github.com/rlcoretech/core-env.git" }
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "corerl"
+version = "0.142.0"
+description = ""
+requires-python = ">=3.13,<3.14"
+authors = []
+dependencies = [
+    "asyncua~=1.0",
+    "backoff~=2.2.1",
+    "boto3~=1.35",
+    "casadi~=3.6",
+    "cloudpathlib[s3]~=0.20",
+    "discrete-dists~=1.0",
+    "fastapi[standard]~=0.115.6",
+    "gymnasium~=1.0",
+    "influxdb_client~=1.39",
+    "jaxtyping~=0.2",
+    "matplotlib~=3.8",
+    "nltk~=3.8",
+    "numba~=0.60",
+    "numpy~=2.0",
+    "pandas~=2.2",
+    "pandas-stubs~=2.2",
+    "pydantic~=2.9",
+    "pygame~=2.5",
+    "pyyaml~=6.0",
+    "requests~=2.31",
+    "scipy~=1.13",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
+    "tabulate~=0.9.0",
+    "torch~=2.5",
+    "tqdm~=4.66",
+    "scikit-learn~=1.5",
+    "psycopg2-binary~=2.9",
+    "pyzmq~=26.4.0",
+]
+readme = "README.md"
+
+[project.scripts]
+coreio_main = "coreio.main_io:main"
+corerl_main = "corerl.main:main"
+corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
+corerl_agent_step = "corerl.bin.corerl_step_cli:main"
+corerl_start_web = "corerl.bin.start_web_app:main"
+
+[dependency-groups]
+dev = [
+    "boto3>=1.36.7",
+    "debugpy>=1.8.12",
+    "docker>=7.1.0",
+    "filelock>=3.17.0",
+    "pip>=25.0",
+    "pre-commit>=4.1.0",
+    "pyright>=1.1.392.post0",
+    "pytest>=8.3.4",
+    "pytest-asyncio>=0.25.2",
+    "pytest-coverage>=0.0",
+    "pytest-timeout>=2.3.1",
+    "pytest-xdist>=3.6.1",
+    "rlevaluation>=1.1.0",
+    "ruff>=0.9.3",
+    "seaborn>=0.13.2",
+    "uv>=0.5.24",
+    "coreenv",
+    "pylint>=3.3.6",
+]
