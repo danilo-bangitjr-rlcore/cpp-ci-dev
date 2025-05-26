@@ -34,7 +34,7 @@ class CalibrationEnv(gym.Env):
         self._obs_max = np.ones(2)
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
 
-        self._action_min = -np.ones(1)
+        self._action_min = np.zeros(1)
         self._action_max = np.ones(1)
         self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
