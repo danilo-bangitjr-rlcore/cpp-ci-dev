@@ -3,7 +3,7 @@ import random
 import pytest
 from sqlalchemy_utils.functions import drop_database
 
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
+from corerl.corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.infrastructure.utils.docker import init_docker_container
 
 

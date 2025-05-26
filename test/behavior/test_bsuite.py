@@ -1,7 +1,7 @@
 import filelock
 import pytest
 
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
+from corerl.corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest

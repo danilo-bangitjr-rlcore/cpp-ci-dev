@@ -12,12 +12,12 @@ from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.loader import load_config
-from corerl.environment.async_env.async_env import GymEnvConfig
-from corerl.environment.factory import init_environment
-from corerl.utils.opc_connection import make_opc_node_id
-from corerl.utils.time import clock_generator, wait_for_timestamp
+from corerl.corerl.configs.config import MISSING, config
+from corerl.corerl.configs.loader import load_config
+from corerl.corerl.environment.async_env.async_env import GymEnvConfig
+from corerl.corerl.environment.factory import init_environment
+from corerl.corerl.utils.opc_connection import make_opc_node_id
+from corerl.corerl.utils.time import clock_generator, wait_for_timestamp
 
 
 @config()

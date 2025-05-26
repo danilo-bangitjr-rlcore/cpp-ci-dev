@@ -13,7 +13,7 @@ import pandas as pd
 from rlevaluation.backend.statistics import PercentileBootstrapResult, ToleranceIntervalResult
 from rlevaluation.statistics import percentile_bootstrap_ci, tolerance_interval
 
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
+from corerl.corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.test_bsuite import TEST_CASES
 
