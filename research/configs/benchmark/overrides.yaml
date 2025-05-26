@@ -1,0 +1,9 @@
+env:
+  name: [
+    'Saturation-v0',
+    'DistractionWorld-v0',
+    'DelayedSaturation-v0',
+    'WindyRoom-v0',
+    'MultiActionSaturation-v0',
+    'StandStillMC-v0'   
+]

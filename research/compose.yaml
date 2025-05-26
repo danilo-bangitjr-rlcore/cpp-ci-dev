@@ -1,0 +1,22 @@
+version: '3'
+services:
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_INSTALL_PLUGINS=marcusolsson-csv-datasource,frser-sqlite-datasource
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_PLUGIN_ALLOW_LOCAL_MODE=true
+    volumes:
+      - ./logs:/var/lib/grafana/public/csv
+      - ./results:/var/lib/grafana/public/sqlite
+    restart: unless-stopped
+
+volumes:
+  grafana-data:
