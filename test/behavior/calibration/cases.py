@@ -9,7 +9,8 @@ class CalibrationTest(BSuiteTestCase):
     name = 'calibration'
     config = 'test/behavior/calibration/calibration.yaml'
 
-    lower_bounds = {'reward': -0.1}
+    # The best possible reward is either -0.571 or -0.286, depending on the bias.
+    lower_bounds = {'reward': -1}
 
     def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame, features: dict[str, bool]) -> pd.DataFrame:
         summary_df = super().evaluate_outcomes(tsdb, metrics_table, features)
