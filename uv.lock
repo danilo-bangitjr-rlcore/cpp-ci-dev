@@ -2,6 +2,15 @@ version = 1
 revision = 2
 requires-python = "==3.13.*"
 
+[manifest]
+members = [
+    "coreio",
+    "corerl",
+    "product",
+    "projects",
+    "test",
+]
+
 [[package]]
 name = "aiofiles"
 version = "24.1.0"
@@ -265,22 +274,14 @@ wheels = [
 ]
 
 [[package]]
-name = "coreenv"
-version = "0.133.0"
-source = { git = "ssh://git@github.com/rlcoretech/core-env.git#10acca27b0d9a6017a68029e429800155aba7d13" }
-dependencies = [
-    { name = "gymnasium" },
-    { name = "matplotlib" },
-    { name = "numpy" },
-    { name = "pydantic" },
-    { name = "scipy" },
-    { name = "sympy" },
-]
+name = "coreio"
+version = "0.1.0"
+source = { virtual = "coreio" }
 
 [[package]]
 name = "corerl"
 version = "0.142.0"
-source = { editable = "." }
+source = { editable = "corerl" }
 dependencies = [
     { name = "asyncua" },
     { name = "backoff" },
@@ -311,28 +312,6 @@ dependencies = [
     { name = "tabulate" },
     { name = "torch" },
     { name = "tqdm" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "boto3" },
-    { name = "coreenv" },
-    { name = "debugpy" },
-    { name = "docker" },
-    { name = "filelock" },
-    { name = "pip" },
-    { name = "pre-commit" },
-    { name = "pylint" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-coverage" },
-    { name = "pytest-timeout" },
-    { name = "pytest-xdist" },
-    { name = "rlevaluation" },
-    { name = "ruff" },
-    { name = "seaborn" },
-    { name = "uv" },
 ]
 
 [package.metadata]
@@ -366,28 +345,6 @@ requires-dist = [
     { name = "tabulate", specifier = "~=0.9.0" },
     { name = "torch", specifier = "~=2.5" },
     { name = "tqdm", specifier = "~=4.66" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "boto3", specifier = ">=1.36.7" },
-    { name = "coreenv", git = "ssh://git@github.com/rlcoretech/core-env.git" },
-    { name = "debugpy", specifier = ">=1.8.12" },
-    { name = "docker", specifier = ">=7.1.0" },
-    { name = "filelock", specifier = ">=3.17.0" },
-    { name = "pip", specifier = ">=25.0" },
-    { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "pylint", specifier = ">=3.3.6" },
-    { name = "pyright", specifier = ">=1.1.392.post0" },
-    { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-asyncio", specifier = ">=0.25.2" },
-    { name = "pytest-coverage", specifier = ">=0.0" },
-    { name = "pytest-timeout", specifier = ">=2.3.1" },
-    { name = "pytest-xdist", specifier = ">=3.6.1" },
-    { name = "rlevaluation", specifier = ">=1.1.0" },
-    { name = "ruff", specifier = ">=0.9.3" },
-    { name = "seaborn", specifier = ">=0.13.2" },
-    { name = "uv", specifier = ">=0.5.24" },
 ]
 
 [[package]]
@@ -1324,6 +1281,78 @@ wheels = [
 ]
 
 [[package]]
+name = "product"
+version = "0.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "coreio" },
+    { name = "corerl" },
+    { name = "projects" },
+    { name = "test" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "boto3" },
+    { name = "debugpy" },
+    { name = "docker" },
+    { name = "filelock" },
+    { name = "pip" },
+    { name = "pre-commit" },
+    { name = "pylint" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-coverage" },
+    { name = "pytest-timeout" },
+    { name = "pytest-xdist" },
+    { name = "rlevaluation" },
+    { name = "ruff" },
+    { name = "seaborn" },
+    { name = "uv" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "coreio", virtual = "coreio" },
+    { name = "corerl", editable = "corerl" },
+    { name = "projects", editable = "projects" },
+    { name = "test", editable = "test" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "boto3", specifier = ">=1.36.7" },
+    { name = "debugpy", specifier = ">=1.8.12" },
+    { name = "docker", specifier = ">=7.1.0" },
+    { name = "filelock", specifier = ">=3.17.0" },
+    { name = "pip", specifier = ">=25.0" },
+    { name = "pre-commit", specifier = ">=4.1.0" },
+    { name = "pylint", specifier = ">=3.3.6" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.3.4" },
+    { name = "pytest-asyncio", specifier = ">=0.25.2" },
+    { name = "pytest-coverage", specifier = ">=0.0" },
+    { name = "pytest-timeout", specifier = ">=2.3.1" },
+    { name = "pytest-xdist", specifier = ">=3.6.1" },
+    { name = "rlevaluation", specifier = ">=1.1.0" },
+    { name = "ruff", specifier = ">=0.9.3" },
+    { name = "seaborn", specifier = ">=0.13.2" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
+name = "projects"
+version = "0.0.0"
+source = { editable = "projects" }
+dependencies = [
+    { name = "corerl" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "corerl", editable = "corerl" }]
+
+[[package]]
 name = "psycopg2-binary"
 version = "2.9.10"
 source = { registry = "https://pypi.org/simple" }
@@ -1959,6 +1988,25 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/ec/fe/802052aecb21e3797b8f7902564ab6ea0d60ff8ca23952079064155d1ae1/tabulate-0.9.0.tar.gz", hash = "sha256:0095b12bf5966de529c0feb1fa08671671b3368eec77d7ef7ab114be2c068b3c", size = 81090, upload-time = "2022-10-06T17:21:48.54Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/40/44/4a5f08c96eb108af5cb50b41f76142f0afa346dfa99d5296fe7202a11854/tabulate-0.9.0-py3-none-any.whl", hash = "sha256:024ca478df22e9340661486f85298cff5f6dcdba14f3813e8830015b9ed1948f", size = 35252, upload-time = "2022-10-06T17:21:44.262Z" },
+]
+
+[[package]]
+name = "test"
+version = "0.0.0"
+source = { editable = "test" }
+dependencies = [
+    { name = "corerl" },
+    { name = "docker" },
+    { name = "pytest" },
+    { name = "rlevaluation" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "corerl", editable = "corerl" },
+    { name = "docker", specifier = ">=7.1.0" },
+    { name = "pytest", specifier = ">=8.3.5" },
+    { name = "rlevaluation", specifier = ">=1.1.1" },
 ]
 
 [[package]]

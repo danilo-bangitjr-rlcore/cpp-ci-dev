@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from corerl.utils.time import now_iso
+from corerl.corerl.utils.time import now_iso
 
 
 class OPCUANodeWriteValue(BaseModel):
@@ -29,4 +29,3 @@ class IOEvent(BaseModel):
     type: IOEventType
     data: dict[str, list[OPCUANodeWriteValue]] = {}
     model_config = ConfigDict(arbitrary_types_allowed=True)
-

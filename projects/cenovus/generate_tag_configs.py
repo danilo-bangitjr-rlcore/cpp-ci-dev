@@ -2,9 +2,9 @@ from pathlib import Path
 
 from cenovus.utils.data import get_file_paths
 
-from corerl.configs.config import config
-from corerl.configs.loader import load_config
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TagStats
+from corerl.corerl.configs.config import config
+from corerl.corerl.configs.loader import load_config
+from corerl.corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig, TagStats
 
 
 @config(allow_extra=True)

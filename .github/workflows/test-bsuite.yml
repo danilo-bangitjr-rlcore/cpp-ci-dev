@@ -1,0 +1,23 @@
+name: Behavior Test
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # run every 6 hours
+  workflow_dispatch:
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  behavior-test:
+    runs-on: threadripper-1
+    steps:
+      - name: Setup
+        uses: ./.github/actions/setup
+
+      - name: Run Pytest
+        run: |
+          uv run pytest -n auto --dist worksteal test/behavior

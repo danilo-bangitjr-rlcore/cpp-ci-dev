@@ -5,17 +5,17 @@ from datetime import UTC
 import numpy as np
 import torch
 
-from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
-from corerl.data_pipeline.datatypes import DataMode
-from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
-from corerl.messages.event_bus import EventBus
-from corerl.state import AppState
-from corerl.utils.maybe import Maybe
-from corerl.utils.time import split_into_chunks
+from corerl.corerl.config import MainConfig
+from corerl.corerl.configs.loader import direct_load_config
+from corerl.corerl.data_pipeline.datatypes import DataMode
+from corerl.corerl.data_pipeline.db.data_reader import DataReader
+from corerl.corerl.data_pipeline.pipeline import Pipeline
+from corerl.corerl.eval.evals import EvalsTable
+from corerl.corerl.eval.metrics import MetricsTable
+from corerl.corerl.messages.event_bus import EventBus
+from corerl.corerl.state import AppState
+from corerl.corerl.utils.maybe import Maybe
+from corerl.corerl.utils.time import split_into_chunks
 
 logger = logging.getLogger(__name__)
 

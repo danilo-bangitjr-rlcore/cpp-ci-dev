@@ -2,8 +2,8 @@ from typing import Any
 
 import utils.data as utils
 
-from corerl.config import DBConfig
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
+from corerl.corerl.config import DBConfig
+from corerl.corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 
 def _load_dataset_from_s3() -> list[tuple[Any, ...]]:

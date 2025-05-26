@@ -1,39 +1,24 @@
 name: Style and Tests
-
-on: [pull_request]
 permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "corerl/**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  py-style-check:
+  # -----------
+  # -- Style --
+  # -----------
+  style-check:
     runs-on: ubuntu-latest
     steps:
-      # setup the repository
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.13
-
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          prune-cache: false
-          cache-dependency-glob: "uv.lock"
-
-      - run: |
-          uv venv
-          uv sync
-
-      - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+      - name: Setup
+        uses: ./.github/actions/setup
 
       # linting
       - uses: astral-sh/ruff-action@v1
@@ -42,29 +27,29 @@ jobs:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review
           level: warning
-          glob_pattern: "corerl/ test/"
+          glob_pattern: "corerl/ coreio/ test/"
 
       # type checking
       - uses: jakebailey/pyright-action@v2
         with:
           pylance-version: latest-release
 
-
+  # -----------
+  # -- Tests --
+  # -----------
   small-test:
-    needs: [py-style-check]
+    needs: [style-check]
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
       test-suite: small
-     # - run: uv run pytest -n auto test/small
 
   medium-test:
-    needs: [py-style-check]
+    needs: [style-check]
     uses: ./.github/workflows/reusable-run-test.yml
     secrets: inherit
     with:
       test-suite: medium
-      #- run: uv run pytest test/medium
 
   large-test:
     needs: [small-test, medium-test]
@@ -73,12 +58,6 @@ jobs:
     with:
       test-flags: --verbose --dist loadscope
       test-suite: large
-      #- run: uv run pytest test/large
-
-  fastapi-schema-test:
-    needs: [py-style-check]
-    uses: ./.github/workflows/reusable-fastapi-schema-generation.yml
-    secrets: inherit
 
   docker-build-test:
     needs: [small-test, medium-test]
@@ -91,27 +70,8 @@ jobs:
     needs: [large-test]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: 3.13
-
-      - uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          prune-cache: false
-          cache-dependency-glob: "uv.lock"
-
-      - run: |
-          uv venv
-          uv sync
-
-      - run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+      - name: Setup
+        uses: ./.github/actions/setup
 
       - name: Download coverage artifacts
         uses: actions/download-artifact@v4

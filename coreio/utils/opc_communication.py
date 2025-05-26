@@ -10,7 +10,7 @@ from pydantic import BaseModel, ConfigDict
 
 from coreio.config import OPCConnectionConfig
 from coreio.utils.io_events import OPCUANodeWriteValue
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.corerl.data_pipeline.tag_config import TagConfig, TagType
 
 logger = logging.getLogger(__name__)
 
@@ -167,4 +167,3 @@ class OPC_Connection:
 
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)
-

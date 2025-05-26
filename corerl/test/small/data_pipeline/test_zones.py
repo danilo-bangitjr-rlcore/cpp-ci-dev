@@ -20,7 +20,7 @@ from corerl.state import AppState
 def cfg():
     return direct_load_config(
         MainConfig,
-        base='test/small/data_pipeline/assets',
+        base='corerl/test/small/data_pipeline/assets',
         config_name='zone.yaml',
     )
 

@@ -79,10 +79,10 @@ class BSuiteTestCase:
         start = datetime.now(UTC)
 
         proc = subprocess.run([
-            'python', 'main.py',
+            'python', 'corerl/main.py',
             '--base', '.',
             '--config-name', self.config,
-        ] + parts)
+        ] + parts, cwd='corerl')
         proc.check_returncode()
 
         # ensure metrics table exists

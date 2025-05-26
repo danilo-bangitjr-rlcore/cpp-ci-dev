@@ -17,7 +17,7 @@ from corerl.data_pipeline.transition_filter import (
     only_no_action_change,
     only_post_dp,
 )
-from test.small.data_pipeline.test_transition_pipeline import pf_from_actions
+from corerl.test.small.data_pipeline.test_transition_pipeline import pf_from_actions
 
 
 def make_test_step(

@@ -1,4 +1,4 @@
-from corerl.configs.config import MISSING, config, list_
+from corerl.corerl.configs.config import MISSING, config, list_
 
 
 @config()
@@ -14,4 +14,3 @@ class OPCConnectionConfig():
 class CoreIOConfig():
     coreio_origin: str = "tcp://localhost:5557"
     opc_connections: list[OPCConnectionConfig] = list_()
-

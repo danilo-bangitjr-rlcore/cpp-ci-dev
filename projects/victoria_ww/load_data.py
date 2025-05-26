@@ -1,8 +1,8 @@
 import utils.data as utils
 
-from corerl.config import DBConfig
-from corerl.configs.loader import load_config
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
+from corerl.corerl.config import DBConfig
+from corerl.corerl.configs.loader import load_config
+from corerl.corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 
 
 def _load_dataset_from_s3(dl_cfg: utils.VictoriaWWConfig) -> list[utils.SQLEntry]:

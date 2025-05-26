@@ -7,15 +7,15 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-import corerl.data_pipeline.transforms as xform
-from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
-from corerl.data_pipeline.constructors.preprocess import Preprocessor
-from corerl.data_pipeline.constructors.rc import RewardConstructor
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.pipeline import Pipeline
-from corerl.data_pipeline.tag_config import TagConfig, get_tag_bounds_no_eval
-from corerl.state import AppState
+import corerl.corerl.data_pipeline.transforms as xform
+from corerl.corerl.config import MainConfig
+from corerl.corerl.configs.loader import direct_load_config
+from corerl.corerl.data_pipeline.constructors.preprocess import Preprocessor
+from corerl.corerl.data_pipeline.constructors.rc import RewardConstructor
+from corerl.corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.corerl.data_pipeline.pipeline import Pipeline
+from corerl.corerl.data_pipeline.tag_config import TagConfig, get_tag_bounds_no_eval
+from corerl.corerl.state import AppState
 
 
 def dfs_close(df1: pd.DataFrame, df2: pd.DataFrame, col_order_matters: bool = False):
@@ -311,7 +311,7 @@ def test_epcor_reward():
     )
 
     assert dfs_close(pf.rewards, expected_reward_df)
-    from e2e.make_configs import generate_tag_yaml
+    from test.e2e.make_configs import generate_tag_yaml
     generate_tag_yaml(Path("projects/epcor_scrubber"), tag_cfgs)
 
 def _sanitize_dict[T](d: dict[Hashable, T]) -> dict[str, T]:

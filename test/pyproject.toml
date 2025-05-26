@@ -1,8 +1,12 @@
 [project]
-name="projects"
-version="0.0.0"
+name = "test"
+version = "0.0.0"
+requires-python = ">=3.13"
 dependencies = [
     "corerl",
+    "docker>=7.1.0",
+    "pytest>=8.3.5",
+    "rlevaluation>=1.1.1",
 ]
 
 [tool]
@@ -10,7 +14,7 @@ dependencies = [
 corerl = { workspace = true }
 
 [tool.setuptools.packages.find]
-include = ["cenovus"]
+include = ["behavior", "e2e"]
 
 [build-system]
 requires = ["setuptools"]

@@ -17,7 +17,7 @@ from corerl.state import AppState
 def cfg():
     return direct_load_config(
         MainConfig,
-        base='test/small/data_pipeline/constructors/assets',
+        base='corerl/test/small/data_pipeline/constructors/assets',
         config_name='reward_config.yaml',
     )
 
@@ -25,7 +25,7 @@ def cfg():
 def cfg_with_oob():
     return direct_load_config(
         MainConfig,
-        base='test/small/data_pipeline/constructors/assets',
+        base='corerl/test/small/data_pipeline/constructors/assets',
         config_name='oob_reward_config.yaml',
     )
 

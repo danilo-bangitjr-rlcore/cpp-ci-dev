@@ -7,7 +7,7 @@ import pandas as pd
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig, get_n_step_reward
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Transition
-from test.small.data_pipeline.test_transition_filter import make_test_step
+from corerl.test.small.data_pipeline.test_transition_filter import make_test_step
 
 
 def test_get_n_step_reward_1():

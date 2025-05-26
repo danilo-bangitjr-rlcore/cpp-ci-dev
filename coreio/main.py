@@ -7,8 +7,8 @@ import logging
 from coreio.utils.io_events import IOEventType
 from coreio.utils.opc_communication import OPC_Connection
 from coreio.utils.zmq_communication import ZMQ_Communication
-from corerl.config import MainConfig
-from corerl.configs.loader import load_config
+from corerl.corerl.config import MainConfig
+from corerl.corerl.configs.loader import load_config
 
 logging.basicConfig(
     level=logging.INFO,
