@@ -2,7 +2,6 @@ import logging
 from typing import Any
 
 import gymnasium as gym
-from coreenv.pertube_env import PerturbationConfig
 
 from corerl.environment.async_env.async_env import GymEnvConfig
 from corerl.environment.wrapper.wrappers import wrappers
@@ -11,7 +10,7 @@ try:
     from rl_env.factory import init_env
 except ImportError:
 
-    def init_env(name: str, overrides: Any = None, perturbation_config: PerturbationConfig | None = None) -> Any:
+    def init_env(name: str, overrides: Any = None, perturbation_config: Any | None = None) -> Any:
         """
         Placeholder function for initializing a custom environment.
         This should be replaced with the actual implementation.
