@@ -1,6 +1,17 @@
 [project]
 name="projects"
 version="0.0.0"
+dependencies = [
+    "corerl",
+]
 
-[tool.setuptools]
-packages=["cenovus"]
+[tool]
+[tool.uv.sources]
+corerl = { workspace = true }
+
+[tool.setuptools.packages.find]
+include = ["cenovus"]
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"

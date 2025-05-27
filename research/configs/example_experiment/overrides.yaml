@@ -1,0 +1,5 @@
+agent:
+  num_samples: [256, 128]
+
+env:
+  name: ['Saturation-v0', 'DistractionWorld-v0']

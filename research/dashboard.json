@@ -1,0 +1,375 @@
+{
+    "annotations": {
+      "list": [
+        {
+          "builtIn": 1,
+          "datasource": {
+            "type": "grafana",
+            "uid": "-- Grafana --"
+          },
+          "enable": true,
+          "hide": true,
+          "iconColor": "rgba(0, 211, 255, 1)",
+          "name": "Annotations & Alerts",
+          "type": "dashboard"
+        }
+      ]
+    },
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "links": [],
+    "panels": [
+      {
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "${DS_SQLITE}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green"
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 7,
+          "w": 7,
+          "x": 0,
+          "y": 0
+        },
+        "id": 3,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "queryText": "SELECT frame as time, measurement as value \nFROM action_0 \nWHERE id = ${experiment:raw}\nORDER BY frame",
+            "queryType": "table",
+            "rawQueryText": "SELECT frame as time, measurement as value \nFROM action_0 \nWHERE id = ${experiment:raw}\nORDER BY frame",
+            "refId": "A",
+            "timeColumns": [
+              "time",
+              "ts"
+            ]
+          }
+        ],
+        "title": "Action-0",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "${DS_SQLITE}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green"
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 7,
+          "w": 7,
+          "x": 7,
+          "y": 0
+        },
+        "id": 2,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "queryText": "SELECT frame as time, measurement as value \nFROM critic_loss \nWHERE id = ${experiment:raw}\nORDER BY frame",
+            "queryType": "table",
+            "rawQueryText": "SELECT frame as time, measurement as value \nFROM critic_loss \nWHERE id = ${experiment:raw}\nORDER BY frame",
+            "refId": "A",
+            "timeColumns": [
+              "time",
+              "ts"
+            ]
+          }
+        ],
+        "title": "Critic Loss",
+        "type": "timeseries"
+      },
+      {
+        "datasource": {
+          "type": "frser-sqlite-datasource",
+          "uid": "${DS_SQLITE}"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "custom": {
+              "axisBorderShow": false,
+              "axisCenteredZero": false,
+              "axisColorMode": "text",
+              "axisLabel": "",
+              "axisPlacement": "auto",
+              "barAlignment": 0,
+              "barWidthFactor": 0.6,
+              "drawStyle": "line",
+              "fillOpacity": 0,
+              "gradientMode": "none",
+              "hideFrom": {
+                "legend": false,
+                "tooltip": false,
+                "viz": false
+              },
+              "insertNulls": false,
+              "lineInterpolation": "linear",
+              "lineWidth": 1,
+              "pointSize": 5,
+              "scaleDistribution": {
+                "type": "linear"
+              },
+              "showPoints": "auto",
+              "spanNulls": false,
+              "stacking": {
+                "group": "A",
+                "mode": "none"
+              },
+              "thresholdsStyle": {
+                "mode": "off"
+              }
+            },
+            "mappings": [],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {
+                  "color": "green"
+                },
+                {
+                  "color": "red",
+                  "value": 80
+                }
+              ]
+            }
+          },
+          "overrides": []
+        },
+        "gridPos": {
+          "h": 7,
+          "w": 8,
+          "x": 14,
+          "y": 0
+        },
+        "id": 1,
+        "options": {
+          "legend": {
+            "calcs": [],
+            "displayMode": "list",
+            "placement": "bottom",
+            "showLegend": true
+          },
+          "tooltip": {
+            "hideZeros": false,
+            "mode": "single",
+            "sort": "none"
+          }
+        },
+        "targets": [
+          {
+            "queryText": "SELECT frame as time, measurement as value \nFROM reward \nWHERE id = ${experiment:raw}\nORDER BY frame",
+            "queryType": "table",
+            "rawQueryText": "SELECT frame as time, measurement as value \nFROM reward \nWHERE id = ${experiment:raw}\nORDER BY frame",
+            "refId": "A",
+            "timeColumns": [
+              "time",
+              "ts"
+            ]
+          }
+        ],
+        "title": "Reward",
+        "type": "timeseries"
+      }
+    ],
+    "refresh": "5s",
+    "schemaVersion": 41,
+    "tags": ["rl", "metrics"],
+    "templating": {
+      "list": [
+        {
+          "current": {
+            "selected": false,
+            "text": "0",
+            "value": "0"
+          },
+          "datasource": {
+            "type": "frser-sqlite-datasource",
+            "uid": "${DS_SQLITE}"
+          },
+          "definition": "SELECT DISTINCT id FROM reward ORDER BY id",
+          "hide": 0,
+          "includeAll": false,
+          "multi": false,
+          "name": "experiment",
+          "options": [],
+          "query": "SELECT DISTINCT id FROM reward ORDER BY id",
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        }
+      ]
+    },
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "timepicker": {},
+    "timezone": "browser",
+    "title": "Dashboard",
+    "uid": "rl-metrics",
+    "version": 1,
+    "__inputs": [
+      {
+        "name": "DS_SQLITE",
+        "label": "SQLite",
+        "description": "",
+        "type": "datasource",
+        "pluginId": "frser-sqlite-datasource",
+        "pluginName": "SQLite"
+      }
+    ],
+    "__requires": [
+      {
+        "type": "grafana",
+        "id": "grafana",
+        "name": "Grafana",
+        "version": "10.0.0"
+      },
+      {
+        "type": "datasource",
+        "id": "frser-sqlite-datasource",
+        "name": "SQLite",
+        "version": "3.2.1"
+      },
+      {
+        "type": "panel",
+        "id": "timeseries",
+        "name": "Time series",
+        "version": ""
+      }
+    ]
+  }

@@ -7,7 +7,7 @@ import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
 from cloudpathlib.enums import FileCacheMode
 
-from corerl.configs.config import config, list_
+from corerl.corerl.configs.config import config, list_
 
 SQLEntry = namedtuple('SQLEntry', ['time', 'val', 'tag'])
 

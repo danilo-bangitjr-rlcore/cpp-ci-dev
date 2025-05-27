@@ -1,0 +1,15 @@
+.idea/
+.vscode/
+build/
+logs/
+results/
+.pytest_cache
+**/*.egg-info
+**/*.pyc
+
+**/*.csv
+**/*.nbc
+**/*.nbi
+local_tests/
+commands.txt
+results.zip
