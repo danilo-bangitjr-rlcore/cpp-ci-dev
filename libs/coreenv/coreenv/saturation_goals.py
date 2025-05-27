@@ -1,0 +1,93 @@
+from dataclasses import dataclass
+from typing import Any
+
+import gymnasium as gym
+import numpy as np
+
+from coreenv.factory import EnvConfig, env_group
+
+
+@dataclass
+class SaturationGoalsConfig(EnvConfig):
+    name: str = 'SaturationGoals-v0'
+    setpoint_change_period: int = 400
+
+class SaturationGoals(gym.Env):
+    def __init__(self, cfg: SaturationGoalsConfig):
+        self.setpoint_change_period = cfg.setpoint_change_period
+        self._random = np.random.default_rng()
+        self._obs_min = np.array([0.])
+        self._obs_max = np.array([1.])
+        self.observation_space = gym.spaces.Box(np.array([0, 0, 0, 0]), np.array([1, 1, 1, 1]), (4,))
+
+        self.saturation = np.array([0.])
+        self.saturation_sp = np.array([0.8])
+        self.bound_lo = np.array([0.50])
+        self.bound_hi = np.array([0.51])
+
+        self.decay_period = 100
+
+        self._action_dim = 1
+        self._action_min = np.array([0])
+        self._action_max = np.array([1])
+        self.action_space = gym.spaces.Box(self._action_min, self._action_max)
+
+        self.time_step = 0
+
+        self.saturations = []
+        self.decays = []
+        self.actions = []
+
+    def seed(self, seed: int):
+        self._random = np.random.default_rng(seed)
+
+    def step(self, action: np.ndarray):
+        self.time_step += 1
+        self.saturation_sp = self._get_saturation_sp()
+        self.bound_lo, self.bound_hi = self._get_bound_var()
+
+        decay = 0.15 * np.cos(self.time_step * np.pi * (2 / self.decay_period)) + 0.75
+        self.saturation = self.saturation * decay + action
+        self.saturation = np.clip(self.saturation, 0, 1)
+        reward = -np.abs(self.saturation - self.saturation_sp).item()
+
+        self.decays.append(decay)
+        self.saturations.append(self.saturation)
+        self.actions.append(action)
+
+        return [self.saturation, self.saturation_sp, self.bound_lo, self.bound_hi], reward, False, False, {}
+
+    def plot(self):
+        import matplotlib.pyplot as plt
+        plt.plot(self.actions, label="actions")
+        plt.plot(self.saturations, label="saturation")
+        plt.plot(self.decays, label="decays")
+        plt.legend()
+        plt.show()
+
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ):
+        if seed is not None:
+            self.seed(seed)
+
+        return [self.saturation, self.saturation_sp, self.bound_lo, self.bound_hi], {}
+
+    def close(self):
+        pass
+
+    def _get_saturation_sp(self):
+        if (self.time_step//self.setpoint_change_period) % 2 == 0:
+            return np.array([0.9])
+        else:
+            return np.array([0.1])
+
+    def _get_bound_var(self):
+        lo = np.cos(self.time_step/4000 * 2 * np.pi) /4  + 0.25
+        hi = np.cos(self.time_step/4000 * 2 * np.pi + np.pi)/4 + 0.75
+        return lo, hi
+
+env_group.dispatcher(SaturationGoalsConfig(), SaturationGoals)
