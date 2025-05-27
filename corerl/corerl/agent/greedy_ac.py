@@ -9,7 +9,7 @@ from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import buffer_group
-from corerl.component.critic.factory import GTDCriticConfig, SARSACriticConfig, create_critic
+from corerl.component.critic.factory import GTDCriticConfig, create_critic
 from corerl.component.network.utils import tensor, to_np
 from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
 from corerl.configs.config import config
@@ -38,7 +38,7 @@ class GreedyACConfig(BaseAgentConfig):
     """
     name: Literal["greedy_ac"] = "greedy_ac"
 
-    critic: SARSACriticConfig | GTDCriticConfig = Field(default_factory=GTDCriticConfig)
+    critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
     policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
 
     loss_threshold: float = 0.0001
