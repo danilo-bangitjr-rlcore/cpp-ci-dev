@@ -9,13 +9,175 @@ dependencies = [
     "rlevaluation>=1.1.1",
 ]
 
-[tool]
-[tool.uv.sources]
-corerl = { workspace = true }
-
-[tool.setuptools.packages.find]
-include = ["behavior", "e2e"]
-
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pylint>=3.3.7",
+    "pyright>=1.1.401",
+    "ruff>=0.11.11",
+    "uv>=0.7.8",
+]
+
+[tool]
+[tool.hatch.build.targets.wheel]
+packages = ["test"]
+
+[tool.uv.sources]
+corerl = { path = "../corerl", editable = true }
+
+# ----------
+# -- Ruff --
+# ----------
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ['F', 'E', 'W', 'B', 'I']
+ignore = [
+    'E402',
+
+    # multiple statements on one line. Incompatible with:
+    # if cond: break
+    'E701',
+
+    # syntax error in forward declaration - incompatible with jaxtyping
+    'F722',
+]
+
+[tool.ruff.format]
+quote-style = "double"
+
+# -------------
+# -- Pyright --
+# -------------
+
+[tool.pyright]
+include = ['.']
+exclude = [
+    '.venv/',
+]
+venvPath = '.'
+venv = '.venv'
+typeCheckingMode = 'standard'
+
+# common overrides
+useLibraryCodeForTypes = true
+strictListInference = true
+strictDictionaryInference = true
+strictSetInference = true
+enableReachabilityAnalysis = true
+
+# stricter overrides
+reportInconsistentConstructor = true
+reportMissingParameterType = true
+reportUnnecessaryCast = true
+reportUnnecessaryIsInstance = true
+reportUnusedClass = true
+reportUnusedExpression = true
+reportUnusedFunction = true
+
+# ------------
+# -- Pylint --
+# ------------
+
+[tool.pylint]
+[tool.pylint.main]
+jobs = 0
+
+[tool.pylint.format]
+indent-after-paren = 4
+max-line-length = 140
+max-module-lines = 1000
+
+[tool.pylint."messages control"]
+disable = [
+    "abstract-method",
+    "arguments-differ",
+    "arguments-renamed",
+    "bare-except",
+    "broad-exception-caught",
+    "broad-exception-raised",
+    "consider-using-from-import",
+    "consider-using-with",
+    "cyclic-import",
+    "duplicate-code",
+    "fixme",
+    "global-statement",
+    "import-error",
+    "import-outside-toplevel",
+    "inconsistent-return-statements",
+    "invalid-name",
+    "invalid-overridden-method",
+    "line-too-long",
+    "logging-fstring-interpolation",
+    "logging-not-lazy",
+    "logging-too-many-args",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "missing-module-docstring",
+    "multiple-statements",
+    "no-else-continue",
+    "no-else-return",
+    "no-member",
+    "no-name-in-module",
+    "no-value-for-parameter",
+    "non-ascii-name",
+    "not-callable",
+    "pointless-string-statement",
+    "possibly-used-before-assignment",
+    "protected-access",
+    "raise-missing-from",
+    "redefined-builtin",
+    "redefined-outer-name",
+    "redundant-u-string-prefix",
+    "self-assigning-variable",
+    "signature-differs",
+    "simplifiable-if-statement",
+    "subprocess-run-check",
+    "super-init-not-called",
+    "super-with-arguments",
+    "superfluous-parens",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-branches",
+    "too-many-instance-attributes",
+    "too-many-locals",
+    "too-many-nested-blocks",
+    "too-many-positional-arguments",
+    "too-many-return-statements",
+    "too-many-statements",
+    "unbalanced-tuple-unpacking",
+    "unidiomatic-typecheck",
+    "unknown-option-value",
+    "unnecessary-comprehension",
+    "unnecessary-dunder-call",
+    "unnecessary-ellipsis",
+    "unnecessary-lambda",
+    "unpacking-non-sequence",
+    "unspecified-encoding",
+    "unsubscriptable-object",
+    "unused-argument",
+    "unused-variable",
+    "use-a-generator",
+    "useless-import-alias",
+    "useless-object-inheritance",
+    "useless-parent-delegation",
+    "warnings.warn",
+    "wrong-import-order",
+    "wrong-import-position",
+]
+
+# ----------------
+# -- Commitizen --
+# ----------------
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true

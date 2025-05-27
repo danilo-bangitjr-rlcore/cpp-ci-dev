@@ -58,7 +58,7 @@ def to_sympy(input_string: str) -> tuple[sy.Expr, Callable[..., float], list[str
     """
 
     processed_expression = _preprocess_expression_string(input_string)
-    expression = sy.sympify(processed_expression)
+    expression: Any = sy.sympify(processed_expression)
 
     # Both are sorted to keep parity between tag names and symbol names
     symbol_names = sorted(expression.free_symbols, key=lambda s: s.name)
@@ -107,12 +107,12 @@ def _preprocess_tag_names(input_tags: list[str] | str) -> list[str] | str:
     return input_tags.translate(replace_chars)
 
 
-def is_affine(input_expr: sy.Expr) -> bool:
+def is_affine(input_expr: sy.Expr | sy.Basic) -> bool:
     try:
         variables = input_expr.free_symbols
 
         # Conver to polynomial
-        poly = sy.Poly(input_expr, *variables)
+        poly: Any = sy.Poly(input_expr, *variables)
 
         # Check if degree is at most 1 for every variable
         for var in variables:

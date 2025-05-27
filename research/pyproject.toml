@@ -65,7 +65,7 @@ ignore = [
 ]
 
 [project]
-name = 'research-template'
+name = 'research'
 version = '0.0.0'
 description = 'A repo to test agent ideas'
 authors = []
