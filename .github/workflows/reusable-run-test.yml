@@ -32,7 +32,6 @@ jobs:
           subrepo: corerl
 
       - name: set up path
-        shell: bash
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Install corerl if large
@@ -48,11 +47,12 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create artifact directory
-        if: ${{ inputs.upload-coverage }}
         run: mkdir -p artifact
 
       - name: Run Pytest
         run: |
+          source .venv/bin/activate
+          uv pip install test
           pytest -n auto --dist loadscope --cov=. ${{ inputs.test-flags }} tests/${{ inputs.test-suite }}
 
       - name: Move coverage artifacts
