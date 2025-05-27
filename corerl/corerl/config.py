@@ -94,9 +94,6 @@ class FeatureFlags:
     # 2025-05-04
     interaction_action_variance: bool = False
 
-    # 2025-05-10
-    gtd_critic: bool = True
-
     # 2025-05-14
     regenerative_optimism: bool = False
 
