@@ -6,24 +6,21 @@ from test.behavior.bsuite import BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
+from test.behavior.pertubation.cases import (
+    MultiActionSaturationPerturbationTest,
+    SaturationPerturbationTest,
+    StandStillMountainCarPerturbationTest,
+)
 from test.behavior.saturation.cases import (
     DelayedSaturationTest,
     DeltaChangeSaturationTest,
     ExpandingBoundsSaturationTest,
     GoalSaturationTest,
-    MCARSaturationEasyTest,
-    MCARSaturationHardTest,
-    MCARSaturationMediumTest,
-    MultiActionSaturationBadOfflineDataTest,
-    MultiActionSaturationGoodOfflineDataTest,
-    MultiActionSaturationGreedificationTest,
     MultiActionSaturationTest,
     SaturationTest,
     SetpointChangeSaturationTest,
     SlowExpandingBoundsSaturationTest,
-    StickyMCARSaturationTest,
 )
-from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
 
@@ -59,16 +56,9 @@ TEST_CASES = [
     SlowExpandingBoundsSaturationTest(),
     DeltaChangeSaturationTest(),
     CalibrationTest(),
-    MultiActionSaturationGreedificationTest(),
-    MultiActionSaturationBadOfflineDataTest(),
-    MultiActionSaturationGoodOfflineDataTest(),
-    ShortTMazeTest(),
-    MediumTMazeTest(),
-    LongTMazeTest(),
-    MCARSaturationEasyTest(),
-    MCARSaturationMediumTest(),
-    MCARSaturationHardTest(),
-    StickyMCARSaturationTest(),
+    SaturationPerturbationTest(),
+    MultiActionSaturationPerturbationTest(),
+    StandStillMountainCarPerturbationTest(),
 ]
 
 ZERO_ONE_FEATURES = [
