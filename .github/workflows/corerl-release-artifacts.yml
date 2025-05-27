@@ -26,6 +26,10 @@ jobs:
 
   build-and-push-whl:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: corerl
+
     steps:
       - name: Generate a token
         id: generate-token

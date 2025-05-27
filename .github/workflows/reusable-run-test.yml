@@ -20,9 +20,15 @@ env:
 jobs:
   test:
     runs-on: ${{ inputs.runs-on }}
+    defaults:
+      run:
+        working-directory: corerl
+
     steps:
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          subrepo: corerl
 
       - name: Install corerl if large
         if: ${{ inputs.test-suite == 'large' }}
@@ -52,4 +58,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage_${{ inputs.test-suite }}
-          path: artifact
+          path: corerl/artifact

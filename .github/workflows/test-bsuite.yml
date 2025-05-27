@@ -17,7 +17,10 @@ jobs:
     steps:
       - name: Setup
         uses: ./.github/actions/setup
+        with:
+          subrepo: test
 
       - name: Run Pytest
         run: |
+          cd test
           uv run pytest -n auto --dist worksteal test/behavior
