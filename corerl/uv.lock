@@ -349,6 +349,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pylint" },
     { name = "pyright" },
+    { name = "pytest" },
     { name = "pytest-coverage" },
     { name = "pytest-timeout" },
     { name = "pytest-xdist" },
@@ -399,6 +400,7 @@ dev = [
     { name = "pre-commit", specifier = ">=4.2.0" },
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.401" },
+    { name = "pytest", specifier = ">=8.3.5" },
     { name = "pytest-coverage", specifier = ">=0.0" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
@@ -1932,7 +1934,7 @@ wheels = [
 
 [[package]]
 name = "test"
-version = "0.0.0"
+version = "0.0.1"
 source = { editable = "../test" }
 dependencies = [
     { name = "coreenv" },
