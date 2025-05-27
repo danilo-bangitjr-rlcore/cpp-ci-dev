@@ -41,7 +41,7 @@ readme = "README.md"
 
 [dependency-groups]
 dev = [
-    "coreenv",
+    "rl_env",
     "docker>=7.1.0",
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
@@ -73,7 +73,7 @@ packages = ["corerl"]
 [tool.uv.sources]
 test = { path = "../test", editable = true }
 coreio = { path = "../coreio", editable = true }
-coreenv = { path = "../libs/coreenv", editable = true }
+rl_env = { path = "../libs/rl_env", editable = true }
 
 # ----------
 # -- Ruff --

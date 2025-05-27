@@ -9,7 +9,7 @@ from matplotlib.animation import FuncAnimation, PillowWriter
 from scipy import signal
 from scipy.special import softmax
 
-from coreenv.factory import EnvConfig, env_group
+from rl_env.factory import EnvConfig, env_group
 
 
 @dataclass

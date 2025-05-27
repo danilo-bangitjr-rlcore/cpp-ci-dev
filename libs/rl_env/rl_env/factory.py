@@ -4,7 +4,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, replace
 from typing import Any, Concatenate, Protocol, TypeVar
 
-from coreenv.pertube_env import ObservationPerturbationWrapper, PerturbationConfig
+from rl_env.pertube_env import ObservationPerturbationWrapper, PerturbationConfig
 
 logger = logging.getLogger(__name__)
 
@@ -49,17 +49,17 @@ env_group = Group[[], Any]()
 
 def init_env(name: str, overrides: dict | None = None, perturbation_config: PerturbationConfig | None = None):
     # register environments
-    import coreenv.calibration  # noqa: F401
-    import coreenv.distraction_world  # noqa: F401
-    import coreenv.four_rooms  # noqa: F401
-    import coreenv.multi_action_saturation  # noqa: F401
-    import coreenv.pvs  # noqa: F401
-    import coreenv.saturation  # noqa: F401
-    import coreenv.saturation_goals  # noqa: F401
-    import coreenv.stand_still_mc  # noqa: F401
-    import coreenv.t_maze  # noqa: F401
-    import coreenv.three_tanks  # noqa: F401
-    import coreenv.windy_room  # noqa: F401
+    import rl_env.calibration  # noqa: F401
+    import rl_env.distraction_world  # noqa: F401
+    import rl_env.four_rooms  # noqa: F401
+    import rl_env.multi_action_saturation  # noqa: F401
+    import rl_env.pvs  # noqa: F401
+    import rl_env.saturation  # noqa: F401
+    import rl_env.saturation_goals  # noqa: F401
+    import rl_env.stand_still_mc  # noqa: F401
+    import rl_env.t_maze  # noqa: F401
+    import rl_env.three_tanks  # noqa: F401
+    import rl_env.windy_room  # noqa: F401
 
     logger.info(f"instantiating {name} with overrides {overrides}")
 

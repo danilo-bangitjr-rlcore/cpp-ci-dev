@@ -8,7 +8,7 @@ from corerl.environment.async_env.async_env import GymEnvConfig
 from corerl.environment.wrapper.wrappers import wrappers
 
 try:
-    from coreenv.factory import init_env
+    from rl_env.factory import init_env
 except ImportError:
 
     def init_env(name: str, overrides: Any = None, perturbation_config: PerturbationConfig | None = None) -> Any:

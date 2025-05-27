@@ -5,7 +5,7 @@ import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 
-from coreenv.factory import EnvConfig, env_group
+from rl_env.factory import EnvConfig, env_group
 
 
 @dataclass
