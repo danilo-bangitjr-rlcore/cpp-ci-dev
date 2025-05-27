@@ -59,6 +59,7 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
         gamma=0.9,
         max_n_step=max_n_step,
         min_n_step=min_n_step,
+        normalize_return=False,
     )
 
     tc = AllTheTimeTC(cfg)

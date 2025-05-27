@@ -135,6 +135,7 @@ def test_regular_rl_capture():
         gamma=0.9,
         max_n_step=4,
         min_n_step=2,
+        normalize_return=False,
     )
 
     tc = AllTheTimeTC(tc_cfg)

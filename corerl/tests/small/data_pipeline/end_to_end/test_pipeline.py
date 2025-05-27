@@ -85,6 +85,7 @@ def test_pipeline1(dummy_app_state: AppState):
         transition_creator=AllTheTimeTCConfig(
             max_n_step=2,
             gamma=0.9,
+            normalize_return=False,
         ),
         transition_filter=TransitionFilterConfig(
             filters=[
@@ -243,6 +244,7 @@ def test_pipeline2(dummy_app_state: AppState):
         transition_creator=AllTheTimeTCConfig(
             max_n_step=1,
             gamma=0.9,
+            normalize_return=False,
         ),
         transition_filter=TransitionFilterConfig(
             filters=[

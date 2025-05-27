@@ -123,6 +123,7 @@ def test_only_no_action_change(actions: list[float], expected: bool):
         gamma=0.9,
         max_n_step=len(actions)-1,
         min_n_step=len(actions)-1,
+        normalize_return=False,
     )
     tc = AllTheTimeTC(tc_cfg)
 
