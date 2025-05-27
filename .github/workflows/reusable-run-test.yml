@@ -31,6 +31,10 @@ jobs:
         with:
           subrepo: corerl
 
+      - name: set up path
+        shell: bash
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
       - name: Install corerl if large
         if: ${{ inputs.test-suite == 'large' }}
         run: uv pip install .

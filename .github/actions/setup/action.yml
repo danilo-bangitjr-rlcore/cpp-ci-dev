@@ -19,7 +19,6 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.subrepo }}
-        uv venv
         uv sync
 
     - name: set up path
