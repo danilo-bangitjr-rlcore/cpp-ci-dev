@@ -17,7 +17,7 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.subrepo }}
-        uv sync --locked --all-extras --dev
+        uv sync --all-extras --dev
 
     - name: set up path
       shell: bash
