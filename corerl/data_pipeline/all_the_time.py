@@ -29,6 +29,7 @@ class AllTheTimeTCConfig:
     min_n_step: int = 1
     max_n_step: int = MISSING
     gamma: float = MISSING
+    normalize_return: bool = False
 
     @computed('max_n_step')
     @classmethod
@@ -46,6 +47,11 @@ class AllTheTimeTCConfig:
     @classmethod
     def _gamma(cls, cfg: MainConfig):
         return cfg.agent.gamma
+
+    @computed('normalize_return')
+    @classmethod
+    def _normalize_return(cls, cfg: MainConfig):
+        return cfg.feature_flags.normalize_return
 
 
 type StepInfo = dict[int, deque[Step]]
@@ -97,6 +103,8 @@ class AllTheTimeTC:
         states = tensor(pf.states.to_numpy())
         actions = tensor(pf.actions.to_numpy())
         rewards = pf.rewards['reward'].to_numpy()
+        if self.cfg.normalize_return:
+            rewards *= (1 - self.gamma)
 
         # dynamic action bounds
         action_lo = tensor(pf.action_lo.to_numpy())

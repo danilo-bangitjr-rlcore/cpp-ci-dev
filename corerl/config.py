@@ -100,6 +100,8 @@ class FeatureFlags:
     # 2025-05-14
     regenerative_optimism: bool = False
 
+    # 2025-05-26
+    normalize_return: bool = False
 
 @config()
 class OfflineConfig:
