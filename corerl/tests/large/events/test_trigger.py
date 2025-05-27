@@ -2,6 +2,7 @@ import datetime
 
 import pandas as pd
 import pytest
+from test.infrastructure.networking import get_free_port
 
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
@@ -12,14 +13,13 @@ from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import EventType
 from corerl.state import AppState
-from test.infrastructure.networking import get_free_port
 
 
 @pytest.fixture(scope="function")
 def main_cfg():
     cfg = direct_load_config(
         MainConfig,
-        base='test/large/events/assets',
+        base='tests/large/events/assets',
         config_name='trigger.yaml',
     )
     assert isinstance(cfg, MainConfig)

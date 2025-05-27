@@ -29,7 +29,8 @@ def test_main_configs(
     assert port is not None
 
     proc = subprocess.run([
-        'uv', 'run', 'python', 'main.py',
+        'uv', 'run', 'python', 'corerl/main.py',
+        '--base', '../config/',
         '--config-name', f'{config_name}', 'max_steps=5',
         f'infra.db.port={port}', 'metrics.enabled=True',
         f'infra.db.db_name={tsdb_tmp_db_name}',

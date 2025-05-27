@@ -74,7 +74,7 @@ def data_writer(test_db_config: TagDBConfig):
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     cfg = direct_load_config(
         MainConfig,
-        base='test/medium/offline_training/assets',
+        base='tests/medium/offline_training/assets',
         config_name='offline_config.yaml',
     )
     assert isinstance(cfg, MainConfig)

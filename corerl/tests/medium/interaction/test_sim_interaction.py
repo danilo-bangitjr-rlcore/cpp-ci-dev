@@ -19,7 +19,7 @@ from corerl.utils.time import percent_time_elapsed
 
 def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     NUM_STEPS = 5
-    cfg = direct_load_config(MainConfig, base='test/medium/interaction/assets', config_name='saturation.yaml')
+    cfg = direct_load_config(MainConfig, base='tests/medium/interaction/assets', config_name='saturation.yaml')
     assert isinstance(cfg, MainConfig)
     assert tsdb_engine.url.port is not None
     cfg.env.db.port = tsdb_engine.url.port
