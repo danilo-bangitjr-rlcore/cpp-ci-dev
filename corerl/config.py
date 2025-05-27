@@ -233,3 +233,6 @@ class MainConfig:
 
         self.agent.policy.sort_noise = 0.025
         self.agent.critic.action_regularization = 0.001
+
+        if self.feature_flags.normalize_return:
+            self.agent.policy.sort_noise *= (1 - self.agent.gamma)
