@@ -100,6 +100,8 @@ class FeatureFlags:
     # 2025-05-14
     regenerative_optimism: bool = False
 
+    # 2025-05-26
+    normalize_return: bool = False
 
 @config()
 class OfflineConfig:
@@ -231,3 +233,6 @@ class MainConfig:
 
         self.agent.policy.sort_noise = 0.025
         self.agent.critic.action_regularization = 0.001
+
+        if self.feature_flags.normalize_return:
+            self.agent.policy.sort_noise *= (1 - self.agent.gamma)
