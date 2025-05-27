@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
+from test.infrastructure.utils.pandas import dfs_close
 from torch import Tensor, tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
@@ -21,7 +22,6 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.state import AppState
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def mkstep(

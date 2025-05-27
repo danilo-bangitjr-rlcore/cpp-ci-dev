@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
@@ -11,7 +12,6 @@ from corerl.data_pipeline.transforms import DeltaConfig, NullConfig
 from corerl.data_pipeline.transforms.delta import DeltaTemporalState
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_split1():

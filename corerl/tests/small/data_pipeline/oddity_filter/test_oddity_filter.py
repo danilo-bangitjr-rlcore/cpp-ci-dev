@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
@@ -9,7 +10,6 @@ from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstr
 from corerl.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.state import AppState
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_oddity0(dummy_app_state: AppState):

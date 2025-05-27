@@ -87,7 +87,7 @@ async def start():
             # if the timer has exceeded its duration, write the operator
             # setpoints into the PLCs AI setpoints and reset and disable the timer
             # otherwise increment the timer
-            if timer_en == True:
+            if timer_en:
                 if timer > 300:
                     ai_duration_sp_dv = ua.DataValue(ua.Variant(op_dur_sp, ua.VariantType.Float))
                     ai_flow_sp_dv = ua.DataValue(ua.Variant(op_flow_sp, ua.VariantType.Float))
@@ -106,12 +106,12 @@ async def start():
             # so it knows which set is properly active at any time
 
             # if operator mode is enabled, recorded the operator setpoints
-            if op_en == True:
+            if op_en:
                 await dep_dur_sp_s.write_value(op_dur_sp)
                 await dep_flow_sp_s.write_value(op_flow_sp)
 
             # if ai mode is enabled, record the agent setpoints
-            if ai_en == True:
+            if ai_en:
                 temp_dur = await ai_dur_sp_s.read_value()
                 temp_flow = await ai_flow_sp_s.read_value()
                 await dep_dur_sp_s.write_value(float(temp_dur))

@@ -1,9 +1,9 @@
 import pandas as pd
 import pytest
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add_seasonal_features
-from test.infrastructure.utils.pandas import dfs_close
 
 
 @pytest.fixture()

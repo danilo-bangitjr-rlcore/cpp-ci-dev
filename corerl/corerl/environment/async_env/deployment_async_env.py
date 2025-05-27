@@ -5,7 +5,6 @@ from typing import TypedDict
 
 import numpy as np
 import pandas as pd
-
 from coreio.utils.io_events import OPCUANodeWriteValue
 
 # Data Pipline
