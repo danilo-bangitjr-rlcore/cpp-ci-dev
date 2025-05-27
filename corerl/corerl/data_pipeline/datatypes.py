@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import Enum, IntFlag, auto
 from math import isclose
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -252,7 +253,7 @@ class PipelineFrame:
         missing_info = pd.DataFrame(index=self.data.index, dtype=SparseMissingType)
         N = len(self.data)
         # initialize filled with NULL (no memory cost)
-        null_cols = {col: [MissingType.NULL] * N for col in self.data.columns}
+        null_cols: Any = {col: [MissingType.NULL] * N for col in self.data.columns}
         self.missing_info = missing_info.assign(**null_cols)
 
         # initialize dp flags
