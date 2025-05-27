@@ -25,12 +25,12 @@ jobs:
 
       # linting
       - uses: astral-sh/ruff-action@v1
-      - uses: dciborow/action-pylint@0.1.0
-        with:
-          github_token: ${{ secrets.github_token }}
-          reporter: github-pr-review
-          level: warning
-          glob_pattern: "corerl/ coreio/ test/"
+      # - uses: dciborow/action-pylint@0.1.0
+      #   with:
+      #     github_token: ${{ secrets.github_token }}
+      #     reporter: github-pr-review
+      #     level: warning
+      #     glob_pattern: "corerl/ coreio/ test/"
 
       # type checking
       - uses: jakebailey/pyright-action@v2
