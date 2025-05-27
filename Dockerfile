@@ -14,18 +14,16 @@ RUN mkdir -p -m 0600 ~/.ssh &&\
 
 WORKDIR /app
 
-# Copy minimal pyproject.toml for dependencies
-COPY ./pyproject.toml /app/pyproject.toml
+COPY ./coreio /app/coreio
+COPY ./libs /app/libs
+COPY ./test /app/test
+COPY ./corerl /app/corerl
+
+WORKDIR /app/corerl
 
 # Install the corerl dependencies
 RUN --mount=type=ssh \
-  uv pip compile pyproject.toml -o deps.txt && \
-  # This step ensures that our dependencies exist in a folder called 'vendor'
-  # which can be referenced within setuptools and added to our generated corerl wheel
-  uv pip install --system --target /app/vendor -r deps.txt
-
-# copy source code for building corerl package
-COPY ./corerl /app/corerl
+  uv sync --no-dev
 
 # Build corerl package which emits built .whl into /app/dist
 RUN uv build --wheel
@@ -33,7 +31,7 @@ RUN uv build --wheel
 # See also: https://github.com/rlcoretech/core-rl/pull/347#discussion_r1906215954
 # Convert our wheel such that we only include .pyc files
 RUN uv pip install --system "pyc_wheel==1.3.0" &&\
-  whl_file_name=$(ls /app/dist/corerl-*.whl) &&\
+  whl_file_name=$(ls /app/corerl/dist/corerl-*.whl) &&\
   python -m pyc_wheel "$whl_file_name"
 
 # Stage: install corerl to minimal Python 3 image
@@ -42,7 +40,7 @@ FROM python:3.13-slim AS corerl
 # needed for health check within compose.yaml
 RUN apt-get update && apt-get install curl -y
 
-COPY --from=base /app/dist /app/dist
+COPY --from=base /app/corerl/dist /app/dist
 WORKDIR /app
 
 # Our corerl image is quite large with default cuda dependencies.
