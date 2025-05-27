@@ -79,7 +79,7 @@ class BSuiteTestCase:
 
         proc = subprocess.run([
             'python', 'corerl/main.py',
-            '--base', '.',
+            '--base', '../test/',
             '--config-name', self.config,
         ] + parts, cwd='../corerl')
         proc.check_returncode()
