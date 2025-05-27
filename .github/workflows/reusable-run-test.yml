@@ -50,7 +50,7 @@ jobs:
       - name: Run Pytest
         run: |
           cd corerl
-          uv run pytest -n auto --dist loadscope --cov=. ${{ inputs.test-flags }} test/${{ inputs.test-suite }}
+          uv run pytest -n auto --dist loadscope --cov=. ${{ inputs.test-flags }} tests/${{ inputs.test-suite }}
 
       - name: Move coverage artifacts
         run: mv .coverage artifact/coverage_${{ inputs.test-suite }}
