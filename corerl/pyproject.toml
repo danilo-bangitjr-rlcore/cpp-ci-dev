@@ -41,6 +41,7 @@ readme = "README.md"
 
 [dependency-groups]
 dev = [
+    "coreenv",
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
     "pyright>=1.1.401",
@@ -65,9 +66,9 @@ build-backend = "hatchling.build"
 packages = ["corerl"]
 
 [tool.uv.sources]
-coreenv = { git = "ssh://gh-rlcore/rlcoretech/core-env.git" }
 test = { path = "../test", editable = true }
 coreio = { path = "../coreio", editable = true }
+coreenv = { path = "../libs/coreenv", editable = true }
 
 # ----------
 # -- Ruff --

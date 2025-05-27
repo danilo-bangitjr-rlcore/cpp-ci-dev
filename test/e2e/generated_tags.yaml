@@ -1,0 +1,95 @@
+- name: action-0
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range:
+  - -1.0
+  - 1.0
+  red_bounds: null
+  yellow_bounds: null
+  change_bounds: null
+  outlier:
+    name: identity
+  imputer: null
+  preprocess:
+  - name: normalize
+    min: null
+    max: null
+    from_data: false
+  reward_constructor:
+  - name: 'null'
+  action_constructor:
+  - name: normalize
+    min: -1.0
+    max: 1.0
+    from_data: false
+  state_constructor:
+  - name: 'null'
+  filter: null
+- name: tag-0
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range:
+  - -1.2
+  - 0.6
+  red_bounds: null
+  yellow_bounds: null
+  change_bounds: null
+  outlier:
+    name: identity
+  imputer:
+    name: identity
+  preprocess:
+  - name: normalize
+    min: null
+    max: null
+    from_data: false
+  reward_constructor:
+  - name: 'null'
+  action_constructor: null
+  state_constructor:
+  - name: normalize
+    min: -1.2
+    max: 0.6
+    from_data: false
+  - name: multi_trace
+    trace_values:
+    - 0.0
+    - 0.9
+  filter: null
+- name: tag-1
+  agg: avg
+  node_identifier: null
+  is_meta: false
+  is_endogenous: true
+  operating_range:
+  - -0.07
+  - 0.07
+  red_bounds: null
+  yellow_bounds: null
+  change_bounds: null
+  outlier:
+    name: identity
+  imputer:
+    name: identity
+  preprocess:
+  - name: normalize
+    min: null
+    max: null
+    from_data: false
+  reward_constructor:
+  - name: 'null'
+  action_constructor: null
+  state_constructor:
+  - name: normalize
+    min: -0.07
+    max: 0.07
+    from_data: false
+  - name: multi_trace
+    trace_values:
+    - 0.0
+    - 0.9
+  filter: null

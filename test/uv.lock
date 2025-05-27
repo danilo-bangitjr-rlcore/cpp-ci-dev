@@ -256,9 +256,44 @@ wheels = [
 ]
 
 [[package]]
+name = "coreenv"
+version = "0.133.0"
+source = { editable = "../libs/coreenv" }
+dependencies = [
+    { name = "gymnasium" },
+    { name = "matplotlib" },
+    { name = "numpy" },
+    { name = "pydantic" },
+    { name = "scipy" },
+    { name = "sympy" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "gymnasium", specifier = "~=1.0" },
+    { name = "matplotlib", specifier = "~=3.8" },
+    { name = "numpy", specifier = "~=2.0" },
+    { name = "pydantic", specifier = "~=2.9" },
+    { name = "scipy", specifier = "~=1.13" },
+    { name = "sympy", specifier = "~=1.13" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
 name = "coreio"
 version = "0.1.0"
 source = { editable = "../coreio" }
+dependencies = [
+    { name = "corerl" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "corerl", editable = "../corerl" }]
 
 [[package]]
 name = "corerl"
@@ -292,6 +327,7 @@ dependencies = [
     { name = "scipy" },
     { name = "sqlalchemy" },
     { name = "sqlalchemy-utils" },
+    { name = "sympy" },
     { name = "tabulate" },
     { name = "torch" },
     { name = "tqdm" },
@@ -326,13 +362,22 @@ requires-dist = [
     { name = "scipy", specifier = "~=1.13" },
     { name = "sqlalchemy", specifier = "~=2.0" },
     { name = "sqlalchemy-utils", specifier = "~=0.41" },
+    { name = "sympy", specifier = "~=1.14" },
     { name = "tabulate", specifier = "~=0.9.0" },
     { name = "torch", specifier = "~=2.5" },
     { name = "tqdm", specifier = "~=4.66" },
 ]
 
 [package.metadata.requires-dev]
-dev = [{ name = "test", editable = "." }]
+dev = [
+    { name = "coreenv", editable = "../libs/coreenv" },
+    { name = "pre-commit", specifier = ">=4.2.0" },
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.401" },
+    { name = "ruff", specifier = ">=0.11.11" },
+    { name = "test", editable = "." },
+    { name = "uv", specifier = ">=0.7.8" },
+]
 
 [[package]]
 name = "cryptography"
@@ -1727,6 +1772,7 @@ name = "test"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "coreenv" },
     { name = "corerl" },
     { name = "docker" },
     { name = "pytest" },
@@ -1743,6 +1789,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "coreenv", editable = "../libs/coreenv" },
     { name = "corerl", editable = "../corerl" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "pytest", specifier = ">=8.3.5" },

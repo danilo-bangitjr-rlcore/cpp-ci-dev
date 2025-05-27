@@ -1,4 +1,33 @@
+[project]
+name = "coreenv"
+version = "0.133.0"
+description = ""
+requires-python = ">=3.12,<3.13"
+authors = []
+dependencies = [
+    "gymnasium~=1.0",
+    "matplotlib~=3.8",
+    "pydantic~=2.9",
+    "numpy~=2.0",
+    "scipy~=1.13",
+    "sympy~=1.13",
+]
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.392.post0",
+    "uv>=0.5.24",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [tool]
+[tool.hatch.build.targets.wheel]
+packages = ["coreenv"]
+
 [tool.ruff]
 line-length = 120
 
@@ -44,44 +73,9 @@ reportUnusedExpression = true
 reportUnusedFunction = true
 
 
-[tool.deadcode]
-exclude = [".venv", "docs", "test", "build"]
-ignore-names = ["_*"]
-ignore-names-in-files = []
-
 [tool.commitizen]
 name = "cz_conventional_commits"
 version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
-
-[tool.coverage.run]
-omit = ["test/*"]
-concurrency = ["thread", "multiprocessing"]
-
-[build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
-
-[project]
-name = "coreenv"
-version = "0.133.0"
-description = ""
-requires-python = ">=3.12,<3.13"
-authors = []
-dependencies = [
-    "gymnasium~=1.0",
-    "matplotlib~=3.8",
-    "pydantic~=2.9",
-    "numpy~=2.0",
-    "scipy~=1.13",
-    "sympy~=1.13.1",
-]
-readme = "README.md"
-
-[dependency-groups]
-dev = [
-    "pyright>=1.1.392.post0",
-    "uv>=0.5.24",
-]

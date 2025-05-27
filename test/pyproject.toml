@@ -3,6 +3,7 @@ name = "test"
 version = "0.0.0"
 requires-python = ">=3.13"
 dependencies = [
+    "coreenv",
     "corerl",
     "docker>=7.1.0",
     "pytest>=8.3.5",
@@ -27,6 +28,7 @@ packages = ["test"]
 
 [tool.uv.sources]
 corerl = { path = "../corerl", editable = true }
+coreenv = { path = "../libs/coreenv", editable = true }
 
 # ----------
 # -- Ruff --
