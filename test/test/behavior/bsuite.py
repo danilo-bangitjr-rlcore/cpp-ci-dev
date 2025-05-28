@@ -8,6 +8,7 @@ from typing import Any
 import corerl.utils.git as git
 import numpy as np
 import pandas as pd
+import psutil
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
@@ -78,22 +79,28 @@ class BSuiteTestCase:
 
         start = datetime.now(UTC)
         exec_start = time.time()
-        cpu_percentages = []
         max_memory = 0
 
-        proc = subprocess.run([
+        proc = subprocess.Popen([
             'python', 'corerl/main.py',
             '--base', '../test/',
             '--config-name', self.config,
         ] + parts, cwd='../corerl')
-        proc.check_returncode()
+
+        psutil_proc = psutil.Process(proc.pid)
+        while proc.poll() is None:
+            try:
+                memory_info = psutil_proc.memory_info()
+                max_memory = max(max_memory, memory_info.rss / 1024 / 1024)  # convert to MB
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                break
+
+        proc.wait()
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode, proc.args)
 
         exec_end = time.time()
         exec_time = exec_end - exec_start
-
-        memory_info = self._process.memory_info()
-        max_memory = memory_info.rss / 1024 / 1024  # convert to MB
-        cpu_percentages.append(self._process.cpu_percent())
 
         # ensure metrics table exists
         assert table_exists(tsdb, 'metrics', schema=schema)
@@ -108,10 +115,10 @@ class BSuiteTestCase:
             add_retention_policy(conn, 'evals', schema, days=3)
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
-        return metrics_table, (exec_time, max_memory, cpu_percentages)
+        return metrics_table, (exec_time, max_memory)
 
     def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame, features: dict[str, bool],
-                          runtime_info: tuple[float, float, list[float]]) -> pd.DataFrame:
+                          runtime_info: tuple[float, float]) -> pd.DataFrame:
         extracted = []
         extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
         extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
@@ -120,8 +127,7 @@ class BSuiteTestCase:
         summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
         summary_df['exec_time'] = runtime_info[0]
         summary_df['max_memory'] = runtime_info[1]
-        summary_df['cpu_percentages'] = runtime_info[2]
-        self._store_outcomes(tsdb, summary_df, features)
+        self._store_outcomes(tsdb, summary_df, features, runtime_info)
         self._evaluate_bounds(summary_df)
 
         return summary_df
@@ -161,7 +167,7 @@ class BSuiteTestCase:
 
 
     def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame, features: dict[str, bool],
-                        runtime_info: tuple[float, float, list[float]]):
+                        runtime_info: tuple[float, float]):
         feature_json = {
             'enabled_features': [
                 feature for feature, enabled in features.items() if enabled
@@ -223,7 +229,6 @@ class BSuiteTestCase:
                 SQLColumn(name='branch', type='TEXT', nullable=False),
                 SQLColumn(name='exec_time', type='FLOAT', nullable=False),
                 SQLColumn(name='max_memory', type='FLOAT', nullable=False),
-                SQLColumn(name='cpu_percentages', type='jsonb', nullable=False),
                 SQLColumn(name='features', type='jsonb', nullable=False),
             ],
             partition_column='test_name',
@@ -233,27 +238,25 @@ class BSuiteTestCase:
 
         insert_runtime_sql = text("""
             INSERT INTO bsuite_metadata
-            (time, test_name, branch, exec_time, max_memory, cpu_percentages, features)
+            (time, test_name, branch, exec_time, max_memory, features)
             VALUES (
                 TIMESTAMP WITH TIME ZONE :time,
                 :test_name,
                 :branch,
                 :exec_time,
                 :max_memory,
-                :cpu_percentages,
                 :features
             )
             )
         """)
 
-        exec_time, max_memory, cpu_percentages = runtime_info
+        exec_time, max_memory = runtime_info
         runtime_data = {
             'time': now,
             'test_name': self.name,
             'branch': branch,
             'exec_time': exec_time,
             'max_memory': max_memory,
-            'cpu_percentages': cpu_percentages,
             'features': json.dumps(feature_json),
         }
 
