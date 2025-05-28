@@ -216,7 +216,7 @@ class BSuiteTestCase:
 
         create_runtime_table_sql = create_tsdb_table_query(
             schema='public',
-            table='bsuite_runtime',
+            table='bsuite_metadata',
             columns= [
                 SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
                 SQLColumn(name='test_name', type='TEXT', nullable=False),
@@ -224,6 +224,7 @@ class BSuiteTestCase:
                 SQLColumn(name='exec_time', type='FLOAT', nullable=False),
                 SQLColumn(name='max_memory', type='FLOAT', nullable=False),
                 SQLColumn(name='cpu_percentages', type='jsonb', nullable=False),
+                SQLColumn(name='features', type='jsonb', nullable=False),
             ],
             partition_column='test_name',
             index_columns=['test_name', 'branch'],
@@ -231,10 +232,17 @@ class BSuiteTestCase:
         )
 
         insert_runtime_sql = text("""
-            INSERT INTO bsuite_runtime
-            (time, test_name, branch, exec_time, max_memory, cpu_percentages)
+            INSERT INTO bsuite_metadata
+            (time, test_name, branch, exec_time, max_memory, cpu_percentages, features)
             VALUES (
-                TIMESTAMP WITH TIME ZONE :time, :test_name, :branch, :exec_time, :max_memory, :cpu_percentages
+                TIMESTAMP WITH TIME ZONE :time,
+                :test_name,
+                :branch,
+                :exec_time,
+                :max_memory,
+                :cpu_percentages,
+                :features
+            )
             )
         """)
 
@@ -246,6 +254,7 @@ class BSuiteTestCase:
             'exec_time': exec_time,
             'max_memory': max_memory,
             'cpu_percentages': cpu_percentages,
+            'features': json.dumps(feature_json),
         }
 
         with tsdb.connect() as conn:
