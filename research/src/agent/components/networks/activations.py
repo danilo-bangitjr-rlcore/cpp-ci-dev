@@ -70,7 +70,7 @@ def get_output_activation(cfg: ActivationConfig):
         assert isinstance(cfg, SigmoidConfig)
         sigmoid_act_fn = functools.partial(sigmoid_act, cfg)
         return sigmoid_act_fn
-    elif cfg.name == "softsign" or cfg.name == "soft_sign":
+    elif cfg.name in {"softsign", "soft_sign"}:
         assert isinstance(cfg, SoftsignConfig)
         softsign_act_fn = functools.partial(softsign_act, cfg)
         return softsign_act_fn
