@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-from agent.components.networks.activations import get_activation
+from lib_agent.network.activations import get_activation
 
 
 @dataclass

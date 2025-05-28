@@ -29,6 +29,7 @@ dependencies = [
     "sqlalchemy-utils>=0.41.2",
     "tqdm~=4.67",
     "pandas==2.2.3",
+    "lib_agent",
 ]
 
 [dependency-groups]
@@ -53,6 +54,7 @@ packages = ["src"]
 
 [tool.uv.sources]
 rl_env = { path = "../libs/rl_env", editable = true }
+lib_agent = { path = "../libs/lib_agent", editable = true }
 
 # ----------
 # -- Ruff --

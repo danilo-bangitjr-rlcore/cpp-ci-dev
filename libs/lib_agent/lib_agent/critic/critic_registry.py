@@ -2,8 +2,7 @@ from typing import Any
 
 from ml_instrumentation.Collector import Collector
 
-from agent.components.q_critic import SARSAConfig, SARSACritic
-from agent.components.qrc_critic import QRCConfig, QRCCritic
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 
 
 def get_critic(
@@ -14,9 +13,6 @@ def get_critic(
     collector: Collector,
 ):
     name = cfg['name']
-    if name == 'SARSA':
-        return SARSACritic(SARSAConfig(**cfg), seed, state_dim, action_dim, collector)
-
     if name == 'QRC':
         return QRCCritic(QRCConfig(**cfg), seed, state_dim, action_dim, collector)
 

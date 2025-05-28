@@ -563,6 +563,68 @@ wheels = [
 ]
 
 [[package]]
+name = "lib-agent"
+version = "0.0.0"
+source = { editable = "../libs/lib_agent" }
+dependencies = [
+    { name = "chex" },
+    { name = "distrax" },
+    { name = "dm-haiku" },
+    { name = "flax" },
+    { name = "jax" },
+    { name = "lib-utils" },
+    { name = "ml-instrument" },
+    { name = "optax" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "chex", specifier = ">=0.1.89" },
+    { name = "distrax", specifier = ">=0.1.5" },
+    { name = "dm-haiku", specifier = ">=0.0.14" },
+    { name = "flax", specifier = ">=0.10.6" },
+    { name = "jax", specifier = ">=0.6.1" },
+    { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "ml-instrument", specifier = ">=0.5.0" },
+    { name = "optax", specifier = ">=0.2.4" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
+name = "lib-utils"
+version = "0.0.0"
+source = { editable = "../libs/lib_utils" }
+dependencies = [
+    { name = "chex" },
+    { name = "distrax" },
+    { name = "dm-haiku" },
+    { name = "flax" },
+    { name = "jax" },
+    { name = "optax" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "chex", specifier = ">=0.1.89" },
+    { name = "distrax", specifier = ">=0.1.5" },
+    { name = "dm-haiku", specifier = ">=0.0.14" },
+    { name = "flax", specifier = ">=0.10.6" },
+    { name = "jax", specifier = ">=0.6.1" },
+    { name = "optax", specifier = ">=0.2.4" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
 name = "llvmlite"
 version = "0.44.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1242,6 +1304,7 @@ dependencies = [
     { name = "jax" },
     { name = "jaxlib" },
     { name = "jaxtyping" },
+    { name = "lib-agent" },
     { name = "matplotlib" },
     { name = "ml-instrument" },
     { name = "numba" },
@@ -1281,6 +1344,7 @@ requires-dist = [
     { name = "jax", specifier = ">=0.5.3" },
     { name = "jaxlib", specifier = ">=0.5.3" },
     { name = "jaxtyping", specifier = "~=0.3" },
+    { name = "lib-agent", editable = "../libs/lib_agent" },
     { name = "matplotlib", specifier = "~=3.10" },
     { name = "ml-instrument", specifier = ">=0.5.0" },
     { name = "numba", specifier = "~=0.58" },

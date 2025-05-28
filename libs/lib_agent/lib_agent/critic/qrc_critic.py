@@ -6,34 +6,31 @@ import chex
 import haiku as hk
 import jax
 import jax.numpy as jnp
-import numpy as np
+import lib_utils.jax as jax_u
 import optax
 from ml_instrumentation.Collector import Collector
 
-import agent.components.networks.networks as nets
-import utils.jax as jax_u
-from agent.components.buffer import EnsembleReplayBuffer, VectorizedTransition
-from interaction.transition_creator import Transition
+import lib_agent.network.networks as nets
+from lib_agent.buffer.buffer import EnsembleReplayBuffer, Transition, VectorizedTransition
 
 
 class CriticState(NamedTuple):
     params: chex.ArrayTree
-    target_params: chex.ArrayTree
     opt_state: chex.ArrayTree
 
 
 class CriticOutputs(NamedTuple):
     q: jax.Array
+    h: jax.Array
 
 
 @dataclass
-class SARSAConfig:
+class QRCConfig:
+    name: str
     stepsize: float
     ensemble: int
-    ensemble_prob: float
+    ensemble_prob: int
     batch_size: int
-
-    polyak: float
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -41,14 +38,16 @@ def critic_builder(cfg: nets.TorsoConfig):
         torso = nets.torso_builder(cfg)
         phi = torso(x, a)
 
+        small_init = hk.initializers.VarianceScaling(scale=0.0001)
         return CriticOutputs(
             q=hk.Linear(1)(phi),
+            h=hk.Linear(1, name='h', w_init=small_init)(phi),
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
 
-class SARSACritic:
-    def __init__(self, cfg: SARSAConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
+class QRCCritic:
+    def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
         self._rng = jax.random.PRNGKey(seed)
         self._cfg = cfg
         self._state_dim = state_dim
@@ -62,17 +61,7 @@ class SARSACritic:
             ],
         )
         self._net = critic_builder(torso_cfg)
-
-        self._optim = optax.chain(
-            optax.adam(learning_rate=cfg.stepsize),
-            optax.scale_by_backtracking_linesearch(
-                max_backtracking_steps=50,
-                max_learning_rate=cfg.stepsize,
-                decrease_factor=0.9,
-                increase_factor=np.inf,
-                slope_rtol=0.1,
-            ),
-        )
+        self._optim = optax.adam(learning_rate=cfg.stepsize)
 
         self._buffer = EnsembleReplayBuffer(
             n_ensemble=cfg.ensemble,
@@ -94,7 +83,6 @@ class SARSACritic:
         params = self._net.init(rng, x, a)
         return CriticState(
             params=params,
-            target_params=params,
             opt_state=self._optim.init(params),
         )
 
@@ -121,13 +109,13 @@ class SARSACritic:
         self._rng, rng = jax.random.split(self._rng, 2)
         next_actions = get_actions(rng, transitions.next_state)
 
-        new_state, losses = self._ensemble_update(
+        new_state, metrics = self._ensemble_update(
             state,
             transitions,
             next_actions,
         )
 
-        loss = jnp.mean(losses)
+        loss = jnp.mean(metrics['losses'])
         self._collector.collect('critic_loss', float(loss))
 
         return new_state
@@ -148,9 +136,8 @@ class SARSACritic:
         """
         Updates each member of the ensemble.
         """
-        grads, member_losses = jax.grad(self._ensemble_loss, has_aux=True)(
+        grads, metrics = jax.grad(self._ensemble_loss, has_aux=True)(
             state.params,
-            state.target_params,
             transitions,
             next_actions,
         )
@@ -162,12 +149,6 @@ class SARSACritic:
                 get_member(grads, i),
                 get_member(state.opt_state, i),
                 get_member(state.params, i),
-                value=member_losses[i],
-                grad=get_member(grads, i),
-                value_fn=self._batch_loss,
-                ens_target_params=state.target_params,
-                transition=get_member(transitions, i),
-                next_actions=get_member(next_actions, i),
             )
 
             ens_updates.append(updates)
@@ -177,67 +158,79 @@ class SARSACritic:
         new_opt_state = jax.tree_util.tree_map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
         new_params = optax.apply_updates(state.params, updates)
 
-        # Target Net Polyak Update
-        target_params = state.target_params
-        new_target_params = optax.incremental_update(new_params, target_params, 1 - self._cfg.polyak)
-
         return CriticState(
             new_params,
-            new_target_params,
             new_opt_state,
-        ), member_losses
+        ), metrics
 
 
     def _ensemble_loss(
         self,
         params: chex.ArrayTree,
-        ens_target_params: chex.ArrayTree,
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses = jax_u.vmap_except(self._batch_loss, ['ens_target_params'])(
+        losses, h_losses, metrics = jax.vmap(self._batch_loss)(
             params,
-            ens_target_params,
             transition,
             next_actions,
         )
-        return losses.sum(), losses
+        return losses.sum() + h_losses.sum(), metrics | {
+            'losses': losses,
+            'h_losses': h_losses,
+        }
 
 
     def _batch_loss(
         self,
-        params: chex.ArrayTree,
-        ens_target_params: chex.ArrayTree,
+        params: Any,
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
+        losses, h_losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
             params,
-            ens_target_params,
             transition,
             next_actions,
         )
-        return losses.mean()
+        return losses.mean(), h_losses.mean() + l2_regularizer(params['h'], 2.0), metrics
 
 
     def _loss(
         self,
         params: chex.ArrayTree,
-        ens_target_params: chex.ArrayTree,
         transition: VectorizedTransition,
         next_actions: jax.Array,
-    ) -> jax.Array:
+    ):
         state = transition.state
         action = transition.action
         reward = transition.reward
         next_state = transition.next_state
         gamma = transition.gamma
 
-        q = self.forward(params, state, action)
-        qp = jax_u.vmap_only(self._forward, ['params'])(ens_target_params, next_state, next_actions).mean(axis=0)
-        target = reward + gamma * qp
-        loss = 0.5 * (target - q)**2
-        return loss
+        out = self._net.apply(params, state, action)
+        out_p = self._net.apply(params, next_state, next_actions)
+
+        target = reward + gamma * out_p.q.mean()
+
+        sg = jax.lax.stop_gradient
+        delta_l = sg(target) - out.q
+        delta_r = target - sg(out.q)
+
+        q_loss = 0.5 * delta_l**2 + sg(jnp.tanh(out.h)) * delta_r
+        h_loss = 0.5 * (sg(delta_l) - out.h)**2
+        return q_loss, h_loss, {
+            'q': out.q,
+            'h': out.h,
+            'delta': delta_l,
+        }
 
 def get_member(a: chex.ArrayTree, i: int):
     return jax.tree_util.tree_map(lambda x: x[i], a)
+
+
+tree_map = jax.tree_util.tree_map
+def l2_regularizer(params: chex.ArrayTree, beta: float):
+    reg = tree_map(jnp.square, params)
+    reg = tree_map(jnp.sum, reg)
+    reg = 0.5 * beta * jax.tree_util.tree_reduce(lambda a, b: a + b, reg)
+    return reg

@@ -7,19 +7,19 @@ import distrax
 import haiku as hk
 import jax
 import jax.numpy as jnp
+import lib_agent.network.networks as nets
 import numpy as np
 import optax
-from ml_instrumentation.Collector import Collector
-
-import agent.components.networks.networks as nets
-import utils.jax as jax_u
-from agent.components.buffer import EnsembleReplayBuffer
-from agent.components.critic_registry import get_critic
-from agent.components.networks.activations import (
+from lib_agent.buffer.buffer import EnsembleReplayBuffer
+from lib_agent.critic.critic_registry import get_critic
+from lib_agent.network.activations import (
     ActivationConfig,
     IdentityConfig,
     get_output_activation,
 )
+from ml_instrumentation.Collector import Collector
+
+import utils.jax as jax_u
 from interaction.transition_creator import Transition
 
 
