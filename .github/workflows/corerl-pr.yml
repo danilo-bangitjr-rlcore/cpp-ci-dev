@@ -14,8 +14,12 @@ jobs:
   # -----------
   # -- Style --
   # -----------
-  style-check:
+  style-n-test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: corerl
+
     steps:
       - uses: actions/checkout@v4
       - name: Setup
@@ -23,14 +27,18 @@ jobs:
         with:
           subrepo: corerl
 
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
       # linting
       - uses: astral-sh/ruff-action@v1
-      # - uses: dciborow/action-pylint@0.1.0
-      #   with:
-      #     github_token: ${{ secrets.github_token }}
-      #     reporter: github-pr-review
-      #     level: warning
-      #     glob_pattern: "corerl/ coreio/ test/"
+      - uses: dciborow/action-pylint@0.1.0
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          level: warning
+          workdir: corerl
+          glob_pattern: "corerl/ tests/"
 
       # type checking
       - uses: jakebailey/pyright-action@v2
@@ -38,58 +46,20 @@ jobs:
           pylance-version: latest-release
           working-directory: corerl
 
-  # -----------
-  # -- Tests --
-  # -----------
-  small-test:
-    needs: [style-check]
-    uses: ./.github/workflows/reusable-run-test.yml
-    secrets: inherit
-    with:
-      test-suite: small
+      # -----------
+      # -- Tests --
+      # -----------
+      - name: Create artifact directory
+        run: mkdir -p artifact
 
-  medium-test:
-    needs: [style-check]
-    uses: ./.github/workflows/reusable-run-test.yml
-    secrets: inherit
-    with:
-      test-suite: medium
-
-  large-test:
-    needs: [small-test, medium-test]
-    uses: ./.github/workflows/reusable-run-test.yml
-    secrets: inherit
-    with:
-      test-flags: --verbose --dist loadscope
-      test-suite: large
-
-  docker-build-test:
-    needs: [small-test, medium-test]
-    uses: ./.github/workflows/reusable-build-docker-image.yml
-    secrets: inherit
-    with:
-      push_to_registry: false
-
-  combine-coverage:
-    needs: [large-test]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Setup
-        uses: ./.github/actions/setup
-        with:
-          subrepo: corerl
-
-      - name: Download coverage artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: corerl/artifact
-          merge-multiple: true
-
-      - name: Combine coverage and generate reports
+      - name: Run Pytest
         run: |
-          cd corerl
-          uv run coverage combine artifact/coverage_*
+          pytest -n auto --dist loadscope --cov=. --cov-append tests/small
+          pytest -n auto --dist loadscope --cov=. --cov-append tests/medium
+          pytest -n auto --dist loadscope --cov=. --cov-append tests/large
+
+      - name: Combine coverage
+        run: |
           uv run coverage html
           echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
 
@@ -112,6 +82,10 @@ jobs:
             ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
           comment-tag: execution
 
-      - uses: geekyeggo/delete-artifact@v5
-        with:
-            name: corerl/artifact/*
+
+  docker-build-test:
+    needs: [style-n-test]
+    uses: ./.github/workflows/reusable-build-docker-image.yml
+    secrets: inherit
+    with:
+      push_to_registry: false
