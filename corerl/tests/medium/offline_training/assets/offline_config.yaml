@@ -1,5 +1,5 @@
 offline:
-  offline_steps: 100
+  offline_steps: 10
   offline_eval_iters: [0]
 
 agent:
