@@ -14,12 +14,12 @@ from ml_instrumentation.Collector import Collector
 import agent.components.networks.networks as nets
 import utils.jax as jax_u
 from agent.components.buffer import EnsembleReplayBuffer
+from agent.components.critic_registry import get_critic
 from agent.components.networks.activations import (
     ActivationConfig,
     IdentityConfig,
     get_output_activation,
 )
-from agent.components.q_critic import SARSAConfig, SARSACritic
 from interaction.transition_creator import Transition
 
 
@@ -133,7 +133,7 @@ class GreedyAC:
 
         self._collector = collector
 
-        self._critic: GACCritic = SARSACritic(SARSAConfig(**cfg.critic), seed, state_dim, action_dim, collector)
+        self._critic: GACCritic = get_critic(cfg.critic, seed, state_dim, action_dim, collector)
 
         actor_torso_cfg = nets.TorsoConfig(
             layers=[
