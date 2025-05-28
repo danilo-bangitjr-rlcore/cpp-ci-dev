@@ -3,9 +3,9 @@ import ast
 from pathlib import Path
 from typing import Any
 
-from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
+from rl_env.factory import init_env
 from tqdm import tqdm
 
 import utils.gym as gym_u
