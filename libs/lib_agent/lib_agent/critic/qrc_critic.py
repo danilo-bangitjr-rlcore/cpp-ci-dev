@@ -61,8 +61,8 @@ class QRCCritic:
 
         torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.LateFusionConfig(sizes=[123, 123], activation='relu'),
-                nets.LinearConfig(size=225, activation='relu'),
+                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='relu'),
+                nets.LinearConfig(size=256, activation='relu'),
             ],
         )
         self._net = critic_builder(torso_cfg)
