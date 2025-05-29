@@ -3,17 +3,22 @@ import pickle as pkl
 from pathlib import Path
 from typing import Literal
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import torch
+from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic
+from ml_instrumentation.Collector import Collector
 from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import buffer_group
-from corerl.component.critic.factory import GTDCriticConfig, create_critic
+from corerl.component.critic.factory import GTDCriticConfig
+from corerl.component.network.networks import EnsembleNetworkReturn
 from corerl.component.network.utils import tensor, to_np
 from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
 from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import TransitionBatch
+from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -25,6 +30,36 @@ logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True)
 
+
+class WrappedCritic:
+    def __init__(self, critic: QRCCritic, critic_state: CriticState):
+        self._critic = critic
+        self._critic_state = critic_state
+
+    def get_values(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+        with_grad: bool = False,
+    ) -> EnsembleNetworkReturn:
+        ens_state = jnp.stack([
+            jnp.asarray(s) for s in state_batches
+        ])
+
+        ens_action = jnp.stack([
+            jnp.asarray(a) for a in action_batches
+        ])
+
+        q = self._critic.forward(
+            self._critic_state.params,
+            ens_state,
+            ens_action,
+        )
+        return EnsembleNetworkReturn(
+            reduced_value=torch.tensor(q.mean(axis=0)),
+            ensemble_values=torch.tensor(q),
+            ensemble_variance=torch.tensor(0.0),
+        )
 
 @config()
 class GreedyACConfig(BaseAgentConfig):
@@ -69,7 +104,7 @@ class GreedyACConfig(BaseAgentConfig):
     A minimum of 1 update will always be performed.
     """
 
-    bootstrap_action_samples: int = 10
+    bootstrap_action_samples: int = 1
     """
     Number of action samples to use for bootstrapping,
     producing an Expected Sarsa-like update.
@@ -101,8 +136,15 @@ class GreedyAC(BaseAgent):
 
         self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
 
-        # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic = create_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
+        collector = Collector(experiment_id=0)
+        critic_cfg = QRCConfig(
+            name='qrc',
+            stepsize=cfg.critic.critic_optimizer.lr,
+            ensemble=cfg.critic.critic_network.ensemble,
+            ensemble_prob=cfg.critic.buffer.ensemble_probability,
+            batch_size=cfg.critic.buffer.batch_size,
+        )
+        self.critic = QRCCritic(critic_cfg, 0, col_desc.state_dim, col_desc.action_dim, collector)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
@@ -112,6 +154,15 @@ class GreedyAC(BaseAgent):
         self._avg_critic_delta: float | None = None
         self._last_actor_loss = 0.
         self._avg_actor_delta: float | None = None
+
+
+        # critic state
+        dummy_x = jnp.zeros(self.state_dim)
+        dummy_a = jnp.zeros(self.action_dim)
+
+        self._jax_rng = jax.random.PRNGKey(0)
+        self._jax_rng, c_rng = jax.random.split(self._jax_rng)
+        self._critic_state = self.critic.init_state(c_rng, dummy_x, dummy_a)
 
 
     @property
@@ -226,7 +277,7 @@ class GreedyAC(BaseAgent):
             states,
             action_lo,
             action_hi,
-            self.critic,
+            WrappedCritic(self.critic, self._critic_state),
         )
 
     def get_sampler_actions(
@@ -268,20 +319,20 @@ class GreedyAC(BaseAgent):
             return
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
-        recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self._policy_manager.update_buffer(pr)
 
         # ---------------------------------- ingress loss metic --------------------------------- #
 
-        if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
-            recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
-            duplicated_critic_batch = [recent_critic_batch for i in range(self.ensemble)]
-            bootstrap_actions = self._get_bootstrap_actions(duplicated_critic_batch)
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_critic_loss_{pr.data_mode.name}",
-                value=self.critic.compute_loss(duplicated_critic_batch, bootstrap_actions).item(),
-            )
+        # if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
+        #     recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
+        #     duplicated_critic_batch = [recent_critic_batch for i in range(self.ensemble)]
+        #     bootstrap_actions = self._get_bootstrap_actions(duplicated_critic_batch)
+        #     self._app_state.metrics.write(
+        #         agent_step=self._app_state.agent_step,
+        #         metric=f"ingress_critic_loss_{pr.data_mode.name}",
+        #         value=self.critic.compute_loss(duplicated_critic_batch, bootstrap_actions).item(),
+        #     )
 
         # ------------------------- transition length metric ------------------------- #
 
@@ -319,7 +370,7 @@ class GreedyAC(BaseAgent):
                     batch.post.state,
                     batch.post.action_lo,
                     batch.post.action_hi,
-                    self.critic,
+                    WrappedCritic(self.critic, self._critic_state),
                 )
                 # add a singleton dimension over action_dim to forcefully broadcast
                 # over the action_dim
@@ -329,6 +380,7 @@ class GreedyAC(BaseAgent):
                 cur_action = cur_action.unsqueeze(1)
                 next_direct_actions = ar.direct_actions
                 next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
+                next_direct_actions = next_direct_actions.squeeze(1)
 
             next_actions.append(next_direct_actions)
 
@@ -341,16 +393,12 @@ class GreedyAC(BaseAgent):
 
         batches = self.critic_buffer.sample()
         bootstrap_actions = self._get_bootstrap_actions(batches)
-        eval_actions = bootstrap_actions
 
-        if self.eval_batch:
-            eval_batches = self.critic_buffer.sample()
-            eval_actions = self._get_bootstrap_actions(eval_batches)
-        else:
-            eval_batches = batches
+        next_actions = jnp.stack([jnp.asarray(a) for a in bootstrap_actions])
+        v_trans = vect_trans_from_transition_batch(batches)
 
-        q_loss = self.critic.update(batches, bootstrap_actions, eval_batches, eval_actions)
-        return [float(q_loss)]
+        self._critic_state, losses = self.critic.update(self._critic_state, v_trans, next_actions)
+        return losses.tolist()
 
 
     def update(self) -> list[float]:
@@ -363,7 +411,9 @@ class GreedyAC(BaseAgent):
             avg_critic_loss = np.mean(losses)
 
             for _ in range(self.cfg.max_internal_actor_updates):
-                actor_loss = self._policy_manager.update(self.critic)
+                actor_loss = self._policy_manager.update(
+                    WrappedCritic(self.critic, self._critic_state),
+                )
 
                 last = self._last_actor_loss
                 self._last_actor_loss = actor_loss
@@ -392,8 +442,8 @@ class GreedyAC(BaseAgent):
         actor_path = path / "actor"
         self._policy_manager.save(actor_path)
 
-        q_critic_path = path / "q_critic"
-        self.critic.save(q_critic_path)
+        # q_critic_path = path / "q_critic"
+        # self.critic.save(q_critic_path)
 
         critic_buffer_path = path / "critic_buffer.pkl"
         with open(critic_buffer_path, "wb") as f:
@@ -405,15 +455,8 @@ class GreedyAC(BaseAgent):
         actor_path = path / "actor"
         self._policy_manager.load(actor_path)
 
-        q_critic_path = path / "q_critic"
-        self.critic.load(q_critic_path)
-
-        try:
-            critic_buffer_path = path / "critic_buffer.pkl"
-            with open(critic_buffer_path, "rb") as f:
-                self.critic_buffer = pkl.load(f)
-        except Exception:
-            logger.exception('Failed to load critic buffer from checkpoint. Reinitializing...')
+        # q_critic_path = path / "q_critic"
+        # self.critic.load(q_critic_path)
 
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {
