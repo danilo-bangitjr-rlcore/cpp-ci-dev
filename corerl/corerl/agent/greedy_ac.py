@@ -104,7 +104,7 @@ class GreedyACConfig(BaseAgentConfig):
     A minimum of 1 update will always be performed.
     """
 
-    bootstrap_action_samples: int = 1
+    bootstrap_action_samples: int = 10
     """
     Number of action samples to use for bootstrapping,
     producing an Expected Sarsa-like update.
@@ -380,7 +380,6 @@ class GreedyAC(BaseAgent):
                 cur_action = cur_action.unsqueeze(1)
                 next_direct_actions = ar.direct_actions
                 next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
-                next_direct_actions = next_direct_actions.squeeze(1)
 
             next_actions.append(next_direct_actions)
 

@@ -195,7 +195,13 @@ class QRCCritic:
         gamma = transition.gamma
 
         out = self._net.apply(params, state, action)
-        out_p = self._net.apply(params, next_state, next_actions)
+
+        def _get_next_q(
+            next_action: jax.Array,
+        ):
+            return self._net.apply(params, next_state, next_action)
+
+        out_p = jax.vmap(_get_next_q, in_axes=(0,))(next_actions)
 
         target = reward + gamma * out_p.q.mean()
 
