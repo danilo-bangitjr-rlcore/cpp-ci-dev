@@ -61,7 +61,7 @@ class FusionNet(hk.Module):
             self.torso_branches[i](x[i])
             for i in range(len(x))
         ]
-        z = jnp.concat(parts, axis=0)
+        z = jnp.concat(parts, axis=-1)
         act = get_activation(self.cfg.activation)
         return act(z)
 

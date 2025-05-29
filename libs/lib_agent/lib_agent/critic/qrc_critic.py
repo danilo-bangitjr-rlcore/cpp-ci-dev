@@ -1,6 +1,5 @@
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Protocol
 
 import chex
 import haiku as hk
@@ -11,7 +10,11 @@ import optax
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import EnsembleReplayBuffer, Transition, VectorizedTransition
+from lib_agent.buffer.buffer import VectorizedTransition
+
+
+class ActionSampler(Protocol):
+    def __call__(self, key: chex.PRNGKey, state: chex.Array) -> chex.Array: ...
 
 
 class CriticState(NamedTuple):
@@ -29,7 +32,7 @@ class QRCConfig:
     name: str
     stepsize: float
     ensemble: int
-    ensemble_prob: int
+    ensemble_prob: float
     batch_size: int
 
 
@@ -56,18 +59,12 @@ class QRCCritic:
 
         torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.LateFusionConfig(sizes=[128, 128], activation='relu'),
-                nets.LinearConfig(size=256, activation='relu'),
+                nets.LateFusionConfig(sizes=[123, 123], activation='relu'),
+                nets.LinearConfig(size=225, activation='relu'),
             ],
         )
         self._net = critic_builder(torso_cfg)
         self._optim = optax.adam(learning_rate=cfg.stepsize)
-
-        self._buffer = EnsembleReplayBuffer(
-            n_ensemble=cfg.ensemble,
-            ensemble_prob=cfg.ensemble_prob,
-            batch_size=cfg.batch_size,
-        )
 
     # ----------------------
     # -- Public Interface --
@@ -101,16 +98,9 @@ class QRCCritic:
         return self._net.apply(params, state, action).q
 
 
-    def update(self, state: Any, get_actions: Callable[[chex.PRNGKey, jax.Array], jax.Array]) -> CriticState:
-        if self._buffer.size == 0:
-            return state
-
-        transitions = self._buffer.sample()
-        self._rng, rng = jax.random.split(self._rng, 2)
-        next_actions = get_actions(rng, transitions.next_state)
-
+    def update(self, critic_state: Any, transitions: VectorizedTransition, next_actions: jax.Array):
         new_state, metrics = self._ensemble_update(
-            state,
+            critic_state,
             transitions,
             next_actions,
         )
@@ -118,10 +108,7 @@ class QRCCritic:
         loss = jnp.mean(metrics['losses'])
         self._collector.collect('critic_loss', float(loss))
 
-        return new_state
-
-    def update_buffer(self, transition: Transition):
-        self._buffer.add(transition)
+        return new_state, metrics['losses']
 
     # ------------
     # -- Update --

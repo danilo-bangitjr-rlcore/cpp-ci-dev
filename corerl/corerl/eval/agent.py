@@ -36,6 +36,8 @@ def agent_eval(
 
     cfg = cfg_lens(app_state)
 
+    return
+
     if not cfg.enabled:
         return
 
@@ -385,6 +387,7 @@ def q_values_and_act_prob(
     * y is the probability or Q value, averaged over samples where the action in metric is set to x
         and the other actions are sampled from the policy. cfg.other_action_samples controls the number of samples
     """
+    return
     if not isinstance(agent, GreedyAC):
         return
     cfg = app_state.cfg.eval_cfgs.q_pdf_plots
