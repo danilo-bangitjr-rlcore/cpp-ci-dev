@@ -143,6 +143,8 @@ class GreedyAC(BaseAgent):
             ensemble=cfg.critic.critic_network.ensemble,
             ensemble_prob=cfg.critic.buffer.ensemble_probability,
             batch_size=cfg.critic.buffer.batch_size,
+            num_rand_actions=cfg.critic.num_rand_actions,
+            action_regularization=cfg.critic.action_regularization,
         )
         self.critic = QRCCritic(critic_cfg, 0, col_desc.state_dim, col_desc.action_dim, collector)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)

@@ -27,6 +27,7 @@ class CriticConfig:
     Critic-specific hyperparameters.
     """
     action_regularization: float = 0.0
+    num_rand_actions: int = 10
     critic_network: EnsembleNetworkConfig = Field(default_factory=EnsembleNetworkConfig)
     critic_optimizer: OptimizerConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING

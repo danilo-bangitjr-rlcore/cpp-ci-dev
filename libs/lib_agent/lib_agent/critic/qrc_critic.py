@@ -34,6 +34,8 @@ class QRCConfig:
     ensemble: int
     ensemble_prob: float
     batch_size: int
+    num_rand_actions: int
+    action_regularization: float
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -105,10 +107,10 @@ class QRCCritic:
             next_actions,
         )
 
-        loss = jnp.mean(metrics['losses'])
+        loss = jnp.mean(metrics['loss'])
         self._collector.collect('critic_loss', float(loss))
 
-        return new_state, metrics['losses']
+        return new_state, metrics['loss']
 
     # ------------
     # -- Update --
@@ -157,14 +159,17 @@ class QRCCritic:
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses, h_losses, metrics = jax.vmap(self._batch_loss)(
+        losses, metrics = jax.vmap(self._batch_loss)(
             params,
             transition,
             next_actions,
         )
-        return losses.sum() + h_losses.sum(), metrics | {
-            'losses': losses,
-            'h_losses': h_losses,
+
+        return losses.sum(), metrics | {
+            'loss': losses,
+            'q_loss': metrics['q_loss'].mean(),
+            'h_loss': metrics['h_loss'].mean(),
+            'reg_loss': metrics['reg_loss'].mean(),
         }
 
 
@@ -174,12 +179,12 @@ class QRCCritic:
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses, h_losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
+        losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
             params,
             transition,
             next_actions,
         )
-        return losses.mean(), h_losses.mean() + l2_regularizer(params['h'], 2.0), metrics
+        return losses.mean() + l2_regularizer(params['h'], 2.0), metrics
 
 
     def _loss(
@@ -211,9 +216,22 @@ class QRCCritic:
 
         q_loss = 0.5 * delta_l**2 + sg(jnp.tanh(out.h)) * delta_r
         h_loss = 0.5 * (sg(delta_l) - out.h)**2
-        return q_loss, h_loss, {
+
+        # noise loss
+        rand_actions = jax.random.uniform(
+            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0])
+        )
+        out_rand = jax.vmap(_get_next_q, in_axes=(0,))(rand_actions)
+        reg_loss = out_rand.q.mean()
+
+        loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
+
+        return loss, {
             'q': out.q,
             'h': out.h,
+            'q_loss': q_loss,
+            'h_loss': h_loss,
+            'reg_loss': reg_loss,
             'delta': delta_l,
         }
 
