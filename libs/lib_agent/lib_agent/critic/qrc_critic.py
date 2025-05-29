@@ -64,6 +64,7 @@ class QRCCritic:
                 nets.ResidualLateFusionConfig(sizes=[128, 128], activation='relu'),
                 nets.LinearConfig(size=256, activation='relu'),
             ],
+            skip=True,
         )
         self._net = critic_builder(torso_cfg)
         self._optim = optax.adam(learning_rate=cfg.stepsize)
