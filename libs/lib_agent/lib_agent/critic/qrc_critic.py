@@ -36,6 +36,7 @@ class QRCConfig:
     batch_size: int
     num_rand_actions: int
     action_regularization: float
+    l2_regularization: float
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -185,7 +186,7 @@ class QRCCritic:
             transition,
             next_actions,
         )
-        return losses.mean() + l2_regularizer(params['h'], 2.0), metrics
+        return losses.mean() + l2_regularizer(params['h'], self._cfg.l2_regularization), metrics
 
 
     def _loss(
