@@ -281,11 +281,11 @@ def get_layer_names(params: chex.ArrayTree):
     def _inner(path: str, sub_params: chex.ArrayTree):
         if isinstance(sub_params, jax.Array):
             keys.append(path)
-        
+
         else:
             for key, value in sub_params.items():
                 _inner(f"{path}/{key}", value)
-        
+
     _inner('', params)
     return keys
 

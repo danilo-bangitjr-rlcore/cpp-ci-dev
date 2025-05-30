@@ -492,10 +492,8 @@ class GreedyAC(BaseAgent):
                 value=sum(loss_list) / len(loss_list),
         )
 
-
-
-
         return loss_list
+
     def update(self) -> list[float]:
         q_losses = []
 
