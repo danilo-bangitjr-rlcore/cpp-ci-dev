@@ -1,10 +1,9 @@
 import pandas as pd
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.tag_config import TagConfig, TagType
-
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_no_seasonal_tags_enabled():

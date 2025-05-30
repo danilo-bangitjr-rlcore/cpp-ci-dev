@@ -360,7 +360,9 @@ def test_pipeline3():
     )
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state
-    cols = ['action-1', 'tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'day_of_week_0', 'day_of_week_1', 'day_of_week_2', 'day_of_week_3', 'day_of_week_4', 'day_of_week_5', 'day_of_week_6', 'tag-2_trace-0.1', 'time_of_day_cos', 'time_of_day_sin', 'time_of_year_cos', 'time_of_year_sin']
+    cols = ['action-1', 'tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'day_of_week_0', 'day_of_week_1',
+            'day_of_week_2', 'day_of_week_3', 'day_of_week_4', 'day_of_week_5', 'day_of_week_6', 'tag-2_trace-0.1',
+            'time_of_day_cos', 'time_of_day_sin', 'time_of_year_cos', 'time_of_year_sin']
     expected_df = pd.DataFrame(
         data=[
             [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -0.866025, 0.5, -0.978856, -0.204552],
@@ -390,7 +392,7 @@ def test_pipeline3():
                 mkstep(reward=3,
                        action=tensor([1.]),
                        gamma=0.9,
-                       state=tensor([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]),
+                       state=tensor([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -402,13 +404,13 @@ def test_pipeline3():
                 mkstep(reward=3,
                        action=tensor([1.]),
                        gamma=0.9,
-                       state=tensor([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]),
+                       state=tensor([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
                        action=tensor([0.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]),
+                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -420,13 +422,13 @@ def test_pipeline3():
                 mkstep(reward=0,
                        action=tensor([0.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]),
+                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
                        action=tensor([1.]),
                        gamma=0.9,
-                       state=tensor([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]),
+                       state=tensor([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -438,13 +440,13 @@ def test_pipeline3():
                 mkstep(reward=0,
                        action=tensor([1.]),
                        gamma=0.9,
-                       state=tensor([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]),
+                       state=tensor([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
                        action=tensor([0.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]),
+                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -456,13 +458,13 @@ def test_pipeline3():
                 mkstep(reward=0,
                        action=tensor([0.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]),
+                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=1,
                        action=tensor([1.]),
                        gamma=0.9,
-                       state=tensor([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]),
+                       state=tensor([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -474,13 +476,13 @@ def test_pipeline3():
                 mkstep(reward=1,
                        action=tensor([1.]),
                        gamma=0.9,
-                       state=tensor([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]),
+                       state=tensor([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
                        action=tensor([0.]),
                        gamma=0.9,
-                       state=tensor([0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.981482, -0.923880, 0.382683, -0.978856, -0.204552]),
+                       state=tensor([0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.981482, -0.923880, 0.382683, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],

@@ -1,7 +1,7 @@
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
-
-from typing import TYPE_CHECKING
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import PipelineFrame
