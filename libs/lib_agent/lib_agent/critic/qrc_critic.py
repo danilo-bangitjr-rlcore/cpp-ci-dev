@@ -247,3 +247,19 @@ def l2_regularizer(params: chex.ArrayTree, beta: float):
     reg = tree_map(jnp.sum, reg)
     reg = 0.5 * beta * jax.tree_util.tree_reduce(lambda a, b: a + b, reg)
     return reg
+
+# ---------------------------------------------------------------------------- #
+#                                    metrics                                   #
+# ---------------------------------------------------------------------------- #
+
+@jax_u.jit
+def get_weight_norms(params: chex.ArrayTree):
+    leaves = jax.tree.leaves(params)
+    ensemble = leaves[0].shape[0]
+
+    norms = []
+    for i in range(ensemble):
+        norms_i = jax.tree.map(lambda p: jnp.sqrt(jnp.sum(jnp.square(p[i]))), leaves)
+        sum_norm_i = sum(norms_i)
+        norms.append(sum_norm_i)
+    return norms

@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import torch
-from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic
+from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic, get_weight_norms
 from ml_instrumentation.Collector import Collector
 from pydantic import Field, TypeAdapter
 
@@ -450,6 +450,16 @@ class GreedyAC(BaseAgent):
         v_trans = vect_trans_from_transition_batch(batches)
 
         self._critic_state, losses = self.critic.update(self._critic_state, v_trans, next_actions)
+
+        # log weight norm
+        weight_norms = get_weight_norms(self._critic_state.params)
+        for i, norm in enumerate(weight_norms):
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"network_critic_{i}_weight_norm",
+                value=norm,
+            )
+
         return losses.tolist()
 
 
