@@ -1,8 +1,10 @@
-from typing import NamedTuple, Protocol
+from typing import Any, NamedTuple, Protocol
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+
+from lib_agent.buffer.storage import ReplayStorage
 
 
 class Transition(Protocol):
@@ -110,41 +112,28 @@ def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTr
     )
 
 
-class EnsembleReplayBuffer:
-    def __init__(self, n_ensemble: int = 2, max_size: int = 1_000_000,
-                 ensemble_prob: float = 0.5, batch_size:int = 256, seed: int = 0,
-                 n_most_recent: int = 1):
+class EnsembleReplayBuffer[T]:
+    def __init__(
+        self,
+        n_ensemble: int = 2,
+        max_size: int = 1_000_000,
+        ensemble_prob: float = 0.5,
+        batch_size:int = 256,
+        seed: int = 0,
+        n_most_recent: int = 1,
+    ):
+        self._storage = ReplayStorage[T](max_size)
         self.max_size = max_size
         self.n_ensemble = n_ensemble
         self.ensemble_prob = ensemble_prob
-        self.ptr = 0
-        self.size = 0
         self.batch_size = batch_size
         self.n_most_recent = n_most_recent
 
-        self.transitions = None
         self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
         self.rng = np.random.default_rng(seed)
 
-    def _init_transitions(self, transition: Transition) -> None:
-        self.transitions = NPVectorizedTransition(
-            state=np.zeros((self.max_size, transition.state_dim)),
-            a_lo=np.zeros((self.max_size, transition.action_dim)),
-            a_hi=np.zeros((self.max_size, transition.action_dim)),
-            action=np.zeros((self.max_size,transition.action_dim)),
-            reward=np.zeros((self.max_size, 1)),
-            next_state=np.zeros((self.max_size, transition.state_dim)),
-            next_a_lo=np.zeros((self.max_size, transition.action_dim)),
-            next_a_hi=np.zeros((self.max_size, transition.action_dim)),
-            gamma=np.zeros((self.max_size, 1)),
-        )
-
-    def add(self, transition: Transition) -> None:
-        if self.transitions is None:
-            self._init_transitions(transition)
-
-        assert self.transitions is not None
-        self.transitions.add(self.ptr, transition)
+    def add(self, transition: T) -> None:
+        ptr = self._storage.add(transition)
 
         ensemble_mask = self.rng.uniform(size=self.n_ensemble) < self.ensemble_prob
         # ensure that at least one member gets the transition
@@ -152,16 +141,12 @@ class EnsembleReplayBuffer:
             random_member = self.rng.integers(0, self.n_ensemble)
             ensemble_mask[random_member] = True
 
-        self.ensemble_masks[:, self.ptr] = ensemble_mask
-
-        self.ptr = (self.ptr + 1) % self.max_size
-        self.size = min(self.size + 1, self.max_size)
+        self.ensemble_masks[:, ptr] = ensemble_mask
 
     def sample(self) -> VectorizedTransition:
-        assert self.transitions is not None
         ensemble_samples = []
         for m in range(self.n_ensemble):
-            valid_indices = np.nonzero(self.ensemble_masks[m, :self.size])[0]
+            valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size])[0]
 
             n_random = self.batch_size
             recent_indices = np.array([])
@@ -169,13 +154,14 @@ class EnsembleReplayBuffer:
             # if n_most_recent is set, include the most recent transitions
             if self.n_most_recent > 0:
                 # get the most recent indices that are valid for this ensemble member
-                if self.size >= self.max_size:
+                if self._storage.size >= self.max_size:
                     # buffer is full, recent indices wrap around
-                    recent_range = np.arange(self.ptr, self.ptr - self.n_most_recent) % self.max_size
+                    ptr = self._storage.last_idx()
+                    recent_range = np.arange(ptr, ptr - self.n_most_recent, -1) % self.max_size
                 else:
                     # buffer is not full, recent indices are at the end
-                    start_idx = max(0, self.size - self.n_most_recent)
-                    recent_range = np.arange(start_idx, self.size)
+                    start_idx = max(0, self._storage.size - self.n_most_recent)
+                    recent_range = np.arange(start_idx, self._storage.size)
 
                 # filter for valid indices for this ensemble member
                 mask = self.ensemble_masks[m, recent_range]
@@ -210,6 +196,10 @@ class EnsembleReplayBuffer:
                     replace=True,
                 )
 
-            samples_m = self.transitions.get_index(combined_indices)
-            ensemble_samples.append(samples_m)
+            samples_m: list[Any] = self._storage.get_batch(combined_indices)
+            ensemble_samples.append(stack_transitions(samples_m))
         return stack_transitions(ensemble_samples)
+
+    @property
+    def size(self):
+        return self._storage.size
