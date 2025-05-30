@@ -112,7 +112,7 @@ class QRCCritic:
         loss = jnp.mean(metrics['loss'])
         self._collector.collect('critic_loss', float(loss))
 
-        return new_state, metrics['loss']
+        return new_state, metrics
 
     # ------------
     # -- Update --
@@ -148,6 +148,11 @@ class QRCCritic:
         updates = jax.tree_util.tree_map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
         new_opt_state = jax.tree_util.tree_map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
         new_params = optax.apply_updates(state.params, updates)
+
+        metrics |= {
+            'ensemble_grad_norms': get_ensemble_norm(grads),
+            'ensemble_weight_norms': get_ensemble_norm(new_params),
+        }
 
         return CriticState(
             new_params,
@@ -253,8 +258,8 @@ def l2_regularizer(params: chex.ArrayTree, beta: float):
 # ---------------------------------------------------------------------------- #
 
 @jax_u.jit
-def get_weight_norms(params: chex.ArrayTree):
-    leaves = jax.tree.leaves(params)
+def get_ensemble_norm(tree: chex.ArrayTree):
+    leaves = jax.tree.leaves(tree)
     ensemble = leaves[0].shape[0]
 
     norms = []
