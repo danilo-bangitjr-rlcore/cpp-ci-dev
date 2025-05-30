@@ -1,25 +1,12 @@
-import copy
-from pathlib import Path
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import Literal
 
-import torch
 import torch.nn as nn
-from pydantic import Field
 
 import corerl.component.layer as layer
 import corerl.component.network.utils as utils
 from corerl.component.layer.activations import ActivationConfig
-from corerl.component.network.ensemble.reductions import (
-    MeanReduct,
-    ReductConfig,
-    bootstrap_reduct_group,
-)
-from corerl.configs.config import MISSING, computed, config, list_
-from corerl.eval.torch import get_layers_stable_rank
+from corerl.configs.config import config, list_
 from corerl.utils.device import device
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 EPSILON = 1e-6
 
