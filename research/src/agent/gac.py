@@ -272,6 +272,7 @@ class GreedyAC:
 
         batch = self.critic_buffer.sample()
         next_actions = self._get_actions_over_state(self.agent_state.actor.params, self.rng, batch.next_state)
+        next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
         new_critic_state, _ = self._critic.update(
             critic_state=self.agent_state.critic,
             transitions=batch,
