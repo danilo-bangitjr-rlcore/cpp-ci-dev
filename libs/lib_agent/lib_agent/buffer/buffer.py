@@ -171,7 +171,7 @@ class EnsembleReplayBuffer:
                 # get the most recent indices that are valid for this ensemble member
                 if self.size >= self.max_size:
                     # buffer is full, recent indices wrap around
-                    recent_range = np.arange(self.ptr, self.ptr + self.n_most_recent) % self.max_size
+                    recent_range = np.arange(self.ptr, self.ptr - self.n_most_recent) % self.max_size
                 else:
                     # buffer is not full, recent indices are at the end
                     start_idx = max(0, self.size - self.n_most_recent)
