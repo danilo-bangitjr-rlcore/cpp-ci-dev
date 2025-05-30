@@ -30,6 +30,7 @@ from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
+from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.tag_config import Agg, TagConfig
 from corerl.data_pipeline.transforms import NullConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
@@ -165,6 +166,7 @@ class Pipeline:
 
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
+        self.seasonal_tags = SeasonalTagIncluder(self.tags)
         self.virtual_tags = VirtualTagComputer(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
@@ -198,6 +200,7 @@ class Pipeline:
             data_mode: defaultdict(list) for data_mode in DataMode}
 
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
+            StageCode.SEASONAL:   self.seasonal_tags,
             StageCode.VIRTUAL:    self.virtual_tags,
             StageCode.INIT:       lambda pf: invoke_stage_per_tag(pf, self.missing_data_checkers),
             StageCode.FILTER:     self.conditional_filter,
@@ -215,6 +218,7 @@ class Pipeline:
         }
 
         self.default_stages = (
+            StageCode.SEASONAL,
             StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.FILTER,
