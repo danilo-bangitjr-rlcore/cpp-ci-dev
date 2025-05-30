@@ -477,9 +477,25 @@ class GreedyAC(BaseAgent):
                     value=layer_rank,
                 )
 
-        return metrics['loss'].tolist()
+        # log loss
+        loss_list = metrics['loss'].tolist()
+        for i, loss_i in enumerate(loss_list):
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"critic_loss_{i}",
+                value=loss_i,
+            )
+
+        self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="avg_critic_loss",
+                value=sum(loss_list) / len(loss_list),
+        )
 
 
+
+
+        return loss_list
     def update(self) -> list[float]:
         q_losses = []
 
