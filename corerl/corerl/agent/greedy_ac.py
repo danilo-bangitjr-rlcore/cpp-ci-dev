@@ -365,20 +365,27 @@ class GreedyAC(BaseAgent):
             return
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
-        self.critic_buffer.feed(pr.transitions, pr.data_mode)
+        recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
         self._policy_manager.update_buffer(pr)
 
         # ---------------------------------- ingress loss metic --------------------------------- #
 
-        # if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
-        #     recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
-        #     duplicated_critic_batch = [recent_critic_batch for i in range(self.ensemble)]
-        #     bootstrap_actions = self._get_bootstrap_actions(duplicated_critic_batch)
-        #     self._app_state.metrics.write(
-        #         agent_step=self._app_state.agent_step,
-        #         metric=f"ingress_critic_loss_{pr.data_mode.name}",
-        #         value=self.critic.compute_loss(duplicated_critic_batch, bootstrap_actions).item(),
-        #     )
+        if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
+            recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
+            recent_critic_batch = [recent_critic_batch for _ in range(self.ensemble)]
+
+            bootstrap_actions = self._get_bootstrap_actions(recent_critic_batch)
+
+            next_actions = jnp.stack([jnp.asarray(a) for a in bootstrap_actions])
+            v_trans = vect_trans_from_transition_batch(recent_critic_batch)
+
+            _, metrics = self.critic.update(self._critic_state, v_trans, next_actions)
+
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"ingress_critic_loss_{pr.data_mode.name}",
+                value=metrics['loss'].item(),
+            )
 
         # ------------------------- transition length metric ------------------------- #
 
