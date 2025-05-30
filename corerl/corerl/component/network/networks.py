@@ -97,33 +97,6 @@ class LateFusionConfig:
             activation=[{'name': 'relu'}],
         )
 
-
-class ResidualBlock(nn.Module):
-    def __init__(self, input_size: int, output_size: int, activation: str = "relu"):
-        super().__init__()
-        self.output_size = output_size
-        self.activation = activation
-
-        self.linear1 = nn.Linear(input_size, output_size)
-        self.linear2 = nn.Linear(output_size, output_size)
-
-        # projection layer for residual connection if dimensions don't match
-        self.projection = nn.Linear(input_size, output_size) if input_size != output_size else nn.Identity()
-
-        self.act_fn = layer.init_activation({"name": activation})
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        identity = x
-
-        out = self.linear1(x)
-        out = self.act_fn(out)
-        out = self.linear2(out)
-
-        # residual connection
-        out = out + self.projection(identity)
-        return out
-
-
 class LateFusionNetwork(nn.Module):
     def __init__(
             self,
