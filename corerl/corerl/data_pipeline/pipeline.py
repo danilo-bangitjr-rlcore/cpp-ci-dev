@@ -29,6 +29,7 @@ from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imput
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
+from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.tag_config import Agg, TagConfig
 from corerl.data_pipeline.transforms import NullConfig, register_dispatchers
@@ -73,6 +74,7 @@ class PipelineConfig:
                     agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
                     preprocess=[],
                     state_constructor=[NullConfig()],
+                    outlier=[IdentityFilterConfig()],
                 )
             )
 
