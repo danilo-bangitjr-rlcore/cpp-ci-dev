@@ -1,7 +1,7 @@
 import logging
 import pickle as pkl
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -9,15 +9,14 @@ import numpy as np
 import torch
 from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic
 from ml_instrumentation.Collector import Collector
-from pydantic import Field
+from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.buffer import buffer_group
-from corerl.component.critic.factory import GTDCriticConfig
-from corerl.component.network.networks import EnsembleNetworkReturn
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
 from corerl.component.network.utils import tensor, to_np
+from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
-from corerl.configs.config import config
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
@@ -26,9 +25,53 @@ from corerl.utils.device import device
 from corerl.utils.math import exp_moving_avg
 from corerl.utils.random import get_dist_stats, rejection_sample
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True)
+
+@config()
+class CriticNetworkConfig:
+    ensemble: int = 1
+
+@config()
+class GTDCriticConfig:
+    beta: float = 1.0
+    action_regularization: float = 0.0
+    num_rand_actions: int = 10
+    buffer: BufferConfig = MISSING
+    critic_optimizer: AdamConfig =  Field(default_factory=AdamConfig)
+    critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
+
+    @computed('buffer')
+    @classmethod
+    def _buffer(cls, cfg: 'MainConfig'):
+        default_buffer_type = (
+            RecencyBiasBufferConfig
+            if cfg.feature_flags.recency_bias_buffer else
+            MixedHistoryBufferConfig
+        )
+
+        ta = TypeAdapter(default_buffer_type)
+        default_buffer = default_buffer_type(id='critic')
+        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
+        main_cfg: Any = cfg
+        out = ta.validate_python(default_buffer_dict, context=main_cfg)
+        return out
+
+
+class EnsembleNetworkReturn(NamedTuple):
+    # some reduction over ensemble members, producing a single
+    # value function
+    reduced_value: torch.Tensor
+
+    # the value function for every member of the ensemble
+    ensemble_values: torch.Tensor
+
+    # the variance of the ensemble values
+    ensemble_variance: torch.Tensor
 
 
 class WrappedCritic:
