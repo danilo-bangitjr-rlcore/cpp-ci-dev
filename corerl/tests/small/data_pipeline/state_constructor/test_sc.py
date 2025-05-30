@@ -7,6 +7,7 @@ from test.infrastructure.utils.pandas import dfs_close
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
 from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
@@ -44,6 +45,11 @@ def test_sc1():
             defaults=[
                 TraceConfig(trace_values=[0.1, 0.01]),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -108,6 +114,11 @@ def test_norm_sc():
         ],
         cfg=SCConfig(
             defaults=[],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -161,6 +172,11 @@ def test_sc_add_raw():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -224,6 +240,11 @@ def test_sc_integration1():
                     right=[AddRawConfig()],
                 ),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -302,6 +323,11 @@ def test_sc_integration2():
         ],
         cfg=SCConfig(
             defaults=[],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -363,6 +389,11 @@ def test_sc_integration3():
                     passthrough=True,
                 ),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -423,6 +454,11 @@ def test_sc_integration4():
                     passthrough=True,
                 ),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -487,6 +523,11 @@ def test_sc_decision_point_detection():
             defaults=[
                 NormalizerConfig(from_data=True),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 kind='int',
                 action_period=timedelta(minutes=4),
@@ -550,6 +591,11 @@ def test_per_tag_overrides():
                 TraceConfig(trace_values=[0.1, 0.01]),
                 AddRawConfig(),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=4),
                 obs_period=timedelta(minutes=1),
