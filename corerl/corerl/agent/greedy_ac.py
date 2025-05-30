@@ -7,7 +7,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import torch
-from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic
+from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic, get_stable_rank
 from ml_instrumentation.Collector import Collector
 from pydantic import Field, TypeAdapter
 
@@ -466,6 +466,16 @@ class GreedyAC(BaseAgent):
                 metric=f"optimizer_critic_{i}_grad_norm",
                 value=norm,
             )
+
+        # log stable ranks
+        stable_ranks = get_stable_rank(self._critic_state.params)
+        for i, rank in enumerate(stable_ranks):
+            for layer_name, layer_rank in rank.items():
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"critic_{i}_stable_rank_{layer_name}",
+                    value=layer_rank,
+                )
 
         return metrics['loss'].tolist()
 

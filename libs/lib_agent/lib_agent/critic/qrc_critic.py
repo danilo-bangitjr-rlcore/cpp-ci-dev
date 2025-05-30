@@ -268,3 +268,41 @@ def get_ensemble_norm(tree: chex.ArrayTree):
         sum_norm_i = sum(norms_i)
         norms.append(sum_norm_i)
     return norms
+
+
+def stable_rank(matrix: jax.Array):
+    singular_values = jnp.linalg.svd(matrix, compute_uv=False)
+    sv_squared = singular_values**2
+    s_rank = jnp.sum(sv_squared) / sv_squared[0]
+    return s_rank
+
+def get_layer_names(params: chex.ArrayTree):
+    keys = []
+    def _inner(path: str, sub_params: chex.ArrayTree):
+        if isinstance(sub_params, jax.Array):
+            keys.append(path)
+        
+        else:
+            for key, value in sub_params.items():
+                _inner(f"{path}/{key}", value)
+        
+    _inner('', params)
+    return keys
+
+@jax_u.jit
+def get_stable_rank(params: chex.ArrayTree):
+    leaves = jax.tree.leaves(params)
+    ensemble = leaves[0].shape[0]
+    names =  get_layer_names(params)
+
+    # dim = 3 since the first dim is for the ensemble
+    matrix_idxs =  [i for i, l in enumerate(leaves) if l.ndim == 3]
+    matrix_leaves = [leaves[i] for i in matrix_idxs]
+    matrix_names = [names[i] for i in matrix_idxs]
+
+    stable_ranks = []
+    for i in range(ensemble):
+        stable_rank_i = jax.tree.map(lambda m: stable_rank(m[i]), matrix_leaves)
+        stable_ranks.append(dict(zip(matrix_names, stable_rank_i, strict=True)))
+
+    return stable_ranks
