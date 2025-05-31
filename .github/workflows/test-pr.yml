@@ -4,7 +4,7 @@ permissions: write-all # Needed to comment coverage% on PR
 on:
   pull_request:
     paths:
-      - "research/**"
+      - "test/**"
       - "libs/**"
 
 concurrency:
@@ -19,14 +19,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: research
+        working-directory: test
 
     steps:
       - uses: actions/checkout@v4
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          subrepo: research
+          subrepo: test
 
       - name: set up path
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
@@ -38,11 +38,11 @@ jobs:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review
           level: warning
-          workdir: research
+          workdir: test
           glob_pattern: "src/"
 
       # type checking
       - uses: jakebailey/pyright-action@v2
         with:
           pylance-version: latest-release
-          working-directory: research
+          working-directory: test
