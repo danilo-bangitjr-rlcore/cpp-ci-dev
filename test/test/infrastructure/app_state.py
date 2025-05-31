@@ -9,7 +9,7 @@ from corerl.state import AppState
 
 @pytest.fixture()
 def dummy_app_state() -> AppState:
-    cfg = direct_load_config(MainConfig, config_name='dep_mountain_car_continuous.yaml', base='../config')
+    cfg = direct_load_config(MainConfig, config_name='../config/dep_mountain_car_continuous.yaml')
     assert isinstance(cfg, MainConfig)
 
     cfg.metrics.enabled = False

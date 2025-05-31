@@ -35,7 +35,7 @@ class BSuiteTestCase:
 
     def __init__(self):
         self._overrides = self.overrides or {}
-        cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        cfg = direct_load_config(MainConfig, config_name=self.config)
         assert isinstance(cfg, MainConfig)
         self._cfg = cfg
         self.seed = np.random.randint(0, 1_000_000)
@@ -78,8 +78,7 @@ class BSuiteTestCase:
 
         proc = subprocess.run([
             'python', 'corerl/main.py',
-            '--base', '../test/',
-            '--config-name', self.config,
+            '--config-name', '../test/' + self.config,
             *parts,
         ], cwd='../corerl', check=False)
         proc.check_returncode()

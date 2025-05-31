@@ -19,7 +19,7 @@ from corerl.utils.device import device
 log = logging.getLogger(__name__)
 
 
-@load_config(MainConfig, base='config/')
+@load_config(MainConfig)
 def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB

@@ -115,7 +115,7 @@ def retryable_main(cfg: MainConfig):
         interaction.close()
 
 
-@load_config(MainConfig, base='config/')
+@load_config(MainConfig)
 def main(cfg: MainConfig):
     logging.basicConfig(
         format=log_fmt,
