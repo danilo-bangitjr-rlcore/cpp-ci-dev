@@ -1,6 +1,5 @@
 # Import modules
 from dataclasses import dataclass
-from typing import Optional
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -188,7 +187,7 @@ class FourRoomsEnv(gym.Env):
         return self._current_state, reward, False, False, {}
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[dict] = None,
+        self, *, seed: int | None = None, options: dict | None = None,
     ):
         self._fig = None
         self._ax = None

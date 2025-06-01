@@ -32,7 +32,7 @@ class ObservationPerturbationWrapper(gym.Wrapper):
 
         return obs, info
 
-    def step(self, action: Any) -> tuple[Any, float, bool, bool, dict[str, Any]]:
+    def step(self, action: Any):
         obs, reward, terminated, truncated, info = self.env.step(action)
 
         obs, info = self._maybe_perturb_observation(obs, info)
@@ -54,5 +54,3 @@ class ObservationPerturbationWrapper(gym.Wrapper):
                 return perturbed_obs, info
             logger.warning(f"Unsupported observation type: {type(obs)}")
         return obs, info
-
-

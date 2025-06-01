@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -64,7 +64,7 @@ class BasePVSEnv(Env):
         self.init_records()
         self.pid_controller = PIDController(self.config)
 
-    def init_random_setpoint(self, seed: Optional[int]):
+    def init_random_setpoint(self, seed: int | None):
         self.rng = np.random.RandomState(seed)
         self.random_sp = self.config.random_sp
         self.setpoint = self.rng.choice(self.random_sp)
@@ -206,8 +206,8 @@ class BasePVSEnv(Env):
     def reset(
         self,
         *,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
+        seed: int | None = None,
+        options: dict | None = None,
     ) -> tuple[np.ndarray, dict]:
         if seed is not None:
             self.rng = np.random.RandomState(seed)
@@ -236,7 +236,7 @@ class BasePVSEnv(Env):
     def calculate_response_areas(
         self,
         process: np.ndarray,
-        setpoint: Optional[np.ndarray]=None,
+        setpoint: np.ndarray | None=None,
         use_setpoint: bool=False,
     ) -> tuple[float, float]:
         """
@@ -638,8 +638,8 @@ class PVSChangeAction(BasePVSEnv):
     def reset(
         self,
         *,
-        seed: Optional[int]=None,
-        options: Optional[dict]=None,
+        seed: int | None=None,
+        options: dict | None=None,
     ) -> tuple[np.ndarray, dict]:
         super(BasePVSEnv, self).reset(seed=seed, options=options)
         self.prev_pid_params = self.initial_pid_params.copy()
