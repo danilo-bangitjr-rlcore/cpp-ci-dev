@@ -21,23 +21,25 @@ jobs:
             lib: [lib_agent, lib_utils, rl_env]
     defaults:
       run:
-        working-directory: ${{ matrix.lib }}
+        working-directory: libs/${{ matrix.lib }}
 
     steps:
       - uses: actions/checkout@v4
       - name: Setup
         uses: ./.github/actions/setup
         with:
-          subrepo: ${{ matrix.lib }}
+          subrepo: libs/${{ matrix.lib }}
 
       - name: set up path
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       # linting
       - uses: astral-sh/ruff-action@v1
+        with:
+            src: libs/${{ matrix.lib }}
 
       # type checking
       - uses: jakebailey/pyright-action@v2
         with:
           pylance-version: latest-release
-          working-directory: ${{ matrix.lib }}
+          working-directory: libs/${{ matrix.lib }}

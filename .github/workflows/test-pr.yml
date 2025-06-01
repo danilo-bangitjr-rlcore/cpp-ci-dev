@@ -33,6 +33,9 @@ jobs:
 
       # linting
       - uses: astral-sh/ruff-action@v1
+        with:
+            src: test
+
       - uses: dciborow/action-pylint@0.1.0
         with:
           github_token: ${{ secrets.github_token }}
