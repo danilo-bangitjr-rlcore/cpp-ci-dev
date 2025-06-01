@@ -1,0 +1,43 @@
+name: Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "libs/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  style-n-test:
+    runs-on: ubuntu-latest
+    strategy:
+        matrix:
+            lib: [lib_agent, lib_utils, rl_env]
+    defaults:
+      run:
+        working-directory: ${{ matrix.lib }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: ${{ matrix.lib }}
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: ${{ matrix.lib }}
