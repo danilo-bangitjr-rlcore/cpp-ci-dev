@@ -23,7 +23,6 @@ class StepsizeInit(ABC):
     def reinit(self, step_size: float) -> float:
         """Get the stepsize to use at the next line search iteration.
         """
-        pass
 
 
 class Identity(StepsizeInit):

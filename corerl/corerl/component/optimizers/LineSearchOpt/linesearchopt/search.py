@@ -57,7 +57,6 @@ class Search(ABC):
     ) -> tuple[bool, float]:
         """Checks the search conditions and adjusts the stepsize accordingly.
         """
-        pass
 
 
 class Armijo(Search):

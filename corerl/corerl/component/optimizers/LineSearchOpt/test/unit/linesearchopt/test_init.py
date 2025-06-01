@@ -5,7 +5,7 @@ import pytest
 
 @pytest.fixture
 def inputs():
-    return tuple(10 ** -exp for exp in range(0, 5))
+    return tuple(10 ** -exp for exp in range(5))
 
 
 # -----------------------------------------------------

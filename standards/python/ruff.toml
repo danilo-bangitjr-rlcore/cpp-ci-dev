@@ -9,6 +9,8 @@ select = [
     'I', # isort
     'COM', # flake8-commas
     'C4', # flake8-comprehensions
+    'PIE', # flake8-pie
+
 ]
 ignore = [
     'E402',

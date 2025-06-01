@@ -61,7 +61,6 @@ class BSuiteTestCase:
         """
         Setup the given BSuiteTestCase before main.py is called in execute_test()
         """
-        ...
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
         infra_overrides = self._test_infra_overrides(tsdb, db_name, schema)
