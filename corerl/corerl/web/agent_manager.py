@@ -37,7 +37,7 @@ router = APIRouter()
 class WSMessage(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
-    type: Literal["log"] | Literal["return_code"] = "log"
+    type: Literal["log", "return_code"] = "log"
     message: str | None = None
 
 
@@ -230,7 +230,7 @@ def agent_start(req_payload: StartAgentRequestPayload, config_id: str):
 
 
 class AgentStopResponse(BaseModel):
-    status: Literal["stopped"] | Literal["not_running"]
+    status: Literal["stopped", "not_running"]
 
 
 @router.post("/{config_id}/stop", response_model=AgentStopResponse)
@@ -252,7 +252,7 @@ def agent_stop(config_id: str):
 
 
 class AgentStatusResponse(BaseModel):
-    status: Literal["starting_up"] | Literal["running"] | Literal["dead"] | Literal["not_started"]
+    status: Literal["starting_up", "running", "dead", "not_started"]
     pid: int | None
     extra_options: Optional[list[str]]
 

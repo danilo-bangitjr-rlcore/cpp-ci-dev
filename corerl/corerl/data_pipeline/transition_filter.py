@@ -8,11 +8,7 @@ from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
 
 type TransitionFilterType = (
-    Literal['only_dp']
-    | Literal['only_no_action_change']
-    | Literal['only_post_dp']
-    | Literal['no_nan']
-    | Literal['only_pre_dp_or_ac']
+    Literal['only_dp', 'only_no_action_change', 'only_post_dp', 'no_nan', 'only_pre_dp_or_ac']
 )
 
 

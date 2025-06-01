@@ -10,7 +10,7 @@ select = [
     'COM', # flake8-commas
     'C4', # flake8-comprehensions
     'PIE', # flake8-pie
-
+    'PYI', # flake8-pyi
 ]
 ignore = [
     'E402',
