@@ -145,8 +145,8 @@ class QRCCritic:
             ens_updates.append(updates)
             ens_opts.append(new_opt_state)
 
-        updates = jax.tree_util.tree_map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
-        new_opt_state = jax.tree_util.tree_map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
+        updates = jax.tree.map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
+        new_opt_state = jax.tree.map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
         new_params = optax.apply_updates(state.params, updates)
 
         metrics |= {
@@ -166,7 +166,7 @@ class QRCCritic:
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses, metrics = jax.vmap(self._batch_loss)(
+        losses, metrics = jax_u.vmap(self._batch_loss)(
             params,
             transition,
             next_actions,
@@ -207,13 +207,7 @@ class QRCCritic:
         gamma = transition.gamma
 
         out = self._net.apply(params, state, action)
-
-        def _get_next_q(
-            next_action: jax.Array,
-        ):
-            return self._net.apply(params, next_state, next_action)
-
-        out_p = jax.vmap(_get_next_q, in_axes=(0,))(next_actions)
+        out_p = jax_u.vmap_only(self._net.apply, [2])(params, next_state, next_actions)
 
         target = reward + gamma * out_p.q.mean()
 
@@ -228,7 +222,7 @@ class QRCCritic:
         rand_actions = jax.random.uniform(
             self._rng, shape=(self._cfg.num_rand_actions, action.shape[0])
         )
-        out_rand = jax.vmap(_get_next_q, in_axes=(0,))(rand_actions)
+        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state, rand_actions)
         reg_loss = out_rand.q.mean()
 
         loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
@@ -243,14 +237,13 @@ class QRCCritic:
         }
 
 def get_member(a: chex.ArrayTree, i: int):
-    return jax.tree_util.tree_map(lambda x: x[i], a)
+    return jax.tree.map(lambda x: x[i], a)
 
 
-tree_map = jax.tree_util.tree_map
 def l2_regularizer(params: chex.ArrayTree, beta: float):
-    reg = tree_map(jnp.square, params)
-    reg = tree_map(jnp.sum, reg)
-    reg = 0.5 * beta * jax.tree_util.tree_reduce(lambda a, b: a + b, reg)
+    reg = jax.tree.map(jnp.square, params)
+    reg = jax.tree.map(jnp.sum, reg)
+    reg = 0.5 * beta * jax.tree.reduce(lambda a, b: a + b, reg)
     return reg
 
 # ---------------------------------------------------------------------------- #
@@ -282,7 +275,7 @@ def get_layer_names(params: chex.ArrayTree):
         if isinstance(sub_params, jax.Array):
             keys.append(path)
 
-        else:
+        elif isinstance(sub_params, dict):
             for key, value in sub_params.items():
                 _inner(f"{path}/{key}", value)
 
