@@ -252,16 +252,15 @@ def l2_regularizer(params: chex.ArrayTree, beta: float):
 
 @jax_u.jit
 def get_ensemble_norm(tree: chex.ArrayTree):
-    leaves = jax.tree.leaves(tree)
-    ensemble = leaves[0].shape[0]
+    def _norm(x: jax.Array):
+        return jnp.sqrt(jnp.sum(jnp.square(x)))
 
-    norms = []
-    for i in range(ensemble):
-        norms_i = jax.tree.map(lambda p: jnp.sqrt(jnp.sum(jnp.square(p[i]))), leaves) # pylint: disable=cell-var-from-loop
-        sum_norm_i = sum(norms_i)
-        norms.append(sum_norm_i)
-    return norms
+    def _tree_norm(x: chex.ArrayTree):
+        leaves = jax.tree.leaves(x)
+        norms = jax.tree.map(_norm, leaves)
+        return sum(norms)
 
+    return jax_u.vmap(_tree_norm)(tree)
 
 def stable_rank(matrix: jax.Array):
     singular_values = jnp.linalg.svd(matrix, compute_uv=False)
@@ -293,9 +292,17 @@ def get_stable_rank(params: chex.ArrayTree):
     matrix_leaves = [leaves[i] for i in matrix_idxs]
     matrix_names = [names[i] for i in matrix_idxs]
 
-    stable_ranks = []
-    for i in range(ensemble):
-        stable_rank_i = jax.tree.map(lambda m: stable_rank(m[i]), matrix_leaves) # pylint: disable=cell-var-from-loop
-        stable_ranks.append(dict(zip(matrix_names, stable_rank_i, strict=True)))
+    def _sr(tree: chex.ArrayTree):
+        return jax.tree.map(stable_rank, tree)
 
-    return stable_ranks
+    stable_ranks = jax_u.vmap(_sr)(matrix_leaves)
+    return [
+        dict(
+            zip(
+                matrix_names,
+                [sr[i] for sr in stable_ranks],
+                strict=True,
+            ),
+        )
+        for i in range(ensemble)
+    ]
