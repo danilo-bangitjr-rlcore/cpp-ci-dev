@@ -13,6 +13,10 @@ def method_jit[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     return jax.jit(f, static_argnums=(0,))
 
 
+def vmap[**P, R](f: Callable[P, R]) -> Callable[P, R]:
+    return jax.vmap(f)
+
+
 def vmap_except[F: Callable](f: F, exclude: Sequence[str | int]) -> F:
     """
     vmap over all arguments except those in `exclude`.
