@@ -2,9 +2,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from sqlalchemy import Engine
-
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
+from sqlalchemy import Engine
 
 
 def get_offline_data_writer(engine: Engine, infra_overrides: dict[str, object]) -> DataWriter:
