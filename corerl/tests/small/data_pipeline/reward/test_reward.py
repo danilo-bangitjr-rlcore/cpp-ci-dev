@@ -343,9 +343,8 @@ class EpcorRewardConfig:
 def get_max_cost(cfg: EpcorRewardConfig) -> float:
     orp_cost_max = cfg.orp_pumpspeed_max * cfg.orp_cost_factor # $/hr
     ph_cost_max = cfg.ph_pumpspeed_max * cfg.ph_cost_factor # $/hr
-    c_max = orp_cost_max + ph_cost_max # $/hr
+    return orp_cost_max + ph_cost_max # $/hr
 
-    return c_max
 
 
 def get_constraint_violation_loss(efficiency: float, outlet_h2s: float, cfg: EpcorRewardConfig) -> float:
@@ -394,9 +393,8 @@ def get_constraint_violation_reward(L_v: float) -> float:
 
     # ignore if constraints are satisfied:
     # if aggregated violation L_v <= 0, this will evaluate to 0
-    r_v = (L_v > 0) * r_v_prime
+    return (L_v > 0) * r_v_prime
 
-    return r_v
 
 
 def get_optimization_reward(
@@ -423,9 +421,8 @@ def get_optimization_reward(
 
     # ignore if constraints are not satisfied:
     # if aggregated violation L_v > 0, this will evaluate to 0
-    r_o = (L_v <= 0) * r_o_prime
+    return (L_v <= 0) * r_o_prime
 
-    return r_o
 
 def epcor_scrubber_reward(
     efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig,
@@ -447,9 +444,8 @@ def epcor_scrubber_reward(
     if ph_pumpspeed > cfg.ph_pumpspeed_max:
         penalty += cfg.high_pumpspeed_penalty
 
-    r = r_base + penalty
+    return r_base + penalty
 
-    return r
 
 
 def test_epcor_reward():

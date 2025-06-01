@@ -86,8 +86,7 @@ class GACPolicyManagerConfig:
         default_buffer = default_buffer_type(id='critic')
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
-        out = ta.validate_python(default_buffer_dict, context=main_cfg)
-        return out
+        return ta.validate_python(default_buffer_dict, context=main_cfg)
 
     @post_processor
     def _default_stepsize(self, cfg: 'MainConfig'):
@@ -182,8 +181,7 @@ class GACPolicyManager:
         policy_actions = dist.sample((n_samples,))
         assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
 
-        policy_actions = policy_actions.permute(1, 0, 2)
-        return policy_actions
+        return policy_actions.permute(1, 0, 2)
 
     def _sample_sampler(
         self,
@@ -218,9 +216,8 @@ class GACPolicyManager:
         uniform_actions = torch.rand(batch_size, n_samples, self.action_dim, device=device.device)
         action_lo = action_lo.unsqueeze(1)
         action_hi = action_hi.unsqueeze(1)
-        bounded_uniform_actions = (action_hi - action_lo) * uniform_actions + action_lo
+        return (action_hi - action_lo) * uniform_actions + action_lo
 
-        return bounded_uniform_actions
 
     def _get_actions(
         self,

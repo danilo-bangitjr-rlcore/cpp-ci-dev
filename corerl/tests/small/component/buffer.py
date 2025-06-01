@@ -17,8 +17,7 @@ from tests.small.data_pipeline.test_transition_filter import make_test_step
 
 def make_test_transition(start: int, len: int) -> Transition:
     steps = [make_test_step(start + i) for i in range(len+1)]
-    transition = Transition(steps, 1, .99)
-    return transition
+    return Transition(steps, 1, .99)
 
 def make_test_transitions(start:int, num: int, len: int) -> list[Transition]:
     transitions = []

@@ -110,9 +110,8 @@ class Armijo(Search):
         break_condition = loss_next - thresh
         if break_condition <= 0:
             return True, step_size
-        else:
-            # Decrease the step-size by a multiplicative factor
-            return False, step_size * self._beta
+        # Decrease the step-size by a multiplicative factor
+        return False, step_size * self._beta
 
 
 class Goldstein(Search):
@@ -198,7 +197,7 @@ class Goldstein(Search):
             raise ValueError(
                 'Error, neither Goldstein condition was satisfied',
             )
-        elif (found == 1):
+        if (found == 1):
             # Step-size might be too small
             step_size = step_size * self._beta_f
         elif (found == 2):

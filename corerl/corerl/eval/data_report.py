@@ -49,8 +49,7 @@ class ReportConfig:
 
 
 def get_tags(data: list[pd.DataFrame]) -> list[str]:
-    tags = list(data[0].columns)
-    return tags
+    return list(data[0].columns)
 
 
 def make_stat_table(
@@ -159,8 +158,7 @@ def get_tag_pairs(
         pairs = tag_info
 
     pairs = [tuple(pair) for pair in pairs]
-    pairs = cast(list[tuple[str, str]], pairs)
-    return pairs
+    return cast(list[tuple[str, str]], pairs)
 
 
 def make_cross_correlation_table(

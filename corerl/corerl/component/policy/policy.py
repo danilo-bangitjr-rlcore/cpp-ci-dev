@@ -150,8 +150,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         dist_type = _get_type_from_dist(dist)
         if dist_type == UnBounded:
             return dist_type(model, dist)
-        else:
-            return dist_type(model, dist, *args, **kwargs)
+        return dist_type(model, dist, *args, **kwargs)
 
     def _transform_from_params(self, *params: torch.Tensor) -> d.Distribution:
         """
@@ -441,9 +440,8 @@ class HalfBounded(ContinuousIIDPolicy):
         if self._bounded_below:
             lb = self._dist.support.lower_bound
             return type(self._dist.support)(lb + self._action_min)
-        else:
-            ub = self._dist.support.upper_bound
-            return type(self._dist.support)(ub + self._action_max)
+        ub = self._dist.support.upper_bound
+        return type(self._dist.support)(ub + self._action_max)
 
     @property
     def _bounded_below(self) -> bool:
@@ -482,10 +480,10 @@ def _get_type_from_dist(
 
     # Weirdness with PyTorch's constraints.real makes us need to call `type` on
     # it first
-    elif isinstance(dist.support, type(constraints.real)):
+    if isinstance(dist.support, type(constraints.real)):
         return UnBounded
 
-    elif isinstance(dist.support, _HalfBoundedConstraint):
+    if isinstance(dist.support, _HalfBoundedConstraint):
         return HalfBounded
 
     raise NotImplementedError(

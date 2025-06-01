@@ -135,5 +135,4 @@ class SimAsyncEnv(DeploymentAsyncEnv):
         tags = { k: v for k, v in tags.items() if k in self._all_tag_names }
 
         idx = pd.DatetimeIndex([self.clock])
-        df = pd.DataFrame(tags, index=idx)
-        return df
+        return pd.DataFrame(tags, index=idx)

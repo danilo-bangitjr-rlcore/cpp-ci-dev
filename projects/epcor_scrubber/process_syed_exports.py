@@ -14,19 +14,17 @@ def merge_insane_header(df: pl.DataFrame):
     name_df = name_df.with_columns(new_col_names.alias("new col names"))
 
     new_col_mapping = {df.columns[i]: name_df["new col names"][i] for i in range(len(df.columns))}
-    df = df.rename(new_col_mapping)[3:]
-    return df
+    return df.rename(new_col_mapping)[3:]
 
 def remove_unused_cols(df: pl.DataFrame):
     # remove status cols
     df = df.drop([col for col in df.columns if "Parameter Status" in col])
 
     # remove duplicate timestamp columns
-    df = pl.concat(
+    return pl.concat(
         [df[:, 0].to_frame(), df[:, 1:].drop([col for col in df[:, 1:].columns if "Timestamp" in col])],
         how="horizontal",
     )
-    return df
 #####################
 # H2S
 #####################

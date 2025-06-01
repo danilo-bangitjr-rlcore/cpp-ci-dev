@@ -106,18 +106,17 @@ def state_to_tensor(state: np.ndarray,  device: str | torch.device | None = None
 def to_np(t: np.ndarray | torch.Tensor) -> np.ndarray:
     if isinstance(t, torch.Tensor):
         return t.cpu().detach().numpy()
-    else:
-        return t
+    return t
 
 
 def init_layer(init: str) -> Callable[[torch.nn.modules.Module], torch.nn.modules.Module]:
     if init.lower() == 'xavier':
         return layer_init_xavier
-    elif init.lower() == 'zero':
+    if init.lower() == 'zero':
         return layer_init_zero
-    elif init.lower() == 'normal':
+    if init.lower() == 'normal':
         return layer_init_normal
-    elif init.lower() == 'orthogonal':
+    if init.lower() == 'orthogonal':
         return layer_init_orthogonal
 
     raise NotImplementedError(f"unknown weight initialization {init}")

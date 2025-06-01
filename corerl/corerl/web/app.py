@@ -89,8 +89,7 @@ class MessageResponse(BaseModel):
 
 @app.get("/")
 async def redirect():
-    response = RedirectResponse(url="/docs")
-    return response
+    return RedirectResponse(url="/docs")
 
 
 @app.get(
@@ -208,8 +207,7 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
             + f"# Do not make direct changes to the file.\n{yaml_response}"
         )
         return Response(yaml_response, media_type="application/yaml")
-    else:
-        return JSONResponse(json_config, media_type="application/json")
+    return JSONResponse(json_config, media_type="application/json")
 
 
 class DB_Status_Request(BaseModel):
@@ -249,7 +247,6 @@ async def verify_connection_db(db_req: DB_Status_Request) -> DB_Status_Response:
     except SQLAlchemyError as err:
         logger.info("Database connection unsuccessful", err)
 
-    db_status = DB_Status_Response(db_status=db_status, table_status=table_status, has_connected=True)
-    return db_status
+    return DB_Status_Response(db_status=db_status, table_status=table_status, has_connected=True)
 
 app.include_router(agent_manager, prefix="/api/corerl/agents", tags=["Agent"])

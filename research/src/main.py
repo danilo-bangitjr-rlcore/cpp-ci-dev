@@ -32,10 +32,9 @@ def safe_cast(value: Any):
         # or a string representation of True/False
         if value.lower() == 'true':
             return True
-        elif value.lower() == 'false':
+        if value.lower() == 'false':
             return False
-        else:
-            return value  # Keep as string
+        return value  # Keep as string
 
 
 def process_overrides(override_args: list) -> list[tuple]:

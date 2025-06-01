@@ -106,12 +106,11 @@ def _series_to_sql_tups(
     tag = series.name
     df = series.to_frame()
     df["Tag"] = [tag] * len(df)
-    sql_tups = [
+    return [
         SQLEntry(time, val, tag)
         for (time, val, tag) in df.itertuples(index=True, name=None)
     ]
 
-    return sql_tups
 
 def get_sql_tups(
     dl_cfg: VictoriaWWConfig,

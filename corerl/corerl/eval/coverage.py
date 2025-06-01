@@ -230,9 +230,8 @@ class AECoverage:
         context = torch.no_grad() if not with_grad else nullcontext()
         with context:
             out = self._model(batch)
-            loss_by_sample = torch.square(batch - out).mean(dim=1)
+            return torch.square(batch - out).mean(dim=1)
 
-        return loss_by_sample
 
 
 # --------------------------------- utilities -------------------------------- #
@@ -254,8 +253,7 @@ def sample_epsilon_ball(
     directions = np.random.normal(0, 1, (n_samples * n_center_samples, dimension))
     directions /= np.linalg.norm(directions, axis=1, keepdims=True)
     repeated_center = np.repeat(center, repeats=n_samples, axis=0)
-    points = repeated_center + epsilon * directions
-    return points
+    return repeated_center + epsilon * directions
 
 
 def get_norm_const(

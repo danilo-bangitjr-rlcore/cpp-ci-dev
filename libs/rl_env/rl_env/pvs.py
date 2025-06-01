@@ -228,10 +228,9 @@ class BasePVSEnv(Env):
         overshoot = overshoot[overshoot > 0]
         if len(overshoot) == 0:
             return 0
-        else:
-            i = overshoot.argmax()
-            sp = setpoint[i] if setpoint.ndim > 0 else setpoint
-            return float(overshoot[i] / sp)
+        i = overshoot.argmax()
+        sp = setpoint[i] if setpoint.ndim > 0 else setpoint
+        return float(overshoot[i] / sp)
 
     def calculate_response_areas(
         self,

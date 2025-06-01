@@ -49,7 +49,7 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
     port = tsdb_engine.url.port
     assert port is not None
 
-    db_cfg = TagDBConfig(
+    return TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
@@ -60,7 +60,6 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
         table_schema='public',
     )
 
-    return db_cfg
 
 @pytest.fixture()
 def data_writer(test_db_config: TagDBConfig):

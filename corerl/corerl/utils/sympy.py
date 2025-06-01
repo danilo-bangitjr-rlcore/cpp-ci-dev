@@ -32,10 +32,10 @@ def _preprocess_expression_string(input_string: str) -> str:
         if char == "{":
             in_braces = True
             continue
-        elif char == "}":
+        if char == "}":
             in_braces = False
             continue
-        elif in_braces:
+        if in_braces:
             char = str(_preprocess_tag_names(char))
 
         result += char

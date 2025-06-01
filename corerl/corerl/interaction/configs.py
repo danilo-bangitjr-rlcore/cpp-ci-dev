@@ -167,8 +167,7 @@ class InteractionConfig:
     def _load_historical_data(cls, cfg: MainConfig):
         if cfg.interaction.name == "sim_interaction":
             return False
-        else:
-            return True
+        return True
 
     @post_processor
     def _validate_hist_windows(self, cfg: MainConfig):

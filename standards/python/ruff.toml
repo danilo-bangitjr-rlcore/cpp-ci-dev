@@ -11,6 +11,7 @@ select = [
     'C4', # flake8-comprehensions
     'PIE', # flake8-pie
     'PYI', # flake8-pyi
+    'RET', # flake8-return
 ]
 ignore = [
     'E402',

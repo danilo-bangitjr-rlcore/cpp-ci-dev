@@ -17,7 +17,7 @@ class StepsizeInit(ABC):
         """
         Record that `step_size` was successfully used in an optimisation step.
         """
-        return None
+        return
 
     @abstractmethod
     def reinit(self, step_size: float) -> float:
@@ -166,8 +166,7 @@ class IfElse(StepsizeInit):
     def reinit(self, step_size: float) -> float:
         if self._condition(step_size):
             return self._if_block(step_size)
-        else:
-            return self._else_block(step_size)
+        return self._else_block(step_size)
 
     @override
     def record_used(self, step_size: float) -> None:
@@ -257,5 +256,4 @@ class PriorityQueue(StepsizeInit):
         assert not self._queue.empty()
         if self._max:
             return -self._queue.get()
-        else:
-            return self._queue.get()
+        return self._queue.get()

@@ -55,8 +55,7 @@ class ZMQ_Communication:
         event = None
 
         try:
-            event = self.queue.get(True, 0.5)
-            return event
+            return self.queue.get(True, 0.5)
         except Empty:
             return None
         finally:

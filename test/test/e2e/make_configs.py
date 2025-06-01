@@ -70,11 +70,10 @@ def generate_tag_yaml(
   )
 
     def prune_tags(tags: list[dict], entries: list[str]):
-        pruned_tags = [
+        return [
             {key: value for key, value in tag.items() if key in entries or key == 'name'}
             for tag in tags
         ]
-        return pruned_tags
 
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)

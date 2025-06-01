@@ -32,9 +32,8 @@ def run_command(command: str) -> int:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         ).returncode
-    else:
-        # Run normally
-        return os.system(command)
+    # Run normally
+    return os.system(command)
 
 
 def generate_combinations(flattened_dict: dict[str, list[Any]]) -> list[list[tuple[str, Any]]]:

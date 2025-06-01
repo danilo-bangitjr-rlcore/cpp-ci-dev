@@ -8,12 +8,11 @@ from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add
 
 @pytest.fixture()
 def data() -> pd.DataFrame:
-    df = pd.DataFrame(
+    return pd.DataFrame(
         data={"tag-1": [1,2,3], "tag-2": [4,5,6]},
         index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
     )
 
-    return df
 
 def test_time_of_day():
     df = pd.DataFrame(

@@ -29,10 +29,9 @@ def dataset():
             "tag-2": np.array([0, 1] * 5),
         },
     )
-    dataset = Dataset(
+    return Dataset(
         data=data,
     )
-    return dataset
 
 
 @pytest.fixture
@@ -42,10 +41,9 @@ def tiny_dataset():
             "tag-1": [0, 1],
         },
     )
-    dataset = Dataset(
+    return Dataset(
         data=data,
     )
-    return dataset
 
 
 class DumbCoverage:

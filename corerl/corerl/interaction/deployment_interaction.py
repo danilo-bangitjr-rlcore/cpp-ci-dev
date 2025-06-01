@@ -255,10 +255,9 @@ class DeploymentInteraction:
             logger.info("Querying agent policy for new action")
             return self._agent.get_action_interaction(state.feats, state.action_lo, state.action_hi)
 
-        else:
-            self._app_state.event_bus.emit_event(EventType.action_period_reset)
-            logger.warning(f'Tried to take action, however was unable: {state}')
-            return None
+        self._app_state.event_bus.emit_event(EventType.action_period_reset)
+        logger.warning(f'Tried to take action, however was unable: {state}')
+        return None
 
     def _capture_latest_state(self, pipe_return: PipelineReturn):
         pr_ts = pipe_return.states.index[-1]

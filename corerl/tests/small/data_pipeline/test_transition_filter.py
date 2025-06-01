@@ -41,14 +41,13 @@ def make_test_step(
 
 
 def make_test_dp_transition(dps: list[bool]):
-    transition = Transition(
+    return Transition(
         steps=[
             make_test_step(i, dp=dp) for i, dp in enumerate(dps)
         ],
         n_step_gamma=0.81,
         n_step_reward=1.9,
     )
-    return transition
 
 
 @pytest.mark.parametrize(
@@ -82,14 +81,13 @@ def test_only_post_transitions(dps: list[bool], expected: bool):
 def make_action_change_transition(
         dps: list[bool],
         actions: list[float]):
-    transition = Transition(
+    return Transition(
         steps=[
             make_test_step(i, dp=dps[i], action=actions[i]) for i in range(len(dps))
         ],
         n_step_gamma=0.81,
         n_step_reward=1.9,
     )
-    return transition
 
 
 @pytest.mark.parametrize(

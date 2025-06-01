@@ -96,8 +96,7 @@ class BSuiteTestCase:
             add_retention_policy(conn, 'metrics', schema, days=3)
             add_retention_policy(conn, 'evals', schema, days=3)
 
-        metrics_table = metrics_table.sort_values('agent_step', ascending=True)
-        return metrics_table
+        return metrics_table.sort_values('agent_step', ascending=True)
 
     def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame, features: dict[str, bool]) -> pd.DataFrame:
         extracted = []
@@ -114,8 +113,7 @@ class BSuiteTestCase:
     def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame) -> float:
         values = get_metric(metrics_table, metric)
         aggregation_name = self.aggregators.get(metric, 'last_100_mean')
-        aggregated_values = self.aggregate(values, name=aggregation_name)
-        return aggregated_values
+        return self.aggregate(values, name=aggregation_name)
 
 
     def _extract(self, tests: dict[str, float], bound_type: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
@@ -208,17 +206,16 @@ class BSuiteTestCase:
     def aggregate(self, values: np.ndarray, name: str = 'last_100_mean') -> float:
         if name == 'last_100_mean':
             return values[-100:].mean()
-        elif name == 'mean':
+        if name == 'mean':
             return values.mean()
-        elif name == 'max':
+        if name == 'max':
             return values.max()
-        elif name == 'min':
+        if name == 'min':
             return values.min()
-        elif name == 'percent_of_steps':
+        if name == 'percent_of_steps':
             assert self._cfg.max_steps is not None
             return float(np.sum(values > 0) / self._cfg.max_steps)
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()

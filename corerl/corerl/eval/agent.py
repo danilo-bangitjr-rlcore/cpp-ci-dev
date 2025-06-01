@@ -195,8 +195,7 @@ def get_max_action(actions: torch.Tensor, values: torch.Tensor):
     assert values.dim() == 2
     max_indices = torch.argmax(values, dim=1)
     batch_size = actions.size(0)
-    max_actions = actions[torch.arange(batch_size), max_indices, :]
-    return max_actions
+    return actions[torch.arange(batch_size), max_indices, :]
 
 @config()
 class GreedDistConfig:

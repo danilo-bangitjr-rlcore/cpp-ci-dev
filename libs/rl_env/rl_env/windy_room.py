@@ -93,15 +93,15 @@ class WindyRoom(gym.Env):
                 percent = (red_lo - v) / (red_lo - bounds_low)
                 return -4 - (4 * percent)
 
-            elif v > red_hi:
+            if v > red_hi:
                 percent =  (v - red_hi) / (bounds_high - red_hi)
                 return -4 - (4 * percent)
 
-            elif v < yellow_lo:
+            if v < yellow_lo:
                 percent = (yellow_lo - v) / (yellow_lo - red_lo)
                 return -2 * (percent**2)
 
-            elif v > yellow_hi:
+            if v > yellow_hi:
                 percent = (v - yellow_hi) / (red_hi - yellow_hi)
                 return -2 * (percent**2)
 

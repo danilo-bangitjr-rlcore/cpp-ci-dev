@@ -77,14 +77,12 @@ class Saturation(gym.Env):
     def get_decay(self) -> float | np.ndarray:
         if self.decay is None:
             return 0.15 * np.cos(self.time_step * np.pi * (2 / self.decay_period)) + 0.75
-        else:
-            return self.decay
+        return self.decay
 
     def get_effect(self)-> float | np.ndarray:
         if self.effect is None:
             return 0.15 * np.cos(self.time_step * np.pi * (2 / self.effect_period)) + 0.75
-        else:
-            return self.effect
+        return self.effect
 
     def step(self, action: np.ndarray):
         # adjust scheduled attributes

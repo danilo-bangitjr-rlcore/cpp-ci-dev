@@ -106,10 +106,9 @@ class DeploymentAsyncEnv(AsyncEnv):
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
-        obs = self.data_reader.single_aggregated_read(
+        return self.data_reader.single_aggregated_read(
             names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs,
         )
-        return obs
 
     def get_cfg(self):
         return self._cfg

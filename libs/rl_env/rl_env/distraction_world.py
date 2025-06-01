@@ -43,12 +43,10 @@ class DistractionWorld(gym.Env):
 
     def _gen_state(self) -> np.ndarray:
         state = np.random.random(self.num_distractors)*2 - 1
-        state = np.clip(state, -1, 1)
-        return state
+        return np.clip(state, -1, 1)
 
     def _get_reward(self, action: np.ndarray) -> float:
-        reward = float(-np.abs(self._action_sp - action).mean())
-        return reward
+        return float(-np.abs(self._action_sp - action).mean())
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         reward = self._get_reward(action)

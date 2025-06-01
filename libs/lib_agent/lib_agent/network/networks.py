@@ -149,5 +149,4 @@ def torso_builder(cfg: TorsoConfig):
 def ensemble_net_init(net: hk.Transformed, seed: int, ensemble: int, inputs: tuple[jax.Array, ...]):
     rng = jax.random.PRNGKey(seed)
     rngs = jax.random.split(rng, ensemble)
-    params = jax.vmap(net.init, in_axes=(0, None))(rngs, *inputs)
-    return params
+    return jax.vmap(net.init, in_axes=(0, None))(rngs, *inputs)

@@ -35,8 +35,7 @@ def read_offline_data(path: Path) -> pd.DataFrame:
     df = df.rename(columns={df.columns[0]: "Timestamp"})
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True)
     df = df.set_index("Timestamp")
-    df = df.dropna()
-    return df
+    return df.dropna()
 
 def column_to_sql_tups(column: pd.Series) -> list[tuple[Any, ...]]:
     """

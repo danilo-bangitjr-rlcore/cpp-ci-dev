@@ -34,14 +34,13 @@ def load_entire_dataset(
 
     tag_names = [tag_cfg.name for tag_cfg in cfg.pipeline.tags]
     obs_period = cfg.interaction.obs_period
-    data = data_reader.batch_aggregated_read(
+    return data_reader.batch_aggregated_read(
         names=tag_names,
         start_time=start_time,
         end_time=end_time,
         bucket_width=obs_period,
         aggregation=cfg.env.db.data_agg,
     )
-    return data
 
 
 class OfflineTraining:

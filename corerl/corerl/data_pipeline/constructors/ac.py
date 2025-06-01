@@ -74,9 +74,8 @@ class ActionConstructor:
         """
         Given an action, return a dataframe that contains the action info and the corresponding column names
         """
-        df = pd.DataFrame(data=[action_arr], columns=self.columns)
+        return pd.DataFrame(data=[action_arr], columns=self.columns)
 
-        return df
 
     def denormalize_tags(self, df: pd.DataFrame):
         return self._prep_stage.inverse(df)

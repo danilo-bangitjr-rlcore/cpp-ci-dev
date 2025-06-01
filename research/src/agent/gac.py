@@ -195,8 +195,7 @@ class GreedyAC:
 
     def _get_dist(self, params: chex.ArrayTree, state: jax.Array):
         out: ActorOutputs = self.actor.apply(params=params, x=state)
-        dist = SquashedGaussian(out.mu, out.sigma)
-        return dist
+        return SquashedGaussian(out.mu, out.sigma)
 
     @jax_u.method_jit
     def _get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
@@ -217,8 +216,7 @@ class GreedyAC:
             # for Gaussian, entropy is 0.5 * log(2πe * det(sigma))
             # det(sigma) = product of diagonal elements
             log_det = jnp.sum(jnp.log(out.sigma))
-            entropy = 0.5 * (self.action_dim * (1.0 + jnp.log(2 * jnp.pi)) + log_det)
-            return entropy
+            return 0.5 * (self.action_dim * (1.0 + jnp.log(2 * jnp.pi)) + log_det)
 
         entropies = jax.vmap(entropy_fn)(states)
         mean_entropy = jnp.mean(entropies)
@@ -237,16 +235,14 @@ class GreedyAC:
         return jnp.exp(log_prob)
 
     def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):
-        probs = jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
-        return probs
+        return jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
 
     @jax_u.method_jit
     def get_probs(self, params: chex.ArrayTree, state: jax.Array | np.ndarray, actions: jax.Array):
         state = jnp.asarray(state)
         dist = self._get_dist(params, state)
-        probs = self._get_probs(dist, actions)
+        return self._get_probs(dist, actions)
 
-        return probs
 
     def update(self):
         self.critic_update()
@@ -387,8 +383,7 @@ class GreedyAC:
         rngs = jax.random.split(self.rng, proposal_samples)
         proposal_actions = jax_u.vmap_only(self._get_actions, ['rng'])(proposal_params, rngs, state)
 
-        sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
-        return sampled_actions
+        return jnp.concat([uniform_actions, proposal_actions], axis=0)
 
     def _get_policy_update_actions(
         self,

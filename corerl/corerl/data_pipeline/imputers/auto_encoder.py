@@ -162,13 +162,12 @@ class MaskedAutoencoder(BaseImputer):
         """
         ae_predictions = self.forward(inputs)
         raw_row = inputs[:self._num_obs]
-        ae_impute = torch.where(
+        return torch.where(
             torch.isnan(raw_row),
             ae_predictions,
             raw_row,
         )
 
-        return ae_impute
 
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:

@@ -81,9 +81,8 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
     def _execute_read(self, stmt: str) -> pd.DataFrame:
         assert self.engine is not None
         with TryConnectContextManager(self.engine) as connection:
-            evals_table = pd.read_sql(sql=text(stmt), con=connection)
+            return pd.read_sql(sql=text(stmt), con=connection)
 
-        return evals_table
 
     def _read_by_eval(self, evaluator: str) -> pd.DataFrame:
         stmt = f"""
@@ -179,7 +178,6 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
 
         if start_time is not None or end_time is not None:
             return self._read_by_time(evaluator, start_time, end_time)
-        elif step_start is not None or step_end is not None:
+        if step_start is not None or step_end is not None:
             return self._read_by_step(evaluator, step_start, step_end)
-        else:
-            return self._read_by_eval(evaluator)
+        return self._read_by_eval(evaluator)

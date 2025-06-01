@@ -271,9 +271,8 @@ def agent_status(config_id: str):
         if process.poll() is None:
             # Process is still running
             return JSONResponse({"status": "running", "pid": process.pid, "extra_options": extra_options})
-        else:
-            # Process has terminated
-            return JSONResponse({"status": "dead", "pid": process.pid, "extra_options": extra_options})
+        # Process has terminated
+        return JSONResponse({"status": "dead", "pid": process.pid, "extra_options": extra_options})
     return JSONResponse({"status": "not_started", "pid": None})
 
 

@@ -101,15 +101,14 @@ class DataReader:
                 bucket_width,
                 tag_aggregations,
             )
-        else:
-            return self._batch_aggregated_read_narrow(
-                names,
-                start_time,
-                end_time,
-                bucket_width,
-                aggregation,
-                tag_aggregations,
-            )
+        return self._batch_aggregated_read_narrow(
+            names,
+            start_time,
+            end_time,
+            bucket_width,
+            aggregation,
+            tag_aggregations,
+        )
 
     def _batch_aggregated_read_wide(
         self,
@@ -356,13 +355,12 @@ class DataReader:
             q = q.replace(":val", _parse_jsonb("fields"))
 
         with TryConnectContextManager(self.engine) as connection:
-            sensor_data = pd.read_sql(
+            return pd.read_sql(
                 sql=text(q),
                 con=connection,
                 params=params,
             )
 
-        return sensor_data
 
     def get_tag_stats(self, tag_name: str):
         if self.wide_format:

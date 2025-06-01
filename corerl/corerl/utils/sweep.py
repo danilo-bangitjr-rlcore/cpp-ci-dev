@@ -52,8 +52,7 @@ def params_to_list(params: dict) -> list[dict] | tuple[list[dict], list[dict]]:
     if 'tests' in params.keys():
         expected_results = [params['tests'] for i in range(len(runs_with_seeds))]
         return runs_with_seeds, expected_results
-    else:
-        return runs_with_seeds
+    return runs_with_seeds
 
 
 def get_sweep_params(name: str, path: Path) -> list[dict] | tuple[list[dict], list[dict]]:
@@ -63,5 +62,4 @@ def get_sweep_params(name: str, path: Path) -> list[dict] | tuple[list[dict], li
     assert spec.loader is not None
     spec.loader.exec_module(module)
     sweep_params = module.SWEEP_PARAMS
-    sweep_params = params_to_list(sweep_params)
-    return sweep_params
+    return params_to_list(sweep_params)

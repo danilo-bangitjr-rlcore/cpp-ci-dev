@@ -4,7 +4,7 @@ from pathlib import Path
 
 def maybe_load(path: Path) -> object | None:
     if not path.exists():
-        return
+        return None
 
     with open(path, 'rb') as f:
         return pickle.load(f)

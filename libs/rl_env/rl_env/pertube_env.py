@@ -52,8 +52,7 @@ class ObservationPerturbationWrapper(gym.Wrapper):
                 logger.debug(f"Perturbed observation at index {perturb_idx} by {perturbation}")
                 info["perturbed"] = True
                 return perturbed_obs, info
-            else:
-                logger.warning(f"Unsupported observation type: {type(obs)}")
+            logger.warning(f"Unsupported observation type: {type(obs)}")
         return obs, info
 
 

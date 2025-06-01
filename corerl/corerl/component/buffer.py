@@ -218,10 +218,9 @@ class BaseBuffer:
 def _to_tensor(elem: object):
     if isinstance(elem, (torch.Tensor, np.ndarray, list)):
         return torch.Tensor(elem)
-    elif elem is None:
+    if elem is None:
         return torch.empty((1, 0))
-    else:
-        return torch.Tensor([elem])
+    return torch.Tensor([elem])
 
 
 def _get_size(experience: Transition) -> list[tuple]:

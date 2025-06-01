@@ -36,9 +36,8 @@ def _parse_pool_price_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     df = df.set_index("Timestamp")
     # In the electricity price data, numbers have commas to separate "thousands" (Eg: 3,456 instead of 3456)
     df = df.replace(',', '', regex=True)
-    df = df.astype('float64')
+    return df.astype('float64')
 
-    return df
 
 
 def _adjust_pool_price_forecast_timestamps(series: pd.Series, offset: int) -> pd.Series:
@@ -91,9 +90,8 @@ def _parse_battery_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%Y-%m-%d %H:%M:%S")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
-    df = df.astype('float64')
+    return df.astype('float64')
 
-    return df
 
 
 def _parse_battery_data(df: pd.DataFrame) -> list[pd.Series]:
@@ -101,9 +99,8 @@ def _parse_battery_data(df: pd.DataFrame) -> list[pd.Series]:
     Parse battery cycle data for BESS 1A/B and BESS 2A/B
     """
     df = _parse_battery_timestamps(df)
-    columns = _split_columns(df)
+    return _split_columns(df)
 
-    return columns
 
 
 def _parse_solar_timestamps(df: pd.DataFrame) -> pd.DataFrame:
@@ -113,9 +110,8 @@ def _parse_solar_timestamps(df: pd.DataFrame) -> pd.DataFrame:
         df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%m/%d/%Y %H:%M")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
-    df = df.astype('float64')
+    return df.astype('float64')
 
-    return df
 
 def _remove_all_bess_offline_entries(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -154,18 +150,16 @@ def _parse_setpoint_timestamps(df: pd.DataFrame) -> pd.DataFrame:
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True, format="%m/%d/%Y %H:%M")
     df = df.set_index("Timestamp")
     df = df.replace(',', '', regex=True)
-    df = df.astype('float64')
+    return df.astype('float64')
 
-    return df
 
 def _parse_setpoint_data(df: pd.DataFrame) -> list[pd.Series]:
     """
     Parse data in Setpoints.csv
     """
     df = _parse_setpoint_timestamps(df)
-    columns = _split_columns(df)
+    return _split_columns(df)
 
-    return columns
 
 def load_csv_files(files: Iterable[CloudPath]) -> list[pd.Series]:
     columns = []

@@ -163,9 +163,8 @@ def create_table(metadata: MetaData, schema: dict) -> Table:
         )
         cols.append(col)
 
-    table = Table(schema["name"], metadata, *cols)
+    return Table(schema["name"], metadata, *cols)
 
-    return table
 
 
 def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:

@@ -8,18 +8,21 @@ def find[T](pred: Callable[[T], bool], li: Iterable[T]) -> T | None:
     for item in li:
         if pred(item):
             return item
+    return None
 
 
 def find_index[T](pred: Callable[[T], bool], li: Iterable[T]) -> int | None:
     for i, item in enumerate(li):
         if pred(item):
             return i
+    return None
 
 
 def find_instance[T, U](inst: type[U], li: Iterable[T]) -> U | None:
     item = find(lambda x: isinstance(x, inst), li)
     if item and isinstance(item, inst):
         return item
+    return None
 
 
 def flatten(li: Iterable[Any]) -> list[Any]:

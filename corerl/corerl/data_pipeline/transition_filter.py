@@ -98,9 +98,9 @@ def no_nan(transition: Transition):
     first_step = transition.steps[0]
     if math.isnan(first_step.gamma):
         return False
-    elif torch.isnan(first_step.state).any():
+    if torch.isnan(first_step.state).any():
         return False
-    elif math.isnan(first_step.dp):
+    if math.isnan(first_step.dp):
         return False
 
     for step in transition.steps[1:]:

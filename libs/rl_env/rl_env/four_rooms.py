@@ -98,14 +98,13 @@ class FourRoomsEnv(gym.Env):
     def _discrete_to_continuous(cls, action: np.ndarray):
         if action.item() == 0:
             return np.array([1.0, 0.0], dtype=np.float32)
-        elif action.item() == 1:
+        if action.item() == 1:
             return np.array([-1.0, 0.0], dtype=np.float32)
-        elif action.item() == 2:
+        if action.item() == 2:
             return np.array([0.0, 1.0], dtype=np.float32)
-        elif action.item() == 3:
+        if action.item() == 3:
             return np.array([0.0, -1.0], dtype=np.float32)
-        else:
-            return np.array([0.0, 0.0], dtype=np.float32)
+        return np.array([0.0, 0.0], dtype=np.float32)
 
     def step(self, action: np.ndarray):
         assert self.action_space.contains(action)
