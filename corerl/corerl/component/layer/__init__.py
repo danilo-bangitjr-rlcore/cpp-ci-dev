@@ -1,3 +1,4 @@
+# ruff: noqa: PLC0414
 from corerl.component.layer.activations import (
     FTA as FTA,
 )

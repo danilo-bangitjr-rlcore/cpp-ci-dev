@@ -1,4 +1,4 @@
-import linesearchopt.search as search
+from linesearchopt import search
 
 
 # -------------------------

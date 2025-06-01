@@ -1,8 +1,6 @@
 import torch
 
-from corerl.component.layer.activations import FTA as FTA
-from corerl.component.layer.activations import ActivationConfig
-from corerl.component.layer.activations import init_activation as init_activation
+from corerl.component.layer.activations import FTA, ActivationConfig, init_activation
 
 
 # ----------

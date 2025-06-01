@@ -1,6 +1,6 @@
 import torch
-import torch.distributions.constraints as constraints
-import torch.nn as nn
+from torch import nn
+from torch.distributions import constraints
 
 from corerl.component.policy.policy import Policy
 

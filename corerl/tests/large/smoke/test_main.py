@@ -34,7 +34,7 @@ def test_main_configs(
         '--config-name', f'{config_name}', 'max_steps=5',
         f'infra.db.port={port}', 'metrics.enabled=True',
         f'infra.db.db_name={tsdb_tmp_db_name}',
-    ])
+    ], check=False)
     proc.check_returncode()
 
     # ensure metrics table exists

@@ -244,8 +244,8 @@ async def verify_connection_db(db_req: DB_Status_Request) -> DB_Status_Response:
         table_status = table_exists(engine, table_name=db_req.table_name)
 
         connection.close()
-    except SQLAlchemyError as err:
-        logger.info("Database connection unsuccessful", err)
+    except SQLAlchemyError:
+        logger.exception("Database connection unsuccessful")
 
     return DB_Status_Response(db_status=db_status, table_status=table_status, has_connected=True)
 

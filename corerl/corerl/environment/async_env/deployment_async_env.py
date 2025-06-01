@@ -126,8 +126,7 @@ def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rt
     clip_action(action, action_cfgs, rtol)
 
 def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
-    for action_name in action_cfgs.keys():
-        action_cfg = action_cfgs[action_name]
+    for action_name, action_cfg in action_cfgs.items():
         action_val = action[action_name].iloc[0]
         lo, hi = get_clip_bounds(action_cfg, action)
         atol = rtol * (hi - lo)

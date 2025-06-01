@@ -4,11 +4,10 @@ from typing import Protocol
 
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from scipy import stats
 from sklearn.neighbors import KDTree
+from torch import nn, optim
 from tqdm import tqdm
 
 from corerl.component.network.utils import tensor, to_np

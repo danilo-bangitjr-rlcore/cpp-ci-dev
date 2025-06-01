@@ -1,6 +1,6 @@
 # pyright: basic
-import linesearchopt.init as init
 import pytest
+from linesearchopt import init
 
 
 @pytest.fixture

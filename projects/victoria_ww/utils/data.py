@@ -36,8 +36,7 @@ def get_last_timestamp(series_list: list[pd.Series]) -> dt.datetime:
     for series in series_list:
         series_last_timestamp = series.index[-1]
         assert isinstance(series_last_timestamp, dt.datetime)
-        if series_last_timestamp > global_last_timestamp:
-            global_last_timestamp = series_last_timestamp
+        global_last_timestamp = max(global_last_timestamp, series_last_timestamp)
 
     return global_last_timestamp
 

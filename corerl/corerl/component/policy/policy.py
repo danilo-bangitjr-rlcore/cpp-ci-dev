@@ -6,11 +6,11 @@ from typing import Any, Iterator, Mapping, Optional, Union
 
 import torch
 import torch.distributions as d
-import torch.distributions.constraints as constraints
-import torch.nn as nn
+from torch import nn
+from torch.distributions import constraints
 from typing_extensions import override
 
-import corerl.utils.nullable as nullable
+from corerl.utils import nullable
 from corerl.utils.device import device
 
 _BoundedAboveConstraint = constraints.less_than

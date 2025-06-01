@@ -163,15 +163,14 @@ class DataReader:
                     select_parts.append(f'bool_or("{name}") as "{name}"')
                 else:
                     raise ValueError(f"Unsupported aggregation {agg_type} for boolean column {name}")
+            elif agg_type == Agg.avg:
+                select_parts.append(f'avg("{name}") as "{name}"')
+            elif agg_type == Agg.last:
+                select_parts.append(f'last("{name}", time) as "{name}"')
+            elif agg_type == Agg.bool_or:
+                select_parts.append(f'bool_or("{name}"::boolean) as "{name}"')
             else:
-                if agg_type == Agg.avg:
-                    select_parts.append(f'avg("{name}") as "{name}"')
-                elif agg_type == Agg.last:
-                    select_parts.append(f'last("{name}", time) as "{name}"')
-                elif agg_type == Agg.bool_or:
-                    select_parts.append(f'bool_or("{name}"::boolean) as "{name}"')
-                else:
-                    raise ValueError(f"Unsupported aggregation {agg_type} for column {name}")
+                raise ValueError(f"Unsupported aggregation {agg_type} for column {name}")
 
         query = f"""
             SELECT {', '.join(select_parts)}

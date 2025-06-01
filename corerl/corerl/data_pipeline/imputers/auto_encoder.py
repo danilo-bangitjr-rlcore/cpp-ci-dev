@@ -4,9 +4,8 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.optim as optim
 from pydantic import Field
+from torch import nn, optim
 
 import corerl.utils.dict as dict_u
 from corerl.configs.config import config, list_

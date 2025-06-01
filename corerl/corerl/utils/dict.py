@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic.fields import FieldInfo
 
-import corerl.utils.nullable as nullable
+from corerl.utils import nullable
 
 
 def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
@@ -124,9 +124,8 @@ def filter(pred: Callable[[Any], bool], d: dict[str, Any]) -> dict[str, Any]:
                 for sub in v
             ]
 
-        else:
-            if pred(v):
-                out[k] = v
+        elif pred(v):
+            out[k] = v
 
     return out
 

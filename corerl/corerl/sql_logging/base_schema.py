@@ -191,23 +191,3 @@ class GradInfo(Base):
             ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
-
-
-stepper = None
-
-
-class SQLStepper:
-    def __init__(self, run: Run):
-        super().__init__()
-        self.run = run
-        self.step_num = 0
-        self.step = Step(step_num=self.step_num, run=self.run)
-
-    def increment_step(self):
-        self.step_num += 1
-        self.step = Step(step_num=self.step_num, run=self.run)
-
-
-def init_stepper(run: Run):
-    global stepper
-    stepper = SQLStepper(run)

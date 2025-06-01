@@ -13,6 +13,7 @@ select = [
     'PYI', # flake8-pyi
     'RET', # flake8-return
     'PERF', # flake8-perf
+    'PL', # pylint
 ]
 ignore = [
     'E402',
@@ -23,6 +24,27 @@ ignore = [
 
     # syntax error in forward declaration - incompatible with jaxtyping
     'F722',
+
+    # non-ascii character
+    'PLC2401',
+
+    # too many returns
+    'PLR0911',
+
+    # too many branches
+    'PLR0912',
+
+    # too many arguments
+    'PLR0913',
+
+    # too many statements
+    'PLR0915',
+
+    # magic values
+    'PLR2004',
+
+    # loop variable overwritten
+    'PLW2901',
 ]
 
 [format]

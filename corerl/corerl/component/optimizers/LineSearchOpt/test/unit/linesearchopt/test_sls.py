@@ -3,8 +3,8 @@ from typing import Callable, Mapping
 
 import pytest
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 import corerl.component.optimizers.LineSearchOpt.linesearchopt as lso
 from corerl.state import AppState

@@ -5,9 +5,9 @@ from typing import Generator
 import pytest
 from sqlalchemy import Engine
 
-import corerl.utils.nullable as nullable
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
+from corerl.utils import nullable
 
 
 @pytest.fixture()

@@ -168,9 +168,9 @@ def create_table(metadata: MetaData, schema: dict) -> Table:
 
 
 def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
-    for table_name in schemas:
+    for table_name, values in schemas.items():
         create_table(
-            metadata=metadata, schema={"name": table_name, **schemas[table_name]},
+            metadata=metadata, schema={"name": table_name, **values},
         )
 
     metadata.create_all(engine, checkfirst=True)

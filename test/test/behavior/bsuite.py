@@ -8,11 +8,11 @@ import numpy as np
 import pandas as pd
 from sqlalchemy import Engine, text
 
-import corerl.utils.git as git
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
+from corerl.utils import git
 from corerl.utils.time import now_iso
 
 
@@ -81,7 +81,7 @@ class BSuiteTestCase:
             'python', 'corerl/main.py',
             '--base', '../test/',
             '--config-name', self.config,
-        ] + parts, cwd='../corerl')
+        ] + parts, cwd='../corerl', check=False)
         proc.check_returncode()
 
         # ensure metrics table exists

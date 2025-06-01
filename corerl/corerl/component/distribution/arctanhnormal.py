@@ -7,7 +7,7 @@ import torch.distributions as d
 from torch.types import _size
 from typing_extensions import override
 
-import corerl.utils.nullable as nullable
+from corerl.utils import nullable
 
 
 class ArctanhNormal(d.Distribution):
