@@ -15,15 +15,15 @@ from corerl.state import AppState
 from tests.small.data_pipeline.test_transition_filter import make_test_step
 
 
-def make_test_transition(start: int, len: int) -> Transition:
-    steps = [make_test_step(start + i) for i in range(len+1)]
+def make_test_transition(start: int, length: int) -> Transition:
+    steps = [make_test_step(start + i) for i in range(length+1)]
     return Transition(steps, 1, .99)
 
-def make_test_transitions(start:int, num: int, len: int) -> list[Transition]:
-    transitions = []
-    for i in range(start, start+num):
-        transitions.append(make_test_transition(i, len))
-    return transitions
+def make_test_transitions(start:int, num: int, length: int) -> list[Transition]:
+    return [
+        make_test_transition(i, length)
+        for i in range(start, start+num)
+    ]
 
 def test_feed_online_mode(dummy_app_state: AppState):
     buffer_cfg = MixedHistoryBufferConfig(

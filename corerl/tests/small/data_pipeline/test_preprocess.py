@@ -42,9 +42,10 @@ def test_only_delta_preprocess():
     start_time = dt.datetime(2023, 7, 13, 5)
     increment = dt.timedelta(hours=1)
     num_inds = len(df)
-    timestamps = []
-    for i in range(num_inds):
-        timestamps.append(start_time + i * increment)
+    timestamps = [
+        start_time + increment * i
+        for i in range(num_inds)
+    ]
     df.index = pd.DatetimeIndex(timestamps)
 
     pf = PipelineFrame(df, DataMode.ONLINE)
@@ -69,9 +70,10 @@ def test_delta_norm_preprocess():
     start_time = dt.datetime(2023, 7, 13, 5)
     increment = dt.timedelta(hours=1)
     num_inds = len(df)
-    timestamps = []
-    for i in range(num_inds):
-        timestamps.append(start_time + i * increment)
+    timestamps = [
+        start_time + increment * i
+        for i in range(num_inds)
+    ]
     df.index = pd.DatetimeIndex(timestamps)
 
     pf = PipelineFrame(df, DataMode.ONLINE)

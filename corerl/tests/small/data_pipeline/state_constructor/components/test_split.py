@@ -85,9 +85,10 @@ def test_split_ts1():
 
     start_time = datetime(2023, 4, 11, 2)
     increment = timedelta(hours=1)
-    timestamps = []
-    for i in range(len(obs)):
-        timestamps.append(start_time + increment * i)
+    timestamps = [
+        start_time + increment * i
+        for i in range(len(obs))
+    ]
     obs.index = pd.DatetimeIndex(timestamps)
     action_lo.index = pd.DatetimeIndex(timestamps)
     action_hi.index = pd.DatetimeIndex(timestamps)

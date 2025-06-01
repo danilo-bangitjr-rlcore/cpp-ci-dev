@@ -12,6 +12,7 @@ select = [
     'PIE', # flake8-pie
     'PYI', # flake8-pyi
     'RET', # flake8-return
+    'PERF', # flake8-perf
 ]
 ignore = [
     'E402',

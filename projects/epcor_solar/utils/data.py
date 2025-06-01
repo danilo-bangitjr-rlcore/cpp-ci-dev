@@ -8,12 +8,10 @@ from cloudpathlib.enums import FileCacheMode
 
 
 def _split_columns(df: pd.DataFrame) -> list[pd.Series]:
-    dfs = []
-    for column_name in df.columns:
-        dfs.append(df[column_name])
-
-    return dfs
-
+    return [
+        df[column_name]
+        for column_name in df.columns
+    ]
 
 def _abs(series: pd.Series) -> pd.Series:
     return abs(series)

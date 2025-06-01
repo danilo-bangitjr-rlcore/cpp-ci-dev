@@ -21,11 +21,10 @@ class VictoriaWWConfig:
 
 
 def _split_columns(df: pd.DataFrame) -> list[pd.Series]:
-    series_list = []
-    for column_name in df.columns:
-        series_list.append(df[column_name])
-
-    return series_list
+    return [
+        df[column_name]
+        for column_name in df.columns
+    ]
 
 def get_last_timestamp(series_list: list[pd.Series]) -> dt.datetime:
     """

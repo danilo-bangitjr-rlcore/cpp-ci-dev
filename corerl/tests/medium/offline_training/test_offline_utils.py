@@ -106,15 +106,16 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
     obs_period = offline_cfg.interaction.obs_period
 
     # Generate timestamps
-    step_timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
     offline_cfg.offline.offline_start_time = start_time
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
 
-    for i in range(steps):
-        step_timestamps.append(first_step + obs_period * i)
+    step_timestamps = [
+        first_step + obs_period * i
+        for i in range(steps)
+    ]
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
@@ -239,14 +240,15 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
     obs_period = offline_cfg.interaction.obs_period
 
     # Generate timestamps
-    step_timestamps = []
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
 
-    for i in range(steps):
-        step_timestamps.append(first_step + obs_period * i)
+    step_timestamps = [
+        first_step + obs_period * i
+        for i in range(steps)
+    ]
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(

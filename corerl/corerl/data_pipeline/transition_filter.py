@@ -83,7 +83,7 @@ def only_no_action_change(transition: Transition):
 
 
 def has_nan(obj: object):
-    for _, value in vars(obj).items():
+    for value in vars(obj).values():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
                 return True

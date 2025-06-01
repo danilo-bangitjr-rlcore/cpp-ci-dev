@@ -25,30 +25,28 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
     ), f"only support observation_space with dimensionality 1, received {observation_space.shape}"
     n_obs = observation_space.shape[0]
 
-    tag_configs: list[TagConfig] = []
-
-    for i in range(n_actions):
-        tag_configs.append(
-            TagConfig(
-                name=f"action-{i}",
-                operating_range=(action_space.low[i].item(), action_space.high[i].item()),
-                state_constructor=[NullConfig()],
-                type=TagType.ai_setpoint,
-            ),
+    tag_configs: list[TagConfig] = [
+        TagConfig(
+            name=f"action-{i}",
+            operating_range=(action_space.low[0].item(), action_space.high[0].item()),
+            state_constructor=[NullConfig()],
+            type=TagType.ai_setpoint,
         )
+        for i in range(n_actions)
+    ]
 
-    for i in range(n_obs):
-        tag_configs.append(
-            TagConfig(
-                name=f"tag-{i}",
-                operating_range=(observation_space.low[i].item(), observation_space.high[i].item()),
-                state_constructor=[
-                    TraceConfig(
-                        trace_values=[0.0],
-                    ),
-                ],
-            ),
+    tag_configs.extend(
+        TagConfig(
+            name=f"tag-{i}",
+            operating_range=(observation_space.low[i].item(), observation_space.high[i].item()),
+            state_constructor=[
+                TraceConfig(
+                    trace_values=[0.0],
+                ),
+            ],
         )
+        for i in range(n_obs)
+    )
 
     if include_meta:
         # these are hardcoded

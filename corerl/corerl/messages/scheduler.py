@@ -1,3 +1,4 @@
+# ruff: noqa: PERF203
 import logging
 import threading
 import time

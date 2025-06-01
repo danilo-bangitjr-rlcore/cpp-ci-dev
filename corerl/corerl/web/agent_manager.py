@@ -1,3 +1,4 @@
+# ruff: noqa: PERF203
 """
 Agent Manager endpoints for starting and stopping our `corerl_main` scripts.
 Currently, this logic will only function as expected using one web worker!
