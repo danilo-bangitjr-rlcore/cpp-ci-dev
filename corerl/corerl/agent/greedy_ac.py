@@ -229,6 +229,18 @@ class GreedyAC(BaseAgent):
     def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         return torch.exp(self.log_prob(states, actions)[0])
 
+    def get_values(self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor]):
+        q = self.critic.forward(
+            self._critic_state.params,
+            jnp.asarray(state_batches),
+            jnp.asarray(action_batches),
+        )
+        return EnsembleNetworkReturn(
+            reduced_value=torch.asarray(q.mean(axis=0)),
+            ensemble_values=torch.asarray(q),
+            ensemble_variance=torch.asarray(q.var(axis=0)),
+        )
+
     def get_action_interaction(
         self,
         state: np.ndarray,

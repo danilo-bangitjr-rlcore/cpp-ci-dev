@@ -86,7 +86,7 @@ class MonteCarloEvaluator:
 
         repeat_state = state.repeat_interleave(self.critic_samples, dim=0)
         sampled_actions = ar.direct_actions.reshape(state.size(0) * self.critic_samples, -1)
-        sampled_a_qs = self.agent.critic.get_values(
+        sampled_a_qs = self.agent.get_values(
             [repeat_state],
             [sampled_actions],
         ).reduced_value
@@ -99,10 +99,9 @@ class MonteCarloEvaluator:
         under the agent's current policy.
         Returns a given state's value when the partial return horizon has elapsed.
         """
-        observed_a_q = self.agent.critic.get_values(
+        observed_a_q = self.agent.get_values(
             [state.expand(1, -1)],
             [observed_a.expand(1, -1)],
-            with_grad=False,
         )
         return observed_a_q.reduced_value.item()
 
