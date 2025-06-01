@@ -15,6 +15,7 @@ select = [
     'PERF', # flake8-perf
     'PL', # pylint
     'UP', # pyupgrade
+    'FURB', # refurb
 ]
 ignore = [
     'E402',
