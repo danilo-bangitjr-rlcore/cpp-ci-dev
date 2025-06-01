@@ -14,7 +14,7 @@ from corerl.utils.time import now_iso
 @pytest.fixture()
 def db_evals_table(
     tsdb_engine: Engine,
-    tsdb_tmp_db_name: str
+    tsdb_tmp_db_name: str,
 ):
     port = tsdb_engine.url.port
     assert port is not None
@@ -43,7 +43,7 @@ def test_db_eval_writer(tsdb_engine: Engine, db_evals_table: EvalsTable):
         agent_step=0,
         evaluator="q_eval",
         value=eval_out,
-        timestamp=now_iso()
+        timestamp=now_iso(),
     )
     db_evals_table.blocking_sync()
 
@@ -75,7 +75,7 @@ def test_db_evals_read_by_time(tsdb_engine: Engine, db_evals_table: EvalsTable):
             agent_step=i,
             evaluator="state_v",
             value=state_v,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         curr_time += delta
     db_evals_table.blocking_sync()
@@ -106,7 +106,7 @@ def test_db_evals_read_by_step(tsdb_engine: Engine, db_evals_table: EvalsTable):
             agent_step=i,
             evaluator="state_v",
             value=state_v,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         curr_time += delta
     db_evals_table.blocking_sync()
@@ -137,7 +137,7 @@ def test_db_evals_read_by_eval(tsdb_engine: Engine, db_evals_table: EvalsTable):
             agent_step=i,
             evaluator="state_v",
             value=state_v,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         curr_time += delta
     db_evals_table.blocking_sync()

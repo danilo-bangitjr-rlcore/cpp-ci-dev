@@ -1,7 +1,14 @@
 line-length = 120
 
 [lint]
-select = ['F', 'E', 'W', 'B', 'I']
+select = [
+    'F', # flake8
+    'E', # errors
+    'W', # warnings
+    'B', # bugbear
+    'I', # isort
+    'COM', # flake8-commas
+]
 ignore = [
     'E402',
 

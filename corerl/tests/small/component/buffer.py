@@ -73,7 +73,7 @@ def test_masked_ug_distribution():
 
     assert np.allclose(
         dist.probs(np.concatenate((elements, new_elements))),
-        np.array([0.225, 0.225, 0., 0., 0.225, 0.325, 0.])
+        np.array([0.225, 0.225, 0., 0., 0.225, 0.325, 0.]),
     )
 
     assert dist.size() == 4
@@ -169,7 +169,7 @@ def test_recency_bias_buffer_discounting(dummy_app_state: AppState):
 
     expected_weights =  np.concatenate(
         (expected_weights * expected_discount**10,
-        np.array([1.0]))
+        np.array([1.0])),
     )
     expected_probs =  expected_weights / expected_weights.sum()
     assert np.allclose(

@@ -25,7 +25,7 @@ def tag_cfgs():
         TagConfig(
             name='obs-2',
             preprocess=[],
-        )
+        ),
     ]
 
 
@@ -39,7 +39,7 @@ def test_rc1(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         {
             "obs-1": [np.nan, 1, 2, 3, np.nan, 1, 2],
             "obs-2": [1, 2, 3, np.nan, 1, 2, np.nan],
-        }
+        },
     )
 
     pf = PipelineFrame(
@@ -62,7 +62,7 @@ def test_rc1(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         {
             "obs-1_trace-0.1": [np.nan, 1.0, 1.9, 2.89, np.nan, 1.0, 1.9],
             "obs-2_trace-0.1": [1.0, 1.9, 2.89, np.nan, 1.0, 1.9, np.nan],
-        }
+        },
     )
     expected_reward_vals = expected_components.sum(axis=1, skipna=False)
     expected_reward_df = pd.DataFrame({"reward": expected_reward_vals})
@@ -75,7 +75,7 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         {
             "obs-1": [np.nan, 1, 2, 3, np.nan, 1, 2],
             "obs-2": [1, 2, 3, np.nan, 1, 2, np.nan],
-        }
+        },
     )
 
     pf = PipelineFrame(
@@ -100,7 +100,7 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
     expected_components = pd.DataFrame(
         {
             "obs_1_trace-0.1": [np.nan, 1.0, 1.9, 2.89, np.nan, 1.0, 1.9],
-        }
+        },
     )
     expected_reward_vals = expected_components.sum(axis=1, skipna=False)
     expected_reward_df = pd.DataFrame({"reward": expected_reward_vals})
@@ -231,7 +231,7 @@ def test_greaterthan_penalty_reward():
             preprocess=[],
             reward_constructor=[
                 xform.GreaterThanConfig(threshold=5),
-                xform.ScaleConfig(factor=-10) # penalty
+                xform.ScaleConfig(factor=-10), # penalty
             ],
         ),
     ]
@@ -297,7 +297,7 @@ def test_product_transform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
     )
 
     tag_cfgs[0].reward_constructor = [
-        xform.BinaryConfig(op="prod", other="obs-2", other_xform=[xform.GreaterThanConfig(threshold=5)])
+        xform.BinaryConfig(op="prod", other="obs-2", other_xform=[xform.GreaterThanConfig(threshold=5)]),
     ]
     tag_cfgs[1].reward_constructor = [xform.NullConfig()]
 
@@ -400,7 +400,7 @@ def get_constraint_violation_reward(L_v: float) -> float:
 
 
 def get_optimization_reward(
-    x: float, x_min: float, x_max: float, direction: Literal["min", "max"], L_v: float
+    x: float, x_min: float, x_max: float, direction: Literal["min", "max"], L_v: float,
 ) -> float:
     """
     While satisfying constraints, minimize chem cost
@@ -428,7 +428,7 @@ def get_optimization_reward(
     return r_o
 
 def epcor_scrubber_reward(
-    efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
+    efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig,
 ) -> float:
 
     cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
@@ -499,7 +499,7 @@ def test_epcor_reward():
         # next step gets normalized constraint violation
         xform.AffineConfig(
             scale=1/(z1_max - g1),
-            bias=-g1/(z1_max - g1)
+            bias=-g1/(z1_max - g1),
         ), # this gives v_hat1 \in [0, 1]
         xform.BinaryConfig(
             op="min",
@@ -508,10 +508,10 @@ def test_epcor_reward():
                 # next step gets normalized constraint violation
                 xform.AffineConfig(
                     scale=1/(z2_max - g2),
-                    bias=-g2/(z2_max - g2)
+                    bias=-g2/(z2_max - g2),
                 ), # this gives v_hat1 \in [0, 1]
-            ] # this gives v_hat2 \in [0, 1]
-        )
+            ], # this gives v_hat2 \in [0, 1]
+        ),
     ] # this whole chain gives constrain violation L_v \in [0, 1]
 
     transform_cfgs: dict[str, list[xform.TransformConfig]] = {
@@ -553,7 +553,7 @@ def test_epcor_reward():
                     xform.ScaleConfig(factor=-1), # transform to maximization
                     xform.AffineConfig( # normalize to [0, 1] maximization
                         scale=1/(c_max - c_min),
-                        bias=c_max/(c_max - c_min ) # high/low flipped due to maximizaiton: y_min = -c_max
+                        bias=c_max/(c_max - c_min ), # high/low flipped due to maximizaiton: y_min = -c_max
                     ),
                     xform.AffineConfig(scale=0.5, bias=-0.5), # squash to [-0.5, 0]
                     # next transform excludes this minimization reward if
@@ -602,7 +602,7 @@ def test_epcor_reward():
     expected_reward_df = pd.DataFrame(
         data=expected_rewards,
         columns=pd.Index(["reward"]),
-        index=idx
+        index=idx,
     )
 
     assert dfs_close(pf.rewards, expected_reward_df)

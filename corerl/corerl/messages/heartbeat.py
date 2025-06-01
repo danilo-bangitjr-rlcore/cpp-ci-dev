@@ -38,7 +38,7 @@ def heartbeat(cfg: HeartbeatConfig, coreio_origin: str):
 
             try:
                 coreio_client.write_opcua_nodes({
-                    connection_id: [OPCUANodeWriteValue(node_id=heartbeat_node_id, value=counter)]
+                    connection_id: [OPCUANodeWriteValue(node_id=heartbeat_node_id, value=counter)],
                 })
             except Exception:
                 logger.exception("Heartbeat failed to write to coreio")

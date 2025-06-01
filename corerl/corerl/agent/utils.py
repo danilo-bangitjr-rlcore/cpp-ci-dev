@@ -100,7 +100,7 @@ def get_sampled_qs(
     action_hi: torch.Tensor,
     n_samples: int,
     sampler: Sampler,
-    critic: ValueEstimator
+    critic: ValueEstimator,
 ) -> SampledQReturn:
     batch_size = states.size(0)
 

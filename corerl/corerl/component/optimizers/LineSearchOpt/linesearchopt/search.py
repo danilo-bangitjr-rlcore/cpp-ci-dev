@@ -197,7 +197,7 @@ class Goldstein(Search):
 
         if (found == 0):
             raise ValueError(
-                'Error, neither Goldstein condition was satisfied'
+                'Error, neither Goldstein condition was satisfied',
             )
         elif (found == 1):
             # Step-size might be too small

@@ -42,7 +42,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
     pf = PipelineFrame(
         df,
         data_mode=DataMode.OFFLINE,
-        temporal_state=ts
+        temporal_state=ts,
     )
 
     # stub out action constructor

@@ -57,7 +57,7 @@ class DecisionPointDetector:
         self._cfg = cfg
         self._steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
         assert np.isclose(
-            self._steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
+            self._steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds(),
         ), "action period must be a multiple of obs period"
 
 

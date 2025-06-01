@@ -28,21 +28,21 @@ class SquashedGaussian:
             bijector=distrax.Block(
                 distrax.Tanh(),
                 ndims=1,
-            )
+            ),
         )
         dist = distrax.Transformed(
             distribution=dist,
             bijector=distrax.Block(
                 distrax.ScalarAffine(shift=1, scale=1.0),
                 ndims=1,
-            )
+            ),
         )
         self.dist = distrax.Transformed(
             distribution=dist,
             bijector=distrax.Block(
                 distrax.ScalarAffine(shift=0, scale=0.5),
                 ndims=1,
-            )
+            ),
         )
 
     def sample(self, seed: chex.PRNGKey):
@@ -103,7 +103,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
         return ActorOutputs(
             mu=mu_head_out,
-            sigma=jnp.exp(jnp.clip(sigma_head_out, -20, 2))
+            sigma=jnp.exp(jnp.clip(sigma_head_out, -20, 2)),
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
@@ -140,7 +140,7 @@ class GreedyAC:
             layers=[
                 nets.LinearConfig(size=256, activation='relu'),
                 nets.LinearConfig(size=256, activation='relu'),
-            ]
+            ],
         )
         actor_output_act_cfg = IdentityConfig()
         self.actor = actor_builder(actor_torso_cfg, actor_output_act_cfg, action_dim)
@@ -349,7 +349,7 @@ class GreedyAC:
         policy: hk.Transformed,
         policy_opt: optax.GradientTransformation,
         states: jax.Array,
-        update_actions: jax.Array
+        update_actions: jax.Array,
     ):
         is_actor = policy is self.actor
         prefix = "actor" if is_actor else "proposal"
@@ -433,7 +433,7 @@ class GreedyAC:
         params: chex.ArrayTree,
         policy: hk.Transformed,
         states: jax.Array,
-        top_actions_batch: jax.Array
+        top_actions_batch: jax.Array,
     ):
         losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)

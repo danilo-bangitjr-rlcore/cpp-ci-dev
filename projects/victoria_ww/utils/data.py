@@ -44,7 +44,7 @@ def _copy_tag_val_between_timestamps(
     end: dt.datetime,
     step: dt.timedelta,
     tag_name: str,
-    value: float
+    value: float,
 ) -> list[SQLEntry]:
     sql_tups = []
     curr_time = start
@@ -57,7 +57,7 @@ def _copy_tag_val_between_timestamps(
 def _parse_setpoint_change_data(
     dl_cfg: VictoriaWWConfig,
     column: pd.Series,
-    final_timestamp: dt.datetime
+    final_timestamp: dt.datetime,
 ) -> list[SQLEntry]:
     """
     Parse tags that only have entries at setpoint changes
@@ -95,7 +95,7 @@ def _parse_setpoint_change_data(
     return  sql_tups
 
 def _series_to_sql_tups(
-    series: pd.Series
+    series: pd.Series,
 ) -> list[SQLEntry]:
     """
     Converting pd.Series into (timestamp, tag_name, value) tuples
@@ -110,7 +110,7 @@ def _series_to_sql_tups(
 def get_sql_tups(
     dl_cfg: VictoriaWWConfig,
     series_list: list[pd.Series],
-    last_timestamp: dt.datetime
+    last_timestamp: dt.datetime,
 ) -> list[SQLEntry]:
     sql_tups = []
     for series in series_list:

@@ -105,7 +105,7 @@ def get_constraint_violation_reward(L_v: float) -> float:
 
 
 def get_optimization_reward(
-    x: float, x_min: float, x_max: float, direction: Literal["min", "max"], L_v: float
+    x: float, x_min: float, x_max: float, direction: Literal["min", "max"], L_v: float,
 ) -> float:
     """
     While satisfying constraints, minimize chem cost
@@ -133,7 +133,7 @@ def get_optimization_reward(
     return r_o
 
 def epcor_scrubber_reward(
-    efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig
+    efficiency: float, outlet_h2s: float, orp_pumpspeed: float, ph_pumpspeed: float, cfg: EpcorRewardConfig,
 ) -> float:
 
     cost = orp_pumpspeed * cfg.orp_cost_factor + ph_pumpspeed * cfg.ph_cost_factor
@@ -204,7 +204,7 @@ def test_epcor_reward():
         # next step gets normalized constraint violation
         xform.AffineConfig(
             scale=1/(z1_max - g1),
-            bias=-g1/(z1_max - g1)
+            bias=-g1/(z1_max - g1),
         ), # this gives v_hat1 \in [0, 1]
         xform.BinaryConfig(
             op="min",
@@ -213,10 +213,10 @@ def test_epcor_reward():
                 # next step gets normalized constraint violation
                 xform.AffineConfig(
                     scale=1/(z2_max - g2),
-                    bias=-g2/(z2_max - g2)
+                    bias=-g2/(z2_max - g2),
                 ), # this gives v_hat1 \in [0, 1]
-            ] # this gives v_hat2 \in [0, 1]
-        )
+            ], # this gives v_hat2 \in [0, 1]
+        ),
     ] # this whole chain gives constrain violation L_v \in [0, 1]
 
     transform_cfgs: dict[str, list[xform.TransformConfig]] = {
@@ -238,7 +238,6 @@ def test_epcor_reward():
         "ph_pumpspeed": [
             xform.SplitConfig(
                 passthrough=False,
-                # passthrough=True,
                 # left is high pumpspeed penalty
                 left=[
                     xform.GreaterThanConfig(threshold=r_cfg.ph_pumpspeed_max),
@@ -258,7 +257,7 @@ def test_epcor_reward():
                     xform.ScaleConfig(factor=-1), # transform to maximization
                     xform.AffineConfig( # normalize to [0, 1] maximization
                         scale=1/(c_max - c_min),
-                        bias=c_max/(c_max - c_min ) # high/low flipped due to maximizaiton: y_min = -c_max
+                        bias=c_max/(c_max - c_min ), # high/low flipped due to maximizaiton: y_min = -c_max
                     ),
                     xform.AffineConfig(scale=0.5, bias=-0.5), # squash to [-0.5, 0]
                     # next transform excludes this minimization reward if
@@ -307,7 +306,7 @@ def test_epcor_reward():
     expected_reward_df = pd.DataFrame(
         data=expected_rewards,
         columns=pd.Index(["reward"]),
-        index=idx
+        index=idx,
     )
 
     assert dfs_close(pf.rewards, expected_reward_df)
@@ -355,7 +354,7 @@ def test_epcor_reward_from_yaml(dummy_app_state: AppState):
 
 
     cfg = direct_load_config(
-        MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_reward.yaml"
+        MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_reward.yaml",
     )
     assert isinstance(cfg, MainConfig)
 
@@ -363,7 +362,6 @@ def test_epcor_reward_from_yaml(dummy_app_state: AppState):
     pipe_return = pipeline(df, data_mode=DataMode.ONLINE)
     r_cfg = EpcorRewardConfig()
     r = epcor_scrubber_reward
-    # cols = pd.Index(["AI0879C", "AI0879B", "AIC3731_OUT", "AIC3730_OUT"])
     nice_cols = {
         "AI0879C": "efficiency",
         "AI0879B": "outlet_h2s",
@@ -378,7 +376,7 @@ def test_epcor_reward_from_yaml(dummy_app_state: AppState):
     expected_reward_df = pd.DataFrame(
         data=expected_rewards,
         columns=pd.Index(["reward"]),
-        index=idx
+        index=idx,
     )
     print(pipe_return.rewards)
     print(expected_reward_df)
@@ -392,7 +390,7 @@ def test_epcor_reward_rankings(dummy_app_state: AppState):
     xform.register_dispatchers()
 
     cfg = direct_load_config(
-        MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber.yaml"
+        MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber.yaml",
     )
     assert isinstance(cfg, MainConfig)
 

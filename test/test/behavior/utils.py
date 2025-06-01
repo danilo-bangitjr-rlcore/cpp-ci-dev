@@ -26,7 +26,7 @@ def get_offline_data_writer(engine: Engine, infra_overrides: dict[str, object]) 
         ip=ip,
         port=port,
         db_name=str(infra_overrides['infra.db.db_name']),
-        table_schema=str(infra_overrides['infra.db.schema'])
+        table_schema=str(infra_overrides['infra.db.schema']),
     )
     return DataWriter(db_cfg)
 

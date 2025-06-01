@@ -67,14 +67,14 @@ def init_env(name: str, overrides: dict | None = None, perturbation_config: Pert
         warnings.warn(
             "Delayed-Saturation-v0 is deprecated. Use Saturation-v0 instead.",
             DeprecationWarning,
-            stacklevel=2
+            stacklevel=2,
         )
         name = 'Saturation-v0'
         overrides = {
             'decay': 0.75,
             'effect': None,
             'effect_period': 500,
-            'trace_val': 0.9
+            'trace_val': 0.9,
         }
 
     env = env_group.dispatch(name, overrides)

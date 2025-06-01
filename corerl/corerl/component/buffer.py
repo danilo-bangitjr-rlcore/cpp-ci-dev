@@ -254,7 +254,7 @@ class MaskedABDistribution:
             [
                 SubDistribution(d=self._online, p=left_prob),
                 SubDistribution(d=self._historical, p=1 - left_prob),
-            ]
+            ],
         )
 
     def size(self):
@@ -364,7 +364,7 @@ class MaskedUGDistribution:
             [
                 SubDistribution(d=self._uniform, p=left_prob),
                 SubDistribution(d=self._geometric, p=1-left_prob),
-            ]
+            ],
         )
 
     def size(self):
@@ -458,7 +458,7 @@ class RecencyBiasBuffer(BaseBuffer):
 
         curr_timestamp = max(
             np.max(timestamps),
-            self._last_timestamp if self._last_timestamp is not None else np.max(timestamps)
+            self._last_timestamp if self._last_timestamp is not None else np.max(timestamps),
         )
 
         # for each transition, get the time difference between the most recent timestamp and the current timestamp

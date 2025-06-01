@@ -107,7 +107,7 @@ class DeploymentAsyncEnv(AsyncEnv):
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
         obs = self.data_reader.single_aggregated_read(
-            names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs
+            names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs,
         )
         return obs
 
@@ -135,7 +135,7 @@ def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: f
 
         if (action_val < lo) or (action_val > hi):
             logger.error(
-                f"Action {action_cfg.name} assigned value {action_val}, outside of operating range [{lo}, {hi}]"
+                f"Action {action_cfg.name} assigned value {action_val}, outside of operating range [{lo}, {hi}]",
             )
 
         action[action_name] = np.clip(action_val, lo + atol, hi - atol)

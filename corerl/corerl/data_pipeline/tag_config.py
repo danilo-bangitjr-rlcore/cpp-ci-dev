@@ -375,7 +375,7 @@ class TagConfig:
 
         if self.action_bounds is not None:
             self.action_bounds_func, self.action_bounds_tags = self._bounds_parse_sympy(
-                self.action_bounds, known_tags, allow_circular=True
+                self.action_bounds, known_tags, allow_circular=True,
             )
 
         if self.red_bounds is not None:
@@ -385,7 +385,7 @@ class TagConfig:
             self.yellow_bounds_func, self.yellow_bounds_tags = self._bounds_parse_sympy(self.yellow_bounds, known_tags)
 
     def _bounds_parse_sympy(
-        self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False
+        self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False,
     ) -> tuple[BoundsFunction, BoundsTags]:
         lo_func, hi_func = None, None
         lo_tags, hi_tags = None, None

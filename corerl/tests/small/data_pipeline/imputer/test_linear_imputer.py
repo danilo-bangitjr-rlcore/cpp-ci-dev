@@ -20,7 +20,7 @@ def test_no_imputation():
 
     data = pd.DataFrame({
         "tag_1": [0.2, 0.3, 0.7],
-        "tag_2": [1.9, -0.5, 7.3]
+        "tag_2": [1.9, -0.5, 7.3],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -64,7 +64,7 @@ def test_all_nan_imputation():
 
     data = pd.DataFrame({
         "tag_1": [np.nan, np.nan, np.nan],
-        "tag_2": [np.nan, np.nan, np.nan]
+        "tag_2": [np.nan, np.nan, np.nan],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -110,7 +110,7 @@ def test_all_nan_imputation_ts():
 
     data = pd.DataFrame({
         "tag_1": [np.nan, np.nan, np.nan],
-        "tag_2": [np.nan, np.nan, np.nan]
+        "tag_2": [np.nan, np.nan, np.nan],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -164,7 +164,7 @@ def test_leading_nan_imputation():
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 0.7, 0.8],
-        "tag_2": [np.nan, np.nan, 7.3]
+        "tag_2": [np.nan, np.nan, 7.3],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -213,7 +213,7 @@ def test_leading_nan_imputation_ts():
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 0.7, 0.8],
-        "tag_2": [np.nan, np.nan, 7.3]
+        "tag_2": [np.nan, np.nan, 7.3],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -269,7 +269,7 @@ def test_trailing_nan_imputation():
 
     data = pd.DataFrame({
         "tag_1": [0.2, 0.7, np.nan],
-        "tag_2": [0.8, np.nan, np.nan]
+        "tag_2": [0.8, np.nan, np.nan],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -317,7 +317,7 @@ def test_trailing_nan_imputation_ts():
 
     data = pd.DataFrame({
         "tag_1": [0.2, 0.7, np.nan],
-        "tag_2": [0.8, np.nan, np.nan]
+        "tag_2": [0.8, np.nan, np.nan],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00"])
     indices = pd.to_datetime(indices)
@@ -373,7 +373,7 @@ def test_linear_interpolation():
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 0.7, np.nan, 0.9, np.nan],
-        "tag_2": [np.nan, 0.2, np.nan, np.nan, 0.8]
+        "tag_2": [np.nan, 0.2, np.nan, np.nan, 0.8],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00", "7/13/2023 13:00", "7/13/2023 14:00"])
     indices = pd.to_datetime(indices)
@@ -386,7 +386,7 @@ def test_linear_interpolation():
 
     expected = pd.DataFrame({
         "tag_1": [np.nan, 0.7, 0.8, 0.9, np.nan],
-        "tag_2": [np.nan, 0.2, 0.4, 0.6, 0.8]
+        "tag_2": [np.nan, 0.2, 0.4, 0.6, 0.8],
     })
 
     assert dfs_close(pf.data, expected)
@@ -422,7 +422,7 @@ def test_linear_interpolation_ts():
 
     data = pd.DataFrame({
         "tag_1": [np.nan, 0.7, np.nan, 0.9, np.nan],
-        "tag_2": [np.nan, 0.2, np.nan, np.nan, 0.8]
+        "tag_2": [np.nan, 0.2, np.nan, np.nan, 0.8],
     })
     indices = pd.Series(["7/13/2023 10:00", "7/13/2023 11:00", "7/13/2023 12:00", "7/13/2023 13:00", "7/13/2023 14:00"])
     indices = pd.to_datetime(indices)
@@ -443,7 +443,7 @@ def test_linear_interpolation_ts():
 
     expected = pd.DataFrame({
         "tag_1": [0.6, 0.7, 0.8, 0.9, np.nan],
-        "tag_2": [0.0, 0.2, 0.4, 0.6, 0.8]
+        "tag_2": [0.0, 0.2, 0.4, 0.6, 0.8],
     })
 
     assert dfs_close(pf.data, expected)

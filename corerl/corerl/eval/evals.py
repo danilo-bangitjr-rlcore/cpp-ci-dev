@@ -134,7 +134,7 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         self,
         evaluator: str,
         start_time: datetime | None,
-        end_time: datetime | None
+        end_time: datetime | None,
     ) -> pd.DataFrame:
         stmt = f"""
             SELECT
@@ -172,7 +172,7 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         step_start: int | None = None,
         step_end: int | None = None,
         start_time: datetime | None = None,
-        end_time: datetime | None = None
+        end_time: datetime | None = None,
     ) -> pd.DataFrame:
         # Make sure all EvalPoint objects in buffer have been written to DB
         self.blocking_sync()

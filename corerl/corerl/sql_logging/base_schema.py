@@ -11,7 +11,7 @@ from typing_extensions import Annotated
 timestamp = Annotated[
     datetime,
     mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
     ),
 ]
 
@@ -28,10 +28,10 @@ class Run(Base):
     run_id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[timestamp]
     hparams: Mapped[List["HParam"]] = relationship(
-        back_populates="run", cascade="all, delete-orphan"
+        back_populates="run", cascade="all, delete-orphan",
     )
     steps: Mapped[List["Step"]] = relationship(
-        back_populates="run", cascade="all, delete-orphan"
+        back_populates="run", cascade="all, delete-orphan",
     )
 
 
@@ -53,19 +53,19 @@ class Step(Base):
     # Object relationships
     run: Mapped["Run"] = relationship(back_populates="steps")
     transitions: Mapped[List["SQLTransition"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+        back_populates="step", cascade="all, delete-orphan",
     )
     transition_info: Mapped[List["TransitionInfo"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+        back_populates="step", cascade="all, delete-orphan",
     )
     losses: Mapped[List["Loss"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+        back_populates="step", cascade="all, delete-orphan",
     )
     network_weights: Mapped[List["NetworkWeights"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+        back_populates="step", cascade="all, delete-orphan",
     )
     grad_info: Mapped[List["GradInfo"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+        back_populates="step", cascade="all, delete-orphan",
     )
 
 
@@ -94,7 +94,7 @@ class SQLTransition(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -115,7 +115,7 @@ class Loss(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -144,7 +144,7 @@ class TransitionInfo(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -166,7 +166,7 @@ class NetworkWeights(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -188,7 +188,7 @@ class GradInfo(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 

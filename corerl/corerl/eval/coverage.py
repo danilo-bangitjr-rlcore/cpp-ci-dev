@@ -176,7 +176,7 @@ class AECoverage:
             weight_decay=self.cfg.weight_decay,
         )
         self._scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self._optimizer, "min", factor=0.5, patience=100, min_lr=1e-6, threshold=1e-4
+            self._optimizer, "min", factor=0.5, patience=100, min_lr=1e-6, threshold=1e-4,
         )
 
         self._buffer = CircularBuffer(self.cfg.buffer_size)
@@ -220,7 +220,7 @@ class AECoverage:
                 {
                     "loss": f"{loss.item():.6f}",
                     "lr": f"{self._optimizer.param_groups[0]['lr']:.2e}",
-                }
+                },
             )
 
         self.norm_const = get_norm_const(self, dataset, self.cfg.epsilon, self.cfg.n_norm_samples)

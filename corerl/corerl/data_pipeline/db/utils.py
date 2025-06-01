@@ -35,7 +35,7 @@ class TryConnectContextManager(object):
         return self.conn
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, value: BaseException | None, traceback: TracebackType | None
+        self, exc_type: type[BaseException] | None, value: BaseException | None, traceback: TracebackType | None,
     ):
         if self.conn:
             self.conn.close()

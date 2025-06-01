@@ -126,7 +126,7 @@ def _remove_all_bess_offline_entries(df: pd.DataFrame) -> pd.DataFrame:
             "ELS_SLR_PS1000_1A_AVAIL",
             "ELS_SLR_PS1000_1B_AVAIL",
             "ELS_SLR_PS1000_2A_AVAIL",
-            "ELS_SLR_PS1000_2B_AVAIL"
+            "ELS_SLR_PS1000_2B_AVAIL",
         ]
         df = df.loc[~(df[bess_avails] == 0).all(axis=1)]
 

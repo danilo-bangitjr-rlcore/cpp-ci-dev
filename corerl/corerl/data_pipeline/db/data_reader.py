@@ -45,7 +45,7 @@ class DataReader:
                 self.db_metadata,
                 Column("time", TIMESTAMP, nullable=False, primary_key=True),
                 schema=db_cfg.table_schema,
-                extend_existing=True
+                extend_existing=True,
             )
 
     def batch_aggregated_read(
@@ -99,7 +99,7 @@ class DataReader:
                 start_time,
                 end_time,
                 bucket_width,
-                tag_aggregations
+                tag_aggregations,
             )
         else:
             return self._batch_aggregated_read_narrow(
@@ -108,7 +108,7 @@ class DataReader:
                 end_time,
                 bucket_width,
                 aggregation,
-                tag_aggregations
+                tag_aggregations,
             )
 
     def _batch_aggregated_read_wide(
@@ -149,7 +149,7 @@ class DataReader:
         select_parts = [
             f"time_bucket(INTERVAL '{bucket_width_str}', time, "
             f"origin => '{(end_time+timedelta(microseconds=1)).isoformat()}'::timestamptz, "
-            f"timezone => 'UTC') + INTERVAL '{bucket_width_str}' - INTERVAL '1 microsecond' AS time_bucket"
+            f"timezone => 'UTC') + INTERVAL '{bucket_width_str}' - INTERVAL '1 microsecond' AS time_bucket",
         ]
 
         for name in names:
@@ -189,7 +189,7 @@ class DataReader:
             end=end_time,
             freq=bucket_width,
             tz='UTC',
-            name=None
+            name=None,
         )
 
         with TryConnectContextManager(self.engine) as connection:
@@ -256,19 +256,19 @@ class DataReader:
                     # https://www.postgresql.org/docs/17/functions-aggregate.html
                     agg_stmt = func.cast(
                         func.avg(cast(self.sensor_table.c["fields"]["val"], Float)),
-                        TEXT
+                        TEXT,
                     )
                 case Agg.last:
                     # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
                     agg_stmt = func.cast(
                         func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"]),
-                        TEXT
+                        TEXT,
                     )
                 case Agg.bool_or:
                     # needed to support truncated/terminated booleans
                     agg_stmt = func.cast(
                         func.bool_or(cast(self.sensor_table.c["fields"]["val"], Boolean)),
-                        TEXT
+                        TEXT,
                     )
                 case _:
                     assert_never(agg_type)
@@ -277,7 +277,7 @@ class DataReader:
                 select(
                     time_bucket_stmt.label("time_bucket"),
                     self.sensor_table.c["name"],
-                    agg_stmt.label("val")
+                    agg_stmt.label("val"),
                 )
                 .filter(
                     self.sensor_table.c["time"] > text(f"TIMESTAMP WITH TIME ZONE '{start_time.isoformat()}'"),
@@ -300,7 +300,7 @@ class DataReader:
                 end=end_time,
                 freq=bucket_width,
                 tz='UTC',
-                name=None
+                name=None,
             )
 
             if not sensor_data.empty:
@@ -336,7 +336,7 @@ class DataReader:
             end_time,
             bucket_width,
             aggregation,
-            tag_aggregations
+            tag_aggregations,
         )
 
         if len(df) > 1:

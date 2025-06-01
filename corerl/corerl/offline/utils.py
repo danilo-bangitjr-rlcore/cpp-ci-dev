@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 def load_entire_dataset(
     cfg: MainConfig,
     start_time: dt.datetime | None = None,
-    end_time: dt.datetime | None = None
+    end_time: dt.datetime | None = None,
 ) -> pd.DataFrame:
 
     assert isinstance(cfg.env, AsyncEnvConfig)
@@ -47,7 +47,7 @@ def load_entire_dataset(
 class OfflineTraining:
     def __init__(
         self,
-        cfg: MainConfig
+        cfg: MainConfig,
     ):
         self.cfg = cfg
         self.start_time = cfg.offline.offline_start_time
@@ -117,7 +117,7 @@ class OfflineTraining:
 
 
 def get_data_start_end_times(
-    data_reader: DataReader, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None
+    data_reader: DataReader, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None,
 ) -> Tuple[dt.datetime, dt.datetime]:
     if start_time is None or end_time is None:
         time_stats = data_reader.get_time_stats()

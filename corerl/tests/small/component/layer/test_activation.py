@@ -87,7 +87,7 @@ def test_fta_factory():
         "name": "FTA",
         "kwargs": {
             "eta": 0.1, "lower": 0, "upper": 1, "n_bins": 4,
-        }
+        },
     }
     act = init_activation(cfg)
     assert isinstance(act, FTA)

@@ -18,7 +18,7 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
 
     observation_space: gym.Space = env.observation_space
     assert isinstance(
-        observation_space, gym.spaces.Box
+        observation_space, gym.spaces.Box,
     ), f"only support Box type observation_space, received {observation_space}"
     assert (
         len(observation_space.shape) == 1
@@ -34,7 +34,7 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
                 operating_range=(action_space.low[i].item(), action_space.high[i].item()),
                 state_constructor=[NullConfig()],
                 type=TagType.ai_setpoint,
-            )
+            ),
         )
 
     for i in range(n_obs):
@@ -44,10 +44,10 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
                 operating_range=(observation_space.low[i].item(), observation_space.high[i].item()),
                 state_constructor=[
                     TraceConfig(
-                        trace_values=[0.0]
-                    )
+                        trace_values=[0.0],
+                    ),
                 ],
-            )
+            ),
         )
 
     if include_meta:
@@ -58,21 +58,21 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
                 outlier=[IdentityFilterConfig()],
                 state_constructor=[],
                 type=TagType.meta,
-            )
+            ),
         )
         tag_configs.append(
             TagConfig(
                 name="terminated",
                 outlier=[IdentityFilterConfig()],
                 type=TagType.meta,
-            )
+            ),
         )
         tag_configs.append(
             TagConfig(
                 name="truncated",
                 outlier=[IdentityFilterConfig()],
                 type=TagType.meta,
-            )
+            ),
         )
 
     return tag_configs

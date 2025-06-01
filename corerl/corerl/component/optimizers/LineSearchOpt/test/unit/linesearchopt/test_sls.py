@@ -133,7 +133,7 @@ def armijo_lso_no_backtrack(dummy_app_state: AppState):
             init,
             init_step_size=init_step_size,
             unit_norm_direction=False,
-            max_backtracking_steps=1
+            max_backtracking_steps=1,
         )
     return _get_opt
 

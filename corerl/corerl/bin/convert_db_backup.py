@@ -104,7 +104,7 @@ def main():
         row_offset=args.row_offset,
         column_offset=args.column_offset,
         datatype_row=args.datatype_row,
-        tag_name_row=args.tag_name_row,)
+        tag_name_row=args.tag_name_row)
 
 
 if __name__ == "__main__":

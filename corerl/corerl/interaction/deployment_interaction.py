@@ -58,7 +58,7 @@ class DeploymentInteraction:
         self._last_state: AgentState = AgentState(
             feats=np.full(self._column_desc.state_dim, np.nan),
             action_lo=np.full(self._column_desc.action_dim, np.nan),
-            action_hi=np.full(self._column_desc.action_dim, np.nan)
+            action_hi=np.full(self._column_desc.action_dim, np.nan),
         )
         self._last_action_df: pd.DataFrame | None = None # used to ping setpoints
 
@@ -127,7 +127,7 @@ class DeploymentInteraction:
 
         return split_windows_into_chunks(
             windows=self._cfg.historical_windows,
-            width=self.obs_period * self._cfg.historical_batch_size
+            width=self.obs_period * self._cfg.historical_batch_size,
         )
 
     def _pretrain(self):
@@ -266,7 +266,7 @@ class DeploymentInteraction:
             feats=pipe_return.states.iloc[-1].to_numpy(dtype=np.float32),
             action_lo=pipe_return.action_lo.iloc[-1].to_numpy(dtype=np.float32),
             action_hi=pipe_return.action_hi.iloc[-1].to_numpy(dtype=np.float32),
-            timestamp=pr_ts.to_pydatetime() if isinstance(pr_ts, pd.Timestamp) else datetime.now(UTC)
+            timestamp=pr_ts.to_pydatetime() if isinstance(pr_ts, pd.Timestamp) else datetime.now(UTC),
         )
 
 
@@ -436,7 +436,7 @@ def prune_checkpoints(
         chkpoints: list[Path],
         times: list[datetime],
         cliff: datetime,
-        checkpoint_freq: timedelta
+        checkpoint_freq: timedelta,
     ) -> list[Path]:
 
     to_delete = []

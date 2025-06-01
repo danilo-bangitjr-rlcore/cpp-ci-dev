@@ -36,7 +36,7 @@ class EventBus:
             args=(
                 self.subscriber_socket,
                 self.queue,
-                self.event_bus_stop_event
+                self.event_bus_stop_event,
             ),
             daemon=True,
             name= "corerl_event_bus_consumer",

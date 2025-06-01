@@ -147,7 +147,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         if len(self.param_groups) > 0:
             warn(
                 "Multiple param groups for Optimizer has not been tested",
-                stacklevel=1
+                stacklevel=1,
             )
         return super().add_param_group(param_group)
 

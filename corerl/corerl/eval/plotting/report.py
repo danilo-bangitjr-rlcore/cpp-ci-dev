@@ -35,7 +35,7 @@ def plot_histogram(
         xlabel: str,
         show_mean: bool = False,
         percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        bins: int = 30,
     ) -> None:
     """
     Generates a histogram, with mean and percentiles shown.
@@ -79,7 +79,7 @@ def plot_sensor_histogram(
         title: str = '',
         show_mean: bool = False,
         percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        bins: int = 30,
     ) -> None:
     """
     Plots distribution of non-nan sensor values.
@@ -96,7 +96,7 @@ def plot_nan_histogram(
         title: str = '',
         show_mean: bool = False,
         percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        bins: int = 30,
     ) -> None:
     """
     Plots histogram of length of contiguous chunks of nans.
@@ -115,7 +115,7 @@ def plot_chunk_histogram(
         title: str = '',
         show_mean: bool = False,
         percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        bins: int = 30,
     ) -> None:
     """
     Plots histogram of length of contiguous chunks of non-nans.

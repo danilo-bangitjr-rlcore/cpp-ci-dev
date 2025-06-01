@@ -37,7 +37,7 @@ def test_convert_table(mock_csv_file: Tuple[Path, Path]):
         quality="TestQuality",
         output=output_path,
         row_offset=3,
-        tag_name_row=2
+        tag_name_row=2,
     )
 
     # Validate output
@@ -58,7 +58,7 @@ def test_convert_table(mock_csv_file: Tuple[Path, Path]):
         "ns=2;s=Tag1",
         "Tag1",
         "TestQuality",
-        "{'val': True, 'DataType': 'Boolean'}"
+        "{'val': True, 'DataType': 'Boolean'}",
     ]
     assert rows[1] == expected_data_row, "Output data does not match expected values."
     assert "'val': True" in rows[1][5], "Boolean value was not processed correctly."
@@ -69,7 +69,7 @@ def test_convert_table(mock_csv_file: Tuple[Path, Path]):
         "ns=2;s=Tag2",
         "Tag2",
         "TestQuality",
-        "{'val': 42, 'DataType': 'Integer'}"
+        "{'val': 42, 'DataType': 'Integer'}",
     ]
     assert rows[2] == expected_data_row_2, "Output data does not match expected integer values."
 
@@ -79,7 +79,7 @@ def test_convert_table(mock_csv_file: Tuple[Path, Path]):
         "ns=2;s=Tag3",
         "Tag3",
         "TestQuality",
-        "{'val': 3.14, 'DataType': 'Float'}"
+        "{'val': 3.14, 'DataType': 'Float'}",
     ]
     assert rows[3] == expected_data_row_3, "Output data does not match expected float values."
 

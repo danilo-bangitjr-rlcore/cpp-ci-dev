@@ -228,7 +228,7 @@ def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
         norm_cfg = find_instance(
             NormalizerConfig,
             (tag.state_constructor or []) +\
-            (tag.reward_constructor)
+            (tag.reward_constructor),
         )
 
         if norm_cfg is not None:
@@ -239,7 +239,7 @@ def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
 
 def _row_to_tensor(row: pd.DataFrame) -> torch.Tensor:
     return torch.tensor(
-        row.iloc[0].to_numpy(np.float32)
+        row.iloc[0].to_numpy(np.float32),
     )
 
 class CircularBuffer:

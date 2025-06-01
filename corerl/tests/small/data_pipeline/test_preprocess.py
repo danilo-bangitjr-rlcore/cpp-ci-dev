@@ -15,8 +15,8 @@ def test_only_normalize_preprocess():
         name="tag_1",
         operating_range=(0, 10),
         preprocess=[
-            NormalizerConfig(min=0, max=10)
-        ]
+            NormalizerConfig(min=0, max=10),
+        ],
     )
     preprocessor = Preprocessor([tag_cfg1])
 
@@ -33,8 +33,8 @@ def test_only_delta_preprocess():
     tag_cfg1 = TagConfig(
         name="tag_1",
         preprocess=[
-            DeltaConfig(time_thresh=dt.timedelta(hours=2))
-        ]
+            DeltaConfig(time_thresh=dt.timedelta(hours=2)),
+        ],
     )
     preprocessor = Preprocessor([tag_cfg1])
 
@@ -60,8 +60,8 @@ def test_delta_norm_preprocess():
         name="tag_1",
         preprocess=[
             DeltaConfig(time_thresh=dt.timedelta(hours=2)),
-            NormalizerConfig(min=0, max=10)
-        ]
+            NormalizerConfig(min=0, max=10),
+        ],
     )
     preprocessor = Preprocessor([tag_cfg1])
 

@@ -46,7 +46,7 @@ def make_test_dp_transition(dps: list[bool]):
             make_test_step(i, dp=dp) for i, dp in enumerate(dps)
         ],
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
     return transition
 
@@ -58,7 +58,7 @@ def make_test_dp_transition(dps: list[bool]):
         ([True, True, False], False),
         ([False, True, False], False),
 
-    ]
+    ],
 )
 def test_only_dp_transitions(dps: list[bool], expected: bool):
     transition = make_test_dp_transition(dps)
@@ -72,7 +72,7 @@ def test_only_dp_transitions(dps: list[bool], expected: bool):
         ([True, False, False], False),
         ([False, True, False], False),
 
-    ]
+    ],
 )
 def test_only_post_transitions(dps: list[bool], expected: bool):
     transition = make_test_dp_transition(dps)
@@ -87,7 +87,7 @@ def make_action_change_transition(
             make_test_step(i, dp=dps[i], action=actions[i]) for i in range(len(dps))
         ],
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
     return transition
 
@@ -102,7 +102,7 @@ def make_action_change_transition(
         ([0, 0, 1], False), # change between steps[1]/steps[2]
         ([0, 0, 1, 0], False), # change after steps[1]
         ([0, 0, 0, 1], False), # change after steps[1]
-    ]
+    ],
 )
 def test_only_no_action_change(actions: list[float], expected: bool):
 
@@ -151,7 +151,7 @@ def test_no_nan():
     transition = Transition(
         steps=steps,
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     assert no_nan(transition)
@@ -166,7 +166,7 @@ def test_no_nan():
     transition = Transition(
         steps=steps,
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     assert not no_nan(transition)
@@ -180,7 +180,7 @@ def test_no_nan():
     transition = Transition(
         steps=steps,
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     assert not no_nan(transition)
@@ -195,7 +195,7 @@ def test_no_nan():
     transition = Transition(
         steps=steps,
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     assert not no_nan(transition)
@@ -218,7 +218,7 @@ def test_transition_filter_1():
             make_test_step(2, action=0, dp=True),
         ],
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     # no action change and dp is False
@@ -229,7 +229,7 @@ def test_transition_filter_1():
             make_test_step(2, action=0, dp=False),
         ],
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     # action change and dp is True
@@ -240,7 +240,7 @@ def test_transition_filter_1():
             make_test_step(2, action=0, dp=True, ac=True),
         ],
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     # action change and dp is False
@@ -251,7 +251,7 @@ def test_transition_filter_1():
             make_test_step(2, action=0, dp=False, ac=True),
         ],
         n_step_gamma=0.81,
-        n_step_reward=1.9
+        n_step_reward=1.9,
     )
 
     df = pd.DataFrame([])
@@ -274,20 +274,20 @@ def test_capture_regular_RL():
         i=0,
         action=[3,2,1],
         dp=True,
-        ac=False
+        ac=False,
     )
     second = make_test_step(
         i=1,
         action=[4,2,1],
         dp=False,
-        ac=True
+        ac=True,
     )
     intermediate = [make_test_step(i+2, action=[4,2,1]) for i in range(3)]
     last = make_test_step(
         i=5,
         action=[4,2,1],
         dp=True,
-        ac=False
+        ac=False,
     )
 
 
@@ -303,14 +303,14 @@ def test_capture_regular_RL():
         i=6,
         action=[5,2,1],
         dp=False,
-        ac=True
+        ac=True,
     )
     intermediate_2 = [make_test_step(i + 7, action=[5,2,1]) for i in range(3)]
     last_2 = make_test_step(
         i=10,
         action=[5,2,1],
         dp=True,
-        ac=False
+        ac=False,
     )
 
     second_transition = Transition(

@@ -28,7 +28,7 @@ def pf_from_actions(actions: np.ndarray, ts: dict | None = None) -> PipelineFram
     pf = PipelineFrame(
         df,
         data_mode=DataMode.OFFLINE,
-        temporal_state=ts
+        temporal_state=ts,
     )
 
     # stub out action constructor

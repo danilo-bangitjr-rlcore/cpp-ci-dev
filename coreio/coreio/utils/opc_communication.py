@@ -48,7 +48,7 @@ class OPC_Connection:
                 f"OPC Clinent (connection_id: {cfg.connection_id}): " +
                 "Client cert path, client private key path and server cert path " +
                 "must be declared to set an encrypted connection.\n" +
-                "Using default connection."
+                "Using default connection.",
             )
         return self
 
@@ -90,7 +90,7 @@ class OPC_Connection:
                 self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
 
-    @backoff.on_exception(backoff.expo, (OSError), max_time=30,)
+    @backoff.on_exception(backoff.expo, (OSError), max_time=30)
     async def start(self):
         await self.opc_client.connect()
         return self
@@ -117,7 +117,7 @@ class OPC_Connection:
         except ConnectionError:
             await self.opc_client.connect()
 
-    @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30,)
+    @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
         """
         Writing core-rl values into OPC

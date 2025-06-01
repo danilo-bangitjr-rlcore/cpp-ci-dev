@@ -71,7 +71,7 @@ class PercentileReduct(Reduct):
 
 @bootstrap_reduct_group.dispatcher
 def percentile_bootstrap(
-    cfg: PercentileReduct
+    cfg: PercentileReduct,
 ):
     def _inner(x: torch.Tensor, dim: int):
         size = (

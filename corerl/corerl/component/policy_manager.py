@@ -151,7 +151,7 @@ class GACPolicyManager:
             self,
             action_lo: torch.Tensor,
             action_hi: torch.Tensor,
-            policy_actions: torch.Tensor
+            policy_actions: torch.Tensor,
         ) -> torch.Tensor:
         """
         Ensures that the output of this function is a direct action
@@ -169,7 +169,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        n_samples: int
+        n_samples: int,
     ) -> torch.Tensor:
         """
         Samples actions from the actor
@@ -190,7 +190,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        n_samples: int
+        n_samples: int,
     ) -> torch.Tensor:
         """
         Samples a mixture between the sampler and a uniform distribution

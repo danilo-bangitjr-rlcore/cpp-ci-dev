@@ -26,13 +26,13 @@ class PVSConfig(EnvConfig):
         "kp_max": 5,
         "kp_min": 0,
         "ti_max": 20,
-        "ti_min": 0.1
+        "ti_min": 0.1,
     })
     reward_coeffs: dict = field(default_factory=lambda: {
         "mse_coeff": 1/15,
         "overshoot_coeff": 1.5,
         "settling_coeff": 1.2,
-        "rise_coeff": 1
+        "rise_coeff": 1,
     })
     reset_temperature: float = np.inf
     no_reset: bool = True
@@ -179,7 +179,7 @@ class BasePVSEnv(Env):
     def get_reward(
         self,
         episode_heights: list[float],
-        episode_setpoints: list[float]
+        episode_setpoints: list[float],
     ) -> float:
         base_mse = self.error_sum / (self.no_of_error + 1e-8)
         if self.reward_type == "mse":
@@ -320,7 +320,7 @@ class BasePVSEnv(Env):
         num_frames = len(self.height_T1_record) // 100 + 1
         anim = FuncAnimation(
             fig, animate, init_func=init, frames=num_frames,
-            interval=1000, blit=False
+            interval=1000, blit=False,
         )
 
         writer = PillowWriter(fps=1)
@@ -453,7 +453,7 @@ class PVSChangeAction(BasePVSEnv):
     """RL environment implementation"""
     def __init__(
         self,
-        cfg: PVSConfig | None = None
+        cfg: PVSConfig | None = None,
     ):
         if cfg is None:
             cfg = PVSConfig()
@@ -511,7 +511,7 @@ class PVSChangeAction(BasePVSEnv):
     def get_next_pid_params(self, a: np.ndarray) -> np.ndarray:
         pid_params = np.array([
             self.prev_pid_params[0] + a[0],
-            self.prev_pid_params[1] + a[1]
+            self.prev_pid_params[1] + a[1],
         ])
         return self.pid_param_clip(pid_params)
 
@@ -520,7 +520,7 @@ class PVSChangeAction(BasePVSEnv):
 
         pid_params[0] = np.clip(pid_params[0], limits["kp_min"], limits["kp_max"])
         pid_params[1] = np.clip(
-            pid_params[1], limits["ti_min"], limits["ti_max"]
+            pid_params[1], limits["ti_min"], limits["ti_max"],
         )
         return pid_params
 
@@ -569,7 +569,7 @@ class PVSChangeAction(BasePVSEnv):
 
 
     def _step(
-        self, pid_params: np.ndarray, add: bool=True
+        self, pid_params: np.ndarray, add: bool=True,
     ) -> tuple[np.ndarray, float, bool, bool, dict]:
         # interact with the environment for a number of steps
         self.pid_controller.update_pid(pid_params.tolist(), KI=False)

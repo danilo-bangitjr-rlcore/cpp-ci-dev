@@ -131,7 +131,6 @@ def main():
     # every 100 steps
     for _ in tqdm(range(cfg.max_steps + 1)):
         collector.next_frame()
-        # ac_eval(collector, agent, state)
         action = agent.get_actions(state)
         transitions = tc(state, action, reward, done)
 

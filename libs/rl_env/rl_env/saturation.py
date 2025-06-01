@@ -132,7 +132,6 @@ class Saturation(gym.Env):
         plt.plot(self.anchors, label="anchor")
         plt.legend()
         plt.savefig(save_path / 'env.png', bbox_inches='tight')
-        # plt.show()
 
     def reset(
         self,

@@ -16,17 +16,17 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
         "-c", "--cmd", type=EventType, required=True,
-        help="See EventType for valid commnads"
+        help="See EventType for valid commnads",
     )
 
     parser.add_argument(
         "-b", "--bus-addr", type=str,
-        default=EventBusConfig.cli_connection, help="Address of the bus for the CLI tool."
+        default=EventBusConfig.cli_connection, help="Address of the bus for the CLI tool.",
     )
 
     parser.add_argument(
         "-q", "--quiet", action="store_true",
-        help="If specified, output will be suppressed"
+        help="If specified, output will be suppressed",
     )
     args = parser.parse_args()
 

@@ -76,7 +76,7 @@ class PipelineConfig:
                     preprocess=[],
                     state_constructor=[NullConfig()],
                     outlier=[IdentityFilterConfig()],
-                )
+                ),
             )
 
     @post_processor
@@ -107,7 +107,7 @@ class PipelineReturn:
     transitions: list[Transition] | None
 
     def _add(
-        self, other: Self
+        self, other: Self,
     ) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
@@ -234,7 +234,7 @@ class Pipeline:
             StageCode.ZONES,
             StageCode.SC,
             StageCode.TC,
-            StageCode.TF
+            StageCode.TF,
         )
 
     def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:

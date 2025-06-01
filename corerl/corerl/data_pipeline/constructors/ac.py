@@ -22,10 +22,10 @@ class ActionConstructor:
         for action_tag in self.action_tags:
             name = action_tag.name
             Maybe(action_tag.operating_range).map(lambda r: r[0]).expect(
-                f"Action {name} did not specify an operating range lower bound."
+                f"Action {name} did not specify an operating range lower bound.",
             )
             Maybe(action_tag.operating_range).map(lambda r: r[1]).expect(
-                f"Action {name} did not specify an operating range upper bound."
+                f"Action {name} did not specify an operating range upper bound.",
             )
         self._prep_stage = prep_stage # used to denormalize tags
 

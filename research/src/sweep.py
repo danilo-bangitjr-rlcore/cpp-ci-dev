@@ -30,7 +30,7 @@ def run_command(command: str) -> int:
             command,
             shell=True,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL,
         ).returncode
     else:
         # Run normally

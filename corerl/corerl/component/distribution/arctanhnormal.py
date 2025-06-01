@@ -98,7 +98,7 @@ class ArctanhNormal(d.Distribution):
         normal_logp = self._underlying.log_prob(normal_samples)
 
         offset = torch.log1p(
-            -value.pow(2) + ArctanhNormal._EPSILON
+            -value.pow(2) + ArctanhNormal._EPSILON,
         )
 
         return normal_logp - offset

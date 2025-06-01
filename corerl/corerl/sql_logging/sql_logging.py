@@ -159,7 +159,7 @@ def create_table(metadata: MetaData, schema: dict) -> Table:
             primary_key = False
 
         col = create_column(
-            name=key, dtype=schema["columns"][key], primary_key=primary_key
+            name=key, dtype=schema["columns"][key], primary_key=primary_key,
         )
         cols.append(col)
 
@@ -171,7 +171,7 @@ def create_table(metadata: MetaData, schema: dict) -> Table:
 def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
     for table_name in schemas:
         create_table(
-            metadata=metadata, schema={"name": table_name, **schemas[table_name]}
+            metadata=metadata, schema={"name": table_name, **schemas[table_name]},
         )
 
     metadata.create_all(engine, checkfirst=True)
@@ -264,7 +264,7 @@ def setup_sql_logging(cfg: Any, restart_db: bool = False):
 
     with Session(engine) as session:
         run = Run(
-            hparams=[HParam(name=name, val=val) for name, val in flattened_cfg.items()]
+            hparams=[HParam(name=name, val=val) for name, val in flattened_cfg.items()],
         )
         session.add(run)
         session.commit()

@@ -95,7 +95,7 @@ def _compute_search_direction(
         warnings.warn(
             f"unknown search direction for type {type(opt)}, approximating " +
             "search direction with gradient direction",
-            stacklevel=1
+            stacklevel=1,
         )
         return -_compute_grad_norm2(grad_list)
 
@@ -221,7 +221,7 @@ def _compute_adam_direction(
     grad_list: Sequence[torch.Tensor | None],
     opt: Union[Adam, AdamW],
     unit_norm_direction: bool=False,
-    approximate_grad: bool=False
+    approximate_grad: bool=False,
 ) -> torch.Tensor:
     if len(opt.state_dict()["state"].keys()) == 0:
         return -_compute_grad_norm2(grad_list)

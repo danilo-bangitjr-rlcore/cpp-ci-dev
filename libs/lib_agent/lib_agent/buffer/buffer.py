@@ -69,7 +69,7 @@ def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTr
         action=stacked_action,
         reward=stacked_reward,
         next_state=stacked_next_state,
-        gamma=stacked_gamma
+        gamma=stacked_gamma,
     )
 
 

@@ -44,7 +44,7 @@ class StuckDetector(BaseOddityFilter):
         tag_data = pf.data[tag].to_numpy()
 
         oddity_mask, prev_val, stuck_steps = _get_stuck_mask(
-            tag_data, tag_ts.prev_val, tag_ts.stuck_steps, self.eps, self.step_tol
+            tag_data, tag_ts.prev_val, tag_ts.stuck_steps, self.eps, self.step_tol,
         )
         tag_ts.prev_val = prev_val
         tag_ts.stuck_steps = stuck_steps

@@ -145,7 +145,7 @@ def policy_variance(
         metric_names=['actor_var', 'sampler_var'],
         state=state,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 # ------------------------------ Q Values Online ----------------------------- #
@@ -272,7 +272,7 @@ def greed_dist_online(
         metric_names=['greed_dist_online'],
         states=states,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 
@@ -346,7 +346,7 @@ def greed_values_online(
         metric_names=['greed_values_online'],
         states=states,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 def greed_values_batch(app_state: AppState, agent: BaseAgent):

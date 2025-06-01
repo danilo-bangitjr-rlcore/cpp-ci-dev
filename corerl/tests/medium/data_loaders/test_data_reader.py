@@ -43,7 +43,7 @@ class TestDataReaderLogic:
         reader, writer = data_reader_writer
         end_time = datetime(year=2025, month=1, day=10, hour=10, minute=30, tzinfo=UTC)
         writer.write(
-            timestamp=end_time, name="test_var", val=0.1
+            timestamp=end_time, name="test_var", val=0.1,
         )
         writer.blocking_sync()
         obs_period = timedelta(seconds=1)
@@ -61,11 +61,11 @@ class TestDataReaderLogic:
 
         # this should be excluded
         writer.write(
-            timestamp=end_time - obs_period, name="test_var", val=0.9
+            timestamp=end_time - obs_period, name="test_var", val=0.9,
         )
         # this should be included
         writer.write(
-            timestamp=end_time, name="test_var", val=0.1
+            timestamp=end_time, name="test_var", val=0.1,
         )
         writer.blocking_sync()
         df = reader.single_aggregated_read(names=["test_var"], start_time=start_time, end_time=end_time)
@@ -79,10 +79,10 @@ class TestDataReaderLogic:
         end_time = datetime(year=2025, month=1, day=10, hour=12, minute=30, tzinfo=UTC)
         start_time = end_time - obs_period
         writer.write(
-            timestamp=end_time, name="test_var", val=0.1
+            timestamp=end_time, name="test_var", val=0.1,
         )
         writer.write(
-            timestamp=end_time - obs_period / 2, name="test_var", val=0.9
+            timestamp=end_time - obs_period / 2, name="test_var", val=0.9,
         )
         writer.blocking_sync()
         df = reader.single_aggregated_read(names=["test_var"], start_time=start_time, end_time=end_time)
@@ -101,7 +101,7 @@ class TestDataReaderLogic:
         for i in range(10):
             write_time = end_time - i*timedelta(seconds=1)
             writer.write(
-                timestamp=write_time, name="test_var", val=1.0 - i*0.1
+                timestamp=write_time, name="test_var", val=1.0 - i*0.1,
             )
         writer.blocking_sync()
 
@@ -113,7 +113,7 @@ class TestDataReaderLogic:
                                         dtype='datetime64[ns, UTC]', name='time_bucket')
 
         df = reader.batch_aggregated_read(
-            names=["test_var"], start_time=start_time, end_time=end_time, bucket_width=obs_period
+            names=["test_var"], start_time=start_time, end_time=end_time, bucket_width=obs_period,
         )
 
         assert len(df) == 5
@@ -132,15 +132,15 @@ class TestDataReaderLogic:
         for i in range(10):
             write_time = end_time - i*timedelta(seconds=1)
             writer.write(
-                timestamp=write_time, name="test_var", val=1.0 - i*0.1
+                timestamp=write_time, name="test_var", val=1.0 - i*0.1,
             )
         # write an extra point on the start time that should be excluded
         writer.write(
-            timestamp=start_time, name="test_var", val=0.0
+            timestamp=start_time, name="test_var", val=0.0,
         )
         # write an addition point before start time
         writer.write(
-            timestamp=start_time - timedelta(seconds=1), name="test_var", val=-0.1
+            timestamp=start_time - timedelta(seconds=1), name="test_var", val=-0.1,
         )
         writer.blocking_sync()
 
@@ -153,7 +153,7 @@ class TestDataReaderLogic:
                                         dtype='datetime64[ns, UTC]', name='time_bucket')
 
         df = reader.batch_aggregated_read(
-            names=["test_var"], start_time=start_time, end_time=end_time, bucket_width=obs_period
+            names=["test_var"], start_time=start_time, end_time=end_time, bucket_width=obs_period,
         )
 
         assert len(df) == 5
@@ -170,12 +170,12 @@ class TestDataReaderLogic:
         for i in range(10):
             write_time = end_time - i*timedelta(seconds=1)
             writer.write(
-                timestamp=write_time, name="avg_var", val=1.0 - i*0.1
+                timestamp=write_time, name="avg_var", val=1.0 - i*0.1,
             )
         for i in range(10):
             write_time = end_time - i*timedelta(seconds=1)
             writer.write(
-                timestamp=write_time, name="last_var", val=i*0.1
+                timestamp=write_time, name="last_var", val=i*0.1,
             )
         writer.write(timestamp=end_time, name="bool_var", val=True)
         writer.write(timestamp=end_time - timedelta(seconds=1), name="bool_var", val=False)
@@ -190,8 +190,8 @@ class TestDataReaderLogic:
             tag_aggregations={
                 "avg_var": Agg.avg,
                 "last_var": Agg.last,
-                "bool_var": Agg.bool_or
-            }
+                "bool_var": Agg.bool_or,
+            },
         )
 
         assert np.allclose(df["avg_var"].iloc[-1], 0.95)
@@ -206,10 +206,10 @@ class TestDataReaderLogic:
         for i in range(10):
             write_time = end_time - i*timedelta(seconds=1)
             writer.write(
-                timestamp=write_time, name="last_var", val=1.0 - i*0.1
+                timestamp=write_time, name="last_var", val=1.0 - i*0.1,
             )
             writer.write(
-                timestamp=write_time, name="default_var", val=i*0.1
+                timestamp=write_time, name="default_var", val=i*0.1,
             )
 
         writer.blocking_sync()
@@ -222,7 +222,7 @@ class TestDataReaderLogic:
             aggregation=Agg.avg,
             tag_aggregations={
                 "last_var": Agg.last,
-            }
+            },
         )
 
         assert np.allclose(df["last_var"].iloc[-1], 1.0)
@@ -252,7 +252,7 @@ class TestDataReader:
         start_time = end_time - timedelta(minutes=5)
 
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time,
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
         series_all_nan = result_df.isnull().all()
@@ -265,7 +265,7 @@ class TestDataReader:
         start_time = end_time - timedelta(minutes=5)
 
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time,
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
         series_all_not_nan = result_df.notna().all()
@@ -277,7 +277,7 @@ class TestDataReader:
         end_time = now
         start_time = end_time - timedelta(minutes=5)
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.avg
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.avg,
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
@@ -286,7 +286,7 @@ class TestDataReader:
         end_time = now
         start_time = end_time - timedelta(minutes=5)
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.last
+            names=TestDataReader.sensor_names, start_time=start_time, end_time=end_time, aggregation=Agg.last,
         )
         assert TestDataReader.sensor_names == result_df.columns.tolist()
 
@@ -360,7 +360,7 @@ class TestDataReader:
         self,
         data_reader_writer: tuple[DataReader, DataWriter],
         populate_db: None,
-        now: datetime
+        now: datetime,
     ):
         data_reader, data_writer = data_reader_writer
 
@@ -389,7 +389,7 @@ class TestDataReader:
             start=start_time + timedelta(minutes=1),
             end=end_time,
             freq=timedelta(minutes=1),
-            tz='UTC'
+            tz='UTC',
         )
 
         pd.testing.assert_index_equal(result_df.index, expected_timestamps)

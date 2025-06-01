@@ -108,7 +108,7 @@ def main():
         "-m",
         "--meta",
         action="store_true",
-        help="If specified, emits environment meta tag configurations for reward, terminated, truncated"
+        help="If specified, emits environment meta tag configurations for reward, terminated, truncated",
     )
     parser.add_argument(
         "--namespace",
@@ -119,12 +119,12 @@ def main():
     parser.add_argument(
         "--telegraf",
         action="store_true",
-        help="If specified, writes generated_telegraf.conf"
+        help="If specified, writes generated_telegraf.conf",
     )
     parser.add_argument(
         "--tag-config",
         action="store_true",
-        help="If specified, writes generated_tags.yaml"
+        help="If specified, writes generated_tags.yaml",
     )
     parser.add_argument(
         "--tag-entries",

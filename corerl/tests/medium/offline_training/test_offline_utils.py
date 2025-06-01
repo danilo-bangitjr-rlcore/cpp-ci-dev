@@ -41,7 +41,7 @@ def make_step(
         action_lo=torch.zeros_like(action),
         action_hi=torch.ones_like(action),
         dp=dp,
-        ac=ac
+        ac=ac,
     )
 
 @pytest.fixture()
@@ -119,7 +119,7 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
-        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds()
+        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds(),
     )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
@@ -251,7 +251,7 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
-        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds()
+        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds(),
     )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:

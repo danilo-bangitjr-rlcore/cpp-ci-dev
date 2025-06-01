@@ -239,7 +239,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         if not torch.all(dist.support.check(action)):
             raise ValueError(
                 "expected all actions to be within the distribution support " +
-                f"of {dist.support}, but got actions: \n{action}"
+                f"of {dist.support}, but got actions: \n{action}",
             )
 
         lp = dist.log_prob(action.cpu())
@@ -300,7 +300,7 @@ class Bounded(ContinuousIIDPolicy):
             raise ValueError(
                 "Bounded expects dist to have support type " +
                 f"{constraints.interval}, but " +
-                f"got {type(dist.support)}"
+                f"got {type(dist.support)}",
             )
         dist_min = dist.support.lower_bound
         dist_max = dist.support.upper_bound
@@ -355,7 +355,7 @@ class UnBounded(ContinuousIIDPolicy):
             raise ValueError(
                 "UnBounded expects dist to have support type " +
                 f"{type(constraints.real)}, but " +
-                f"got {type(dist.support)}"
+                f"got {type(dist.support)}",
             )
 
     @ContinuousIIDPolicy.support.getter
@@ -398,7 +398,7 @@ class HalfBounded(ContinuousIIDPolicy):
             if action_min is not None and torch.all(action_min != -torch.inf):
                 logging.warning(
                     f"the support of {dist} is not bounded below, ignoring" +
-                    "action_min value {action_min}"
+                    "action_min value {action_min}",
                 )
             action_min = torch.tensor(-torch.inf)
 
@@ -414,7 +414,7 @@ class HalfBounded(ContinuousIIDPolicy):
             if action_max is not None and torch.all(action_max != torch.inf):
                 logging.warning(
                     f"the support of {dist} is not bounded above, ignoring " +
-                    f"action_max value {action_max}"
+                    f"action_max value {action_max}",
                 )
             action_max = torch.tensor(torch.inf)
 
@@ -428,7 +428,7 @@ class HalfBounded(ContinuousIIDPolicy):
             raise ValueError(
                 "HalfBounded expects dist to have support type " +
                 f"{_HalfBoundedConstraint}, but " +
-                f"got {type(dist.support)}"
+                f"got {type(dist.support)}",
             )
 
         assert action_max is not None and action_min is not None

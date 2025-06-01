@@ -99,7 +99,7 @@ def test_split_ts1():
             ),
             DeltaTemporalState(
                 last=np.array([5.0]),
-                time=[start_time - increment]
+                time=[start_time - increment],
             ),
         ],
         right_state=None,
@@ -111,8 +111,8 @@ def test_split_ts1():
         temporal_state={
             StageCode.SC: {
                 'tag_1': [ts],
-            }
-        }
+            },
+        },
     )
     pf.action_lo = action_lo
     pf.action_hi = action_hi
@@ -122,7 +122,7 @@ def test_split_ts1():
             TagConfig(name='tag_1'),
             TagConfig(
                 name='action',
-                state_constructor=[NullConfig()]
+                state_constructor=[NullConfig()],
             ),
         ],
         cfg=SCConfig(

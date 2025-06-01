@@ -4,6 +4,7 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
+from test.infrastructure.utils.pandas import dfs_close
 from torch import Tensor, tensor
 
 from corerl.config import MainConfig
@@ -14,7 +15,6 @@ from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def mkstep(
@@ -33,7 +33,7 @@ def mkstep(
         action_lo=torch.zeros_like(action),
         action_hi=torch.ones_like(action),
         dp=dp,
-        ac=ac
+        ac=ac,
     )
 
 def test_pipeline1():
@@ -128,7 +128,7 @@ def test_pipeline1():
                        ac=True),
             ],
             n_step_reward=0.,
-            n_step_gamma=0.9
+            n_step_gamma=0.9,
         ),
         Transition(
             steps=[
@@ -146,7 +146,7 @@ def test_pipeline1():
                        ac=True),
             ],
             n_step_reward=0.,
-            n_step_gamma=0.9
+            n_step_gamma=0.9,
         ),
     ]
 

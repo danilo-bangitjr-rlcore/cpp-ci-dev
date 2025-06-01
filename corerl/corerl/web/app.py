@@ -132,17 +132,17 @@ async def health():
         status.HTTP_400_BAD_REQUEST: {
             "content": {
                 "application/json": {"example": {"detail": "<Error description>"}},
-            }
+            },
         },
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
             "content": {
                 "application/json": {"example": {"detail": "Unsupported Media Type"}},
-            }
+            },
         },
         status.HTTP_422_UNPROCESSABLE_ENTITY: {
             "content": {
                 "application/json": {"example": {"errors": "<Error description>"}},
-            }
+            },
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str},
     },
@@ -160,7 +160,7 @@ async def health():
                 "content": {
                     "application/json": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
                     "application/yaml": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
-                }
+                },
             },
         },
     },

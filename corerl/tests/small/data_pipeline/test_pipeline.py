@@ -29,7 +29,7 @@ def test_construct_pipeline(dummy_app_state: AppState):
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
-            max_n_step=30
+            max_n_step=30,
         ),
         state_constructor=SCConfig(
             countdown=CountdownConfig(
@@ -56,7 +56,7 @@ def test_passing_data_to_pipeline(dummy_app_state: AppState):
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
-            max_n_step=30
+            max_n_step=30,
         ),
         state_constructor=SCConfig(
             defaults=[NormalizerConfig(from_data=True)],
@@ -119,7 +119,7 @@ def test_state_action_dim(dummy_app_state: AppState):
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
-            max_n_step=30
+            max_n_step=30,
         ),
     )
 
@@ -152,7 +152,7 @@ def test_sub_pipeline1(dummy_app_state: AppState):
             # set arbitrarily
             gamma=0.9,
             min_n_step=1,
-            max_n_step=30
+            max_n_step=30,
         ),
         state_constructor=SCConfig(
             defaults=[NormalizerConfig(from_data=True)],

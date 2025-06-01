@@ -11,7 +11,7 @@ def test_grab_percentile_multi_key():
             [0.1, 0.4, 0.3, 0.2],
             [0.5, 0.2, 0.1, 0.7],
             [0.1, 0.2, 0.3, 1],
-        ]
+        ],
     )
 
     keys = torch.tensor(
@@ -19,7 +19,7 @@ def test_grab_percentile_multi_key():
             [[1,  2],  [3,  4],  [5,  6],  [7,  8]],
             [[9,  10], [11, 12], [13, 14], [15, 16]],
             [[17, 18], [19, 20], [21, 22], [23, 24]],
-        ]
+        ],
     )
 
     keys_2 = torch.tensor(
@@ -27,7 +27,7 @@ def test_grab_percentile_multi_key():
             [[1,  2, 0],  [3,  4, 0],  [5,  6, 0],  [7,  8, 0]],
             [[9,  10, 0], [11, 12, 0], [13, 14, 0], [15, 16, 0]],
             [[17, 18, 0], [19, 20, 0], [21, 22, 0], [23, 24, 0]],
-        ]
+        ],
     )
 
     percentile = 0.5
@@ -38,8 +38,8 @@ def test_grab_percentile_multi_key():
         [
             [[3,  4],  [5,  6]],
             [[15, 16], [9,  10]],
-            [[23, 24], [21, 22],],
-        ]
+            [[23, 24], [21, 22]],
+        ],
     )
 
     assert top_keys[0].shape == expected_top_keys_1.shape, "Shape mismatch"
@@ -49,8 +49,8 @@ def test_grab_percentile_multi_key():
         [
             [[3,  4, 0],  [5,  6, 0]],
             [[15, 16, 0], [9,  10, 0]],
-            [[23, 24, 0], [21, 22, 0],],
-        ]
+            [[23, 24, 0], [21, 22, 0]],
+        ],
     )
 
     assert top_keys[1].shape == expected_top_keys_2.shape, "Shape mismatch"
@@ -59,7 +59,7 @@ def test_grab_percentile_multi_key():
 
 class MockSampler:
     def get_actions(
-        self, n_samples: int, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor
+        self, n_samples: int, states: torch.Tensor, action_lo: torch.Tensor, action_hi: torch.Tensor,
     ):
         batch_size = action_lo.size(0)
         action_dim = action_lo.size(1)
