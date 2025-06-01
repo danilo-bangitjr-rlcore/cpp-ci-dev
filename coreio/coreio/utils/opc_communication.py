@@ -1,7 +1,7 @@
 import logging
 from datetime import UTC
 from types import TracebackType
-from typing import Optional, Type
+from typing import Optional
 
 import backoff
 from asyncua import Client, Node, ua
@@ -104,7 +104,7 @@ class OPC_Connection:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
+        exc_type: Optional[type[BaseException]],
         exc: Optional[BaseException],
         tb: Optional[TracebackType],
     ):

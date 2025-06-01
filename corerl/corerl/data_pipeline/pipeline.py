@@ -8,7 +8,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Literal, Self, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Literal, Self
 
 import pandas as pd
 from pandas import DataFrame
@@ -108,7 +108,7 @@ class PipelineReturn:
 
     def _add(
         self, other: Self,
-    ) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+    ) -> tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])

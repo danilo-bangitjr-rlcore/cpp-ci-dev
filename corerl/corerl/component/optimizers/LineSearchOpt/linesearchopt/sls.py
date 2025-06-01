@@ -157,7 +157,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         for k, v in state_dict["state"].items():
             self.state[k] = v
 
-        for i in range(len((self.param_groups))):
+        for i in range(len(self.param_groups)):
             opt_sd = {
                 "state": state_dict["state"]["optim"][i],
                 "param_groups": state_dict["param_groups"][i]["opt_param_group"],

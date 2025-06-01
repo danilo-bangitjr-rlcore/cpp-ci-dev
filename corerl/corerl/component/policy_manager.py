@@ -75,7 +75,7 @@ class GACPolicyManagerConfig:
 
     @computed('buffer')
     @classmethod
-    def _buffer(cls, cfg: 'MainConfig'):
+    def _buffer(cls, cfg: MainConfig):
         default_buffer_type = (
             RecencyBiasBufferConfig
             if cfg.feature_flags.recency_bias_buffer else
@@ -89,7 +89,7 @@ class GACPolicyManagerConfig:
         return ta.validate_python(default_buffer_dict, context=main_cfg)
 
     @post_processor
-    def _default_stepsize(self, cfg: 'MainConfig'):
+    def _default_stepsize(self, cfg: MainConfig):
         if isinstance(self.optimizer, AdamConfig):
             self.optimizer.lr = 0.001
 

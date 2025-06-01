@@ -8,7 +8,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 @dataclass
-class PerturbationConfig():
+class PerturbationConfig:
     name: str = "Perturbed-v0"
     frequency: float = 0.05
     magnitude: float = 5.0

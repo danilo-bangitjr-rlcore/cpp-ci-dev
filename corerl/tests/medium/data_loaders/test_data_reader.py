@@ -1,5 +1,4 @@
 from datetime import UTC, datetime, timedelta
-from typing import List
 
 import numpy as np
 import pandas as pd
@@ -229,7 +228,7 @@ class TestDataReaderLogic:
         assert np.allclose(df["default_var"].iloc[-1], 0.05)
 
 class TestDataReader:
-    sensor_names: List[str] = ["sensor1", "sensor2", "sensor3"]
+    sensor_names: list[str] = ["sensor1", "sensor2", "sensor3"]
 
     @pytest.fixture(autouse=True, scope="class")
     def now(self):

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Iterator, Mapping, Optional, Union
+from collections.abc import Iterator, Mapping
+from typing import Any, Union
 
 import torch
 import torch.distributions as d
@@ -386,8 +387,8 @@ class HalfBounded(ContinuousIIDPolicy):
         self,
         model: nn.Module,
         dist: type[d.Distribution],
-        action_min: Optional[torch.Tensor]=None,
-        action_max: Optional[torch.Tensor]=None,
+        action_min: torch.Tensor | None=None,
+        action_max: torch.Tensor | None=None,
     ):
         super().__init__(model, dist)
 

@@ -16,7 +16,7 @@ from collections import deque
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
-from typing import IO, Dict, List, Literal, Optional, TypedDict
+from typing import IO, Literal, Optional, TypedDict
 
 import yaml
 from anyio import ClosedResourceError
@@ -47,17 +47,17 @@ class CoreRLProcess(TypedDict):
 
     log_buffer: deque[WSMessage]
     process: subprocess.Popen | None
-    extra_options: List[str]
+    extra_options: list[str]
 
 
-processes: Dict[str, CoreRLProcess] = {}
-clients: Dict[str, set[WebSocket]] = {}
+processes: dict[str, CoreRLProcess] = {}
+clients: dict[str, set[WebSocket]] = {}
 
 
 class StartAgentRequestPayload(BaseModel):
     """Payload for starting an agent."""
 
-    extra_options: Optional[List[str]] = None
+    extra_options: Optional[list[str]] = None
 
 def output_reader(stream: IO[bytes], queue: Queue):
     for line in iter(stream.readline, b""):

@@ -1,12 +1,11 @@
 from datetime import datetime
-from typing import List
+from typing import Annotated
 
 from sqlalchemy import ForeignKey, ForeignKeyConstraint, String
 from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON, DateTime, PickleType
-from typing_extensions import Annotated
 
 timestamp = Annotated[
     datetime,
@@ -27,10 +26,10 @@ class Run(Base):
     __tablename__ = "runs"
     run_id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[timestamp]
-    hparams: Mapped[List["HParam"]] = relationship(
+    hparams: Mapped[list["HParam"]] = relationship(
         back_populates="run", cascade="all, delete-orphan",
     )
-    steps: Mapped[List["Step"]] = relationship(
+    steps: Mapped[list["Step"]] = relationship(
         back_populates="run", cascade="all, delete-orphan",
     )
 
@@ -52,19 +51,19 @@ class Step(Base):
 
     # Object relationships
     run: Mapped["Run"] = relationship(back_populates="steps")
-    transitions: Mapped[List["SQLTransition"]] = relationship(
+    transitions: Mapped[list["SQLTransition"]] = relationship(
         back_populates="step", cascade="all, delete-orphan",
     )
-    transition_info: Mapped[List["TransitionInfo"]] = relationship(
+    transition_info: Mapped[list["TransitionInfo"]] = relationship(
         back_populates="step", cascade="all, delete-orphan",
     )
-    losses: Mapped[List["Loss"]] = relationship(
+    losses: Mapped[list["Loss"]] = relationship(
         back_populates="step", cascade="all, delete-orphan",
     )
-    network_weights: Mapped[List["NetworkWeights"]] = relationship(
+    network_weights: Mapped[list["NetworkWeights"]] = relationship(
         back_populates="step", cascade="all, delete-orphan",
     )
-    grad_info: Mapped[List["GradInfo"]] = relationship(
+    grad_info: Mapped[list["GradInfo"]] = relationship(
         back_populates="step", cascade="all, delete-orphan",
     )
 
@@ -86,7 +85,7 @@ class SQLTransition(Base):
     exclude: Mapped[bool] = mapped_column(default=False)
 
     # Object relationships
-    transition_info: Mapped[List["TransitionInfo"]] = relationship(
+    transition_info: Mapped[list["TransitionInfo"]] = relationship(
         back_populates="transition",
     )
 

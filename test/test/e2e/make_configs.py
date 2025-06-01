@@ -58,7 +58,7 @@ def generate_tag_yaml(
 
     def represent_float(dumper: Any, value: object):
         # round floating point numbers for serialization
-        text = "{0:.4f}".format(value).rstrip("0").rstrip(".")
+        text = f"{value:.4f}".rstrip("0").rstrip(".")
         if "." not in text:
             text += ".0"
         return dumper.represent_scalar("tag:yaml.org,2002:float", text)

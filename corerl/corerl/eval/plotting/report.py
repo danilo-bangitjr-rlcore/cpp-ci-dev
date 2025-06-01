@@ -1,6 +1,6 @@
 
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -34,7 +34,7 @@ def plot_histogram(
         save_path: Path,
         xlabel: str,
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
+        percentiles: Optional[list[float]] = None,
         bins: int = 30,
     ) -> None:
     """
@@ -78,7 +78,7 @@ def plot_sensor_histogram(
         save_path: Path,
         title: str = '',
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
+        percentiles: Optional[list[float]] = None,
         bins: int = 30,
     ) -> None:
     """
@@ -95,7 +95,7 @@ def plot_nan_histogram(
         save_path: Path,
         title: str = '',
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
+        percentiles: Optional[list[float]] = None,
         bins: int = 30,
     ) -> None:
     """
@@ -114,7 +114,7 @@ def plot_chunk_histogram(
         save_path: Path,
         title: str = '',
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
+        percentiles: Optional[list[float]] = None,
         bins: int = 30,
     ) -> None:
     """

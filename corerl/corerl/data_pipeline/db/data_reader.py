@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from itertools import groupby
 from math import floor
-from typing import Any, List, assert_never
+from typing import Any, assert_never
 
 import pandas as pd
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
@@ -51,7 +51,7 @@ class DataReader:
 
     def batch_aggregated_read(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
@@ -113,7 +113,7 @@ class DataReader:
 
     def _batch_aggregated_read_wide(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
@@ -218,7 +218,7 @@ class DataReader:
 
     def _batch_aggregated_read_narrow(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
@@ -322,7 +322,7 @@ class DataReader:
 
     def single_aggregated_read(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         aggregation: Agg = Agg.avg,
@@ -376,14 +376,14 @@ class DataReader:
                 if not result:
                     raise ValueError(f"Column '{tag_name}' does not exist in the database")
 
-            q = """
+            q = f"""
                 SELECT
-                  MIN("{tag}") as min,
-                  MAX("{tag}") as max,
-                  AVG("{tag}") as avg,
-                  VARIANCE("{tag}") as var
+                  MIN("{tag_name}") as min,
+                  MAX("{tag_name}") as max,
+                  AVG("{tag_name}") as avg,
+                  VARIANCE("{tag_name}") as var
                 FROM :table
-            """.format(tag=tag_name)
+            """
             df = self.query(q)
         else:
             # for narrow format, check if the tag exists

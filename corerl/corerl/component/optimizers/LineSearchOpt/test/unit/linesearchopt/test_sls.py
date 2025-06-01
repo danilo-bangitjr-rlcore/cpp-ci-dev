@@ -1,5 +1,6 @@
 # pyright: basic
-from typing import Callable, Mapping
+from collections.abc import Mapping
+from typing import Callable
 
 import pytest
 import torch

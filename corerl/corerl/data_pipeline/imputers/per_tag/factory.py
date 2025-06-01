@@ -1,5 +1,6 @@
+from typing import Annotated
+
 from pydantic import Field
-from typing_extensions import Annotated
 
 from corerl.data_pipeline.imputers.per_tag.backfill import BackfillImputerConfig
 from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group

@@ -23,7 +23,7 @@ def try_connect(engine: Engine, backoff_seconds: int = 5, max_tries: int = 5) ->
     return connection
 
 
-class TryConnectContextManager(object):
+class TryConnectContextManager:
     def __init__(self, engine: Engine, backoff_seconds: int = 5, max_tries: int = 5):
         self.engine = engine
         self.backoff_seconds = backoff_seconds

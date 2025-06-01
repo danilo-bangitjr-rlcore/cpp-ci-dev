@@ -179,7 +179,7 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
         config_name += '.yaml'
 
     path = Path(base) / f'{config_name}'
-    with open(path, 'r') as f:
+    with open(path) as f:
         config = yaml.safe_load(f)
 
     # if a config does not load subfiles

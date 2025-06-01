@@ -159,7 +159,7 @@ class InteractionConfig:
 
     @computed('checkpoint_path')
     @classmethod
-    def _checkpoint_path(cls, cfg: 'MainConfig'):
+    def _checkpoint_path(cls, cfg: MainConfig):
         return Path('outputs') / cfg.agent_name / (f'seed-{cfg.seed}') / 'checkpoints'
 
     @computed('load_historical_data')

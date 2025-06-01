@@ -3,11 +3,11 @@ import logging
 import math
 import shutil
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import numpy as np
 import pandas as pd

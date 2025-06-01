@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 
 from docker import errors, from_env
 

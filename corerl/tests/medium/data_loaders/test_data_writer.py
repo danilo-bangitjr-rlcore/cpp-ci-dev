@@ -1,6 +1,6 @@
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from random import random
-from typing import Generator
 
 import pytest
 from sqlalchemy import Engine

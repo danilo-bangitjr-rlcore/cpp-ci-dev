@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional, Sequence
+from typing import Any, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -99,7 +100,7 @@ class BasePVSEnv(Env):
         self.processtau = self.processtau_func[int(self.setpoint)]
 
         # polynomial representation of transfer function denominator: (tau*s + 1)
-        transfer_func_denom = sym.Poly((self.processtau * s + 1))
+        transfer_func_denom = sym.Poly(self.processtau * s + 1)
         # extract coefficients from polynomial
         denom_coeffs = list(transfer_func_denom.coeffs())
         denom_coeffs = np.array(denom_coeffs, dtype=float)
@@ -347,7 +348,7 @@ class BasePVSEnv(Env):
         ax_water.legend()
 
         ax_reward.plot(np.arange(len(self.reward_record)), self.reward_record, 'g-', label='Reward')
-        ax_reward.set_title('Reward (Final reward: {:.2f})'.format(self.reward_record[-1]))
+        ax_reward.set_title(f'Reward (Final reward: {self.reward_record[-1]:.2f})')
         ax_reward.set_xlabel('Episodes')
         ax_reward.set_ylabel('Reward')
         ax_reward.legend()

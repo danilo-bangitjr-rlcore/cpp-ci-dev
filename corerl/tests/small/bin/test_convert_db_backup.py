@@ -1,7 +1,7 @@
 import csv
+from collections.abc import Generator
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Generator, Tuple
 
 import pytest
 
@@ -9,7 +9,7 @@ from corerl.bin.convert_db_backup import convert_table
 
 
 @pytest.fixture
-def mock_csv_file() -> Generator[Tuple[Path, Path], None, None]:
+def mock_csv_file() -> Generator[tuple[Path, Path], None, None]:
     """Creates a temporary CSV file for testing."""
     with TemporaryDirectory() as tmpdir:
         input_path = Path(tmpdir) / "input.csv"
@@ -27,7 +27,7 @@ def mock_csv_file() -> Generator[Tuple[Path, Path], None, None]:
         yield input_path, output_path
 
 
-def test_convert_table(mock_csv_file: Tuple[Path, Path]):
+def test_convert_table(mock_csv_file: tuple[Path, Path]):
     """Tests the convert_table function."""
     input_path, output_path = mock_csv_file
 
@@ -43,7 +43,7 @@ def test_convert_table(mock_csv_file: Tuple[Path, Path]):
     # Validate output
     assert output_path.exists(), "Output file was not created."
 
-    with open(output_path, mode="r", newline="") as f:
+    with open(output_path, newline="") as f:
         reader = csv.reader(f)
         rows = list(reader)
 

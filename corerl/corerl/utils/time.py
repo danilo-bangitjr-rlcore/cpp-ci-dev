@@ -1,8 +1,8 @@
 import datetime as dt
 import logging
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from time import sleep
-from typing import Generator
 
 import numpy as np
 
