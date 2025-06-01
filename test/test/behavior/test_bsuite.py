@@ -88,7 +88,7 @@ def _zero_one_matrix(flags: list[str]):
     """
     matrix: list[dict[str, bool]] = []
     for flag in flags:
-        vals = { f: False for f in flags }
+        vals = dict.fromkeys(flags, False)
         vals[flag] = True
         matrix.append(vals)
 

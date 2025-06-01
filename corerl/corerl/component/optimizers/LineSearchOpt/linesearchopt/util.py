@@ -15,7 +15,7 @@ from torch.optim.sgd import SGD
 
 from corerl.utils.device import device
 
-starting_point_unchanged_opts = set((Adam, SGD, RMSprop, Adagrad))
+starting_point_unchanged_opts = {Adam, SGD, RMSprop, Adagrad}
 
 
 def _compute_start_point(param_list, grad_list, opt):

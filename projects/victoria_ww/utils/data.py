@@ -1,7 +1,6 @@
 import datetime as dt
-from collections import namedtuple
 from pathlib import Path
-from typing import Iterable, cast
+from typing import Iterable, NamedTuple, cast
 
 import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
@@ -9,7 +8,11 @@ from cloudpathlib.enums import FileCacheMode
 
 from corerl.corerl.configs.config import config, list_
 
-SQLEntry = namedtuple('SQLEntry', ['time', 'val', 'tag'])
+
+class SQLEntry(NamedTuple):
+    time: dt.datetime
+    val: float
+    tag: str
 
 @config()
 class VictoriaWWConfig:
@@ -103,7 +106,10 @@ def _series_to_sql_tups(
     tag = series.name
     df = series.to_frame()
     df["Tag"] = [tag] * len(df)
-    sql_tups = list(map(lambda tup: SQLEntry(*tup), df.itertuples(index=True, name=None)))
+    sql_tups = [
+        SQLEntry(time, val, tag)
+        for (time, val, tag) in df.itertuples(index=True, name=None)
+    ]
 
     return sql_tups
 

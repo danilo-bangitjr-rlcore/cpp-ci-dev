@@ -192,8 +192,8 @@ class Pipeline:
         self.zone_discourager = ZoneDiscourager(app_state, self.tags, self.preprocessor)
 
         # build pipeline state
-        self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
-        self.dt_dict: dict[DataMode, datetime.datetime | None] = {data_mode: None for data_mode in DataMode}
+        self.ts_dict: dict[DataMode, TemporalState | None] = dict.fromkeys(DataMode, None)
+        self.dt_dict: dict[DataMode, datetime.datetime | None] = dict.fromkeys(DataMode, None)
 
         self._pre_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             data_mode: defaultdict(list) for data_mode in DataMode}

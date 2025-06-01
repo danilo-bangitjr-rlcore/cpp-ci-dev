@@ -235,9 +235,9 @@ class GoalConstructor:
             return self._goal_is_satisfied(priority, row)
 
         if priority.op == 'and':
-            return all([self._priority_is_satisfied(goal, row) for goal in priority.goals])
+            return all(self._priority_is_satisfied(goal, row) for goal in priority.goals)
 
-        return any([self._priority_is_satisfied(goal, row) for goal in priority.goals])
+        return any(self._priority_is_satisfied(goal, row) for goal in priority.goals)
 
 
     def _goal_is_satisfied(self, goal: Goal, row: pd.DataFrame):

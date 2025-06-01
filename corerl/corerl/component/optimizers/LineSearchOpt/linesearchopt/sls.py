@@ -33,7 +33,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         search_condition: Search,
         init: StepsizeInit,
         init_step_size: float,
-        optim_args: tuple=tuple(),
+        optim_args: tuple=(),
         optim_kwargs: Optional[dict]=None,
         max_backtracking_steps: int=100,
         fallback_step_size: float=1e-6,
@@ -107,16 +107,16 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         params = list(params)
         self._optim_type = optim
         optimizer = optim(params, *optim_args, **optim_kwargs)
-        defaults = dict(
-            init=init,
-            search_condition=search_condition,
-            optim=optimizer,
-            fallback_step_size=fallback_step_size,
-            max_backtracking_steps=max_backtracking_steps,
-            init_step_size=init_step_size,
-            unit_norm_direction=unit_norm_direction,
-            reeval_loss_on_diff_start=reeval_loss_on_diff_start,
-        )
+        defaults = {
+            'init': init,
+            'search_condition': search_condition,
+            'optim': optimizer,
+            'fallback_step_size': fallback_step_size,
+            'max_backtracking_steps': max_backtracking_steps,
+            'init_step_size': init_step_size,
+            'unit_norm_direction': unit_norm_direction,
+            'reeval_loss_on_diff_start': reeval_loss_on_diff_start,
+        }
         super().__init__(params, defaults)
 
         self.state: dict[Any, Any]  # pyright: ignore[reportIncompatibleVariableOverride]

@@ -81,7 +81,7 @@ class RewardConfig:
 
     @post_processor
     def _check_tags_exist(self, cfg: MainConfig):
-        known_tags = set(tag.name for tag in cfg.pipeline.tags)
+        known_tags = {tag.name for tag in cfg.pipeline.tags}
         _assert_tags_exist(self.priorities, known_tags)
 
     @post_processor

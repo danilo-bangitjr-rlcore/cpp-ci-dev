@@ -127,7 +127,7 @@ class ActivationConfig(TypedDict):
 
 def init_activation(cfg: ActivationConfig) -> nn.Module:
     name = cfg["name"]
-    args = cfg.get("args", tuple())
+    args = cfg.get("args", ())
     kwargs = cfg.get("kwargs", {})
 
     activations = {

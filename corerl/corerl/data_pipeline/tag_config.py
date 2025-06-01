@@ -365,11 +365,11 @@ class TagConfig:
         if "pipeline" in cfg.__dict__.keys():  # Avoids `isinstance` check which causes circular import
             if TYPE_CHECKING:
                 assert isinstance(cfg, MainConfig)
-            known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            known_tags = {tag.name for tag in cfg.pipeline.tags}
         elif "tags" in cfg.__dict__.keys():  # Avoids `isinstance` check which causes circular import
             if TYPE_CHECKING:
                 assert isinstance(cfg, PipelineConfig)
-            known_tags = set(tag.name for tag in cfg.tags)
+            known_tags = {tag.name for tag in cfg.tags}
         else:
             raise ValueError("Unknown cfg type")
 
@@ -484,7 +484,7 @@ class TagConfig:
             assert self.value is not None, \
                 "A value string must be specified for computed virtual tags."
 
-            known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            known_tags = {tag.name for tag in cfg.pipeline.tags}
             if self.cascade is not None:
                 known_tags |= {self.cascade.mode, self.cascade.op_sp, self.cascade.ai_sp}
             _, _, dependent_tags = to_sympy(self.value)
