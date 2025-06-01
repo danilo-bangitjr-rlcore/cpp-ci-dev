@@ -82,26 +82,10 @@ lib-agent = { path = "../libs/lib_agent", editable = true }
 # ----------
 
 [tool.ruff]
-line-length = 120
+extend = "../standards/python/ruff.toml"
 exclude = [
     '.worktree/',
 ]
-
-[tool.ruff.lint]
-select = ['F', 'E', 'W', 'B', 'I']
-ignore = [
-    'E402',
-
-    # multiple statements on one line. Incompatible with:
-    # if cond: break
-    'E701',
-
-    # syntax error in forward declaration - incompatible with jaxtyping
-    'F722',
-]
-
-[tool.ruff.format]
-quote-style = "double"
 
 # -------------
 # -- Pyright --

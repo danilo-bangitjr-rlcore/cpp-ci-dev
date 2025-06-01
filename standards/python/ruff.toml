@@ -1,0 +1,17 @@
+line-length = 120
+
+[lint]
+select = ['F', 'E', 'W', 'B', 'I']
+ignore = [
+    'E402',
+
+    # multiple statements on one line. Incompatible with:
+    # if cond: break
+    'E701',
+
+    # syntax error in forward declaration - incompatible with jaxtyping
+    'F722',
+]
+
+[format]
+quote-style = "double"

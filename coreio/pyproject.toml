@@ -32,3 +32,6 @@ exclude = [
     '.venv/',
 ]
 venvPath = '.'
+
+[tool.ruff]
+extend = "../standards/python/ruff.toml"
