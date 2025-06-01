@@ -1,4 +1,4 @@
-name: Style and Tests
+name: Research Style and Tests
 permissions: write-all # Needed to comment coverage% on PR
 
 on:
@@ -15,7 +15,7 @@ jobs:
   # -----------
   # -- Style --
   # -----------
-  style-n-test:
+  research-style-n-test:
     runs-on: ubuntu-latest
     defaults:
       run:

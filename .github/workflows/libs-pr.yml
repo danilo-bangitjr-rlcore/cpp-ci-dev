@@ -1,4 +1,4 @@
-name: Style and Tests
+name: Libs Style and Tests
 permissions: write-all # Needed to comment coverage% on PR
 
 on:
@@ -14,7 +14,7 @@ jobs:
   # -----------
   # -- Style --
   # -----------
-  style-n-test:
+  libs-style-n-test:
     runs-on: ubuntu-latest
     strategy:
         matrix:
