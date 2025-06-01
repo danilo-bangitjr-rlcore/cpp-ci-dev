@@ -246,7 +246,7 @@ class TransitionBatch:
         )
 
     def __getitem__(self, idx: int|slice) -> "TransitionBatch":
-        if isinstance(idx, (int, np.integer)):
+        if isinstance(idx, int | np.integer):
             idx = slice(idx, idx+1)
 
         return TransitionBatch(

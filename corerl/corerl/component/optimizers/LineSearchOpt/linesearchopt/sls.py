@@ -3,8 +3,8 @@
 
 import copy
 import logging
-from collections.abc import Iterable
-from typing import Any, Callable, Generic, Optional, TypeVar
+from collections.abc import Callable, Iterable
+from typing import Any, Generic, TypeVar
 from warnings import warn
 
 import torch
@@ -34,7 +34,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         init: StepsizeInit,
         init_step_size: float,
         optim_args: tuple=(),
-        optim_kwargs: Optional[dict]=None,
+        optim_kwargs: dict | None=None,
         max_backtracking_steps: int=100,
         fallback_step_size: float=1e-6,
         unit_norm_direction: bool=False,
@@ -172,7 +172,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
     def step(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         closure: Callable[[], float | torch.Tensor],
-        loss: Optional[float]=None,
+        loss: float | None=None,
     ) -> float:
         """Takes a single optimization step to minimize `closure`.
 
@@ -194,7 +194,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
             parameters respectively.
         """
 
-        loss_next: Optional[float] = None  # makes static type-checkers happy
+        loss_next: float | None = None  # makes static type-checkers happy
 
         batch_step_size = self.state['step_size']
 

@@ -2,11 +2,11 @@ import datetime
 
 import numpy as np
 import pandas as pd
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.per_tag.copy import CopyImputer, CopyImputerConfig, CopyImputerTemporalState
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_no_imputation():

@@ -108,7 +108,7 @@ class DeploymentInteraction:
             EventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
         })
 
-    def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any, None] | None:
+    def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any] | None:
         if not self._cfg.load_historical_data:
             return None
 

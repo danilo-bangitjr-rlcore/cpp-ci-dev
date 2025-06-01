@@ -216,7 +216,7 @@ class BaseBuffer:
 
 
 def _to_tensor(elem: object):
-    if isinstance(elem, (torch.Tensor, np.ndarray, list)):
+    if isinstance(elem, torch.Tensor | np.ndarray | list):
         return torch.Tensor(elem)
     if elem is None:
         return torch.empty((1, 0))
@@ -230,7 +230,7 @@ def _get_size(experience: Transition) -> list[tuple]:
             size.append(elem.shape)
         elif isinstance(elem, torch.Tensor):
             size.append(tuple(elem.shape))
-        elif isinstance(elem, (int, float, bool)):
+        elif isinstance(elem, int | float | bool):
             size.append((1,))
         elif isinstance(elem, list):
             size.append((len(elem),))
@@ -450,7 +450,7 @@ class RecencyBiasBuffer(BaseBuffer):
         timestamps = []
         for t in transitions:
             assert t.post.timestamp is not None
-            utc_ts = t.post.timestamp.astimezone(datetime.timezone.utc)
+            utc_ts = t.post.timestamp.astimezone(datetime.UTC)
             naive_ts = utc_ts.replace(tzinfo=None)
             timestamps.append(naive_ts)
         timestamps = np.array(timestamps, dtype='datetime64[us]')

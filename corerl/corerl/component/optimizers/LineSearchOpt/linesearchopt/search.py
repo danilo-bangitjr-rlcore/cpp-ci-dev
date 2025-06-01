@@ -1,9 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import override
 
 import torch
 from numpy import clip
-from typing_extensions import override
 
 logger = logging.getLogger(__name__)
 

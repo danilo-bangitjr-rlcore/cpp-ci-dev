@@ -16,7 +16,7 @@ from collections import deque
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
-from typing import IO, Literal, Optional, TypedDict
+from typing import IO, Literal, TypedDict
 
 import yaml
 from anyio import ClosedResourceError
@@ -57,7 +57,7 @@ clients: dict[str, set[WebSocket]] = {}
 class StartAgentRequestPayload(BaseModel):
     """Payload for starting an agent."""
 
-    extra_options: Optional[list[str]] = None
+    extra_options: list[str] | None = None
 
 def output_reader(stream: IO[bytes], queue: Queue):
     for line in iter(stream.readline, b""):
@@ -163,7 +163,7 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
 class AgentStartErrorResponse(BaseModel):
     status: Literal["error"]
     message: str
-    sqlite_path: Optional[str]
+    sqlite_path: str | None
 
 
 class AgentStartSuccessResponse(BaseModel):
@@ -255,7 +255,7 @@ def agent_stop(config_id: str):
 class AgentStatusResponse(BaseModel):
     status: Literal["starting_up", "running", "dead", "not_started"]
     pid: int | None
-    extra_options: Optional[list[str]]
+    extra_options: list[str] | None
 
 
 @router.get("/{config_id}/status", response_model=AgentStatusResponse)

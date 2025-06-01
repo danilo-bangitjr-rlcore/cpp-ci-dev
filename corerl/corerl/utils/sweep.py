@@ -1,6 +1,6 @@
 import importlib.util
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 
 def add_key_to_run(run: dict, key: str, values: list):

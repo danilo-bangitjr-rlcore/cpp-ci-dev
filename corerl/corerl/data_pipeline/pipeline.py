@@ -4,11 +4,11 @@ import datetime
 import logging
 import warnings
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Literal, Self
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
 from pandas import DataFrame

@@ -4,7 +4,6 @@
 import copy
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import Union
 
 import torch
 from torch.optim.adagrad import Adagrad
@@ -86,7 +85,7 @@ def _compute_search_direction(
         return _compute_rmsprop_direction(
             param_list, grad_list, opt, unit_norm_direction,
         )
-    if isinstance(opt, Union[Adam, AdamW]):
+    if isinstance(opt, Adam | AdamW):
         return _compute_adam_direction(
             param_list, grad_list, opt, unit_norm_direction,
         )
@@ -215,7 +214,7 @@ def _compute_rmsprop_direction(
 def _compute_adam_direction(
     param_list: Sequence[torch.Tensor],
     grad_list: Sequence[torch.Tensor | None],
-    opt: Union[Adam, AdamW],
+    opt: Adam | AdamW,
     unit_norm_direction: bool=False,
     approximate_grad: bool=False,
 ) -> torch.Tensor:

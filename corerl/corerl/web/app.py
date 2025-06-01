@@ -18,9 +18,9 @@ import json
 import logging
 import sqlite3
 import traceback
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Callable
 
 import sqlalchemy
 import yaml

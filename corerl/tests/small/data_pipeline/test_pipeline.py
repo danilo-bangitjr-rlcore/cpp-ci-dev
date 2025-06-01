@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
@@ -16,7 +17,6 @@ from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_construct_pipeline(dummy_app_state: AppState):

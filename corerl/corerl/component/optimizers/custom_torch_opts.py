@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable, overload
+from collections.abc import Callable
+from typing import Any, overload
 
 import torch
 from torch.optim.optimizer import Optimizer, ParamsT

@@ -2,10 +2,10 @@ import datetime
 
 import numpy as np
 import pandas as pd
+from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.inverse import Inverse, InverseConfig
-from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_inverse():

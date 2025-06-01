@@ -11,7 +11,7 @@ from corerl.utils import nullable
 
 
 @pytest.fixture()
-def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWriter, None, None]:
+def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWriter]:
     assert tsdb_engine.url.port is not None
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",

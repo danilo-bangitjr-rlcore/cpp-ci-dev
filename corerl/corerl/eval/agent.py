@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import Callable, Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
+from collections.abc import Callable, Sequence
+from typing import Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
 
 import numpy as np
 import torch

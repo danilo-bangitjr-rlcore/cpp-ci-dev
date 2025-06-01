@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import override
 
 import torch
 import torch.distributions as d
 from torch.types import _size
-from typing_extensions import override
 
 from corerl.utils import nullable
 

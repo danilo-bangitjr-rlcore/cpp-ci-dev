@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Annotated, Callable, Literal
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import Field
 

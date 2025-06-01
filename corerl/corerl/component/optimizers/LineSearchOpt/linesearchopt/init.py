@@ -1,10 +1,9 @@
 import queue
 from abc import ABC, abstractmethod
-from collections.abc import Collection
-from typing import Callable, Union
+from collections.abc import Callable, Collection
+from typing import override
 
 import torch
-from typing_extensions import override
 
 
 class StepsizeInit(ABC):
@@ -145,8 +144,8 @@ class IfElse(StepsizeInit):
     def __init__(
         self,
         condition: Callable[[float], bool],
-        if_block: Union[StepsizeInit, Callable[[float], float]],
-        else_block: Union[StepsizeInit, Callable[[float], float]],
+        if_block: StepsizeInit | Callable[[float], float],
+        else_block: StepsizeInit | Callable[[float], float],
     ):
         """Initializes the instance based on arguments.
 

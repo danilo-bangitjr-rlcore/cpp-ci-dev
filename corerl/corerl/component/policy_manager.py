@@ -3,8 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 import pickle
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import torch
 from pydantic import Field, TypeAdapter

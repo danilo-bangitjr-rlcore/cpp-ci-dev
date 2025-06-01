@@ -3,28 +3,24 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Mapping
-from typing import Any, Union
+from typing import Any, override
 
 import torch
 import torch.distributions as d
 from torch import nn
 from torch.distributions import constraints
-from typing_extensions import override
 
 from corerl.utils import nullable
 from corerl.utils.device import device
 
 _BoundedAboveConstraint = constraints.less_than
 
-_BoundedBelowConstraint = Union[
-    constraints.greater_than_eq,
-    constraints.greater_than,
-]
+_BoundedBelowConstraint = (
+    constraints.greater_than_eq
+    | constraints.greater_than
+)
 
-_HalfBoundedConstraint = Union[
-    _BoundedAboveConstraint,
-    _BoundedBelowConstraint,
-]
+_HalfBoundedConstraint = _BoundedAboveConstraint | _BoundedBelowConstraint
 
 
 class Policy(ABC):

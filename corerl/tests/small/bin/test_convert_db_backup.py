@@ -9,7 +9,7 @@ from corerl.bin.convert_db_backup import convert_table
 
 
 @pytest.fixture
-def mock_csv_file() -> Generator[tuple[Path, Path], None, None]:
+def mock_csv_file() -> Generator[tuple[Path, Path]]:
     """Creates a temporary CSV file for testing."""
     with TemporaryDirectory() as tmpdir:
         input_path = Path(tmpdir) / "input.csv"

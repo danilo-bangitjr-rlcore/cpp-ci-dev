@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Callable, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
 from pydantic import Field
