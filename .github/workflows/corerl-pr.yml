@@ -88,7 +88,7 @@ jobs:
 
 
   docker-build-test:
-    needs: [style-n-test]
+    needs: [corerl-style-n-test]
     uses: ./.github/workflows/reusable-build-docker-image.yml
     secrets: inherit
     with:
