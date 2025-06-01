@@ -1,16 +1,15 @@
 import logging
 from datetime import UTC
 from types import TracebackType
-from typing import Optional
 
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import OPCConnectionConfig
 from coreio.utils.io_events import OPCUANodeWriteValue
-from corerl.data_pipeline.tag_config import TagConfig, TagType
 
 logger = logging.getLogger(__name__)
 
@@ -104,9 +103,9 @@ class OPC_Connection:
 
     async def __aexit__(
         self,
-        exc_type: Optional[type[BaseException]],
-        exc: Optional[BaseException],
-        tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ):
         _ = exc_type, exc, tb
         await self.cleanup()
