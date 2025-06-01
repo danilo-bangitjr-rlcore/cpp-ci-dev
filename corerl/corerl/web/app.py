@@ -194,7 +194,7 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
         tb = traceback.format_exc()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{str(e)}\n\n{tb}") from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e!s}\n\n{tb}") from e
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:

@@ -81,7 +81,8 @@ class BSuiteTestCase:
             'python', 'corerl/main.py',
             '--base', '../test/',
             '--config-name', self.config,
-        ] + parts, cwd='../corerl', check=False)
+            *parts,
+        ], cwd='../corerl', check=False)
         proc.check_returncode()
 
         # ensure metrics table exists

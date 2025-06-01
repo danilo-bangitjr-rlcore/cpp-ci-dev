@@ -158,7 +158,7 @@ class AECoverage:
                 int(self._input_dim),
             ]
         else:
-            sizes = [int(self._input_dim)] + self.cfg.sizes + [int(self._input_dim)]
+            sizes = [int(self._input_dim), *self.cfg.sizes, int(self._input_dim)]
 
         parts: list[nn.Module] = []
 

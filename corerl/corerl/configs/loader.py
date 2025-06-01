@@ -200,8 +200,8 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
         # the key specifies the sub-dictionary to
         # merge the subfile into.
         elif isinstance(default, dict):
-            k = list(default.keys())[0]
-            v = list(default.values())[0]
+            k = next(iter(default.keys()))
+            v = next(iter(default.values()))
 
             if not dict_u.has_path(config, k):
                 config = dict_u.set_at_path(config, k, {})

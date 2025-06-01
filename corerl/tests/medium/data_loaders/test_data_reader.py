@@ -324,7 +324,7 @@ class TestDataReader:
         missing_sensor_name = "sensor_x"
 
         result_df = data_reader.batch_aggregated_read(
-            names=TestDataReader.sensor_names + [missing_sensor_name],
+            names=[*TestDataReader.sensor_names, missing_sensor_name],
             start_time=start_time,
             end_time=end_time,
             bucket_width=timedelta(seconds=10),
@@ -340,7 +340,7 @@ class TestDataReader:
         missing_sensor_name = "sensor_x"
 
         result_df = data_reader.single_aggregated_read(
-            names=TestDataReader.sensor_names + [missing_sensor_name],
+            names=[*TestDataReader.sensor_names, missing_sensor_name],
             start_time=start_time,
             end_time=end_time,
         )

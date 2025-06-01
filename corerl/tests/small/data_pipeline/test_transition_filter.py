@@ -290,7 +290,7 @@ def test_capture_regular_RL():
 
 
     first_transition = Transition(
-        steps=[first, second] + intermediate + [last],
+        steps=[first, second, *intermediate, last],
         n_step_reward=5, # irrelevant random value
         n_step_gamma=0.8, # irrelevant random value
     )
@@ -312,7 +312,7 @@ def test_capture_regular_RL():
     )
 
     second_transition = Transition(
-        steps=[first_2, second_2] + intermediate_2 + [last_2],
+        steps=[first_2, second_2, *intermediate_2, last_2],
         n_step_reward=5, # irrelevant random value
         n_step_gamma=0.8, # irrelevant random value
     )

@@ -16,6 +16,7 @@ select = [
     'PL', # pylint
     'UP', # pyupgrade
     'FURB', # refurb
+    'RUF', # ruff
 ]
 ignore = [
     'E402',
@@ -47,6 +48,13 @@ ignore = [
 
     # loop variable overwritten
     'PLW2901',
+
+    # mutable class variables
+    'RUF012',
+
+    # greek letters
+    'RUF002',
+    'RUF003',
 ]
 
 [format]

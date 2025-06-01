@@ -140,7 +140,7 @@ def main():
     )
     args = parser.parse_args()
 
-    log.info(f"gym.make({repr(args.name)})")
+    log.info(f"gym.make({args.name!r})")
     env: gym.Env = gym.make(args.name)
     log.info(env)
 
