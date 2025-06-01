@@ -323,6 +323,13 @@ dependencies = [
 [package.metadata]
 requires-dist = [{ name = "corerl", editable = "." }]
 
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.401" },
+    { name = "ruff", specifier = ">=0.11.12" },
+]
+
 [[package]]
 name = "corerl"
 version = "0.142.0"

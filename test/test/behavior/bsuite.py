@@ -4,15 +4,16 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum, auto
 from typing import Any
 
-import corerl.utils.git as git
 import numpy as np
 import pandas as pd
+from sqlalchemy import Engine, text
+
+import corerl.utils.git as git
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils.time import now_iso
-from sqlalchemy import Engine, text
 
 
 class Behaviour(Enum):

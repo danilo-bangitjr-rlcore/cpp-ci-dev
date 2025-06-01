@@ -1,6 +1,8 @@
-import sys
 import asyncio
+import sys
+
 from asyncua import Client, Server, ua
+
 
 async def start():
     client = Client(url='opc.tcp://ignition-services:62541')
@@ -18,14 +20,30 @@ async def start():
     # this is the root node of our namespace
     rlcore_root = await objects.add_object(idx, "RLCore")
 
-    ai_dur_sp_s = await rlcore_root.add_variable("ns=1;s=ai_dur_sp", "Agent Backwash Duration Setpoint", ua.Variant(15, ua.VariantType.Double))
+    ai_dur_sp_s = await rlcore_root.add_variable(
+        "ns=1;s=ai_dur_sp",
+        "Agent Backwash Duration Setpoint",
+        ua.Variant(15, ua.VariantType.Double),
+    )
     await ai_dur_sp_s.set_writable()
 
-    ai_flow_sp_s = await rlcore_root.add_variable("ns=1;s=ai_flow_sp", "Agent Backwash Flow Setpoint", ua.Variant(170, ua.VariantType.Double))
+    ai_flow_sp_s = await rlcore_root.add_variable(
+        "ns=1;s=ai_flow_sp",
+        "Agent Backwash Flow Setpoint",
+        ua.Variant(170, ua.VariantType.Double),
+    )
     await ai_flow_sp_s.set_writable()
 
-    dep_dur_sp_s = await rlcore_root.add_variable("ns=1;s=dep_dur_sp", "Deployed Backwash Duration Setpoint", ua.Variant(15, ua.VariantType.Double))
-    dep_flow_sp_s = await rlcore_root.add_variable("ns=1;s=dep_flow_sp", "Deployed Backwash Flow Setpoint", ua.Variant(176, ua.VariantType.Double))
+    dep_dur_sp_s = await rlcore_root.add_variable(
+        "ns=1;s=dep_dur_sp",
+        "Deployed Backwash Duration Setpoint",
+        ua.Variant(15, ua.VariantType.Double),
+    )
+    dep_flow_sp_s = await rlcore_root.add_variable(
+        "ns=1;s=dep_flow_sp",
+        "Deployed Backwash Flow Setpoint",
+        ua.Variant(176, ua.VariantType.Double),
+    )
 
     await client.connect()
     uf2_mode_n = client.get_node('ns=1;s=[main-veolia]UF2_SEQ.STATE')

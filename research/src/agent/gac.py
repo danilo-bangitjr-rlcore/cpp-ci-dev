@@ -9,6 +9,8 @@ import jax.numpy as jnp
 import lib_agent.network.networks as nets
 import numpy as np
 import optax
+import utils.jax as jax_u
+from interaction.transition_creator import Transition
 from lib_agent.buffer.buffer import EnsembleReplayBuffer, VectorizedTransition
 from lib_agent.critic.critic_registry import get_critic
 from lib_agent.network.activations import (
@@ -17,9 +19,6 @@ from lib_agent.network.activations import (
     get_output_activation,
 )
 from ml_instrumentation.Collector import Collector
-
-import utils.jax as jax_u
-from interaction.transition_creator import Transition
 
 
 class SquashedGaussian:

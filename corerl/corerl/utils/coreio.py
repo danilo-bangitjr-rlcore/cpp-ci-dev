@@ -10,6 +10,7 @@ import logging
 import time
 
 import zmq
+
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType, OPCUANodeWriteValue
 
 logger = logging.getLogger(__name__)

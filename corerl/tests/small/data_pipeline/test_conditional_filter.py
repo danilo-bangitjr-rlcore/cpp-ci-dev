@@ -2,13 +2,13 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import BinaryConfig, ScaleConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
+from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_filter_constructor():

@@ -4,9 +4,8 @@ from typing import Any
 import jax
 import numpy as np
 from gymnasium import Env
-from ml_instrumentation.Collector import Collector
-
 from interaction.state_constructor import StateConstructor
+from ml_instrumentation.Collector import Collector
 
 
 class EnvWrapper:

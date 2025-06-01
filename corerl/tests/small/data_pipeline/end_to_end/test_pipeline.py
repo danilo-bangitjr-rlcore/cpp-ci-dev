@@ -4,7 +4,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import torch
-from test.infrastructure.utils.pandas import dfs_close
 from torch import Tensor, tensor
 
 from corerl.config import MainConfig
@@ -15,6 +14,7 @@ from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
+from test.infrastructure.utils.pandas import dfs_close
 
 
 def mkstep(

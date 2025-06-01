@@ -2,11 +2,11 @@ import datetime
 
 import numpy as np
 import pandas as pd
-from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.transforms import BinaryConfig
 from corerl.data_pipeline.transforms.binary import BinaryTransform
 from corerl.data_pipeline.transforms.interface import TransformCarry
+from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_filter_constructor_with_replace():

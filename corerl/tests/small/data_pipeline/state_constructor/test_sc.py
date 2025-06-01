@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import numpy as np
 import pandas as pd
-from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
@@ -13,6 +12,7 @@ from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
+from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_sc1():

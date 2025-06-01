@@ -1,10 +1,10 @@
 import numpy as np
 import pandas as pd
-from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
+from test.infrastructure.utils.pandas import dfs_close
 
 
 def test_norm_part():
