@@ -2,7 +2,7 @@
 name = "rl_env"
 version = "0.133.0"
 description = ""
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "gymnasium~=1.0",
