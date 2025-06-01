@@ -1,7 +1,8 @@
 import jax.numpy as jnp
 import numpy as np
-from agent.gac import GreedyAC
 from ml_instrumentation.Collector import Collector
+
+from agent.gac import GreedyAC
 
 
 def ac_eval(collector: Collector, agent: GreedyAC, state: np.ndarray):

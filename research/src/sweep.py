@@ -8,6 +8,7 @@ from typing import Any
 
 import yaml
 from tqdm import tqdm
+
 from utils.dict import flatten
 
 parser = argparse.ArgumentParser()

@@ -3,16 +3,16 @@ import ast
 from pathlib import Path
 from typing import Any
 
-import utils.gym as gym_u
-from agent.gac import GreedyAC, GreedyACConfig
-from interaction.env_wrapper import EnvWrapper
-from interaction.transition_creator import TransitionCreator
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
 from rl_env.factory import init_env
 from tqdm import tqdm
 
+import utils.gym as gym_u
+from agent.gac import GreedyAC, GreedyACConfig
 from config.experiment import ExperimentConfig, get_next_id
+from interaction.env_wrapper import EnvWrapper
+from interaction.transition_creator import TransitionCreator
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
