@@ -10,6 +10,11 @@ import numpy as np
 from lib_agent.network.activations import get_activation
 
 
+class CallableModule(hk.Module):
+    def __call__(self, *args: jax.Array):
+        raise NotImplementedError
+
+
 @dataclass
 class LinearConfig:
     size: int
@@ -29,10 +34,8 @@ class LateFusionConfig:
     activation: str = 'relu'
 
 @dataclass
-class ResidualLateFusionConfig:
-    sizes: list[int]
-    name: str | None = None
-    activation: str = 'relu'
+class ResidualLateFusionConfig(LateFusionConfig):
+    ...
 
 type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig | ResidualLateFusionConfig
 
@@ -103,7 +106,7 @@ class ResidualLateFusionNet(FusionNet):
         ]
 
 class SkipProjNet(hk.Module):
-    def __init__(self, torso: hk.Module, num_inputs: int, out_size: int):
+    def __init__(self, torso: CallableModule, num_inputs: int, out_size: int):
         super().__init__()
         self.torso = torso
         ortho = hk.initializers.Orthogonal(np.sqrt(2))
@@ -139,8 +142,14 @@ def torso_builder(cfg: TorsoConfig):
     torso = hk.Sequential(layers)
 
     if cfg.skip:
-        out_size = cfg.layers[-1].size
-        num_inputs = len(cfg.layers[0].sizes)
+        last_layer = cfg.layers[-1]
+        assert isinstance(last_layer, LinearConfig | ResidualConfig)
+        out_size = last_layer.size
+
+        input_layer = cfg.layers[0]
+        assert isinstance(input_layer, LateFusionConfig | ResidualLateFusionConfig)
+
+        num_inputs = len(input_layer.sizes)
         torso = SkipProjNet(torso, num_inputs, out_size)
 
     return torso
