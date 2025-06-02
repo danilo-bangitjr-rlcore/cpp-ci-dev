@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "asyncua>=1.1.6",
     "corerl",
 ]
 
@@ -12,7 +13,9 @@ dependencies = [
 dev = [
     "pylint>=3.3.7",
     "pyright>=1.1.401",
+    "pytest-asyncio>=1.0.0",
     "ruff>=0.11.12",
+    "test",
 ]
 
 [build-system]
@@ -24,6 +27,7 @@ packages = ["coreio"]
 
 [tool.uv.sources]
 corerl = { path = "../corerl", editable = true }
+test = { path = "../test", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'
@@ -35,3 +39,7 @@ venvPath = '.'
 
 [tool.ruff]
 extend = "../standards/python/ruff.toml"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
