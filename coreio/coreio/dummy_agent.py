@@ -17,7 +17,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@load_config(MainConfig, base='config/')
+@load_config(MainConfig)
 def main(cfg: MainConfig):
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
