@@ -15,9 +15,14 @@ def data() -> pd.DataFrame:
 
     return df
 
-def test_time_of_day(data: pd.DataFrame):
+def test_time_of_day():
+    df = pd.DataFrame(
+        data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "time_of_day": [25200, 37800, 65831]},
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+    )
+
     pf = PipelineFrame(
-        data=data,
+        data=df,
         data_mode=DataMode.ONLINE
     )
 
@@ -41,9 +46,14 @@ def test_time_of_day(data: pd.DataFrame):
 
     assert dfs_close(pf.data, expected)
 
-def test_day_of_week(data: pd.DataFrame):
+def test_day_of_week():
+    df = pd.DataFrame(
+        data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "day_of_week": [2, 0, 5]},
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+    )
+
     pf = PipelineFrame(
-        data=data,
+        data=df,
         data_mode=DataMode.ONLINE
     )
 
@@ -69,9 +79,14 @@ def test_day_of_week(data: pd.DataFrame):
 
     assert dfs_close(pf.data, expected)
 
-def test_time_of_year(data: pd.DataFrame):
+def test_time_of_year():
+    df = pd.DataFrame(
+        data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "day_of_year": [18, 86, 195]},
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+    )
+
     pf = PipelineFrame(
-        data=data,
+        data=df,
         data_mode=DataMode.ONLINE
     )
 

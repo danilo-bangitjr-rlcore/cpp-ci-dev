@@ -7,6 +7,7 @@ from test.infrastructure.utils.pandas import dfs_close
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import DeltaConfig, NullConfig
 from corerl.data_pipeline.transforms.delta import DeltaTemporalState
@@ -45,6 +46,11 @@ def test_split1():
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),
@@ -129,6 +135,11 @@ def test_split_ts1():
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
             ],
+            seasonal=SeasonalConfig(
+                time_of_day_enabled=False,
+                day_of_week_enabled=False,
+                time_of_year_enabled=False,
+            ),
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=1),
                 obs_period=timedelta(minutes=1),

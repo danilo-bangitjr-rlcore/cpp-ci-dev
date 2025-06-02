@@ -33,7 +33,7 @@ class StateConstructor(Constructor):
         return {
             tag.name: tag.state_constructor if tag.state_constructor is not None else self._cfg.defaults
             for tag in tag_cfgs
-            if tag.type != TagType.meta
+            if tag.type not in [TagType.meta, TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
         }
 
 

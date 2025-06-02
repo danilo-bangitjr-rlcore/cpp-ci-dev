@@ -39,6 +39,9 @@ class Agg(StrEnum):
 class TagType(StrEnum):
     ai_setpoint = auto()
     meta = auto()
+    day_of_year = auto()
+    day_of_week = auto()
+    time_of_day = auto()
     default = auto()
 
 @config()
@@ -416,6 +419,9 @@ class TagConfig:
             case TagType.default: return
             case TagType.meta: return
             case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
+            case TagType.day_of_year: set_seasonal_tag_defaults(self)
+            case TagType.day_of_week: set_seasonal_tag_defaults(self)
+            case TagType.time_of_day: set_seasonal_tag_defaults(self)
             case _: assert_never(self.type)
 
 
@@ -490,6 +496,9 @@ class TagConfig:
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
     tag_cfg.agg = Agg.last
 
+def set_seasonal_tag_defaults(tag_cfg: TagConfig):
+    tag_cfg.preprocess = []
+    tag_cfg.state_constructor = []
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
