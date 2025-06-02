@@ -1,6 +1,6 @@
 from typing import Literal
 
-import torch.nn as nn
+from torch import nn
 
 from corerl.component import layer
 from corerl.component.layer.activations import ActivationConfig
