@@ -24,7 +24,6 @@ class OPC_Connection:
         self.opc_client: Client
         self.registered_nodes: dict[str, NodeData] = {}
         self._connected = False
-        self.registered_nodes: dict[str, NodeData] = {}
 
     async def init(self, cfg: OPCConnectionConfig, tag_configs: list[TagConfig]):
         self.connection_id = cfg.connection_id
