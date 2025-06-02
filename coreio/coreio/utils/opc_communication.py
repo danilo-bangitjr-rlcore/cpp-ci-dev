@@ -1,4 +1,5 @@
 import logging
+from asyncio import CancelledError
 from datetime import UTC
 from types import TracebackType
 
@@ -118,7 +119,7 @@ class OPC_Connection:
         assert self.opc_client is not None, 'OPC client is not initialized'
         try:
             await self.opc_client.check_connection()
-        except ConnectionError:
+        except (ConnectionError, CancelledError):
             await self.opc_client.connect()
 
     @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30)
