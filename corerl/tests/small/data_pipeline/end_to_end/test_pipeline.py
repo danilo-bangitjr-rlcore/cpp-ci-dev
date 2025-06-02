@@ -37,7 +37,7 @@ def mkstep(
     )
 
 def test_pipeline1():
-    cfg = direct_load_config(MainConfig, config_name='test_pipeline1.yaml', base='tests/small/data_pipeline/end_to_end')
+    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
     assert isinstance(cfg, MainConfig)
 
     app_state = AppState(
@@ -152,7 +152,7 @@ def test_pipeline1():
 
 
 def test_pipeline2():
-    cfg = direct_load_config(MainConfig, config_name='test_pipeline2.yaml', base='tests/small/data_pipeline/end_to_end')
+    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline2.yaml')
     assert isinstance(cfg, MainConfig)
 
     app_state = AppState(
@@ -321,7 +321,7 @@ def test_pipeline2():
     ]
 
 def test_pipeline3():
-    cfg = direct_load_config(MainConfig, config_name='test_pipeline3.yaml', base='tests/small/data_pipeline/end_to_end')
+    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline3.yaml')
     assert isinstance(cfg, MainConfig)
 
     app_state = AppState(
