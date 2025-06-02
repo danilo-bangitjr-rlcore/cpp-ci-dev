@@ -88,7 +88,7 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         xform.TraceConfig(trace_values=[0.1]),
     ]
     tag_cfgs[1].reward_constructor = [
-        xform.NullConfig(),
+        xform.NukeConfig(),
     ]
 
     # change final xform to null
@@ -299,7 +299,7 @@ def test_product_transform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
     tag_cfgs[0].reward_constructor = [
         xform.BinaryConfig(op="prod", other="obs-2", other_xform=[xform.GreaterThanConfig(threshold=5)]),
     ]
-    tag_cfgs[1].reward_constructor = [xform.NullConfig()]
+    tag_cfgs[1].reward_constructor = [xform.NukeConfig()]
 
     rc = RewardConstructor(tag_cfgs, prep_stage)
     pf = PipelineFrame(
@@ -525,7 +525,7 @@ def test_epcor_reward():
                 ],
             ),
         ],
-        "outlet_h2s": [xform.NullConfig()], # this is hangled in constraint_violation_xforms above
+        "outlet_h2s": [xform.NukeConfig()], # this is hangled in constraint_violation_xforms above
         "ph_pumpspeed": [
             xform.SplitConfig(
                 passthrough=False,

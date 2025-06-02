@@ -9,7 +9,7 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import DeltaConfig, NullConfig
+from corerl.data_pipeline.transforms import DeltaConfig, NukeConfig
 from corerl.data_pipeline.transforms.delta import DeltaTemporalState
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
@@ -123,7 +123,7 @@ def test_split_ts1():
             TagConfig(name='tag_1'),
             TagConfig(
                 name='action',
-                state_constructor=[NullConfig()],
+                state_constructor=[NukeConfig()],
             ),
         ],
         cfg=SCConfig(

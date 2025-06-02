@@ -8,7 +8,7 @@ from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.null import Null
+from corerl.data_pipeline.transforms.nuke import Nuke
 from corerl.data_pipeline.utils import get_tag_temporal_state, invoke_stage_per_tag
 
 
@@ -82,7 +82,7 @@ def _filter_null_components(
     nonnull_ccs = {}
     for tag in tag_cfgs:
         xforms = tag.reward_constructor
-        null_cc = len(xforms) == 1 and isinstance(xforms[0], Null)
+        null_cc = len(xforms) == 1 and isinstance(xforms[0], Nuke)
         if not null_cc:
             nonnull_ccs[tag.name] = RewardComponentConstructor(tag.reward_constructor)
 
