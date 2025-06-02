@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import TYPE_CHECKING, Annotated, Callable, Literal
+from collections.abc import Callable, Sequence
+from typing import TYPE_CHECKING, Annotated, Literal
 
 from pydantic import Field
 
@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 
-type list_or_single[T] = list[T] | T
+type ListOrSingle[T] = list[T] | T
 
 @config()
 class Goal:
@@ -43,7 +43,7 @@ class JointGoal:
 @config()
 class Optimization:
     tags: list[str] = Field(default_factory=list, min_length=1)
-    directions: list_or_single[Literal['min', 'max']] = MISSING
+    directions: ListOrSingle[Literal['min', 'max']] = MISSING
     weights: list[float] = MISSING
 
     @computed('weights')
@@ -81,7 +81,7 @@ class RewardConfig:
 
     @post_processor
     def _check_tags_exist(self, cfg: MainConfig):
-        known_tags = set(tag.name for tag in cfg.pipeline.tags)
+        known_tags = {tag.name for tag in cfg.pipeline.tags}
         _assert_tags_exist(self.priorities, known_tags)
 
     @post_processor

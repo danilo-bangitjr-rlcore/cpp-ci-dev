@@ -1,10 +1,10 @@
 from typing import Literal
 
-import torch.nn as nn
+from torch import nn
 
-import corerl.component.layer as layer
-import corerl.component.network.utils as utils
+from corerl.component import layer
 from corerl.component.layer.activations import ActivationConfig
+from corerl.component.network import utils
 from corerl.configs.config import config, list_
 from corerl.utils.device import device
 

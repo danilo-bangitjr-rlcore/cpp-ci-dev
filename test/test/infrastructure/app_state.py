@@ -14,10 +14,9 @@ def dummy_app_state() -> AppState:
 
     cfg.metrics.enabled = False
     cfg.evals.enabled = False
-    app_state = AppState(
+    return AppState(
         cfg=cfg,
         metrics=MetricsTable(cfg.metrics),
         evals=EvalsTable(cfg.evals),
         event_bus=DummyEventBus(),
     )
-    return app_state

@@ -24,5 +24,5 @@ class BaseImputer:
 
 imputer_group = Group[
     [list[TagConfig]],
-    BaseImputer
+    BaseImputer,
 ]()

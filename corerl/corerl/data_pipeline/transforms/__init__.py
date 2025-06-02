@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
-from typing_extensions import Annotated
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig

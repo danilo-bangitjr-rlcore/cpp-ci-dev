@@ -25,7 +25,7 @@ def test_no_seasonal_tags_enabled():
 
     df = pd.DataFrame({
         "tag_1": [1, 5],
-        "action_1": [0, 0]
+        "action_1": [0, 0],
     })
     df.index = pd.DatetimeIndex(["9/24/2023 10:12", "7/13/2024 6:37"])
     pf = PipelineFrame(df, DataMode.ONLINE)
@@ -66,7 +66,7 @@ def test_all_seasonal_tags_enabled():
 
     df = pd.DataFrame({
         "tag_1": [1, 5],
-        "action_1": [0, 0]
+        "action_1": [0, 0],
     })
     dates = pd.DatetimeIndex(["9/24/2023 10:12", "7/13/2024 6:37"])
     df.index = dates
@@ -110,7 +110,7 @@ def test_some_seasonal_tags_enabled():
 
     df = pd.DataFrame({
         "tag_1": [1, 5],
-        "action_1": [0, 0]
+        "action_1": [0, 0],
     })
     dates = pd.DatetimeIndex(["9/24/2023 10:12", "7/13/2024 6:37"])
     df.index = dates

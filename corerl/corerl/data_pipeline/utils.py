@@ -1,4 +1,5 @@
-from typing import Callable, Mapping, cast
+from collections.abc import Callable, Mapping
+from typing import cast
 
 import numpy as np
 import pandas as pd

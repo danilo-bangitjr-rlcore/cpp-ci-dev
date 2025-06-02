@@ -1,3 +1,4 @@
+# ruff: noqa: PERF203
 import logging
 import threading
 import time
@@ -79,8 +80,7 @@ class Clock:
             if isinstance(e, zmq.error.Again):
                 # temporarily unavailable, retry
                 return
-            else:
-                raise
+            raise
 
         self.reset(now)
 

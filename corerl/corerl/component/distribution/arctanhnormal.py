@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import override
 
 import torch
 import torch.distributions as d
 from torch.types import _size
-from typing_extensions import override
 
-import corerl.utils.nullable as nullable
+from corerl.utils import nullable
 
 
 class ArctanhNormal(d.Distribution):
@@ -98,7 +98,7 @@ class ArctanhNormal(d.Distribution):
         normal_logp = self._underlying.log_prob(normal_samples)
 
         offset = torch.log1p(
-            -value.pow(2) + ArctanhNormal._EPSILON
+            -value.pow(2) + ArctanhNormal._EPSILON,
         )
 
         return normal_logp - offset

@@ -1,3 +1,4 @@
+# ruff: noqa: PERF203
 import logging
 import threading
 from collections import defaultdict, deque
@@ -36,7 +37,7 @@ class EventBus:
             args=(
                 self.subscriber_socket,
                 self.queue,
-                self.event_bus_stop_event
+                self.event_bus_stop_event,
             ),
             daemon=True,
             name= "corerl_event_bus_consumer",
@@ -65,8 +66,7 @@ class EventBus:
 
         event = None
         try:
-            event = self.queue.get(True, 0.5)
-            return event
+            return self.queue.get(True, 0.5)
         except Empty:
             return None
         finally:
@@ -97,16 +97,7 @@ class EventBus:
 
     def cleanup(self):
         self.event_bus_stop_event.set()
-
-        # queue.shutdown introduced in Python 3.13, for now consume all items and then join
-        empty_raised = False
-        while not empty_raised:
-            try:
-                _ = self.queue.get_nowait()
-                self.queue.task_done()
-            except Empty:
-                empty_raised = True
-        self.queue.join()
+        self.queue.shutdown()
 
         self.consumer_thread.join()
 

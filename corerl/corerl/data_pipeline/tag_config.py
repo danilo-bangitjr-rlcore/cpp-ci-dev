@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Callable, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
 from pydantic import Field
@@ -365,17 +366,17 @@ class TagConfig:
         if "pipeline" in cfg.__dict__.keys():  # Avoids `isinstance` check which causes circular import
             if TYPE_CHECKING:
                 assert isinstance(cfg, MainConfig)
-            known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            known_tags = {tag.name for tag in cfg.pipeline.tags}
         elif "tags" in cfg.__dict__.keys():  # Avoids `isinstance` check which causes circular import
             if TYPE_CHECKING:
                 assert isinstance(cfg, PipelineConfig)
-            known_tags = set(tag.name for tag in cfg.tags)
+            known_tags = {tag.name for tag in cfg.tags}
         else:
             raise ValueError("Unknown cfg type")
 
         if self.action_bounds is not None:
             self.action_bounds_func, self.action_bounds_tags = self._bounds_parse_sympy(
-                self.action_bounds, known_tags, allow_circular=True
+                self.action_bounds, known_tags, allow_circular=True,
             )
 
         if self.red_bounds is not None:
@@ -385,7 +386,7 @@ class TagConfig:
             self.yellow_bounds_func, self.yellow_bounds_tags = self._bounds_parse_sympy(self.yellow_bounds, known_tags)
 
     def _bounds_parse_sympy(
-        self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False
+        self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False,
     ) -> tuple[BoundsFunction, BoundsTags]:
         lo_func, hi_func = None, None
         lo_tags, hi_tags = None, None
@@ -484,7 +485,7 @@ class TagConfig:
             assert self.value is not None, \
                 "A value string must be specified for computed virtual tags."
 
-            known_tags = set(tag.name for tag in cfg.pipeline.tags)
+            known_tags = {tag.name for tag in cfg.pipeline.tags}
             if self.cascade is not None:
                 known_tags |= {self.cascade.mode, self.cascade.op_sp, self.cascade.ai_sp}
             _, _, dependent_tags = to_sympy(self.value)

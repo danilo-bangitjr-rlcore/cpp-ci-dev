@@ -23,5 +23,5 @@ class BaseOddityFilter(ABC):
 
 
 outlier_group = Group[
-    [AppState], BaseOddityFilter
+    [AppState], BaseOddityFilter,
 ]()

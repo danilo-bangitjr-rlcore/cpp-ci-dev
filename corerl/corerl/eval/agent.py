@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import Callable, Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
+from collections.abc import Callable, Sequence
+from typing import Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
 
 import numpy as np
 import torch
@@ -65,7 +65,7 @@ BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[torch.Tensor]]
 def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
     def batchified(cfg: EvalConfig, agent: GreedyAC):
         if not agent.is_policy_buffer_sampleable:
-            return tuple()
+            return ()
 
         batches = agent.sample_policy_buffer()
         assert len(batches) == 1
@@ -145,7 +145,7 @@ def policy_variance(
         metric_names=['actor_var', 'sampler_var'],
         state=state,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 # ------------------------------ Q Values Online ----------------------------- #
@@ -195,8 +195,7 @@ def get_max_action(actions: torch.Tensor, values: torch.Tensor):
     assert values.dim() == 2
     max_indices = torch.argmax(values, dim=1)
     batch_size = actions.size(0)
-    max_actions = actions[torch.arange(batch_size), max_indices, :]
-    return max_actions
+    return actions[torch.arange(batch_size), max_indices, :]
 
 @config()
 class GreedDistConfig:
@@ -272,7 +271,7 @@ def greed_dist_online(
         metric_names=['greed_dist_online'],
         states=states,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 
@@ -346,7 +345,7 @@ def greed_values_online(
         metric_names=['greed_values_online'],
         states=states,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 def greed_values_batch(app_state: AppState, agent: BaseAgent):

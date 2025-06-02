@@ -22,10 +22,10 @@ class ActionConstructor:
         for action_tag in self.action_tags:
             name = action_tag.name
             Maybe(action_tag.operating_range).map(lambda r: r[0]).expect(
-                f"Action {name} did not specify an operating range lower bound."
+                f"Action {name} did not specify an operating range lower bound.",
             )
             Maybe(action_tag.operating_range).map(lambda r: r[1]).expect(
-                f"Action {name} did not specify an operating range upper bound."
+                f"Action {name} did not specify an operating range upper bound.",
             )
         self._prep_stage = prep_stage # used to denormalize tags
 
@@ -74,9 +74,8 @@ class ActionConstructor:
         """
         Given an action, return a dataframe that contains the action info and the corresponding column names
         """
-        df = pd.DataFrame(data=[action_arr], columns=self.columns)
+        return pd.DataFrame(data=[action_arr], columns=self.columns)
 
-        return df
 
     def denormalize_tags(self, df: pd.DataFrame):
         return self._prep_stage.inverse(df)

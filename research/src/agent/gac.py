@@ -29,21 +29,21 @@ class SquashedGaussian:
             bijector=distrax.Block(
                 distrax.Tanh(),
                 ndims=1,
-            )
+            ),
         )
         dist = distrax.Transformed(
             distribution=dist,
             bijector=distrax.Block(
                 distrax.ScalarAffine(shift=1, scale=1.0),
                 ndims=1,
-            )
+            ),
         )
         self.dist = distrax.Transformed(
             distribution=dist,
             bijector=distrax.Block(
                 distrax.ScalarAffine(shift=0, scale=0.5),
                 ndims=1,
-            )
+            ),
         )
 
     def sample(self, seed: chex.PRNGKey):
@@ -104,7 +104,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
         return ActorOutputs(
             mu=mu_head_out,
-            sigma=jnp.exp(jnp.clip(sigma_head_out, -20, 2))
+            sigma=jnp.exp(jnp.clip(sigma_head_out, -20, 2)),
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
@@ -141,7 +141,7 @@ class GreedyAC:
             layers=[
                 nets.LinearConfig(size=256, activation='relu'),
                 nets.LinearConfig(size=256, activation='relu'),
-            ]
+            ],
         )
         actor_output_act_cfg = IdentityConfig()
         self.actor = actor_builder(actor_torso_cfg, actor_output_act_cfg, action_dim)
@@ -196,8 +196,7 @@ class GreedyAC:
 
     def _get_dist(self, params: chex.ArrayTree, state: jax.Array):
         out: ActorOutputs = self.actor.apply(params=params, x=state)
-        dist = SquashedGaussian(out.mu, out.sigma)
-        return dist
+        return SquashedGaussian(out.mu, out.sigma)
 
     @jax_u.method_jit
     def _get_actions(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
@@ -218,8 +217,7 @@ class GreedyAC:
             # for Gaussian, entropy is 0.5 * log(2πe * det(sigma))
             # det(sigma) = product of diagonal elements
             log_det = jnp.sum(jnp.log(out.sigma))
-            entropy = 0.5 * (self.action_dim * (1.0 + jnp.log(2 * jnp.pi)) + log_det)
-            return entropy
+            return 0.5 * (self.action_dim * (1.0 + jnp.log(2 * jnp.pi)) + log_det)
 
         entropies = jax.vmap(entropy_fn)(states)
         mean_entropy = jnp.mean(entropies)
@@ -238,16 +236,14 @@ class GreedyAC:
         return jnp.exp(log_prob)
 
     def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):
-        probs = jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
-        return probs
+        return jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
 
     @jax_u.method_jit
     def get_probs(self, params: chex.ArrayTree, state: jax.Array | np.ndarray, actions: jax.Array):
         state = jnp.asarray(state)
         dist = self._get_dist(params, state)
-        probs = self._get_probs(dist, actions)
+        return self._get_probs(dist, actions)
 
-        return probs
 
     def update(self):
         self.critic_update()
@@ -350,7 +346,7 @@ class GreedyAC:
         policy: hk.Transformed,
         policy_opt: optax.GradientTransformation,
         states: jax.Array,
-        update_actions: jax.Array
+        update_actions: jax.Array,
     ):
         is_actor = policy is self.actor
         prefix = "actor" if is_actor else "proposal"
@@ -388,8 +384,7 @@ class GreedyAC:
         rngs = jax.random.split(self.rng, proposal_samples)
         proposal_actions = jax_u.vmap_only(self._get_actions, ['rng'])(proposal_params, rngs, state)
 
-        sampled_actions = jnp.concat([uniform_actions, proposal_actions], axis=0)
-        return sampled_actions
+        return jnp.concat([uniform_actions, proposal_actions], axis=0)
 
     def _get_policy_update_actions(
         self,
@@ -434,7 +429,7 @@ class GreedyAC:
         params: chex.ArrayTree,
         policy: hk.Transformed,
         states: jax.Array,
-        top_actions_batch: jax.Array
+        top_actions_batch: jax.Array,
     ):
         losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)

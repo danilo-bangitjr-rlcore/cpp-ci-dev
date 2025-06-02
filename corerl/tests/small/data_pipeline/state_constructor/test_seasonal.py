@@ -8,28 +8,27 @@ from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add
 
 @pytest.fixture()
 def data() -> pd.DataFrame:
-    df = pd.DataFrame(
+    return pd.DataFrame(
         data={"tag-1": [1,2,3], "tag-2": [4,5,6]},
-        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
     )
 
-    return df
 
 def test_time_of_day():
     df = pd.DataFrame(
         data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "time_of_day": [25200, 37800, 65831]},
-        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
     )
 
     pf = PipelineFrame(
         data=df,
-        data_mode=DataMode.ONLINE
+        data_mode=DataMode.ONLINE,
     )
 
     cfg = SeasonalConfig(
         time_of_day_enabled=True,
         day_of_week_enabled=False,
-        time_of_year_enabled=False
+        time_of_year_enabled=False,
     )
 
     pf = add_seasonal_features(cfg, pf)
@@ -38,7 +37,7 @@ def test_time_of_day():
         "tag-1": [1, 2, 3],
         "tag-2": [4, 5, 6],
         "time_of_day_sin": [0.9659258, 0.382683, -0.99719058],
-        "time_of_day_cos": [-0.258819, -0.9238795, 0.074906209]
+        "time_of_day_cos": [-0.258819, -0.9238795, 0.074906209],
     })
 
     print("pf.data:")
@@ -49,18 +48,18 @@ def test_time_of_day():
 def test_day_of_week():
     df = pd.DataFrame(
         data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "day_of_week": [2, 0, 5]},
-        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
     )
 
     pf = PipelineFrame(
         data=df,
-        data_mode=DataMode.ONLINE
+        data_mode=DataMode.ONLINE,
     )
 
     cfg = SeasonalConfig(
         time_of_day_enabled=False,
         day_of_week_enabled=True,
-        time_of_year_enabled=False
+        time_of_year_enabled=False,
     )
 
     pf = add_seasonal_features(cfg, pf)
@@ -74,7 +73,7 @@ def test_day_of_week():
         "day_of_week_3": [0, 0, 0],
         "day_of_week_4": [0, 0, 0],
         "day_of_week_5": [0, 0, 1],
-        "day_of_week_6": [0, 0, 0]
+        "day_of_week_6": [0, 0, 0],
     })
 
     assert dfs_close(pf.data, expected)
@@ -82,18 +81,18 @@ def test_day_of_week():
 def test_time_of_year():
     df = pd.DataFrame(
         data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "day_of_year": [18, 86, 195]},
-        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"])
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
     )
 
     pf = PipelineFrame(
         data=df,
-        data_mode=DataMode.ONLINE
+        data_mode=DataMode.ONLINE,
     )
 
     cfg = SeasonalConfig(
         time_of_day_enabled=False,
         day_of_week_enabled=False,
-        time_of_year_enabled=True
+        time_of_year_enabled=True,
     )
 
     pf = add_seasonal_features(cfg, pf)
@@ -102,7 +101,7 @@ def test_time_of_year():
         "tag-1": [1, 2, 3],
         "tag-2": [4, 5, 6],
         "time_of_year_sin": [0.3049212, 0.995919, -0.204552],
-        "time_of_year_cos": [0.9523775, 0.0902516, -0.978855]
+        "time_of_year_cos": [0.9523775, 0.0902516, -0.978855],
     })
 
     assert dfs_close(pf.data, expected)

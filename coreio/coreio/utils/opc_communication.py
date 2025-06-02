@@ -1,16 +1,15 @@
 import logging
 from datetime import UTC
 from types import TracebackType
-from typing import Optional, Type
 
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import OPCConnectionConfig
 from coreio.utils.io_events import OPCUANodeWriteValue
-from corerl.data_pipeline.tag_config import TagConfig, TagType
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +47,7 @@ class OPC_Connection:
                 f"OPC Clinent (connection_id: {cfg.connection_id}): " +
                 "Client cert path, client private key path and server cert path " +
                 "must be declared to set an encrypted connection.\n" +
-                "Using default connection."
+                "Using default connection.",
             )
         return self
 
@@ -90,7 +89,7 @@ class OPC_Connection:
                 self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
 
-    @backoff.on_exception(backoff.expo, (OSError), max_time=30,)
+    @backoff.on_exception(backoff.expo, (OSError), max_time=30)
     async def start(self):
         await self.opc_client.connect()
         return self
@@ -104,9 +103,9 @@ class OPC_Connection:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc: Optional[BaseException],
-        tb: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ):
         _ = exc_type, exc, tb
         await self.cleanup()
@@ -117,7 +116,7 @@ class OPC_Connection:
         except ConnectionError:
             await self.opc_client.connect()
 
-    @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30,)
+    @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
         """
         Writing core-rl values into OPC

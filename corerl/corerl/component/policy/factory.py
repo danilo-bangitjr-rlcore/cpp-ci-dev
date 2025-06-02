@@ -1,13 +1,13 @@
 from typing import Annotated, Any, Literal
 
 import torch
-import torch.nn as nn
 from pydantic import Field
+from torch import nn
 
-import corerl.component.network.utils as utils
 from corerl.component.distribution import get_dist_type
 from corerl.component.layer import Parallel, init_activation
 from corerl.component.layer.activations import ActivationConfig
+from corerl.component.network import utils
 from corerl.component.network.networks import NNTorsoConfig, create_mlp
 from corerl.component.policy.policy import ContinuousIIDPolicy, Policy
 from corerl.configs.config import MISSING, config, list_

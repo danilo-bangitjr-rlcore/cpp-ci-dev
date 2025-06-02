@@ -1,3 +1,4 @@
+# ruff: noqa: PERF203
 import logging
 import threading
 from collections.abc import Callable
@@ -38,10 +39,10 @@ class ZMQ_Communication:
             args=(
                 self.subscriber_socket,
                 self.queue,
-                self.coreio_stop_event
+                self.coreio_stop_event,
             ),
             daemon=True,
-            name="coreio_consumer"
+            name="coreio_consumer",
         )
         self.subscriber_socket.bind(cfg.coreio_origin)
 
@@ -55,8 +56,7 @@ class ZMQ_Communication:
         event = None
 
         try:
-            event = self.queue.get(True, 0.5)
-            return event
+            return self.queue.get(True, 0.5)
         except Empty:
             return None
         finally:

@@ -23,7 +23,7 @@ def convert_table(
         tag_name_row: int = 3,
         processed_columns: tuple[str, ...] = ("time", "host", "id", "name", "Quality", "fields")):
 
-    with open(path_file, mode="r", newline="") as infile:
+    with open(path_file, newline="") as infile:
         reader = csv.reader(infile)
         datatypes = []
         columns = []
@@ -46,11 +46,11 @@ def convert_table(
         out_file = Path(output)
 
     # Quick first pass through file to get the total number of lines for tqdm
-    with open(path_file, mode="r", newline="") as infile:
+    with open(path_file, newline="") as infile:
         reader = csv.reader(infile)
         row_count = sum(1 for row in islice(reader, row_offset, None))
 
-    with open(path_file, mode="r", newline="") as infile, \
+    with open(path_file, newline="") as infile, \
          open(out_file, mode="w", newline="") as outfile:
 
         print(f"Reading from {path_file}")
@@ -104,7 +104,7 @@ def main():
         row_offset=args.row_offset,
         column_offset=args.column_offset,
         datatype_row=args.datatype_row,
-        tag_name_row=args.tag_name_row,)
+        tag_name_row=args.tag_name_row)
 
 
 if __name__ == "__main__":

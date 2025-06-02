@@ -1,9 +1,9 @@
 import logging
 from abc import ABC, abstractmethod
+from typing import override
 
 import torch
-from numpy import clip as clip
-from typing_extensions import override
+from numpy import clip
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +57,6 @@ class Search(ABC):
     ) -> tuple[bool, float]:
         """Checks the search conditions and adjusts the stepsize accordingly.
         """
-        pass
 
 
 class Armijo(Search):
@@ -111,9 +110,8 @@ class Armijo(Search):
         break_condition = loss_next - thresh
         if break_condition <= 0:
             return True, step_size
-        else:
-            # Decrease the step-size by a multiplicative factor
-            return False, step_size * self._beta
+        # Decrease the step-size by a multiplicative factor
+        return False, step_size * self._beta
 
 
 class Goldstein(Search):
@@ -197,9 +195,9 @@ class Goldstein(Search):
 
         if (found == 0):
             raise ValueError(
-                'Error, neither Goldstein condition was satisfied'
+                'Error, neither Goldstein condition was satisfied',
             )
-        elif (found == 1):
+        if (found == 1):
             # Step-size might be too small
             step_size = step_size * self._beta_f
         elif (found == 2):

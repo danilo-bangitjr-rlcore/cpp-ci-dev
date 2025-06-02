@@ -1,5 +1,6 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, Optional, Sequence
+from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -26,13 +27,13 @@ class PVSConfig(EnvConfig):
         "kp_max": 5,
         "kp_min": 0,
         "ti_max": 20,
-        "ti_min": 0.1
+        "ti_min": 0.1,
     })
     reward_coeffs: dict = field(default_factory=lambda: {
         "mse_coeff": 1/15,
         "overshoot_coeff": 1.5,
         "settling_coeff": 1.2,
-        "rise_coeff": 1
+        "rise_coeff": 1,
     })
     reset_temperature: float = np.inf
     no_reset: bool = True
@@ -63,7 +64,7 @@ class BasePVSEnv(Env):
         self.init_records()
         self.pid_controller = PIDController(self.config)
 
-    def init_random_setpoint(self, seed: Optional[int]):
+    def init_random_setpoint(self, seed: int | None):
         self.rng = np.random.RandomState(seed)
         self.random_sp = self.config.random_sp
         self.setpoint = self.rng.choice(self.random_sp)
@@ -99,7 +100,7 @@ class BasePVSEnv(Env):
         self.processtau = self.processtau_func[int(self.setpoint)]
 
         # polynomial representation of transfer function denominator: (tau*s + 1)
-        transfer_func_denom = sym.Poly((self.processtau * s + 1))
+        transfer_func_denom = sym.Poly(self.processtau * s + 1)
         # extract coefficients from polynomial
         denom_coeffs = list(transfer_func_denom.coeffs())
         denom_coeffs = np.array(denom_coeffs, dtype=float)
@@ -179,7 +180,7 @@ class BasePVSEnv(Env):
     def get_reward(
         self,
         episode_heights: list[float],
-        episode_setpoints: list[float]
+        episode_setpoints: list[float],
     ) -> float:
         base_mse = self.error_sum / (self.no_of_error + 1e-8)
         if self.reward_type == "mse":
@@ -205,8 +206,8 @@ class BasePVSEnv(Env):
     def reset(
         self,
         *,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
+        seed: int | None = None,
+        options: dict | None = None,
     ) -> tuple[np.ndarray, dict]:
         if seed is not None:
             self.rng = np.random.RandomState(seed)
@@ -228,15 +229,14 @@ class BasePVSEnv(Env):
         overshoot = overshoot[overshoot > 0]
         if len(overshoot) == 0:
             return 0
-        else:
-            i = overshoot.argmax()
-            sp = setpoint[i] if setpoint.ndim > 0 else setpoint
-            return float(overshoot[i] / sp)
+        i = overshoot.argmax()
+        sp = setpoint[i] if setpoint.ndim > 0 else setpoint
+        return float(overshoot[i] / sp)
 
     def calculate_response_areas(
         self,
         process: np.ndarray,
-        setpoint: Optional[np.ndarray]=None,
+        setpoint: np.ndarray | None=None,
         use_setpoint: bool=False,
     ) -> tuple[float, float]:
         """
@@ -320,7 +320,7 @@ class BasePVSEnv(Env):
         num_frames = len(self.height_T1_record) // 100 + 1
         anim = FuncAnimation(
             fig, animate, init_func=init, frames=num_frames,
-            interval=1000, blit=False
+            interval=1000, blit=False,
         )
 
         writer = PillowWriter(fps=1)
@@ -348,7 +348,7 @@ class BasePVSEnv(Env):
         ax_water.legend()
 
         ax_reward.plot(np.arange(len(self.reward_record)), self.reward_record, 'g-', label='Reward')
-        ax_reward.set_title('Reward (Final reward: {:.2f})'.format(self.reward_record[-1]))
+        ax_reward.set_title(f'Reward (Final reward: {self.reward_record[-1]:.2f})')
         ax_reward.set_xlabel('Episodes')
         ax_reward.set_ylabel('Reward')
         ax_reward.legend()
@@ -453,7 +453,7 @@ class PVSChangeAction(BasePVSEnv):
     """RL environment implementation"""
     def __init__(
         self,
-        cfg: PVSConfig | None = None
+        cfg: PVSConfig | None = None,
     ):
         if cfg is None:
             cfg = PVSConfig()
@@ -511,7 +511,7 @@ class PVSChangeAction(BasePVSEnv):
     def get_next_pid_params(self, a: np.ndarray) -> np.ndarray:
         pid_params = np.array([
             self.prev_pid_params[0] + a[0],
-            self.prev_pid_params[1] + a[1]
+            self.prev_pid_params[1] + a[1],
         ])
         return self.pid_param_clip(pid_params)
 
@@ -520,7 +520,7 @@ class PVSChangeAction(BasePVSEnv):
 
         pid_params[0] = np.clip(pid_params[0], limits["kp_min"], limits["kp_max"])
         pid_params[1] = np.clip(
-            pid_params[1], limits["ti_min"], limits["ti_max"]
+            pid_params[1], limits["ti_min"], limits["ti_max"],
         )
         return pid_params
 
@@ -569,7 +569,7 @@ class PVSChangeAction(BasePVSEnv):
 
 
     def _step(
-        self, pid_params: np.ndarray, add: bool=True
+        self, pid_params: np.ndarray, add: bool=True,
     ) -> tuple[np.ndarray, float, bool, bool, dict]:
         # interact with the environment for a number of steps
         self.pid_controller.update_pid(pid_params.tolist(), KI=False)
@@ -638,8 +638,8 @@ class PVSChangeAction(BasePVSEnv):
     def reset(
         self,
         *,
-        seed: Optional[int]=None,
-        options: Optional[dict]=None,
+        seed: int | None=None,
+        options: dict | None=None,
     ) -> tuple[np.ndarray, dict]:
         super(BasePVSEnv, self).reset(seed=seed, options=options)
         self.prev_pid_params = self.initial_pid_params.copy()

@@ -39,7 +39,7 @@ def test_sc1():
         tag_cfgs=[
             TagConfig(name='obs_1'),
             TagConfig(name='obs_2'),
-            TagConfig(name='action')
+            TagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -301,7 +301,7 @@ def test_sc_integration2():
                     SplitConfig(
                         left=[TraceConfig(trace_values=[0.1])],
                         right=[AddRawConfig()],
-                        passthrough=False
+                        passthrough=False,
                     ),
                 ],
             ),
@@ -316,7 +316,7 @@ def test_sc_integration2():
                     SplitConfig(
                         left=[TraceConfig(trace_values=[0.1])],
                         right=[AddRawConfig()],
-                        passthrough=False
+                        passthrough=False,
                     ),
                 ],
             ),
@@ -548,10 +548,10 @@ def test_sc_decision_point_detection():
     })
     assert dfs_close(pf.data, expected)
     assert np.all(
-        pf.decision_points == np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0])
+        pf.decision_points == np.array([0, 0, 1, 0, 0, 0, 1, 0, 0, 0]),
     )
     assert np.all(
-        pf.action_change  ==  np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0])
+        pf.action_change  ==  np.array([0, 0, 0, 1, 0, 0, 0, 0, 0, 0]),
     )
 
 
@@ -581,8 +581,8 @@ def test_per_tag_overrides():
             TagConfig(
                 name='tag_2',
                 state_constructor=[
-                    TraceConfig(trace_values=[0.1])
-                ]
+                    TraceConfig(trace_values=[0.1]),
+                ],
             ),
             TagConfig(name='action'),
         ],

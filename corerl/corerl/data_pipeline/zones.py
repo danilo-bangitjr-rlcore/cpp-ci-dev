@@ -46,7 +46,7 @@ class ZoneDiscourager:
                 continue
 
             # red zones are replacing to encode a priority level
-            elif penalty.kind == 'red':
+            if penalty.kind == 'red':
                 rewards[i] = penalty.penalty
 
             # yellow zones are additive to encode light penalty

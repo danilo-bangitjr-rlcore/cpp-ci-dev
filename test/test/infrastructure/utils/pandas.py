@@ -6,9 +6,8 @@ def dfs_close(df1: pd.DataFrame, df2: pd.DataFrame, col_order_matters: bool = Fa
     if col_order_matters:
         if not df1.columns.equals(df2.columns):
             return False
-    else:
-        if set(df1.columns) != set(df2.columns):
-            return False
+    elif set(df1.columns) != set(df2.columns):
+        return False
 
     for col in df1.columns:
         if not np.allclose(df1[col], df2[col], equal_nan=True):

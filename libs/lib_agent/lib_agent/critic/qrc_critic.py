@@ -220,7 +220,7 @@ class QRCCritic:
 
         # noise loss
         rand_actions = jax.random.uniform(
-            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0])
+            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
         )
         out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state, rand_actions)
         reg_loss = out_rand.q.mean()
@@ -243,8 +243,7 @@ def get_member(a: chex.ArrayTree, i: int):
 def l2_regularizer(params: chex.ArrayTree, beta: float):
     reg = jax.tree.map(jnp.square, params)
     reg = jax.tree.map(jnp.sum, reg)
-    reg = 0.5 * beta * jax.tree.reduce(lambda a, b: a + b, reg)
-    return reg
+    return 0.5 * beta * jax.tree.reduce(lambda a, b: a + b, reg)
 
 # ---------------------------------------------------------------------------- #
 #                                    metrics                                   #
@@ -265,8 +264,7 @@ def get_ensemble_norm(tree: chex.ArrayTree):
 def stable_rank(matrix: jax.Array):
     singular_values = jnp.linalg.svd(matrix, compute_uv=False)
     sv_squared = singular_values**2
-    s_rank = sv_squared.sum() / sv_squared.max()
-    return s_rank
+    return sv_squared.sum() / sv_squared.max()
 
 def get_layer_names(params: chex.ArrayTree):
     keys = []

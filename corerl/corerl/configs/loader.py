@@ -179,7 +179,7 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
         config_name += '.yaml'
 
     path = Path(base) / f'{config_name}'
-    with open(path, 'r') as f:
+    with open(path) as f:
         config = yaml.safe_load(f)
 
     # if a config does not load subfiles
@@ -200,8 +200,8 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
         # the key specifies the sub-dictionary to
         # merge the subfile into.
         elif isinstance(default, dict):
-            k = list(default.keys())[0]
-            v = list(default.values())[0]
+            k = next(iter(default.keys()))
+            v = next(iter(default.values()))
 
             if not dict_u.has_path(config, k):
                 config = dict_u.set_at_path(config, k, {})
@@ -232,8 +232,7 @@ def direct_load_config[T](
     assert base is not None and config_name is not None, 'Must specify a base path for configs and a config name'
 
     # remove the `base` from the config_name if it already exists
-    if config_name.startswith(base):
-        config_name = config_name[len(base):]
+    config_name = config_name.removeprefix(base)
 
     # load the raw config with defaults resolved
     raw_config = _load_raw_config(base, config_name)

@@ -4,11 +4,11 @@ import datetime
 import logging
 import warnings
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Literal, Self, Tuple
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
 from pandas import DataFrame
@@ -76,7 +76,7 @@ class PipelineConfig:
                     preprocess=[],
                     state_constructor=[NullConfig()],
                     outlier=[IdentityFilterConfig()],
-                )
+                ),
             )
 
     @post_processor
@@ -107,8 +107,8 @@ class PipelineReturn:
     transitions: list[Transition] | None
 
     def _add(
-        self, other: Self
-    ) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+        self, other: Self,
+    ) -> tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
@@ -192,8 +192,8 @@ class Pipeline:
         self.zone_discourager = ZoneDiscourager(app_state, self.tags, self.preprocessor)
 
         # build pipeline state
-        self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
-        self.dt_dict: dict[DataMode, datetime.datetime | None] = {data_mode: None for data_mode in DataMode}
+        self.ts_dict: dict[DataMode, TemporalState | None] = dict.fromkeys(DataMode, None)
+        self.dt_dict: dict[DataMode, datetime.datetime | None] = dict.fromkeys(DataMode, None)
 
         self._pre_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             data_mode: defaultdict(list) for data_mode in DataMode}
@@ -234,7 +234,7 @@ class Pipeline:
             StageCode.ZONES,
             StageCode.SC,
             StageCode.TC,
-            StageCode.TF
+            StageCode.TF,
         )
 
     def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:

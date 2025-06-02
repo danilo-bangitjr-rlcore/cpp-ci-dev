@@ -1,17 +1,16 @@
 from datetime import datetime
-from typing import List
+from typing import Annotated
 
 from sqlalchemy import ForeignKey, ForeignKeyConstraint, String
 from sqlalchemy.dialects.mysql import LONGBLOB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from sqlalchemy.types import JSON, DateTime, PickleType
-from typing_extensions import Annotated
 
 timestamp = Annotated[
     datetime,
     mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(),
     ),
 ]
 
@@ -27,11 +26,11 @@ class Run(Base):
     __tablename__ = "runs"
     run_id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[timestamp]
-    hparams: Mapped[List["HParam"]] = relationship(
-        back_populates="run", cascade="all, delete-orphan"
+    hparams: Mapped[list["HParam"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan",
     )
-    steps: Mapped[List["Step"]] = relationship(
-        back_populates="run", cascade="all, delete-orphan"
+    steps: Mapped[list["Step"]] = relationship(
+        back_populates="run", cascade="all, delete-orphan",
     )
 
 
@@ -52,20 +51,20 @@ class Step(Base):
 
     # Object relationships
     run: Mapped["Run"] = relationship(back_populates="steps")
-    transitions: Mapped[List["SQLTransition"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+    transitions: Mapped[list["SQLTransition"]] = relationship(
+        back_populates="step", cascade="all, delete-orphan",
     )
-    transition_info: Mapped[List["TransitionInfo"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+    transition_info: Mapped[list["TransitionInfo"]] = relationship(
+        back_populates="step", cascade="all, delete-orphan",
     )
-    losses: Mapped[List["Loss"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+    losses: Mapped[list["Loss"]] = relationship(
+        back_populates="step", cascade="all, delete-orphan",
     )
-    network_weights: Mapped[List["NetworkWeights"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+    network_weights: Mapped[list["NetworkWeights"]] = relationship(
+        back_populates="step", cascade="all, delete-orphan",
     )
-    grad_info: Mapped[List["GradInfo"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan"
+    grad_info: Mapped[list["GradInfo"]] = relationship(
+        back_populates="step", cascade="all, delete-orphan",
     )
 
 
@@ -86,7 +85,7 @@ class SQLTransition(Base):
     exclude: Mapped[bool] = mapped_column(default=False)
 
     # Object relationships
-    transition_info: Mapped[List["TransitionInfo"]] = relationship(
+    transition_info: Mapped[list["TransitionInfo"]] = relationship(
         back_populates="transition",
     )
 
@@ -94,7 +93,7 @@ class SQLTransition(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -115,7 +114,7 @@ class Loss(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -144,7 +143,7 @@ class TransitionInfo(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -166,7 +165,7 @@ class NetworkWeights(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
 
@@ -188,26 +187,6 @@ class GradInfo(Base):
 
     __table_args__ = (
         ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"]
+            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
         ),
     )
-
-
-stepper = None
-
-
-class SQLStepper:
-    def __init__(self, run: Run):
-        super().__init__()
-        self.run = run
-        self.step_num = 0
-        self.step = Step(step_num=self.step_num, run=self.run)
-
-    def increment_step(self):
-        self.step_num += 1
-        self.step = Step(step_num=self.step_num, run=self.run)
-
-
-def init_stepper(run: Run):
-    global stepper
-    stepper = SQLStepper(run)

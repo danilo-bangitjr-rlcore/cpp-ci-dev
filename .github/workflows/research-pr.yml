@@ -1,20 +1,21 @@
-name: Style and Tests
+name: Research Style and Tests
 permissions: write-all # Needed to comment coverage% on PR
 
 on:
   pull_request:
     paths:
       - "research/**"
+      - "libs/**"
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: research-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   # -----------
   # -- Style --
   # -----------
-  style-n-test:
+  research-style-n-test:
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,6 +33,9 @@ jobs:
 
       # linting
       - uses: astral-sh/ruff-action@v1
+        with:
+            src: research
+
       - uses: dciborow/action-pylint@0.1.0
         with:
           github_token: ${{ secrets.github_token }}

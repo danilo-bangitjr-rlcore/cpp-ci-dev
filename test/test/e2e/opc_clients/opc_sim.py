@@ -88,7 +88,7 @@ def run(env: gym.Env, client: Client, cfg: OPCSimConfig):
     initial_action = env.action_space.sample()
 
     opc_nodes = initialize_opc_nodes_from_tags(
-        client, cfg, initial_observation, initial_action
+        client, cfg, initial_observation, initial_action,
     )
 
     # Run simulation forever using OPC for communication

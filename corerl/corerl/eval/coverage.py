@@ -4,11 +4,10 @@ from typing import Protocol
 
 import numpy as np
 import pandas as pd
-import scipy.stats as stats
 import torch
-import torch.nn as nn
-import torch.optim as optim
+from scipy import stats
 from sklearn.neighbors import KDTree
+from torch import nn, optim
 from tqdm import tqdm
 
 from corerl.component.network.utils import tensor, to_np
@@ -159,7 +158,7 @@ class AECoverage:
                 int(self._input_dim),
             ]
         else:
-            sizes = [int(self._input_dim)] + self.cfg.sizes + [int(self._input_dim)]
+            sizes = [int(self._input_dim), *self.cfg.sizes, int(self._input_dim)]
 
         parts: list[nn.Module] = []
 
@@ -176,7 +175,7 @@ class AECoverage:
             weight_decay=self.cfg.weight_decay,
         )
         self._scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self._optimizer, "min", factor=0.5, patience=100, min_lr=1e-6, threshold=1e-4
+            self._optimizer, "min", factor=0.5, patience=100, min_lr=1e-6, threshold=1e-4,
         )
 
         self._buffer = CircularBuffer(self.cfg.buffer_size)
@@ -220,7 +219,7 @@ class AECoverage:
                 {
                     "loss": f"{loss.item():.6f}",
                     "lr": f"{self._optimizer.param_groups[0]['lr']:.2e}",
-                }
+                },
             )
 
         self.norm_const = get_norm_const(self, dataset, self.cfg.epsilon, self.cfg.n_norm_samples)
@@ -230,9 +229,8 @@ class AECoverage:
         context = torch.no_grad() if not with_grad else nullcontext()
         with context:
             out = self._model(batch)
-            loss_by_sample = torch.square(batch - out).mean(dim=1)
+            return torch.square(batch - out).mean(dim=1)
 
-        return loss_by_sample
 
 
 # --------------------------------- utilities -------------------------------- #
@@ -254,8 +252,7 @@ def sample_epsilon_ball(
     directions = np.random.normal(0, 1, (n_samples * n_center_samples, dimension))
     directions /= np.linalg.norm(directions, axis=1, keepdims=True)
     repeated_center = np.repeat(center, repeats=n_samples, axis=0)
-    points = repeated_center + epsilon * directions
-    return points
+    return repeated_center + epsilon * directions
 
 
 def get_norm_const(

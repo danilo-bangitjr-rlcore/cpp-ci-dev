@@ -203,7 +203,7 @@ class StepBatch:
             action_lo=self.action_lo[idx],
             action_hi=self.action_hi[idx],
             dp=self.dp[idx],
-            ac=self.ac[idx]
+            ac=self.ac[idx],
         )
 
 @dataclass
@@ -246,7 +246,7 @@ class TransitionBatch:
         )
 
     def __getitem__(self, idx: int|slice) -> "TransitionBatch":
-        if isinstance(idx, (int, np.integer)):
+        if isinstance(idx, int | np.integer):
             idx = slice(idx, idx+1)
 
         return TransitionBatch(
@@ -254,7 +254,7 @@ class TransitionBatch:
             prior=self.prior[idx],
             post=self.post[idx],
             n_step_reward=self.n_step_reward[idx],
-            n_step_gamma=self.n_step_gamma[idx]
+            n_step_gamma=self.n_step_gamma[idx],
         )
 
 

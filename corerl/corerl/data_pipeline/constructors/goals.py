@@ -44,7 +44,7 @@ class GoalConstructor:
             rewards.append(r)
 
         pf.rewards = pd.DataFrame({
-            'reward': rewards
+            'reward': rewards,
         }, index=pf.data.index)
 
         return pf
@@ -154,13 +154,13 @@ class GoalConstructor:
                         # drop the tag from the AND
                         violation_percents[idx] = (goal, 0)
                         logger.warning(
-                            f"Goal {goal.tag} is out of operating range. Setting violation percent to 0 for AND goal."
+                            f"Goal {goal.tag} is out of operating range. Setting violation percent to 0 for AND goal.",
                         )
                     else:
                         # drop the tag from the OR
                         violation_percents[idx] = (goal, 1)
                         logger.warning(
-                            f"Goal {goal.tag} is out of operating range. Setting violation percent to 1 for OR goal."
+                            f"Goal {goal.tag} is out of operating range. Setting violation percent to 1 for OR goal.",
                         )
 
             if priority.op == 'and':
@@ -235,9 +235,9 @@ class GoalConstructor:
             return self._goal_is_satisfied(priority, row)
 
         if priority.op == 'and':
-            return all([self._priority_is_satisfied(goal, row) for goal in priority.goals])
+            return all(self._priority_is_satisfied(goal, row) for goal in priority.goals)
 
-        return any([self._priority_is_satisfied(goal, row) for goal in priority.goals])
+        return any(self._priority_is_satisfied(goal, row) for goal in priority.goals)
 
 
     def _goal_is_satisfied(self, goal: Goal, row: pd.DataFrame):

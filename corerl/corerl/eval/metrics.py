@@ -78,9 +78,8 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
     def _execute_read(self, stmt: str) -> pd.DataFrame:
         assert self.engine is not None
         with TryConnectContextManager(self.engine) as connection:
-            metrics_table = pd.read_sql(sql=text(stmt), con=connection)
+            return pd.read_sql(sql=text(stmt), con=connection)
 
-        return metrics_table
 
     def _read_by_metric(self, metric: str) -> pd.DataFrame:
         stmt = f"""
@@ -133,7 +132,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         self,
         metric: str,
         start_time: datetime | None,
-        end_time: datetime | None
+        end_time: datetime | None,
     ) -> pd.DataFrame:
         stmt = f"""
             SELECT
@@ -172,14 +171,13 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         step_start: int | None = None,
         step_end: int | None = None,
         start_time: datetime | None = None,
-        end_time: datetime | None = None
+        end_time: datetime | None = None,
     ) -> pd.DataFrame:
         # Make sure all MetricPoint objects in buffer have been written to DB
         self.blocking_sync()
 
         if start_time is not None or end_time is not None:
             return self._read_by_time(metric, start_time, end_time)
-        elif step_start is not None or step_end is not None:
+        if step_start is not None or step_end is not None:
             return self._read_by_step(metric, step_start, step_end)
-        else:
-            return self._read_by_metric(metric)
+        return self._read_by_metric(metric)

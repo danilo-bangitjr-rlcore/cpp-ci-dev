@@ -18,9 +18,10 @@ def test_delta_xform():
     })
     start_time = dt.datetime(2023, 4, 11, 2)
     increment = dt.timedelta(hours=1)
-    timestamps = []
-    for i in range(len(df)):
-        timestamps.append(start_time + increment * i)
+    timestamps = [
+        start_time + increment * i
+        for i in range(len(df))
+    ]
     df.index = pd.DatetimeIndex(timestamps)
 
     carry = TransformCarry(df, df, 'tag-1')

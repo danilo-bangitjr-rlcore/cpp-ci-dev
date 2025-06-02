@@ -1,13 +1,13 @@
 import torch
-import torch.distributions.constraints as constraints
-import torch.nn as nn
+from torch import nn
+from torch.distributions import constraints
 
 from corerl.component.policy.policy import Policy
 
 
 class Softmax(Policy):
     def __init__(self, net: nn.Module, input_dim: int, output_dim: int):
-        super(Softmax, self).__init__(net)
+        super().__init__(net)
         self.output_dim = output_dim
 
     @Policy.has_rsample.getter

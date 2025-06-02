@@ -90,8 +90,7 @@ class MonteCarloEvaluator:
             [repeat_state],
             [sampled_actions],
         ).reduced_value
-        sampled_a_avg_q = float(sampled_a_qs.mean())
-        return sampled_a_avg_q
+        return float(sampled_a_qs.mean())
 
     def _get_observed_a_q(self, state: Tensor, observed_a: Tensor) -> float:
         """
@@ -112,7 +111,7 @@ class MonteCarloEvaluator:
         Returns a computed partial return once the horizon of self.return_steps has elapsed.
         """
         if len(self._step_queue) < self.return_steps:
-            return
+            return None
 
         partial_return = 0.0
         gamma = self.gamma ** (self.return_steps - 1)

@@ -3,8 +3,9 @@ from __future__ import annotations
 import functools
 import logging
 import pickle
+from collections.abc import Callable
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Callable, Literal, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import torch
 from pydantic import Field, TypeAdapter
@@ -75,7 +76,7 @@ class GACPolicyManagerConfig:
 
     @computed('buffer')
     @classmethod
-    def _buffer(cls, cfg: 'MainConfig'):
+    def _buffer(cls, cfg: MainConfig):
         default_buffer_type = (
             RecencyBiasBufferConfig
             if cfg.feature_flags.recency_bias_buffer else
@@ -86,11 +87,10 @@ class GACPolicyManagerConfig:
         default_buffer = default_buffer_type(id='critic')
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
-        out = ta.validate_python(default_buffer_dict, context=main_cfg)
-        return out
+        return ta.validate_python(default_buffer_dict, context=main_cfg)
 
     @post_processor
-    def _default_stepsize(self, cfg: 'MainConfig'):
+    def _default_stepsize(self, cfg: MainConfig):
         if isinstance(self.optimizer, AdamConfig):
             self.optimizer.lr = 0.001
 
@@ -151,7 +151,7 @@ class GACPolicyManager:
             self,
             action_lo: torch.Tensor,
             action_hi: torch.Tensor,
-            policy_actions: torch.Tensor
+            policy_actions: torch.Tensor,
         ) -> torch.Tensor:
         """
         Ensures that the output of this function is a direct action
@@ -169,7 +169,7 @@ class GACPolicyManager:
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        n_samples: int
+        n_samples: int,
     ) -> torch.Tensor:
         """
         Samples actions from the actor
@@ -182,15 +182,14 @@ class GACPolicyManager:
         policy_actions = dist.sample((n_samples,))
         assert policy_actions.shape == (n_samples, batch_size, self.action_dim)
 
-        policy_actions = policy_actions.permute(1, 0, 2)
-        return policy_actions
+        return policy_actions.permute(1, 0, 2)
 
     def _sample_sampler(
         self,
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-        n_samples: int
+        n_samples: int,
     ) -> torch.Tensor:
         """
         Samples a mixture between the sampler and a uniform distribution
@@ -218,9 +217,8 @@ class GACPolicyManager:
         uniform_actions = torch.rand(batch_size, n_samples, self.action_dim, device=device.device)
         action_lo = action_lo.unsqueeze(1)
         action_hi = action_hi.unsqueeze(1)
-        bounded_uniform_actions = (action_hi - action_lo) * uniform_actions + action_lo
+        return (action_hi - action_lo) * uniform_actions + action_lo
 
-        return bounded_uniform_actions
 
     def _get_actions(
         self,

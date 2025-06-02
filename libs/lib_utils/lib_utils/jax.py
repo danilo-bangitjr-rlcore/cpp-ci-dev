@@ -1,6 +1,5 @@
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from inspect import Parameter, signature
-from typing import Sequence
 
 import jax
 

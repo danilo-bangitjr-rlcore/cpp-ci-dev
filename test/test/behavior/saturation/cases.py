@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sqlalchemy import Engine
 
-import test.behavior.utils as utils
+from test.behavior import utils
 from test.behavior.bsuite import BSuiteTestCase
 
 
@@ -121,7 +121,8 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.setup_cfgs[0],
-        ] + parts)
+            *parts,
+        ], check=False)
         proc.check_returncode()
 
         actor_checkpoints = list(checkpoint_path.glob('*'))
@@ -136,7 +137,8 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.setup_cfgs[1],
-        ] + parts)
+            *parts,
+        ], check=False)
         proc.check_returncode()
 
         critic_checkpoints = list(checkpoint_path.glob('*'))

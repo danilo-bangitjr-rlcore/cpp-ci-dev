@@ -90,7 +90,7 @@ class ThreeTankEnv(gym.Env):
             'H1': [], 'H3': [],
             'T1': [], 'T3': [],
             'P1': [], 'P2': [],
-            'time': []
+            'time': [],
         }
         self.current_step = 0
 
@@ -128,7 +128,7 @@ class ThreeTankEnv(gym.Env):
             'H1': [], 'H3': [],
             'T1': [], 'T3': [],
             'P1': [], 'P2': [],
-            'time': []
+            'time': [],
         }
         self.current_step = 0
 

@@ -57,7 +57,7 @@ def generate_tag_yaml(
 
     def represent_float(dumper: Any, value: object):
         # round floating point numbers for serialization
-        text = "{0:.4f}".format(value).rstrip("0").rstrip(".")
+        text = f"{value:.4f}".rstrip("0").rstrip(".")
         if "." not in text:
             text += ".0"
         return dumper.represent_scalar("tag:yaml.org,2002:float", text)
@@ -69,11 +69,10 @@ def generate_tag_yaml(
   )
 
     def prune_tags(tags: list[dict], entries: list[str]):
-        pruned_tags = [
+        return [
             {key: value for key, value in tag.items() if key in entries or key == 'name'}
             for tag in tags
         ]
-        return pruned_tags
 
     with open(tag_path, "w+") as f:
         raw_tags = config_to_dict(list[TagConfig], tags)
@@ -107,7 +106,7 @@ def main():
         "-m",
         "--meta",
         action="store_true",
-        help="If specified, emits environment meta tag configurations for reward, terminated, truncated"
+        help="If specified, emits environment meta tag configurations for reward, terminated, truncated",
     )
     parser.add_argument(
         "--namespace",
@@ -118,12 +117,12 @@ def main():
     parser.add_argument(
         "--telegraf",
         action="store_true",
-        help="If specified, writes generated_telegraf.conf"
+        help="If specified, writes generated_telegraf.conf",
     )
     parser.add_argument(
         "--tag-config",
         action="store_true",
-        help="If specified, writes generated_tags.yaml"
+        help="If specified, writes generated_tags.yaml",
     )
     parser.add_argument(
         "--tag-entries",
@@ -140,7 +139,7 @@ def main():
     )
     args = parser.parse_args()
 
-    log.info(f"gym.make({repr(args.name)})")
+    log.info(f"gym.make({args.name!r})")
     env: gym.Env = gym.make(args.name)
     log.info(env)
 

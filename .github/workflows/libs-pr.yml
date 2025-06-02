@@ -1,0 +1,41 @@
+name: Libs Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "libs/**"
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  libs-style-n-test:
+    runs-on: ubuntu-latest
+    strategy:
+        matrix:
+            lib: [lib_agent, lib_utils, rl_env]
+    defaults:
+      run:
+        working-directory: libs/${{ matrix.lib }}
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: libs/${{ matrix.lib }}
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: libs/${{ matrix.lib }}
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: libs/${{ matrix.lib }}

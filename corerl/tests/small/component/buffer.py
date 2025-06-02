@@ -15,16 +15,15 @@ from corerl.state import AppState
 from tests.small.data_pipeline.test_transition_filter import make_test_step
 
 
-def make_test_transition(start: int, len: int) -> Transition:
-    steps = [make_test_step(start + i) for i in range(len+1)]
-    transition = Transition(steps, 1, .99)
-    return transition
+def make_test_transition(start: int, length: int) -> Transition:
+    steps = [make_test_step(start + i) for i in range(length+1)]
+    return Transition(steps, 1, .99)
 
-def make_test_transitions(start:int, num: int, len: int) -> list[Transition]:
-    transitions = []
-    for i in range(start, start+num):
-        transitions.append(make_test_transition(i, len))
-    return transitions
+def make_test_transitions(start:int, num: int, length: int) -> list[Transition]:
+    return [
+        make_test_transition(i, length)
+        for i in range(start, start+num)
+    ]
 
 def test_feed_online_mode(dummy_app_state: AppState):
     buffer_cfg = MixedHistoryBufferConfig(
@@ -73,7 +72,7 @@ def test_masked_ug_distribution():
 
     assert np.allclose(
         dist.probs(np.concatenate((elements, new_elements))),
-        np.array([0.225, 0.225, 0., 0., 0.225, 0.325, 0.])
+        np.array([0.225, 0.225, 0., 0., 0.225, 0.325, 0.]),
     )
 
     assert dist.size() == 4
@@ -169,7 +168,7 @@ def test_recency_bias_buffer_discounting(dummy_app_state: AppState):
 
     expected_weights =  np.concatenate(
         (expected_weights * expected_discount**10,
-        np.array([1.0]))
+        np.array([1.0])),
     )
     expected_probs =  expected_weights / expected_weights.sum()
     assert np.allclose(

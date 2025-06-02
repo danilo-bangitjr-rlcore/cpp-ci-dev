@@ -33,7 +33,7 @@ def mkstep(
         action_lo=torch.zeros_like(action),
         action_hi=torch.ones_like(action),
         dp=dp,
-        ac=ac
+        ac=ac,
     )
 
 def test_pipeline1():
@@ -128,7 +128,7 @@ def test_pipeline1():
                        ac=True),
             ],
             n_step_reward=0.,
-            n_step_gamma=0.9
+            n_step_gamma=0.9,
         ),
         Transition(
             steps=[
@@ -146,7 +146,7 @@ def test_pipeline1():
                        ac=True),
             ],
             n_step_reward=0.,
-            n_step_gamma=0.9
+            n_step_gamma=0.9,
         ),
     ]
 

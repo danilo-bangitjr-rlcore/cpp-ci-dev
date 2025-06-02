@@ -58,8 +58,7 @@ class GTDCriticConfig:
         default_buffer = default_buffer_type(id='critic')
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
-        out = ta.validate_python(default_buffer_dict, context=main_cfg)
-        return out
+        return ta.validate_python(default_buffer_dict, context=main_cfg)
 
 
 class EnsembleNetworkReturn(NamedTuple):
@@ -352,7 +351,7 @@ class GreedyAC(BaseAgent):
             n_samples,
             states,
             action_lo,
-            action_hi
+            action_hi,
         )
 
     def get_uniform_actions(
@@ -369,7 +368,7 @@ class GreedyAC(BaseAgent):
             n_samples,
             states,
             action_lo,
-            action_hi
+            action_hi,
         )
 
     def update_buffer(self, pr: PipelineReturn) -> None:
@@ -423,7 +422,7 @@ class GreedyAC(BaseAgent):
 
     def _get_bootstrap_actions(
         self,
-        batches: list[TransitionBatch]
+        batches: list[TransitionBatch],
     ):
         next_actions: list[torch.Tensor] = []
 
