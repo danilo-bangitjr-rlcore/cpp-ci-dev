@@ -1,12 +1,14 @@
 import logging
 from asyncio import CancelledError
+from collections.abc import Sequence
 from datetime import UTC
 from types import TracebackType
+from typing import Protocol
 
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import OPCConnectionConfig
@@ -20,13 +22,24 @@ class NodeData(BaseModel):
     var_type: ua.VariantType
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+class TagConfig(Protocol):
+    @property
+    def name(self) -> str: ...
+    @property
+    def connection_id(self) -> str | None: ...
+    @property
+    def node_identifier(self) -> str | None: ...
+    @property
+    def type(self) -> TagType: ...
+
+
 class OPC_Connection:
     def __init__(self):
         self.opc_client: Client | None = None
         self.registered_nodes: dict[str, NodeData] = {}
         self._connected = False
 
-    async def init(self, cfg: OPCConnectionConfig, tag_configs: list[TagConfig]):
+    async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfig]):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
         await self._register_action_nodes(tag_configs)
@@ -65,7 +78,7 @@ class OPC_Connection:
 
             self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
-    async def _register_action_nodes(self, tag_configs: list[TagConfig]):
+    async def _register_action_nodes(self, tag_configs: Sequence[TagConfig]):
         """
         Register nodes that:
         1. Have the relevant connection_id
