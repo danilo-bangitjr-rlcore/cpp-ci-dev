@@ -14,11 +14,22 @@ agent:
   proposal_lr: 0.001
 
   critic:
-    stepsize: 0.1
+    name: QRC
+    stepsize: 0.001
     ensemble: 1
     ensemble_prob: 1.0
     batch_size: 256
-    polyak: 0.995
+
+pipeline:
+  reward:
+    priorities:
+      - op: up_to
+        tag: tag-0
+        thresh: "1*{tag-2} + 0.1*{tag-1}"
+
+      - op: down_to
+        tag: tag-0
+        thresh: 0.0
 
 env:
   name: Saturation-v0
