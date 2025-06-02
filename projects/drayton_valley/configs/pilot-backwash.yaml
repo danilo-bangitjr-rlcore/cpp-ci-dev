@@ -145,7 +145,7 @@ pipeline:
     preprocess:
     - name: identity
     state_constructor:
-    - name: "null"
+    - name: "nuke"
     imputer:
       name: identity
 

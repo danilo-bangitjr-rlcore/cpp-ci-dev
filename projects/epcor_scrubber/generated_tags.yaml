@@ -68,7 +68,7 @@
   imputer: null
   preprocess: []
   reward_constructor:
-  - name: 'null'
+  - name: 'nuke'
   action_constructor: null
   state_constructor: null
   filter: null

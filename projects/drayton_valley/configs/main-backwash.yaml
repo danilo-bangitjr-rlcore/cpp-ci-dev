@@ -193,14 +193,14 @@ pipeline:
       name: exp_moving
       alpha: 0.9928 # half life 24h
     state_constructor:
-    - name: "null"
+    - name: "nuke"
 
   - name: UF2_SEQ_STATE # used in permeability calculation
     operating_range: [1, 2048]
     preprocess:
     - name: identity
     state_constructor:
-    - name: "null"
+    - name: "nuke"
       #agg: last
 
   - name: BP_CYCLE_TOTAL
