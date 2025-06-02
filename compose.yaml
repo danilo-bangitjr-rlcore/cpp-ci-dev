@@ -17,7 +17,7 @@ services:
       - timescale-storage:/var/lib/postgresql/data
 
   opc-server:
-    build: ./e2e/opc_server
+    build: ./test/test/e2e/opc_server
     ports:
       - 4840:4840
     healthcheck:
@@ -43,12 +43,12 @@ services:
       opc-server:
         condition: service_healthy
     volumes:
-      - ./e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      - ./test/test/e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
     develop:
       watch:
         - action: sync+restart
-          path: ./e2e/telegraf/generated_telegraf.conf
+          path: ./test/test/e2e/telegraf/generated_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
   corerl:
@@ -121,9 +121,9 @@ services:
       GF_LOG_FILTERS: rendering:debug
     volumes:
       - grafana-storage:/var/lib/grafana
-      - ./e2e/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
-      - ./e2e/grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
-      - ./e2e/grafana/grafana_config_continuous_mountain_car.json:/var/lib/grafana/dashboards/grafana_config_continuous_mountain_car.json
+      - ./test/test/e2e/grafana/datasource.yaml:/etc/grafana/provisioning/datasources/datasource.yaml
+      - ./test/test/e2e/grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/dashboard.yaml
+      - ./test/test/e2e/grafana/grafana_config_continuous_mountain_car.json:/var/lib/grafana/dashboards/grafana_config_continuous_mountain_car.json
 
   renderer:
     image: grafana/grafana-image-renderer:latest
@@ -174,7 +174,7 @@ services:
       opc-server:
         condition: service_healthy
     volumes:
-      - ./e2e/opc_clients:/app/e2e/opc_clients
+      - ./test/test/e2e/opc_clients:/app/e2e/opc_clients
       - ./config/opc_sim:/app/config/opc_sim
     entrypoint: ["python"]
     command:

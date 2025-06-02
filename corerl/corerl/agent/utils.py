@@ -5,9 +5,8 @@ from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 import torch
 
-from corerl.component.network.networks import EnsembleNetworkReturn
-
 if TYPE_CHECKING:
+    from corerl.agent.greedy_ac import EnsembleNetworkReturn
     from corerl.component.policy_manager import ActionReturn
 
 

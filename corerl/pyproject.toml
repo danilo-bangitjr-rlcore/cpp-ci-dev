@@ -36,6 +36,7 @@ dependencies = [
     "pyzmq~=26.4.0",
     "coreio",
     "sympy~=1.14",
+    "lib-agent",
 ]
 readme = "README.md"
 
@@ -74,6 +75,7 @@ packages = ["corerl"]
 test = { path = "../test", editable = true }
 coreio = { path = "../coreio", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
+lib-agent = { path = "../libs/lib_agent", editable = true }
 
 # ----------
 # -- Ruff --

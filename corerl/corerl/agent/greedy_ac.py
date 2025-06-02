@@ -1,19 +1,23 @@
 import logging
 import pickle as pkl
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import torch
-from pydantic import Field
+from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic, get_stable_rank
+from ml_instrumentation.Collector import Collector
+from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.buffer import buffer_group
-from corerl.component.critic.factory import GTDCriticConfig, create_critic
+from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
 from corerl.component.network.utils import tensor, to_np
+from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
-from corerl.configs.config import config
-from corerl.data_pipeline.datatypes import TransitionBatch
+from corerl.configs.config import MISSING, computed, config
+from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -21,10 +25,84 @@ from corerl.utils.device import device
 from corerl.utils.math import exp_moving_avg
 from corerl.utils.random import get_dist_stats, rejection_sample
 
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 logger = logging.getLogger(__name__)
 
 torch.autograd.set_detect_anomaly(True)
 
+@config()
+class CriticNetworkConfig:
+    ensemble: int = 1
+
+@config()
+class GTDCriticConfig:
+    beta: float = 1.0
+    action_regularization: float = 0.0
+    num_rand_actions: int = 10
+    buffer: BufferConfig = MISSING
+    critic_optimizer: AdamConfig =  Field(default_factory=AdamConfig)
+    critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
+
+    @computed('buffer')
+    @classmethod
+    def _buffer(cls, cfg: 'MainConfig'):
+        default_buffer_type = (
+            RecencyBiasBufferConfig
+            if cfg.feature_flags.recency_bias_buffer else
+            MixedHistoryBufferConfig
+        )
+
+        ta = TypeAdapter(default_buffer_type)
+        default_buffer = default_buffer_type(id='critic')
+        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
+        main_cfg: Any = cfg
+        out = ta.validate_python(default_buffer_dict, context=main_cfg)
+        return out
+
+
+class EnsembleNetworkReturn(NamedTuple):
+    # some reduction over ensemble members, producing a single
+    # value function
+    reduced_value: torch.Tensor
+
+    # the value function for every member of the ensemble
+    ensemble_values: torch.Tensor
+
+    # the variance of the ensemble values
+    ensemble_variance: torch.Tensor
+
+
+class WrappedCritic:
+    def __init__(self, critic: QRCCritic, critic_state: CriticState):
+        self._critic = critic
+        self._critic_state = critic_state
+
+    def get_values(
+        self,
+        state_batches: list[torch.Tensor],
+        action_batches: list[torch.Tensor],
+        with_grad: bool = False,
+    ) -> EnsembleNetworkReturn:
+        ens_state = jnp.stack([
+            jnp.asarray(s) for s in state_batches
+        ])
+
+        ens_action = jnp.stack([
+            jnp.asarray(a) for a in action_batches
+        ])
+
+        q = self._critic.forward(
+            self._critic_state.params,
+            ens_state,
+            ens_action,
+        )
+        return EnsembleNetworkReturn(
+            reduced_value=torch.tensor(q.mean(axis=0)),
+            ensemble_values=torch.tensor(q),
+            ensemble_variance=torch.tensor(0.0),
+        )
 
 @config()
 class GreedyACConfig(BaseAgentConfig):
@@ -101,8 +179,18 @@ class GreedyAC(BaseAgent):
 
         self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
 
-        # Critic can train on all transitions whereas the policy only trains on transitions that are at decision points
-        self.critic = create_critic(cfg.critic, app_state, self.state_dim, self.action_dim)
+        collector = Collector(experiment_id=0)
+        critic_cfg = QRCConfig(
+            name='qrc',
+            stepsize=cfg.critic.critic_optimizer.lr,
+            ensemble=cfg.critic.critic_network.ensemble,
+            ensemble_prob=cfg.critic.buffer.ensemble_probability,
+            batch_size=cfg.critic.buffer.batch_size,
+            num_rand_actions=cfg.critic.num_rand_actions,
+            action_regularization=cfg.critic.action_regularization,
+            l2_regularization=cfg.critic.critic_optimizer.weight_decay,
+        )
+        self.critic = QRCCritic(critic_cfg, 0, col_desc.state_dim, col_desc.action_dim, collector)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
@@ -112,6 +200,15 @@ class GreedyAC(BaseAgent):
         self._avg_critic_delta: float | None = None
         self._last_actor_loss = 0.
         self._avg_actor_delta: float | None = None
+
+
+        # critic state
+        dummy_x = jnp.zeros(self.state_dim)
+        dummy_a = jnp.zeros(self.action_dim)
+
+        self._jax_rng = jax.random.PRNGKey(0)
+        self._jax_rng, c_rng = jax.random.split(self._jax_rng)
+        self._critic_state = self.critic.init_state(c_rng, dummy_x, dummy_a)
 
 
     @property
@@ -131,6 +228,18 @@ class GreedyAC(BaseAgent):
 
     def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         return torch.exp(self.log_prob(states, actions)[0])
+
+    def get_values(self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor]):
+        q = self.critic.forward(
+            self._critic_state.params,
+            jnp.asarray(state_batches),
+            jnp.asarray(action_batches),
+        )
+        return EnsembleNetworkReturn(
+            reduced_value=torch.asarray(q.mean(axis=0)),
+            ensemble_values=torch.asarray(q),
+            ensemble_variance=torch.asarray(q.var(axis=0)),
+        )
 
     def get_action_interaction(
         self,
@@ -226,7 +335,7 @@ class GreedyAC(BaseAgent):
             states,
             action_lo,
             action_hi,
-            self.critic,
+            WrappedCritic(self.critic, self._critic_state),
         )
 
     def get_sampler_actions(
@@ -275,12 +384,19 @@ class GreedyAC(BaseAgent):
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
-            duplicated_critic_batch = [recent_critic_batch for i in range(self.ensemble)]
-            bootstrap_actions = self._get_bootstrap_actions(duplicated_critic_batch)
+            recent_critic_batch = [recent_critic_batch for _ in range(self.ensemble)]
+
+            bootstrap_actions = self._get_bootstrap_actions(recent_critic_batch)
+
+            next_actions = jnp.stack([jnp.asarray(a) for a in bootstrap_actions])
+            v_trans = vect_trans_from_transition_batch(recent_critic_batch)
+
+            _, metrics = self.critic.update(self._critic_state, v_trans, next_actions)
+
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric=f"ingress_critic_loss_{pr.data_mode.name}",
-                value=self.critic.compute_loss(duplicated_critic_batch, bootstrap_actions).item(),
+                value=metrics['loss'].item(),
             )
 
         # ------------------------- transition length metric ------------------------- #
@@ -319,7 +435,7 @@ class GreedyAC(BaseAgent):
                     batch.post.state,
                     batch.post.action_lo,
                     batch.post.action_hi,
-                    self.critic,
+                    WrappedCritic(self.critic, self._critic_state),
                 )
                 # add a singleton dimension over action_dim to forcefully broadcast
                 # over the action_dim
@@ -341,17 +457,54 @@ class GreedyAC(BaseAgent):
 
         batches = self.critic_buffer.sample()
         bootstrap_actions = self._get_bootstrap_actions(batches)
-        eval_actions = bootstrap_actions
 
-        if self.eval_batch:
-            eval_batches = self.critic_buffer.sample()
-            eval_actions = self._get_bootstrap_actions(eval_batches)
-        else:
-            eval_batches = batches
+        next_actions = jnp.stack([jnp.asarray(a) for a in bootstrap_actions])
+        v_trans = vect_trans_from_transition_batch(batches)
 
-        q_loss = self.critic.update(batches, bootstrap_actions, eval_batches, eval_actions)
-        return [float(q_loss)]
+        self._critic_state, metrics = self.critic.update(self._critic_state, v_trans, next_actions)
 
+        # log weight norm
+        for i, norm in enumerate(metrics['ensemble_weight_norms']):
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"network_critic_{i}_weight_norm",
+                value=norm,
+            )
+
+        # log grad norm
+        for i, norm in enumerate(metrics['ensemble_grad_norms']):
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"optimizer_critic_{i}_grad_norm",
+                value=norm,
+            )
+
+        # log stable ranks
+        stable_ranks = get_stable_rank(self._critic_state.params)
+        for i, rank in enumerate(stable_ranks):
+            for layer_name, layer_rank in rank.items():
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"critic_{i}_stable_rank_{layer_name}",
+                    value=layer_rank,
+                )
+
+        # log loss
+        loss_list = metrics['loss'].tolist()
+        for i, loss_i in enumerate(loss_list):
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"critic_loss_{i}",
+                value=loss_i,
+            )
+
+        self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="avg_critic_loss",
+                value=sum(loss_list) / len(loss_list),
+        )
+
+        return loss_list
 
     def update(self) -> list[float]:
         q_losses = []
@@ -363,7 +516,9 @@ class GreedyAC(BaseAgent):
             avg_critic_loss = np.mean(losses)
 
             for _ in range(self.cfg.max_internal_actor_updates):
-                actor_loss = self._policy_manager.update(self.critic)
+                actor_loss = self._policy_manager.update(
+                    WrappedCritic(self.critic, self._critic_state),
+                )
 
                 last = self._last_actor_loss
                 self._last_actor_loss = actor_loss
@@ -392,10 +547,13 @@ class GreedyAC(BaseAgent):
         actor_path = path / "actor"
         self._policy_manager.save(actor_path)
 
-        q_critic_path = path / "q_critic"
-        self.critic.save(q_critic_path)
+        critic_path = path / "critic.pkl"
+        critic_path.mkdir(parents=True, exist_ok=True)
+        with open(critic_path, "wb") as f:
+            pkl.dump(self._critic_state, f)
 
         critic_buffer_path = path / "critic_buffer.pkl"
+        critic_buffer_path.mkdir(parents=True, exist_ok=True)
         with open(critic_buffer_path, "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
@@ -405,15 +563,14 @@ class GreedyAC(BaseAgent):
         actor_path = path / "actor"
         self._policy_manager.load(actor_path)
 
-        q_critic_path = path / "q_critic"
-        self.critic.load(q_critic_path)
+        critic_path = path / "critic.pkl"
+        with open(critic_path, "rb") as f:
+            self._critic_state = pkl.load(f)
 
-        try:
-            critic_buffer_path = path / "critic_buffer.pkl"
-            with open(critic_buffer_path, "rb") as f:
-                self.critic_buffer = pkl.load(f)
-        except Exception:
-            logger.exception('Failed to load critic buffer from checkpoint. Reinitializing...')
+        critic_buffer_path = path / "critic_buffer.pkl"
+        with open(critic_buffer_path, "rb") as f:
+            self.critic_buffer = pkl.load(f)
+        self.critic_buffer.app_state = self._app_state
 
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {

@@ -1,7 +1,7 @@
 import torch
 
+from corerl.agent.greedy_ac import EnsembleNetworkReturn
 from corerl.agent.utils import get_sampled_qs, grab_percentile
-from corerl.component.network.networks import EnsembleNetworkReturn
 from corerl.component.policy_manager import ActionReturn
 
 

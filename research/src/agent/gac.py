@@ -1,4 +1,3 @@
-from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, NamedTuple, Protocol
 
@@ -10,7 +9,7 @@ import jax.numpy as jnp
 import lib_agent.network.networks as nets
 import numpy as np
 import optax
-from lib_agent.buffer.buffer import EnsembleReplayBuffer
+from lib_agent.buffer.buffer import EnsembleReplayBuffer, VectorizedTransition
 from lib_agent.critic.critic_registry import get_critic
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -114,9 +113,12 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 class GACCritic(Protocol):
     def init_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> CriticState: ...
     def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array) -> jax.Array: ...
-    def update(self, state: CriticState, get_actions: Callable[[chex.PRNGKey, jax.Array], jax.Array]) -> CriticState:
-        ...
-    def update_buffer(self, transition: Transition) -> None: ...
+    def update(
+        self,
+        critic_state: CriticState,
+        transitions: VectorizedTransition,
+        next_actions: jax.Array,
+    ) -> tuple[CriticState, dict]: ...
 
 
 class GreedyAC:
@@ -156,6 +158,12 @@ class GreedyAC:
             batch_size=cfg.batch_size,
         )
 
+        self.critic_buffer = EnsembleReplayBuffer(
+            n_ensemble=cfg.critic['ensemble'],
+            ensemble_prob=cfg.critic['ensemble_prob'],
+            batch_size=cfg.batch_size,
+        )
+
         # Agent State
         dummy_x = jnp.zeros(self.state_dim)
         dummy_a = jnp.zeros(self.action_dim)
@@ -183,7 +191,7 @@ class GreedyAC:
     # -- Public Interface --
     # ----------------------
     def update_buffer(self, transition: Transition):
-        self._critic.update_buffer(transition)
+        self.critic_buffer.add(transition)
         self.policy_buffer.add(transition)
 
     def _get_dist(self, params: chex.ArrayTree, state: jax.Array):
@@ -259,13 +267,16 @@ class GreedyAC:
         )
 
     def critic_update(self):
-        new_critic_state = self._critic.update(
-            state=self.agent_state.critic,
-            get_actions=lambda rng, x: self._get_actions_over_state(
-                self.agent_state.actor.params,
-                rng,
-                x,
-            )
+        if self.critic_buffer.size == 0:
+            return
+
+        batch = self.critic_buffer.sample()
+        next_actions = self._get_actions_over_state(self.agent_state.actor.params, self.rng, batch.next_state)
+        next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
+        new_critic_state, _ = self._critic.update(
+            critic_state=self.agent_state.critic,
+            transitions=batch,
+            next_actions=next_actions,
         )
 
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
