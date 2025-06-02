@@ -122,11 +122,11 @@ class SkipProjNet(hk.Module):
 def layer_factory(cfg: LayerConfig):
     if isinstance(cfg, LinearConfig):
         return Linear(cfg)
-    elif isinstance(cfg, ResidualConfig):
+    if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
-    elif isinstance(cfg, LateFusionConfig):
+    if isinstance(cfg, LateFusionConfig):
         return FusionNet(cfg)
-    elif isinstance(cfg, ResidualLateFusionConfig):
+    if isinstance(cfg, ResidualLateFusionConfig):
         return ResidualLateFusionNet(cfg)
 
     assert_never(cfg)
