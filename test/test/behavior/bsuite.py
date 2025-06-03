@@ -88,8 +88,8 @@ class BSuiteTestCase:
             'python', 'corerl/main.py',
             '--base', '../test/',
             '--config-name', self.config,
-        ] + parts, cwd='../corerl')
-        proc.check_returncode()
+            *parts
+        ], cwd='../corerl')
 
         # ensure metrics table exists
         assert table_exists(tsdb, 'metrics', schema=schema)
