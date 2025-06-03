@@ -5,11 +5,7 @@ from pathlib import Path
 from sqlalchemy import Engine
 
 from test.behavior import utils
-<<<<<<< HEAD
 from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
-=======
-from test.behavior.bsuite import BSuiteTestCase
->>>>>>> 0e4e8f3af7df2e8241e819ab6bb10838cf8008c2
 
 
 class SaturationTest(BSuiteTestCase):

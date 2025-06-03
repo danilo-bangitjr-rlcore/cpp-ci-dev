@@ -91,7 +91,7 @@ class BSuiteTestCase:
             'python', 'corerl/main.py',
             '--base', '../test/',
             '--config-name', self.config,
-            *parts
+            *parts,
         ], cwd='../corerl')
 
         psutil_proc = psutil.Process(proc.pid)
@@ -239,7 +239,7 @@ class BSuiteTestCase:
             ],
             partition_column='test_name',
             index_columns=['test_name', 'branch'],
-            chunk_time_interval='14d'
+            chunk_time_interval='14d',
         )
 
         insert_runtime_sql = text("""
