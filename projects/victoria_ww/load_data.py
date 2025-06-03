@@ -12,9 +12,8 @@ def _load_dataset_from_s3(dl_cfg: utils.VictoriaWWConfig) -> list[utils.SQLEntry
     offline_files = utils.get_s3_files()
     columns = utils.load_excel_files(offline_files)
     last_timestamp = utils.get_last_timestamp(columns)
-    sql_tups = utils.get_sql_tups(dl_cfg, columns, last_timestamp)
+    return utils.get_sql_tups(dl_cfg, columns, last_timestamp)
 
-    return sql_tups
 
 @load_config(utils.VictoriaWWConfig, base='projects/victoria_ww/configs', config_name='dl')
 def load_dataset(dl_cfg: utils.VictoriaWWConfig, db_cfg: TagDBConfig):

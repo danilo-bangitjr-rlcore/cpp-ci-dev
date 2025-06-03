@@ -17,7 +17,7 @@ class DummyEndoModelConfig(BaseModelConfig):
 class DummyEndoModel(BaseModel):
     def __init__(self,
                  cfg: DummyEndoModelConfig,
-                 tag_configs: list[TagConfig]
+                 tag_configs: list[TagConfig],
                  ):
         super().__init__(cfg, tag_configs)
 
@@ -40,7 +40,7 @@ class DummyModelConfig(BaseModelConfig):
 class DummyModel(BaseModel):
     def __init__(self,
                  cfg: DummyModelConfig,
-                 tag_configs: list[TagConfig]
+                 tag_configs: list[TagConfig],
                  ):
         super().__init__(cfg, tag_configs)
 

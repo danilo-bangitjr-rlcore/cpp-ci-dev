@@ -1,3 +1,4 @@
+# ruff: noqa: PERF203
 """
 Agent Manager endpoints for starting and stopping our `corerl_main` scripts.
 Currently, this logic will only function as expected using one web worker!
@@ -15,7 +16,7 @@ from collections import deque
 from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
-from typing import IO, Dict, List, Literal, Optional, TypedDict
+from typing import IO, Literal, TypedDict
 
 import yaml
 from anyio import ClosedResourceError
@@ -37,7 +38,7 @@ router = APIRouter()
 class WSMessage(BaseModel):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
-    type: Literal["log"] | Literal["return_code"] = "log"
+    type: Literal["log", "return_code"] = "log"
     message: str | None = None
 
 
@@ -46,17 +47,17 @@ class CoreRLProcess(TypedDict):
 
     log_buffer: deque[WSMessage]
     process: subprocess.Popen | None
-    extra_options: List[str]
+    extra_options: list[str]
 
 
-processes: Dict[str, CoreRLProcess] = {}
-clients: Dict[str, set[WebSocket]] = {}
+processes: dict[str, CoreRLProcess] = {}
+clients: dict[str, set[WebSocket]] = {}
 
 
 class StartAgentRequestPayload(BaseModel):
     """Payload for starting an agent."""
 
-    extra_options: Optional[List[str]] = None
+    extra_options: list[str] | None = None
 
 def output_reader(stream: IO[bytes], queue: Queue):
     for line in iter(stream.readline, b""):
@@ -162,7 +163,7 @@ async def start_proc_read_stream(yaml_config: str, config_id: str, req_payload: 
 class AgentStartErrorResponse(BaseModel):
     status: Literal["error"]
     message: str
-    sqlite_path: Optional[str]
+    sqlite_path: str | None
 
 
 class AgentStartSuccessResponse(BaseModel):
@@ -230,7 +231,7 @@ def agent_start(req_payload: StartAgentRequestPayload, config_id: str):
 
 
 class AgentStopResponse(BaseModel):
-    status: Literal["stopped"] | Literal["not_running"]
+    status: Literal["stopped", "not_running"]
 
 
 @router.post("/{config_id}/stop", response_model=AgentStopResponse)
@@ -252,9 +253,9 @@ def agent_stop(config_id: str):
 
 
 class AgentStatusResponse(BaseModel):
-    status: Literal["starting_up"] | Literal["running"] | Literal["dead"] | Literal["not_started"]
+    status: Literal["starting_up", "running", "dead", "not_started"]
     pid: int | None
-    extra_options: Optional[list[str]]
+    extra_options: list[str] | None
 
 
 @router.get("/{config_id}/status", response_model=AgentStatusResponse)
@@ -271,9 +272,8 @@ def agent_status(config_id: str):
         if process.poll() is None:
             # Process is still running
             return JSONResponse({"status": "running", "pid": process.pid, "extra_options": extra_options})
-        else:
-            # Process has terminated
-            return JSONResponse({"status": "dead", "pid": process.pid, "extra_options": extra_options})
+        # Process has terminated
+        return JSONResponse({"status": "dead", "pid": process.pid, "extra_options": extra_options})
     return JSONResponse({"status": "not_started", "pid": None})
 
 

@@ -19,8 +19,7 @@ from corerl.state import AppState
 def main_cfg():
     cfg = direct_load_config(
         MainConfig,
-        base='tests/large/events/assets',
-        config_name='trigger.yaml',
+        config_name='tests/large/events/assets/trigger.yaml',
     )
     assert isinstance(cfg, MainConfig)
 

@@ -41,7 +41,7 @@ def make_step(
         action_lo=torch.zeros_like(action),
         action_hi=torch.ones_like(action),
         dp=dp,
-        ac=ac
+        ac=ac,
     )
 
 @pytest.fixture()
@@ -49,7 +49,7 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
     port = tsdb_engine.url.port
     assert port is not None
 
-    db_cfg = TagDBConfig(
+    return TagDBConfig(
         drivername="postgresql+psycopg2",
         username="postgres",
         password="password",
@@ -60,7 +60,6 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
         table_schema='public',
     )
 
-    return db_cfg
 
 @pytest.fixture()
 def data_writer(test_db_config: TagDBConfig):
@@ -74,8 +73,7 @@ def data_writer(test_db_config: TagDBConfig):
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     cfg = direct_load_config(
         MainConfig,
-        base='tests/medium/offline_training/assets',
-        config_name='offline_config.yaml',
+        config_name='tests/medium/offline_training/assets/offline_config.yaml',
     )
     assert isinstance(cfg, MainConfig)
 
@@ -107,19 +105,20 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
     obs_period = offline_cfg.interaction.obs_period
 
     # Generate timestamps
-    step_timestamps = []
-    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
+    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
     offline_cfg.offline.offline_start_time = start_time
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
 
-    for i in range(steps):
-        step_timestamps.append(first_step + obs_period * i)
+    step_timestamps = [
+        first_step + obs_period * i
+        for i in range(steps)
+    ]
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
-        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds()
+        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds(),
     )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:
@@ -222,7 +221,7 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_s
     _ = pipeline.column_descriptions
 
     # create test data and run through pipeline
-    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.timezone.utc) for i in range(5)]
+    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.UTC) for i in range(5)]
     df = pd.DataFrame({
         "Tag_1":  [0.1, -0.1, 0, 0, 0],
         "Action": [  0,    0, 1, 1, 0],
@@ -240,18 +239,19 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
     obs_period = offline_cfg.interaction.obs_period
 
     # Generate timestamps
-    step_timestamps = []
-    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.timezone.utc)
+    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
 
-    for i in range(steps):
-        step_timestamps.append(first_step + obs_period * i)
+    step_timestamps = [
+        first_step + obs_period * i
+        for i in range(steps)
+    ]
 
     # Generate tag data and write to tsdb
     steps_per_decision = int(
-        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds()
+        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds(),
     )
     for i in range(steps):
         for tag_cfg in offline_cfg.pipeline.tags:

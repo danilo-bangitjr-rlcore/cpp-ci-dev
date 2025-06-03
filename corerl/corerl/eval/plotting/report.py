@@ -1,6 +1,5 @@
 
 from pathlib import Path
-from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -34,8 +33,8 @@ def plot_histogram(
         save_path: Path,
         xlabel: str,
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        percentiles: list[float] | None = None,
+        bins: int = 30,
     ) -> None:
     """
     Generates a histogram, with mean and percentiles shown.
@@ -78,8 +77,8 @@ def plot_sensor_histogram(
         save_path: Path,
         title: str = '',
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        percentiles: list[float] | None = None,
+        bins: int = 30,
     ) -> None:
     """
     Plots distribution of non-nan sensor values.
@@ -95,8 +94,8 @@ def plot_nan_histogram(
         save_path: Path,
         title: str = '',
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        percentiles: list[float] | None = None,
+        bins: int = 30,
     ) -> None:
     """
     Plots histogram of length of contiguous chunks of nans.
@@ -114,8 +113,8 @@ def plot_chunk_histogram(
         save_path: Path,
         title: str = '',
         show_mean: bool = False,
-        percentiles: Optional[List[float]] = None,
-        bins: int = 30
+        percentiles: list[float] | None = None,
+        bins: int = 30,
     ) -> None:
     """
     Plots histogram of length of contiguous chunks of non-nans.

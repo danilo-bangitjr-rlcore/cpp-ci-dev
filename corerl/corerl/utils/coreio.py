@@ -25,7 +25,7 @@ class CoreIOLink:
     def write_opcua_nodes(self, nodes_to_write: dict[str, list[OPCUANodeWriteValue]]):
         message_data = IOEvent(
             type=IOEventType.write_opcua_nodes,
-            data=nodes_to_write
+            data=nodes_to_write,
         ).model_dump_json()
         payload = f"{self.topic} {message_data}"
         logger.info(payload)

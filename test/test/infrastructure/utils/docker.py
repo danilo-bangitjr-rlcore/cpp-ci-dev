@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from types import MappingProxyType
-from typing import Any, Mapping
+from typing import Any
 
 from docker import errors, from_env
 
@@ -37,7 +38,7 @@ def init_docker_container(
     except errors.ImageNotFound:
         image = client.images.pull(repository, tag)
 
-    container = client.containers.run(
+    return client.containers.run(
         image,
         detach=True,
         ports=dict(ports),
@@ -45,4 +46,3 @@ def init_docker_container(
         name=name,
     )
 
-    return container

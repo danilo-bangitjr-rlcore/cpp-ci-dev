@@ -21,7 +21,7 @@ class MultiActionSaturationConfig(EnvConfig):
     coupling_matrix: list[list[float]] = field(default_factory=lambda: [
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
-        [0.0, 0.0, 0.0]
+        [0.0, 0.0, 0.0],
     ])
     frequencies: list[float] = field(default_factory=lambda: [1.0, 1.5, 2.0])
     phase_shifts: list[float] = field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
@@ -92,7 +92,7 @@ class MultiActionSaturation(gym.Env):
         for i in range(self.num_controllers):
             base_effects[i] = 0.15 * np.cos(
                 self.time_step * np.pi * (2 / self.effect_period) *
-                self.frequencies[i] + self.phase_shifts[i]
+                self.frequencies[i] + self.phase_shifts[i],
             ) + 0.75
 
         noise = self._random.normal(0, self.noise_std, self.num_controllers)
@@ -160,7 +160,7 @@ class MultiActionSaturation(gym.Env):
             action_traces[t + 1] = self.trace_val * action_traces[t] + (1 - self.trace_val) * actions[t]
             base_effects = 0.15 * np.cos(
                 (time_step + t) * np.pi * (2 / self.effect_period) *
-                self.frequencies + self.phase_shifts
+                self.frequencies + self.phase_shifts,
             ) + 0.75
             states[t + 1] = states[t] * self.decay + action_traces[t + 1] * base_effects
             states[t + 1] = np.clip(states[t + 1], 0, 1)

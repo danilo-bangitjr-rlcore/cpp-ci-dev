@@ -41,7 +41,7 @@ def test_filter_constructor():
             filter=[
                 ScaleConfig(factor=3),
                 ComparatorConfig(op='==', val=6),
-            ]
+            ],
         ),
         TagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
     ]
@@ -110,7 +110,7 @@ def test_filter_constructor_with_replace():
             filter=[
                 BinaryConfig(op='replace', other='tag-2'),
                 ComparatorConfig(op='==', val=4),
-            ]
+            ],
         ),
         TagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
     ]

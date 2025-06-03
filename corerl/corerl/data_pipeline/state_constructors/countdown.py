@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TYPE_CHECKING, Type
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -57,7 +57,7 @@ class DecisionPointDetector:
         self._cfg = cfg
         self._steps_per_decision = int(cfg.action_period.total_seconds() / cfg.obs_period.total_seconds())
         assert np.isclose(
-            self._steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds()
+            self._steps_per_decision, cfg.action_period.total_seconds() / cfg.obs_period.total_seconds(),
         ), "action period must be a multiple of obs period"
 
 
@@ -147,7 +147,7 @@ class DecisionPointDetector:
 
 
     def _init_feature_builder(self, n_rows: int):
-        builders: dict[str, Type[CountdownFeatureBuilder]] = {
+        builders: dict[str, type[CountdownFeatureBuilder]] = {
             'no_countdown': NoCountdown,
             'two_clock': TwoClockCountdown,
             'one_hot': OneHotCountdown,

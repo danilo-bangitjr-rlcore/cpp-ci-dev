@@ -14,7 +14,7 @@ from corerl.utils.time import now_iso
 @pytest.fixture()
 def db_metrics_table(
     tsdb_engine: Engine,
-    tsdb_tmp_db_name: str
+    tsdb_tmp_db_name: str,
 ):
     port = tsdb_engine.url.port
     assert port is not None
@@ -43,7 +43,7 @@ def test_db_metrics_writer(tsdb_engine: Engine, db_metrics_table: MetricsTable):
         agent_step=0,
         metric="q",
         value=metrics_val,
-        timestamp=now_iso()
+        timestamp=now_iso(),
     )
     db_metrics_table.blocking_sync()
 
@@ -69,13 +69,13 @@ def test_db_metrics_read_by_time(tsdb_engine: Engine, db_metrics_table: MetricsT
             agent_step=i,
             metric="q",
             value=i,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         db_metrics_table.write(
             agent_step=i,
             metric="reward",
             value=2*i,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         curr_time += delta
     db_metrics_table.blocking_sync()
@@ -109,13 +109,13 @@ def test_db_metrics_read_by_step(tsdb_engine: Engine, db_metrics_table: MetricsT
             agent_step=i,
             metric="q",
             value=i,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         db_metrics_table.write(
             agent_step=i,
             metric="reward",
             value=2*i,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         curr_time += delta
     db_metrics_table.blocking_sync()
@@ -148,13 +148,13 @@ def test_db_metrics_read_by_metric(tsdb_engine: Engine, db_metrics_table: Metric
             agent_step=i,
             metric="reward",
             value=2*i,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         db_metrics_table.write(
             agent_step=i,
             metric="q",
             value=i,
-            timestamp=curr_time.isoformat()
+            timestamp=curr_time.isoformat(),
         )
         curr_time += delta
     db_metrics_table.blocking_sync()

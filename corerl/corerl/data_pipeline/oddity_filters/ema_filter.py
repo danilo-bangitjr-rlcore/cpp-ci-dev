@@ -90,12 +90,12 @@ class EMAFilter(BaseOddityFilter):
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric=f"pipeline_{data_mode.name}_outlier_{tag}_ema",
-            value=ema.mu
+            value=ema.mu,
         )
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric=f"pipeline_{data_mode.name}_outlier_{tag}_emstd",
-            value=np.sqrt(emv.var)
+            value=np.sqrt(emv.var),
         )
 
 

@@ -53,12 +53,11 @@ class TMaze(gym.Env):
             state, _ = self.reset()
             return state, reward, False, False, {}
 
-        else:
-            self.pos += DELTA*float_action
-            self.pos = np.maximum(0, self.pos)
-            reward = -0.1*abs(float_action - 1)
+        self.pos += DELTA*float_action
+        self.pos = np.maximum(0, self.pos)
+        reward = -0.1*abs(float_action - 1)
 
-            return np.array([0, self.pos, self._in_endzone()]), reward, False, False, {}
+        return np.array([0, self.pos, self._in_endzone()]), reward, False, False, {}
 
     def reset(
         self,

@@ -62,36 +62,29 @@ def get_output_activation(cfg: ActivationConfig):
     """
     if cfg.name == "identity":
         return identity_act
-    elif cfg.name == "tanh":
+    if cfg.name == "tanh":
         assert isinstance(cfg, TanhConfig)
-        tanh_act_fn = functools.partial(tanh_act, cfg)
-        return tanh_act_fn
-    elif cfg.name == "sigmoid":
+        return functools.partial(tanh_act, cfg)
+    if cfg.name == "sigmoid":
         assert isinstance(cfg, SigmoidConfig)
-        sigmoid_act_fn = functools.partial(sigmoid_act, cfg)
-        return sigmoid_act_fn
-    elif cfg.name == "softsign" or cfg.name == "soft_sign":
+        return functools.partial(sigmoid_act, cfg)
+    if cfg.name in {"softsign", "soft_sign"}:
         assert isinstance(cfg, SoftsignConfig)
-        softsign_act_fn = functools.partial(softsign_act, cfg)
-        return softsign_act_fn
-    elif cfg.name == "cosine":
+        return functools.partial(softsign_act, cfg)
+    if cfg.name == "cosine":
         assert isinstance(cfg, CosineConfig)
-        cosine_act_fn = functools.partial(cos_act, cfg)
-        return cosine_act_fn
-    elif cfg.name == "softplus":
+        return functools.partial(cos_act, cfg)
+    if cfg.name == "softplus":
         assert isinstance(cfg, SoftplusConfig)
-        softplus_act_fn = functools.partial(softplus_act, cfg)
-        return softplus_act_fn
-    else:
-        raise NotImplementedError
+        return functools.partial(softplus_act, cfg)
+    raise NotImplementedError
 
 def get_activation(name: str):
     if name == 'identity':
         return identity_act
-    elif name == 'relu':
+    if name == 'relu':
         return jax.nn.relu
-    else:
-        raise NotImplementedError
+    raise NotImplementedError
 
 def scale_shift(x: jax.Array, low: int, high: int) -> jax.Array:
     return (high - low) * x + low

@@ -4,11 +4,11 @@ import datetime
 import logging
 import warnings
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Callable, Literal, Self, Tuple
+from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
 from pandas import DataFrame
@@ -29,7 +29,9 @@ from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imput
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
+from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
+from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.tag_config import Agg, TagConfig
 from corerl.data_pipeline.transforms import NullConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
@@ -73,7 +75,8 @@ class PipelineConfig:
                     agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
                     preprocess=[],
                     state_constructor=[NullConfig()],
-                )
+                    outlier=[IdentityFilterConfig()],
+                ),
             )
 
     @post_processor
@@ -104,8 +107,8 @@ class PipelineReturn:
     transitions: list[Transition] | None
 
     def _add(
-        self, other: Self
-    ) -> Tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+        self, other: Self,
+    ) -> tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
@@ -165,6 +168,7 @@ class Pipeline:
 
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
+        self.seasonal_tags = SeasonalTagIncluder(self.tags)
         self.virtual_tags = VirtualTagComputer(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
@@ -188,8 +192,8 @@ class Pipeline:
         self.zone_discourager = ZoneDiscourager(app_state, self.tags, self.preprocessor)
 
         # build pipeline state
-        self.ts_dict: dict[DataMode, TemporalState | None] = {data_mode: None for data_mode in DataMode}
-        self.dt_dict: dict[DataMode, datetime.datetime | None] = {data_mode: None for data_mode in DataMode}
+        self.ts_dict: dict[DataMode, TemporalState | None] = dict.fromkeys(DataMode, None)
+        self.dt_dict: dict[DataMode, datetime.datetime | None] = dict.fromkeys(DataMode, None)
 
         self._pre_invoke_hooks: dict[DataMode, dict[StageCode, list[Callable[[PipelineFrame], Any]]]] = {
             data_mode: defaultdict(list) for data_mode in DataMode}
@@ -198,6 +202,7 @@ class Pipeline:
             data_mode: defaultdict(list) for data_mode in DataMode}
 
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
+            StageCode.SEASONAL:   self.seasonal_tags,
             StageCode.VIRTUAL:    self.virtual_tags,
             StageCode.INIT:       lambda pf: invoke_stage_per_tag(pf, self.missing_data_checkers),
             StageCode.FILTER:     self.conditional_filter,
@@ -215,6 +220,7 @@ class Pipeline:
         }
 
         self.default_stages = (
+            StageCode.SEASONAL,
             StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.FILTER,
@@ -228,7 +234,7 @@ class Pipeline:
             StageCode.ZONES,
             StageCode.SC,
             StageCode.TC,
-            StageCode.TF
+            StageCode.TF,
         )
 
     def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:

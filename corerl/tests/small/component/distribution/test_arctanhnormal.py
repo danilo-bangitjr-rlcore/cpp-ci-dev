@@ -95,7 +95,7 @@ def test_logprob():
     x = torch.atanh(y)
     lp_expected = norm.log_prob(x)
     offset = torch.log1p(
-        -y.pow(2) + ArctanhNormal._EPSILON
+        -y.pow(2) + ArctanhNormal._EPSILON,
     )
     lp_expected -= offset
 

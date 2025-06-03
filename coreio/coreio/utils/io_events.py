@@ -2,9 +2,8 @@ import uuid
 from enum import StrEnum, auto
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
-
 from corerl.utils.time import now_iso
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class OPCUANodeWriteValue(BaseModel):

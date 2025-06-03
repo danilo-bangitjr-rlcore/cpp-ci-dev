@@ -140,6 +140,6 @@ class BufferedWriter(Generic[T], ABC):
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(
                 self._insert_sql(),
-                [point._asdict() for point in points]
+                [point._asdict() for point in points],
             )
             connection.commit()

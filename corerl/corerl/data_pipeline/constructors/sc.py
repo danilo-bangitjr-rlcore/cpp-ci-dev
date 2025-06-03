@@ -33,7 +33,7 @@ class StateConstructor(Constructor):
         return {
             tag.name: tag.state_constructor if tag.state_constructor is not None else self._cfg.defaults
             for tag in tag_cfgs
-            if tag.type != TagType.meta
+            if tag.type not in [TagType.meta, TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
         }
 
 
@@ -47,10 +47,13 @@ class StateConstructor(Constructor):
 
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_names, axis=1, inplace=False)
-        pf.data = pd.concat([df, pf.action_lo, pf.action_hi] + transformed_parts, axis=1, copy=False)
+        pf.data = pd.concat([df, pf.action_lo, pf.action_hi, *transformed_parts], axis=1, copy=False)
 
         # guarantee an ordering over columns
-        meta_cols = set(name for name, cfg in self._tag_cfgs.items() if cfg.type == TagType.meta)
+        meta_cols = {
+            name for name, cfg in self._tag_cfgs.items()
+            if cfg.type == TagType.meta
+        }
         cols = [col for col in pf.data.columns if col not in meta_cols]
         sorted_cols = self.sort_cols(cols)
         pf.data = pf.data.loc[:, sorted_cols]

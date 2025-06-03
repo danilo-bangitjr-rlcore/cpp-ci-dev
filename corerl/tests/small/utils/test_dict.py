@@ -411,7 +411,7 @@ def test_set_at_path4():
     d: dict[str, Any] = {
         'ls': [
             { 'name': 'thing', 'val': 1 },
-        ]
+        ],
     }
     path = 'ls[0].name'
     got = dict_u.set_at_path(d, path, val='hello')
@@ -428,7 +428,7 @@ def test_set_at_path4():
 def test_get_at_path1():
     d: dict[str, Any] = {
         'a': {
-            'b': 'hi'
+            'b': 'hi',
         },
     }
 

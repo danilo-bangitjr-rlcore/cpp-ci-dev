@@ -31,11 +31,10 @@ def run_command(command: str) -> int:
             command,
             shell=True,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL
+            stderr=subprocess.DEVNULL, check=False,
         ).returncode
-    else:
-        # Run normally
-        return os.system(command)
+    # Run normally
+    return os.system(command)
 
 
 def generate_combinations(flattened_dict: dict[str, list[Any]]) -> list[list[tuple[str, Any]]]:

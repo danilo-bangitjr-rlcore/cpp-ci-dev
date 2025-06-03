@@ -21,7 +21,7 @@ async def start():
     rlcore_root = await objects.add_object(idx, "RLCore")
 
     dep_dose_sp_node = await rlcore_root.add_variable(
-        "ns=1;s=dep_dose_sp", "Deployed PACl Dose Setpoint", ua.Variant(15, ua.VariantType.Double)
+        "ns=1;s=dep_dose_sp", "Deployed PACl Dose Setpoint", ua.Variant(15, ua.VariantType.Double),
     )
 
     await client.connect()

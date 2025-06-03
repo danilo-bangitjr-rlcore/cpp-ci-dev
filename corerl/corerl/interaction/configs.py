@@ -159,7 +159,7 @@ class InteractionConfig:
 
     @computed('checkpoint_path')
     @classmethod
-    def _checkpoint_path(cls, cfg: 'MainConfig'):
+    def _checkpoint_path(cls, cfg: MainConfig):
         return Path('outputs') / cfg.agent_name / (f'seed-{cfg.seed}') / 'checkpoints'
 
     @computed('load_historical_data')
@@ -167,8 +167,7 @@ class InteractionConfig:
     def _load_historical_data(cls, cfg: MainConfig):
         if cfg.interaction.name == "sim_interaction":
             return False
-        else:
-            return True
+        return True
 
     @post_processor
     def _validate_hist_windows(self, cfg: MainConfig):

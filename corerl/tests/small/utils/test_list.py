@@ -56,7 +56,7 @@ def test_multi_level_sort():
             # level 1: letters
             lambda t: t.split('.')[0] == 'a',
             # level 2: numbers
-        ]
+        ],
     )
 
     assert got == [

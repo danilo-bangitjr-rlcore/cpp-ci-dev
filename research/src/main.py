@@ -3,9 +3,9 @@ import ast
 from pathlib import Path
 from typing import Any
 
-from coreenv.factory import init_env
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
+from rl_env.factory import init_env
 from tqdm import tqdm
 
 import utils.gym as gym_u
@@ -32,10 +32,9 @@ def safe_cast(value: Any):
         # or a string representation of True/False
         if value.lower() == 'true':
             return True
-        elif value.lower() == 'false':
+        if value.lower() == 'false':
             return False
-        else:
-            return value  # Keep as string
+        return value  # Keep as string
 
 
 def process_overrides(override_args: list) -> list[tuple]:
@@ -131,7 +130,6 @@ def main():
     # every 100 steps
     for _ in tqdm(range(cfg.max_steps + 1)):
         collector.next_frame()
-        # ac_eval(collector, agent, state)
         action = agent.get_actions(state)
         transitions = tc(state, action, reward, done)
 

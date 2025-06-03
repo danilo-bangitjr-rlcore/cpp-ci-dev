@@ -58,5 +58,5 @@ class BaseModel:
 
 
 model_group = Group[
-    [list[TagConfig]], BaseModel
+    [list[TagConfig]], BaseModel,
 ]()

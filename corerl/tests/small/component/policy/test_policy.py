@@ -1,7 +1,7 @@
 import pytest
 import torch
 import torch.distributions as d
-import torch.nn as nn
+from torch import nn
 
 from corerl.component.layer.parallel import Parallel
 from corerl.component.policy.policy import Bounded, HalfBounded, UnBounded

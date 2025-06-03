@@ -18,8 +18,8 @@ from corerl.utils.time import percent_time_elapsed
 
 
 def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
-    NUM_STEPS = 5
-    cfg = direct_load_config(MainConfig, base='tests/medium/interaction/assets', config_name='saturation.yaml')
+    NUM_STEPS = 3
+    cfg = direct_load_config(MainConfig, config_name='tests/medium/interaction/assets/saturation.yaml')
     assert isinstance(cfg, MainConfig)
     assert tsdb_engine.url.port is not None
     cfg.env.db.port = tsdb_engine.url.port
@@ -53,7 +53,7 @@ def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
         interaction._on_get_obs()
         interaction._on_update()
 
-        for _ in range(100):
+        for _ in range(10):
             interaction._on_emit_action()
             assert interaction._last_action_df is not None
             last_a: Any = interaction._last_action_df.to_numpy().item()

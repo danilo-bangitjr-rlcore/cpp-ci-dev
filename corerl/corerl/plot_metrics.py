@@ -47,7 +47,7 @@ def _create_plot_cfg(app_state: AppState) -> MetricsPlottingConfig:
 
     return plot_cfg
 
-@load_config(MainConfig, base='config/')
+@load_config(MainConfig)
 def main(cfg: MainConfig):
     event_bus = DummyEventBus()
     app_state = AppState(

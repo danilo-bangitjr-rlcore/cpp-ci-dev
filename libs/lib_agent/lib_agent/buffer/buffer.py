@@ -1,11 +1,31 @@
-from typing import NamedTuple
+from typing import NamedTuple, Protocol
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 
-from interaction.transition_creator import Transition
 
+class Transition(Protocol):
+    @property
+    def state(self) -> np.ndarray: ...
+
+    @property
+    def action(self) -> np.ndarray: ...
+
+    @property
+    def reward(self) -> float: ...
+
+    @property
+    def gamma(self) -> float: ...
+
+    @property
+    def next_state(self) -> np.ndarray: ...
+
+    @property
+    def state_dim(self) -> int: ...
+
+    @property
+    def action_dim(self) -> int: ...
 
 class VectorizedTransition(NamedTuple):
     state: jax.Array
@@ -49,7 +69,7 @@ def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTr
         action=stacked_action,
         reward=stacked_reward,
         next_state=stacked_next_state,
-        gamma=stacked_gamma
+        gamma=stacked_gamma,
     )
 
 

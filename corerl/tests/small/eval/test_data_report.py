@@ -87,7 +87,7 @@ def test_correlate_counting():
 def test_cross_correlation_no_lag():
     df = pd.DataFrame({
         'tag_1': [1, 2, 3, 4, 5],
-        'tag_2': [1, 2, 3, 4, 5]
+        'tag_2': [1, 2, 3, 4, 5],
     })
     max_lag = 2
     max_cc, lag, cc  = cross_correlation(df, 'tag_1', 'tag_2', max_lag)
@@ -106,7 +106,7 @@ def test_cross_correlation_no_lag():
 def test_cross_correlation_all_nan():
     df = pd.DataFrame({
         'tag_1': [np.nan, np.nan, np.nan, np.nan, np.nan],
-        'tag_2': [np.nan, np.nan, np.nan, np.nan, np.nan]
+        'tag_2': [np.nan, np.nan, np.nan, np.nan, np.nan],
     })
     max_lag = 2
     max_cc, lag, cc = cross_correlation(df, 'tag_1', 'tag_2', max_lag)
@@ -118,8 +118,8 @@ def test_cross_correlation_all_nan():
 
 def test_cross_correlation_partial_nan():
     df = pd.DataFrame({
-        'tag_1': [1, 2, np.nan, 4, 5], # standardized: np.array([-1.26491106, -0.63245553, 0, 0.63245553,  1.26491106])
-        'tag_2': [1, np.nan, 3, 4, 5]  # standardized: np.array([-1.52127766, 0, -0.16903085,  0.50709255,  1.18321596])
+        'tag_1': [1, 2, np.nan, 4, 5],
+        'tag_2': [1, np.nan, 3, 4, 5],
 
     })
     max_lag = 1

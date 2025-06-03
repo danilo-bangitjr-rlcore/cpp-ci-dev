@@ -1,17 +1,17 @@
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from random import random
-from typing import Generator
 
 import pytest
 from sqlalchemy import Engine
 
-import corerl.utils.nullable as nullable
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
+from corerl.utils import nullable
 
 
 @pytest.fixture()
-def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWriter, None, None]:
+def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWriter]:
     assert tsdb_engine.url.port is not None
     db_cfg = TagDBConfig(
         drivername="postgresql+psycopg2",

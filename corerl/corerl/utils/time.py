@@ -1,14 +1,14 @@
 import datetime as dt
 import logging
+from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from time import sleep
-from typing import Generator
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
-def clock_generator(tick_period: timedelta) -> Generator[datetime, None, None]:
+def clock_generator(tick_period: timedelta) -> Generator[datetime]:
     tick = datetime.now(UTC)
     tick.replace(microsecond=0) # trim microseconds
     while True:
@@ -27,7 +27,7 @@ def wait_for_timestamp(timestamp: datetime) -> None:
     sleep(sleep_duration)
 
 def now_iso() -> str:
-    return dt.datetime.now(dt.timezone.utc).isoformat()
+    return dt.datetime.now(UTC).isoformat()
 
 def split_windows_into_chunks(windows: list[tuple[dt.datetime | None, dt.datetime | None]], width: dt.timedelta):
     for start, stop in windows:

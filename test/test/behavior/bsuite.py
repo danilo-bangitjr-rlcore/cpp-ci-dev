@@ -5,7 +5,6 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum, auto
 from typing import Any
 
-import corerl.utils.git as git
 import numpy as np
 import pandas as pd
 import psutil
@@ -13,6 +12,7 @@ from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
+from corerl.utils import git
 from corerl.utils.time import now_iso
 from sqlalchemy import Engine, text
 
@@ -37,7 +37,7 @@ class BSuiteTestCase:
 
     def __init__(self):
         self._overrides = self.overrides or {}
-        cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        cfg = direct_load_config(MainConfig, config_name=self.config)
         assert isinstance(cfg, MainConfig)
         self._cfg = cfg
         self.seed = np.random.randint(0, 1_000_000)
@@ -62,7 +62,6 @@ class BSuiteTestCase:
         """
         Setup the given BSuiteTestCase before main.py is called in execute_test()
         """
-        ...
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
         infra_overrides = self._test_infra_overrides(tsdb, db_name, schema)
@@ -135,8 +134,7 @@ class BSuiteTestCase:
     def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame) -> float:
         values = get_metric(metrics_table, metric)
         aggregation_name = self.aggregators.get(metric, 'last_100_mean')
-        aggregated_values = self.aggregate(values, name=aggregation_name)
-        return aggregated_values
+        return self.aggregate(values, name=aggregation_name)
 
 
     def _extract(self, tests: dict[str, float], bound_type: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
@@ -276,17 +274,16 @@ class BSuiteTestCase:
     def aggregate(self, values: np.ndarray, name: str = 'last_100_mean') -> float:
         if name == 'last_100_mean':
             return values[-100:].mean()
-        elif name == 'mean':
+        if name == 'mean':
             return values.mean()
-        elif name == 'max':
+        if name == 'max':
             return values.max()
-        elif name == 'min':
+        if name == 'min':
             return values.min()
-        elif name == 'percent_of_steps':
+        if name == 'percent_of_steps':
             assert self._cfg.max_steps is not None
             return float(np.sum(values > 0) / self._cfg.max_steps)
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()
