@@ -1,0 +1,69 @@
+xy_metrics:
+  enabled: True
+
+env:
+  name: sim_async_env
+  gym:
+    gym_name: 'BSM1-v0'
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+experiment:
+  exp_name: bsm1
+  max_steps: 5000
+  gamma: 0.95
+
+metrics:
+  enabled: True
+
+pipeline:
+  reward:
+    priorities:
+      - op: up_to
+        tag: tag-5 # effluent NO
+        thresh: 0.5
+
+      - tags: [action-0]
+        directions: [min]
+
+  tags:
+  - name: action-0
+    operating_range: [0, 1]
+    type: ai_setpoint
+
+  - name: action-1
+    operating_range: [0, 1]
+    type: ai_setpoint
+
+  - name: action-2
+    operating_range: [0, 1]
+    type: ai_setpoint
+
+  - name: action-3
+    operating_range: [0, 1]
+    type: ai_setpoint
+
+  - name: action-4
+    operating_range: [0, 1]
+    type: ai_setpoint
+
+  - name: tag-0 # Influent NH
+    operating_range: [0, 1]
+
+  - name: tag-1 # Influent DO
+    operating_range: [0, 1]
+
+  - name: tag-2 # Tank 1 NH
+    operating_range: [0, 1]
+
+  - name: tag-3 # Tank 3 DO
+    operating_range: [0, 1]
+
+  - name: tag-4 # Effluent NH
+    operating_range: [0, 1]
+
+  - name: tag-5 # Effluent NO
+    operating_range: [0, 1]
