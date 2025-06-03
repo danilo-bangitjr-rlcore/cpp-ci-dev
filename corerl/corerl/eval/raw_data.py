@@ -107,7 +107,7 @@ def raw_data_eval(
     ) -> dict[str, dict] | None:
 
     if not cfg.enabled:
-        return
+        return None
 
     result_dict: dict[str, dict[str, float]] = {}
     df = pf.data

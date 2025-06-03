@@ -24,5 +24,5 @@ def log_to_file(log_path: Path, measurement: str, tags: dict, fields: dict):
             timestamp,
             measurement,
             str(tags),
-            str(fields)
+            str(fields),
         ])

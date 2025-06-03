@@ -6,11 +6,20 @@ import numpy as np
 
 
 class Transition(Protocol):
-    state: np.ndarray
-    action: np.ndarray
-    reward: float
-    gamma: float
-    next_state: np.ndarray
+    @property
+    def state(self) -> np.ndarray: ...
+
+    @property
+    def action(self) -> np.ndarray: ...
+
+    @property
+    def reward(self) -> float: ...
+
+    @property
+    def gamma(self) -> float: ...
+
+    @property
+    def next_state(self) -> np.ndarray: ...
 
     @property
     def state_dim(self) -> int: ...
@@ -60,7 +69,7 @@ def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTr
         action=stacked_action,
         reward=stacked_reward,
         next_state=stacked_next_state,
-        gamma=stacked_gamma
+        gamma=stacked_gamma,
     )
 
 

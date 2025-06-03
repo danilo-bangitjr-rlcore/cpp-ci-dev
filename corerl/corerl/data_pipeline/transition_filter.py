@@ -8,11 +8,7 @@ from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
 
 type TransitionFilterType = (
-    Literal['only_dp']
-    | Literal['only_no_action_change']
-    | Literal['only_post_dp']
-    | Literal['no_nan']
-    | Literal['only_pre_dp_or_ac']
+    Literal['only_dp', 'only_no_action_change', 'only_post_dp', 'no_nan', 'only_pre_dp_or_ac']
 )
 
 
@@ -87,7 +83,7 @@ def only_no_action_change(transition: Transition):
 
 
 def has_nan(obj: object):
-    for _, value in vars(obj).items():
+    for value in vars(obj).values():
         if isinstance(value, torch.Tensor):
             if torch.isnan(value).any():
                 return True
@@ -102,9 +98,9 @@ def no_nan(transition: Transition):
     first_step = transition.steps[0]
     if math.isnan(first_step.gamma):
         return False
-    elif torch.isnan(first_step.state).any():
+    if torch.isnan(first_step.state).any():
         return False
-    elif math.isnan(first_step.dp):
+    if math.isnan(first_step.dp):
         return False
 
     for step in transition.steps[1:]:

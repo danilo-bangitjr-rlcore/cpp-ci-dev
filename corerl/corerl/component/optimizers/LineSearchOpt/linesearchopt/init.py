@@ -1,10 +1,9 @@
 import queue
 from abc import ABC, abstractmethod
-from collections.abc import Collection
-from typing import Callable, Union
+from collections.abc import Callable, Collection
+from typing import override
 
 import torch
-from typing_extensions import override
 
 
 class StepsizeInit(ABC):
@@ -17,13 +16,12 @@ class StepsizeInit(ABC):
         """
         Record that `step_size` was successfully used in an optimisation step.
         """
-        return None
+        return
 
     @abstractmethod
     def reinit(self, step_size: float) -> float:
         """Get the stepsize to use at the next line search iteration.
         """
-        pass
 
 
 class Identity(StepsizeInit):
@@ -146,8 +144,8 @@ class IfElse(StepsizeInit):
     def __init__(
         self,
         condition: Callable[[float], bool],
-        if_block: Union[StepsizeInit, Callable[[float], float]],
-        else_block: Union[StepsizeInit, Callable[[float], float]],
+        if_block: StepsizeInit | Callable[[float], float],
+        else_block: StepsizeInit | Callable[[float], float],
     ):
         """Initializes the instance based on arguments.
 
@@ -167,8 +165,7 @@ class IfElse(StepsizeInit):
     def reinit(self, step_size: float) -> float:
         if self._condition(step_size):
             return self._if_block(step_size)
-        else:
-            return self._else_block(step_size)
+        return self._else_block(step_size)
 
     @override
     def record_used(self, step_size: float) -> None:
@@ -258,5 +255,4 @@ class PriorityQueue(StepsizeInit):
         assert not self._queue.empty()
         if self._max:
             return -self._queue.get()
-        else:
-            return self._queue.get()
+        return self._queue.get()

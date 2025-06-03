@@ -62,9 +62,8 @@ def impute_gap(backtrack_val: float, lookahead_val: float, num_nans: int) -> np.
     bias = np.ones(num_nans) * backtrack_val
     slope = float(lookahead_val - backtrack_val) / float(num_nans + 1)
     delta = np.arange(1, num_nans + 1) * slope
-    imputed_vals = bias + delta
+    return bias + delta
 
-    return imputed_vals
 
 
 @njit

@@ -88,7 +88,7 @@ def _zero_one_matrix(flags: list[str]):
     """
     matrix: list[dict[str, bool]] = []
     for flag in flags:
-        vals = { f: False for f in flags }
+        vals = dict.fromkeys(flags, False)
         vals[flag] = True
         matrix.append(vals)
 
@@ -141,10 +141,10 @@ def test_bsuite(
         port=PORT,
     )
     engine = get_sql_engine(cfg, db_name)
-    metrics_table = test_case.execute_test(engine, db_name, schema, feature_flags)
+    metrics_table, runtime_info = test_case.execute_test(engine, db_name, schema, feature_flags)
 
     try:
-        test_case.evaluate_outcomes(engine, metrics_table, feature_flags)
+        test_case.evaluate_outcomes(engine, metrics_table, feature_flags, runtime_info)
     except AssertionError as e:
         if test_case.name not in KNOWN_FAILURES:
             raise e

@@ -35,5 +35,5 @@ def register_pipeline_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipelin
     pipeline.register_hook(
         cfg.raw_data.data_modes,
         cfg.raw_data.stage_codes,
-        partial(raw_data_eval, cfg.raw_data, app_state)
+        partial(raw_data_eval, cfg.raw_data, app_state),
     )

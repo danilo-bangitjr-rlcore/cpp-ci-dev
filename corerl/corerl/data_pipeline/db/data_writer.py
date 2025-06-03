@@ -44,9 +44,9 @@ class DataWriter(BufferedWriter[Point]):
         self,
         timestamp: datetime,
         name: str,
-        val: float | int | bool | str | None,
+        val: float | bool | str | None,
         host: str | None = None,
-        id: str | None = None
+        id: str | None = None,
     ) -> None:
         assert timestamp.tzinfo == UTC
         ts_iso = timestamp.isoformat()

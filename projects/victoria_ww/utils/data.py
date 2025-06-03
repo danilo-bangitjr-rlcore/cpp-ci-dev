@@ -1,7 +1,7 @@
 import datetime as dt
-from collections import namedtuple
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, cast
+from typing import NamedTuple, cast
 
 import pandas as pd
 from cloudpathlib import CloudPath, S3Client, S3Path
@@ -9,7 +9,11 @@ from cloudpathlib.enums import FileCacheMode
 
 from corerl.corerl.configs.config import config, list_
 
-SQLEntry = namedtuple('SQLEntry', ['time', 'val', 'tag'])
+
+class SQLEntry(NamedTuple):
+    time: dt.datetime
+    val: float
+    tag: str
 
 @config()
 class VictoriaWWConfig:
@@ -18,11 +22,10 @@ class VictoriaWWConfig:
 
 
 def _split_columns(df: pd.DataFrame) -> list[pd.Series]:
-    series_list = []
-    for column_name in df.columns:
-        series_list.append(df[column_name])
-
-    return series_list
+    return [
+        df[column_name]
+        for column_name in df.columns
+    ]
 
 def get_last_timestamp(series_list: list[pd.Series]) -> dt.datetime:
     """
@@ -34,8 +37,7 @@ def get_last_timestamp(series_list: list[pd.Series]) -> dt.datetime:
     for series in series_list:
         series_last_timestamp = series.index[-1]
         assert isinstance(series_last_timestamp, dt.datetime)
-        if series_last_timestamp > global_last_timestamp:
-            global_last_timestamp = series_last_timestamp
+        global_last_timestamp = max(global_last_timestamp, series_last_timestamp)
 
     return global_last_timestamp
 
@@ -44,7 +46,7 @@ def _copy_tag_val_between_timestamps(
     end: dt.datetime,
     step: dt.timedelta,
     tag_name: str,
-    value: float
+    value: float,
 ) -> list[SQLEntry]:
     sql_tups = []
     curr_time = start
@@ -57,7 +59,7 @@ def _copy_tag_val_between_timestamps(
 def _parse_setpoint_change_data(
     dl_cfg: VictoriaWWConfig,
     column: pd.Series,
-    final_timestamp: dt.datetime
+    final_timestamp: dt.datetime,
 ) -> list[SQLEntry]:
     """
     Parse tags that only have entries at setpoint changes
@@ -95,7 +97,7 @@ def _parse_setpoint_change_data(
     return  sql_tups
 
 def _series_to_sql_tups(
-    series: pd.Series
+    series: pd.Series,
 ) -> list[SQLEntry]:
     """
     Converting pd.Series into (timestamp, tag_name, value) tuples
@@ -103,14 +105,16 @@ def _series_to_sql_tups(
     tag = series.name
     df = series.to_frame()
     df["Tag"] = [tag] * len(df)
-    sql_tups = list(map(lambda tup: SQLEntry(*tup), df.itertuples(index=True, name=None)))
+    return [
+        SQLEntry(time, val, tag)
+        for (time, val, tag) in df.itertuples(index=True, name=None)
+    ]
 
-    return sql_tups
 
 def get_sql_tups(
     dl_cfg: VictoriaWWConfig,
     series_list: list[pd.Series],
-    last_timestamp: dt.datetime
+    last_timestamp: dt.datetime,
 ) -> list[SQLEntry]:
     sql_tups = []
     for series in series_list:

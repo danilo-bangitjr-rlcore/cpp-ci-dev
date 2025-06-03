@@ -12,9 +12,8 @@ def _load_dataset_from_s3() -> list[tuple[Any, ...]]:
     """
     offline_files = utils.get_s3_files()
     columns = utils.load_csv_files(offline_files)
-    sql_tups = utils.columns_to_sql_tups(columns)
+    return utils.columns_to_sql_tups(columns)
 
-    return sql_tups
 
 def load_dataset(cfg: TagDBConfig):
     sql_tups = _load_dataset_from_s3()
@@ -39,6 +38,6 @@ if __name__ == '__main__':
         port=DBConfig.port,
         db_name='epcor_solar',
         table_name='tag_data',
-        table_schema=DBConfig.schema
+        table_schema=DBConfig.schema,
     )
     load_dataset(cfg)

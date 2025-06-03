@@ -32,21 +32,21 @@ def make_mc_eval_plot(
             step_start=cfg.step_start,
             step_end=cfg.step_end,
             start_time=cfg.start_time,
-            end_time=cfg.end_time
+            end_time=cfg.end_time,
         )
         observed_a_q_df = cfg.app_state.metrics.read(
             metric=f"observed_a_q_{label}",
             step_start=cfg.step_start,
             step_end=cfg.step_end,
             start_time=cfg.start_time,
-            end_time=cfg.end_time
+            end_time=cfg.end_time,
         )
         partial_return_df = cfg.app_state.metrics.read(
             metric=f"partial_return_{label}",
             step_start=cfg.step_start,
             step_end=cfg.step_end,
             start_time=cfg.start_time,
-            end_time=cfg.end_time
+            end_time=cfg.end_time,
         )
 
         if "time" in state_v_df:
@@ -75,7 +75,7 @@ def make_mc_eval_plot(
         plt.close()
 
 def plot_metrics(
-    cfg: MetricsPlottingConfig
+    cfg: MetricsPlottingConfig,
 ):
     if cfg.labels is None or len(cfg.labels) == 0:
         cfg.labels = [""]

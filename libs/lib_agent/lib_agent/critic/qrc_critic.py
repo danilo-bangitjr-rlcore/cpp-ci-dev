@@ -1,6 +1,5 @@
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, NamedTuple
+from typing import Any, NamedTuple, Protocol
 
 import chex
 import haiku as hk
@@ -11,7 +10,11 @@ import optax
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import EnsembleReplayBuffer, Transition, VectorizedTransition
+from lib_agent.buffer.buffer import VectorizedTransition
+
+
+class ActionSampler(Protocol):
+    def __call__(self, key: chex.PRNGKey, state: chex.Array) -> chex.Array: ...
 
 
 class CriticState(NamedTuple):
@@ -29,8 +32,11 @@ class QRCConfig:
     name: str
     stepsize: float
     ensemble: int
-    ensemble_prob: int
+    ensemble_prob: float
     batch_size: int
+    num_rand_actions: int
+    action_regularization: float
+    l2_regularization: float
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -56,18 +62,13 @@ class QRCCritic:
 
         torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.LateFusionConfig(sizes=[128, 128], activation='relu'),
+                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='relu'),
                 nets.LinearConfig(size=256, activation='relu'),
             ],
+            skip=True,
         )
         self._net = critic_builder(torso_cfg)
         self._optim = optax.adam(learning_rate=cfg.stepsize)
-
-        self._buffer = EnsembleReplayBuffer(
-            n_ensemble=cfg.ensemble,
-            ensemble_prob=cfg.ensemble_prob,
-            batch_size=cfg.batch_size,
-        )
 
     # ----------------------
     # -- Public Interface --
@@ -101,27 +102,17 @@ class QRCCritic:
         return self._net.apply(params, state, action).q
 
 
-    def update(self, state: Any, get_actions: Callable[[chex.PRNGKey, jax.Array], jax.Array]) -> CriticState:
-        if self._buffer.size == 0:
-            return state
-
-        transitions = self._buffer.sample()
-        self._rng, rng = jax.random.split(self._rng, 2)
-        next_actions = get_actions(rng, transitions.next_state)
-
+    def update(self, critic_state: Any, transitions: VectorizedTransition, next_actions: jax.Array):
         new_state, metrics = self._ensemble_update(
-            state,
+            critic_state,
             transitions,
             next_actions,
         )
 
-        loss = jnp.mean(metrics['losses'])
+        loss = jnp.mean(metrics['loss'])
         self._collector.collect('critic_loss', float(loss))
 
-        return new_state
-
-    def update_buffer(self, transition: Transition):
-        self._buffer.add(transition)
+        return new_state, metrics
 
     # ------------
     # -- Update --
@@ -154,9 +145,14 @@ class QRCCritic:
             ens_updates.append(updates)
             ens_opts.append(new_opt_state)
 
-        updates = jax.tree_util.tree_map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
-        new_opt_state = jax.tree_util.tree_map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
+        updates = jax.tree.map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
+        new_opt_state = jax.tree.map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
         new_params = optax.apply_updates(state.params, updates)
+
+        metrics |= {
+            'ensemble_grad_norms': get_ensemble_norm(grads),
+            'ensemble_weight_norms': get_ensemble_norm(new_params),
+        }
 
         return CriticState(
             new_params,
@@ -170,14 +166,17 @@ class QRCCritic:
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses, h_losses, metrics = jax.vmap(self._batch_loss)(
+        losses, metrics = jax_u.vmap(self._batch_loss)(
             params,
             transition,
             next_actions,
         )
-        return losses.sum() + h_losses.sum(), metrics | {
-            'losses': losses,
-            'h_losses': h_losses,
+
+        return losses.sum(), metrics | {
+            'loss': losses,
+            'q_loss': metrics['q_loss'].mean(),
+            'h_loss': metrics['h_loss'].mean(),
+            'reg_loss': metrics['reg_loss'].mean(),
         }
 
 
@@ -187,12 +186,12 @@ class QRCCritic:
         transition: VectorizedTransition,
         next_actions: jax.Array,
     ):
-        losses, h_losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
+        losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
             params,
             transition,
             next_actions,
         )
-        return losses.mean(), h_losses.mean() + l2_regularizer(params['h'], 2.0), metrics
+        return losses.mean() + l2_regularizer(params['h'], self._cfg.l2_regularization), metrics
 
 
     def _loss(
@@ -208,7 +207,7 @@ class QRCCritic:
         gamma = transition.gamma
 
         out = self._net.apply(params, state, action)
-        out_p = self._net.apply(params, next_state, next_actions)
+        out_p = jax_u.vmap_only(self._net.apply, [2])(params, next_state, next_actions)
 
         target = reward + gamma * out_p.q.mean()
 
@@ -218,19 +217,90 @@ class QRCCritic:
 
         q_loss = 0.5 * delta_l**2 + sg(jnp.tanh(out.h)) * delta_r
         h_loss = 0.5 * (sg(delta_l) - out.h)**2
-        return q_loss, h_loss, {
+
+        # noise loss
+        rand_actions = jax.random.uniform(
+            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
+        )
+        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state, rand_actions)
+        reg_loss = out_rand.q.mean()
+
+        loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
+
+        return loss, {
             'q': out.q,
             'h': out.h,
+            'q_loss': q_loss,
+            'h_loss': h_loss,
+            'reg_loss': reg_loss,
             'delta': delta_l,
         }
 
 def get_member(a: chex.ArrayTree, i: int):
-    return jax.tree_util.tree_map(lambda x: x[i], a)
+    return jax.tree.map(lambda x: x[i], a)
 
 
-tree_map = jax.tree_util.tree_map
 def l2_regularizer(params: chex.ArrayTree, beta: float):
-    reg = tree_map(jnp.square, params)
-    reg = tree_map(jnp.sum, reg)
-    reg = 0.5 * beta * jax.tree_util.tree_reduce(lambda a, b: a + b, reg)
-    return reg
+    reg = jax.tree.map(jnp.square, params)
+    reg = jax.tree.map(jnp.sum, reg)
+    return 0.5 * beta * jax.tree.reduce(lambda a, b: a + b, reg)
+
+# ---------------------------------------------------------------------------- #
+#                                    metrics                                   #
+# ---------------------------------------------------------------------------- #
+
+@jax_u.jit
+def get_ensemble_norm(tree: chex.ArrayTree):
+    def _norm(x: jax.Array):
+        return jnp.sqrt(jnp.sum(jnp.square(x)))
+
+    def _tree_norm(x: chex.ArrayTree):
+        leaves = jax.tree.leaves(x)
+        norms = jax.tree.map(_norm, leaves)
+        return sum(norms)
+
+    return jax_u.vmap(_tree_norm)(tree)
+
+def stable_rank(matrix: jax.Array):
+    singular_values = jnp.linalg.svd(matrix, compute_uv=False)
+    sv_squared = singular_values**2
+    return sv_squared.sum() / sv_squared.max()
+
+def get_layer_names(params: chex.ArrayTree):
+    keys = []
+    def _inner(path: str, sub_params: chex.ArrayTree):
+        if isinstance(sub_params, jax.Array):
+            keys.append(path)
+
+        elif isinstance(sub_params, dict):
+            for key, value in sub_params.items():
+                _inner(f"{path}/{key}", value)
+
+    _inner('', params)
+    return keys
+
+@jax_u.jit
+def get_stable_rank(params: chex.ArrayTree):
+    leaves = jax.tree.leaves(params)
+    ensemble = leaves[0].shape[0]
+    names =  get_layer_names(params)
+
+    # dim = 3 since the first dim is for the ensemble
+    matrix_idxs =  [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
+    matrix_leaves = [leaves[i] for i in matrix_idxs]
+    matrix_names = [names[i] for i in matrix_idxs]
+
+    def _sr(tree: chex.ArrayTree):
+        return jax.tree.map(stable_rank, tree)
+
+    stable_ranks = jax_u.vmap(_sr)(matrix_leaves)
+    return [
+        dict(
+            zip(
+                matrix_names,
+                [sr[i] for sr in stable_ranks],
+                strict=True,
+            ),
+        )
+        for i in range(ensemble)
+    ]

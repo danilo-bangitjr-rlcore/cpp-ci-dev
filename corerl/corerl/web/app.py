@@ -18,9 +18,9 @@ import json
 import logging
 import sqlite3
 import traceback
+from collections.abc import Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from typing import Callable
 
 import sqlalchemy
 import yaml
@@ -89,8 +89,7 @@ class MessageResponse(BaseModel):
 
 @app.get("/")
 async def redirect():
-    response = RedirectResponse(url="/docs")
-    return response
+    return RedirectResponse(url="/docs")
 
 
 @app.get(
@@ -132,17 +131,17 @@ async def health():
         status.HTTP_400_BAD_REQUEST: {
             "content": {
                 "application/json": {"example": {"detail": "<Error description>"}},
-            }
+            },
         },
         status.HTTP_415_UNSUPPORTED_MEDIA_TYPE: {
             "content": {
                 "application/json": {"example": {"detail": "Unsupported Media Type"}},
-            }
+            },
         },
         status.HTTP_422_UNPROCESSABLE_ENTITY: {
             "content": {
                 "application/json": {"example": {"errors": "<Error description>"}},
-            }
+            },
         },
         status.HTTP_500_INTERNAL_SERVER_ERROR: {"description": "Internal Server Error", "model": str},
     },
@@ -160,7 +159,7 @@ async def health():
                 "content": {
                     "application/json": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
                     "application/yaml": {"schema": {"$ref": "#/components/schemas/MainConfig"}},
-                }
+                },
             },
         },
     },
@@ -195,7 +194,7 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
         json_config = json.loads(config_to_json(MainConfig, res_config))
     except Exception as e:
         tb = traceback.format_exc()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{str(e)}\n\n{tb}") from e
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{e!s}\n\n{tb}") from e
 
     accept_header = request.headers.get("accept")
     if accept_header is not None and "application/yaml" in accept_header:
@@ -208,8 +207,7 @@ async def gen_config_file(request: Request, file: UploadFile | None = None):
             + f"# Do not make direct changes to the file.\n{yaml_response}"
         )
         return Response(yaml_response, media_type="application/yaml")
-    else:
-        return JSONResponse(json_config, media_type="application/json")
+    return JSONResponse(json_config, media_type="application/json")
 
 
 class DB_Status_Request(BaseModel):
@@ -246,10 +244,9 @@ async def verify_connection_db(db_req: DB_Status_Request) -> DB_Status_Response:
         table_status = table_exists(engine, table_name=db_req.table_name)
 
         connection.close()
-    except SQLAlchemyError as err:
-        logger.info("Database connection unsuccessful", err)
+    except SQLAlchemyError:
+        logger.exception("Database connection unsuccessful")
 
-    db_status = DB_Status_Response(db_status=db_status, table_status=table_status, has_connected=True)
-    return db_status
+    return DB_Status_Response(db_status=db_status, table_status=table_status, has_connected=True)
 
 app.include_router(agent_manager, prefix="/api/corerl/agents", tags=["Agent"])

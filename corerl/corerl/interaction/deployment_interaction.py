@@ -3,11 +3,11 @@ import logging
 import math
 import shutil
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Generator
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Generator
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -58,7 +58,7 @@ class DeploymentInteraction:
         self._last_state: AgentState = AgentState(
             feats=np.full(self._column_desc.state_dim, np.nan),
             action_lo=np.full(self._column_desc.action_dim, np.nan),
-            action_hi=np.full(self._column_desc.action_dim, np.nan)
+            action_hi=np.full(self._column_desc.action_dim, np.nan),
         )
         self._last_action_df: pd.DataFrame | None = None # used to ping setpoints
 
@@ -108,7 +108,7 @@ class DeploymentInteraction:
             EventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
         })
 
-    def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any, None] | None:
+    def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any] | None:
         if not self._cfg.load_historical_data:
             return None
 
@@ -127,7 +127,7 @@ class DeploymentInteraction:
 
         return split_windows_into_chunks(
             windows=self._cfg.historical_windows,
-            width=self.obs_period * self._cfg.historical_batch_size
+            width=self.obs_period * self._cfg.historical_batch_size,
         )
 
     def _pretrain(self):
@@ -255,10 +255,9 @@ class DeploymentInteraction:
             logger.info("Querying agent policy for new action")
             return self._agent.get_action_interaction(state.feats, state.action_lo, state.action_hi)
 
-        else:
-            self._app_state.event_bus.emit_event(EventType.action_period_reset)
-            logger.warning(f'Tried to take action, however was unable: {state}')
-            return None
+        self._app_state.event_bus.emit_event(EventType.action_period_reset)
+        logger.warning(f'Tried to take action, however was unable: {state}')
+        return None
 
     def _capture_latest_state(self, pipe_return: PipelineReturn):
         pr_ts = pipe_return.states.index[-1]
@@ -266,7 +265,7 @@ class DeploymentInteraction:
             feats=pipe_return.states.iloc[-1].to_numpy(dtype=np.float32),
             action_lo=pipe_return.action_lo.iloc[-1].to_numpy(dtype=np.float32),
             action_hi=pipe_return.action_hi.iloc[-1].to_numpy(dtype=np.float32),
-            timestamp=pr_ts.to_pydatetime() if isinstance(pr_ts, pd.Timestamp) else datetime.now(UTC)
+            timestamp=pr_ts.to_pydatetime() if isinstance(pr_ts, pd.Timestamp) else datetime.now(UTC),
         )
 
 
@@ -436,7 +435,7 @@ def prune_checkpoints(
         chkpoints: list[Path],
         times: list[datetime],
         cliff: datetime,
-        checkpoint_freq: timedelta
+        checkpoint_freq: timedelta,
     ) -> list[Path]:
 
     to_delete = []

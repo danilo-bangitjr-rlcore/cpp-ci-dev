@@ -1,0 +1,65 @@
+interaction:
+  name: sim_interaction
+  obs_period: 00:05:00
+  action_period: 00:05:00
+
+pipeline:
+  state_constructor:
+    countdown:
+      kind: int
+      action_period: 00:05:00
+      obs_period: 00:05:00
+      normalize: False
+  transition_creator:
+    max_n_step: 1
+    gamma: 0.9
+    normalize_return: False
+  transition_filter:
+    filters:
+      - 'only_no_action_change'
+      - 'only_post_dp'
+      - 'no_nan'
+  tags:
+  # meta tags
+  - name: reward
+    type: meta
+    state_constructor:
+      - name: "null"
+    preprocess:
+      - name: identity
+    reward_constructor:
+      - name: identity
+
+  # observations
+  - name: tag-1
+    is_endogenous: False
+    imputer:
+      name: copy
+      imputation_horizon: 2
+    preprocess:
+      - name: identity
+    state_constructor:
+      - name: identity
+
+  - name: tag-2
+    is_endogenous: True
+    operating_range: [ 0, 12 ]
+    imputer:
+      name: linear
+      max_gap: 2
+    preprocess:
+      - name: normalize
+        min: 0
+        max: 12
+    state_constructor:
+      - name: multi_trace
+        trace_values: [ 0.1 ]
+
+  # actions
+  - name: action-1
+    type: ai_setpoint
+    operating_range: [ 0, 1 ]
+    preprocess:
+      - name: identity
+    state_constructor:
+      - name: identity

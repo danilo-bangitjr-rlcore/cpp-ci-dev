@@ -28,7 +28,7 @@ class Preprocessor(Constructor):
 
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_names, axis=1, inplace=False)
-        pf.data = pd.concat([df] + transformed_parts, axis=1, copy=False)
+        pf.data = pd.concat([df, *transformed_parts], axis=1, copy=False)
 
         pf.data.rename(columns=lambda col: maybe_get_prefix(col, tag_names), inplace=True)
         return pf

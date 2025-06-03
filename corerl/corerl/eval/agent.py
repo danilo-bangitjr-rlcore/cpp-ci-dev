@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-from typing import Callable, Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
+from collections.abc import Callable, Sequence
+from typing import Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
 
 import numpy as np
 import torch
@@ -33,9 +33,7 @@ def agent_eval(
     *args: P.args,
     **kwargs: P.kwargs,
 ):
-
     cfg = cfg_lens(app_state)
-
     if not cfg.enabled:
         return
 
@@ -67,7 +65,7 @@ BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[torch.Tensor]]
 def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
     def batchified(cfg: EvalConfig, agent: GreedyAC):
         if not agent.is_policy_buffer_sampleable:
-            return tuple()
+            return ()
 
         batches = agent.sample_policy_buffer()
         assert len(batches) == 1
@@ -147,7 +145,7 @@ def policy_variance(
         metric_names=['actor_var', 'sampler_var'],
         state=state,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 # ------------------------------ Q Values Online ----------------------------- #
@@ -170,7 +168,7 @@ def _q_online(
     assert state.size(0) == 1
     direct_action = ensure_2d_tensor(direct_action)
     assert direct_action.size(0) == 1
-    out = agent.critic.get_values([state], [direct_action], with_grad=False)
+    out = agent.get_values([state], [direct_action])
 
     return out.reduced_value, out.ensemble_values, out.ensemble_variance
 
@@ -197,8 +195,7 @@ def get_max_action(actions: torch.Tensor, values: torch.Tensor):
     assert values.dim() == 2
     max_indices = torch.argmax(values, dim=1)
     batch_size = actions.size(0)
-    max_actions = actions[torch.arange(batch_size), max_indices, :]
-    return max_actions
+    return actions[torch.arange(batch_size), max_indices, :]
 
 @config()
 class GreedDistConfig:
@@ -235,7 +232,7 @@ def _greed_dist(
         action_hi=action_hi,
         n_samples=N_SAMPLES,
         sampler=agent.get_uniform_actions,
-        critic=agent.critic,
+        critic=agent,
     )
 
     q_values = qr.q_values
@@ -274,7 +271,7 @@ def greed_dist_online(
         metric_names=['greed_dist_online'],
         states=states,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 
@@ -318,7 +315,7 @@ def _greed_values(
     qr_sampler = get_sampled_qs(
         states, action_lo, action_hi, n_samples,
         sampler=agent.get_sampler_actions,
-        critic=agent.critic
+        critic=agent,
     )
     q_values_sampler = qr_sampler.q_values
     percentile_q_threshold = get_percentile_threshold(q_values_sampler, percentile)
@@ -326,7 +323,7 @@ def _greed_values(
     qr_actor = get_sampled_qs(
         states, action_lo, action_hi, n_samples,
         sampler=agent.get_actor_actions,
-        critic=agent.critic
+        critic=agent,
     )
     q_values_actor = qr_actor.q_values
 
@@ -348,7 +345,7 @@ def greed_values_online(
         metric_names=['greed_values_online'],
         states=states,
         action_lo=action_lo,
-        action_hi=action_hi
+        action_hi=action_hi,
     )
 
 def greed_values_batch(app_state: AppState, agent: BaseAgent):
@@ -387,6 +384,7 @@ def q_values_and_act_prob(
     """
     if not isinstance(agent, GreedyAC):
         return
+
     cfg = app_state.cfg.eval_cfgs.q_pdf_plots
     if not cfg.enabled:
         return
@@ -434,7 +432,7 @@ def q_values_and_act_prob(
         # Next, plot q values for the entire range of direct actions
         augmented_direct_actions = direct_actions.clone()
         augmented_direct_actions[:, :, a_dim_idx] = repeated_lin_spaced_actions
-        qs = agent.critic.get_values(
+        qs = agent.get_values(
             [repeated_states],
             [augmented_direct_actions.reshape(n_samples, -1)],
         ).reduced_value

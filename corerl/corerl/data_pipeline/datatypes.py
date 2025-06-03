@@ -5,9 +5,11 @@ from enum import Enum, IntFlag, auto
 from math import isclose
 from typing import Any
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import torch
+from lib_agent.buffer.buffer import VectorizedTransition
 from torch import Tensor
 
 from corerl.utils.torch import tensor_allclose
@@ -78,6 +80,34 @@ class Transition:
     steps: list[Step]
     n_step_reward: float
     n_step_gamma: float
+
+    @property
+    def state(self):
+        return self.prior.state.numpy()
+
+    @property
+    def action(self):
+        return self.post.action.numpy()
+
+    @property
+    def reward(self):
+        return self.n_step_reward
+
+    @property
+    def gamma(self):
+        return self.n_step_gamma
+
+    @property
+    def next_state(self):
+        return self.post.state.numpy()
+
+    @property
+    def action_dim(self):
+        return self.post.action.shape[-1]
+
+    @property
+    def state_dim(self):
+        return self.prior.state.shape[-1]
 
     @property
     def prior(self):
@@ -173,7 +203,7 @@ class StepBatch:
             action_lo=self.action_lo[idx],
             action_hi=self.action_hi[idx],
             dp=self.dp[idx],
-            ac=self.ac[idx]
+            ac=self.ac[idx],
         )
 
 @dataclass
@@ -183,6 +213,26 @@ class TransitionBatch:
     post: StepBatch
     n_step_reward: Tensor
     n_step_gamma: Tensor
+
+    @property
+    def state(self):
+        return jnp.asarray(self.prior.state)
+
+    @property
+    def action(self):
+        return jnp.asarray(self.post.action)
+
+    @property
+    def reward(self):
+        return jnp.asarray(self.n_step_reward)
+
+    @property
+    def gamma(self):
+        return jnp.asarray(self.n_step_gamma)
+
+    @property
+    def next_state(self):
+        return jnp.asarray(self.post.state)
 
     def __eq__(self, other: object):
         if not isinstance(other, TransitionBatch):
@@ -196,7 +246,7 @@ class TransitionBatch:
         )
 
     def __getitem__(self, idx: int|slice) -> "TransitionBatch":
-        if isinstance(idx, (int, np.integer)):
+        if isinstance(idx, int | np.integer):
             idx = slice(idx, idx+1)
 
         return TransitionBatch(
@@ -204,8 +254,18 @@ class TransitionBatch:
             prior=self.prior[idx],
             post=self.post[idx],
             n_step_reward=self.n_step_reward[idx],
-            n_step_gamma=self.n_step_gamma[idx]
+            n_step_gamma=self.n_step_gamma[idx],
         )
+
+
+def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
+    return VectorizedTransition(
+        state=jnp.stack([t.state for t in tb]),
+        action=jnp.stack([t.action for t in tb]),
+        reward=jnp.stack([t.reward for t in tb]),
+        next_state=jnp.stack([t.next_state for t in tb]),
+        gamma=jnp.stack([t.gamma for t in tb]),
+    )
 
 class DataMode(Enum):
     OFFLINE = auto()
@@ -215,6 +275,7 @@ class DataMode(Enum):
 
 class StageCode(Enum):
     INIT = auto()
+    SEASONAL = auto()
     VIRTUAL = auto()
     FILTER = auto()
     TRIGGER = auto()

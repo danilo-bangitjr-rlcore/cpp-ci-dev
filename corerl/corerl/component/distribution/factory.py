@@ -19,7 +19,7 @@ def get_dist_type(type_: str) -> type[d.Distribution]:
         return _dist_types[type_.lower()]
 
     # Try to get the distribution from torch.distributions
-    elif hasattr(d, type_):
+    if hasattr(d, type_):
         return getattr(d, type_)
 
     raise NotImplementedError(

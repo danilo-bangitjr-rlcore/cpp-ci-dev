@@ -9,7 +9,7 @@ from typing import Any
 
 from pydantic.fields import FieldInfo
 
-import corerl.utils.nullable as nullable
+from corerl.utils import nullable
 
 
 def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
@@ -100,7 +100,7 @@ def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None
 
         elif isinstance(v, dict):
             assert isinstance(d1[k], dict), f"Key type mismatch at {'.'.join(_path)}. Expected dict."
-            out[k] = merge(d1[k], d2[k], _path + [k])
+            out[k] = merge(d1[k], d2[k], [*_path, k])
 
         elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
             out[k] = _zip_longest(merge, d1[k], v)
@@ -124,9 +124,8 @@ def filter(pred: Callable[[Any], bool], d: dict[str, Any]) -> dict[str, Any]:
                 for sub in v
             ]
 
-        else:
-            if pred(v):
-                out[k] = v
+        elif pred(v):
+            out[k] = v
 
     return out
 

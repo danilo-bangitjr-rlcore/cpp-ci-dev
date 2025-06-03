@@ -2,28 +2,25 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Iterator, Mapping, Optional, Union
+from collections.abc import Iterator, Mapping
+from typing import Any, override
 
 import torch
 import torch.distributions as d
-import torch.distributions.constraints as constraints
-import torch.nn as nn
-from typing_extensions import override
+from torch import nn
+from torch.distributions import constraints
 
-import corerl.utils.nullable as nullable
+from corerl.utils import nullable
 from corerl.utils.device import device
 
 _BoundedAboveConstraint = constraints.less_than
 
-_BoundedBelowConstraint = Union[
-    constraints.greater_than_eq,
-    constraints.greater_than,
-]
+_BoundedBelowConstraint = (
+    constraints.greater_than_eq
+    | constraints.greater_than
+)
 
-_HalfBoundedConstraint = Union[
-    _BoundedAboveConstraint,
-    _BoundedBelowConstraint,
-]
+_HalfBoundedConstraint = _BoundedAboveConstraint | _BoundedBelowConstraint
 
 
 class Policy(ABC):
@@ -150,8 +147,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         dist_type = _get_type_from_dist(dist)
         if dist_type == UnBounded:
             return dist_type(model, dist)
-        else:
-            return dist_type(model, dist, *args, **kwargs)
+        return dist_type(model, dist, *args, **kwargs)
 
     def _transform_from_params(self, *params: torch.Tensor) -> d.Distribution:
         """
@@ -208,7 +204,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         dist = self._transform_from_params(*params)
 
         info = dict(zip(
-            [param_name for param_name in self.param_names],
+            self.param_names,
             [p.detach().cpu().numpy() for p in params],
             strict=True,
         ))
@@ -230,7 +226,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         dist = self._transform_from_params(*params)
 
         info = dict(zip(
-            [param_name for param_name in self.param_names],
+            self.param_names,
             [p.detach().cpu().numpy() for p in params],
             strict=True,
         ))
@@ -239,7 +235,7 @@ class ContinuousIIDPolicy(Policy,ABC):
         if not torch.all(dist.support.check(action)):
             raise ValueError(
                 "expected all actions to be within the distribution support " +
-                f"of {dist.support}, but got actions: \n{action}"
+                f"of {dist.support}, but got actions: \n{action}",
             )
 
         lp = dist.log_prob(action.cpu())
@@ -300,7 +296,7 @@ class Bounded(ContinuousIIDPolicy):
             raise ValueError(
                 "Bounded expects dist to have support type " +
                 f"{constraints.interval}, but " +
-                f"got {type(dist.support)}"
+                f"got {type(dist.support)}",
             )
         dist_min = dist.support.lower_bound
         dist_max = dist.support.upper_bound
@@ -355,7 +351,7 @@ class UnBounded(ContinuousIIDPolicy):
             raise ValueError(
                 "UnBounded expects dist to have support type " +
                 f"{type(constraints.real)}, but " +
-                f"got {type(dist.support)}"
+                f"got {type(dist.support)}",
             )
 
     @ContinuousIIDPolicy.support.getter
@@ -387,8 +383,8 @@ class HalfBounded(ContinuousIIDPolicy):
         self,
         model: nn.Module,
         dist: type[d.Distribution],
-        action_min: Optional[torch.Tensor]=None,
-        action_max: Optional[torch.Tensor]=None,
+        action_min: torch.Tensor | None=None,
+        action_max: torch.Tensor | None=None,
     ):
         super().__init__(model, dist)
 
@@ -398,7 +394,7 @@ class HalfBounded(ContinuousIIDPolicy):
             if action_min is not None and torch.all(action_min != -torch.inf):
                 logging.warning(
                     f"the support of {dist} is not bounded below, ignoring" +
-                    "action_min value {action_min}"
+                    "action_min value {action_min}",
                 )
             action_min = torch.tensor(-torch.inf)
 
@@ -414,7 +410,7 @@ class HalfBounded(ContinuousIIDPolicy):
             if action_max is not None and torch.all(action_max != torch.inf):
                 logging.warning(
                     f"the support of {dist} is not bounded above, ignoring " +
-                    f"action_max value {action_max}"
+                    f"action_max value {action_max}",
                 )
             action_max = torch.tensor(torch.inf)
 
@@ -428,7 +424,7 @@ class HalfBounded(ContinuousIIDPolicy):
             raise ValueError(
                 "HalfBounded expects dist to have support type " +
                 f"{_HalfBoundedConstraint}, but " +
-                f"got {type(dist.support)}"
+                f"got {type(dist.support)}",
             )
 
         assert action_max is not None and action_min is not None
@@ -441,9 +437,8 @@ class HalfBounded(ContinuousIIDPolicy):
         if self._bounded_below:
             lb = self._dist.support.lower_bound
             return type(self._dist.support)(lb + self._action_min)
-        else:
-            ub = self._dist.support.upper_bound
-            return type(self._dist.support)(ub + self._action_max)
+        ub = self._dist.support.upper_bound
+        return type(self._dist.support)(ub + self._action_max)
 
     @property
     def _bounded_below(self) -> bool:
@@ -482,10 +477,10 @@ def _get_type_from_dist(
 
     # Weirdness with PyTorch's constraints.real makes us need to call `type` on
     # it first
-    elif isinstance(dist.support, type(constraints.real)):
+    if isinstance(dist.support, type(constraints.real)):
         return UnBounded
 
-    elif isinstance(dist.support, _HalfBoundedConstraint):
+    if isinstance(dist.support, _HalfBoundedConstraint):
         return HalfBounded
 
     raise NotImplementedError(

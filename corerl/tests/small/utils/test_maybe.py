@@ -38,7 +38,7 @@ def test_flat_map_positive():
     # Maybe[int]
     got_m = m.flat_map(
         lambda x: inner.map(
-            lambda y: x + y
+            lambda y: x + y,
         ),
     )
     got = got_m.unwrap()
