@@ -139,7 +139,7 @@ def wait_for_agent_step(client: Client, agent_step_node: SyncNode):
             last_agent_step = agent_step
             yield
 
-@load_config(OPCSimConfig, base="config/")
+@load_config(OPCSimConfig)
 def main(cfg: OPCSimConfig):
     env: gym.Env = init_environment(cfg.gym)
     _logger.info(f"Running OPC env simulation {env}")
