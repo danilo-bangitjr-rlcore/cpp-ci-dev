@@ -18,6 +18,13 @@ from sqlalchemy import Engine, text
 class Behaviour(Enum):
     exploration = auto()
 
+class BehaviourCategory(Enum):
+    PERFORMANCE = auto()
+    NONSTATIONARY = auto()
+    REACTIVITY = auto()
+    REPRESENTATION = auto()
+    ROBUSTNESS = auto()
+    GREEDY = auto()
 
 class BSuiteTestCase:
     name: str
@@ -28,7 +35,7 @@ class BSuiteTestCase:
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
     goals: dict[str, float] = {}
-
+    category: BehaviourCategory = None
     aggregators: dict[str, str] = {}
 
     overrides: dict[str, object] | None = None
