@@ -33,7 +33,6 @@ class QRCConfig:
     stepsize: float
     ensemble: int
     ensemble_prob: float
-    batch_size: int
     num_rand_actions: int
     action_regularization: float
     l2_regularization: float
