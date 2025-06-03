@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Literal
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import torch
@@ -112,7 +114,7 @@ class MaskedAutoencoder(BaseImputer):
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            raw_row = _row_to_tensor(row)
+            raw_row = torch.tensor(_row_to_jnp(row))
             inputs = torch.hstack((raw_row, ts.last_trace))
 
             num_nan = raw_row.isnan().sum().item()
@@ -133,7 +135,7 @@ class MaskedAutoencoder(BaseImputer):
             # if there is enough info to impute, there
             # is enough info to train the imputer.
             if can_impute:
-                self._buffer.add(inputs)
+                self._buffer.add(jnp.asarray(inputs))
                 ts.num_outside_thresh = 0
             else:
                 ts.num_outside_thresh += 1
@@ -141,7 +143,7 @@ class MaskedAutoencoder(BaseImputer):
             # update traces for use on next timestep
             carry = TransformCarry(df, row, '')
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
-            ts.last_trace = _row_to_tensor(carry.transform_data)
+            ts.last_trace = torch.tensor(_row_to_jnp(carry.transform_data))
 
             # since we normalized to help training,
             # denormalize back to original tag space for rest
@@ -179,7 +181,7 @@ class MaskedAutoencoder(BaseImputer):
         while loss > self._imputer_cfg.err_tolerance and steps < self._imputer_cfg.max_update_steps:
             steps += 1
             self._optimizer.zero_grad()
-            batch = self._buffer.sample(self._imputer_cfg.batch_size)
+            batch = torch.tensor(self._buffer.sample(self._imputer_cfg.batch_size))
 
             # Labels may have NaNs, ignore the
             # loss for the NaN components, then
@@ -234,18 +236,16 @@ def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
     return out
 
 
-def _row_to_tensor(row: pd.DataFrame) -> torch.Tensor:
-    return torch.tensor(
-        row.iloc[0].to_numpy(np.float32),
-    )
+def _row_to_jnp(row: pd.DataFrame) -> jax.Array:
+    return jnp.asarray(row.iloc[0].to_numpy(np.float32))
 
 class CircularBuffer:
     def __init__(self, max_size: int):
-        self._storage: dict[int, torch.Tensor] = {}
+        self._storage: dict[int, jax.Array] = {}
         self._i = 0
         self._max_size = max_size
 
-    def add(self, data: torch.Tensor):
+    def add(self, data: jax.Array):
         self._storage[self._i] = data
         self._i = (self._i + 1) % self._max_size
 
@@ -254,4 +254,4 @@ class CircularBuffer:
         out = [
             self._storage[idx] for idx in idxs
         ]
-        return torch.vstack(out)
+        return jnp.vstack(out)
