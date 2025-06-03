@@ -23,7 +23,7 @@ from corerl.utils.list import find_instance
 @dataclass
 class MaskedAETemporalState:
     trace_ts: TraceTemporalState = field(default_factory=TraceTemporalState)
-    last_trace: torch.Tensor | None = None
+    last_trace: jax.Array | None = None
     num_outside_thresh: int = 0
 
 
@@ -103,7 +103,7 @@ class MaskedAutoencoder(BaseImputer):
         # try to recover traces from the temporal state
         # otherwise, start fresh
         if ts.last_trace is None:
-            ts.last_trace = torch.zeros(self._num_traces * self._num_obs)
+            ts.last_trace = jnp.zeros(self._num_traces * self._num_obs)
 
         # loop through data and impute one row at a time
         # this way we can use imputed values to compute
@@ -114,10 +114,10 @@ class MaskedAutoencoder(BaseImputer):
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            raw_row = torch.tensor(_row_to_jnp(row))
-            inputs = torch.hstack((raw_row, ts.last_trace))
+            raw_row = _row_to_jnp(row)
+            inputs = torch.tensor(jnp.hstack((raw_row, ts.last_trace)))
 
-            num_nan = raw_row.isnan().sum().item()
+            num_nan = jnp.isnan(raw_row).sum().item()
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
@@ -143,12 +143,12 @@ class MaskedAutoencoder(BaseImputer):
             # update traces for use on next timestep
             carry = TransformCarry(df, row, '')
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
-            ts.last_trace = torch.tensor(_row_to_jnp(carry.transform_data))
+            ts.last_trace = _row_to_jnp(carry.transform_data)
 
             # since we normalized to help training,
             # denormalize back to original tag space for rest
             # of the data pipeline
-            pf.data.iloc[i] = self._denormalize(raw_row.numpy())
+            pf.data.iloc[i] = self._denormalize(np.asarray(raw_row))
 
         self.train()
         return pf
