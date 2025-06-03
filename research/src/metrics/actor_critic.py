@@ -19,10 +19,10 @@ def ac_eval(collector: Collector, agent: GreedyAC, state: np.ndarray):
     repeat_on_policy = jnp.tile(on_policy_actions, (x_axis_actions, 1))
 
     # Actor
-    actor_probs = agent.get_probs(agent.agent_state.actor.params, state, linspaced_actions)
+    actor_probs = agent.get_probs(agent.agent_state.actor.actor.params, state, linspaced_actions)
 
     # Proposal
-    proposal_probs = agent.get_probs(agent.agent_state.proposal.params, state, linspaced_actions)
+    proposal_probs = agent.get_probs(agent.agent_state.actor.proposal.params, state, linspaced_actions)
 
     for a_dim in range(agent.action_dim):
         constructed_actions = repeat_on_policy.at[:,a_dim].set(repeat_linspace)
