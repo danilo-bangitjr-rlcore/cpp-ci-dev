@@ -13,11 +13,8 @@ from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.norm import Normalizer
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
-from corerl.utils.list import find_instance
 
 
 @dataclass
@@ -49,8 +46,6 @@ class MaskedAutoencoder(BaseImputer):
         self._num_obs = len(tag_cfgs)
         self._num_traces = len(imputer_cfg.trace_values)
 
-        norm_cfgs = _find_norm_cfgs(tag_cfgs)
-        self._norms = {tag: Normalizer(cfg) for tag, cfg in norm_cfgs.items()}
         self._traces = TraceConstructor(TraceConfig(
             trace_values=imputer_cfg.trace_values,
         ))
@@ -89,16 +84,6 @@ class MaskedAutoencoder(BaseImputer):
         assert isinstance(ts, MaskedAETemporalState)
 
         df = pf.data.copy(deep=False)
-
-        # first normalize all tags that we know how to,
-        # to ensure the model weighs imputing each tag
-        # equally. Unnormalized tags will get uneven weighting
-        for tag, norm in self._norms.items():
-            tag_data = df[[tag]].copy(deep=False)
-            assert isinstance(tag_data, pd.DataFrame)
-            carry = TransformCarry(df, tag_data, tag)
-            carry, _ = norm(carry, None)
-            df[tag] = carry.transform_data
 
         # try to recover traces from the temporal state
         # otherwise, start fresh
@@ -144,11 +129,6 @@ class MaskedAutoencoder(BaseImputer):
             carry = TransformCarry(df, row, '')
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
             ts.last_trace = _row_to_jnp(carry.transform_data)
-
-            # since we normalized to help training,
-            # denormalize back to original tag space for rest
-            # of the data pipeline
-            pf.data.iloc[i] = self._denormalize(np.asarray(raw_row))
 
         self.train()
         return pf
@@ -210,30 +190,6 @@ class MaskedAutoencoder(BaseImputer):
                 loss = torch.sum(error**2) / nonzero
                 loss.backward()
                 self._optimizer.step()
-
-
-    def _denormalize(self, raw_row: np.ndarray):
-        for i, (col, norm) in enumerate(self._norms.items()):
-            raw_row[i] = norm.invert(raw_row[i], col)
-
-        return raw_row
-
-
-def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
-    out: dict[str, NormalizerConfig] = {}
-    for tag in tag_cfgs:
-        # look for a norm config anywhere,
-        # preferring sc -> ac -> rc
-        norm_cfg = find_instance(
-            NormalizerConfig,
-            (tag.state_constructor or []) +\
-            (tag.reward_constructor),
-        )
-
-        if norm_cfg is not None:
-            out[tag.name] = norm_cfg
-
-    return out
 
 
 def _row_to_jnp(row: pd.DataFrame) -> jax.Array:
