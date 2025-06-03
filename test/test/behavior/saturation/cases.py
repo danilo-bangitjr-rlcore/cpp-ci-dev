@@ -4,7 +4,7 @@ from pathlib import Path
 
 from sqlalchemy import Engine
 
-import test.behavior.utils as utils
+from test.behavior import utils
 from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 
 
