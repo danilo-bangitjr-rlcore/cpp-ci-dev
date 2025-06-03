@@ -102,22 +102,17 @@ def get_tests_by_category(category: BehaviourCategory) -> list[BSuiteTestCase]:
     ]
 
 
+@pytest.mark.parametrize('category', [None, *list(BehaviourCategory)])
 @pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
 @pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES), ids=str)
 def test_bsuite(
     test_case: BSuiteTestCase,
     bsuite_tsdb: None,
     feature_flags: dict[str, bool],
-    request: pytest.FixtureRequest,
+    category: BehaviourCategory | None,
 ):
-    category = request.config.getoption("--category")
-
-    if category is not None:
-        category_enum = BehaviourCategory[category.upper()]
-        if test_case.category != category_enum:
-            pytest.skip(f"Test case {test_case.name} not in category {category}")
-    else:
-        category_enum = None
+    if category is not None and test_case.category != category:
+        pytest.skip(f"Test case {test_case.name} not in category {category}")
 
     # skip the test if any required feature is disabled
     for req_feature in test_case.required_features:
