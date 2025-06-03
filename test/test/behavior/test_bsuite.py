@@ -112,10 +112,12 @@ def test_bsuite(
 ):
     category = request.config.getoption("--category")
 
-    if category:
+    if category is not None:
         category_enum = BehaviourCategory[category.upper()]
         if test_case.category != category_enum:
             pytest.skip(f"Test case {test_case.name} not in category {category}")
+    else:
+        category_enum = None
 
     # skip the test if any required feature is disabled
     for req_feature in test_case.required_features:

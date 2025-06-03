@@ -37,7 +37,7 @@ class BSuiteTestCase:
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
     goals: dict[str, float] = {}
-    category: BehaviourCategory = None
+    category: BehaviourCategory | None = None
     aggregators: dict[str, str] = {}
 
     overrides: dict[str, object] | None = None
