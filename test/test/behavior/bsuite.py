@@ -20,6 +20,13 @@ from sqlalchemy import Engine, text
 class Behaviour(Enum):
     exploration = auto()
 
+class BehaviourCategory(Enum):
+    PERFORMANCE = auto()
+    NONSTATIONARY = auto()
+    REACTIVITY = auto()
+    REPRESENTATION = auto()
+    ROBUSTNESS = auto()
+    GREEDY = auto()
 
 class BSuiteTestCase:
     name: str
@@ -30,7 +37,7 @@ class BSuiteTestCase:
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
     goals: dict[str, float] = {}
-
+    category: BehaviourCategory | None = None
     aggregators: dict[str, str] = {}
 
     overrides: dict[str, object] | None = None
@@ -84,7 +91,8 @@ class BSuiteTestCase:
             'python', 'corerl/main.py',
             '--base', '../test/',
             '--config-name', self.config,
-        ] + parts, cwd='../corerl')
+            *parts,
+        ], cwd='../corerl')
 
         psutil_proc = psutil.Process(proc.pid)
         while proc.poll() is None:
@@ -231,7 +239,7 @@ class BSuiteTestCase:
             ],
             partition_column='test_name',
             index_columns=['test_name', 'branch'],
-            chunk_time_interval='14d'
+            chunk_time_interval='14d',
         )
 
         insert_runtime_sql = text("""
