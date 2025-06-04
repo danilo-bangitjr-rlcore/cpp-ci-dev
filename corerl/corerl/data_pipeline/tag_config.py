@@ -445,15 +445,6 @@ class TagConfig:
             norm_cfg.from_data = True
 
     @post_processor
-    def _optional_delta_preprocessor(self, cfg: MainConfig):
-        # Make sure delta transform happens before normalization
-        norm_ind = find_index(lambda x_form: isinstance(x_form, NormalizerConfig), self.preprocess)
-        delta_ind = find_index(lambda x_form: isinstance(x_form, DeltaConfig), self.preprocess)
-        assert (
-            norm_ind is None or delta_ind is None or delta_ind < norm_ind
-        ), f"{self.name} must have the delta transform before the normalization transform in the preprocess stage"
-
-    @post_processor
     def _additional_validations(self, cfg: MainConfig):
         if self.type == TagType.ai_setpoint:
             assert (
