@@ -205,8 +205,8 @@ class QRCCritic:
         next_state = transition.next_state
         gamma = transition.gamma
 
-        out = self._net.apply(params, state, action)
-        out_p = jax_u.vmap_only(self._net.apply, [2])(params, next_state, next_actions)
+        out = self._net.apply(params, state.features, action)
+        out_p = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, next_actions)
 
         target = reward + gamma * out_p.q.mean()
 
@@ -221,7 +221,7 @@ class QRCCritic:
         rand_actions = jax.random.uniform(
             self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state, rand_actions)
+        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, rand_actions)
         reg_loss = out_rand.q.mean()
 
         loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
