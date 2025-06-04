@@ -48,7 +48,7 @@ pipeline:
     type: ai_setpoint
     operating_range: [0., 1.]
     state_constructor:
-    - name: 'null'
+    - name: 'nuke'
 
   - name: Tag_1
     preprocess:
@@ -63,4 +63,4 @@ pipeline:
     preprocess:
     - name: identity
     state_constructor:
-    - name: 'null'
+    - name: 'nuke'

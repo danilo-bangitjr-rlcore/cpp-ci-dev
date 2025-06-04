@@ -229,7 +229,7 @@ def test_epcor_reward():
                 ],
             ),
         ],
-        "outlet_h2s": [xform.NullConfig()], # this is hangled in constraint_violation_xforms above
+        "outlet_h2s": [xform.NukeConfig()], # this is hangled in constraint_violation_xforms above
         "ph_pumpspeed": [
             xform.SplitConfig(
                 passthrough=False,

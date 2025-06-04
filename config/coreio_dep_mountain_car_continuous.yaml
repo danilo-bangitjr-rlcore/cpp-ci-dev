@@ -29,7 +29,7 @@ pipeline:
       max: 1.5
       from_data: false
     reward_constructor:
-    - name: 'null'
+    - name: 'nuke'
     action_constructor: null
     state_constructor:
     - name: multi_trace
@@ -64,7 +64,7 @@ pipeline:
       max: 0.6
       from_data: false
     reward_constructor:
-    - name: 'null'
+    - name: 'nuke'
     action_constructor: null
     state_constructor:
     - name: multi_trace
@@ -99,7 +99,7 @@ pipeline:
       max: 0.06
       from_data: false
     reward_constructor:
-    - name: 'null'
+    - name: 'nuke'
     action_constructor: null
     state_constructor:
     - name: multi_trace

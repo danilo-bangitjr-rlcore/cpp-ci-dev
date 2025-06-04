@@ -120,7 +120,7 @@ pipeline:
       val: 100000 # HACKY!
     # binary max acts as OR
     - name: binary
-      op: max 
+      op: max
       # filter if mode is not production (8)
       other: UF2_SEQ_STATE
       other_xform:
@@ -128,7 +128,7 @@ pipeline:
         op: '!='
         val: 8
     - name: binary
-      op: max 
+      op: max
       # filter if mode is not production (8)
       other: UF2_FIT301_PV
       other_xform:
@@ -136,9 +136,9 @@ pipeline:
         op: <
         val: 10
     - name: binary
-      op: max 
+      op: max
        # filter if magnitude of TMP is too low
-      other: UF2_TMP_PV 
+      other: UF2_TMP_PV
       other_xform:
       - name: comparator
         op: '>'
@@ -148,16 +148,16 @@ pipeline:
     preprocess:
     - name: identity
     state_constructor:
-    - name: "null"
+    - name: "nuke"
 
   - name: UF2_TMP_PV # used in permeability calculation
     state_constructor:
-    - name: "null"
+    - name: "nuke"
 
   - name: UF2_SEQ_STATE # used in permeability calculation
     operating_range: [1, 2048]
     state_constructor:
-    - name: "null"
+    - name: "nuke"
 
   - name: BP_CYCLE_TOTAL
     operating_range: [0, 5500]
