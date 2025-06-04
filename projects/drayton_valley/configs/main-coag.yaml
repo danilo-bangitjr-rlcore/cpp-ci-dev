@@ -13,12 +13,6 @@ agent_name: coag
 seed: 0
 is_simulation: False
 
-feature_flags:
-  action_bounds: True
-  zone_violations: True
-  use_residual: True
-  gtd_critic: True
-
 interaction:
   name: dep_interaction
   restore_checkpoint: false
@@ -27,19 +21,23 @@ interaction:
   action_period: PT2H
   warmup_period: 03:00:00
   state_age_tol: 00:30:00
-  update_warmup: 50 # number of updates before interacting
+  update_warmup: 200 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
-  hist_chunk_start: 2025-03-01 00:00:00+0000 # YYYY-MM-DD hh:mm:ss
+  historical_windows:
+  - [2025-04-16 00:00:00+0000, null]
 
 event_bus:
   enabled: true
-  cli_connection: tcp://localhost:5556
+  cli_connection: tcp://localhost:5567
   app_connection: inproc://corerl_app
 
+coreio:
+  coreio_origin: "tcp://localhost:5559"
+  opc_connections:
+    - connection_id: main_opc
+      opc_conn_url: "opc.tcp://localhost:62541"
 env:
   name: dep_async_env
-  coreio_origin: http://localhost:2222
-
   db:
     table_name: main
 
@@ -63,7 +61,6 @@ agent:
       ensemble_probability: 1
       id: actor # for metric logging
 
-
 metrics:
   enabled: True
   table_name: metrics_main_coag
@@ -71,13 +68,22 @@ evals:
   enabled: True
   table_name: evals_main_coag
 
-
 pipeline:
   reward:
     priorities:
-    - op: up_to
-      tag: UV03_UV254_PV
-      thresh: '{COAG_AI_UVT_SP}'
+    - op: and
+      goals:
+        - op: up_to
+          tag: UV03_UV254_PV
+          thresh: '{COAG_AI_UVT_SP}'
+        - op: or
+          goals:
+          - op: down_to
+            tag: FLR03_CDOM_PV
+            thresh: 27
+          - op: down_to
+            tag: FLR03_TRYP_PV
+            thresh: 4.5
     - tags:
       - DEP_COAG_AI_SP
       directions: min
@@ -88,7 +94,11 @@ pipeline:
     name: per-tag
     default:
       name: copy
-      imputation_horizon: 2
+      imputation_horizon: 3
+
+  #  oddity_filter:
+  #    defaults:
+  #      - name: exp_moving
 
   state_constructor:
     defaults:
@@ -110,21 +120,24 @@ pipeline:
 
   tags:
   - name: DEP_COAG_AI_SP
-    connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
+    connection_id: main_opc
     node_identifier: ns=1;s=[main-veolia]AI_DOSE_SP
     type: ai_setpoint
     operating_range:
     - 0.0
-    - 5.0
+    - 6.0
     action_bounds:
-    - '{Dose_AL_SP_F_SP}-{COAG_AI_DOSE_EXCD_ALM_SP}'
-    - '{Dose_AL_SP_F_SP}+{COAG_AI_DOSE_EXCD_ALM_SP}'
+    - '{Dose_AL_SP_F_SP}-{COAG_AI_DOSE_EXCD_ALM_SP}+0.01'
+        #- '{Dose_AL_SP_F_SP}'
+        #- '{Dose_AL_SP_F_SP}+7*{COAG_AI_DOSE_EXCD_ALM_SP}/8'
+    - '{Dose_AL_SP_F_SP}+{COAG_AI_DOSE_EXCD_ALM_SP}-0.01'
     cascade:
       mode: COAG_AI_CTRL_EN
       op_sp: Dose_AL_SP_F_SP
       ai_sp: COAG_AI_DOSE_SP
       op_mode_val: 0
       ai_mode_val: 1
+      mode_is_bool: True
 
   - name: COAG_AI_UVT_SP
     connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
@@ -132,10 +145,14 @@ pipeline:
     operating_range:
     - 0.0
     - 100.0
-    preprocess:
-    - name: normalize
-      min: 80.0
-      max: 100.0
+    expected_range: [70, 100]
+    outlier:
+      - name: exp_moving
+        alpha: 0.948
+      #    preprocess:
+      #    - name: normalize
+      #      min: 80.0
+      #      max: 100.0
 
   - name: UV03_UV254_PV
     connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
@@ -143,10 +160,14 @@ pipeline:
     operating_range:
     - 0.0
     - 100.0
-    preprocess:
-    - name: normalize
-      min: 80.0
-      max: 100.0
+    expected_range: [70, 100]
+    outlier:
+      - name: exp_moving
+        alpha: 0.948
+      #    preprocess:
+      #    - name: normalize
+      #      min: 80.0
+      #      max: 100.0
 
   - name: Dose_AL_SP_F_SP
     connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
@@ -154,13 +175,16 @@ pipeline:
     operating_range:
     - 0.0
     - 5.0
-    trigger:
-      event: action_period_reset
-      condition:
-        - name: delta
-        - name: comparator
-          op: '!='
-          val: 0
+    outlier:
+      - name: exp_moving
+        alpha: 0.948
+      #    trigger:
+      #      event: action_period_reset
+      #      condition:
+      #        - name: delta
+      #        - name: comparator
+      #          op: '!='
+      #          val: 0
 
   - name: COAG_AI_DOSE_EXCD_ALM_SP
     connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
@@ -168,3 +192,14 @@ pipeline:
     operating_range:
     - 0.0
     - 5.0
+    outlier:
+      - name: exp_moving
+        alpha: 0.948
+
+  - name: FLR03_CDOM_PV
+    operating_range: [0, 100]
+    expected_range: [10, 40]
+
+  - name: FLR03_TRYP_PV
+    operating_range: [0, 20]
+    expected_range: [0, 10]
