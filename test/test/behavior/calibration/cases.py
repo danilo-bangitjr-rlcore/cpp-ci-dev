@@ -9,4 +9,4 @@ class CalibrationTest(BSuiteTestCase):
 
     # The best possible reward after calibration is half of -0.571
     lower_bounds = {'reward': -0.3}
-    category = BehaviourCategory.NONSTATIONARY
+    category = {BehaviourCategory.NONSTATIONARY}
