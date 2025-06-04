@@ -3,13 +3,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import Enum, IntFlag, auto
 from math import isclose
-from typing import Any
+from typing import Any, NamedTuple
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import torch
-from lib_agent.buffer.buffer import State, VectorizedTransition
+from lib_agent.buffer.buffer import State
 from torch import Tensor
 
 from corerl.utils.torch import tensor_allclose
@@ -274,6 +275,13 @@ class TransitionBatch:
             n_step_gamma=self.n_step_gamma[idx],
         )
 
+
+class VectorizedTransition(NamedTuple):
+    state: State
+    action: jax.Array
+    reward: jax.Array
+    next_state: State
+    gamma: jax.Array
 
 def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
     return VectorizedTransition(

@@ -1,7 +1,6 @@
-from typing import Any, NamedTuple, Protocol
+from typing import NamedTuple, Protocol
 
 import jax
-import jax.numpy as jnp
 import numpy as np
 
 from lib_agent.buffer.storage import ReplayStorage
@@ -46,73 +45,7 @@ class State(NamedTuple):
     a_lo : jax.Array
     a_hi : jax.Array
 
-class VectorizedTransition(NamedTuple):
-    state: State
-    action: jax.Array
-    reward: jax.Array
-    next_state: State
-    gamma: jax.Array
-
-class NPVectorizedTransition(NamedTuple):
-    state: np.ndarray
-    a_lo: np.ndarray
-    a_hi: np.ndarray
-    action: np.ndarray
-    reward: np.ndarray
-    next_state: np.ndarray
-    next_a_lo: np.ndarray
-    next_a_hi: np.ndarray
-    gamma: np.ndarray
-
-    def add(self, ptr: int, transition: Transition):
-        self.state[ptr, :] = transition.state
-        self.a_lo[ptr, :] = transition.a_lo
-        self.a_hi[ptr, :] = transition.a_hi
-        self.action[ptr, :] = transition.action
-        self.reward[ptr, :] = transition.reward
-        self.next_state[ptr, :] = transition.next_state
-        self.next_a_lo[ptr, :] = transition.next_a_lo
-        self.next_a_hi[ptr, :] = transition.next_a_hi
-        self.gamma[ptr, :] = transition.gamma
-
-    def get_index(self, indices: np.ndarray):
-        return NPVectorizedTransition(
-            self.state[indices, :],
-            self.a_lo[indices, :],
-            self.a_hi[indices, :],
-            self.action[indices, :],
-            self.reward[indices, :],
-            self.next_state[indices, :] ,
-            self.next_a_lo[indices, :],
-            self.next_a_hi[indices, :],
-            self.gamma[indices, :],
-        )
-
-
-def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTransition:
-    stacked_state = State(
-        features=jnp.stack([t.state for t in transitions]),
-        a_lo=jnp.stack([t.a_lo for t in transitions]),
-        a_hi=jnp.stack([t.a_hi for t in transitions]),
-    )
-    stacked_action = jnp.stack([t.action for t in transitions])
-    stacked_reward = jnp.stack([t.reward for t in transitions])
-    stacked_next_state = State(
-        features=jnp.stack([t.next_state for t in transitions]),
-        a_lo=jnp.stack([t.next_a_lo for t in transitions]),
-        a_hi=jnp.stack([t.next_a_hi for t in transitions]),
-    )
-    stacked_gamma = jnp.stack([t.gamma for t in transitions])
-    return VectorizedTransition(
-        state=stacked_state,
-        action=stacked_action,
-        reward=stacked_reward,
-        next_state=stacked_next_state,
-        gamma=stacked_gamma,
-    )
-
-
-class EnsembleReplayBuffer[T]:
+class EnsembleReplayBuffer[T: NamedTuple]:
     def __init__(
         self,
         n_ensemble: int = 2,
@@ -143,10 +76,10 @@ class EnsembleReplayBuffer[T]:
 
         self.ensemble_masks[:, ptr] = ensemble_mask
 
-    def sample(self) -> VectorizedTransition:
-        ensemble_samples = []
+    def sample(self):
+        ens_idxs: list[np.ndarray] = []
         for m in range(self.n_ensemble):
-            valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size])[0]
+            valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size()])[0]
 
             n_random = self.batch_size
             recent_indices = np.array([])
@@ -154,14 +87,14 @@ class EnsembleReplayBuffer[T]:
             # if n_most_recent is set, include the most recent transitions
             if self.n_most_recent > 0:
                 # get the most recent indices that are valid for this ensemble member
-                if self._storage.size >= self.max_size:
+                if self._storage.size() >= self.max_size:
                     # buffer is full, recent indices wrap around
                     ptr = self._storage.last_idx()
                     recent_range = np.arange(ptr, ptr - self.n_most_recent, -1) % self.max_size
                 else:
                     # buffer is not full, recent indices are at the end
-                    start_idx = max(0, self._storage.size - self.n_most_recent)
-                    recent_range = np.arange(start_idx, self._storage.size)
+                    start_idx = max(0, self._storage.size() - self.n_most_recent)
+                    recent_range = np.arange(start_idx, self._storage.size())
 
                 # filter for valid indices for this ensemble member
                 mask = self.ensemble_masks[m, recent_range]
@@ -181,7 +114,7 @@ class EnsembleReplayBuffer[T]:
                     valid_for_random = valid_indices
 
                 rand_indices = self.rng.choice(
-                    valid_for_random,
+                    valid_indices,
                     size=n_random,
                     replace=True,
                 )
@@ -196,10 +129,9 @@ class EnsembleReplayBuffer[T]:
                     replace=True,
                 )
 
-            samples_m: list[Any] = self._storage.get_batch(combined_indices)
-            ensemble_samples.append(stack_transitions(samples_m))
-        return stack_transitions(ensemble_samples)
+            ens_idxs.append(combined_indices)
+        return self._storage.get_ensemble_batch(ens_idxs)
 
     @property
     def size(self):
-        return self._storage.size
+        return self._storage.size()

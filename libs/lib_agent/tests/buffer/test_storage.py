@@ -2,6 +2,7 @@ from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 
 from lib_agent.buffer.storage import ReplayStorage
 
@@ -43,7 +44,7 @@ def test_storage_get():
     for i in range(10):
         storage.add(Step(i * jnp.ones(10), jnp.array(i), jnp.array(i + 0.1)))
 
-    batch = storage.get_batch(jnp.array([3]))
+    batch = storage.get_batch(np.array([3]))
     assert batch.a.shape == (1, 10)
     assert batch.b.shape == (1,)
     assert batch.c.shape == (1,)
@@ -65,7 +66,7 @@ def test_storage_get_ensemble():
     for i in range(10):
         storage.add(Step(i * jnp.ones(10), jnp.array(i), jnp.array(i + 0.1)))
 
-    batch = storage.get_ensemble_batch([jnp.array([3]), jnp.array([4])])
+    batch = storage.get_ensemble_batch([np.array([3]), np.array([4])])
     assert batch.a.shape == (2, 1, 10)
     assert batch.b.shape == (2, 1)
     assert batch.c.shape == (2, 1)
