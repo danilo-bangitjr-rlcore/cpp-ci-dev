@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import torch
-from lib_agent.buffer.buffer import VectorizedTransition
+from lib_agent.buffer.buffer import State, VectorizedTransition
 from torch import Tensor
 
 from corerl.utils.torch import tensor_allclose
@@ -260,10 +260,10 @@ class TransitionBatch:
 
 def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
     return VectorizedTransition(
-        state=jnp.stack([t.state for t in tb]),
+        state=State(jnp.stack([t.state for t in tb])),
         action=jnp.stack([t.action for t in tb]),
         reward=jnp.stack([t.reward for t in tb]),
-        next_state=jnp.stack([t.next_state for t in tb]),
+        next_state=State(jnp.stack([t.next_state for t in tb])),
         gamma=jnp.stack([t.gamma for t in tb]),
     )
 
