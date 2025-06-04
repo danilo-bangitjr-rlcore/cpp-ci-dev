@@ -550,7 +550,7 @@ class GreedyAC(BaseAgent):
         with open(path / 'critic.pkl', "wb") as f:
             pkl.dump(self._critic_state, f)
 
-        with open(path/ "critic_buffer.pkl", "wb") as f:
+        with open(path / "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
     def load(self, path: Path) -> None:
