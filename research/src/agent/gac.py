@@ -105,8 +105,7 @@ class GreedyAC:
             a=jnp.asarray(actions),
         )
 
-    def get_probs(self, actor_params: chex.ArrayTree, state: jax.Array | np.ndarray, actions: jax.Array | np.ndarray):
-        state = jnp.asarray(state)
+    def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
         actions = jnp.asarray(actions)
         return self._actor.get_probs(actor_params, state, actions)
 
