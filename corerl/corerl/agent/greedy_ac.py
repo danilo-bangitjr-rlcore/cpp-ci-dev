@@ -543,17 +543,14 @@ class GreedyAC(BaseAgent):
         self._app_state.event_bus.emit_event(EventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
+
         actor_path = path / "actor"
         self._policy_manager.save(actor_path)
 
-        critic_path = path / "critic.pkl"
-        critic_path.mkdir(parents=True, exist_ok=True)
-        with open(critic_path, "wb") as f:
+        with open(path / 'critic.pkl', "wb") as f:
             pkl.dump(self._critic_state, f)
 
-        critic_buffer_path = path / "critic_buffer.pkl"
-        critic_buffer_path.mkdir(parents=True, exist_ok=True)
-        with open(critic_buffer_path, "wb") as f:
+        with open(path/ "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
     def load(self, path: Path) -> None:
