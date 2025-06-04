@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
-from lib_agent.actor.percentile_actor import PercentileActor
+from lib_agent.actor.percentile_actor import PercentileActor, State
 from lib_agent.buffer.buffer import EnsembleReplayBuffer, VectorizedTransition
 from lib_agent.critic.critic_registry import get_critic
 from ml_instrumentation.Collector import Collector
@@ -94,14 +94,13 @@ class GreedyAC:
         self.critic_buffer.add(transition)
         self.policy_buffer.add(transition)
 
-    def get_actions(self, state: jax.Array | np.ndarray):
-        state = jnp.asarray(state)
+    def get_actions(self, state: State):
         return self._actor.get_actions(self.agent_state.actor.actor.params, state)
 
-    def get_action_values(self, state: jax.Array | np.ndarray, actions: jax.Array | np.ndarray):
+    def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         return self._critic.forward(
             self.agent_state.critic.params,
-            x=jnp.asarray(state),
+            x=state.features,
             a=jnp.asarray(actions),
         )
 
@@ -114,7 +113,7 @@ class GreedyAC:
         self.policy_update()
 
     @jax_u.method_jit
-    def _get_actions_over_state(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array):
+    def _get_actions_over_state(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, x: State):
         chex.assert_rank(x, 3)
         return jax_u.vmap_only(self._actor.get_actions_rng, ['state'])(
             actor_params,
