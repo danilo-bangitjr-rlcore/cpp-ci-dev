@@ -43,6 +43,7 @@ class TagType(StrEnum):
     day_of_year = auto()
     day_of_week = auto()
     time_of_day = auto()
+    delta = auto()
     default = auto()
 
 @config()
@@ -423,6 +424,7 @@ class TagConfig:
             case TagType.day_of_year: set_seasonal_tag_defaults(self)
             case TagType.day_of_week: set_seasonal_tag_defaults(self)
             case TagType.time_of_day: set_seasonal_tag_defaults(self)
+            case TagType.delta: return
             case _: assert_never(self.type)
 
 
