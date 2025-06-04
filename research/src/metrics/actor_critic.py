@@ -16,7 +16,7 @@ def ac_eval(collector: Collector, agent: GreedyAC, state: State):
 
     # To evaluate critic at a given point along x-axis, use average over sampled actions for remaining action dims
     repeat_state = jax.tree.map(
-        lambda x: jnp.tile(x, (on_policy_samples, 1)), state.features,
+        lambda x: jnp.tile(x, (on_policy_samples, 1)), state,
     )
 
     on_policy_actions = agent.get_actions(repeat_state)
