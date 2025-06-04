@@ -210,7 +210,7 @@ class PercentileActor:
         rng: chex.PRNGKey,
     ):
 
-        sample_state = states[0]
+        sample_state = states.features[0]
         actor_out: ActorOutputs = self.actor.apply(params=pa_state.actor.params, x=sample_state)
 
         for i in range(actor_out.mu.shape[0]):
