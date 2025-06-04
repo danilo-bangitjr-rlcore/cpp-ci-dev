@@ -4,6 +4,7 @@ from typing import Any, NamedTuple, Protocol
 import chex
 import jax
 import jax.numpy as jnp
+import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
 from lib_agent.actor.percentile_actor import PercentileActor
@@ -11,7 +12,6 @@ from lib_agent.buffer.buffer import EnsembleReplayBuffer, VectorizedTransition
 from lib_agent.critic.critic_registry import get_critic
 from ml_instrumentation.Collector import Collector
 
-import utils.jax as jax_u
 from interaction.transition_creator import Transition
 
 

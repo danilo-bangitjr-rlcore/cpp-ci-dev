@@ -7,9 +7,9 @@ import distrax
 import haiku as hk
 import jax
 import jax.numpy as jnp
+import lib_utils.jax as jax_u
 import numpy as np
 import optax
-import utils.jax as jax_u
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
