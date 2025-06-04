@@ -96,7 +96,7 @@ class GreedyAC:
 
     def get_actions(self, state: jax.Array | np.ndarray):
         state = jnp.asarray(state)
-        return self._actor.get_actions(self.agent_state.actor.actor.params, state) # TODO: gross!
+        return self._actor.get_actions(self.agent_state.actor.actor.params, state)
 
     def get_action_values(self, state: jax.Array | np.ndarray, actions: jax.Array | np.ndarray):
         return self._critic.forward(
