@@ -12,7 +12,7 @@ import optax
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import State, VectorizedTransition
+from lib_agent.buffer.buffer import State
 from lib_agent.network.activations import (
     ActivationConfig,
     IdentityConfig,
@@ -64,6 +64,19 @@ class PolicyState(NamedTuple):
 class PAState(NamedTuple):
     actor: PolicyState
     proposal: PolicyState
+
+
+class ActorBatch(Protocol):
+    @property
+    def state(self) -> jax.Array: ...
+    @property
+    def action(self) -> jax.Array: ...
+    @property
+    def reward(self) -> jax.Array: ...
+    @property
+    def next_state(self) -> jax.Array: ...
+    @property
+    def gamma(self) -> jax.Array: ...
 
 class ValueEstimator(Protocol):
     def __call__(
@@ -179,11 +192,12 @@ class PercentileActor:
     # ---------------------------------- updates --------------------------------- #
 
     def update(
-            self,
-            pa_state: Any,
-            value_estimator: ValueEstimator,
-            value_estimator_params: chex.ArrayTree,
-            transitions: VectorizedTransition):
+        self,
+        pa_state: Any,
+        value_estimator: ValueEstimator,
+        value_estimator_params: chex.ArrayTree,
+        transitions: ActorBatch,
+    ):
 
         self.rng, update_rng = jax.random.split(self.rng, 2)
 
