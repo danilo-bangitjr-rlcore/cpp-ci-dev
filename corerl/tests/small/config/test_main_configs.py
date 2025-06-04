@@ -22,19 +22,17 @@ def walk_no_missing(part: object, key_path: str=""):
             for idx, elem in enumerate(v):
                 walk_no_missing(elem, f"{cur_key_path}[{idx}]")
 
-@pytest.mark.parametrize('base,config_name', [
-    ('../config', 'pendulum'),
-    ('../config', 'saturation'),
-    ('../config', 'mountain_car_continuous'),
-    ('../config', 'dep_mountain_car_continuous'),
-    ('../config', 'web_default_config'),
-    ('../projects/cenovus/configs', 'offline_pretraining'),
-    ('../projects/drayton_valley/configs', 'pilot-backwash'),
-    ('../projects/victoria_ww/configs', 'offline_pretraining'),
-    ('../projects/epcor_scrubber/configs', 'epcor_scrubber'),
+@pytest.mark.parametrize('config_name', [
+    ('../config/pendulum'),
+    ('../config/saturation'),
+    ('../config/mountain_car_continuous'),
+    ('../config/dep_mountain_car_continuous'),
+    ('../config/web_default_config'),
+    ('../projects/victoria_ww/configs/offline_pretraining'),
+    ('../projects/epcor_scrubber/configs/epcor_scrubber'),
 ])
-def test_main_configs(base: str, config_name: str):
-    config = direct_load_config(MainConfig, base=base, config_name=config_name)
+def test_main_configs(config_name: str):
+    config = direct_load_config(MainConfig, config_name=config_name)
     assert isinstance(config, MainConfig)
 
     # walk through config, ensure that there are no MISSING symbols or uninterpolated values

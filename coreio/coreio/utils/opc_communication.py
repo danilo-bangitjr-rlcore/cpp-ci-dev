@@ -1,11 +1,14 @@
 import logging
+from asyncio import CancelledError
+from collections.abc import Sequence
 from datetime import UTC
 from types import TracebackType
+from typing import Protocol
 
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import OPCConnectionConfig
@@ -19,14 +22,24 @@ class NodeData(BaseModel):
     var_type: ua.VariantType
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+class TagConfig(Protocol):
+    @property
+    def name(self) -> str: ...
+    @property
+    def connection_id(self) -> str | None: ...
+    @property
+    def node_identifier(self) -> str | None: ...
+    @property
+    def type(self) -> TagType: ...
+
+
 class OPC_Connection:
     def __init__(self):
-        self.opc_client: Client
+        self.opc_client: Client | None = None
         self.registered_nodes: dict[str, NodeData] = {}
         self._connected = False
-        self.registered_nodes: dict[str, NodeData] = {}
 
-    async def init(self, cfg: OPCConnectionConfig, tag_configs: list[TagConfig]):
+    async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfig]):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
         await self._register_action_nodes(tag_configs)
@@ -52,6 +65,8 @@ class OPC_Connection:
         return self
 
     async def register_node(self, node_id: str):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+
         async with self.opc_client:
             if not node_id.startswith("ns="):
                 raise ValueError(f"Problem encountered in tag config for {node_id} " +
@@ -63,12 +78,13 @@ class OPC_Connection:
 
             self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
-    async def _register_action_nodes(self, tag_configs: list[TagConfig]):
+    async def _register_action_nodes(self, tag_configs: Sequence[TagConfig]):
         """
         Register nodes that:
         1. Have the relevant connection_id
         2. Are ai_setpoints
         """
+        assert self.opc_client is not None, 'OPC client is not initialized'
 
         async with self.opc_client:
             for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
@@ -91,10 +107,12 @@ class OPC_Connection:
 
     @backoff.on_exception(backoff.expo, (OSError), max_time=30)
     async def start(self):
+        assert self.opc_client is not None, 'OPC client is not initialized'
         await self.opc_client.connect()
         return self
 
     async def cleanup(self):
+        assert self.opc_client is not None, 'OPC client is not initialized'
         await self.opc_client.disconnect()
         return self
 
@@ -111,9 +129,10 @@ class OPC_Connection:
         await self.cleanup()
 
     async def ensure_connected(self):
+        assert self.opc_client is not None, 'OPC client is not initialized'
         try:
             await self.opc_client.check_connection()
-        except ConnectionError:
+        except (ConnectionError, CancelledError):
             await self.opc_client.connect()
 
     @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30)
@@ -122,6 +141,7 @@ class OPC_Connection:
         Writing core-rl values into OPC
         Some checks might seem redundant with core-rl, but those will be removed from core-rl shortly
         """
+        assert self.opc_client is not None, 'OPC client is not initialized'
         # Reconnect if connection is not ok
         await self.ensure_connected()
 

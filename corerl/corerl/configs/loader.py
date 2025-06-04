@@ -174,12 +174,12 @@ def _resolve_default_discriminated_unions(config: Any) -> dict[str, object]:
 
     return out
 
-def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
+def _load_raw_config(config_name: str) -> dict[str, Any]:
     if not config_name.endswith('.yaml'):
         config_name += '.yaml'
 
-    path = Path(base) / f'{config_name}'
-    with open(path) as f:
+    path = Path(config_name)
+    with path.open() as f:
         config = yaml.safe_load(f)
 
     # if a config does not load subfiles
@@ -193,7 +193,10 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
         # if the subfile path is just a string,
         # then merge with the entire parent
         if isinstance(default, str):
-            def_config = _load_raw_config(base, default)
+            # define the subfile path relative to the config
+            default = str(Path(config_name).parent / Path(default))
+
+            def_config = _load_raw_config(default)
             config = dict_u.merge(def_config, config)
 
         # if the subfile is a key-value pair,
@@ -206,7 +209,9 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
             if not dict_u.has_path(config, k):
                 config = dict_u.set_at_path(config, k, {})
 
-            raw_def_config = _load_raw_config(base, v)
+            # define the subfile path relative to the config
+            v = str(Path(config_name).parent / Path(v))
+            raw_def_config = _load_raw_config(v)
             def_config = dict_u.set_at_path({}, k, raw_def_config)
             config = dict_u.merge(def_config, config)
 
@@ -217,7 +222,6 @@ def _load_raw_config(base: str, config_name: str) -> dict[str, Any]:
 def direct_load_config[T](
     Config: type[T],
     overrides: dict[str, str] | None = None,
-    base: str | None = None,
     config_name: str | None = None,
 ):
     # parse all of the command line flags
@@ -227,15 +231,11 @@ def direct_load_config[T](
 
     # give precedence to cli overrides
     # else, require function args to be specified
-    base = flags.get('base', base)
     config_name = flags.get('config-name', config_name)
-    assert base is not None and config_name is not None, 'Must specify a base path for configs and a config name'
-
-    # remove the `base` from the config_name if it already exists
-    config_name = config_name.removeprefix(base)
+    assert config_name is not None, 'Must specify a config name'
 
     # load the raw config with defaults resolved
-    raw_config = _load_raw_config(base, config_name)
+    raw_config = _load_raw_config(config_name)
     return config_from_dict(Config, raw_config, flags=flags)
 
 
@@ -271,10 +271,10 @@ def config_from_dict[T](Config: type[T], raw_config: dict, flags: dict[str, str]
 # ----------------
 # -- Public API --
 # ----------------
-def load_config[T](Config: type[T], base: str | None = None, config_name: str | None = None):
+def load_config[T](Config: type[T], config_name: str | None = None):
     def _inner[**U, R](f: Callable[Concatenate[T, U], R]):
         def __inner(*args: U.args, **kwargs: U.kwargs) -> R:
-            config_or_err = direct_load_config(Config, base=base, config_name=config_name)
+            config_or_err = direct_load_config(Config, config_name=config_name)
 
             if isinstance(config_or_err, ConfigValidationErrors):
                 pretty_error = TypeAdapter(ConfigValidationErrors).dump_json(config_or_err, indent=2)

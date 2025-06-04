@@ -17,16 +17,14 @@ from corerl.state import AppState
 def cfg():
     return direct_load_config(
         MainConfig,
-        base='tests/small/data_pipeline/constructors/assets',
-        config_name='reward_config.yaml',
+        config_name='tests/small/data_pipeline/constructors/assets/reward_config.yaml',
     )
 
 @pytest.fixture
 def cfg_with_oob():
     return direct_load_config(
         MainConfig,
-        base='tests/small/data_pipeline/constructors/assets',
-        config_name='oob_reward_config.yaml',
+        config_name='tests/small/data_pipeline/constructors/assets/oob_reward_config.yaml',
     )
 
 @pytest.fixture
