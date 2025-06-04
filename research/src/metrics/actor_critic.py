@@ -1,11 +1,12 @@
+import jax
 import jax.numpy as jnp
-import numpy as np
+from lib_agent.buffer.buffer import State
 from ml_instrumentation.Collector import Collector
 
 from agent.gac import GreedyAC
 
 
-def ac_eval(collector: Collector, agent: GreedyAC, state: np.ndarray):
+def ac_eval(collector: Collector, agent: GreedyAC, state: State):
     x_axis_actions = 101
     on_policy_samples = 5
 
@@ -14,7 +15,10 @@ def ac_eval(collector: Collector, agent: GreedyAC, state: np.ndarray):
     repeat_linspace = linspaced_actions.repeat(on_policy_samples)
 
     # To evaluate critic at a given point along x-axis, use average over sampled actions for remaining action dims
-    repeat_state = jnp.tile(state, (on_policy_samples, 1))
+    repeat_state = jax.tree.map(
+        lambda x: jnp.tile(x, (on_policy_samples, 1)), state.features,
+    )
+
     on_policy_actions = agent.get_actions(repeat_state)
     repeat_on_policy = jnp.tile(on_policy_actions, (x_axis_actions, 1))
 
