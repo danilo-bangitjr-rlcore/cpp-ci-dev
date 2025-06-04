@@ -1,9 +1,10 @@
 from dataclasses import dataclass
+from typing import ClassVar
 
 import gymnasium as gym
 import numpy as np
 
-from rl_env.factory import EnvConfig
+from rl_env.factory import EnvConfig, env_group
 
 
 @dataclass
@@ -58,6 +59,7 @@ class BSM1Env(gym.Env):
         for t in self._tanks:
             sensor_range += [s.sensor_range for s in t.sensors]
         sensor_range += [s.sensor_range for s in self._clarifier.sensors]
+        sensor_range = np.vstack(sensor_range)
         self.observation_space = gym.spaces.Box(sensor_range[:,0], sensor_range[:,1], dtype=np.float64)
 
         return
@@ -79,18 +81,27 @@ class BSM1Env(gym.Env):
         #   Add influent + RAS + IMLR to get first tank flow
         obs += self._tanks[0].step(self._influent.influent_flow + IMLR_flow + RAS_flow, aeration[0])
         for i in range(1,5):
-            obs += self._tanks[i].step(self._tanks[i-1], aeration[i])
+            obs += self._tanks[i].step(self._tanks[i-1].tank_flow, aeration[i])
         
         # Flow through the clarifier
-        obs += self._clarifier.step(self._tanks[-1], Q_RAS + Q_WAS)
+        obs += self._clarifier.step(self._tanks[-1].tank_flow, Q_RAS + Q_WAS)
 
         return np.array(obs), 0.0, False, False, {} 
+    
+    def reset(self, *, seed = None, options = None):
+        self._influent = InfluentModel(self._params.influent_sensors)
+        self._tanks = [TankModel(self._params.tank_sensors[i]) for i in range(5)]
+        self._clarifier = ClarifierModel(self._params.effluent_sensors)
+
+        obs,_,_,_,_ = self.step(self.action_space.sample())
+
+        return np.array(obs), {}
 
 class FlowModel:
     state_names = ['SI',   'SS',  'XI',  'XS',  'XBH', 'XBA',  'XP',
                    'SO',   'SNO', 'SNH', 'SND', 'XND', 'SALK', 'TSS',
                    'TEMP', 'SD1', 'SD2', 'SD3', 'XD4', 'XD5']
-    state_idx = {n: i for n, i in enumerate(state_names)}
+    state_idx = {n: i for i, n in enumerate(state_names)}
     nX = len(state_names)
 
     def __init__(self, X: np.ndarray = None, Q: float = 0):
@@ -108,7 +119,7 @@ class FlowModel:
         return FlowModel(combined_X, combined_Q)
 
     def get(self, name: 'str')->float:
-        return self.X[self.state_idx(name)]
+        return self.X[self.state_idx[name]]
 
     def copy(self)->"FlowModel":
         return FlowModel(self.X.copy(),self.Q)
@@ -167,14 +178,16 @@ class SensorModel:
 @dataclass
 class BSM1Params():
     # Action ranges
-    aeration_range: list = [0,1]
-    ILMR_range: list = [0,1]
-    RAS_range: list = [0,1]
-    WAS_range: list = [0,1]
-    influent_sensors:  list[SensorModel]  =  [SensorModel('SNH', [0,1]), SensorModel('SO', [0,1])]
-    tank_sensors: list[list[SensorModel]] = [[SensorModel('SNH', [0,1])],
-                                             [[]],
-                                             [[]],
-                                             [[]],
-                                             [SensorModel('SO',  [0,1])]]
-    effluent_sensors:  list[SensorModel]  =  [SensorModel('SNH', [0,1]), SensorModel('SNO', [0,1])]
+    aeration_range: ClassVar[list] = [0,1]
+    ILMR_range: ClassVar[list] = [0,1]
+    RAS_range: ClassVar[list] = [0,1]
+    WAS_range: ClassVar[list] = [0,1]
+    influent_sensors:  ClassVar[list[SensorModel]]  =  [SensorModel('SNH', [0,1]), SensorModel('SO', [0,1])]
+    tank_sensors: ClassVar[list[list[SensorModel]]] = [[SensorModel('SNH', [0,1])],
+                                                       [],
+                                                       [],
+                                                       [],
+                                                       [SensorModel('SO',  [0,1])]]
+    effluent_sensors:  ClassVar[list[SensorModel]]  =  [SensorModel('SNH', [0,1]), SensorModel('SNO', [0,1])]
+
+env_group.dispatcher(BSM1Config(),BSM1Env)
