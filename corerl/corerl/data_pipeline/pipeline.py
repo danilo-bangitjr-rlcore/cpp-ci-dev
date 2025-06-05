@@ -34,7 +34,7 @@ from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.tag_config import Agg, TagConfig
-from corerl.data_pipeline.transforms import NullConfig, register_dispatchers
+from corerl.data_pipeline.transforms import NukeConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.virtual_tags import VirtualTagComputer
@@ -69,14 +69,14 @@ class PipelineConfig:
             if tag.cascade is None:
                 continue
             for dep in [tag.cascade.op_sp, tag.cascade.ai_sp]:
-                self.tags.append(TagConfig(name=dep, agg=Agg.last, preprocess=[], state_constructor=[NullConfig()]))
+                self.tags.append(TagConfig(name=dep, agg=Agg.last, preprocess=[], state_constructor=[NukeConfig()]))
 
             self.tags.append(
                 TagConfig(
                     name=tag.cascade.mode,
                     agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
                     preprocess=[],
-                    state_constructor=[NullConfig()],
+                    state_constructor=[NukeConfig()],
                     outlier=[IdentityFilterConfig()],
                 ),
             )

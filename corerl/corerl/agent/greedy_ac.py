@@ -184,7 +184,6 @@ class GreedyAC(BaseAgent):
             stepsize=cfg.critic.critic_optimizer.lr,
             ensemble=cfg.critic.critic_network.ensemble,
             ensemble_prob=cfg.critic.buffer.ensemble_probability,
-            batch_size=cfg.critic.buffer.batch_size,
             num_rand_actions=cfg.critic.num_rand_actions,
             action_regularization=cfg.critic.action_regularization,
             l2_regularization=1.0,
@@ -543,17 +542,14 @@ class GreedyAC(BaseAgent):
         self._app_state.event_bus.emit_event(EventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
+
         actor_path = path / "actor"
         self._policy_manager.save(actor_path)
 
-        critic_path = path / "critic.pkl"
-        critic_path.mkdir(parents=True, exist_ok=True)
-        with open(critic_path, "wb") as f:
+        with open(path / 'critic.pkl', "wb") as f:
             pkl.dump(self._critic_state, f)
 
-        critic_buffer_path = path / "critic_buffer.pkl"
-        critic_buffer_path.mkdir(parents=True, exist_ok=True)
-        with open(critic_buffer_path, "wb") as f:
+        with open(path / "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
     def load(self, path: Path) -> None:

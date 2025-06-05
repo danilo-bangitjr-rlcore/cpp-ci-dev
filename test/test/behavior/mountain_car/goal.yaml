@@ -50,3 +50,6 @@ pipeline:
 
   - name: truncated
     type: meta
+
+defaults:
+  - ../computational_params

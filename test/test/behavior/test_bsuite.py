@@ -102,7 +102,6 @@ def get_tests_by_category(category: BehaviourCategory) -> list[BSuiteTestCase]:
     ]
 
 
-@pytest.mark.parametrize('category', [None, *list(BehaviourCategory)])
 @pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
 @pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES), ids=str)
 def test_bsuite(
@@ -157,4 +156,3 @@ def test_bsuite(
             pytest.xfail()
 
         raise e
-

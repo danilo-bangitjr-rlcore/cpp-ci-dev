@@ -12,7 +12,7 @@ from pydantic import Field
 from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.transforms import NormalizerConfig, NullConfig, TransformConfig
+from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import EventType
 from corerl.utils.list import find_instance
 from corerl.utils.maybe import Maybe
@@ -287,7 +287,7 @@ class TagConfig:
     computed configurations based on tag_type or other user-exposed toggles.
     """
 
-    reward_constructor: list[TransformConfig] = list_([NullConfig()])
+    reward_constructor: list[TransformConfig] = list_([NukeConfig()])
     """
     Kind: internal
 

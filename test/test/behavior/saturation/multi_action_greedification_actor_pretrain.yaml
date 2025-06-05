@@ -62,3 +62,6 @@ pipeline:
   - name: action-2
     type: ai_setpoint
     operating_range: [0, 0.5]
+
+defaults:
+  - ../computational_params
