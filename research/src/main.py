@@ -3,6 +3,9 @@ import ast
 from pathlib import Path
 from typing import Any
 
+import jax.numpy as jnp
+import numpy as np
+from lib_agent.actor.percentile_actor import State
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
 from rl_env.factory import init_env
@@ -121,19 +124,27 @@ def main():
         collector=collector,
     )
 
-    state, _ = wrapper_env.reset()
+    state_features, _ = wrapper_env.reset()
     reward: float | None = None
     done = False
     episode_reward = 0.0
     steps = 0
     # +1 to ensure we don't reject any metrics that are subsampling
     # every 100 steps
+
+    # dummy action bounds
+    a_lo = np.zeros(len(act_bounds[0]))
+    a_hi = np.ones(len(act_bounds[0]))
+
     for _ in tqdm(range(cfg.max_steps + 1)):
         collector.next_frame()
-        action = agent.get_actions(state)
-        transitions = tc(state, action, reward, done)
 
-        next_state, reward, terminated, truncated, _ = wrapper_env.step(action)
+        state = State(jnp.array(state_features), jnp.array(a_lo), jnp.array(a_hi))
+        action = agent.get_actions(state)
+
+        transitions = tc(state_features, a_lo, a_hi, np.array(action), reward, done)
+
+        next_state_features, reward, terminated, truncated, _ = wrapper_env.step(action)
         for t in transitions:
             agent.update_buffer(t)
 
@@ -151,11 +162,11 @@ def main():
             episode_reward = 0
             reward = None
 
-            state, _ = wrapper_env.reset()
+            state_features, _ = wrapper_env.reset()
             tc.flush()
 
         else:
-            state = next_state
+            state_features = next_state_features
 
     env.close()
 

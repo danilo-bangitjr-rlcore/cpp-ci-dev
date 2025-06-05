@@ -10,6 +10,12 @@ class Transition(Protocol):
     def state(self) -> np.ndarray: ...
 
     @property
+    def a_lo(self) -> np.ndarray: ...
+
+    @property
+    def a_hi(self) -> np.ndarray: ...
+
+    @property
     def action(self) -> np.ndarray: ...
 
     @property
@@ -22,47 +28,78 @@ class Transition(Protocol):
     def next_state(self) -> np.ndarray: ...
 
     @property
+    def next_a_lo(self) -> np.ndarray: ...
+
+    @property
+    def next_a_hi(self) -> np.ndarray: ...
+
+    @property
     def state_dim(self) -> int: ...
 
     @property
     def action_dim(self) -> int: ...
 
+class State(NamedTuple):
+    features: jax.Array
+    a_lo : jax.Array
+    a_hi : jax.Array
+
 class VectorizedTransition(NamedTuple):
-    state: jax.Array
+    state: State
     action: jax.Array
     reward: jax.Array
-    next_state: jax.Array
+    next_state: State
     gamma: jax.Array
 
 class NPVectorizedTransition(NamedTuple):
     state: np.ndarray
+    a_lo: np.ndarray
+    a_hi: np.ndarray
     action: np.ndarray
     reward: np.ndarray
     next_state: np.ndarray
+    next_a_lo: np.ndarray
+    next_a_hi: np.ndarray
     gamma: np.ndarray
 
     def add(self, ptr: int, transition: Transition):
         self.state[ptr, :] = transition.state
+        self.a_lo[ptr, :] = transition.a_lo
+        self.a_hi[ptr, :] = transition.a_hi
         self.action[ptr, :] = transition.action
         self.reward[ptr, :] = transition.reward
         self.next_state[ptr, :] = transition.next_state
+        self.next_a_lo[ptr, :] = transition.next_a_lo
+        self.next_a_hi[ptr, :] = transition.next_a_hi
         self.gamma[ptr, :] = transition.gamma
 
     def get_index(self, indices: np.ndarray):
         return NPVectorizedTransition(
             self.state[indices, :],
+            self.a_lo[indices, :],
+            self.a_hi[indices, :],
             self.action[indices, :],
             self.reward[indices, :],
             self.next_state[indices, :] ,
+            self.next_a_lo[indices, :],
+            self.next_a_hi[indices, :],
             self.gamma[indices, :],
         )
 
 
 def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTransition:
-    stacked_state = jnp.stack([t.state for t in transitions])
+    stacked_state = State(
+        features=jnp.stack([t.state for t in transitions]),
+        a_lo=jnp.stack([t.a_lo for t in transitions]),
+        a_hi=jnp.stack([t.a_hi for t in transitions]),
+    )
     stacked_action = jnp.stack([t.action for t in transitions])
     stacked_reward = jnp.stack([t.reward for t in transitions])
-    stacked_next_state = jnp.stack([t.next_state for t in transitions])
+    stacked_next_state = State(
+        features=jnp.stack([t.next_state for t in transitions]),
+        a_lo=jnp.stack([t.next_a_lo for t in transitions]),
+        a_hi=jnp.stack([t.next_a_hi for t in transitions]),
+    )
     stacked_gamma = jnp.stack([t.gamma for t in transitions])
     return VectorizedTransition(
         state=stacked_state,
@@ -92,9 +129,13 @@ class EnsembleReplayBuffer:
     def _init_transitions(self, transition: Transition) -> None:
         self.transitions = NPVectorizedTransition(
             state=np.zeros((self.max_size, transition.state_dim)),
+            a_lo=np.zeros((self.max_size, transition.action_dim)),
+            a_hi=np.zeros((self.max_size, transition.action_dim)),
             action=np.zeros((self.max_size,transition.action_dim)),
             reward=np.zeros((self.max_size, 1)),
             next_state=np.zeros((self.max_size, transition.state_dim)),
+            next_a_lo=np.zeros((self.max_size, transition.action_dim)),
+            next_a_hi=np.zeros((self.max_size, transition.action_dim)),
             gamma=np.zeros((self.max_size, 1)),
         )
 

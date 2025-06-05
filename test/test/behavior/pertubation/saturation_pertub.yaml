@@ -48,3 +48,6 @@ pipeline:
     type: ai_setpoint
     operating_range: [0, 0.5]
     action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
+
+defaults:
+  - ../computational_params
