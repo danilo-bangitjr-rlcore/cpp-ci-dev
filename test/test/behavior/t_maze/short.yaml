@@ -41,5 +41,5 @@ pipeline:
     - name: tag-2 # in endzone
       operating_range: [0, 1]
 
-    
-
+defaults:
+  - ../computational_params

@@ -47,3 +47,6 @@ pipeline:
 
   - name: tag-2 # wind angle in radians
     operating_range: [0.0, 6.29]
+
+defaults:
+  - ../computational_params

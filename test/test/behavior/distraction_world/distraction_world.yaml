@@ -831,3 +831,6 @@ pipeline:
     - name: multi_trace
       trace_values:
       - 0.0
+
+defaults:
+  - ../computational_params
