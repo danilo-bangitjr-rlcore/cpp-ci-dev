@@ -276,6 +276,7 @@ class DataMode(Enum):
 class StageCode(Enum):
     INIT = auto()
     SEASONAL = auto()
+    DELTA = auto()
     VIRTUAL = auto()
     FILTER = auto()
     TRIGGER = auto()
