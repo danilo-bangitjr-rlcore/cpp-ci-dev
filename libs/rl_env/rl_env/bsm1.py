@@ -132,7 +132,7 @@ class TankModel:
     """
     Based on ASM1
     """
-    def __init__(self, sensor_list: list["SensorModel"]):
+    def __init__(self, sensor_list: tuple["SensorModel"]):
         self.tank_flow = FlowModel()
         self.sensors = sensor_list
 
@@ -143,7 +143,7 @@ class TankModel:
         return obs
 
 class ClarifierModel:
-    def __init__(self, sensor_list: list["SensorModel"]):
+    def __init__(self, sensor_list: tuple["SensorModel"]):
         self.effluent_flow = FlowModel()
         self.wasteage_flow = FlowModel()
         self.sensors = sensor_list
@@ -156,8 +156,8 @@ class ClarifierModel:
         return obs
 
 class InfluentModel:
-    def __init__(self, sensor_list: list["SensorModel"]):
-        self.influent_flow = FlowModel(np.random.random([20]), 1)
+    def __init__(self, sensor_list: tuple["SensorModel"]):
+        self.influent_flow = FlowModel(np.ones([20]), 1)
         self.sensors = sensor_list
 
     def step(self):
@@ -178,16 +178,16 @@ class SensorModel:
 @dataclass
 class BSM1Params():
     # Action ranges
-    aeration_range: ClassVar[list] = [0,1]
-    ILMR_range: ClassVar[list] = [0,1]
-    RAS_range: ClassVar[list] = [0,1]
-    WAS_range: ClassVar[list] = [0,1]
-    influent_sensors:  ClassVar[list[SensorModel]]  =  [SensorModel('SNH', [0,1]), SensorModel('SO', [0,1])]
-    tank_sensors: ClassVar[list[list[SensorModel]]] = [[SensorModel('SNH', [0,1])],
-                                                       [],
-                                                       [],
-                                                       [],
-                                                       [SensorModel('SO',  [0,1])]]
-    effluent_sensors:  ClassVar[list[SensorModel]]  =  [SensorModel('SNH', [0,1]), SensorModel('SNO', [0,1])]
+    aeration_range: tuple = (0,1)
+    ILMR_range: tuple = (0,1)
+    RAS_range: tuple = (0,1)
+    WAS_range: tuple = (0,1)
+    influent_sensors:  tuple[SensorModel]  =   (SensorModel('SNH', [0,1]), SensorModel('SO', [0,1]))
+    tank_sensors: tuple[tuple[SensorModel]] = ((SensorModel('SNH', [0,1]),),
+                                               (),
+                                               (),
+                                               (),
+                                               (SensorModel('SO',  [0,1]),))
+    effluent_sensors:  tuple[SensorModel]  =   (SensorModel('SNH', [0,1]), SensorModel('SNO', [0,1]))
 
 env_group.dispatcher(BSM1Config(),BSM1Env)
