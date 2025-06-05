@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Literal, Tuple
+from typing import Literal
 
 import numpy as np
 import pandas as pd
@@ -8,9 +8,9 @@ import pandas as pd
 @dataclass
 class TagConfig:
     name: str
-    operating_range: Tuple[float, float]
-    red_bounds: Tuple[float, float] | None = None
-    yellow_bounds: Tuple[float, float] | None = None
+    operating_range: tuple[float, float]
+    red_bounds: tuple[float, float] | None = None
+    yellow_bounds: tuple[float, float] | None = None
 
 
 @dataclass
@@ -22,11 +22,11 @@ class Goal:
 
 @dataclass
 class RewardConfig:
-    priorities: List[Goal]
+    priorities: list[Goal]
 
 
 class GoalConstructor:
-    def __init__(self, reward_cfg: RewardConfig, tag_cfgs: List[TagConfig]):
+    def __init__(self, reward_cfg: RewardConfig, tag_cfgs: list[TagConfig]):
         self._cfg = reward_cfg
         self._tag_cfgs = {cfg.name: cfg for cfg in tag_cfgs}
 
@@ -37,14 +37,14 @@ class GoalConstructor:
                    for i in range(len(df.columns)))
 
     def _calculate_violation(self, tag_value: float, thresh: float,
-                           op_range: Tuple[float, float], op: str) -> float:
+                           op_range: tuple[float, float], op: str) -> float:
         if op == 'down_to' and tag_value > thresh:
             return (tag_value - thresh) / (op_range[1] - thresh)
-        elif op == 'up_to' and tag_value < thresh:
+        if op == 'up_to' and tag_value < thresh:
             return (thresh - tag_value) / (thresh - op_range[0])
         return 0.0
 
-    def _normalize_optimization_value(self, value: float, op_range: Tuple[float, float],
+    def _normalize_optimization_value(self, value: float, op_range: tuple[float, float],
                                     op: str) -> float:
         normalized = (value - op_range[0]) / (op_range[1] - op_range[0])
         return 1.0 - normalized if op == 'min' else normalized

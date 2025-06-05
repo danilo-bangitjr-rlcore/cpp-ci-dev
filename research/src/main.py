@@ -122,7 +122,7 @@ def main():
         tag_configs = [
             TagConfig(
                 name=f'tag-{i}',
-                operating_range=(obs_bounds[0][i], obs_bounds[1][i])
+                operating_range=(obs_bounds[0][i], obs_bounds[1][i]),
             )
             for i in range(len(obs_bounds[0]))
         ]
@@ -133,7 +133,7 @@ def main():
         ]
 
         reward_config = RewardConfig(
-            priorities=priorities
+            priorities=priorities,
         )
         goal_constructor = GoalConstructor(reward_config, tag_configs)
 
