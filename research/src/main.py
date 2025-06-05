@@ -139,10 +139,17 @@ def main():
     for _ in tqdm(range(cfg.max_steps + 1)):
         collector.next_frame()
 
-        state = State(jnp.array(state_features), jnp.array(a_lo), jnp.array(a_hi))
+        state = State(
+            features=jnp.array(state_features),
+            a_lo=jnp.array(a_lo),
+            a_hi=jnp.array(a_hi),
+            dp=jnp.array(dp),
+            last_a=jnp.array(last_action),
+        )
         action = agent.get_actions(state)
 
-        transitions = tc(state_features, a_lo, a_hi, np.array(action), reward, done)
+        transitions = tc(
+            state_features, a_lo, a_hi, np.array(action), reward, done, dp)
 
         next_state_features, reward, terminated, truncated, _ = wrapper_env.step(action)
         for t in transitions:
@@ -163,10 +170,12 @@ def main():
             reward = None
 
             state_features, _ = wrapper_env.reset()
+            last_action = (a_lo + a_hi) / 2
             tc.flush()
 
         else:
             state_features = next_state_features
+            last_action = action
 
     env.close()
 
