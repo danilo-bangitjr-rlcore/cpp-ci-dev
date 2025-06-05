@@ -45,13 +45,22 @@ class GreedyACConfig:
     critic: dict[str, Any]
     actor: dict[str, Any]
 
+
+class BatchWithState(NamedTuple):
+    state: State
+    action: jax.Array
+    reward: jax.Array
+    next_state: State
+    gamma: jax.Array
+
+
 class GACCritic(Protocol):
     def init_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> CriticState: ...
     def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array) -> jax.Array: ...
     def update(
         self,
         critic_state: CriticState,
-        transitions: Batch,
+        transitions: BatchWithState,
         next_actions: jax.Array,
     ) -> tuple[CriticState, dict]: ...
 
@@ -148,7 +157,17 @@ class GreedyAC:
         next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
         new_critic_state, _ = self._critic.update(
             critic_state=self.agent_state.critic,
-            transitions=batch,
+            transitions=BatchWithState(
+                state=State(
+                    features=batch.state,
+                    a_lo=batch.a_lo,
+                    a_hi=batch.a_hi,
+                ),
+                action=batch.action,
+                reward=batch.reward,
+                next_state=next_state,
+                gamma=batch.gamma,
+            ),
             next_actions=next_actions,
         )
 
@@ -164,7 +183,21 @@ class GreedyAC:
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,
-            batch,
+            BatchWithState(
+                state=State(
+                    features=batch.state,
+                    a_lo=batch.a_lo,
+                    a_hi=batch.a_hi,
+                ),
+                action=batch.action,
+                reward=batch.reward,
+                next_state=State(
+                    features=batch.next_state,
+                    a_lo=batch.next_a_lo,
+                    a_hi=batch.next_a_hi,
+                ),
+                gamma=batch.gamma,
+            ),
         )
         self.agent_state = self.agent_state._replace(actor=actor_state)
 
