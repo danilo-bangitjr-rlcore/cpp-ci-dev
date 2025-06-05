@@ -13,6 +13,7 @@ from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
+
 def test_no_delta_tags():
     cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
     assert isinstance(cfg, MainConfig)
