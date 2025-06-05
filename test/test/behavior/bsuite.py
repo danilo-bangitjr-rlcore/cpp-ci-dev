@@ -1,4 +1,5 @@
 import json
+import os
 import subprocess
 import time
 from datetime import UTC, datetime, timedelta
@@ -87,11 +88,21 @@ class BSuiteTestCase:
         exec_start = time.time()
         max_memory = 0
 
+        cur_env = os.environ.copy()
+        env_vars = {
+            **cur_env,
+            'NPROC': 1,
+            'XLA_FLAGS': '--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1',
+            'OPENBLAS_NUM_THREADS': 1,
+            'MKL_NUM_THREADS': 1,
+            'OMP_NUM_THREAD': 1,
+        }
+
         proc = subprocess.Popen([
             'python', 'corerl/main.py',
             '--config-name', '../test/' + self.config,
             *parts,
-        ], cwd='../corerl')
+        ], cwd='../corerl', env=env_vars)
 
         psutil_proc = psutil.Process(proc.pid)
         while proc.poll() is None:
