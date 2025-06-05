@@ -102,7 +102,7 @@ class FlowModel:
     state_idx = {n: i for i, n in enumerate(state_names)}
     nX = len(state_names)
 
-    def __init__(self, X: np.ndarray = None, Q: float = 0):
+    def __init__(self, X: np.ndarray | None = None, Q: float = 0):
         if X is None:
             X = np.zeros(self.nX)
         assert len(X) == self.nX, 'Incorrect state array size'
@@ -129,7 +129,7 @@ class TankModel:
     """
     Based on ASM1
     """
-    def __init__(self, sensor_list: tuple["SensorModel"]):
+    def __init__(self, sensor_list: tuple["SensorModel", ...]):
         self.tank_flow = FlowModel()
         self.sensors = sensor_list
 
@@ -139,7 +139,7 @@ class TankModel:
         return [s.step(self.tank_flow) for s in self.sensors]
 
 class ClarifierModel:
-    def __init__(self, sensor_list: tuple["SensorModel"]):
+    def __init__(self, sensor_list: tuple["SensorModel", ...]):
         self.effluent_flow = FlowModel()
         self.wasteage_flow = FlowModel()
         self.sensors = sensor_list
@@ -151,7 +151,7 @@ class ClarifierModel:
         return [s.step(self.effluent_flow) for s in self.sensors]
 
 class InfluentModel:
-    def __init__(self, sensor_list: tuple["SensorModel"]):
+    def __init__(self, sensor_list: tuple["SensorModel", ...]):
         self.influent_flow = FlowModel(np.ones([20]), 1)
         self.sensors = sensor_list
 
@@ -175,12 +175,12 @@ class BSM1Params:
     ILMR_range: tuple = (0,1)
     RAS_range: tuple = (0,1)
     WAS_range: tuple = (0,1)
-    influent_sensors:  tuple[SensorModel]  =   (SensorModel('SNH', [0,1]), SensorModel('SO', [0,1]))
-    tank_sensors: tuple[tuple[SensorModel]] = ((SensorModel('SNH', [0,1]),),
+    influent_sensors:  tuple[SensorModel, ...]  =   (SensorModel('SNH', [0,1]), SensorModel('SO', [0,1]))
+    tank_sensors: tuple[tuple[SensorModel, ...], ...] = ((SensorModel('SNH', [0,1]),),
                                                (),
                                                (),
                                                (),
                                                (SensorModel('SO',  [0,1]),))
-    effluent_sensors:  tuple[SensorModel]  =   (SensorModel('SNH', [0,1]), SensorModel('SNO', [0,1]))
+    effluent_sensors:  tuple[SensorModel, ...]  =   (SensorModel('SNH', [0,1]), SensorModel('SNO', [0,1]))
 
 env_group.dispatcher(BSM1Config(),BSM1Env)
