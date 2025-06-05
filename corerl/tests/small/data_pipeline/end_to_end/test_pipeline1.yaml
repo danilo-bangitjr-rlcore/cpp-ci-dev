@@ -23,7 +23,7 @@ pipeline:
   - name: reward
     type: meta
     state_constructor:
-      - name: "null"
+      - name: "nuke"
     preprocess:
       - name: identity
     reward_constructor:
@@ -66,4 +66,4 @@ pipeline:
     preprocess:
       - name: identity
     state_constructor:
-      - name: "null"
+      - name: "nuke"

@@ -17,7 +17,7 @@ from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.inverse import InverseConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transforms.null import NullConfig
+from corerl.data_pipeline.transforms.nuke import NukeConfig
 from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
@@ -57,7 +57,7 @@ TransformConfig = Annotated[
     | InverseConfig
     | LessThanConfig
     | NormalizerConfig
-    | NullConfig
+    | NukeConfig
     | PowerConfig
     | BinaryConfig
     | ScaleConfig

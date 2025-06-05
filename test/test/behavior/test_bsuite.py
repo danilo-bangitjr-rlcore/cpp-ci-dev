@@ -2,7 +2,7 @@ import filelock
 import pytest
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
-from test.behavior.bsuite import BSuiteTestCase
+from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
@@ -95,13 +95,24 @@ def _zero_one_matrix(flags: list[str]):
     return matrix
 
 
+def get_tests_by_category(category: BehaviourCategory) -> list[BSuiteTestCase]:
+    return [
+        test_case for test_case in TEST_CASES
+        if test_case.category == category
+    ]
+
+
 @pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
 @pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES), ids=str)
 def test_bsuite(
     test_case: BSuiteTestCase,
     bsuite_tsdb: None,
     feature_flags: dict[str, bool],
+    category: BehaviourCategory | None,
 ):
+    if category is not None and category not in test_case.category:
+        pytest.skip(f"Test case {test_case.name} not in category {category}")
+
     # skip the test if any required feature is disabled
     for req_feature in test_case.required_features:
         if not feature_flags[req_feature]:
@@ -114,11 +125,7 @@ def test_bsuite(
     if feature_postfix:
         feature_postfix = '_' + feature_postfix
 
-    # examples:
-    # mountain_car_base  (no features enabled)
-    # mountain_car_delta_actions_zone_violations  (two features enabled)
     schema = test_case.name.lower().replace(' ', '_') + feature_postfix
-
 
     PORT = 22222
     db_name = 'bsuite'
