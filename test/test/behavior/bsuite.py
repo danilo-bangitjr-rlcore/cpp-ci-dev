@@ -89,8 +89,7 @@ class BSuiteTestCase:
 
         proc = subprocess.Popen([
             'python', 'corerl/main.py',
-            '--base', '../test/',
-            '--config-name', self.config,
+            '--config-name', '../test/' + self.config,
             *parts,
         ], cwd='../corerl')
 
