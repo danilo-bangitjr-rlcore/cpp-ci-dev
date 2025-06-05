@@ -116,7 +116,7 @@ def main():
     act_bounds = gym_u.space_bounds(env.action_space)
 
     goal_constructor = None
-    if hasattr(cfg.pipeline, 'reward'):
+    if 'reward' in cfg.pipeline:
         tag_configs = [
             TagConfig(
                 name=f'tag-{i}',
@@ -125,11 +125,13 @@ def main():
             for i in range(len(obs_bounds[0]))
         ]
 
+        priorities = [
+            Goal(tag=goal['tag'], op=goal['op'], thresh=goal['thresh'])
+            for goal in cfg.pipeline['reward']['priorities']
+        ]
+
         reward_config = RewardConfig(
-            priorities=[
-                Goal(tag=goal['tag'], op=goal['op'], thresh=goal['thresh'])
-                for goal in cfg.pipeline.reward.priorities
-            ]
+            priorities=priorities
         )
         goal_constructor = GoalConstructor(reward_config, tag_configs)
 

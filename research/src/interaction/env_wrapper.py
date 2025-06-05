@@ -32,6 +32,9 @@ class EnvWrapper:
 
     def reset(self):
         observation, info = self.env.reset()
+        if type(observation) is list:
+            observation = np.array([float(x) if isinstance(x, (np.ndarray, np.float64)) else x for x in observation])
+        #print(observation, type(observation))
         assert isinstance(observation, np.ndarray)
         state = self.state_constructor(observation, None)
         return state, info
@@ -43,7 +46,10 @@ class EnvWrapper:
             self._collector.collect(f'raw_action_{i}', float(ra))
 
         observation, env_reward, terminated, truncated, info = self.env.step(raw_action)
-
+        # this is for weird observations given out by saturation_goal etc,
+        # where the observation can have mixed types [np.array, np.float]
+        if type(observation) is list:
+            observation = np.array([float(x) if isinstance(x, (np.ndarray, np.float64)) else x for x in observation])
         reward = env_reward
         if self._goal_constructor is not None:
             reward = self._goal_constructor(observation)
