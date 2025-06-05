@@ -1,8 +1,8 @@
 from pathlib import Path
 
 
-def get_active_branch() -> str:
-    refs = Path('.git/HEAD').read_text()
+def get_active_branch(base: Path = Path('.')) -> str:
+    refs = (base / '.git/HEAD').read_text()
 
     for ref in refs.splitlines():
         if ref.startswith('ref: '):
