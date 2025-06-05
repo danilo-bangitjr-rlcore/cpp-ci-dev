@@ -18,7 +18,7 @@ class ExperimentConfig:
     agent: dict[str, Any]
     env: dict[str, Any]
 
-
+    steps_per_decision: int = 1
     def flatten(self):
         out = flatten(self.agent, 'agent')
         out |= flatten(self.env, 'env')
