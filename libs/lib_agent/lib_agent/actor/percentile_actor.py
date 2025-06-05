@@ -169,7 +169,9 @@ class PercentileActor:
     def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
         dist = self._get_dist(actor_params, state)
         sampled = dist.sample(seed=rng)
-        return jnp.clip(sampled, state.a_lo, state.a_hi)
+        dp_mask = state.dp
+        clipped = jnp.clip(sampled, state.a_lo, state.a_hi)
+        return dp_mask * clipped + (1 - dp_mask) * state.last_a
 
     def _get_dist(self, actor_params: chex.ArrayTree, state: State):
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
