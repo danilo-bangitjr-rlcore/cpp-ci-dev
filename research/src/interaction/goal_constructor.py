@@ -30,11 +30,13 @@ class GoalConstructor:
         self._cfg = reward_cfg
         self._tag_cfgs = {cfg.name: cfg for cfg in tag_cfgs}
 
-    def _evaluate_threshold(self, thresh: str, df: pd.DataFrame) -> float:
+    def _evaluate_threshold(self, thresh: str | float, df: pd.DataFrame) -> float:
         if not isinstance(thresh, str) or '{' not in thresh:
             return float(thresh)
-        return eval(thresh.replace(f'{{tag-{i}}}', f'df["tag-{i}"].iloc[0]')
-                   for i in range(len(df.columns)))
+
+        for i in range(len(df.columns)):
+            thresh = thresh.replace(f'{{tag-{i}}}', f'df["tag-{i}"].iloc[0]')
+        return eval(thresh)
 
     def _calculate_violation(self, tag_value: float, thresh: float,
                            op_range: tuple[float, float], op: str) -> float:
@@ -50,7 +52,7 @@ class GoalConstructor:
         return 1.0 - normalized if op == 'min' else normalized
 
     def __call__(self, observation: np.ndarray) -> float:
-        df = pd.DataFrame([observation], columns=[f'tag-{i}' for i in range(len(observation))])
+        df = pd.DataFrame([observation], columns=pd.Index([f'tag-{i}' for i in range(len(observation))]))
 
         # calculate bucket size for non-optimization priorities
         non_opt_priorities = [p for p in self._cfg.priorities if p.op in ['up_to', 'down_to']]
