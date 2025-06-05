@@ -135,8 +135,11 @@ def main():
     # dummy action bounds
     a_lo = np.zeros(len(act_bounds[0]))
     a_hi = np.ones(len(act_bounds[0]))
+    last_action = (a_lo + a_hi) / 2 #placeholder
+    dp = True
 
     for _ in tqdm(range(cfg.max_steps + 1)):
+        dp = steps % cfg.steps_per_decision == 0
         collector.next_frame()
 
         state = State(
