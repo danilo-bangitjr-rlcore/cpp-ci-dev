@@ -112,6 +112,10 @@ class GreedyAC:
             a_hi=jnp.array(transition.a_hi),
             next_a_lo=jnp.array(transition.next_a_lo),
             next_a_hi=jnp.array(transition.next_a_hi),
+
+            last_a=jnp.array(transition.last_a),
+            dp=jnp.array(transition.dp),
+            next_dp=jnp.array(transition.next_dp),
         )
         self.critic_buffer.add(t)
         self.policy_buffer.add(t)
@@ -152,6 +156,8 @@ class GreedyAC:
             features=batch.next_state,
             a_lo=batch.next_a_lo,
             a_hi=batch.next_a_hi,
+            last_a=batch.action,
+            dp=jnp.expand_dims(batch.next_dp, axis=-1),
         )
         next_actions = self._get_actions_over_state(self.agent_state.actor.actor.params, self.rng, next_state)
         next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
@@ -162,6 +168,8 @@ class GreedyAC:
                     features=batch.state,
                     a_lo=batch.a_lo,
                     a_hi=batch.a_hi,
+                    last_a=batch.last_a,
+                    dp=batch.dp,
                 ),
                 action=batch.action,
                 reward=batch.reward,
@@ -188,6 +196,8 @@ class GreedyAC:
                     features=batch.state,
                     a_lo=batch.a_lo,
                     a_hi=batch.a_hi,
+                    last_a=batch.last_a,
+                    dp=batch.dp,
                 ),
                 action=batch.action,
                 reward=batch.reward,
@@ -195,6 +205,8 @@ class GreedyAC:
                     features=batch.next_state,
                     a_lo=batch.next_a_lo,
                     a_hi=batch.next_a_hi,
+                    last_a=batch.action,
+                    dp=batch.next_dp,
                 ),
                 gamma=batch.gamma,
             ),

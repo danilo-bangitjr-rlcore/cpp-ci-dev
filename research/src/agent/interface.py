@@ -14,3 +14,7 @@ class Batch(NamedTuple):
     a_hi: jax.Array
     next_a_lo: jax.Array
     next_a_hi: jax.Array
+
+    last_a: jax.Array
+    dp: jax.Array
+    next_dp: jax.Array
