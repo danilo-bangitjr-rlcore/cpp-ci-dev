@@ -91,11 +91,11 @@ class BSuiteTestCase:
         cur_env = os.environ.copy()
         env_vars = {
             **cur_env,
-            'NPROC': 1,
+            'NPROC': '1',
             'XLA_FLAGS': '--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1',
-            'OPENBLAS_NUM_THREADS': 1,
-            'MKL_NUM_THREADS': 1,
-            'OMP_NUM_THREAD': 1,
+            'OPENBLAS_NUM_THREADS': '1',
+            'MKL_NUM_THREADS': '1',
+            'OMP_NUM_THREAD': '1',
         }
 
         proc = subprocess.Popen([
