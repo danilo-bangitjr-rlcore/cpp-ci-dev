@@ -3,6 +3,8 @@ import ast
 from pathlib import Path
 from typing import Any
 
+import jax.numpy as jnp
+from lib_agent.actor.percentile_actor import State
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
 from rl_env.factory import init_env
@@ -130,7 +132,7 @@ def main():
     # every 100 steps
     for _ in tqdm(range(cfg.max_steps + 1)):
         collector.next_frame()
-        action = agent.get_actions(state)
+        action = agent.get_actions(State(jnp.array(state)))
         transitions = tc(state, action, reward, done)
 
         next_state, reward, terminated, truncated, _ = wrapper_env.step(action)

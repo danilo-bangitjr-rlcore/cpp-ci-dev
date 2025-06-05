@@ -27,11 +27,14 @@ class Transition(Protocol):
     @property
     def action_dim(self) -> int: ...
 
+class State(NamedTuple):
+    features: jax.Array
+
 class VectorizedTransition(NamedTuple):
-    state: jax.Array
+    state: State
     action: jax.Array
     reward: jax.Array
-    next_state: jax.Array
+    next_state: State
     gamma: jax.Array
 
 class NPVectorizedTransition(NamedTuple):
@@ -59,10 +62,10 @@ class NPVectorizedTransition(NamedTuple):
 
 
 def stack_transitions(transitions: list[NPVectorizedTransition]) -> VectorizedTransition:
-    stacked_state = jnp.stack([t.state for t in transitions])
+    stacked_state = State(jnp.stack([t.state for t in transitions]))
     stacked_action = jnp.stack([t.action for t in transitions])
     stacked_reward = jnp.stack([t.reward for t in transitions])
-    stacked_next_state = jnp.stack([t.next_state for t in transitions])
+    stacked_next_state = State(jnp.stack([t.next_state for t in transitions]))
     stacked_gamma = jnp.stack([t.gamma for t in transitions])
     return VectorizedTransition(
         state=stacked_state,

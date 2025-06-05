@@ -8,12 +8,11 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
-import numpy as np
 import optax
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import VectorizedTransition
+from lib_agent.buffer.buffer import State, VectorizedTransition
 from lib_agent.network.activations import (
     ActivationConfig,
     IdentityConfig,
@@ -149,24 +148,23 @@ class PercentileActor:
 
     # -------------------------------- get actions ------------------------------- #
 
-    def get_actions(self, actor_params: chex.ArrayTree, state: jax.Array):
+    def get_actions(self, actor_params: chex.ArrayTree, state: State):
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self.get_actions_rng(actor_params, sample_rng, state)
 
     @jax_u.method_jit
-    def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array):
+    def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
         dist = self._get_dist(actor_params, state)
         return dist.sample(seed=rng)
 
-    def _get_dist(self, actor_params: chex.ArrayTree, state: jax.Array):
-        out: ActorOutputs = self.actor.apply(params=actor_params, x=state)
+    def _get_dist(self, actor_params: chex.ArrayTree, state: State):
+        out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
         return SquashedGaussian(out.mu, out.sigma)
 
     # ----------------------------- get probabilities ---------------------------- #
 
     @jax_u.method_jit
-    def get_probs(self, params: chex.ArrayTree, state: jax.Array | np.ndarray, actions: jax.Array):
-        state = jnp.asarray(state)
+    def get_probs(self, params: chex.ArrayTree, state: State, actions: jax.Array):
         dist = self._get_dist(params, state)
         return self._get_probs(dist, actions)
 
@@ -187,11 +185,13 @@ class PercentileActor:
             transitions: VectorizedTransition):
 
         self.rng, update_rng = jax.random.split(self.rng, 2)
+
+        states = jax.tree.map(lambda arr: arr[0], transitions.state) # remove ensemble dimension
         actor_state, proposal_state, actor_loss = self._policy_update(
             pa_state,
             value_estimator,
             value_estimator_params,
-            transitions.state[0],
+            states,
             update_rng,
         )
 
@@ -206,7 +206,7 @@ class PercentileActor:
         pa_state: PAState,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
-        states: jax.Array,
+        states: State,
         rng: chex.PRNGKey,
     ):
 
@@ -245,14 +245,12 @@ class PercentileActor:
         )
         return new_actor_state, new_proposal_state, actor_loss
 
-        # return pa_state.actor, pa_state.proposal, 0
-
     def _compute_policy_update(
         self,
         policy_state: PolicyState,
         policy: hk.Transformed,
         policy_opt: optax.GradientTransformation,
-        states: jax.Array,
+        states: State,
         update_actions: jax.Array,
     ):
         is_actor = policy is self.actor
@@ -279,7 +277,7 @@ class PercentileActor:
             new_opt_state,
         ), loss_value
 
-    def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: jax.Array, rng: chex.PRNGKey):
+    def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: State, rng: chex.PRNGKey):
         uniform_samples = int(self._cfg.num_samples * self._cfg.uniform_weight)
 
         rng, u_rng = jax.random.split(rng, 2)
@@ -299,10 +297,10 @@ class PercentileActor:
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
         proposal_params: chex.ArrayTree,
-        state: jax.Array,
+        state: State,
         rng: chex.PRNGKey,
     ):
-        chex.assert_shape(state, (self.state_dim, ))
+        chex.assert_shape(state.features, (self.state_dim, ))
 
         proposal_actions = self._get_proposal_samples(proposal_params, state, rng)
         # clip proposal action to prevent log prob from being nan
@@ -311,7 +309,7 @@ class PercentileActor:
 
         q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
 
-        q_vals = q_over_proposal(value_estimator_params, state, proposal_actions)
+        q_vals = q_over_proposal(value_estimator_params, state.features, proposal_actions)
         chex.assert_shape(q_vals, (self._cfg.num_samples, ))
 
         actor_k = int(self._cfg.actor_percentile * self._cfg.num_samples)
@@ -322,8 +320,8 @@ class PercentileActor:
 
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
-    def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: jax.Array, top_actions: jax.Array):
-        out: ActorOutputs = policy.apply(params=params, x=state)
+    def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: State, top_actions: jax.Array):
+        out: ActorOutputs = policy.apply(params=params, x=state.features)
         dist = SquashedGaussian(out.mu, out.sigma)
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)
@@ -334,7 +332,7 @@ class PercentileActor:
         self,
         params: chex.ArrayTree,
         policy: hk.Transformed,
-        states: jax.Array,
+        states: State,
         top_actions_batch: jax.Array,
     ):
         losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
