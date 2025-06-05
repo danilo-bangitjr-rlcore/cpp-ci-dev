@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import ClassVar
 
 import gymnasium as gym
 import numpy as np
@@ -62,7 +61,6 @@ class BSM1Env(gym.Env):
         sensor_range = np.vstack(sensor_range)
         self.observation_space = gym.spaces.Box(sensor_range[:,0], sensor_range[:,1], dtype=np.float64)
 
-        return
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         aeration = np.zeros(5)
@@ -82,12 +80,12 @@ class BSM1Env(gym.Env):
         obs += self._tanks[0].step(self._influent.influent_flow + IMLR_flow + RAS_flow, aeration[0])
         for i in range(1,5):
             obs += self._tanks[i].step(self._tanks[i-1].tank_flow, aeration[i])
-        
+
         # Flow through the clarifier
         obs += self._clarifier.step(self._tanks[-1].tank_flow, Q_RAS + Q_WAS)
 
-        return np.array(obs), 0.0, False, False, {} 
-    
+        return np.array(obs), 0.0, False, False, {}
+
     def reset(self, *, seed = None, options = None):
         self._influent = InfluentModel(self._params.influent_sensors)
         self._tanks = [TankModel(self._params.tank_sensors[i]) for i in range(5)]
@@ -111,7 +109,6 @@ class FlowModel:
 
         self.X = X # Flow state: concentrations, temperature, pH, etc
         self.Q = Q # Flow rate
-        pass
 
     def __add__(self, other:"FlowModel")->"FlowModel":
         combined_Q = self.Q + other.Q
@@ -139,8 +136,7 @@ class TankModel:
     def step(self, influent: FlowModel, aeration: float):
         self.tank_flow.copy_from(influent)
 
-        obs = [s.step(self.tank_flow) for s in self.sensors]
-        return obs
+        return [s.step(self.tank_flow) for s in self.sensors]
 
 class ClarifierModel:
     def __init__(self, sensor_list: tuple["SensorModel"]):
@@ -152,8 +148,7 @@ class ClarifierModel:
         self.effluent_flow.copy_from(influent)
         self.wasteage_flow.copy_from(influent)
 
-        obs = [s.step(self.effluent_flow) for s in self.sensors]
-        return obs
+        return [s.step(self.effluent_flow) for s in self.sensors]
 
 class InfluentModel:
     def __init__(self, sensor_list: tuple["SensorModel"]):
@@ -161,8 +156,7 @@ class InfluentModel:
         self.sensors = sensor_list
 
     def step(self):
-        obs = [s.step(self.influent_flow) for s in self.sensors]
-        return obs
+        return [s.step(self.influent_flow) for s in self.sensors]
 
 class SensorModel:
     def __init__(self, measurement: str, sensor_range: list):
@@ -172,11 +166,10 @@ class SensorModel:
     def step(self, measured_flow: FlowModel) -> tuple[FlowModel, list]:
         # Need to step the sensor in order to replicate their dynamic behavior (e.g. time delay)
         raw_value = measured_flow.get(self.measurement)
-        clipped_value = np.clip(raw_value,self.sensor_range[0],self.sensor_range[1])
-        return clipped_value
+        return np.clip(raw_value,self.sensor_range[0],self.sensor_range[1])
 
 @dataclass
-class BSM1Params():
+class BSM1Params:
     # Action ranges
     aeration_range: tuple = (0,1)
     ILMR_range: tuple = (0,1)
