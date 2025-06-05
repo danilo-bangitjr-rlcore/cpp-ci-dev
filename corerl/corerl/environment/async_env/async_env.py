@@ -57,7 +57,7 @@ class GymEnvConfig:
     perturb_config: Any | None = None
     @computed('seed')
     @classmethod
-    def _seed(cls, cfg: 'MainConfig'):
+    def _seed(cls, cfg: MainConfig):
         return cfg.seed
 
 # ---------------

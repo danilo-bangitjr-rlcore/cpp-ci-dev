@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 import numpy as np
 
@@ -42,7 +42,7 @@ def get_spread_batch(mu: float, n: int) -> np.ndarray:
     """
     left = [mu - (i + 1) for i in range(n)]
     right = [mu + (i + 1) for i in range(n)]
-    batch = left + [mu] + right
+    batch = [*left, mu, *right]
     batch = np.array(batch)
     assert np.isclose(mu, batch.mean())
 

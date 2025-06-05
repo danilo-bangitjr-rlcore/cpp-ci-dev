@@ -1,16 +1,19 @@
 import json
+import os
 import subprocess
+import time
 from datetime import UTC, datetime, timedelta
 from enum import Enum, auto
 from typing import Any
 
-import corerl.utils.git as git
 import numpy as np
 import pandas as pd
+import psutil
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
 from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
+from corerl.utils import git
 from corerl.utils.time import now_iso
 from sqlalchemy import Engine, text
 
@@ -18,6 +21,13 @@ from sqlalchemy import Engine, text
 class Behaviour(Enum):
     exploration = auto()
 
+class BehaviourCategory(Enum):
+    PERFORMANCE = auto()
+    NONSTATIONARY = auto()
+    REACTIVITY = auto()
+    REPRESENTATION = auto()
+    ROBUSTNESS = auto()
+    GREEDY = auto()
 
 class BSuiteTestCase:
     name: str
@@ -28,14 +38,14 @@ class BSuiteTestCase:
     lower_bounds: dict[str, float] = {}
     upper_bounds: dict[str, float] = {}
     goals: dict[str, float] = {}
-
+    category: set[BehaviourCategory] = set()
     aggregators: dict[str, str] = {}
 
     overrides: dict[str, object] | None = None
 
     def __init__(self):
         self._overrides = self.overrides or {}
-        cfg = direct_load_config(MainConfig, base='.', config_name=self.config)
+        cfg = direct_load_config(MainConfig, config_name=self.config)
         assert isinstance(cfg, MainConfig)
         self._cfg = cfg
         self.seed = np.random.randint(0, 1_000_000)
@@ -60,7 +70,6 @@ class BSuiteTestCase:
         """
         Setup the given BSuiteTestCase before main.py is called in execute_test()
         """
-        ...
 
     def execute_test(self, tsdb: Engine, db_name: str, schema: str, features: dict[str, bool]):
         infra_overrides = self._test_infra_overrides(tsdb, db_name, schema)
@@ -76,13 +85,39 @@ class BSuiteTestCase:
         parts = [f'{k}={v}' for k, v in overrides.items()]
 
         start = datetime.now(UTC)
+        exec_start = time.time()
+        max_memory = 0
 
-        proc = subprocess.run([
+        cur_env = os.environ.copy()
+        env_vars = {
+            **cur_env,
+            'NPROC': '1',
+            'XLA_FLAGS': '--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1',
+            'OPENBLAS_NUM_THREADS': '1',
+            'MKL_NUM_THREADS': '1',
+            'OMP_NUM_THREAD': '1',
+        }
+
+        proc = subprocess.Popen([
             'python', 'corerl/main.py',
-            '--base', '../test/',
-            '--config-name', self.config,
-        ] + parts, cwd='../corerl')
-        proc.check_returncode()
+            '--config-name', '../test/' + self.config,
+            *parts,
+        ], cwd='../corerl', env=env_vars)
+
+        psutil_proc = psutil.Process(proc.pid)
+        while proc.poll() is None:
+            try:
+                memory_info = psutil_proc.memory_info()
+                max_memory = max(max_memory, memory_info.rss / 1024 / 1024)  # convert to MB
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                break
+
+        proc.wait()
+        if proc.returncode != 0:
+            raise subprocess.CalledProcessError(proc.returncode, proc.args)
+
+        exec_end = time.time()
+        exec_time = exec_end - exec_start
 
         # ensure metrics table exists
         assert table_exists(tsdb, 'metrics', schema=schema)
@@ -97,16 +132,19 @@ class BSuiteTestCase:
             add_retention_policy(conn, 'evals', schema, days=3)
 
         metrics_table = metrics_table.sort_values('agent_step', ascending=True)
-        return metrics_table
+        return metrics_table, (exec_time, max_memory)
 
-    def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame, features: dict[str, bool]) -> pd.DataFrame:
+    def evaluate_outcomes(self, tsdb: Engine, metrics_table: pd.DataFrame, features: dict[str, bool],
+                          runtime_info: tuple[float, float]) -> pd.DataFrame:
         extracted = []
         extracted += self._extract(self.lower_bounds, 'lower_bounds', metrics_table)
         extracted += self._extract(self.upper_bounds, 'upper_bounds', metrics_table)
         extracted += self._extract(self.goals,  'goals',  metrics_table)
 
         summary_df = pd.DataFrame(extracted, columns=['metric', 'behaviour', 'bound_type', 'expected', 'got'])
-        self._store_outcomes(tsdb, summary_df, features)
+        summary_df['exec_time'] = runtime_info[0]
+        summary_df['max_memory'] = runtime_info[1]
+        self._store_outcomes(tsdb, summary_df, features, runtime_info)
         self._evaluate_bounds(summary_df)
 
         return summary_df
@@ -114,8 +152,7 @@ class BSuiteTestCase:
     def summarize_over_time(self, metric: str, metrics_table: pd.DataFrame) -> float:
         values = get_metric(metrics_table, metric)
         aggregation_name = self.aggregators.get(metric, 'last_100_mean')
-        aggregated_values = self.aggregate(values, name=aggregation_name)
-        return aggregated_values
+        return self.aggregate(values, name=aggregation_name)
 
 
     def _extract(self, tests: dict[str, float], bound_type: str, metrics_table: pd.DataFrame)-> list[list[str | float]]:
@@ -145,7 +182,8 @@ class BSuiteTestCase:
                 assert got <= expected, f'[{self.name}] - {metric} outside of upper bound - {got} <= {expected}'
 
 
-    def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame, features: dict[str, bool]):
+    def _store_outcomes(self, tsdb: Engine, summary_df: pd.DataFrame, features: dict[str, bool],
+                        runtime_info: tuple[float, float]):
         feature_json = {
             'enabled_features': [
                 feature for feature, enabled in features.items() if enabled
@@ -198,6 +236,46 @@ class BSuiteTestCase:
             )
         """)
 
+        create_runtime_table_sql = create_tsdb_table_query(
+            schema='public',
+            table='bsuite_metadata',
+            columns= [
+                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                SQLColumn(name='test_name', type='TEXT', nullable=False),
+                SQLColumn(name='branch', type='TEXT', nullable=False),
+                SQLColumn(name='exec_time', type='FLOAT', nullable=False),
+                SQLColumn(name='max_memory', type='FLOAT', nullable=False),
+                SQLColumn(name='features', type='jsonb', nullable=False),
+            ],
+            partition_column='test_name',
+            index_columns=['test_name', 'branch'],
+            chunk_time_interval='14d',
+        )
+
+        insert_runtime_sql = text("""
+            INSERT INTO bsuite_metadata
+            (time, test_name, branch, exec_time, max_memory, features)
+            VALUES (
+                TIMESTAMP WITH TIME ZONE :time,
+                :test_name,
+                :branch,
+                :exec_time,
+                :max_memory,
+                :features
+            )
+            )
+        """)
+
+        exec_time, max_memory = runtime_info
+        runtime_data = {
+            'time': now,
+            'test_name': self.name,
+            'branch': branch,
+            'exec_time': exec_time,
+            'max_memory': max_memory,
+            'features': json.dumps(feature_json),
+        }
+
         with tsdb.connect() as conn:
             if not table_exists(tsdb, 'bsuite_outcomes'):
                 conn.execute(create_table_sql)
@@ -205,20 +283,25 @@ class BSuiteTestCase:
             conn.execute(insert_sql, outcomes)
             conn.commit()
 
+            if not table_exists(tsdb, 'bsuite_runtime'):
+                conn.execute(create_runtime_table_sql)
+
+            conn.execute(insert_runtime_sql, runtime_data)
+            conn.commit()
+
     def aggregate(self, values: np.ndarray, name: str = 'last_100_mean') -> float:
         if name == 'last_100_mean':
             return values[-100:].mean()
-        elif name == 'mean':
+        if name == 'mean':
             return values.mean()
-        elif name == 'max':
+        if name == 'max':
             return values.max()
-        elif name == 'min':
+        if name == 'min':
             return values.min()
-        elif name == 'percent_of_steps':
+        if name == 'percent_of_steps':
             assert self._cfg.max_steps is not None
             return float(np.sum(values > 0) / self._cfg.max_steps)
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
 def get_metric(df: pd.DataFrame, metric: str) -> np.ndarray:
     return df[df['metric'] == metric]['value'].to_numpy()

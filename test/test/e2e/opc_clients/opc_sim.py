@@ -88,7 +88,7 @@ def run(env: gym.Env, client: Client, cfg: OPCSimConfig):
     initial_action = env.action_space.sample()
 
     opc_nodes = initialize_opc_nodes_from_tags(
-        client, cfg, initial_observation, initial_action
+        client, cfg, initial_observation, initial_action,
     )
 
     # Run simulation forever using OPC for communication
@@ -139,7 +139,7 @@ def wait_for_agent_step(client: Client, agent_step_node: SyncNode):
             last_agent_step = agent_step
             yield
 
-@load_config(OPCSimConfig, base="config/")
+@load_config(OPCSimConfig)
 def main(cfg: OPCSimConfig):
     env: gym.Env = init_environment(cfg.gym)
     _logger.info(f"Running OPC env simulation {env}")

@@ -3,6 +3,9 @@ import ast
 from pathlib import Path
 from typing import Any
 
+import jax.numpy as jnp
+import numpy as np
+from lib_agent.actor.percentile_actor import State
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
 from rl_env.factory import init_env
@@ -33,10 +36,9 @@ def safe_cast(value: Any):
         # or a string representation of True/False
         if value.lower() == 'true':
             return True
-        elif value.lower() == 'false':
+        if value.lower() == 'false':
             return False
-        else:
-            return value  # Keep as string
+        return value  # Keep as string
 
 
 def process_overrides(override_args: list) -> list[tuple]:
@@ -159,20 +161,37 @@ def main():
         collector=collector,
     )
 
-    state, _ = wrapper_env.reset()
+    state_features, _ = wrapper_env.reset()
     reward: float | None = None
     done = False
     episode_reward = 0.0
     steps = 0
     # +1 to ensure we don't reject any metrics that are subsampling
     # every 100 steps
-    for _ in tqdm(range(cfg.max_steps + 1)):
-        collector.next_frame()
-        # ac_eval(collector, agent, state)
-        action = agent.get_actions(state)
-        transitions = tc(state, action, reward, done)
 
-        next_state, reward, terminated, truncated, _ = wrapper_env.step(action)
+    # dummy action bounds
+    a_lo = np.zeros(len(act_bounds[0]))
+    a_hi = np.ones(len(act_bounds[0]))
+    last_action = (a_lo + a_hi) / 2 #placeholder
+    dp = True
+
+    for _ in tqdm(range(cfg.max_steps + 1)):
+        dp = steps % cfg.steps_per_decision == 0
+        collector.next_frame()
+
+        state = State(
+            features=jnp.array(state_features),
+            a_lo=jnp.array(a_lo),
+            a_hi=jnp.array(a_hi),
+            dp=jnp.array(dp),
+            last_a=jnp.array(last_action),
+        )
+        action = agent.get_actions(state)
+
+        transitions = tc(
+            state_features, a_lo, a_hi, np.array(action), reward, done, dp)
+
+        next_state_features, reward, terminated, truncated, _ = wrapper_env.step(action)
         for t in transitions:
             agent.update_buffer(t)
 
@@ -190,11 +209,13 @@ def main():
             episode_reward = 0
             reward = None
 
-            state, _ = wrapper_env.reset()
+            state_features, _ = wrapper_env.reset()
+            last_action = (a_lo + a_hi) / 2
             tc.flush()
 
         else:
-            state = next_state
+            state_features = next_state_features
+            last_action = action
 
     env.close()
 

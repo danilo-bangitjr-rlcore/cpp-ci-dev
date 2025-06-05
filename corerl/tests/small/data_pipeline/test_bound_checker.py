@@ -35,7 +35,7 @@ class Case:
             raw={      'tag-1': [0.4, 1.3, 0.7],       'tag-2': [11.9, -0.5, 3.6] },
             expected={ 'tag-1': [False, True, False],  'tag-2': [True, False, False] },
         ),
-    ]
+    ],
 )
 def test_bounds(case: Case):
     tag_cfgs = [

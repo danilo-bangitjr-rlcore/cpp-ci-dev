@@ -82,8 +82,7 @@ class SaturationGoals(gym.Env):
     def _get_saturation_sp(self):
         if (self.time_step//self.setpoint_change_period) % 2 == 0:
             return np.array([0.9])
-        else:
-            return np.array([0.1])
+        return np.array([0.1])
 
     def _get_bound_var(self):
         lo = np.cos(self.time_step/4000 * 2 * np.pi) /4  + 0.25

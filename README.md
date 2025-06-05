@@ -1,44 +1,23 @@
-# core-rl
+# Monorepo
 
 [Wiki](https://github.com/rlcoretech/core-rl/wiki)
 
-This is the main repo containing code for our agents, environments, state constructors and interactions.
+This is the main repo containing code for the agent, the surrounding microservices, the research codebase, and project specific code.
 
-## Installation
+## Python
 
-We are using the [`uv` Python package and project manager](https://docs.astral.sh/uv/).
+We are using the [`uv` Python package and project manager](https://docs.astral.sh/uv/) for python projects.
+Each microservice / subrepo maintains its own dependencies and project structure. Each microservice, therefore,
+should have its own virtual environment.
 
 ```bash
-# create virtual environment
-uv venv --python 3.13
-source .venv/bin/activate
-
-# install project requirements
+cd corerl/
 uv sync
 
-# install projects/ as editable packages
-uv pip install -e projects/
-
-# run linter
-uv run ruff check
-
-# run static type checker
+# lint and type check
+uv run ruff check .
 uv run pyright
 
 # run tests
-uv run pytest -n auto test/small
-uv run pytest -n auto test/medium
-uv run pytest -n auto test/large
-```
-
-If using VSCode, ensure that the python interpreter is set to the virtual environment initialized in the above steps.
-- `ctrl+shift+p`, "Python: Select Interpreter" > `./.venv/bin/python`.
-
-## Style
-This repo uses the following code style:
-1. Classes: camel case. E.g. `GreedyActorCritic`
-2. Python modules: lowercase with underscores. E.g. `greedy_actor_critic.py`
-3. Python variables: lowercase with underscores. E.g. `agent = GreedyActorCritic()`
-4. Config files: lowercase with underscores. E.g. `greedy_actor_critic.yaml`
-5. String arguments in configs: lowercase with underscores. E.g. `agent: greedy_actor_critic`
-6. Paths: please use `pathlib` instead of `os`
+uv run pytest test/small
+``

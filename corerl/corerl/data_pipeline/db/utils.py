@@ -23,7 +23,7 @@ def try_connect(engine: Engine, backoff_seconds: int = 5, max_tries: int = 5) ->
     return connection
 
 
-class TryConnectContextManager(object):
+class TryConnectContextManager:
     def __init__(self, engine: Engine, backoff_seconds: int = 5, max_tries: int = 5):
         self.engine = engine
         self.backoff_seconds = backoff_seconds
@@ -35,7 +35,7 @@ class TryConnectContextManager(object):
         return self.conn
 
     def __exit__(
-        self, exc_type: type[BaseException] | None, value: BaseException | None, traceback: TracebackType | None
+        self, exc_type: type[BaseException] | None, value: BaseException | None, traceback: TracebackType | None,
     ):
         if self.conn:
             self.conn.close()

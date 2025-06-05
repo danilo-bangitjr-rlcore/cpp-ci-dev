@@ -3,8 +3,8 @@
 
 import copy
 import logging
-from collections.abc import Iterable
-from typing import Any, Callable, Generic, Optional, TypeVar
+from collections.abc import Callable, Iterable
+from typing import Any, Generic, TypeVar
 from warnings import warn
 
 import torch
@@ -33,8 +33,8 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         search_condition: Search,
         init: StepsizeInit,
         init_step_size: float,
-        optim_args: tuple=tuple(),
-        optim_kwargs: Optional[dict]=None,
+        optim_args: tuple=(),
+        optim_kwargs: dict | None=None,
         max_backtracking_steps: int=100,
         fallback_step_size: float=1e-6,
         unit_norm_direction: bool=False,
@@ -107,16 +107,16 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         params = list(params)
         self._optim_type = optim
         optimizer = optim(params, *optim_args, **optim_kwargs)
-        defaults = dict(
-            init=init,
-            search_condition=search_condition,
-            optim=optimizer,
-            fallback_step_size=fallback_step_size,
-            max_backtracking_steps=max_backtracking_steps,
-            init_step_size=init_step_size,
-            unit_norm_direction=unit_norm_direction,
-            reeval_loss_on_diff_start=reeval_loss_on_diff_start,
-        )
+        defaults = {
+            'init': init,
+            'search_condition': search_condition,
+            'optim': optimizer,
+            'fallback_step_size': fallback_step_size,
+            'max_backtracking_steps': max_backtracking_steps,
+            'init_step_size': init_step_size,
+            'unit_norm_direction': unit_norm_direction,
+            'reeval_loss_on_diff_start': reeval_loss_on_diff_start,
+        }
         super().__init__(params, defaults)
 
         self.state: dict[Any, Any]  # pyright: ignore[reportIncompatibleVariableOverride]
@@ -147,7 +147,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         if len(self.param_groups) > 0:
             warn(
                 "Multiple param groups for Optimizer has not been tested",
-                stacklevel=1
+                stacklevel=1,
             )
         return super().add_param_group(param_group)
 
@@ -157,7 +157,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
         for k, v in state_dict["state"].items():
             self.state[k] = v
 
-        for i in range(len((self.param_groups))):
+        for i in range(len(self.param_groups)):
             opt_sd = {
                 "state": state_dict["state"]["optim"][i],
                 "param_groups": state_dict["param_groups"][i]["opt_param_group"],
@@ -172,7 +172,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
     def step(  # pyright: ignore[reportIncompatibleMethodOverride]
         self,
         closure: Callable[[], float | torch.Tensor],
-        loss: Optional[float]=None,
+        loss: float | None=None,
     ) -> float:
         """Takes a single optimization step to minimize `closure`.
 
@@ -194,7 +194,7 @@ class Optimizer(torch.optim.Optimizer,Generic[OPT]):  # pyright: ignore[reportPr
             parameters respectively.
         """
 
-        loss_next: Optional[float] = None  # makes static type-checkers happy
+        loss_next: float | None = None  # makes static type-checkers happy
 
         batch_step_size = self.state['step_size']
 

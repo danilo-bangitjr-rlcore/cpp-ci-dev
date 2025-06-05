@@ -1,8 +1,6 @@
 import torch
 
-from corerl.component.layer.activations import FTA as FTA
-from corerl.component.layer.activations import ActivationConfig
-from corerl.component.layer.activations import init_activation as init_activation
+from corerl.component.layer.activations import FTA, ActivationConfig, init_activation
 
 
 # ----------
@@ -87,7 +85,7 @@ def test_fta_factory():
         "name": "FTA",
         "kwargs": {
             "eta": 0.1, "lower": 0, "upper": 1, "n_bins": 4,
-        }
+        },
     }
     act = init_activation(cfg)
     assert isinstance(act, FTA)

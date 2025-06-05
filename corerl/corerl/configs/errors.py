@@ -39,7 +39,7 @@ def _construct_error_response(details: list[ErrorDetails]) -> ConfigValidationEr
             filter(
                 lambda s: s[0].islower(),
                 map(str, err_detail['loc']),
-            )
+            ),
         )
         errors[path] = ConfigValidationError(
             kind=_error_type_remapping(err_detail['type']),

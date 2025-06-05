@@ -1,9 +1,10 @@
+# ruff: noqa: PERF203
 import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from itertools import groupby
 from math import floor
-from typing import Any, List, assert_never
+from typing import Any, assert_never
 
 import pandas as pd
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
@@ -45,12 +46,12 @@ class DataReader:
                 self.db_metadata,
                 Column("time", TIMESTAMP, nullable=False, primary_key=True),
                 schema=db_cfg.table_schema,
-                extend_existing=True
+                extend_existing=True,
             )
 
     def batch_aggregated_read(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
@@ -99,21 +100,20 @@ class DataReader:
                 start_time,
                 end_time,
                 bucket_width,
-                tag_aggregations
+                tag_aggregations,
             )
-        else:
-            return self._batch_aggregated_read_narrow(
-                names,
-                start_time,
-                end_time,
-                bucket_width,
-                aggregation,
-                tag_aggregations
-            )
+        return self._batch_aggregated_read_narrow(
+            names,
+            start_time,
+            end_time,
+            bucket_width,
+            aggregation,
+            tag_aggregations,
+        )
 
     def _batch_aggregated_read_wide(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
@@ -149,7 +149,7 @@ class DataReader:
         select_parts = [
             f"time_bucket(INTERVAL '{bucket_width_str}', time, "
             f"origin => '{(end_time+timedelta(microseconds=1)).isoformat()}'::timestamptz, "
-            f"timezone => 'UTC') + INTERVAL '{bucket_width_str}' - INTERVAL '1 microsecond' AS time_bucket"
+            f"timezone => 'UTC') + INTERVAL '{bucket_width_str}' - INTERVAL '1 microsecond' AS time_bucket",
         ]
 
         for name in names:
@@ -163,15 +163,14 @@ class DataReader:
                     select_parts.append(f'bool_or("{name}") as "{name}"')
                 else:
                     raise ValueError(f"Unsupported aggregation {agg_type} for boolean column {name}")
+            elif agg_type == Agg.avg:
+                select_parts.append(f'avg("{name}") as "{name}"')
+            elif agg_type == Agg.last:
+                select_parts.append(f'last("{name}", time) as "{name}"')
+            elif agg_type == Agg.bool_or:
+                select_parts.append(f'bool_or("{name}"::boolean) as "{name}"')
             else:
-                if agg_type == Agg.avg:
-                    select_parts.append(f'avg("{name}") as "{name}"')
-                elif agg_type == Agg.last:
-                    select_parts.append(f'last("{name}", time) as "{name}"')
-                elif agg_type == Agg.bool_or:
-                    select_parts.append(f'bool_or("{name}"::boolean) as "{name}"')
-                else:
-                    raise ValueError(f"Unsupported aggregation {agg_type} for column {name}")
+                raise ValueError(f"Unsupported aggregation {agg_type} for column {name}")
 
         query = f"""
             SELECT {', '.join(select_parts)}
@@ -189,7 +188,7 @@ class DataReader:
             end=end_time,
             freq=bucket_width,
             tz='UTC',
-            name=None
+            name=None,
         )
 
         with TryConnectContextManager(self.engine) as connection:
@@ -219,7 +218,7 @@ class DataReader:
 
     def _batch_aggregated_read_narrow(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
@@ -256,19 +255,19 @@ class DataReader:
                     # https://www.postgresql.org/docs/17/functions-aggregate.html
                     agg_stmt = func.cast(
                         func.avg(cast(self.sensor_table.c["fields"]["val"], Float)),
-                        TEXT
+                        TEXT,
                     )
                 case Agg.last:
                     # https://docs.timescale.com/api/latest/hyperfunctions/last/#last
                     agg_stmt = func.cast(
                         func.last(self.sensor_table.c["fields"]["val"], self.sensor_table.c["time"]),
-                        TEXT
+                        TEXT,
                     )
                 case Agg.bool_or:
                     # needed to support truncated/terminated booleans
                     agg_stmt = func.cast(
                         func.bool_or(cast(self.sensor_table.c["fields"]["val"], Boolean)),
-                        TEXT
+                        TEXT,
                     )
                 case _:
                     assert_never(agg_type)
@@ -277,7 +276,7 @@ class DataReader:
                 select(
                     time_bucket_stmt.label("time_bucket"),
                     self.sensor_table.c["name"],
-                    agg_stmt.label("val")
+                    agg_stmt.label("val"),
                 )
                 .filter(
                     self.sensor_table.c["time"] > text(f"TIMESTAMP WITH TIME ZONE '{start_time.isoformat()}'"),
@@ -300,7 +299,7 @@ class DataReader:
                 end=end_time,
                 freq=bucket_width,
                 tz='UTC',
-                name=None
+                name=None,
             )
 
             if not sensor_data.empty:
@@ -323,7 +322,7 @@ class DataReader:
 
     def single_aggregated_read(
         self,
-        names: List[str],
+        names: list[str],
         start_time: datetime,
         end_time: datetime,
         aggregation: Agg = Agg.avg,
@@ -336,7 +335,7 @@ class DataReader:
             end_time,
             bucket_width,
             aggregation,
-            tag_aggregations
+            tag_aggregations,
         )
 
         if len(df) > 1:
@@ -356,13 +355,12 @@ class DataReader:
             q = q.replace(":val", _parse_jsonb("fields"))
 
         with TryConnectContextManager(self.engine) as connection:
-            sensor_data = pd.read_sql(
+            return pd.read_sql(
                 sql=text(q),
                 con=connection,
                 params=params,
             )
 
-        return sensor_data
 
     def get_tag_stats(self, tag_name: str):
         if self.wide_format:
@@ -378,14 +376,14 @@ class DataReader:
                 if not result:
                     raise ValueError(f"Column '{tag_name}' does not exist in the database")
 
-            q = """
+            q = f"""
                 SELECT
-                  MIN("{tag}") as min,
-                  MAX("{tag}") as max,
-                  AVG("{tag}") as avg,
-                  VARIANCE("{tag}") as var
+                  MIN("{tag_name}") as min,
+                  MAX("{tag_name}") as max,
+                  AVG("{tag_name}") as avg,
+                  VARIANCE("{tag_name}") as var
                 FROM :table
-            """.format(tag=tag_name)
+            """
             df = self.query(q)
         else:
             # for narrow format, check if the tag exists

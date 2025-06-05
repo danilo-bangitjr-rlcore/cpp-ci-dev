@@ -27,7 +27,7 @@ class TraceConstructor:
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, TraceTemporalState | None)
-        mu = ts and ts.mu or {}
+        mu = (ts and ts.mu) or {}
 
         cols = set(carry.transform_data.columns)
         for col in cols:

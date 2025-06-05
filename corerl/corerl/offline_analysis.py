@@ -19,7 +19,7 @@ from corerl.utils.device import device
 log = logging.getLogger(__name__)
 
 
-@load_config(MainConfig, base='config/')
+@load_config(MainConfig)
 def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
@@ -51,7 +51,7 @@ def main(cfg: MainConfig):
             data=data,
             data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
-            stages=exec_stages
+            stages=exec_stages,
         )
         outs.append(pipeline_out.df)
 

@@ -1,0 +1,12 @@
+agent:
+  max_critic_updates: 5
+
+  critic:
+    buffer:
+      name: mixed_history_buffer
+      batch_size: 32
+
+  policy:
+    buffer:
+      name: mixed_history_buffer
+      batch_size: 32

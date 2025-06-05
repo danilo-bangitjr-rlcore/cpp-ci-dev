@@ -27,12 +27,11 @@ def dataset():
         {
             "tag-1": np.arange(0, 1, 0.1),
             "tag-2": np.array([0, 1] * 5),
-        }
+        },
     )
-    dataset = Dataset(
+    return Dataset(
         data=data,
     )
-    return dataset
 
 
 @pytest.fixture
@@ -40,12 +39,11 @@ def tiny_dataset():
     data = pd.DataFrame(
         {
             "tag-1": [0, 1],
-        }
+        },
     )
-    dataset = Dataset(
+    return Dataset(
         data=data,
     )
-    return dataset
 
 
 class DumbCoverage:
@@ -125,7 +123,7 @@ def _test_uniform_dataset_sampler(sampler: UniformDatasetSampler, coverage_fn: C
     test_data = pd.DataFrame(
         {
             "tag-1": [10, 10],
-        }
+        },
     )
     test_dataset = Dataset(
         data=test_data,
@@ -183,7 +181,7 @@ def _test_uniform_action_sampler(coverage_fn: CoverageProtocol, dataset: Dataset
         {
             "tag-1": [0] * half_dataset_size,  # "observation" tag
             "tag-2": test_tag_2,  # "action" tag
-        }
+        },
     )
     test_dataset_high_cov = Dataset(data=test_data_high_cov, action_tags=["tag-2"])
     coverage_value_1 = sampler.eval(test_dataset_high_cov, coverage_fn)
@@ -193,7 +191,7 @@ def _test_uniform_action_sampler(coverage_fn: CoverageProtocol, dataset: Dataset
         {
             "tag-1": [1] * half_dataset_size,  # "observation" tag
             "tag-2": test_tag_2,  # "action" tag
-        }
+        },
     )
     test_dataset_low_cov = Dataset(data=test_data_low_cov, action_tags=["tag-2"])
     coverage_value_2 = sampler.eval(test_dataset_low_cov, coverage_fn)
@@ -210,7 +208,7 @@ def test_kde_with_uniform_action_sampler():
         {
             "tag-1": [0] * half_dataset_size + [1] * half_dataset_size,
             "tag-2": list(np.random.uniform(0, 1, half_dataset_size)) + [0] * half_dataset_size,
-        }
+        },
     )
     dataset = Dataset(data=data, action_tags=["tag-2"])
 
@@ -229,7 +227,7 @@ def test_neighbours_with_uniform_action_sampler():
         {
             "tag-1": [0] * half_dataset_size + [1] * half_dataset_size,
             "tag-2": list(np.random.uniform(0, 1, half_dataset_size)) + [0] * half_dataset_size,
-        }
+        },
     )
     dataset = Dataset(data=data, action_tags=["tag-2"])
 
@@ -250,7 +248,7 @@ def test_ae_with_uniform_action_sampler():
         weight_decay=0.00,
         err_tolerance=1e-4,
         max_update_steps=100,
-        sizes=[1]
+        sizes=[1],
     )
     sampler_cfg = ActionSamplerConfig(n_state_samples=1, n_action_samples=100)
 
@@ -259,7 +257,7 @@ def test_ae_with_uniform_action_sampler():
         {
             "tag-1": [0] * half_dataset_size + [1] * half_dataset_size,
             "tag-2": list(np.random.uniform(0, 1, half_dataset_size)) + [0] * half_dataset_size,
-        }
+        },
     )
     dataset = Dataset(data=data, action_tags=["tag-2"])
 

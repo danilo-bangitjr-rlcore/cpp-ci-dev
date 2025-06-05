@@ -121,7 +121,7 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
             init_step_size=cfg.lr,
             max_backtracking_steps=cfg.max_backtracking_steps,
             fallback_step_size=cfg.fallback_step_size,
-            unit_norm_direction=cfg.unit_norm_direction
+            unit_norm_direction=cfg.unit_norm_direction,
         )
 
     return EnsembleOptimizer(
@@ -134,9 +134,9 @@ def lso_dispatch(cfg: LSOConfig, app_state: AppState, param: Iterable[torch.nn.P
             "init_step_size": cfg.lr,
             "max_backtracking_steps": cfg.max_backtracking_steps,
             "fallback_step_size": cfg.fallback_step_size,
-            "unit_norm_direction": cfg.unit_norm_direction
+            "unit_norm_direction": cfg.unit_norm_direction,
         },
-        app_state=app_state
+        app_state=app_state,
     )
 
 

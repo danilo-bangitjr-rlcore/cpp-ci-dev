@@ -1,4 +1,4 @@
-from typing import Callable
+from collections.abc import Callable
 
 
 def default[T](thing: T | None, other: Callable[[], T]) -> T:

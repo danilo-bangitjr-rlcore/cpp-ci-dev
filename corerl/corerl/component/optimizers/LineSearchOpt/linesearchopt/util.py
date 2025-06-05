@@ -4,7 +4,6 @@
 import copy
 import warnings
 from collections.abc import Iterable, Sequence
-from typing import Union
 
 import torch
 from torch.optim.adagrad import Adagrad
@@ -15,7 +14,7 @@ from torch.optim.sgd import SGD
 
 from corerl.utils.device import device
 
-starting_point_unchanged_opts = set((Adam, SGD, RMSprop, Adagrad))
+starting_point_unchanged_opts = {Adam, SGD, RMSprop, Adagrad}
 
 
 def _compute_start_point(param_list, grad_list, opt):
@@ -35,15 +34,14 @@ def _compute_start_point(param_list, grad_list, opt):
     """
     if type(opt) in starting_point_unchanged_opts:
         return param_list, False
-    elif isinstance(opt, AdamW):
+    if isinstance(opt, AdamW):
         return _compute_adamw_start_point(param_list, grad_list, opt), True
-    else:
-        warnings.warn(
-            f"unknown start point for type {type(opt)}, approximating " +
-            "start point with current parameters",
-            stacklevel=1,
-        )
-        return param_list
+    warnings.warn(
+        f"unknown start point for type {type(opt)}, approximating " +
+        "start point with current parameters",
+        stacklevel=1,
+    )
+    return param_list
 
 def _compute_adamw_start_point(param_list, grad_list, opt):
 
@@ -83,21 +81,20 @@ def _compute_search_direction(
         return _compute_sgd_direction(
             param_list, grad_list, opt, unit_norm_direction,
         )
-    elif isinstance(opt, RMSprop):
+    if isinstance(opt, RMSprop):
         return _compute_rmsprop_direction(
             param_list, grad_list, opt, unit_norm_direction,
         )
-    elif isinstance(opt, Union[Adam, AdamW]):
+    if isinstance(opt, Adam | AdamW):
         return _compute_adam_direction(
             param_list, grad_list, opt, unit_norm_direction,
         )
-    else:
-        warnings.warn(
-            f"unknown search direction for type {type(opt)}, approximating " +
-            "search direction with gradient direction",
-            stacklevel=1
-        )
-        return -_compute_grad_norm2(grad_list)
+    warnings.warn(
+        f"unknown search direction for type {type(opt)}, approximating " +
+        "search direction with gradient direction",
+        stacklevel=1,
+    )
+    return -_compute_grad_norm2(grad_list)
 
 
 def _compute_sgd_direction(
@@ -108,50 +105,49 @@ def _compute_sgd_direction(
 ) -> torch.Tensor:
     if len(opt.state_dict()["state"].keys()) == 0:
         return -_compute_grad_norm2(grad_list)
-    else:
-        directional_derivative = torch.tensor(0.)
+    directional_derivative = torch.tensor(0.)
 
-        # SGD hypers
-        param_group = opt.param_groups
-        assert len(param_group) == 1  # One param group per optimizer
-        param_group = param_group[0]
-        λ = param_group["weight_decay"]
-        μ = param_group["momentum"]
-        τ = param_group["dampening"]
-        nesterov = param_group["nesterov"]
+    # SGD hypers
+    param_group = opt.param_groups
+    assert len(param_group) == 1  # One param group per optimizer
+    param_group = param_group[0]
+    λ = param_group["weight_decay"]
+    μ = param_group["momentum"]
+    τ = param_group["dampening"]
+    nesterov = param_group["nesterov"]
 
-        if λ == 0 and μ == 0:
-            return -_compute_grad_norm2(grad_list)
+    if λ == 0 and μ == 0:
+        return -_compute_grad_norm2(grad_list)
 
-        for i, ind in enumerate(opt.state_dict()["state"].keys()):
-            g = copy.deepcopy(grad_list[i])
-            p = param_list[i]
+    for i, ind in enumerate(opt.state_dict()["state"].keys()):
+        g = copy.deepcopy(grad_list[i])
+        p = param_list[i]
 
-            if g is None:
-                continue
+        if g is None:
+            continue
 
-            if λ != 0:
-                g += (λ * p)
+        if λ != 0:
+            g += (λ * p)
 
-            if μ != 0:
-                momentum = opt.state_dict()["state"][ind]["momentum_buffer"]
-                if momentum is not None:  # After first step
-                    b = μ * momentum + (1 - τ) * g
-                else:
-                    b = g
-
-                if nesterov:
-                    g += (μ * b)
-                else:
-                    g = b
-
-            # Ensure unit-norm direction
-            if unit_norm_direction:
-                direction = g / torch.linalg.vector_norm(g)
+        if μ != 0:
+            momentum = opt.state_dict()["state"][ind]["momentum_buffer"]
+            if momentum is not None:  # After first step
+                b = μ * momentum + (1 - τ) * g
             else:
-                direction = g
+                b = g
 
-            directional_derivative += torch.sum(torch.mul(g, direction))
+            if nesterov:
+                g += (μ * b)
+            else:
+                g = b
+
+        # Ensure unit-norm direction
+        if unit_norm_direction:
+            direction = g / torch.linalg.vector_norm(g)
+        else:
+            direction = g
+
+        directional_derivative += torch.sum(torch.mul(g, direction))
 
     return -directional_derivative
 
@@ -164,54 +160,53 @@ def _compute_rmsprop_direction(
 ) -> torch.Tensor:
     if len(opt.state_dict()["state"].keys()) == 0:
         return -_compute_grad_norm2(grad_list)
-    else:
-        directional_derivative = torch.tensor(0.)
+    directional_derivative = torch.tensor(0.)
 
-        # RMSprop hypers
-        param_group = opt.param_groups
-        assert len(param_group) == 1  # One param group per optimizer
-        param_group = param_group[0]
-        ε = param_group["eps"]
-        λ = param_group["weight_decay"]
-        α = param_group["alpha"]
-        μ = param_group["momentum"]
-        centered = param_group["centered"]
+    # RMSprop hypers
+    param_group = opt.param_groups
+    assert len(param_group) == 1  # One param group per optimizer
+    param_group = param_group[0]
+    ε = param_group["eps"]
+    λ = param_group["weight_decay"]
+    α = param_group["alpha"]
+    μ = param_group["momentum"]
+    centered = param_group["centered"]
 
-        for i, ind in enumerate(opt.state_dict()["state"].keys()):
-            g = copy.deepcopy(grad_list[i])
-            p = param_list[i]
+    for i, ind in enumerate(opt.state_dict()["state"].keys()):
+        g = copy.deepcopy(grad_list[i])
+        p = param_list[i]
 
-            if g is None:
-                continue
+        if g is None:
+            continue
 
-            if λ != 0:
-                g += (λ * p)
+        if λ != 0:
+            g += (λ * p)
 
-            v = (
-                α * opt.state_dict()["state"][ind]["square_avg"] +
-                (1 - α) * (g ** 2)
+        v = (
+            α * opt.state_dict()["state"][ind]["square_avg"] +
+            (1 - α) * (g ** 2)
+        )
+
+        if centered:
+            g_avg = (
+                α * opt.state_dict()["state"][ind]["grad_avg"] +
+                (1 - α) * g
             )
+            v -= (g_avg ** 2)
 
-            if centered:
-                g_avg = (
-                    α * opt.state_dict()["state"][ind]["grad_avg"] +
-                    (1 - α) * g
-                )
-                v -= (g_avg ** 2)
+        if μ > 0:
+            direction = (
+                μ * opt.state_dict()["state"][ind]["momentum_buffer"] +
+                (g / (torch.sqrt(v) + ε))
+            )
+        else:
+            direction = g / (torch.sqrt(v) + ε)
 
-            if μ > 0:
-                direction = (
-                    μ * opt.state_dict()["state"][ind]["momentum_buffer"] +
-                    (g / (torch.sqrt(v) + ε))
-                )
-            else:
-                direction = g / (torch.sqrt(v) + ε)
+        # Ensure unit-norm direction
+        if unit_norm_direction:
+            direction /= torch.linalg.vector_norm(direction)
 
-            # Ensure unit-norm direction
-            if unit_norm_direction:
-                direction /= torch.linalg.vector_norm(direction)
-
-            directional_derivative += torch.sum(torch.mul(g, direction))
+        directional_derivative += torch.sum(torch.mul(g, direction))
 
     return -directional_derivative
 
@@ -219,66 +214,65 @@ def _compute_rmsprop_direction(
 def _compute_adam_direction(
     param_list: Sequence[torch.Tensor],
     grad_list: Sequence[torch.Tensor | None],
-    opt: Union[Adam, AdamW],
+    opt: Adam | AdamW,
     unit_norm_direction: bool=False,
-    approximate_grad: bool=False
+    approximate_grad: bool=False,
 ) -> torch.Tensor:
     if len(opt.state_dict()["state"].keys()) == 0:
         return -_compute_grad_norm2(grad_list)
-    else:
-        directional_derivative = torch.tensor(0.).to(device.device)
+    directional_derivative = torch.tensor(0.).to(device.device)
 
-        # Adam hypers
-        param_group = opt.param_groups
-        assert len(param_group) == 1  # One param group per optimizer
-        param_group = param_group[0]
-        eps = param_group["eps"]
-        β1, β2 = param_group["betas"]
-        ams_grad = param_group["amsgrad"]
-        λ = param_group["weight_decay"]
+    # Adam hypers
+    param_group = opt.param_groups
+    assert len(param_group) == 1  # One param group per optimizer
+    param_group = param_group[0]
+    eps = param_group["eps"]
+    β1, β2 = param_group["betas"]
+    ams_grad = param_group["amsgrad"]
+    λ = param_group["weight_decay"]
 
-        for i, ind in enumerate(opt.state_dict()["state"].keys()):
-            g = copy.deepcopy(grad_list[i])
-            p = param_list[i]
-            step = opt.state_dict()["state"][ind]["step"]
+    for i, ind in enumerate(opt.state_dict()["state"].keys()):
+        g = copy.deepcopy(grad_list[i])
+        p = param_list[i]
+        step = opt.state_dict()["state"][ind]["step"]
 
-            if g is None:
-                continue
+        if g is None:
+            continue
 
-            if λ != 0:
-                g += (λ * p)
+        if λ != 0:
+            g += (λ * p)
 
-            m = (
-                opt.state_dict()["state"][ind]["exp_avg"] * β1 +
-                (1 - β1) * g
-            )
-            mhat = m / (1 - β1 ** step)
+        m = (
+            opt.state_dict()["state"][ind]["exp_avg"] * β1 +
+            (1 - β1) * g
+        )
+        mhat = m / (1 - β1 ** step)
 
-            v = (
-                opt.state_dict()["state"][ind]["exp_avg_sq"] * β2 +
-                (1 - β2) * (g ** 2)
-            )
-            vhat = v / (1 - β2 ** step)
+        v = (
+            opt.state_dict()["state"][ind]["exp_avg_sq"] * β2 +
+            (1 - β2) * (g ** 2)
+        )
+        vhat = v / (1 - β2 ** step)
 
-            if ams_grad:
-                vhat_max = opt.state_dict()["state"][ind]["max_exp_avg_sq"]
-                vhat = torch.maximum(vhat, vhat_max)
+        if ams_grad:
+            vhat_max = opt.state_dict()["state"][ind]["max_exp_avg_sq"]
+            vhat = torch.maximum(vhat, vhat_max)
 
-            direction = mhat / (torch.sqrt(vhat) + eps)
+        direction = mhat / (torch.sqrt(vhat) + eps)
 
-            # Ensure unit-norm direction
-            if unit_norm_direction:
-                direction /= torch.linalg.vector_norm(direction)
+        # Ensure unit-norm direction
+        if unit_norm_direction:
+            direction /= torch.linalg.vector_norm(direction)
 
-            if approximate_grad:
-                # treat p as an approximation of ∇f(x), implements condition:
-                # f(x + αp) ≤ f(x) + αc pᵀp                                 (1)
-                directional_derivative += torch.sum(torch.mul(direction * torch.linalg.vector_norm(g), direction))
+        if approximate_grad:
+            # treat p as an approximation of ∇f(x), implements condition:
+            # f(x + αp) ≤ f(x) + αc pᵀp                                 (1)
+            directional_derivative += torch.sum(torch.mul(direction * torch.linalg.vector_norm(g), direction))
 
-            else:
-                # use ∇f(x) for the linear approximation instead of p
-                # f(x + αp) ≤ f(x) + αc ∇f(x)ᵀp                            (2)
-                directional_derivative += torch.sum(torch.mul(g, direction))
+        else:
+            # use ∇f(x) for the linear approximation instead of p
+            # f(x + αp) ≤ f(x) + αc ∇f(x)ᵀp                            (2)
+            directional_derivative += torch.sum(torch.mul(g, direction))
 
     return -directional_derivative
 

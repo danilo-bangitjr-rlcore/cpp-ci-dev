@@ -21,5 +21,5 @@ class BasePerTagImputer:
 
 
 per_tag_imputer_group = Group[
-    [], BasePerTagImputer
+    [], BasePerTagImputer,
 ]()

@@ -1,12 +1,10 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal
 
 import numpy as np
 import pandas as pd
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from pydantic import Field
+from torch import nn, optim
 
 import corerl.utils.dict as dict_u
 from corerl.configs.config import config, list_
@@ -22,7 +20,7 @@ from corerl.utils.list import find_instance
 
 @dataclass
 class MaskedAETemporalState:
-    trace_ts: TraceTemporalState = Field(default_factory=TraceTemporalState)
+    trace_ts: TraceTemporalState = field(default_factory=TraceTemporalState)
     last_trace: torch.Tensor | None = None
     num_outside_thresh: int = 0
 
@@ -162,13 +160,12 @@ class MaskedAutoencoder(BaseImputer):
         """
         ae_predictions = self.forward(inputs)
         raw_row = inputs[:self._num_obs]
-        ae_impute = torch.where(
+        return torch.where(
             torch.isnan(raw_row),
             ae_predictions,
             raw_row,
         )
 
-        return ae_impute
 
 
     def forward(self, inputs: torch.Tensor) -> torch.Tensor:
@@ -228,7 +225,7 @@ def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
         norm_cfg = find_instance(
             NormalizerConfig,
             (tag.state_constructor or []) +\
-            (tag.reward_constructor)
+            (tag.reward_constructor),
         )
 
         if norm_cfg is not None:
@@ -239,7 +236,7 @@ def _find_norm_cfgs(tag_cfgs: list[TagConfig]):
 
 def _row_to_tensor(row: pd.DataFrame) -> torch.Tensor:
     return torch.tensor(
-        row.iloc[0].to_numpy(np.float32)
+        row.iloc[0].to_numpy(np.float32),
     )
 
 class CircularBuffer:

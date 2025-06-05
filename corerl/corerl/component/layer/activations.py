@@ -2,7 +2,7 @@ from collections.abc import Callable
 from typing import Any, NotRequired, TypedDict
 
 import torch
-import torch.nn as nn
+from torch import nn
 
 
 def _fuzzy_indicator(
@@ -127,7 +127,7 @@ class ActivationConfig(TypedDict):
 
 def init_activation(cfg: ActivationConfig) -> nn.Module:
     name = cfg["name"]
-    args = cfg.get("args", tuple())
+    args = cfg.get("args", ())
     kwargs = cfg.get("kwargs", {})
 
     activations = {

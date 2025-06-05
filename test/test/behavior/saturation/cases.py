@@ -4,14 +4,14 @@ from pathlib import Path
 
 from sqlalchemy import Engine
 
-import test.behavior.utils as utils
-from test.behavior.bsuite import BSuiteTestCase
+from test.behavior import utils
+from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 
 
 class SaturationTest(BSuiteTestCase):
     name = 'saturation'
     config = 'test/behavior/saturation/config.yaml'
-
+    category = {BehaviourCategory.PERFORMANCE}
     lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
@@ -19,7 +19,7 @@ class SaturationTest(BSuiteTestCase):
 class GoalSaturationTest(BSuiteTestCase):
     name = 'saturation goal'
     config = 'test/behavior/saturation/saturation_goals.yaml'
-
+    category = {BehaviourCategory.PERFORMANCE}
     lower_bounds = { 'reward': -0.5}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
@@ -27,61 +27,65 @@ class GoalSaturationTest(BSuiteTestCase):
 class DelayedSaturationTest(BSuiteTestCase):
     name = 'delayed saturation'
     config = 'test/behavior/saturation/direct_delayed.yaml'
-
+    category = {BehaviourCategory.PERFORMANCE}
     lower_bounds = { 'reward': -0.19 }
     upper_warns = { 'avg_critic_loss': 0.002, 'actor_loss': -1.55 }
 
 class MultiActionSaturationTest(BSuiteTestCase):
     name = 'multi action saturation'
     config = 'test/behavior/saturation/multi_action_config.yaml'
-
+    category = {BehaviourCategory.PERFORMANCE}
     lower_bounds = { 'reward': -0.1}
 
 class ExpandingBoundsSaturationTest(BSuiteTestCase):
     name = 'expanding bounds saturation'
     config = 'test/behavior/saturation/expanding_bounds.yaml'
+    category = {BehaviourCategory.NONSTATIONARY}
     lower_bounds = { 'reward': -0.085}
 
 class SlowExpandingBoundsSaturationTest(BSuiteTestCase):
     name = 'slow expanding bounds saturation'
     config = 'test/behavior/saturation/slow_expanding_bounds.yaml'
+    category = {BehaviourCategory.NONSTATIONARY}
     lower_bounds = { 'reward': -0.085}
 
 class SetpointChangeSaturationTest(BSuiteTestCase):
     name = 'setpoint change saturation'
     config = 'test/behavior/saturation/setpoint_change.yaml'
+    category = {BehaviourCategory.NONSTATIONARY}
     lower_bounds = { 'reward': -0.085}
 
 class DeltaChangeSaturationTest(BSuiteTestCase):
     name = 'delta change saturation'
     config = 'test/behavior/saturation/changing_delta.yaml'
+    category = {BehaviourCategory.NONSTATIONARY}
     lower_bounds = { 'reward': -0.085}
 
 class MCARSaturationEasyTest(BSuiteTestCase):
     name = 'easy missing at random saturation'
     config = 'test/behavior/saturation/mcar_saturation_easy.yaml'
-
+    category = {BehaviourCategory.ROBUSTNESS}
     lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
 class MCARSaturationMediumTest(BSuiteTestCase):
     name = 'medium missing at random saturation'
     config = 'test/behavior/saturation/mcar_saturation_medium.yaml'
-
+    category = {BehaviourCategory.ROBUSTNESS}
     lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
 class MCARSaturationHardTest(BSuiteTestCase):
     name = 'hard missing at random saturation'
     config = 'test/behavior/saturation/mcar_saturation_hard.yaml'
-
+    category = {BehaviourCategory.ROBUSTNESS}
     lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
 class StickyMCARSaturationTest(BSuiteTestCase):
     name = 'sticky missing at random saturation'
     config = 'test/behavior/saturation/sticky_mcar_saturation.yaml'
-
+    category = {BehaviourCategory.ROBUSTNESS}
     lower_bounds = { 'reward': -0.085}
     upper_warns = { 'avg_critic_loss': 0.003, 'actor_loss': -1.55 }
 
@@ -96,7 +100,7 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
                   'test/behavior/saturation/multi_action_greedification_critic_pretrain.yaml']
 
     upper_bounds = { 'greed_dist_online': 0.1}
-
+    category = {BehaviourCategory.GREEDY}
     def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
         """
         First Run: Pretrain actor on setpoints of [0.2, 0.8, 0.2]
@@ -121,7 +125,8 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.setup_cfgs[0],
-        ] + parts)
+            *parts,
+        ], check=False)
         proc.check_returncode()
 
         actor_checkpoints = list(checkpoint_path.glob('*'))
@@ -136,7 +141,8 @@ class MultiActionSaturationGreedificationTest(BSuiteTestCase):
             'python', 'main.py',
             '--base', '.',
             '--config-name', self.setup_cfgs[1],
-        ] + parts)
+            *parts,
+        ], check=False)
         proc.check_returncode()
 
         critic_checkpoints = list(checkpoint_path.glob('*'))
@@ -172,7 +178,7 @@ class MultiActionSaturationGoodOfflineDataTest(BSuiteTestCase):
     """
     name = 'multi action saturation good offline data'
     config = 'test/behavior/saturation/multi_action_good_offline_data.yaml'
-
+    category = {BehaviourCategory.PERFORMANCE}
     lower_bounds = { 'reward': -0.1}
 
     def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):
@@ -206,7 +212,7 @@ class MultiActionSaturationBadOfflineDataTest(BSuiteTestCase):
     """
     name = 'multi action saturation bad offline data'
     config = 'test/behavior/saturation/multi_action_bad_offline_data.yaml'
-
+    category = {BehaviourCategory.NONSTATIONARY}
     lower_bounds = { 'reward': -0.1}
 
     def setup(self, engine: Engine, infra_overrides: dict[str, object], feature_overrides: dict[str, bool]):

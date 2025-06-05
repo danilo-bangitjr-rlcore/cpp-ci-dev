@@ -14,14 +14,14 @@ from coreio.utils.zmq_communication import ZMQ_Communication
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
+    datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
 
 logging.getLogger("asyncua").setLevel(logging.WARNING)
 logging.getLogger("asyncuagds").setLevel(logging.WARNING)
 
-@load_config(MainConfig, base='config/')
+@load_config(MainConfig)
 async def coreio_loop(cfg: MainConfig):
     opc_connections: dict[str, OPC_Connection] = {}
     for opc_conn_cfg in cfg.coreio.opc_connections:

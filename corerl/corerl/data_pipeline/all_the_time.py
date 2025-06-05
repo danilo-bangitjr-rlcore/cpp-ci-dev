@@ -132,7 +132,7 @@ class AllTheTimeTC:
                     .is_instance(pd.Timestamp)
                     .map(lambda x: x.to_pydatetime())
                     .unwrap()
-                )
+                ),
             )
             steps.append(step)
         return pf, steps
@@ -140,7 +140,7 @@ class AllTheTimeTC:
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         step_info = pf.temporal_state.get(
             StageCode.TC,
-            _reset_step_info(self.min_n_step, self.max_n_step)
+            _reset_step_info(self.min_n_step, self.max_n_step),
         )
 
         assert isinstance(step_info, dict)

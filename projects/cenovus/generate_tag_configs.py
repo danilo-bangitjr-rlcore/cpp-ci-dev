@@ -23,7 +23,7 @@ def build_tag_config(tag: TagStats):
       min: {tag.min}
       max: {tag.max}
   action_constructor:
-    - name: 'null'
+    - name: 'nuke'
 """
 
 

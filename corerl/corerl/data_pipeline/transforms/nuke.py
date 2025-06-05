@@ -8,12 +8,12 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
 @config()
-class NullConfig(BaseTransformConfig):
-    name: Literal['null'] = 'null'
+class NukeConfig(BaseTransformConfig):
+    name: Literal['nuke'] = 'nuke'
 
 
-class Null:
-    def __init__(self, cfg: NullConfig):
+class Nuke:
+    def __init__(self, cfg: NukeConfig):
         self._cfg = cfg
 
     def __call__(self, carry: TransformCarry, ts: object | None):
@@ -24,4 +24,4 @@ class Null:
         pass
 
 
-transform_group.dispatcher(Null)
+transform_group.dispatcher(Nuke)

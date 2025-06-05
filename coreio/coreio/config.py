@@ -2,7 +2,7 @@ from corerl.configs.config import MISSING, config, list_
 
 
 @config()
-class OPCConnectionConfig():
+class OPCConnectionConfig:
     connection_id: str = MISSING
     opc_conn_url: str = MISSING
     client_cert_path: str | None = None
@@ -11,6 +11,6 @@ class OPCConnectionConfig():
     application_uri: str | None = None
 
 @config()
-class CoreIOConfig():
+class CoreIOConfig:
     coreio_origin: str = "tcp://localhost:5557"
     opc_connections: list[OPCConnectionConfig] = list_()

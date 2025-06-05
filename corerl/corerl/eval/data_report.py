@@ -49,8 +49,7 @@ class ReportConfig:
 
 
 def get_tags(data: list[pd.DataFrame]) -> list[str]:
-    tags = list(data[0].columns)
-    return tags
+    return list(data[0].columns)
 
 
 def make_stat_table(
@@ -142,7 +141,7 @@ def make_distribution_plots(
 
 def get_tag_pairs(
         cfg: ReportConfig,
-        data: list[pd.DataFrame]
+        data: list[pd.DataFrame],
     ) -> list[tuple[str, str]]:
     tag_info = cfg.cross_corr_tags
     if tag_info is None: # all pairs of tags
@@ -159,8 +158,7 @@ def get_tag_pairs(
         pairs = tag_info
 
     pairs = [tuple(pair) for pair in pairs]
-    pairs = cast(list[tuple[str, str]], pairs)
-    return pairs
+    return cast(list[tuple[str, str]], pairs)
 
 
 def make_cross_correlation_table(
@@ -238,7 +236,7 @@ def cross_correlation(
         df: pd.DataFrame,
         tag_1: str,
         tag_2: str,
-        max_lag: int
+        max_lag: int,
     ) -> tuple[float, float, np.ndarray]:
     """
     Computes cross correlation between tag_1 and tag_2, where the lag may vary between [-max_lag, +max_lag].

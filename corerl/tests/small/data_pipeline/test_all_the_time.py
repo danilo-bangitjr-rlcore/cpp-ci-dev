@@ -42,7 +42,7 @@ def make_pf(start_state: int, end_state: int, ts: dict | None = None) -> Pipelin
     pf = PipelineFrame(
         df,
         data_mode=DataMode.OFFLINE,
-        temporal_state=ts
+        temporal_state=ts,
     )
 
     # stub out action constructor
@@ -62,8 +62,7 @@ def make_tc(max_n_step: int, min_n_step: int = 1) -> AllTheTimeTC:
         normalize_return=False,
     )
 
-    tc = AllTheTimeTC(cfg)
-    return tc
+    return AllTheTimeTC(cfg)
 
 
 def test_all_the_time_basic():

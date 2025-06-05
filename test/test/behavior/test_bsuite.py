@@ -2,7 +2,7 @@ import filelock
 import pytest
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
 
-from test.behavior.bsuite import BSuiteTestCase
+from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
@@ -88,11 +88,18 @@ def _zero_one_matrix(flags: list[str]):
     """
     matrix: list[dict[str, bool]] = []
     for flag in flags:
-        vals = { f: False for f in flags }
+        vals = dict.fromkeys(flags, False)
         vals[flag] = True
         matrix.append(vals)
 
     return matrix
+
+
+def get_tests_by_category(category: BehaviourCategory) -> list[BSuiteTestCase]:
+    return [
+        test_case for test_case in TEST_CASES
+        if test_case.category == category
+    ]
 
 
 @pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
@@ -114,11 +121,7 @@ def test_bsuite(
     if feature_postfix:
         feature_postfix = '_' + feature_postfix
 
-    # examples:
-    # mountain_car_base  (no features enabled)
-    # mountain_car_delta_actions_zone_violations  (two features enabled)
     schema = test_case.name.lower().replace(' ', '_') + feature_postfix
-
 
     PORT = 22222
     db_name = 'bsuite'
@@ -130,10 +133,10 @@ def test_bsuite(
         port=PORT,
     )
     engine = get_sql_engine(cfg, db_name)
-    metrics_table = test_case.execute_test(engine, db_name, schema, feature_flags)
+    metrics_table, runtime_info = test_case.execute_test(engine, db_name, schema, feature_flags)
 
     try:
-        test_case.evaluate_outcomes(engine, metrics_table, feature_flags)
+        test_case.evaluate_outcomes(engine, metrics_table, feature_flags, runtime_info)
     except AssertionError as e:
         if test_case.name not in KNOWN_FAILURES:
             raise e

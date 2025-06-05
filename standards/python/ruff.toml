@@ -1,0 +1,61 @@
+line-length = 120
+
+[lint]
+select = [
+    'F', # flake8
+    'E', # errors
+    'W', # warnings
+    'B', # bugbear
+    'I', # isort
+    'COM', # flake8-commas
+    'C4', # flake8-comprehensions
+    'PIE', # flake8-pie
+    'PYI', # flake8-pyi
+    'RET', # flake8-return
+    'PERF', # flake8-perf
+    'PL', # pylint
+    'UP', # pyupgrade
+    'FURB', # refurb
+    'RUF', # ruff
+]
+ignore = [
+    'E402',
+
+    # multiple statements on one line. Incompatible with:
+    # if cond: break
+    'E701',
+
+    # syntax error in forward declaration - incompatible with jaxtyping
+    'F722',
+
+    # non-ascii character
+    'PLC2401',
+
+    # too many returns
+    'PLR0911',
+
+    # too many branches
+    'PLR0912',
+
+    # too many arguments
+    'PLR0913',
+
+    # too many statements
+    'PLR0915',
+
+    # magic values
+    'PLR2004',
+
+    # loop variable overwritten
+    'PLW2901',
+
+    # mutable class variables
+    'RUF012',
+
+    # greek letters
+    'RUF002',
+    'RUF003',
+]
+
+[format]
+quote-style = "double"

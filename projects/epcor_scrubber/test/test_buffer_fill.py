@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 def test_buffer_load():
     cfg = direct_load_config(
-        MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_local.yaml"
+        MainConfig, base="projects/epcor_scrubber/configs/", config_name="epcor_scrubber_local.yaml",
     )
     assert isinstance(cfg, MainConfig)
 
@@ -47,7 +47,7 @@ def test_buffer_load():
     chunks = split_into_chunks(
         chunk_start,
         chunk_end,
-        width=cfg.interaction.obs_period * cfg.interaction.historical_batch_size
+        width=cfg.interaction.obs_period * cfg.interaction.historical_batch_size,
     )
 
     start_time, end_time = next(chunks)
@@ -58,7 +58,7 @@ def test_buffer_load():
         start_time=start_time,
         end_time=end_time,
         bucket_width=cfg.interaction.obs_period,
-        tag_aggregations=tag_aggs
+        tag_aggregations=tag_aggs,
     )
     logger.info(f"Loading chunk data from {chunk_data.index[0]} to {chunk_data.index[-1]}")
 

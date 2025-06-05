@@ -41,7 +41,7 @@ def _eval_test_case(test_case: BSuiteTestCase, seed: int):
 
     test_case._overrides |= { 'experiment.seed': seed, 'experiment.num_threads': 1 }
 
-    metrics_table = test_case.execute_test(engine, db_name, 'public', features={})
+    metrics_table, runtime_info = test_case.execute_test(engine, db_name, 'public', features={})
     metric_values: dict[str, float] = {}
     for metric in all_metrics:
         value = test_case.summarize_over_time(metric, metrics_table)
@@ -83,7 +83,7 @@ def _test_over_seeds(test_case: BSuiteTestCase, pool: Pool, seeds: int):
 def main():
     pool = Pool(16)
 
-    subprocess.run(['uv', 'sync'])
+    subprocess.run(['uv', 'sync'], check=False)
 
     all_results: list[dict[str, TestResults]] = []
     for test_case in TEST_CASES:

@@ -25,7 +25,7 @@ def get_offline_data_writer(engine: Engine, infra_overrides: dict[str, object]) 
         ip=ip,
         port=port,
         db_name=str(infra_overrides['infra.db.db_name']),
-        table_schema=str(infra_overrides['infra.db.schema'])
+        table_schema=str(infra_overrides['infra.db.schema']),
     )
     return DataWriter(db_cfg)
 
@@ -34,8 +34,7 @@ def read_offline_data(path: Path) -> pd.DataFrame:
     df = df.rename(columns={df.columns[0]: "Timestamp"})
     df['Timestamp'] = pd.to_datetime(df['Timestamp'], utc=True)
     df = df.set_index("Timestamp")
-    df = df.dropna()
-    return df
+    return df.dropna()
 
 def column_to_sql_tups(column: pd.Series) -> list[tuple[Any, ...]]:
     """

@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from typing import Any, Literal, cast
+from typing import Annotated, Any, Literal, cast
 
 from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
-from typing_extensions import Annotated
 
 from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
@@ -18,7 +17,7 @@ from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.inverse import InverseConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transforms.null import NullConfig
+from corerl.data_pipeline.transforms.nuke import NukeConfig
 from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
@@ -58,7 +57,7 @@ TransformConfig = Annotated[
     | InverseConfig
     | LessThanConfig
     | NormalizerConfig
-    | NullConfig
+    | NukeConfig
     | PowerConfig
     | BinaryConfig
     | ScaleConfig

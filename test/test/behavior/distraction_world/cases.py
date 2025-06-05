@@ -1,4 +1,4 @@
-from test.behavior.bsuite import BSuiteTestCase
+from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 
 
 class DistractionWorldTest(BSuiteTestCase):
@@ -6,3 +6,4 @@ class DistractionWorldTest(BSuiteTestCase):
     config = 'test/behavior/distraction_world/distraction_world.yaml'
 
     lower_bounds = { 'reward': -0.1 }
+    category = {BehaviourCategory.REPRESENTATION}

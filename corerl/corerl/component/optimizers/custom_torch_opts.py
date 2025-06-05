@@ -1,5 +1,6 @@
 import math
-from typing import Any, Callable, overload
+from collections.abc import Callable
+from typing import Any, overload
 
 import torch
 from torch.optim.optimizer import Optimizer, ParamsT
@@ -117,5 +118,4 @@ class ArmijoAdam(Optimizer):
     def _dispatch_sqrt(self, x: float | torch.Tensor) -> float | torch.Tensor:
         if isinstance(x, torch.Tensor):
             return x.sqrt()
-        else:
-            return math.sqrt(x)
+        return math.sqrt(x)
