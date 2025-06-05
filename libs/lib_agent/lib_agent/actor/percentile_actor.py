@@ -155,7 +155,8 @@ class PercentileActor:
     @jax_u.method_jit
     def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
         dist = self._get_dist(actor_params, state)
-        return dist.sample(seed=rng)
+        sampled = dist.sample(seed=rng)
+        return jnp.clip(sampled, state.a_lo, state.a_hi)
 
     def _get_dist(self, actor_params: chex.ArrayTree, state: State):
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
@@ -210,7 +211,7 @@ class PercentileActor:
         rng: chex.PRNGKey,
     ):
 
-        sample_state = states[0]
+        sample_state = states.features[0]
         actor_out: ActorOutputs = self.actor.apply(params=pa_state.actor.params, x=sample_state)
 
         for i in range(actor_out.mu.shape[0]):
@@ -282,6 +283,7 @@ class PercentileActor:
 
         rng, u_rng = jax.random.split(rng, 2)
         uniform_actions = jax.random.uniform(u_rng, (uniform_samples, self.action_dim))
+        uniform_actions = jnp.clip(uniform_actions, state.a_lo, state.a_hi)
 
         proposal_samples = self._cfg.num_samples - uniform_samples
         if proposal_samples == 0:

@@ -7,6 +7,8 @@ import numpy as np
 @dataclass
 class Step:
     state: np.ndarray
+    a_lo: np.ndarray
+    a_hi: np.ndarray
     action: np.ndarray
     reward: float | None
     gamma: float
@@ -15,10 +17,14 @@ class Step:
 @dataclass
 class Transition:
     state: np.ndarray
+    a_lo: np.ndarray
+    a_hi: np.ndarray
     action: np.ndarray
     reward: float
     gamma: float
     next_state: np.ndarray
+    next_a_lo: np.ndarray
+    next_a_hi: np.ndarray
 
     @property
     def state_dim(self):
@@ -39,6 +45,8 @@ class TransitionCreator:
     def __call__(
         self,
         state: np.ndarray,
+        a_lo: np.ndarray,
+        a_hi: np.ndarray,
         action: np.ndarray,
         reward: float | None,
         done: bool,
@@ -46,6 +54,8 @@ class TransitionCreator:
         gamma = float(done) * self._gamma
         self._buffer.append(Step(
             state,
+            a_lo,
+            a_hi,
             action,
             reward,
             gamma,
@@ -89,8 +99,12 @@ def _build_n_step_transitions(buffer: deque[Step], n: int):
 
     return Transition(
         state=first.state,
+        a_lo=first.a_lo,
+        a_hi=first.a_hi,
         action=first.action,
         reward=ret,
         gamma=gamma,
         next_state=last.state,
+        next_a_lo=last.a_lo,
+        next_a_hi=last.a_hi,
     )
