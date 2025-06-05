@@ -95,17 +95,8 @@ class EnsembleReplayBuffer[T: NamedTuple]:
             n_random = self.batch_size
             recent_indices = np.array([])
 
-            # if n_most_recent is set, include the most recent transitions
             if self.n_most_recent > 0:
-                # get the most recent indices that are valid for this ensemble member
-                if self._storage.size() >= self.max_size:
-                    # buffer is full, recent indices wrap around
-                    ptr = self._storage.last_idx()
-                    recent_range = np.arange(ptr, ptr - self.n_most_recent, -1) % self.max_size
-                else:
-                    # buffer is not full, recent indices are at the end
-                    start_idx = max(0, self._storage.size() - self.n_most_recent)
-                    recent_range = np.arange(start_idx, self._storage.size())
+                recent_range = self._storage.last_idxs(self.n_most_recent)
 
                 # filter for valid indices for this ensemble member
                 mask = self.ensemble_masks[m, recent_range]

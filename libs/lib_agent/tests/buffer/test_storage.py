@@ -76,3 +76,33 @@ def test_storage_get_ensemble():
     assert jnp.allclose(batch.c, jnp.array([[3.1], [4.1]]))
 
     assert isinstance(batch, Step)
+
+
+def test_storage_last_idxs_partial():
+    class Step(NamedTuple):
+        a: jax.Array
+        b: jax.Array
+        c: jax.Array
+
+    storage = ReplayStorage[Step](10)
+    for i in range(6):
+        storage.add(Step(i * jnp.ones(10), jnp.array(i), jnp.array(i + 0.1)))
+
+    last_idxs = storage.last_idxs(4)
+    assert len(last_idxs) == 4
+    assert np.allclose(last_idxs, [2, 3, 4, 5])
+
+
+def test_storage_last_idxs_full():
+    class Step(NamedTuple):
+        a: jax.Array
+        b: jax.Array
+        c: jax.Array
+
+    storage = ReplayStorage[Step](10)
+    for i in range(20):
+        storage.add(Step(i * jnp.ones(10), jnp.array(i), jnp.array(i + 0.1)))
+
+    last_idxs = storage.last_idxs(4)
+    assert len(last_idxs) == 4
+    assert np.allclose(last_idxs, [6, 7, 8, 9])
