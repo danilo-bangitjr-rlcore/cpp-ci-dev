@@ -10,7 +10,7 @@ import optax
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import VectorizedTransition
+from lib_agent.buffer.buffer import State
 
 
 class ActionSampler(Protocol):
@@ -25,6 +25,19 @@ class CriticState(NamedTuple):
 class CriticOutputs(NamedTuple):
     q: jax.Array
     h: jax.Array
+
+
+class CriticBatch(Protocol):
+    @property
+    def state(self) -> State: ...
+    @property
+    def action(self) -> jax.Array: ...
+    @property
+    def reward(self) -> jax.Array: ...
+    @property
+    def next_state(self) -> State: ...
+    @property
+    def gamma(self) -> jax.Array: ...
 
 
 @dataclass
@@ -91,7 +104,7 @@ class QRCCritic:
         # ensemble mode
         if x.ndim == 3 and a.ndim == 3:
             chex.assert_equal_shape_prefix((x, a), 2)
-            ens_forward = jax.vmap(self._forward)
+            ens_forward = jax_u.vmap(self._forward)
             return ens_forward(params, x, a)
 
         # batch mode
@@ -101,7 +114,7 @@ class QRCCritic:
         return self._net.apply(params, state, action).q
 
 
-    def update(self, critic_state: Any, transitions: VectorizedTransition, next_actions: jax.Array):
+    def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
         new_state, metrics = self._ensemble_update(
             critic_state,
             transitions,
@@ -120,7 +133,7 @@ class QRCCritic:
     def _ensemble_update(
         self,
         state: CriticState,
-        transitions: VectorizedTransition,
+        transitions: CriticBatch,
         next_actions: jax.Array,
     ):
         """
@@ -162,7 +175,7 @@ class QRCCritic:
     def _ensemble_loss(
         self,
         params: chex.ArrayTree,
-        transition: VectorizedTransition,
+        transition: CriticBatch,
         next_actions: jax.Array,
     ):
         losses, metrics = jax_u.vmap(self._batch_loss)(
@@ -182,7 +195,7 @@ class QRCCritic:
     def _batch_loss(
         self,
         params: Any,
-        transition: VectorizedTransition,
+        transition: CriticBatch,
         next_actions: jax.Array,
     ):
         losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
@@ -196,7 +209,7 @@ class QRCCritic:
     def _loss(
         self,
         params: chex.ArrayTree,
-        transition: VectorizedTransition,
+        transition: CriticBatch,
         next_actions: jax.Array,
     ):
         state = transition.state
