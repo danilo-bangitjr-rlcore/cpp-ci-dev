@@ -228,6 +228,14 @@ class TransitionBatch:
         return jnp.asarray(self.prior.action_hi)
 
     @property
+    def dp(self):
+        return jnp.asarray(self.prior.dp)
+
+    @property
+    def last_action(self):
+        return jnp.asarray(self.prior.action)
+
+    @property
     def action(self):
         return jnp.asarray(self.post.action)
 
@@ -250,6 +258,10 @@ class TransitionBatch:
     @property
     def next_action_hi(self):
         return jnp.asarray(self.post.action_hi)
+
+    @property
+    def next_dp(self):
+        return jnp.asarray(self.post.dp)
 
 
     def __eq__(self, other: object):
@@ -289,6 +301,8 @@ def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
             features=jnp.stack([t.state for t in tb]),
             a_lo=jnp.stack([t.action_lo for t in tb]),
             a_hi=jnp.stack([t.action_hi for t in tb]),
+            dp=jnp.stack([t.dp for t in tb]),
+            last_a=jnp.stack([t.last_action for t in tb]),
         ),
         action=jnp.stack([t.action for t in tb]),
         reward=jnp.stack([t.reward for t in tb]),
@@ -296,6 +310,8 @@ def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
             features=jnp.stack([t.next_state for t in tb]),
             a_lo=jnp.stack([t.next_action_lo for t in tb]),
             a_hi=jnp.stack([t.next_action_hi for t in tb]),
+            dp=jnp.stack([t.next_dp for t in tb]),
+            last_a=jnp.stack([t.action for t in tb]),
         ),
         gamma=jnp.stack([t.gamma for t in tb]),
     )
