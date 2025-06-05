@@ -17,6 +17,12 @@ class Transition(Protocol):
     def a_hi(self) -> np.ndarray: ...
 
     @property
+    def dp(self) -> bool: ...
+
+    @property
+    def last_a(self) -> np.ndarray: ...
+
+    @property
     def action(self) -> np.ndarray: ...
 
     @property
@@ -35,6 +41,9 @@ class Transition(Protocol):
     def next_a_hi(self) -> np.ndarray: ...
 
     @property
+    def next_dp(self) -> bool: ...
+
+    @property
     def state_dim(self) -> int: ...
 
     @property
@@ -44,6 +53,8 @@ class State(NamedTuple):
     features: jax.Array
     a_lo : jax.Array
     a_hi : jax.Array
+    dp: jax.Array
+    last_a: jax.Array
 
 class EnsembleReplayBuffer[T: NamedTuple]:
     def __init__(
