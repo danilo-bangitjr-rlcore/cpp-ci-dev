@@ -121,7 +121,7 @@ class GreedyAC:
         self.policy_buffer.add(t)
 
     def get_actions(self, state: State):
-        return self._actor.get_actions(self.agent_state.actor.actor.params, state)
+        return self._actor.safe_get_actions(self.agent_state.actor.actor.params, state)
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         return self._critic.forward(

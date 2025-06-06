@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, NamedTuple, Protocol
@@ -104,6 +105,7 @@ class PAConfig:
     uniform_weight: float
     actor_lr: float
     proposal_lr: float
+    max_action_stddev: float = 1.0
 
 class ActorOutputs(NamedTuple):
     mu: jax.Array
@@ -168,6 +170,22 @@ class PercentileActor:
         return PAState(actor_state, proposal_state)
 
     # -------------------------------- get actions ------------------------------- #
+
+    def safe_get_actions(self, actor_params: chex.ArrayTree, state: State):
+        self.rng, sample_rng = jax.random.split(self.rng, 2)
+        return self.safe_get_actions_rng(actor_params, sample_rng, state)
+
+    def safe_get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey,  state: State):
+        dist = self._get_dist(actor_params, state)
+        params = dist.get_params()
+        mean, std = params['mean'], params['std']
+
+        sampled = dist.sample(seed=rng)
+        clipped_to_bounds = jnp.clip(sampled, state.a_lo, state.a_hi)
+        return jnp.clip(
+            clipped_to_bounds,
+            mean-std*self._cfg.max_action_stddev,
+            mean+std*self._cfg.max_action_stddev)
 
     def get_actions(self, actor_params: chex.ArrayTree, state: State):
         self.rng, sample_rng = jax.random.split(self.rng, 2)
