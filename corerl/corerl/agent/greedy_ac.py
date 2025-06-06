@@ -406,16 +406,6 @@ class GreedyAC(BaseAgent):
                 value=len(t),
             )
 
-    def load_buffer(self, pr: PipelineReturn) -> None:
-        if pr.transitions is None:
-            return
-
-        self._policy_manager.buffer.reset()
-        self.critic_buffer.reset()
-        self._policy_manager.buffer.feed(pr.transitions, pr.data_mode)
-        self.critic_buffer.feed(pr.transitions, pr.data_mode)
-        self._policy_manager.buffer.app_state = self._app_state
-        self.critic_buffer.app_state = self._app_state
 
     # --------------------------- critic updating-------------------------- #
 

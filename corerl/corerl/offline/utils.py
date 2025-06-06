@@ -98,7 +98,7 @@ class OfflineTraining:
 
         mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent)
 
-        agent.load_buffer(self.pipeline_out)
+        agent.update_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
             log.info(f"Agent {buffer_name} replay buffer size(s)", size)
 
