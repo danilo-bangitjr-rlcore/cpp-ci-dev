@@ -359,9 +359,9 @@ class PercentileActor:
 
         q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
         q_vals = q_over_proposal(value_estimator_params, state.features, proposal_actions)
-        q_vals = q_vals + jax.random.normal(
+        q_vals = q_vals + self._cfg.sort_noise * jax.random.normal(
             rng, shape=q_vals.shape, dtype=q_vals.dtype,
-        ) * self._cfg.sort_noise
+        )
         chex.assert_shape(q_vals, (self._cfg.num_samples, ))
 
         actor_k = int(self._cfg.actor_percentile * self._cfg.num_samples)
