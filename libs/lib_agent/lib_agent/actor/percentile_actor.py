@@ -43,6 +43,8 @@ class SquashedGaussian:
                 ndims=1,
             ),
         )
+        self.mean = mean
+        self.std = std
 
     def sample(self, seed: chex.PRNGKey):
         return self.dist.sample(seed=seed)
@@ -52,6 +54,12 @@ class SquashedGaussian:
 
     def prob(self, action: jax.Array):
         return self.dist.prob(action)
+
+    def get_params(self):
+        return {
+            'mean': self.mean,
+            'std': self.std,
+        }
 
 class UpdateActions(NamedTuple):
     actor: jax.Array
