@@ -492,8 +492,11 @@ class GreedyAC(BaseAgent):
 
         path.mkdir(parents=True, exist_ok=True)
 
-        actor_path = path / "actor"
-        self._policy_manager.save(actor_path)
+        with open(path / 'actor.pkl', "wb") as f:
+            pkl.dump(self._actor_state, f)
+
+        with open(path / "actor_buffer.pkl", "wb") as f:
+            pkl.dump(self._actor_buffer, f)
 
         with open(path / 'critic.pkl', "wb") as f:
             pkl.dump(self._critic_state, f)
@@ -501,11 +504,18 @@ class GreedyAC(BaseAgent):
         with open(path / "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
+
     def load(self, path: Path) -> None:
         self._app_state.event_bus.emit_event(EventType.agent_load)
 
-        actor_path = path / "actor"
-        self._policy_manager.load(actor_path)
+        actor_path = path / "actor.pkl"
+        with open(actor_path, "rb") as f:
+            self._actor_state = pkl.load(f)
+
+        actor_buffer_path = path / "actor_buffer.pkl"
+        with open(actor_buffer_path, "rb") as f:
+            self._actor_buffer = pkl.load(f)
+        self._actor_buffer.app_state = self._app_state
 
         critic_path = path / "critic.pkl"
         with open(critic_path, "rb") as f:
@@ -519,5 +529,5 @@ class GreedyAC(BaseAgent):
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {
             "critic": self.critic_buffer.size,
-            "policy": self._policy_manager.buffer.size,
+            "policy": self._actor_buffer.size,
         }

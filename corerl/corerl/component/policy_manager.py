@@ -347,24 +347,7 @@ class GACPolicyManager:
         if pr.transitions is None:
             return
 
-        recent_idxs = self.buffer.feed(pr.transitions, pr.data_mode)
-        # ---------------------------------- ingress loss metic --------------------------------- #
-        if self.cfg.ingress_loss and len(recent_idxs) > 0:
-            recent_batch = self.buffer.get_batch(recent_idxs)
-            recent_actions = recent_batch.post.action
 
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_actor_loss_{pr.data_mode.name}",
-                value=self._policy_err(self.actor, recent_batch.prior.state, recent_actions),
-            )
-
-            if not self.is_uniform_sampler:
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"ingress_sampler_loss_{pr.data_mode.name}",
-                    value=self._policy_err(self.sampler, recent_batch.prior.state, recent_actions),
-                )
 
     def save(self, path: Path) -> None:
         path.mkdir(parents=True, exist_ok=True)
