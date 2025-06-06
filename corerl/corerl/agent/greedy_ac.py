@@ -423,31 +423,11 @@ class GreedyAC(BaseAgent):
         self,
         batches: list[TransitionBatch],
     ):
-        next_actions: list[torch.Tensor] = []
-
-        for batch in batches:
-            with torch.no_grad():
-                cur_action = batch.post.action
-                ar = self._policy_manager.get_actor_actions(
-                    self.cfg.bootstrap_action_samples,
-                    batch.post.state,
-                    batch.post.action_lo,
-                    batch.post.action_hi,
-                    WrappedCritic(self.critic, self._critic_state),
-                )
-                # add a singleton dimension over action_dim to forcefully broadcast
-                # over the action_dim
-                dp_mask = batch.post.dp.unsqueeze(2)
-                # add a singleton dimension over n_samples to forcefully broadcast
-                # across action samples
-                cur_action = cur_action.unsqueeze(1)
-                next_direct_actions = ar.direct_actions
-                next_direct_actions = (dp_mask * next_direct_actions) + ((1.0 - dp_mask) * cur_action)
-
-            next_actions.append(next_direct_actions)
-
-        return next_actions
-
+        v_trans = vect_trans_from_transition_batch(batches)
+        return self._actor.get_actions_for_bootstrap(
+            self._actor_state.actor.params,
+            v_trans.state,
+        )
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
