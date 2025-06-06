@@ -336,62 +336,22 @@ class GreedyAC(BaseAgent):
         """
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
-        tensor_state = tensor(state, device.device)
-        tensor_state = tensor_state.unsqueeze(0)
-        tensor_action_lo = tensor(action_lo, device.device).unsqueeze(0)
-        tensor_action_hi = tensor(action_hi, device.device).unsqueeze(0)
-
-        dist, _ = self._policy_manager.actor.get_dist(tensor_state)
-
-        dist_stats = get_dist_stats(dist)
-        for i in range(self.action_dim):
-            self._app_state.metrics.write(
-                self._app_state.agent_step,
-                f"interaction_action_mean_{i}",
-                dist_stats.mean[:, i].squeeze().item(),
-            )
-            self._app_state.metrics.write(
-                self._app_state.agent_step,
-                f"interaction_action_stddev_{i}",
-                dist_stats.stddev[:, i].squeeze().item(),
-            )
-
-        # ensure these statistics have a (batch_size, 1) shape for broadcasting
-        # over the n_samples dimension
-        mean = dist_stats.mean.unsqueeze(1)
-        std = dist_stats.stddev.unsqueeze(1)
-
-        def policy_action_sampler(n: int):
-            # gives shape (n, batch_size, action_dim)
-            samples = dist.sample((n, ))
-            return samples.permute(1, 0, 2)
-
-        def to_keep(samples: torch.Tensor):
-            stds_from_mean = torch.abs(samples - mean) / std
-            # fold over action_dim and batch_dim
-            return (stds_from_mean < self.cfg.max_action_stddev).all(dim=-1).all(dim=0)
-
-        def fallback(n: int):
-            return mean.repeat(n, 1)
-
-        if self._app_state.cfg.feature_flags.interaction_action_variance:
-            policy_actions = rejection_sample(
-                sampler=policy_action_sampler,
-                predicate=to_keep,
-                n_samples=1,
-                fallback=fallback,
-            )
-        else:
-            policy_actions = policy_action_sampler(1)
-
-        direct_action = self.policy_to_direct_action(
-            policy_actions,
-            tensor_action_lo,
-            tensor_action_hi,
+        state_features = jnp.asarray(state)
+        jaxtion_lo = jnp.zeros_like(action_lo)
+        jaxtion_hi = jnp.zeros_like(action_hi)
+        state_ = State(
+            features=state_features,
+            a_lo=jaxtion_lo,
+            a_hi=jaxtion_hi,
+            dp=jnp.ones_like(state_features),
+            last_a=jnp.zeros_like(jaxtion_lo),
+        )
+        jaxtion = self._actor.safe_get_actions(
+            self._actor_state.actor.params,
+            state_,
         )
 
-        assert direct_action.shape == (1, 1, self.action_dim)
-        return to_np(direct_action.squeeze(0, 1))
+        return np.asarray(jaxtion)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:
