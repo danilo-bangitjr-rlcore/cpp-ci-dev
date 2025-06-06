@@ -17,11 +17,12 @@ class ExperimentConfig:
 
     agent: dict[str, Any]
     env: dict[str, Any]
-
+    pipeline: dict[str, Any]
     steps_per_decision: int = 1
     def flatten(self):
         out = flatten(self.agent, 'agent')
         out |= flatten(self.env, 'env')
+        out |= flatten(self.pipeline, 'pipeline')
 
         return out
 
@@ -43,6 +44,7 @@ class ExperimentConfig:
             max_steps=cfg['max_steps'],
             agent=cfg['agent'] or {},
             env=cfg['env'] or {},
+            pipeline=cfg['pipeline'] or {},
         )
 
 
