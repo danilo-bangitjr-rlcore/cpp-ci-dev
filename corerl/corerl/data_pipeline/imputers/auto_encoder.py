@@ -103,31 +103,32 @@ class MaskedAutoencoder(BaseImputer):
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            obs_jax = _series_to_jnp(obs)
+            obs_jax = _series_to_jax(obs)
+            obs_nanmask = jnp.isnan(obs_jax)
             inputs = jnp.hstack((obs_jax, ts.last_trace))
 
-            num_nan = jnp.isnan(obs_jax).sum()
+            num_nan = obs_nanmask.sum()
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
             can_impute = perc_nan <= self._imputer_cfg.proportion_missing_tolerance
             within_horizon = ts.num_outside_thresh <= self._imputer_cfg.horizon
-            will_impute = should_impute and (can_impute or within_horizon)
 
             # only impute if
             #   1. We need to (i.e. there are missing values)
             #   2. We can (i.e. there aren't too many missing values)
             #   3. Or we are within our imputation horizon
+            will_impute = should_impute and (can_impute or within_horizon)
             if will_impute:
                 with torch.no_grad():
-                    obs_jax = self.impute(inputs, jnp.isnan(inputs))
+                    obs_jax = self.impute(inputs, obs_nanmask)
                 pf.data.loc[pf.data.index[i], self._obs_names] = np.asarray(obs_jax)
                 obs[:] = obs_jax
 
             # if there is enough info to impute, there
             # is enough info to train the imputer.
             if can_impute:
-                self._buffer.add(jnp.asarray(inputs))
+                self._buffer.add(inputs)
                 ts.num_outside_thresh = 0
             else:
                 ts.num_outside_thresh += 1
@@ -135,7 +136,7 @@ class MaskedAutoencoder(BaseImputer):
             # update traces for use on next timestep
             carry = TransformCarry(df, obs.to_frame().T, "")
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
-            ts.last_trace = _series_to_jnp(carry.transform_data.iloc[0])
+            ts.last_trace = _series_to_jax(carry.transform_data.iloc[0])
 
             # log number of nans and whether imputation occurred
             self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan', value=num_nan)
@@ -144,16 +145,16 @@ class MaskedAutoencoder(BaseImputer):
         self.train()
         return pf
 
-    def impute(self, inputs: jax.Array, nans: jax.Array) -> jax.Array:
+    def impute(self, inputs: jax.Array, obs_nanmask: jax.Array) -> jax.Array:
         """
         Runs a forward pass through the AE to get predicted
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
         raw_obs = inputs[: self._num_obs]
-        inputs = inputs.at[nans].set(0.5)
+        inputs = inputs.at[: self._num_obs].set(raw_obs.at[obs_nanmask].set(0.5))
         ae_predictions = self._forward(self._params, inputs)
-        return jnp.where(nans[: self._num_obs], ae_predictions, raw_obs)
+        return jnp.where(obs_nanmask, ae_predictions, raw_obs)
 
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, inputs: jax.Array) -> jax.Array:
@@ -167,38 +168,38 @@ class MaskedAutoencoder(BaseImputer):
         while loss > self._imputer_cfg.err_tolerance and steps < self._imputer_cfg.max_update_steps:
             steps += 1
             batch = self._buffer.sample(self._imputer_cfg.batch_size)
-            nans = jnp.isnan(batch)
+            batch_nanmask = jnp.isnan(batch)
 
             # Labels may have NaNs, ignore the
             # loss for the NaN components, then
             # set the NaNs to an arbitrary value
             labels = batch[:, : self._num_obs]
-            label_nans = nans[:, : self._num_obs]
+            label_nanmask = batch_nanmask[:, : self._num_obs]
+            labels = labels.at[label_nanmask].set(0.5)
+
             # if all labels are nan, skip this batch
-            if (~label_nans).sum() == 0:
+            if (~label_nanmask).sum() == 0:
                 continue
-
-            labels = labels.at[label_nans].set(0.5)
-
-            # impute nans in input
-            batch = batch.at[nans].set(0.5)
 
             # To force the AE to learn in the presence of
             # missingness, need to fake some missingness
             # in the inputs only (i.e. learn a mapping from
             # missing value to non-missing value)
             self._rng, mask_rng = jax.random.split(self._rng)
-            mask_sample = jax.random.uniform(key=mask_rng, shape=batch.shape)
-            sim_missing_mask = mask_sample < self._imputer_cfg.training_missing_perc
+            uniform_sample = jax.random.uniform(key=mask_rng, shape=batch.shape)
+            sim_missing_mask = uniform_sample < self._imputer_cfg.training_missing_perc
             sim_missing_mask = sim_missing_mask.at[:, self._num_obs :].set(False)  # dont mask out traces
-            batch = jnp.where(sim_missing_mask, 0.5, batch)
+            batch = jnp.where(sim_missing_mask, jnp.nan, batch)
+
+            # impute nans in input - these could be simulated or real
+            batch = batch.at[batch_nanmask].set(0.5)
 
             self._params, self._opt_state, loss = self._update(
                 params=self._params,
                 opt_state=self._opt_state,
-                x_batch=batch,
+                input_batch=batch,
                 label_batch=labels,
-                label_nans=label_nans,
+                label_nanmask=label_nanmask,
             )
             self._app_state.metrics.write(self._app_state.agent_step, metric='AE-loss', value=loss)
 
@@ -207,28 +208,30 @@ class MaskedAutoencoder(BaseImputer):
         self,
         params: chex.ArrayTree,
         opt_state: chex.ArrayTree,
-        x_batch: jax.Array,
+        input_batch: jax.Array,
         label_batch: jax.Array,
-        label_nans: jax.Array,
+        label_nanmask: jax.Array,
     ):
-        loss, grads = jax.value_and_grad(self._batch_loss)(params, x_batch, label_batch, label_nans)
+        loss, grads = jax.value_and_grad(self._batch_loss)(params, input_batch, label_batch, label_nanmask)
         updates, new_opt_state = self._optim.update(grads, opt_state, params)
         new_params = optax.apply_updates(params, updates)
         return new_params, new_opt_state, loss
 
-    def _batch_loss(self, params: chex.ArrayTree, x_batch: jax.Array, label_batch: jax.Array, label_nans: jax.Array):
-        losses = jax_u.vmap_except(self._loss, exclude=["params"])(params, x_batch, label_batch, label_nans)
+    def _batch_loss(
+        self, params: chex.ArrayTree, input_batch: jax.Array, label_batch: jax.Array, label_nanmask: jax.Array,
+    ):
+        losses = jax_u.vmap_except(self._loss, exclude=["params"])(params, input_batch, label_batch, label_nanmask)
         return losses.sum() / len(losses)
 
-    def _loss(self, params: chex.ArrayTree, x: jax.Array, labels: jax.Array, label_nans: jax.Array):
-        pred = self._net.apply(params, x)
+    def _loss(self, params: chex.ArrayTree, input: jax.Array, label: jax.Array, label_nanmask: jax.Array):
+        pred = self._net.apply(params, input)
         # loss is a standard MSE except NaN labels
         # are masked out
-        error = (~label_nans) * (pred - labels)
+        error = (~label_nanmask) * (pred - label)
         return jnp.sum(error**2)
 
 
-def _series_to_jnp(row: pd.Series) -> jax.Array:
+def _series_to_jax(row: pd.Series) -> jax.Array:
     return jnp.asarray(row.to_numpy(np.float32))
 
 
