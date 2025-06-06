@@ -49,6 +49,9 @@ class SquashedGaussian:
     def sample(self, seed: chex.PRNGKey):
         return self.dist.sample(seed=seed)
 
+    def sample_n(self, seed: chex.PRNGKey, n: int):
+        return self.dist.sample(seed=seed, sample_shape=(n,))
+
     def log_prob(self, action: jax.Array):
         return self.dist.log_prob(action)
 
@@ -176,7 +179,7 @@ class PercentileActor:
         return self.safe_get_actions_rng(actor_params, sample_rng, state)
 
     def safe_get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey,  state: State):
-        dist = self._get_dist(actor_params, state)
+        dist = self.get_dist(actor_params, state)
         params = dist.get_params()
         mean, std = params['mean'], params['std']
 
@@ -198,13 +201,13 @@ class PercentileActor:
 
     @jax_u.method_jit
     def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
-        dist = self._get_dist(actor_params, state)
+        dist = self.get_dist(actor_params, state)
         sampled = dist.sample(seed=rng)
         dp_mask = state.dp
         clipped = jnp.clip(sampled, state.a_lo, state.a_hi)
         return dp_mask * clipped + (1 - dp_mask) * state.last_a
 
-    def _get_dist(self, actor_params: chex.ArrayTree, state: State):
+    def get_dist(self, actor_params: chex.ArrayTree, state: State):
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
         return SquashedGaussian(out.mu, out.sigma)
 
@@ -227,7 +230,7 @@ class PercentileActor:
 
     @jax_u.method_jit
     def get_probs(self, params: chex.ArrayTree, state: State, actions: jax.Array):
-        dist = self._get_dist(params, state)
+        dist = self.get_dist(params, state)
         return self._get_probs(dist, actions)
 
     def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):

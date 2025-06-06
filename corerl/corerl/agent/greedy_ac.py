@@ -261,6 +261,22 @@ class GreedyAC(BaseAgent):
     def sample_policy_buffer(self) -> list[TransitionBatch]:
         return self._actor_buffer.sample()
 
+
+    def get_dist(self, states: torch.Tensor):
+        state_features = jnp.asarray(states)
+        dummy_jaxtions = jnp.zeros(self.action_dim)
+        state_ = State(
+            state_features,
+            a_lo=dummy_jaxtions,
+            a_hi=dummy_jaxtions,
+            dp=jnp.ones_like(state_features),
+            last_a=dummy_jaxtions,
+        )
+        return self._actor.get_dist(
+            self._actor_state.actor.params,
+            state_,
+        )
+
     def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         state_features = jnp.asarray(states)
         jaxtions = jnp.asarray(actions)
@@ -279,7 +295,6 @@ class GreedyAC(BaseAgent):
         )
 
         return torch.asarray(jax_probs)
-
 
     def get_values(self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor]):
         q = self.critic.forward(
