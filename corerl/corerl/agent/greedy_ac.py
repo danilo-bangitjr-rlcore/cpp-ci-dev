@@ -426,10 +426,8 @@ class GreedyAC(BaseAgent):
         batches = self.critic_buffer.sample()
         bootstrap_actions = self._get_bootstrap_actions(batches)
 
-        next_actions = jnp.stack([jnp.asarray(a) for a in bootstrap_actions])
         v_trans = vect_trans_from_transition_batch(batches)
-
-        self._critic_state, metrics = self.critic.update(self._critic_state, v_trans, next_actions)
+        self._critic_state, metrics = self.critic.update(self._critic_state, v_trans, bootstrap_actions)
 
         # log weight norm
         for i, norm in enumerate(metrics['ensemble_weight_norms']):
