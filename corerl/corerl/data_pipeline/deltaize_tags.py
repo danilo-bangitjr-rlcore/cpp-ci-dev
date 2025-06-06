@@ -1,3 +1,5 @@
+from functools import cached_property
+
 from pydantic import Field
 
 from corerl.configs.config import config
