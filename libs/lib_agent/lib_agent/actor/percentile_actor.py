@@ -104,7 +104,7 @@ class PAConfig:
     uniform_weight: float
     actor_lr: float
     proposal_lr: float
-    max_action_stddev: float = 1.0
+    max_action_stddev: float | None = None
 
 class ActorOutputs(NamedTuple):
     mu: jax.Array
@@ -181,6 +181,10 @@ class PercentileActor:
 
         sampled = dist.sample(seed=rng)
         clipped_to_bounds = jnp.clip(sampled, state.a_lo, state.a_hi)
+
+        if self._cfg.max_action_stddev is None:
+            return clipped_to_bounds
+
         return jnp.clip(
             clipped_to_bounds,
             mean-std*self._cfg.max_action_stddev,
