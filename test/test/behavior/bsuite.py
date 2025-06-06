@@ -264,7 +264,6 @@ class BSuiteTestCase:
                 :max_memory,
                 :features
             )
-            )
         """)
 
         exec_time, max_memory = runtime_info
