@@ -1,3 +1,4 @@
+import ast
 from dataclasses import dataclass
 from typing import Literal
 
@@ -36,7 +37,10 @@ class GoalConstructor:
 
         for i in range(len(df.columns)):
             thresh = thresh.replace(f'{{tag-{i}}}', f'df["tag-{i}"].iloc[0]')
-        return eval(thresh)
+        try:
+            return float(ast.literal_eval(thresh))
+        except (ValueError, SyntaxError):
+            return float(thresh)
 
     def _calculate_violation(self, tag_value: float, thresh: float,
                            op_range: tuple[float, float], op: str) -> float:
