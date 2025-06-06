@@ -118,6 +118,7 @@ class MaskedAutoencoder(BaseImputer):
             if should_impute and (can_impute or within_horizon):
                 with torch.no_grad():
                     obs_jax = self.impute(inputs)
+                pf.data.loc[pf.data.index[i], self._obs_names] = np.asarray(obs_jax)
 
             # if there is enough info to impute, there
             # is enough info to train the imputer.
