@@ -4,6 +4,7 @@ import subprocess
 import time
 from datetime import UTC, datetime, timedelta
 from enum import Enum, auto
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -192,7 +193,7 @@ class BSuiteTestCase:
 
         outcomes: list[dict[str, Any]] = []
         now = now_iso()
-        branch = git.get_active_branch()
+        branch = git.get_active_branch(Path('../'))
         for _, row in summary_df.iterrows():
             outcomes.append({
                 'time': now,
@@ -263,7 +264,6 @@ class BSuiteTestCase:
                 :max_memory,
                 :features
             )
-            )
         """)
 
         exec_time, max_memory = runtime_info
@@ -283,7 +283,7 @@ class BSuiteTestCase:
             conn.execute(insert_sql, outcomes)
             conn.commit()
 
-            if not table_exists(tsdb, 'bsuite_runtime'):
+            if not table_exists(tsdb, 'bsuite_metadata'):
                 conn.execute(create_runtime_table_sql)
 
             conn.execute(insert_runtime_sql, runtime_data)
