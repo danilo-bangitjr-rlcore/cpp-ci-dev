@@ -3,30 +3,28 @@ import pickle as pkl
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
+import chex
 import jax
 import jax.numpy as jnp
+import lib_utils.jax as jax_u
 import numpy as np
 import torch
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
-from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic, get_stable_rank
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
 from ml_instrumentation.Collector import Collector
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
-from corerl.component.network.utils import tensor, to_np
 from corerl.component.optimizers.torch_opts import AdamConfig
 from corerl.component.policy.factory import NormalPolicyConfig
-from corerl.component.policy_manager import ActionReturn
 from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
-from corerl.utils.device import device
 from corerl.utils.math import exp_moving_avg
-from corerl.utils.random import get_dist_stats, rejection_sample
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -118,36 +116,6 @@ class EnsembleNetworkReturn(NamedTuple):
     # the variance of the ensemble values
     ensemble_variance: torch.Tensor
 
-
-class WrappedCritic:
-    def __init__(self, critic: QRCCritic, critic_state: CriticState):
-        self._critic = critic
-        self._critic_state = critic_state
-
-    def get_values(
-        self,
-        state_batches: list[torch.Tensor],
-        action_batches: list[torch.Tensor],
-        with_grad: bool = False,
-    ) -> EnsembleNetworkReturn:
-        ens_state = jnp.stack([
-            jnp.asarray(s) for s in state_batches
-        ])
-
-        ens_action = jnp.stack([
-            jnp.asarray(a) for a in action_batches
-        ])
-
-        q = self._critic.forward(
-            self._critic_state.params,
-            ens_state,
-            ens_action,
-        )
-        return EnsembleNetworkReturn(
-            reduced_value=torch.tensor(q.mean(axis=0)),
-            ensemble_values=torch.tensor(q),
-            ensemble_variance=torch.tensor(0.0),
-        )
 
 @config()
 class GreedyACConfig(BaseAgentConfig):
@@ -472,6 +440,22 @@ class GreedyAC(BaseAgent):
 
         return loss_list
 
+    def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
+        ens_forward = jax_u.vmap_only(self.critic.forward, ['params'])
+        qs = ens_forward(params, x, a)
+        return qs.mean(axis=0).squeeze(-1)
+
+    def update_actor(self):
+        batch = self._actor_buffer.sample()
+        v_trans = vect_trans_from_transition_batch(batch)
+        self.actor_state, metrics = self._actor.update(
+            self._actor_state,
+            self.ensemble_ve,
+            self._critic_state.params,
+            v_trans,
+        )
+        return metrics['actor_loss']
+
     def update(self) -> list[float]:
         q_losses = []
 
@@ -482,10 +466,7 @@ class GreedyAC(BaseAgent):
             avg_critic_loss = np.mean(losses)
 
             for _ in range(self.cfg.max_internal_actor_updates):
-                actor_loss = self._policy_manager.update(
-                    WrappedCritic(self.critic, self._critic_state),
-                )
-
+                actor_loss = self.update_actor()
                 last = self._last_actor_loss
                 self._last_actor_loss = actor_loss
                 delta = actor_loss - last
