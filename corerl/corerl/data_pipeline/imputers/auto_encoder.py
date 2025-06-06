@@ -37,6 +37,7 @@ class MaskedAEConfig(BaseImputerStageConfig):
 
     buffer_size: int = 50_000
     batch_size: int = 16
+    warmup: int = 100 # min buffer size to update AE
     stepsize: float = 1e-5
     err_tolerance: float = 1e-3
     max_update_steps: int = 100
@@ -153,7 +154,7 @@ class MaskedAutoencoder(BaseImputer):
         return self._net.apply(params, inputs)
 
     def train(self):
-        if self._buffer.size < 100:
+        if self._buffer.size < self._imputer_cfg.warmup:
             return
         steps = 0
         loss = jnp.inf
