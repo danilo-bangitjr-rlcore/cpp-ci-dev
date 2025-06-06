@@ -67,8 +67,8 @@ class BSM1Env(gym.Env):
         # First three actions are the aeration rates of tanks 3-5
         aeration[-3:] = action[:3]
         # Next 3 actions are the controlled flow rates for IMLR, RAS, and WAS (see above diagram)
-        Q_IMLR = action[3] # Internal mixed liquor recycle flow 
-        Q_RAS = action[4] # Return activated sludge flow 
+        Q_IMLR = action[3] # Internal mixed liquor recycle flow
+        Q_RAS = action[4] # Return activated sludge flow
         Q_WAS = action[5] # Waste activated sludge flow
 
         obs = []
