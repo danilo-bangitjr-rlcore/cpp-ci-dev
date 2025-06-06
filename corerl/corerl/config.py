@@ -100,6 +100,9 @@ class FeatureFlags:
     # 2025-05-26
     normalize_return: bool = False
 
+    # 2025-06-06
+    autoencoder_imputer: bool = False
+
 @config()
 class OfflineConfig:
     offline_steps: int = 0
