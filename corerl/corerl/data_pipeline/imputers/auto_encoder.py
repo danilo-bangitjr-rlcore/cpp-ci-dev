@@ -112,12 +112,13 @@ class MaskedAutoencoder(BaseImputer):
             should_impute = num_nan > 0
             can_impute = perc_nan <= self._imputer_cfg.proportion_missing_tolerance
             within_horizon = ts.num_outside_thresh <= self._imputer_cfg.horizon
+            will_impute = should_impute and (can_impute or within_horizon)
 
             # only impute if
             #   1. We need to (i.e. there are missing values)
             #   2. We can (i.e. there aren't too many missing values)
             #   3. Or we are within our imputation horizon
-            if should_impute and (can_impute or within_horizon):
+            if will_impute:
                 with torch.no_grad():
                     obs_jax = self.impute(inputs, jnp.isnan(inputs))
                 pf.data.loc[pf.data.index[i], self._obs_names] = np.asarray(obs_jax)
@@ -135,6 +136,10 @@ class MaskedAutoencoder(BaseImputer):
             carry = TransformCarry(df, obs.to_frame().T, "")
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
             ts.last_trace = _series_to_jnp(carry.transform_data.iloc[0])
+
+            # log number of nans and whether imputation occurred
+            self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan', value=num_nan)
+            self._app_state.metrics.write(self._app_state.agent_step, metric='AE-imputed', value=will_impute)
 
         self.train()
         return pf
