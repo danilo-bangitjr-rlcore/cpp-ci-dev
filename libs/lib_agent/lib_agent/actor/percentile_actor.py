@@ -105,6 +105,7 @@ class PAConfig:
     actor_lr: float
     proposal_lr: float
     max_action_stddev: float | None = None
+    sort_noise: float = 0.0
 
 class ActorOutputs(NamedTuple):
     mu: jax.Array
@@ -350,14 +351,17 @@ class PercentileActor:
     ):
         chex.assert_shape(state.features, (self.state_dim, ))
 
-        proposal_actions = self._get_proposal_samples(proposal_params, state, rng)
+        sample_rng, rng = jax.random.split(rng, 2)
+        proposal_actions = self._get_proposal_samples(proposal_params, state, sample_rng)
         # clip proposal action to prevent log prob from being nan
         proposal_actions = jnp.clip(proposal_actions, 1e-5, 1 - 1e-5)
         chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
 
         q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
-
         q_vals = q_over_proposal(value_estimator_params, state.features, proposal_actions)
+        q_vals = q_vals + jax.random.normal(
+            rng, shape=q_vals.shape, dtype=q_vals.dtype,
+        ) * self._cfg.sort_noise
         chex.assert_shape(q_vals, (self._cfg.num_samples, ))
 
         actor_k = int(self._cfg.actor_percentile * self._cfg.num_samples)
