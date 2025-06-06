@@ -64,10 +64,12 @@ class BSM1Env(gym.Env):
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         aeration = np.zeros(5)
-        aeration[2:] = action[:3]
-        Q_IMLR = action[3]
-        Q_RAS = action[4]
-        Q_WAS = action[5]
+        # First three actions are the aeration rates of tanks 3-5
+        aeration[-3:] = action[:3]
+        # Next 3 actions are the controlled flow rates for IMLR, RAS, and WAS (see above diagram)
+        Q_IMLR = action[3] # Internal mixed liquor recycle flow 
+        Q_RAS = action[4] # Return activated sludge flow 
+        Q_WAS = action[5] # Waste activated sludge flow
 
         obs = []
 
