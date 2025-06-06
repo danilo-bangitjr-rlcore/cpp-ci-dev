@@ -188,13 +188,14 @@ class MaskedAutoencoder(BaseImputer):
             sim_missing_mask = sim_missing_mask.at[:, self._num_obs :].set(False)  # dont mask out traces
             batch = jnp.where(sim_missing_mask, 0.5, batch)
 
-            self._params, self._opt_state = self._update(
+            self._params, self._opt_state, loss = self._update(
                 params=self._params,
                 opt_state=self._opt_state,
                 x_batch=batch,
                 label_batch=labels,
                 label_nans=label_nans,
             )
+            self._app_state.metrics.write(self._app_state.agent_step, metric='AE-loss', value=loss)
 
     @jax_u.method_jit
     def _update(
@@ -208,13 +209,11 @@ class MaskedAutoencoder(BaseImputer):
         loss, grads = jax.value_and_grad(self._batch_loss)(params, x_batch, label_batch, label_nans)
         updates, new_opt_state = self._optim.update(grads, opt_state, params)
         new_params = optax.apply_updates(params, updates)
-        return new_params, new_opt_state
+        return new_params, new_opt_state, loss
 
     def _batch_loss(self, params: chex.ArrayTree, x_batch: jax.Array, label_batch: jax.Array, label_nans: jax.Array):
         losses = jax_u.vmap_except(self._loss, exclude=["params"])(params, x_batch, label_batch, label_nans)
-        mse = losses.sum() / len(losses)
-        jax.debug.print("AE MSE: {mse}", mse=mse) # tmp until metrics are integrated
-        return mse
+        return losses.sum() / len(losses)
 
     def _loss(self, params: chex.ArrayTree, x: jax.Array, labels: jax.Array, label_nans: jax.Array):
         pred = self._net.apply(params, x)
