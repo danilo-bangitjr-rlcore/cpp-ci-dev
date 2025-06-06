@@ -283,7 +283,7 @@ class BSuiteTestCase:
             conn.execute(insert_sql, outcomes)
             conn.commit()
 
-            if not table_exists(tsdb, 'bsuite_runtime'):
+            if not table_exists(tsdb, 'bsuite_metadata'):
                 conn.execute(create_runtime_table_sql)
 
             conn.execute(insert_runtime_sql, runtime_data)
