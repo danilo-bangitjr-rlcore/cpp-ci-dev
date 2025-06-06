@@ -1,6 +1,7 @@
 from collections.abc import Callable, Sequence
 from typing import Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
 
+import jax
 import numpy as np
 import torch
 from pydantic import BaseModel
@@ -9,7 +10,7 @@ from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import (
     GreedyAC,
 )
-from corerl.agent.utils import get_percentile_threshold, get_sampled_qs
+from corerl.agent.utils import get_sampled_qs
 from corerl.component.network.utils import tensor
 from corerl.configs.config import config
 from corerl.state import AppState
@@ -226,29 +227,40 @@ def _greed_dist(
     ACTION_DIM = agent.action_dim
     N_SAMPLES = cfg.n_samples
 
+    def uniform_sampler(
+        n_samples: int,
+        states: torch.Tensor,
+        action_lo: torch.Tensor,
+        action_hi: torch.Tensor,
+    ):
+        # Generate uniform actions in the range [action_lo, action_hi]
+        actions = torch.rand(
+            (BATCH_SIZE, n_samples, ACTION_DIM), device=device.device)
+        return actions * (action_hi - action_lo) + action_lo
+
     qr = get_sampled_qs(
         states=states,
         action_lo=action_lo,
         action_hi=action_hi,
         n_samples=N_SAMPLES,
-        sampler=agent.get_uniform_actions,
+        sampler=uniform_sampler,
         critic=agent,
     )
 
     q_values = qr.q_values
-    max_actions_critic = get_max_action(qr.direct_actions, q_values).reshape(BATCH_SIZE, ACTION_DIM)
+    max_actions_critic = get_max_action(qr.actions, q_values).reshape(BATCH_SIZE, ACTION_DIM)
 
     # Get log probabilities for the sampled actions from the actor.
-    sampled_policy_actions_2d = qr.policy_actions.reshape(BATCH_SIZE * N_SAMPLES, ACTION_DIM)
+    sampled_actions_2d = qr.actions.reshape(BATCH_SIZE * N_SAMPLES, ACTION_DIM)
     repeated_states_2d = qr.states.reshape(BATCH_SIZE * N_SAMPLES, STATE_DIM)
-    log_prob_1d, _ = agent.log_prob(
+    log_prob_1d, _ = agent.prob(
         repeated_states_2d,
-        sampled_policy_actions_2d,
+        sampled_actions_2d,
     )
     log_prob_2d = log_prob_1d.reshape(BATCH_SIZE, N_SAMPLES)
 
     # Get the max direct action according to log_probs for each state
-    max_actions_actor = get_max_action(qr.direct_actions, log_prob_2d).reshape(BATCH_SIZE, ACTION_DIM)
+    max_actions_actor = get_max_action(qr.actions, log_prob_2d).reshape(BATCH_SIZE, ACTION_DIM)
 
     # Calculate the L2 distance between the actions that maximize q values and the actions that maximize policy
     diff_actions = max_actions_critic - max_actions_actor
@@ -395,9 +407,10 @@ def q_values_and_act_prob(
 
     # sample actions for the actor
     n_samples = cfg.primary_action_samples * cfg.other_action_samples
-    dist, _ = agent._policy_manager.actor.get_dist(state)
-    policy_actions = dist.sample((n_samples, ))
-    policy_actions = policy_actions.permute(1, 0, 2)
+    dist = agent.get_dist(state)
+    rng = jax.random.PRNGKey(app_state.agent_step)
+    actions = dist.sample_n(rng, n_samples)
+    actions = actions.permute(1, 0, 2)
 
     # get actions for each action dimension we are interested in.
     lin_spaced_actions = torch.linspace(0, 1, cfg.primary_action_samples, device=device.device)
@@ -408,14 +421,13 @@ def q_values_and_act_prob(
     for a_dim_idx in range(agent.action_dim):
         # augmented actions are the actions we are interested in,
         # but with the primary action dimension replaced with the lin_spaced actions
-        augmented_policy_actions = policy_actions.clone()
+        augmented_policy_actions = actions.clone()
         augmented_policy_actions[:, :, a_dim_idx] = repeated_lin_spaced_actions
-        log_probs = dist.log_prob(augmented_policy_actions.squeeze(0))
-        probs = torch.exp(log_probs)
+        probs = dist.prob(augmented_policy_actions.squeeze(0))
         probs = probs.reshape(
             cfg.primary_action_samples,
             cfg.other_action_samples,
-        ).mean(dim=1)
+        ).mean(axis=1)
         direct_actions = augmented_policy_actions
 
         lin_spaced_actions_in_da_space = direct_actions[:, :, a_dim_idx].unique()

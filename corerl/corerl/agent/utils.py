@@ -7,7 +7,6 @@ import torch
 
 if TYPE_CHECKING:
     from corerl.agent.greedy_ac import EnsembleNetworkReturn
-    from corerl.component.policy_manager import ActionReturn
 
 
 def grab_top_n(
@@ -74,8 +73,7 @@ def get_percentile_threshold(
 class SampledQReturn(NamedTuple):
     q_values: torch.Tensor
     states: torch.Tensor
-    direct_actions: torch.Tensor
-    policy_actions: torch.Tensor
+    actions: torch.Tensor
 
 class Sampler(Protocol):
     def __call__(
@@ -84,7 +82,7 @@ class Sampler(Protocol):
         states: torch.Tensor,
         action_lo: torch.Tensor,
         action_hi: torch.Tensor,
-    ) -> ActionReturn: ...
+    ) -> torch.Tensor: ...
 
 class ValueEstimator(Protocol):
     def get_values(
@@ -104,7 +102,7 @@ def get_sampled_qs(
 ) -> SampledQReturn:
     batch_size = states.size(0)
 
-    ar = sampler(
+    actions = sampler(
         n_samples,
         states,
         action_lo,
@@ -112,10 +110,10 @@ def get_sampled_qs(
     )
 
     repeated_states = states.repeat_interleave(n_samples, dim=0)
-    actions = ar.direct_actions.reshape(batch_size * n_samples, -1)
+    actions = actions.reshape(batch_size * n_samples, -1)
     q_values = critic.get_values([repeated_states], [actions]).reduced_value
     q_values = q_values.reshape(batch_size, n_samples)
 
     states = repeated_states.reshape(batch_size, n_samples, -1)
 
-    return SampledQReturn(q_values, states, ar.direct_actions, ar.policy_actions)
+    return SampledQReturn(q_values, states, actions)
