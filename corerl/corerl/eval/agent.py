@@ -248,16 +248,17 @@ def _greed_dist(
     )
 
     q_values = qr.q_values
+    print(f"q_values shape: {q_values.shape}")
+    exit()
     max_actions_critic = get_max_action(qr.actions, q_values).reshape(BATCH_SIZE, ACTION_DIM)
 
     # Get log probabilities for the sampled actions from the actor.
     sampled_actions_2d = qr.actions.reshape(BATCH_SIZE * N_SAMPLES, ACTION_DIM)
     repeated_states_2d = qr.states.reshape(BATCH_SIZE * N_SAMPLES, STATE_DIM)
-    log_prob_1d, _ = agent.prob(
+    log_prob_2d = agent.prob(
         repeated_states_2d,
         sampled_actions_2d,
     )
-    log_prob_2d = log_prob_1d.reshape(BATCH_SIZE, N_SAMPLES)
 
     # Get the max direct action according to log_probs for each state
     max_actions_actor = get_max_action(qr.actions, log_prob_2d).reshape(BATCH_SIZE, ACTION_DIM)

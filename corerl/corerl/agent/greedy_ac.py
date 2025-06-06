@@ -86,7 +86,7 @@ class PercentileActorConfig:
 
     @computed('buffer')
     @classmethod
-    def _buffer(cls, cfg: MainConfig):
+    def _buffer(cls, cfg: 'MainConfig'):
         default_buffer_type = (
             RecencyBiasBufferConfig
             if cfg.feature_flags.recency_bias_buffer else
@@ -100,7 +100,7 @@ class PercentileActorConfig:
         return ta.validate_python(default_buffer_dict, context=main_cfg)
 
     @post_processor
-    def _default_stepsize(self, cfg: MainConfig):
+    def _default_stepsize(self, cfg: 'MainConfig'):
         if isinstance(self.optimizer, AdamConfig):
             self.optimizer.lr = 0.001
 
@@ -130,7 +130,7 @@ class GreedyACConfig(BaseAgentConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
-    actor: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
+    policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
 
     loss_threshold: float = 0.0001
     """
@@ -193,14 +193,14 @@ class GreedyAC(BaseAgent):
 
         actor_cfg = PAConfig(
             name='percentile',
-            num_samples=cfg.actor.num_samples,
-            actor_percentile=cfg.actor.actor_percentile,
-            proposal_percentile=cfg.actor.sampler_percentile,
-            uniform_weight=1-cfg.actor.prop_percentile_learned*cfg.actor.actor_percentile,
-            actor_lr=cfg.actor.optimizer.lr,
-            proposal_lr=cfg.actor.optimizer.lr,
+            num_samples=cfg.policy.num_samples,
+            actor_percentile=cfg.policy.actor_percentile,
+            proposal_percentile=cfg.policy.sampler_percentile,
+            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.actor_percentile,
+            actor_lr=cfg.policy.optimizer.lr,
+            proposal_lr=cfg.policy.optimizer.lr,
             max_action_stddev=cfg.max_action_stddev,
-            sort_noise=cfg.actor.sort_noise,
+            sort_noise=cfg.policy.sort_noise,
         )
 
         self._actor = PercentileActor(
@@ -229,7 +229,7 @@ class GreedyAC(BaseAgent):
             collector,
         )
 
-        self._actor_buffer = buffer_group.dispatch(cfg.actor.buffer, app_state)
+        self._actor_buffer = buffer_group.dispatch(cfg.policy.buffer, app_state)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
@@ -252,7 +252,7 @@ class GreedyAC(BaseAgent):
 
     @property
     def actor_percentile(self) -> float:
-        return self.cfg.actor.actor_percentile
+        return self.cfg.policy.actor_percentile
 
     @property
     def is_policy_buffer_sampleable(self)-> bool:
@@ -280,6 +280,7 @@ class GreedyAC(BaseAgent):
     def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
         state_features = jnp.asarray(states)
         jaxtions = jnp.asarray(actions)
+
         state_ = State(
             state_features,
             a_lo=jaxtions,
@@ -288,7 +289,7 @@ class GreedyAC(BaseAgent):
             last_a=jaxtions,
         )
 
-        jax_probs = self._actor.get_probs(
+        jax_probs = jax_u.vmap_only(self._actor.get_probs, ['state'])(
             self._actor_state.actor.params,
             state_,
             jaxtions,
@@ -461,6 +462,9 @@ class GreedyAC(BaseAgent):
         return qs.mean(axis=0).squeeze(-1)
 
     def update_actor(self):
+        if not self._actor_buffer.is_sampleable:
+            return 0.
+
         batch = self._actor_buffer.sample()
         v_trans = vect_trans_from_transition_batch(batch)
         self.actor_state, metrics = self._actor.update(

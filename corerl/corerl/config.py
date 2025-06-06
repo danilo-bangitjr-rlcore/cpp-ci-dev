@@ -184,7 +184,7 @@ class MainConfig:
             return
 
         assert self.agent.critic.buffer.name == 'recency_bias_buffer'
-        assert self.agent.actor.buffer.name == 'recency_bias_buffer'
+        assert self.agent.policy.buffer.name == 'recency_bias_buffer'
 
     @post_processor
     def _enable_time_dilation(self, cfg: 'MainConfig'):
@@ -231,8 +231,8 @@ class MainConfig:
         if not self.feature_flags.regenerative_optimism:
             return
 
-        self.agent.actor.sort_noise = 0.025
+        self.agent.policy.sort_noise = 0.025
         self.agent.critic.action_regularization = 0.001
 
         if self.feature_flags.normalize_return:
-            self.agent.actor.sort_noise *= (1 - self.agent.gamma)
+            self.agent.policy.sort_noise *= (1 - self.agent.gamma)

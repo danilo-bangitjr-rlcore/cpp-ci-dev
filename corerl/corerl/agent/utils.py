@@ -111,9 +111,12 @@ def get_sampled_qs(
 
     repeated_states = states.repeat_interleave(n_samples, dim=0)
     actions = actions.reshape(batch_size * n_samples, -1)
+
+    print(f"repeated_states shape: {repeated_states.shape}, actions shape: {actions.shape}")
     q_values = critic.get_values([repeated_states], [actions]).reduced_value
     q_values = q_values.reshape(batch_size, n_samples)
 
     states = repeated_states.reshape(batch_size, n_samples, -1)
 
+    actions = actions.reshape(batch_size, n_samples, -1)
     return SampledQReturn(q_values, states, actions)
