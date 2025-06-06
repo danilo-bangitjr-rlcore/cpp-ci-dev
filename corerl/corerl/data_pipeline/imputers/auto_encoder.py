@@ -12,7 +12,7 @@ import corerl.utils.dict as dict_u
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
 
@@ -43,7 +43,8 @@ class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, tag_cfgs: list[TagConfig]):
         super().__init__(imputer_cfg, tag_cfgs)
         self._imputer_cfg = imputer_cfg
-        self._num_obs = len(tag_cfgs)
+        self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
+        self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
 
         self._traces = TraceConstructor(TraceConfig(
@@ -94,15 +95,16 @@ class MaskedAutoencoder(BaseImputer):
         # this way we can use imputed values to compute
         # the traces
         for i in range(len(df)):
-            row = df.iloc[[i]].copy(deep=False)
+            row = df.iloc[i].copy(deep=False)
+            obs = row[self._obs_names].astype(np.float32)
 
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            raw_row = _row_to_jnp(row)
-            inputs = torch.tensor(jnp.hstack((raw_row, ts.last_trace)))
+            obs_jax = _series_to_jnp(obs)
+            inputs = torch.tensor(jnp.hstack((obs_jax, ts.last_trace)))
 
-            num_nan = jnp.isnan(raw_row).sum().item()
+            num_nan = jnp.isnan(obs_jax).sum().item()
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
@@ -115,7 +117,7 @@ class MaskedAutoencoder(BaseImputer):
             #   3. Or we are within our imputation horizon
             if should_impute and (can_impute or within_horizon):
                 with torch.no_grad():
-                    raw_row = self.impute(inputs)
+                    obs_jax = self.impute(inputs)
 
             # if there is enough info to impute, there
             # is enough info to train the imputer.
@@ -126,15 +128,15 @@ class MaskedAutoencoder(BaseImputer):
                 ts.num_outside_thresh += 1
 
             # update traces for use on next timestep
-            carry = TransformCarry(df, row, '')
+            carry = TransformCarry(df, obs.to_frame().T, '')
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
-            ts.last_trace = _row_to_jnp(carry.transform_data)
+            ts.last_trace = _series_to_jnp(carry.transform_data.iloc[0])
 
         self.train()
         return pf
 
 
-    def impute(self, inputs: torch.Tensor) -> torch.Tensor:
+    def impute(self, inputs: torch.Tensor) -> jax.Array:
         """
         Runs a forward pass through the AE to get predicted
         values for *all* inputs. Then selectively grabs
@@ -142,11 +144,11 @@ class MaskedAutoencoder(BaseImputer):
         """
         ae_predictions = self.forward(inputs)
         raw_row = inputs[:self._num_obs]
-        return torch.where(
+        return jnp.asarray(torch.where(
             torch.isnan(raw_row),
             ae_predictions,
             raw_row,
-        )
+        ))
 
 
 
@@ -192,8 +194,8 @@ class MaskedAutoencoder(BaseImputer):
                 self._optimizer.step()
 
 
-def _row_to_jnp(row: pd.DataFrame) -> jax.Array:
-    return jnp.asarray(row.iloc[0].to_numpy(np.float32))
+def _series_to_jnp(row: pd.Series) -> jax.Array:
+    return jnp.asarray(row.to_numpy(np.float32))
 
 class CircularBuffer:
     def __init__(self, max_size: int):
