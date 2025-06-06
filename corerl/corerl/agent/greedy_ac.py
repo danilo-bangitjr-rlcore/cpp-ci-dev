@@ -7,6 +7,8 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import torch
+from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
+from lib_agent.buffer.buffer import State
 from lib_agent.critic.qrc_critic import CriticState, QRCConfig, QRCCritic, get_stable_rank
 from ml_instrumentation.Collector import Collector
 from pydantic import Field, TypeAdapter
@@ -15,8 +17,9 @@ from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
 from corerl.component.network.utils import tensor, to_np
 from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.component.policy_manager import ActionReturn, GACPolicyManager, GACPolicyManagerConfig
-from corerl.configs.config import MISSING, computed, config
+from corerl.component.policy.factory import NormalPolicyConfig
+from corerl.component.policy_manager import ActionReturn
+from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
@@ -59,6 +62,49 @@ class GTDCriticConfig:
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
         return ta.validate_python(default_buffer_dict, context=main_cfg)
+
+@config()
+class PercentileActorConfig:
+    name: Literal["network"] = "network"
+    greedy: bool = False
+
+    # hyperparameters
+    num_samples: int = 128
+    actor_percentile: float = 0.1
+    sampler_percentile: float = 0.2
+    prop_percentile_learned: float = 0.9
+    init_sampler_with_actor_weights: bool = True
+    resample_for_sampler_update: bool = True
+    grad_clip: float = 50_000
+    sort_noise: float = 0.0
+
+    # metrics
+    ingress_loss: bool = True
+
+    # components
+    network: NormalPolicyConfig = Field(default_factory=NormalPolicyConfig)
+    optimizer: AdamConfig = Field(default_factory=AdamConfig)
+    buffer: BufferConfig = MISSING
+
+    @computed('buffer')
+    @classmethod
+    def _buffer(cls, cfg: MainConfig):
+        default_buffer_type = (
+            RecencyBiasBufferConfig
+            if cfg.feature_flags.recency_bias_buffer else
+            MixedHistoryBufferConfig
+        )
+
+        ta = TypeAdapter(default_buffer_type)
+        default_buffer = default_buffer_type(id='critic')
+        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
+        main_cfg: Any = cfg
+        return ta.validate_python(default_buffer_dict, context=main_cfg)
+
+    @post_processor
+    def _default_stepsize(self, cfg: MainConfig):
+        if isinstance(self.optimizer, AdamConfig):
+            self.optimizer.lr = 0.001
 
 
 class EnsembleNetworkReturn(NamedTuple):
@@ -116,7 +162,7 @@ class GreedyACConfig(BaseAgentConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
-    policy: GACPolicyManagerConfig = Field(default_factory=GACPolicyManagerConfig)
+    actor: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
 
     loss_threshold: float = 0.0001
     """
@@ -175,10 +221,28 @@ class GreedyAC(BaseAgent):
         self.cfg = cfg
         self._col_desc = col_desc
         self.eval_batch = cfg.eval_batch
-
-        self._policy_manager = GACPolicyManager(cfg.policy, app_state, self.state_dim, self.action_dim)
-
         collector = Collector(experiment_id=0)
+
+        actor_cfg = PAConfig(
+            name='percentile',
+            num_samples=cfg.actor.num_samples,
+            actor_percentile=cfg.actor.actor_percentile,
+            proposal_percentile=cfg.actor.sampler_percentile,
+            uniform_weight=1-cfg.actor.prop_percentile_learned*cfg.actor.actor_percentile,
+            actor_lr=cfg.actor.optimizer.lr,
+            proposal_lr=cfg.actor.optimizer.lr,
+            max_action_stddev=cfg.max_action_stddev,
+            sort_noise=cfg.actor.sort_noise,
+        )
+
+        self._actor = PercentileActor(
+            actor_cfg,
+            app_state.cfg.seed,
+            col_desc.state_dim,
+            col_desc.action_dim,
+            collector,
+        )
+
         critic_cfg = QRCConfig(
             name='qrc',
             stepsize=cfg.critic.critic_optimizer.lr,
@@ -188,7 +252,16 @@ class GreedyAC(BaseAgent):
             action_regularization=cfg.critic.action_regularization,
             l2_regularization=1.0,
         )
-        self.critic = QRCCritic(critic_cfg, 0, col_desc.state_dim, col_desc.action_dim, collector)
+
+        self.critic = QRCCritic(
+            critic_cfg,
+            app_state.cfg.seed,
+            col_desc.state_dim,
+            col_desc.action_dim,
+            collector,
+        )
+
+        self._actor_buffer = buffer_group.dispatch(cfg.actor.buffer, app_state)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
@@ -199,33 +272,46 @@ class GreedyAC(BaseAgent):
         self._last_actor_loss = 0.
         self._avg_actor_delta: float | None = None
 
-
-        # critic state
+        # actor and critic state
         dummy_x = jnp.zeros(self.state_dim)
         dummy_a = jnp.zeros(self.action_dim)
 
         self._jax_rng = jax.random.PRNGKey(0)
         self._jax_rng, c_rng = jax.random.split(self._jax_rng)
         self._critic_state = self.critic.init_state(c_rng, dummy_x, dummy_a)
-
+        self._jax_rng, a_rng = jax.random.split(self._jax_rng)
+        self._actor_state = self._actor.init_state(a_rng, dummy_x)
 
     @property
     def actor_percentile(self) -> float:
-        return self._policy_manager.cfg.actor_percentile
+        return self.cfg.actor.actor_percentile
 
     @property
     def is_policy_buffer_sampleable(self)-> bool:
-        return self._policy_manager.buffer.is_sampleable
+        return self._actor_buffer.is_sampleable
 
     def sample_policy_buffer(self) -> list[TransitionBatch]:
-        return self._policy_manager.buffer.sample()
-
-    def log_prob(self, states: torch.Tensor, actions: torch.Tensor) -> tuple[torch.Tensor, dict]:
-        with torch.no_grad():
-            return self._policy_manager.actor.log_prob(states, actions)
+        return self._actor_buffer.sample()
 
     def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
-        return torch.exp(self.log_prob(states, actions)[0])
+        state_features = jnp.asarray(states)
+        jaxtions = jnp.asarray(actions)
+        state_ = State(
+            state_features,
+            a_lo=jaxtions,
+            a_hi=jaxtions,
+            dp=jnp.ones_like(state_features),
+            last_a=jaxtions,
+        )
+
+        jax_probs = self._actor.get_probs(
+            self._actor_state.actor.params,
+            state_,
+            jaxtions,
+        )
+
+        return torch.asarray(jax_probs)
+
 
     def get_values(self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor]):
         q = self.critic.forward(
@@ -306,69 +392,6 @@ class GreedyAC(BaseAgent):
 
         assert direct_action.shape == (1, 1, self.action_dim)
         return to_np(direct_action.squeeze(0, 1))
-
-    def policy_to_direct_action(
-        self,
-        policy_actions: torch.Tensor,
-        action_lo: torch.Tensor,
-        action_hi: torch.Tensor,
-    ) -> torch.Tensor:
-        """
-        Converts policy actions to direct actions.
-        """
-        return self._policy_manager.ensure_direct_action(action_lo, action_hi, policy_actions)
-
-    def get_actor_actions(
-        self,
-        n_samples: int,
-        states: torch.Tensor,
-        action_lo: torch.Tensor,
-        action_hi: torch.Tensor,
-    ) -> ActionReturn:
-        """
-        Sample actions from actor and return both direct and policy actions.
-        """
-        return self._policy_manager.get_actor_actions(
-            n_samples,
-            states,
-            action_lo,
-            action_hi,
-            WrappedCritic(self.critic, self._critic_state),
-        )
-
-    def get_sampler_actions(
-        self,
-        n_samples: int,
-        states: torch.Tensor,
-        action_lo: torch.Tensor,
-        action_hi: torch.Tensor,
-    ) -> ActionReturn:
-        """
-        Sample actions from sampler and return both direct and policy actions.
-        """
-        return self._policy_manager.get_sampler_actions(
-            n_samples,
-            states,
-            action_lo,
-            action_hi,
-        )
-
-    def get_uniform_actions(
-        self,
-        n_samples: int,
-        states: torch.Tensor,
-        action_lo: torch.Tensor,
-        action_hi: torch.Tensor,
-    ) -> ActionReturn:
-        """
-        Sample actions UAR and return both direct and policy actions.
-        """
-        return self._policy_manager.get_uniform_actions(
-            n_samples,
-            states,
-            action_lo,
-            action_hi,
-        )
 
     def update_buffer(self, pr: PipelineReturn) -> None:
         if pr.transitions is None:

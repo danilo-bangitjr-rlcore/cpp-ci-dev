@@ -215,12 +215,12 @@ class PercentileActor:
         dist = self._get_dist(params, state)
         return self._get_probs(dist, actions)
 
+    def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):
+        return jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
+
     def _get_prob(self, dist: SquashedGaussian, action: jax.Array):
         log_prob = dist.log_prob(action)
         return jnp.exp(log_prob)
-
-    def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):
-        return jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
 
     # ---------------------------------- updates --------------------------------- #
 
