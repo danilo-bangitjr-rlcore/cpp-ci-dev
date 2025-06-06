@@ -92,53 +92,21 @@ class EnsembleReplayBuffer[T: NamedTuple]:
         for m in range(self.n_ensemble):
             valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size()])[0]
 
-            n_random = self.batch_size
             recent_indices = np.array([])
 
-            # if n_most_recent is set, include the most recent transitions
             if self.n_most_recent > 0:
-                # get the most recent indices that are valid for this ensemble member
-                if self._storage.size() >= self.max_size:
-                    # buffer is full, recent indices wrap around
-                    ptr = self._storage.last_idx()
-                    recent_range = np.arange(ptr, ptr - self.n_most_recent, -1) % self.max_size
-                else:
-                    # buffer is not full, recent indices are at the end
-                    start_idx = max(0, self._storage.size() - self.n_most_recent)
-                    recent_range = np.arange(start_idx, self._storage.size())
-
-                # filter for valid indices for this ensemble member
+                recent_range = self._storage.last_idxs(self.n_most_recent)
                 mask = self.ensemble_masks[m, recent_range]
-                recent_valid = recent_range[mask]
-                if len(recent_valid) > 0:
-                    recent_indices = recent_valid
-                n_random = max(0, self.batch_size - len(recent_indices))
+                recent_indices = recent_range[mask]
 
-            if n_random > 0:
-                # remove recent indices from valid_indices to avoid duplicates
-                if recent_indices.size > 0:
-                    valid_for_random = np.setdiff1d(valid_indices, recent_indices)
-                    # if we don't have enough valid indices after removing recent ones, allow duplicates
-                    if len(valid_for_random) < n_random:
-                        valid_for_random = valid_indices
-                else:
-                    valid_for_random = valid_indices
+            rand_indices = self.rng.choice(
+                valid_indices,
+                size=self.batch_size,
+                replace=True,
+            )
 
-                rand_indices = self.rng.choice(
-                    valid_indices,
-                    size=n_random,
-                    replace=True,
-                )
-
-                # combine recent and random indices
-                combined_indices = np.concatenate([recent_indices, rand_indices])
-            else:
-                # if we have enough or too many recent indices, sample from them
-                combined_indices = self.rng.choice(
-                    recent_indices,
-                    size=self.batch_size,
-                    replace=True,
-                )
+            combined_indices = np.concatenate([recent_indices, rand_indices])
+            combined_indices = combined_indices[:self.batch_size]
 
             ens_idxs.append(combined_indices)
         return self._storage.get_ensemble_batch(ens_idxs)

@@ -68,5 +68,16 @@ class ReplayStorage[T: NamedTuple]:
         return (self._pos - 1) % self._capacity
 
 
+    def last_idxs(self, n: int) -> np.ndarray:
+        assert self._size > 0
+
+        if self._size < self._capacity:
+            n = min(n, self._size)
+            start = (self._pos - n) % self._size
+            return np.arange(start, self._pos)
+
+        return np.arange(self._pos - n, self._pos) % self._capacity
+
+
     def size(self):
         return self._size
