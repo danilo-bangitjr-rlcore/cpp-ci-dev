@@ -15,6 +15,7 @@ agent:
     actor_lr: 0.001
     proposal_lr: 0.001
     max_action_stddev: null
+    sort_noise: 0.0
 
   critic:
     name: QRC
