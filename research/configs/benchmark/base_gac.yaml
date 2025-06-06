@@ -14,6 +14,7 @@ agent:
     uniform_weight: 1.0
     actor_lr: 0.001
     proposal_lr: 0.001
+    max_action_stddev: null
 
   critic:
     name: QRC
