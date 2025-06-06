@@ -184,7 +184,8 @@ class PercentileActor:
         return jnp.clip(
             clipped_to_bounds,
             mean-std*self._cfg.max_action_stddev,
-            mean+std*self._cfg.max_action_stddev)
+            mean+std*self._cfg.max_action_stddev,
+        )
 
     def get_actions(self, actor_params: chex.ArrayTree, state: State):
         self.rng, sample_rng = jax.random.split(self.rng, 2)
