@@ -1,8 +1,10 @@
 import json
+import os
 import subprocess
 import time
 from datetime import UTC, datetime, timedelta
 from enum import Enum, auto
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -87,12 +89,21 @@ class BSuiteTestCase:
         exec_start = time.time()
         max_memory = 0
 
+        cur_env = os.environ.copy()
+        env_vars = {
+            **cur_env,
+            'NPROC': '1',
+            'XLA_FLAGS': '--xla_cpu_multi_thread_eigen=false intra_op_parallelism_threads=1',
+            'OPENBLAS_NUM_THREADS': '1',
+            'MKL_NUM_THREADS': '1',
+            'OMP_NUM_THREAD': '1',
+        }
+
         proc = subprocess.Popen([
             'python', 'corerl/main.py',
-            '--base', '../test/',
-            '--config-name', self.config,
+            '--config-name', '../test/' + self.config,
             *parts,
-        ], cwd='../corerl')
+        ], cwd='../corerl', env=env_vars)
 
         psutil_proc = psutil.Process(proc.pid)
         while proc.poll() is None:
@@ -182,7 +193,7 @@ class BSuiteTestCase:
 
         outcomes: list[dict[str, Any]] = []
         now = now_iso()
-        branch = git.get_active_branch()
+        branch = git.get_active_branch(Path('../'))
         for _, row in summary_df.iterrows():
             outcomes.append({
                 'time': now,
@@ -253,7 +264,6 @@ class BSuiteTestCase:
                 :max_memory,
                 :features
             )
-            )
         """)
 
         exec_time, max_memory = runtime_info
@@ -273,7 +283,7 @@ class BSuiteTestCase:
             conn.execute(insert_sql, outcomes)
             conn.commit()
 
-            if not table_exists(tsdb, 'bsuite_runtime'):
+            if not table_exists(tsdb, 'bsuite_metadata'):
                 conn.execute(create_runtime_table_sql)
 
             conn.execute(insert_runtime_sql, runtime_data)

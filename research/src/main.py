@@ -15,6 +15,7 @@ import utils.gym as gym_u
 from agent.gac import GreedyAC, GreedyACConfig
 from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
+from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
 from interaction.transition_creator import TransitionCreator
 
 parser = argparse.ArgumentParser()
@@ -54,6 +55,20 @@ def process_overrides(override_args: list) -> list[tuple]:
     return override_list
 
 
+def flatten_config(cfg):
+    flattened = {}
+    for key, value in cfg.items():
+        if isinstance(value, dict):
+            nested = flatten_config(value)
+            for nested_key, nested_value in nested.items():
+                flattened[f"{key}.{nested_key}"] = nested_value
+        elif isinstance(value, list):
+            flattened[key] = str(value)  # Convert list to string representation
+        else:
+            flattened[key] = value
+    return flattened
+
+
 def main():
     overrides = process_overrides(override_args)
     cfg = ExperimentConfig.load(args.exp, overrides)
@@ -61,7 +76,7 @@ def main():
     save_path = Path('results/test/results.db')
     save_path.parent.mkdir(exist_ok=True, parents=True)
 
-    hyperparams = cfg.flatten()
+    hyperparams = flatten_config(cfg.flatten())
     hyperparams['seed'] = args.seed
     exp_id = get_next_id(save_path, hyperparams)
 
@@ -101,6 +116,27 @@ def main():
 
     obs_bounds = gym_u.space_bounds(env.observation_space)
     act_bounds = gym_u.space_bounds(env.action_space)
+
+    goal_constructor = None
+    if 'reward' in cfg.pipeline:
+        tag_configs = [
+            TagConfig(
+                name=f'tag-{i}',
+                operating_range=(obs_bounds[0][i], obs_bounds[1][i]),
+            )
+            for i in range(len(obs_bounds[0]))
+        ]
+
+        priorities = [
+            Goal(tag=goal['tag'], op=goal['op'], thresh=goal['thresh'])
+            for goal in cfg.pipeline['reward']['priorities']
+        ]
+
+        reward_config = RewardConfig(
+            priorities=priorities,
+        )
+        goal_constructor = GoalConstructor(reward_config, tag_configs)
+
     wrapper_env = EnvWrapper(
         env=env,
         collector=collector,
@@ -113,6 +149,7 @@ def main():
             'high': obs_bounds[1],
         },
         trace_values=trace_values,
+        goal_constructor=goal_constructor,
     )
     tc = TransitionCreator(n_step=1, gamma=0.99)
 
@@ -135,14 +172,24 @@ def main():
     # dummy action bounds
     a_lo = np.zeros(len(act_bounds[0]))
     a_hi = np.ones(len(act_bounds[0]))
+    last_action = (a_lo + a_hi) / 2 #placeholder
+    dp = True
 
     for _ in tqdm(range(cfg.max_steps + 1)):
+        dp = steps % cfg.steps_per_decision == 0
         collector.next_frame()
 
-        state = State(jnp.array(state_features), jnp.array(a_lo), jnp.array(a_hi))
+        state = State(
+            features=jnp.array(state_features),
+            a_lo=jnp.array(a_lo),
+            a_hi=jnp.array(a_hi),
+            dp=jnp.array(dp),
+            last_a=jnp.array(last_action),
+        )
         action = agent.get_actions(state)
 
-        transitions = tc(state_features, a_lo, a_hi, np.array(action), reward, done)
+        transitions = tc(
+            state_features, a_lo, a_hi, np.array(action), reward, done, dp)
 
         next_state_features, reward, terminated, truncated, _ = wrapper_env.step(action)
         for t in transitions:
@@ -163,10 +210,12 @@ def main():
             reward = None
 
             state_features, _ = wrapper_env.reset()
+            last_action = (a_lo + a_hi) / 2
             tc.flush()
 
         else:
             state_features = next_state_features
+            last_action = action
 
     env.close()
 

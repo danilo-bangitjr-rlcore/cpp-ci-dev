@@ -12,7 +12,7 @@ import optax
 from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import State, VectorizedTransition
+from lib_agent.buffer.buffer import State
 from lib_agent.network.activations import (
     ActivationConfig,
     IdentityConfig,
@@ -43,6 +43,8 @@ class SquashedGaussian:
                 ndims=1,
             ),
         )
+        self.mean = mean
+        self.std = std
 
     def sample(self, seed: chex.PRNGKey):
         return self.dist.sample(seed=seed)
@@ -52,6 +54,12 @@ class SquashedGaussian:
 
     def prob(self, action: jax.Array):
         return self.dist.prob(action)
+
+    def get_params(self):
+        return {
+            'mean': self.mean,
+            'std': self.std,
+        }
 
 class UpdateActions(NamedTuple):
     actor: jax.Array
@@ -64,6 +72,19 @@ class PolicyState(NamedTuple):
 class PAState(NamedTuple):
     actor: PolicyState
     proposal: PolicyState
+
+
+class ActorBatch(Protocol):
+    @property
+    def state(self) -> State: ...
+    @property
+    def action(self) -> jax.Array: ...
+    @property
+    def reward(self) -> jax.Array: ...
+    @property
+    def next_state(self) -> State: ...
+    @property
+    def gamma(self) -> jax.Array: ...
 
 class ValueEstimator(Protocol):
     def __call__(
@@ -83,6 +104,8 @@ class PAConfig:
     uniform_weight: float
     actor_lr: float
     proposal_lr: float
+    max_action_stddev: float | None = None
+    sort_noise: float = 0.0
 
 class ActorOutputs(NamedTuple):
     mu: jax.Array
@@ -148,6 +171,27 @@ class PercentileActor:
 
     # -------------------------------- get actions ------------------------------- #
 
+    def safe_get_actions(self, actor_params: chex.ArrayTree, state: State):
+        self.rng, sample_rng = jax.random.split(self.rng, 2)
+        return self.safe_get_actions_rng(actor_params, sample_rng, state)
+
+    def safe_get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey,  state: State):
+        dist = self._get_dist(actor_params, state)
+        params = dist.get_params()
+        mean, std = params['mean'], params['std']
+
+        sampled = dist.sample(seed=rng)
+        clipped_to_bounds = jnp.clip(sampled, state.a_lo, state.a_hi)
+
+        if self._cfg.max_action_stddev is None:
+            return clipped_to_bounds
+
+        return jnp.clip(
+            clipped_to_bounds,
+            mean-std*self._cfg.max_action_stddev,
+            mean+std*self._cfg.max_action_stddev,
+        )
+
     def get_actions(self, actor_params: chex.ArrayTree, state: State):
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self.get_actions_rng(actor_params, sample_rng, state)
@@ -156,7 +200,9 @@ class PercentileActor:
     def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
         dist = self._get_dist(actor_params, state)
         sampled = dist.sample(seed=rng)
-        return jnp.clip(sampled, state.a_lo, state.a_hi)
+        dp_mask = state.dp
+        clipped = jnp.clip(sampled, state.a_lo, state.a_hi)
+        return dp_mask * clipped + (1 - dp_mask) * state.last_a
 
     def _get_dist(self, actor_params: chex.ArrayTree, state: State):
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
@@ -179,11 +225,12 @@ class PercentileActor:
     # ---------------------------------- updates --------------------------------- #
 
     def update(
-            self,
-            pa_state: Any,
-            value_estimator: ValueEstimator,
-            value_estimator_params: chex.ArrayTree,
-            transitions: VectorizedTransition):
+        self,
+        pa_state: Any,
+        value_estimator: ValueEstimator,
+        value_estimator_params: chex.ArrayTree,
+        transitions: ActorBatch,
+    ):
 
         self.rng, update_rng = jax.random.split(self.rng, 2)
 
@@ -304,14 +351,17 @@ class PercentileActor:
     ):
         chex.assert_shape(state.features, (self.state_dim, ))
 
-        proposal_actions = self._get_proposal_samples(proposal_params, state, rng)
+        sample_rng, rng = jax.random.split(rng, 2)
+        proposal_actions = self._get_proposal_samples(proposal_params, state, sample_rng)
         # clip proposal action to prevent log prob from being nan
         proposal_actions = jnp.clip(proposal_actions, 1e-5, 1 - 1e-5)
         chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
 
         q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
-
         q_vals = q_over_proposal(value_estimator_params, state.features, proposal_actions)
+        q_vals = q_vals + self._cfg.sort_noise * jax.random.normal(
+            rng, shape=q_vals.shape, dtype=q_vals.dtype,
+        )
         chex.assert_shape(q_vals, (self._cfg.num_samples, ))
 
         actor_k = int(self._cfg.actor_percentile * self._cfg.num_samples)

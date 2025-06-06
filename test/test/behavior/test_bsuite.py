@@ -108,11 +108,7 @@ def test_bsuite(
     test_case: BSuiteTestCase,
     bsuite_tsdb: None,
     feature_flags: dict[str, bool],
-    category: BehaviourCategory | None,
 ):
-    if category is not None and category not in test_case.category:
-        pytest.skip(f"Test case {test_case.name} not in category {category}")
-
     # skip the test if any required feature is disabled
     for req_feature in test_case.required_features:
         if not feature_flags[req_feature]:

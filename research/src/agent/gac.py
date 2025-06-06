@@ -8,10 +8,11 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
 from lib_agent.actor.percentile_actor import PercentileActor, State
-from lib_agent.buffer.buffer import EnsembleReplayBuffer, VectorizedTransition
+from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.critic.critic_registry import get_critic
 from ml_instrumentation.Collector import Collector
 
+from agent.interface import Batch
 from interaction.transition_creator import Transition
 
 
@@ -44,13 +45,22 @@ class GreedyACConfig:
     critic: dict[str, Any]
     actor: dict[str, Any]
 
+
+class BatchWithState(NamedTuple):
+    state: State
+    action: jax.Array
+    reward: jax.Array
+    next_state: State
+    gamma: jax.Array
+
+
 class GACCritic(Protocol):
     def init_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> CriticState: ...
     def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array) -> jax.Array: ...
     def update(
         self,
         critic_state: CriticState,
-        transitions: VectorizedTransition,
+        transitions: BatchWithState,
         next_actions: jax.Array,
     ) -> tuple[CriticState, dict]: ...
 
@@ -68,13 +78,13 @@ class GreedyAC:
         self._actor: PercentileActor = get_actor(cfg.actor, seed, state_dim, action_dim, collector)
 
         # Replay Buffers
-        self.policy_buffer = EnsembleReplayBuffer(
+        self.policy_buffer = EnsembleReplayBuffer[Batch](
             n_ensemble=1,
             ensemble_prob=1.0,
             batch_size=cfg.batch_size,
         )
 
-        self.critic_buffer = EnsembleReplayBuffer(
+        self.critic_buffer = EnsembleReplayBuffer[Batch](
             n_ensemble=cfg.critic['ensemble'],
             ensemble_prob=cfg.critic['ensemble_prob'],
             batch_size=cfg.batch_size,
@@ -91,11 +101,27 @@ class GreedyAC:
         self.agent_state = GACState(critic_state, actor_state)
 
     def update_buffer(self, transition: Transition):
-        self.critic_buffer.add(transition)
-        self.policy_buffer.add(transition)
+        t = Batch(
+            state=jnp.array(transition.state),
+            action=jnp.array(transition.action),
+            reward=jnp.array([transition.reward]),
+            next_state=jnp.array(transition.next_state),
+            gamma=jnp.array([transition.gamma]),
+
+            a_lo=jnp.array(transition.a_lo),
+            a_hi=jnp.array(transition.a_hi),
+            next_a_lo=jnp.array(transition.next_a_lo),
+            next_a_hi=jnp.array(transition.next_a_hi),
+
+            last_a=jnp.array(transition.last_a),
+            dp=jnp.array(transition.dp),
+            next_dp=jnp.array(transition.next_dp),
+        )
+        self.critic_buffer.add(t)
+        self.policy_buffer.add(t)
 
     def get_actions(self, state: State):
-        return self._actor.get_actions(self.agent_state.actor.actor.params, state)
+        return self._actor.safe_get_actions(self.agent_state.actor.actor.params, state)
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         return self._critic.forward(
@@ -126,11 +152,30 @@ class GreedyAC:
             return
 
         batch = self.critic_buffer.sample()
-        next_actions = self._get_actions_over_state(self.agent_state.actor.actor.params, self.rng, batch.next_state)
+        next_state = State(
+            features=batch.next_state,
+            a_lo=batch.next_a_lo,
+            a_hi=batch.next_a_hi,
+            last_a=batch.action,
+            dp=jnp.expand_dims(batch.next_dp, axis=-1),
+        )
+        next_actions = self._get_actions_over_state(self.agent_state.actor.actor.params, self.rng, next_state)
         next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
         new_critic_state, _ = self._critic.update(
             critic_state=self.agent_state.critic,
-            transitions=batch,
+            transitions=BatchWithState(
+                state=State(
+                    features=batch.state,
+                    a_lo=batch.a_lo,
+                    a_hi=batch.a_hi,
+                    last_a=batch.last_a,
+                    dp=batch.dp,
+                ),
+                action=batch.action,
+                reward=batch.reward,
+                next_state=next_state,
+                gamma=batch.gamma,
+            ),
             next_actions=next_actions,
         )
 
@@ -146,7 +191,25 @@ class GreedyAC:
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,
-            batch,
+            BatchWithState(
+                state=State(
+                    features=batch.state,
+                    a_lo=batch.a_lo,
+                    a_hi=batch.a_hi,
+                    last_a=batch.last_a,
+                    dp=batch.dp,
+                ),
+                action=batch.action,
+                reward=batch.reward,
+                next_state=State(
+                    features=batch.next_state,
+                    a_lo=batch.next_a_lo,
+                    a_hi=batch.next_a_hi,
+                    last_a=batch.action,
+                    dp=batch.next_dp,
+                ),
+                gamma=batch.gamma,
+            ),
         )
         self.agent_state = self.agent_state._replace(actor=actor_state)
 
