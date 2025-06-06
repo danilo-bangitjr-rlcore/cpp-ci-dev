@@ -19,6 +19,7 @@ from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputer
 from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
+from corerl.state import AppState
 
 
 @dataclass
@@ -45,8 +46,8 @@ class MaskedAEConfig(BaseImputerStageConfig):
 
 
 class MaskedAutoencoder(BaseImputer):
-    def __init__(self, imputer_cfg: MaskedAEConfig, tag_cfgs: list[TagConfig]):
-        super().__init__(imputer_cfg, tag_cfgs)
+    def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
+        super().__init__(imputer_cfg, app_state, tag_cfgs)
         self._imputer_cfg = imputer_cfg
         self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
         self._num_obs = len(self._obs_names)
