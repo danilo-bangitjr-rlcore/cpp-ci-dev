@@ -208,6 +208,21 @@ class PercentileActor:
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
         return SquashedGaussian(out.mu, out.sigma)
 
+    @jax_u.method_jit
+    def get_actions_for_bootstrap(self, actor_params: chex.ArrayTree, states: State):
+        ens_size = states.features.shape[0]
+        batch_size = states.features.shape[1]
+        chex.assert_shape(states.features, (ens_size, batch_size, self.state_dim))
+        rngs = jax.random.split(self.rng, ens_size)
+        return jax_u.vmap_only(self._get_actions_for_states, ['rng', 'state'])(actor_params, rngs, states)
+
+    def _get_actions_for_states(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, states: State):
+        batch_size = states.features.shape[0]
+        chex.assert_shape(states.features, (batch_size, self.state_dim))
+        rngs = jax.random.split(rng, batch_size)
+        return jax_u.vmap_only(self.get_actions_rng, ['rng', 'state'])(actor_params, rngs, states)
+
+
     # ----------------------------- get probabilities ---------------------------- #
 
     @jax_u.method_jit
@@ -246,7 +261,11 @@ class PercentileActor:
         # Log actor loss outside the JIT-compiled function
         self._collector.collect("actor_loss", float(actor_loss))
 
-        return PAState(actor_state, proposal_state)
+        metrics = {
+            'actor_loss': float(actor_loss),
+        }
+
+        return PAState(actor_state, proposal_state), metrics
 
     @partial(jax.jit, static_argnums=(0, 2))
     def _policy_update(

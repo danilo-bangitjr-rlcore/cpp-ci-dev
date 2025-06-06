@@ -187,7 +187,7 @@ class GreedyAC:
 
         batch = self.policy_buffer.sample()
 
-        actor_state = self._actor.update(
+        actor_state, _ = self._actor.update(
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,

@@ -359,9 +359,9 @@ class GreedyAC(BaseAgent):
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
         recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
-        self._policy_manager.update_buffer(pr)
+        recent_actor_idxs = self._actor_buffer.feed(pr.transitions, pr.data_mode)
 
-        # ---------------------------------- ingress loss metic --------------------------------- #
+        # ---------------------------------- ingress critic loss metric --------------------------------- #
 
         if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
@@ -378,6 +378,23 @@ class GreedyAC(BaseAgent):
                 agent_step=self._app_state.agent_step,
                 metric=f"ingress_critic_loss_{pr.data_mode.name}",
                 value=metrics['loss'].item(),
+            )
+
+        # ---------------------------------- ingress actor loss metic --------------------------------- #
+        if self.cfg.ingress_loss and len(recent_actor_idxs) > 0:
+            recent_actor_batch = self._actor_buffer.get_batch(recent_actor_idxs)
+            v_actor_trans = vect_trans_from_transition_batch([recent_actor_batch])
+
+            actor_loss = -jnp.log(self._actor.get_probs(
+                self._actor_state.actor.params,
+                v_actor_trans.state,
+                v_actor_trans.action,
+            )).item()
+
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f"ingress_actor_loss_{pr.data_mode.name}",
+                value=actor_loss,
             )
 
         # ------------------------- transition length metric ------------------------- #
