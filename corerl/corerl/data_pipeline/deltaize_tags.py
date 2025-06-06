@@ -31,3 +31,7 @@ class DeltaizeTags(Constructor):
             if tag.type == TagType.delta
         }
 
+    @cached_property
+    def columns(self):
+        pf = self._probe_fake_data()
+        return list(pf.data.columns)
