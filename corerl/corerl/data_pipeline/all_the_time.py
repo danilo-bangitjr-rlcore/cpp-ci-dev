@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+import torch
 
-from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
 from corerl.utils.maybe import Maybe
@@ -58,7 +58,7 @@ type StepInfo = dict[int, deque[Step]]
 
 def get_tags(df: pd.DataFrame, tags: Iterable[str]):
     data_np = df[list(tags)].to_numpy().astype(np.float32)
-    return tensor(data_np)
+    return torch.tensor(data_np)
 
 
 def get_n_step_reward(step_q: deque[Step]):
@@ -100,15 +100,15 @@ class AllTheTimeTC:
         Constructs steps from pipeframe elements
         """
 
-        states = tensor(pf.states.to_numpy())
-        actions = tensor(pf.actions.to_numpy())
+        states = torch.tensor(pf.states.to_numpy())
+        actions = torch.tensor(pf.actions.to_numpy())
         rewards = pf.rewards['reward'].to_numpy()
         if self.cfg.normalize_return:
             rewards *= (1 - self.gamma)
 
         # dynamic action bounds
-        action_lo = tensor(pf.action_lo.to_numpy())
-        action_hi = tensor(pf.action_hi.to_numpy())
+        action_lo = torch.tensor(pf.action_lo.to_numpy())
+        action_hi = torch.tensor(pf.action_hi.to_numpy())
 
         dps = pf.decision_points
         acs = pf.action_change
