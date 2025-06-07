@@ -1,6 +1,6 @@
 from typing import Literal
 
-from torch import Tensor
+import jax
 
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition
@@ -24,7 +24,7 @@ class DummyEndoModel(BaseModel):
     def fit(self, transitions: list[Transition]):
         pass
 
-    def predict(self, state: Tensor, action: Tensor) -> tuple[Tensor, float]:
+    def predict(self, state: jax.Array, action: jax.Array) -> tuple[jax.Array, float]:
         endo_obs = state[self.endo_idxs]
         return endo_obs, 0.
 
@@ -47,7 +47,7 @@ class DummyModel(BaseModel):
     def fit(self, transitions: list[Transition]):
         pass
 
-    def predict(self, state: Tensor, action: Tensor) -> tuple[Tensor, float]:
+    def predict(self, state: jax.Array, action: jax.Array) -> tuple[jax.Array, float]:
         endo_obs = state
         return endo_obs, 0.
 

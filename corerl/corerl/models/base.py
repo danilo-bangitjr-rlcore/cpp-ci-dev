@@ -1,6 +1,6 @@
 from typing import Any
 
-from torch import Tensor
+import jax
 
 from corerl.configs.config import MISSING, config
 from corerl.configs.group import Group
@@ -53,7 +53,7 @@ class BaseModel:
     def fit(self, transitions: list[Transition]):
         ...
 
-    def predict(self, state: Tensor, action: Tensor) -> tuple[Tensor, float]:
+    def predict(self, state: jax.Array, action: jax.Array) -> tuple[jax.Array, float]:
         ...
 
 
