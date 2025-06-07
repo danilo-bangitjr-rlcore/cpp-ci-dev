@@ -288,7 +288,7 @@ class TransitionBatch:
         )
 
 
-class VectorizedTransition(NamedTuple):
+class AbsTransition(NamedTuple):
     state: State
     action: jax.Array
     reward: jax.Array
@@ -296,7 +296,7 @@ class VectorizedTransition(NamedTuple):
     gamma: jax.Array
 
 def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
-    return VectorizedTransition(
+    return AbsTransition(
         state=State(
             features=jnp.stack([t.state for t in tb]),
             a_lo=jnp.stack([t.action_lo for t in tb]),

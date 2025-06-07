@@ -8,7 +8,6 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
-import torch
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
@@ -16,9 +15,15 @@ from ml_instrumentation.Collector import Collector
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
+from corerl.component.buffer import (
+    BufferConfig,
+    JaxTransition,
+    MixedHistoryBufferConfig,
+    RecencyBiasBufferConfig,
+    buffer_group,
+)
 from corerl.configs.config import MISSING, computed, config
-from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
+from corerl.data_pipeline.datatypes import AbsTransition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -28,8 +33,6 @@ if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
-
-torch.autograd.set_detect_anomaly(True)
 
 @config()
 class CriticNetworkConfig:
@@ -89,13 +92,13 @@ class PercentileActorConfig:
 class EnsembleNetworkReturn(NamedTuple):
     # some reduction over ensemble members, producing a single
     # value function
-    reduced_value: torch.Tensor
+    reduced_value: jax.Array
 
     # the value function for every member of the ensemble
-    ensemble_values: torch.Tensor
+    ensemble_values: jax.Array
 
     # the variance of the ensemble values
-    ensemble_variance: torch.Tensor
+    ensemble_variance: jax.Array
 
 
 @config()
@@ -229,18 +232,17 @@ class GreedyAC(BaseAgent):
     def is_policy_buffer_sampleable(self)-> bool:
         return self._actor_buffer.is_sampleable
 
-    def sample_policy_buffer(self) -> list[TransitionBatch]:
+    def sample_policy_buffer(self) -> JaxTransition:
         return self._actor_buffer.sample()
 
 
-    def get_dist(self, states: torch.Tensor):
-        state_features = jnp.asarray(states)
+    def get_dist(self, states: jax.Array):
         dummy_jaxtions = jnp.zeros(self.action_dim)
         state_ = State(
-            state_features,
+            states,
             a_lo=dummy_jaxtions,
             a_hi=dummy_jaxtions,
-            dp=jnp.ones_like(state_features),
+            dp=jnp.ones((states.shape[0], 1), dtype=jnp.bool),
             last_a=dummy_jaxtions,
         )
         return self._actor.get_dist(
@@ -248,40 +250,37 @@ class GreedyAC(BaseAgent):
             state_,
         )
 
-    def prob(self, states: torch.Tensor, actions: torch.Tensor) -> torch.Tensor:
-        state_features = jnp.asarray(states)
-        jaxtions = jnp.asarray(actions)
-
+    def prob(self, states: jax.Array, actions: jax.Array) -> jax.Array:
         state_ = State(
-            state_features,
-            a_lo=jaxtions,
-            a_hi=jaxtions,
-            dp=jnp.ones_like(state_features),
-            last_a=jaxtions,
+            states,
+            a_lo=actions,
+            a_hi=actions,
+            dp=jnp.ones_like(states),
+            last_a=actions,
         )
 
-        jax_probs = jax_u.vmap_only(self._actor.get_probs, ['state'])(
+        return self._actor.get_probs(
             self._actor_state.actor.params,
             state_,
-            jaxtions,
+            actions,
         )
-
-        return torch.asarray(jax_probs)
 
     def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
         actions = jnp.asarray(actions)
         return self._actor.get_probs(actor_params, state, actions)
 
-    def get_values(self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor]):
-        q = self.critic.forward(
+    def get_values(self, state_batches: jax.Array, action_batches: jax.Array):
+        chex.assert_shape(state_batches, (self.ensemble, None, self.state_dim))
+
+        q = self.critic.get_values(
             self._critic_state.params,
-            jnp.asarray(state_batches),
-            jnp.asarray(action_batches),
+            state_batches,
+            action_batches,
         )
         return EnsembleNetworkReturn(
-            reduced_value=torch.asarray(q.mean(axis=0)),
-            ensemble_values=torch.asarray(q),
-            ensemble_variance=torch.asarray(q.var(axis=0)),
+            reduced_value=q.mean(axis=0),
+            ensemble_values=q,
+            ensemble_variance=q.var(axis=0),
         )
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
@@ -332,37 +331,25 @@ class GreedyAC(BaseAgent):
             return
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
-        recent_critic_idxs = self.critic_buffer.feed(pr.transitions, pr.data_mode)
+        self.critic_buffer.feed(pr.transitions, pr.data_mode)
         recent_actor_idxs = self._actor_buffer.feed(pr.transitions, pr.data_mode)
-
-        # ---------------------------------- ingress critic loss metric --------------------------------- #
-
-        if len(recent_critic_idxs) > 0:
-            recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
-            recent_critic_batch = [recent_critic_batch for _ in range(self.ensemble)]
-
-            bootstrap_actions = self._get_bootstrap_actions(recent_critic_batch)
-
-            next_actions = jnp.stack([jnp.asarray(a) for a in bootstrap_actions])
-            v_trans = vect_trans_from_transition_batch(recent_critic_batch)
-
-            _, metrics = self.critic.update(self._critic_state, v_trans, next_actions)
-
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"ingress_critic_loss_{pr.data_mode.name}",
-                value=metrics['loss'].item(),
-            )
 
         # ---------------------------------- ingress actor loss metic --------------------------------- #
         if len(recent_actor_idxs) > 0:
             recent_actor_batch = self._actor_buffer.get_batch(recent_actor_idxs)
-            v_actor_trans = vect_trans_from_transition_batch([recent_actor_batch])
+
+            state = State(
+                features=jnp.asarray(recent_actor_batch.state),
+                a_lo=jnp.asarray(recent_actor_batch.action_lo),
+                a_hi=jnp.asarray(recent_actor_batch.action_hi),
+                dp=jnp.ones((len(recent_actor_batch.state), 1)),
+                last_a=jnp.asarray(recent_actor_batch.action),
+            )
 
             actor_loss = -jnp.log(self._actor.get_probs(
                 self._actor_state.actor.params,
-                v_actor_trans.state,
-                v_actor_trans.action,
+                state,
+                recent_actor_batch.action,
             )).item()
 
             self._app_state.metrics.write(
@@ -383,28 +370,23 @@ class GreedyAC(BaseAgent):
 
     # --------------------------- critic updating-------------------------- #
 
-    def _get_bootstrap_actions(
-        self,
-        batches: list[TransitionBatch],
-    ):
-        v_trans = vect_trans_from_transition_batch(batches)
-        self._jax_rng, rng = jax.random.split(self._jax_rng)
-        return self._actor.get_actions_rng(
-            self._actor_state.actor.params,
-            rng,
-            v_trans.state,
-            self.cfg.bootstrap_action_samples,
-        )
-
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
             return [0 for _ in range(self.ensemble)]
 
         batches = self.critic_buffer.sample()
-        bootstrap_actions = self._get_bootstrap_actions(batches)
+        critic_batch = abs_transition_from_batch(batches)
+        next_actions = self._actor.get_actions(
+            self._actor_state.actor.params,
+            critic_batch.next_state,
+            self.cfg.bootstrap_action_samples,
+        )
 
-        v_trans = vect_trans_from_transition_batch(batches)
-        self._critic_state, metrics = self.critic.update(self._critic_state, v_trans, bootstrap_actions)
+        self._critic_state, metrics = self.critic.update(
+            critic_state=self._critic_state,
+            transitions=critic_batch,
+            next_actions=next_actions,
+        )
 
         # log weight norm
         for i, norm in enumerate(metrics['ensemble_weight_norms']):
@@ -462,12 +444,12 @@ class GreedyAC(BaseAgent):
             return 0.
 
         batch = self._actor_buffer.sample()
-        v_trans = vect_trans_from_transition_batch(batch)
+        actor_batch = abs_transition_from_batch(batch)
         self._actor_state, metrics = self._actor.update(
             self._actor_state,
             self.ensemble_ve,
             self._critic_state.params,
-            v_trans,
+            actor_batch,
         )
         return metrics['actor_loss']
 
@@ -546,3 +528,52 @@ class GreedyAC(BaseAgent):
             "critic": self.critic_buffer.size,
             "policy": self._actor_buffer.size,
         }
+
+
+def state_from_batch(batch: JaxTransition) -> State:
+    """
+    Converts a JaxTransition batch to a State object.
+    """
+    return State(
+        features=jnp.asarray(batch.state),
+        a_lo=jnp.asarray(batch.action_lo),
+        a_hi=jnp.asarray(batch.action_hi),
+        dp=jnp.ones((len(batch.state), 1)),
+        last_a=jnp.asarray(batch.action),
+    )
+
+def next_state_from_batch(batch: JaxTransition) -> State:
+    """
+    Converts a JaxTransition batch to a State object, using the next state.
+    """
+    return State(
+        features=jnp.asarray(batch.next_state),
+        a_lo=jnp.asarray(batch.next_action_lo),
+        a_hi=jnp.asarray(batch.next_action_hi),
+        dp=jnp.ones((len(batch.state), 1)),
+        last_a=jnp.asarray(batch.action),
+    )
+
+def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
+    """
+    Converts a JaxTransition batch to a State object, using the absolute state.
+    """
+    return AbsTransition(
+        state=State(
+            features=batch.state,
+            a_lo=batch.action_lo,
+            a_hi=batch.action_hi,
+            dp=jnp.expand_dims(batch.dp, -1),
+            last_a=batch.action,
+        ),
+        next_state=State(
+            features=batch.next_state,
+            a_lo=batch.next_action_lo,
+            a_hi=batch.next_action_hi,
+            dp=jnp.expand_dims(batch.next_dp, -1),
+            last_a=batch.action,
+        ),
+        action=batch.action,
+        reward=batch.n_step_reward,
+        gamma=batch.n_step_gamma,
+    )

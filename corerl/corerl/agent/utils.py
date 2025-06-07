@@ -3,6 +3,8 @@ from __future__ import annotations
 from math import ceil
 from typing import TYPE_CHECKING, NamedTuple, Protocol
 
+import jax
+import jax.numpy as jnp
 import torch
 
 if TYPE_CHECKING:
@@ -71,51 +73,22 @@ def get_percentile_threshold(
     return top_n_values.min(dim=1).values
 
 class SampledQReturn(NamedTuple):
-    q_values: torch.Tensor
-    states: torch.Tensor
-    actions: torch.Tensor
+    q_values: jax.Array
+    states: jax.Array
+    actions: jax.Array
 
 class Sampler(Protocol):
     def __call__(
         self,
         n_samples: int,
-        states: torch.Tensor,
-        action_lo: torch.Tensor,
-        action_hi: torch.Tensor,
-    ) -> torch.Tensor: ...
+        states: jax.Array,
+        action_lo: jax.Array,
+        action_hi: jax.Array,
+    ) -> jax.Array: ...
 
 class ValueEstimator(Protocol):
     def get_values(
         self,
-        state_batches: list[torch.Tensor],
-        action_batches: list[torch.Tensor],
+        state_batches: jax.Array,
+        action_batches: jax.Array,
     ) -> EnsembleNetworkReturn: ...
-
-
-def get_sampled_qs(
-    states: torch.Tensor,
-    action_lo: torch.Tensor,
-    action_hi: torch.Tensor,
-    n_samples: int,
-    sampler: Sampler,
-    critic: ValueEstimator,
-) -> SampledQReturn:
-    batch_size = states.size(0)
-
-    actions = sampler(
-        n_samples,
-        states,
-        action_lo,
-        action_hi,
-    )
-
-    repeated_states = states.repeat_interleave(n_samples, dim=0)
-    actions = actions.reshape(batch_size * n_samples, -1)
-
-    q_values = critic.get_values([repeated_states], [actions]).reduced_value
-    q_values = q_values.reshape(batch_size, n_samples)
-
-    states = repeated_states.reshape(batch_size, n_samples, -1)
-
-    actions = actions.reshape(batch_size, n_samples, -1)
-    return SampledQReturn(q_values, states, actions)

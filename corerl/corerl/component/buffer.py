@@ -2,25 +2,48 @@ import datetime
 from abc import abstractmethod
 from collections import deque
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Annotated, Any, Literal, Protocol
+from typing import TYPE_CHECKING, Annotated, Any, Literal, NamedTuple, Protocol
 
+import jax
+import jax.numpy as jnp
 import numpy as np
-import torch
 from discrete_dists.distribution import Support
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from discrete_dists.utils.SumTree import SumTree
+from lib_agent.buffer.storage import ReplayStorage
 from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config
 from corerl.configs.group import Group
-from corerl.data_pipeline.datatypes import DataMode, StepBatch, Transition, TransitionBatch
+from corerl.data_pipeline.datatypes import DataMode, Transition
 from corerl.state import AppState
-from corerl.utils.device import device
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
+
+
+class JaxTransition(NamedTuple):
+    state: jax.Array
+    action: jax.Array
+    reward: jax.Array
+    next_state: jax.Array
+    gamma: jax.Array
+
+    action_lo: jax.Array
+    action_hi: jax.Array
+    next_action_lo: jax.Array
+    next_action_hi: jax.Array
+
+    dp: jax.Array
+    next_dp: jax.Array
+
+    n_step_reward: jax.Array
+    n_step_gamma: jax.Array
+
+    state_dim: int
+    action_dim: int
 
 class SampleDistributionProtocol(Protocol):
     def size(self) -> int:
@@ -68,9 +91,8 @@ class BaseBuffer:
         assert cfg.n_most_recent <= self.batch_size
         self._n_most_recent = cfg.n_most_recent
 
-        self.data = None
-        self.pos = 0
-        self.full = False
+        self._storage = ReplayStorage[JaxTransition](capacity=self.memory)
+
         self.id = cfg.id
         self._ens_dists: list[SampleDistributionProtocol] | None = None
 
@@ -84,24 +106,18 @@ class BaseBuffer:
         Adds transitions to the buffer. Returns the indices of those elements in the buffer
         """
 
-    def sample(self) -> list[TransitionBatch]:
-        """
-        Samples a list of TransitionBatch from the buffer.
-
-        Raises an exception when one of the sub-distributions is empty.
-        """
+    def sample(self) -> JaxTransition:
         if not self.is_sampleable:
             raise Exception('One of the sub-distributions is empty.')
 
-        ensemble_batch: list[TransitionBatch] = []
+        ensemble_idxs: list[np.ndarray] = []
         assert self._ens_dists is not None
         for dist in self._ens_dists:
             idxs = dist.sample(self.rng, self.batch_size)
             idxs = self._add_n_most_recent(idxs)
-            batch = self.get_batch(idxs)
-            ensemble_batch.append(batch)
+            ensemble_idxs.append(idxs)
 
-        return ensemble_batch
+        return self._storage.get_ensemble_batch(ensemble_idxs)
 
     @property
     def size(self) -> list[int]:
@@ -118,22 +134,12 @@ class BaseBuffer:
         """
         return min(self.size) > 0
 
-    def reset(self) -> None:
-        """
-        Resets the buffer to its original state.
-        """
-        self.data = None
-        self.pos = 0
-        self.full = False
-
-    def get_batch(self, idxs: np.ndarray) -> TransitionBatch:
+    def get_batch(self, idxs: np.ndarray):
         """
         Given an array of indices, returns a TransitionBatch where the entries are the transitions
         at the given indices.
         """
-        assert self.data is not None
-        sampled_data = [self.data[i][idxs] for i in range(len(self.data))]
-        return self._prepare_batch(idxs, sampled_data)
+        return self._storage.get_batch(idxs)
 
     # ---------------------------------- Helpers --------------------------------- #
 
@@ -151,20 +157,27 @@ class BaseBuffer:
         """
         idxs = np.empty(len(transitions), dtype=np.int64)
         for j, transition in enumerate(transitions):
-            if self.data is None:
-                # Lazy instantiation
-                data_size = _get_size(transition)
-                self.data = [torch.empty((self.memory, *s), device=device.device) for s in data_size]
+            idxs[j] = self._storage.add(JaxTransition(
+                state=jnp.asarray(transition.state),
+                action=jnp.asarray(transition.action),
+                reward=jnp.asarray(transition.reward),
+                next_state=jnp.asarray(transition.next_state),
+                gamma=jnp.asarray(transition.gamma),
 
-            i = 0
-            for elem in transition:
-                self.data[i][self.pos] = _to_tensor(elem)
-                i += 1
+                action_lo=jnp.asarray(transition.steps[0].action_lo),
+                action_hi=jnp.asarray(transition.steps[0].action_hi),
+                next_action_lo=jnp.asarray(transition.steps[-1].action_lo),
+                next_action_hi=jnp.asarray(transition.steps[-1].action_hi),
 
-            idxs[j] = self.pos
-            self.pos = (self.pos + 1) % self.memory
-            if not self.full and self.pos == 0:
-                self.full = True
+                dp=jnp.asarray(transition.steps[0].dp),
+                next_dp=jnp.asarray(transition.steps[-1].dp),
+
+                n_step_reward=jnp.asarray(transition.n_step_reward),
+                n_step_gamma=jnp.asarray(transition.n_step_gamma),
+                state_dim=transition.state_dim,
+                action_dim=transition.action_dim,
+            ))
+
         return idxs
 
     def _get_ensemble_masks(self, batch_size: int) -> np.ndarray:
@@ -190,22 +203,6 @@ class BaseBuffer:
             idxs[i] = j
         return idxs
 
-    def _prepare_batch(self, idxs: np.ndarray, batch: list[torch.Tensor]) -> TransitionBatch:
-        """
-        Given an array of indices and a list of tensors representing the raw data of transitions,
-        returns a TransitionBatch.
-        """
-        step_attrs = len(StepBatch.__annotations__.keys())
-        prior_step_batch = StepBatch(*batch[:step_attrs])
-        post_step_batch = StepBatch(*batch[step_attrs : step_attrs * 2])
-        return TransitionBatch(
-            idxs,
-            prior_step_batch,
-            post_step_batch,
-            n_step_reward=batch[-2],
-            n_step_gamma=batch[-1],
-        )
-
     def _write_buffer_sizes(self):
         """
         Write the sizes of the sub buffers to metrics.
@@ -214,30 +211,6 @@ class BaseBuffer:
         for i, size in enumerate(sizes):
             self.app_state.metrics.write(self.app_state.agent_step, metric=f"buffer_{self.id}[{i}]_size", value=size)
 
-
-def _to_tensor(elem: object):
-    if isinstance(elem, torch.Tensor | np.ndarray | list):
-        return torch.Tensor(elem)
-    if elem is None:
-        return torch.empty((1, 0))
-    return torch.Tensor([elem])
-
-
-def _get_size(experience: Transition) -> list[tuple]:
-    size = []
-    for elem in experience:
-        if isinstance(elem, np.ndarray):
-            size.append(elem.shape)
-        elif isinstance(elem, torch.Tensor):
-            size.append(tuple(elem.shape))
-        elif isinstance(elem, int | float | bool):
-            size.append((1,))
-        elif isinstance(elem, list):
-            size.append((len(elem),))
-        else:
-            raise TypeError(f"unknown type {type(elem)}")
-
-    return size
 
 # ---------------------------------------------------------------------------- #
 #                             Mixed History Buffer                             #
@@ -320,16 +293,6 @@ class MixedHistoryBuffer(BaseBuffer):
 
         return idxs
 
-    def reset(self):
-        super().reset()
-        assert isinstance(self._cfg, MixedHistoryBufferConfig)
-        self._ens_dists = [
-            MaskedABDistribution(
-                self.memory,
-                self._cfg.online_weight,
-                self._cfg.ensemble_probability,
-            ) for _ in range(self._cfg.ensemble)
-        ]
 
 # ---------------------------------------------------------------------------- #
 #                              Recency Bias Buffer                             #
@@ -484,18 +447,6 @@ class RecencyBiasBuffer(BaseBuffer):
         self._update_n_most_recent(idxs, data_mode)
 
         return idxs
-
-    def reset(self):
-        super().reset()
-        self._last_timestamp = None
-        assert isinstance(self._cfg, RecencyBiasBufferConfig)
-        self._ens_dists = [
-            MaskedUGDistribution(
-                self.memory,
-                self._cfg.uniform_weight,
-                self._cfg.ensemble_probability,
-                ) for _ in range(self._cfg.ensemble)
-        ]
 
     def get_probability(self, ens_i: int, idxs: np.ndarray):
         assert 0 <= ens_i < self._cfg.ensemble

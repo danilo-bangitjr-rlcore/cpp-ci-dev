@@ -12,8 +12,15 @@ def method_jit[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     return jax.jit(f, static_argnums=(0,))
 
 
-def vmap[**P, R](f: Callable[P, R]) -> Callable[P, R]:
-    return jax.vmap(f)
+def vmap[F: Callable](f: F, in_axes: tuple[int | None, ...] | None = None) -> F:
+    # if no in_axes are provided, we assume all arguments are batched
+    if in_axes is None:
+        in_axes = tuple(
+            0 if p.default is Parameter.empty else None
+            for p in signature(f).parameters.values()
+        )
+
+    return jax.vmap(f, in_axes=in_axes)
 
 
 def vmap_except[F: Callable](f: F, exclude: Sequence[str | int], levels: int = 1) -> F:
