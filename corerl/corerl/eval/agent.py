@@ -463,9 +463,6 @@ def q_values_and_act_prob(
     * y is the probability or Q value, averaged over samples where the action in metric is set to x
         and the other actions are sampled from the policy. cfg.other_action_samples controls the number of samples
     """
-    if not isinstance(agent, GreedyAC):
-        return
-
     cfg = app_state.cfg.eval_cfgs.q_pdf_plots
     if not cfg.enabled:
         return
@@ -478,7 +475,7 @@ def q_values_and_act_prob(
     n_samples = cfg.primary_action_samples * cfg.other_action_samples
     dist = agent.get_dist(state)
     rng = jax.random.PRNGKey(app_state.agent_step)
-    actions: jax.Array = dist.sample_n(rng, n_samples)
+    actions: jax.Array = dist.sample(seed=rng, sample_shape=n_samples)
     actions = actions.transpose(1, 0, 2)
 
     # get actions for each action dimension we are interested in.

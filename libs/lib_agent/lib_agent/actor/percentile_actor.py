@@ -20,50 +20,6 @@ from lib_agent.network.activations import (
 )
 
 
-class SquashedGaussian:
-    def __init__(self, mean: jax.Array, std: jax.Array):
-        dist = distrax.Transformed(
-            distribution=distrax.MultivariateNormalDiag(loc=mean, scale_diag=std),
-            bijector=distrax.Block(
-                distrax.Tanh(),
-                ndims=1,
-            ),
-        )
-        dist = distrax.Transformed(
-            distribution=dist,
-            bijector=distrax.Block(
-                distrax.ScalarAffine(shift=1, scale=1.0),
-                ndims=1,
-            ),
-        )
-        self.dist = distrax.Transformed(
-            distribution=dist,
-            bijector=distrax.Block(
-                distrax.ScalarAffine(shift=0, scale=0.5),
-                ndims=1,
-            ),
-        )
-        self.mean = mean
-        self.std = std
-
-    def sample(self, seed: chex.PRNGKey):
-        return self.dist.sample(seed=seed)
-
-    def sample_n(self, seed: chex.PRNGKey, n: int):
-        return self.dist.sample(seed=seed, sample_shape=(n,))
-
-    def log_prob(self, action: jax.Array):
-        return self.dist.log_prob(action)
-
-    def prob(self, action: jax.Array):
-        return self.dist.prob(action)
-
-    def get_params(self):
-        return {
-            'mean': self.mean,
-            'std': self.std,
-        }
-
 class UpdateActions(NamedTuple):
     actor: jax.Array
     proposal: jax.Array
@@ -107,7 +63,7 @@ class PAConfig:
     uniform_weight: float
     actor_lr: float
     proposal_lr: float
-    max_action_stddev: float | None = None
+    max_action_stddev: float = jnp.inf
     sort_noise: float = 0.0
 
 class ActorOutputs(NamedTuple):
@@ -172,74 +128,86 @@ class PercentileActor:
 
         return PAState(actor_state, proposal_state)
 
-    # -------------------------------- get actions ------------------------------- #
-
-    def safe_get_actions(self, actor_params: chex.ArrayTree, state: State):
-        self.rng, sample_rng = jax.random.split(self.rng, 2)
-        return self.safe_get_actions_rng(actor_params, sample_rng, state)
-
-    def safe_get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
-        dist = self.get_dist(actor_params, state)
-        params = dist.get_params()
-        mean, std = params['mean'], params['std']
-
-        sampled = dist.sample(seed=rng)
-        clipped_to_bounds = jnp.clip(sampled, state.a_lo, state.a_hi)
-
-        if self._cfg.max_action_stddev is None:
-            return clipped_to_bounds
-
-        return jnp.clip(
-            clipped_to_bounds,
-            mean-std*self._cfg.max_action_stddev,
-            mean+std*self._cfg.max_action_stddev,
-        )
-
-    def get_actions(self, actor_params: chex.ArrayTree, state: State):
-        self.rng, sample_rng = jax.random.split(self.rng, 2)
-        return self.get_actions_rng(actor_params, sample_rng, state)
 
     @jax_u.method_jit
-    def get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
-        dist = self.get_dist(actor_params, state)
-        sampled = dist.sample(seed=rng)
-        dp_mask = state.dp
-        clipped = jnp.clip(sampled, state.a_lo, state.a_hi)
-        return dp_mask * clipped + (1 - dp_mask) * state.last_a
+    def _forward(self, actor_params: chex.ArrayTree, state: State) -> ActorOutputs:
+        levels = state.features.ndim - 1
+        return jax_u.vmap_only(self.actor.apply, ['x'], levels)(
+            actor_params,
+            state.features,
+        )
 
-    def get_dist(self, actor_params: chex.ArrayTree, state: State):
-        out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
-        return SquashedGaussian(out.mu, out.sigma)
+
+    # -------------------------------- get actions ------------------------------- #
+
+    def get_actions(self, actor_params: chex.ArrayTree, state: State, n: int = 1, std_devs: float = jnp.inf):
+        self.rng, sample_rng = jax.random.split(self.rng, 2)
+        return self.get_actions_rng(actor_params, sample_rng, state, n=n, std_devs=std_devs)
+
 
     @partial(jax_u.jit, static_argnums=(0, 4))
-    def get_actions_for_bootstrap(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, states: State, num_samples: int):
-        def _per_state(rng: chex.PRNGKey, state: State):
-            # (state_dim, )
-            chex.assert_rank(state.features, 1)
-            dist = self.get_dist(actor_params, state)
-            actions = dist.sample_n(seed=rng, n=num_samples)
-            return jnp.clip(actions, state.a_lo, state.a_hi)
+    def get_actions_rng(
+        self,
+        actor_params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        states: State,
+        n: int = 1,
+        std_devs: float = jnp.inf,
+    ):
+        chex.assert_equal_rank(states)
 
-        ens_size = states.features.shape[0]
-        batch_size = states.features.shape[1]
-        chex.assert_shape(states.features, (ens_size, batch_size, self.state_dim))
+        # vmap over all dimensions except the last
+        levels = states.features.ndim - 1
 
-        rng_grid = jax.random.split(rng, (ens_size, batch_size))
-        return jax_u.vmap(
-            jax_u.vmap(_per_state),
-        )(rng_grid, states)
+        rngs = jax.random.split(rng, states.features.shape[:-1])
+        f = partial(self._get_actions_for_state, actor_params, n=n, std_devs=std_devs)
+        actions = jax_u.multi_vmap(f, levels)(
+            rngs,
+            states,
+        )
+
+        chex.assert_rank(actions, states.features.ndim + 1)
+        return actions
+
+    def _get_actions_for_state(
+        self,
+        actor_params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        state: State,
+        n: int,
+        std_devs: float = jnp.inf,
+    ):
+        chex.assert_shape(state.features, (self.state_dim, ))
+        dist_params = self._forward(actor_params, state)
+        dist = distrax.MultivariateNormalDiag(dist_params.mu, dist_params.sigma)
+        actions = dist.sample(seed=rng, sample_shape=n)
+
+        actions = jnp.clip(actions, state.a_lo, state.a_hi)
+        actions = state.dp * actions + (1 - state.dp) * jnp.expand_dims(state.last_a, axis=0)
+
+        actions = jnp.clip(
+            actions,
+            dist_params.mu - dist_params.sigma * std_devs,
+            dist_params.mu + dist_params.sigma * std_devs,
+        )
+
+        chex.assert_shape(actions, (n, self.action_dim))
+        return actions
+
+
+    def get_dist(self, actor_params: chex.ArrayTree, state: State):
+        dist_params = self._forward(actor_params, state)
+        return distrax.MultivariateNormalDiag(dist_params.mu, dist_params.sigma)
+
 
     # ----------------------------- get probabilities ---------------------------- #
 
     @jax_u.method_jit
     def get_probs(self, params: chex.ArrayTree, state: State, actions: jax.Array):
         dist = self.get_dist(params, state)
-        return self._get_probs(dist, actions)
+        return jax_u.vmap_only(self._get_prob, ['action'])(dist, actions)
 
-    def _get_probs(self, dist: SquashedGaussian, actions: jax.Array):
-        return jax.vmap(self._get_prob, in_axes=(None, 0))(dist, actions)
-
-    def _get_prob(self, dist: SquashedGaussian, action: jax.Array):
+    def _get_prob(self, dist: distrax.Distribution, action: jax.Array):
         log_prob = dist.log_prob(action)
         return jnp.exp(log_prob)
 
@@ -256,6 +224,8 @@ class PercentileActor:
         self.rng, update_rng = jax.random.split(self.rng, 2)
 
         states = jax.tree.map(lambda arr: arr[0], transitions.state) # remove ensemble dimension
+        chex.assert_equal_rank(states)
+
         actor_state, proposal_state, actor_loss = self._policy_update(
             pa_state,
             value_estimator,
@@ -353,7 +323,7 @@ class PercentileActor:
     def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: State, rng: chex.PRNGKey):
         uniform_samples = int(self._cfg.num_samples * self._cfg.uniform_weight)
 
-        rng, u_rng = jax.random.split(rng, 2)
+        rng, u_rng, p_rng = jax.random.split(rng, 3)
         uniform_actions = jax.random.uniform(u_rng, (uniform_samples, self.action_dim))
         uniform_actions = jnp.clip(uniform_actions, state.a_lo, state.a_hi)
 
@@ -361,8 +331,7 @@ class PercentileActor:
         if proposal_samples == 0:
             return uniform_actions
 
-        rngs = jax.random.split(self.rng, proposal_samples)
-        proposal_actions = jax_u.vmap_only(self.get_actions_rng, ['rng'])(proposal_params, rngs, state)
+        proposal_actions = self.get_actions_rng(proposal_params, p_rng, state, n=proposal_samples)
 
         return jnp.concat([uniform_actions, proposal_actions], axis=0)
 
@@ -399,7 +368,7 @@ class PercentileActor:
 
     def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: State, top_actions: jax.Array):
         out: ActorOutputs = policy.apply(params=params, x=state.features)
-        dist = SquashedGaussian(out.mu, out.sigma)
+        dist = distrax.MultivariateNormalDiag(out.mu, out.sigma)
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)
 

@@ -17,9 +17,7 @@ from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.component.buffer import BufferConfig, MixedHistoryBufferConfig, RecencyBiasBufferConfig, buffer_group
-from corerl.component.optimizers.torch_opts import AdamConfig
-from corerl.component.policy.factory import NormalPolicyConfig
-from corerl.configs.config import MISSING, computed, config, post_processor
+from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import TransitionBatch, vect_trans_from_transition_batch
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
@@ -39,11 +37,9 @@ class CriticNetworkConfig:
 
 @config()
 class GTDCriticConfig:
-    beta: float = 1.0
-    action_regularization: float = 0.0
-    num_rand_actions: int = 10
+    action_regularization: float = 0.0001
     buffer: BufferConfig = MISSING
-    critic_optimizer: AdamConfig =  Field(default_factory=AdamConfig)
+    stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
 
     @computed('buffer')
@@ -63,25 +59,15 @@ class GTDCriticConfig:
 
 @config()
 class PercentileActorConfig:
-    name: Literal["network"] = "network"
-    greedy: bool = False
-
-    # hyperparameters
     num_samples: int = 128
     actor_percentile: float = 0.1
     sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.9
-    init_sampler_with_actor_weights: bool = True
-    resample_for_sampler_update: bool = True
-    grad_clip: float = 50_000
+    prop_percentile_learned: float = 0.0
     sort_noise: float = 0.0
-
-    # metrics
-    ingress_loss: bool = True
+    actor_stepsize: float = 0.0001
+    sampler_stepsize: float = 0.0001
 
     # components
-    network: NormalPolicyConfig = Field(default_factory=NormalPolicyConfig)
-    optimizer: AdamConfig = Field(default_factory=AdamConfig)
     buffer: BufferConfig = MISSING
 
     @computed('buffer')
@@ -98,11 +84,6 @@ class PercentileActorConfig:
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
         return ta.validate_python(default_buffer_dict, context=main_cfg)
-
-    @post_processor
-    def _default_stepsize(self, cfg: 'MainConfig'):
-        if isinstance(self.optimizer, AdamConfig):
-            self.optimizer.lr = 0.001
 
 
 class EnsembleNetworkReturn(NamedTuple):
@@ -166,21 +147,12 @@ class GreedyACConfig(BaseAgentConfig):
     producing an Expected Sarsa-like update.
     """
 
-    eval_batch : bool = False
-    """
-    Toggle for using a separate batch for evaluation of the
-    linesearch stopping condition.
-    """
-
-    max_action_stddev: float = 1.0
+    max_action_stddev: float = np.inf
     """
     Maximum number of stddevs from the mean for the action
     taken during an interaction step. Forcefully prevents
     very long-tailed events from occurring.
     """
-
-    # metrics
-    ingress_loss : bool = True
 
 
 class GreedyAC(BaseAgent):
@@ -188,7 +160,6 @@ class GreedyAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
         self._col_desc = col_desc
-        self.eval_batch = cfg.eval_batch
         collector = Collector(experiment_id=0)
 
         actor_cfg = PAConfig(
@@ -197,8 +168,8 @@ class GreedyAC(BaseAgent):
             actor_percentile=cfg.policy.actor_percentile,
             proposal_percentile=cfg.policy.sampler_percentile,
             uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.actor_percentile,
-            actor_lr=cfg.policy.optimizer.lr,
-            proposal_lr=cfg.policy.optimizer.lr,
+            actor_lr=cfg.policy.actor_stepsize,
+            proposal_lr=cfg.policy.sampler_stepsize,
             max_action_stddev=cfg.max_action_stddev,
             sort_noise=cfg.policy.sort_noise,
         )
@@ -213,10 +184,10 @@ class GreedyAC(BaseAgent):
 
         critic_cfg = QRCConfig(
             name='qrc',
-            stepsize=cfg.critic.critic_optimizer.lr,
+            stepsize=cfg.critic.stepsize,
             ensemble=cfg.critic.critic_network.ensemble,
             ensemble_prob=cfg.critic.buffer.ensemble_probability,
-            num_rand_actions=cfg.critic.num_rand_actions,
+            num_rand_actions=cfg.bootstrap_action_samples,
             action_regularization=cfg.critic.action_regularization,
             l2_regularization=1.0,
         )
@@ -321,7 +292,10 @@ class GreedyAC(BaseAgent):
         )
 
     def get_actions(self, state: State):
-        return self._actor.safe_get_actions(self._actor_state.actor.params, state)
+        actions = self._actor.get_actions(self._actor_state.actor.params, state)
+
+        # remove the n_samples dimension
+        return actions.squeeze(axis=-2)
 
     def get_action_interaction(
         self,
@@ -341,13 +315,15 @@ class GreedyAC(BaseAgent):
             features=state_features,
             a_lo=jaxtion_lo,
             a_hi=jaxtion_hi,
-            dp=jnp.ones_like(state_features),
+            dp=jnp.ones((1,)),
             last_a=jnp.zeros_like(jaxtion_lo),
         )
-        jaxtion = self._actor.safe_get_actions(
+        jaxtion = self._actor.get_actions(
             self._actor_state.actor.params,
             state_,
         )
+        # remove the n_samples dimension
+        jaxtion = jaxtion.squeeze(axis=-2)
 
         return np.asarray(jaxtion)
 
@@ -361,7 +337,7 @@ class GreedyAC(BaseAgent):
 
         # ---------------------------------- ingress critic loss metric --------------------------------- #
 
-        if self.cfg.ingress_loss and len(recent_critic_idxs) > 0:
+        if len(recent_critic_idxs) > 0:
             recent_critic_batch = self.critic_buffer.get_batch(recent_critic_idxs)
             recent_critic_batch = [recent_critic_batch for _ in range(self.ensemble)]
 
@@ -379,7 +355,7 @@ class GreedyAC(BaseAgent):
             )
 
         # ---------------------------------- ingress actor loss metic --------------------------------- #
-        if self.cfg.ingress_loss and len(recent_actor_idxs) > 0:
+        if len(recent_actor_idxs) > 0:
             recent_actor_batch = self._actor_buffer.get_batch(recent_actor_idxs)
             v_actor_trans = vect_trans_from_transition_batch([recent_actor_batch])
 
@@ -413,7 +389,7 @@ class GreedyAC(BaseAgent):
     ):
         v_trans = vect_trans_from_transition_batch(batches)
         self._jax_rng, rng = jax.random.split(self._jax_rng)
-        return self._actor.get_actions_for_bootstrap(
+        return self._actor.get_actions_rng(
             self._actor_state.actor.params,
             rng,
             v_trans.state,
@@ -476,7 +452,10 @@ class GreedyAC(BaseAgent):
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
         ens_forward = jax_u.vmap_only(self.critic.forward, ['params'])
         qs = ens_forward(params, x, a)
-        return qs.mean(axis=0).squeeze(-1)
+        values = qs.mean(axis=0).squeeze(-1)
+
+        chex.assert_rank(values, 0)
+        return values
 
     def update_actor(self):
         if not self._actor_buffer.is_sampleable:
@@ -484,7 +463,7 @@ class GreedyAC(BaseAgent):
 
         batch = self._actor_buffer.sample()
         v_trans = vect_trans_from_transition_batch(batch)
-        self.actor_state, metrics = self._actor.update(
+        self._actor_state, metrics = self._actor.update(
             self._actor_state,
             self.ensemble_ve,
             self._critic_state.params,
