@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 
+import jax.numpy as jnp
 import numpy as np
-import torch
 
 from corerl.component.buffer import (
     MaskedUGDistribution,
@@ -44,7 +44,7 @@ def test_feed_online_mode(dummy_app_state: AppState):
         idxs = buffer.feed(offline_transitions, DataMode.OFFLINE)
 
         samples = buffer.sample()
-        assert (samples.state[:, :2, 0] == torch.Tensor([1, 4, 3])).all()
+        assert (samples.state[:, :2, 0] == jnp.array([1, 4, 3])).all()
 
 def test_masked_ug_distribution():
     dist = MaskedUGDistribution(support=100, left_prob=0.5, mask_prob=0.5)

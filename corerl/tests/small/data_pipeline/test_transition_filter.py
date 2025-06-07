@@ -1,10 +1,9 @@
 from datetime import timedelta
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
-import torch
-from torch import Tensor
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
@@ -29,14 +28,14 @@ def make_test_step(
     ac: bool = False,
 ) -> Step:
     return Step(
-        state=Tensor([i]),
-        action=Tensor([action]),
+        state=jnp.array([i]),
+        action=jnp.array([action]),
         reward=reward,
         gamma=gamma,
         ac=ac,
         dp=dp,
-        action_lo=torch.zeros_like(Tensor([action])),
-        action_hi=torch.zeros_like(Tensor([action])),
+        action_lo=jnp.zeros_like(jnp.array([action])),
+        action_hi=jnp.zeros_like(jnp.array([action])),
     )
 
 
@@ -188,7 +187,7 @@ def test_no_nan():
         make_test_step(1),
         make_test_step(2),
     ]
-    steps[1].state = Tensor([np.nan])
+    steps[1].state = jnp.array([np.nan])
 
     transition = Transition(
         steps=steps,

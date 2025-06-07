@@ -24,7 +24,6 @@ from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import EventType
 from corerl.state import AppState
-from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
@@ -61,8 +60,6 @@ def retryable_main(cfg: MainConfig):
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
-
-    device.update_device(cfg.infra.device)
 
     # build global objects
     event_bus = (

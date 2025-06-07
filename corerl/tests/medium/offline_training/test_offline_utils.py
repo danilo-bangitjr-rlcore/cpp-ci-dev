@@ -1,11 +1,11 @@
 import datetime as dt
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
-import torch
 from sqlalchemy import Engine
-from torch import Tensor
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -27,9 +27,9 @@ from corerl.state import AppState
 
 def make_step(
     reward: float,
-    action: Tensor,
+    action: jax.Array,
     gamma: float,
-    state: Tensor,
+    state: jax.Array,
     dp: bool, # decision point
     ac: bool, # action change
 ):
@@ -38,8 +38,8 @@ def make_step(
         action=action,
         gamma=gamma,
         state=state,
-        action_lo=torch.zeros_like(action),
-        action_hi=torch.ones_like(action),
+        action_lo=jnp.zeros_like(action),
+        action_hi=jnp.ones_like(action),
         dp=dp,
         ac=ac,
     )
@@ -150,11 +150,11 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
 
     # Expected transitions
     gamma = offline_cfg.agent.gamma
-    step_0 = make_step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([0, 1, 0]), dp=False, ac=False)
-    step_1 = make_step(reward=1.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([1, 1, 0]), dp=True,  ac=False) # dp
-    step_2 = make_step(reward=1.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([2, 1, 0]), dp=False, ac=True)  # ac
-    step_3 = make_step(reward=0.0, action=Tensor([1.0]), gamma=gamma, state=Tensor([3, 1, 0]), dp=True,  ac=False) # dp
-    step_4 = make_step(reward=0.0, action=Tensor([0.0]), gamma=gamma, state=Tensor([4, 1, 0]), dp=False, ac=True)  # ac
+    step_0 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([0, 1, 0]), dp=False, ac=False)
+    step_1 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([1, 1, 0]), dp=True,  ac=False)
+    step_2 = make_step(reward=1.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([2, 1, 0]), dp=False, ac=True)
+    step_3 = make_step(reward=0.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([3, 1, 0]), dp=True,  ac=False)
+    step_4 = make_step(reward=0.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([4, 1, 0]), dp=False, ac=True)
     expected_transitions = [Transition([step_0, step_1], 1.0, gamma),
                             Transition([step_1, step_2], 1.0, gamma),
                             Transition([step_2, step_3], 0.0, gamma),
