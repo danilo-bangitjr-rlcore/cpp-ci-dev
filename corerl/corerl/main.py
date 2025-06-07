@@ -9,7 +9,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import numpy as np
-import torch
 from tqdm import tqdm
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -62,9 +61,7 @@ def retryable_main(cfg: MainConfig):
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
-    torch.manual_seed(seed)
 
-    torch.set_num_threads(cfg.infra.num_threads)
     device.update_device(cfg.infra.device)
 
     # build global objects

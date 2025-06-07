@@ -2,7 +2,6 @@ import logging
 import random
 
 import numpy as np
-import torch
 
 from corerl.config import MainConfig
 from corerl.configs.loader import load_config
@@ -30,7 +29,6 @@ def main(cfg: MainConfig):
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
-    torch.manual_seed(seed)
 
     app_state = AppState(
         cfg,
