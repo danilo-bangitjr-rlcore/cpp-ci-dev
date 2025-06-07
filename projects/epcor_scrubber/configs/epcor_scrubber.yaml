@@ -55,9 +55,6 @@ agent:
       id: critic # for metric logging
 
   policy:
-    optimizer:
-      lr: 0.001
-
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24

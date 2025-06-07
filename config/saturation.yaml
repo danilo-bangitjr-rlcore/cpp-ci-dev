@@ -14,17 +14,6 @@ metrics:
 evals:
   enabled: False
 
-agent:
-  name: greedy_ac
-
-  critic:
-    critic_network:
-      ensemble: 10
-
-  policy:
-    optimizer:
-      lr : 0.0005
-
 pipeline:
   state_constructor:
     defaults:
