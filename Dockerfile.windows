@@ -40,11 +40,5 @@ COPY --from=base /app/dist /app/dist
 # Microsoft Visual C++ Redistributable needs to exist in order to load DLLs, needed for torch
 RUN powershell -c 'Invoke-WebRequest "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"; Start-Process -filepath C:\app\vc_redist.x64.exe -ArgumentList "/install", "/passive", "/norestart" -Passthru | Wait-Process; Remove-Item -Force vc_redist.x64.exe'
 
-# Our corerl image is quite large with default cuda dependencies.
-# Minimal CPU supported installation is used instead.
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu
-RUN powershell -c pip --no-cache-dir install --no-compile $(Get-ChildItem -Filter corerl-*.whl .\dist\).FullName
-
-
 # Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
 ENTRYPOINT ["corerl_main"]
