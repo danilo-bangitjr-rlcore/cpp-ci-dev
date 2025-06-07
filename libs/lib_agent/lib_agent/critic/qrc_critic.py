@@ -198,6 +198,8 @@ class QRCCritic:
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
+        # (batch, samples, action_dim)
+        chex.assert_rank(next_actions, 3)
         losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
             params,
             transition,

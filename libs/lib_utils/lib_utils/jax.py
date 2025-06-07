@@ -4,8 +4,8 @@ from inspect import Parameter, signature
 import jax
 
 
-def jit[**P, R](f: Callable[P, R]) -> Callable[P, R]:
-    return jax.jit(f)
+def jit[**P, R](f: Callable[P, R], static_argnums: tuple[int, ...] | None = None) -> Callable[P, R]:
+    return jax.jit(f, static_argnums=static_argnums)
 
 
 def method_jit[**P, R](f: Callable[P, R]) -> Callable[P, R]:

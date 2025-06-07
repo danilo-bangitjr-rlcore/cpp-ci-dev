@@ -189,8 +189,8 @@ class DeploymentInteraction:
 
         # eval
         agent_eval.q_online(self._app_state, self._agent, state.feats, next_a)
-        agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
-        agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+        # agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
+        # agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
 
 
 
@@ -198,7 +198,7 @@ class DeploymentInteraction:
         self._agent.update()
 
         # metrics + eval
-        agent_eval.greed_dist_batch(self._app_state, self._agent)
+        # agent_eval.greed_dist_batch(self._app_state, self._agent)
 
 
     def _on_ping_setpoint(self):

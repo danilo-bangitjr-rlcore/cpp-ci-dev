@@ -2,8 +2,10 @@ from collections.abc import Callable, Sequence
 from typing import Concatenate, ParamSpec, Protocol, SupportsFloat, TypeVar
 
 import jax
+import jax.numpy as jnp
 import numpy as np
 import torch
+from lib_agent.buffer.buffer import State
 from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
@@ -235,7 +237,9 @@ def _greed_dist(
     ):
         # Generate uniform actions in the range [action_lo, action_hi]
         actions = torch.rand(
-            (BATCH_SIZE, n_samples, ACTION_DIM), device=device.device)
+            (BATCH_SIZE, n_samples, ACTION_DIM),
+            device=device.device,
+        )
         return actions * (action_hi - action_lo) + action_lo
 
     qr = get_sampled_qs(
@@ -248,8 +252,6 @@ def _greed_dist(
     )
 
     q_values = qr.q_values
-    print(f"q_values shape: {q_values.shape}")
-    exit()
     max_actions_critic = get_max_action(qr.actions, q_values).reshape(BATCH_SIZE, ACTION_DIM)
 
     # Get log probabilities for the sampled actions from the actor.
@@ -380,13 +382,79 @@ class QPDFPlotsConfig:
     # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
     other_action_samples: int = 10
 
+def ac_eval(
+    app_state: AppState,
+    agent: GreedyAC,
+    state: np.ndarray | torch.Tensor,
+    action_lo: np.ndarray | torch.Tensor,
+    action_hi: np.ndarray | torch.Tensor,
+):
+    x_axis_actions = 101
+    on_policy_samples = 5
+
+    abs_state = State(
+        features=jnp.asarray(state),
+        a_lo=jnp.asarray(action_lo),
+        a_hi=jnp.asarray(action_hi),
+        dp=jnp.ones((state.shape[0], 1), dtype=jnp.bool),
+        last_a=jnp.asarray(action_lo),
+    )
+
+    # Actor and Critic evaluated at evenly spaced points along the x-axis
+    linspaced_actions = jnp.linspace(start=0, stop=1, num=x_axis_actions, endpoint=True)
+    repeat_linspace = linspaced_actions.repeat(on_policy_samples)
+
+    # To evaluate critic at a given point along x-axis, use average over sampled actions for remaining action dims
+    repeat_state = jax.tree.map(
+        lambda x: jnp.tile(x, (on_policy_samples, 1)), state,
+    )
+
+    on_policy_actions = agent.get_actions(repeat_state)
+    repeat_on_policy = jnp.tile(on_policy_actions, (x_axis_actions, 1))
+
+    # Actor
+    actor_probs = agent.get_probs(agent._actor_state.actor.params, abs_state, linspaced_actions)
+
+    for a_dim in range(agent.action_dim):
+        constructed_actions = repeat_on_policy.at[:, a_dim].set(repeat_linspace)
+
+        # Critic
+        q_vals = agent.get_action_values(abs_state, constructed_actions)
+        reshaped_q_vals = q_vals.reshape((x_axis_actions, on_policy_samples))
+        q_vals_over_other_a = reshaped_q_vals.mean(axis=1)
+
+        # Actor
+        a_dim_actor_probs = actor_probs[:, a_dim]
+
+        measure = XYEval(data=[
+            XY(x=x, y=float(y))
+            for x, y in zip(linspaced_actions, a_dim_actor_probs, strict=True)
+        ])
+        app_state.evals.write(
+            agent_step=app_state.agent_step,
+            evaluator=f"pdf_plot_action_{a_dim}",
+            value=measure.model_dump_json(),
+        )
+
+        # Write to db
+        measure = XYEval(data=[
+            XY(x=float(x), y=float(y))
+            for x, y in zip(linspaced_actions, q_vals_over_other_a, strict=True)
+        ])
+        app_state.evals.write(
+            agent_step=app_state.agent_step,
+            evaluator=f"qs_plot_action_{a_dim}",
+            value=measure.model_dump_json(),
+        )
+
+
 def q_values_and_act_prob(
-        app_state: AppState,
-        agent: BaseAgent,
-        state: np.ndarray | torch.Tensor,
-        action_lo: np.ndarray | torch.Tensor,
-        action_hi: np.ndarray | torch.Tensor,
-        ):
+    app_state: AppState,
+    agent: GreedyAC,
+    state: np.ndarray | torch.Tensor,
+    action_lo: np.ndarray | torch.Tensor,
+    action_hi: np.ndarray | torch.Tensor,
+):
     """
     Logs the probability density function of the policy and the Q values.
     This entries are of the form (metric, x, y) where
@@ -410,30 +478,30 @@ def q_values_and_act_prob(
     n_samples = cfg.primary_action_samples * cfg.other_action_samples
     dist = agent.get_dist(state)
     rng = jax.random.PRNGKey(app_state.agent_step)
-    actions = dist.sample_n(rng, n_samples)
-    actions = actions.permute(1, 0, 2)
+    actions: jax.Array = dist.sample_n(rng, n_samples)
+    actions = actions.transpose(1, 0, 2)
 
     # get actions for each action dimension we are interested in.
-    lin_spaced_actions = torch.linspace(0, 1, cfg.primary_action_samples, device=device.device)
+    lin_spaced_actions = np.linspace(0, 1, cfg.primary_action_samples)
     # since we are averaging across samples for the other action dimensions, repeat these samples
-    repeated_lin_spaced_actions = torch.repeat_interleave(lin_spaced_actions, cfg.other_action_samples)
+    repeated_lin_spaced_actions = np.tile(lin_spaced_actions, cfg.other_action_samples)
 
     repeated_states = state.repeat(n_samples, 1)
     for a_dim_idx in range(agent.action_dim):
         # augmented actions are the actions we are interested in,
         # but with the primary action dimension replaced with the lin_spaced actions
-        augmented_policy_actions = actions.clone()
+        augmented_policy_actions = np.asarray(actions, copy=True)
         augmented_policy_actions[:, :, a_dim_idx] = repeated_lin_spaced_actions
-        probs = dist.prob(augmented_policy_actions.squeeze(0))
+        probs = dist.prob(jnp.asarray(augmented_policy_actions.squeeze(0)))
         probs = probs.reshape(
             cfg.primary_action_samples,
             cfg.other_action_samples,
         ).mean(axis=1)
         direct_actions = augmented_policy_actions
 
-        lin_spaced_actions_in_da_space = direct_actions[:, :, a_dim_idx].unique()
+        lin_spaced_actions_in_da_space = np.unique(direct_actions[:, :, a_dim_idx], axis=0)[0]
         measure = XYEval(data=[
-            XY(x=x, y=float(y))
+            XY(x=float(x), y=float(y))
             for x, y in zip(lin_spaced_actions_in_da_space, probs, strict=False)
         ])
         app_state.evals.write(
@@ -443,11 +511,11 @@ def q_values_and_act_prob(
         )
 
         # Next, plot q values for the entire range of direct actions
-        augmented_direct_actions = direct_actions.clone()
+        augmented_direct_actions = direct_actions.copy()
         augmented_direct_actions[:, :, a_dim_idx] = repeated_lin_spaced_actions
         qs = agent.get_values(
             [repeated_states],
-            [augmented_direct_actions.reshape(n_samples, -1)],
+            [torch.asarray(augmented_direct_actions.reshape(n_samples, -1))],
         ).reduced_value
         qs = qs.reshape(
             cfg.primary_action_samples,

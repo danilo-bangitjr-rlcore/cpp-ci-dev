@@ -178,7 +178,7 @@ class PercentileActor:
         self.rng, sample_rng = jax.random.split(self.rng, 2)
         return self.safe_get_actions_rng(actor_params, sample_rng, state)
 
-    def safe_get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey,  state: State):
+    def safe_get_actions_rng(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, state: State):
         dist = self.get_dist(actor_params, state)
         params = dist.get_params()
         mean, std = params['mean'], params['std']
@@ -211,20 +211,23 @@ class PercentileActor:
         out: ActorOutputs = self.actor.apply(params=actor_params, x=state.features)
         return SquashedGaussian(out.mu, out.sigma)
 
-    @jax_u.method_jit
-    def get_actions_for_bootstrap(self, actor_params: chex.ArrayTree, states: State):
+    @partial(jax_u.jit, static_argnums=(0, 4))
+    def get_actions_for_bootstrap(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, states: State, num_samples: int):
+        def _per_state(rng: chex.PRNGKey, state: State):
+            # (state_dim, )
+            chex.assert_rank(state.features, 1)
+            dist = self.get_dist(actor_params, state)
+            actions = dist.sample_n(seed=rng, n=num_samples)
+            return jnp.clip(actions, state.a_lo, state.a_hi)
+
         ens_size = states.features.shape[0]
         batch_size = states.features.shape[1]
         chex.assert_shape(states.features, (ens_size, batch_size, self.state_dim))
-        rngs = jax.random.split(self.rng, ens_size)
-        return jax_u.vmap_only(self._get_actions_for_states, ['rng', 'state'])(actor_params, rngs, states)
 
-    def _get_actions_for_states(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, states: State):
-        batch_size = states.features.shape[0]
-        chex.assert_shape(states.features, (batch_size, self.state_dim))
-        rngs = jax.random.split(rng, batch_size)
-        return jax_u.vmap_only(self.get_actions_rng, ['rng', 'state'])(actor_params, rngs, states)
-
+        rng_grid = jax.random.split(rng, (ens_size, batch_size))
+        return jax_u.vmap(
+            jax_u.vmap(_per_state),
+        )(rng_grid, states)
 
     # ----------------------------- get probabilities ---------------------------- #
 

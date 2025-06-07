@@ -159,8 +159,13 @@ class GreedyAC:
             last_a=batch.action,
             dp=jnp.expand_dims(batch.next_dp, axis=-1),
         )
-        next_actions = self._get_actions_over_state(self.agent_state.actor.actor.params, self.rng, next_state)
-        next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
+        self.rng, bs_rng = jax.random.split(self.rng)
+        next_actions = self._actor.get_actions_for_bootstrap(
+            self.agent_state.actor.actor.params,
+            bs_rng,
+            next_state,
+            10,
+        )
         new_critic_state, _ = self._critic.update(
             critic_state=self.agent_state.critic,
             transitions=BatchWithState(

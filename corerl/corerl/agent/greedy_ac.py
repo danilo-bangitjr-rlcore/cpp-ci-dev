@@ -297,6 +297,10 @@ class GreedyAC(BaseAgent):
 
         return torch.asarray(jax_probs)
 
+    def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
+        actions = jnp.asarray(actions)
+        return self._actor.get_probs(actor_params, state, actions)
+
     def get_values(self, state_batches: list[torch.Tensor], action_batches: list[torch.Tensor]):
         q = self.critic.forward(
             self._critic_state.params,
@@ -308,6 +312,16 @@ class GreedyAC(BaseAgent):
             ensemble_values=torch.asarray(q),
             ensemble_variance=torch.asarray(q.var(axis=0)),
         )
+
+    def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
+        return self.critic.forward(
+            self._critic_state.params,
+            x=state.features,
+            a=jnp.asarray(actions),
+        )
+
+    def get_actions(self, state: State):
+        return self._actor.safe_get_actions(self._actor_state.actor.params, state)
 
     def get_action_interaction(
         self,
@@ -321,8 +335,8 @@ class GreedyAC(BaseAgent):
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
         state_features = jnp.asarray(state)
-        jaxtion_lo = jnp.zeros_like(action_lo)
-        jaxtion_hi = jnp.zeros_like(action_hi)
+        jaxtion_lo = jnp.asarray(action_lo)
+        jaxtion_hi = jnp.asarray(action_hi)
         state_ = State(
             features=state_features,
             a_lo=jaxtion_lo,
@@ -398,9 +412,12 @@ class GreedyAC(BaseAgent):
         batches: list[TransitionBatch],
     ):
         v_trans = vect_trans_from_transition_batch(batches)
+        self._jax_rng, rng = jax.random.split(self._jax_rng)
         return self._actor.get_actions_for_bootstrap(
             self._actor_state.actor.params,
+            rng,
             v_trans.state,
+            self.cfg.bootstrap_action_samples,
         )
 
     def update_critic(self) -> list[float]:
