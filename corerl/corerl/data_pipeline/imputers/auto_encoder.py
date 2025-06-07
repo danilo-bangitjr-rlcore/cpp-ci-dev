@@ -42,7 +42,7 @@ class MaskedAEConfig(BaseImputerStageConfig):
     err_tolerance: float = 1e-3
     max_update_steps: int = 100
     training_missing_perc: float = 0.25
-    fill_val: float = 0.5
+    fill_val: float = 0.0
 
 
 class MaskedAutoencoder(BaseImputer):
