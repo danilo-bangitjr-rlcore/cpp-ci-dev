@@ -1,12 +1,10 @@
 import logging
 from typing import Any
 
-import gymnasium as gym
-
 from corerl.environment.async_env.async_env import GymEnvConfig
-from corerl.environment.wrapper.wrappers import wrappers
 
 try:
+    import gymnasium as gym
     from rl_env.factory import init_env
 except ImportError:
 
@@ -17,16 +15,23 @@ except ImportError:
         """
         raise NotImplementedError("Custom environment initialization not implemented.")
 
+    gym = None
+
 
 log = logging.getLogger(__name__)
 
 
-def init_environment(cfg: GymEnvConfig) -> gym.Env:
+def init_environment(cfg: GymEnvConfig):
+    from corerl.environment.wrapper.wrappers import wrappers
+
     args = cfg.args
     kwargs = cfg.kwargs
 
     match cfg.init_type:
         case "gym.make":
+            if gym is None:
+                raise ImportError("Gymnasium is not installed. Please install it to use this functionality.")
+
             if cfg.env_config is not None:
                 kwargs = dict(kwargs)
                 kwargs["cfg"] = cfg.env_config
