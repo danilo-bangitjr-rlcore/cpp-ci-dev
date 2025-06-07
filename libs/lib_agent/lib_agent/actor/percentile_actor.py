@@ -157,16 +157,16 @@ class PercentileActor:
         chex.assert_equal_rank(states)
 
         # vmap over all dimensions except the last
-        levels = states.features.ndim - 1
+        vmap_shape = states.features.shape[:-1]
 
-        rngs = jax.random.split(rng, states.features.shape[:-1])
-        f = partial(self._get_actions_for_state, actor_params, n=n, std_devs=std_devs)
-        actions = jax_u.multi_vmap(f, levels)(
+        rngs = jax.random.split(rng, vmap_shape)
+        pi = partial(self._get_actions_for_state, actor_params, n=n, std_devs=std_devs)
+        actions = jax_u.multi_vmap(pi, levels=len(vmap_shape))(
             rngs,
             states,
         )
 
-        chex.assert_rank(actions, states.features.ndim + 1)
+        chex.assert_shape(actions, (*vmap_shape, n, self.action_dim))
         return actions
 
     def _get_actions_for_state(
