@@ -42,6 +42,7 @@ class MaskedAEConfig(BaseImputerStageConfig):
     err_tolerance: float = 1e-3
     max_update_steps: int = 100
     training_missing_perc: float = 0.25
+    fill_val: float = 0.5
 
 
 class MaskedAutoencoder(BaseImputer):
@@ -51,6 +52,7 @@ class MaskedAutoencoder(BaseImputer):
         self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
+        self._fill_val = imputer_cfg.fill_val
 
         self._traces = TraceConstructor(
             TraceConfig(
@@ -150,7 +152,7 @@ class MaskedAutoencoder(BaseImputer):
         predictions only for the inputs that are NaN.
         """
         raw_obs = inputs[: self._num_obs]
-        input_obs = jnp.where(obs_nanmask, 0.5, raw_obs)
+        input_obs = jnp.where(obs_nanmask, self._fill_val, raw_obs)
         inputs = inputs.at[: self._num_obs].set(input_obs)
         ae_predictions = self._forward(self._params, inputs)
         return jnp.where(obs_nanmask, ae_predictions, raw_obs)
@@ -178,7 +180,7 @@ class MaskedAutoencoder(BaseImputer):
             if (~label_nanmask).sum() == 0:
                 continue
             # replace nans in the labels
-            label_batch = raw_obs_batch.at[label_nanmask].set(0.5)
+            label_batch = raw_obs_batch.at[label_nanmask].set(self._fill_val)
 
             # To force the AE to learn in the presence of
             # missingness, need to fake some missingness
@@ -196,7 +198,7 @@ class MaskedAutoencoder(BaseImputer):
 
             # replace nans in input - these could be simulated or real
             input_nanmask = jnp.isnan(input_batch)
-            input_batch = input_batch.at[input_nanmask].set(0.5)
+            input_batch = input_batch.at[input_nanmask].set(self._fill_val)
 
             self._params, self._opt_state, loss = self._update(
                 params=self._params,
