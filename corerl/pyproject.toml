@@ -2,7 +2,7 @@
 name = "corerl"
 version = "0.142.0"
 description = ""
-requires-python = ">=3.13,<3.14"
+requires-python = "==3.13.0"
 authors = []
 dependencies = [
     "discrete-dists~=1.0",
