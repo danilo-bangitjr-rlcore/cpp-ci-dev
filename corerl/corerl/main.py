@@ -9,7 +9,6 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import numpy as np
-from tqdm import tqdm
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -36,18 +35,13 @@ def main_loop(
     interaction: DeploymentInteraction,
 ):
     max_steps = cfg.max_steps
-    disable_pbar = not cfg.is_simulation or cfg.silent
-    pbar = tqdm(total=max_steps, disable=disable_pbar)
 
     # event bus owns orchestration of interactions
     # driving loop below gives access to event stream
     app_state.event_bus.start()
     event_stream = interaction.interact_forever()
 
-    for event in event_stream:
-        if cfg.is_simulation or (event and event.type == EventType.step_get_obs):
-            pbar.update(1)
-
+    for _ in event_stream:
         if max_steps is not None and app_state.agent_step >= max_steps:
             break
 

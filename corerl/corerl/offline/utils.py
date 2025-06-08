@@ -2,7 +2,6 @@ import datetime as dt
 import logging
 
 import pandas as pd
-from tqdm import tqdm
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -100,8 +99,7 @@ class OfflineTraining:
             log.info(f"Agent {buffer_name} replay buffer size(s)", size)
 
         q_losses: list[float] = []
-        pbar = tqdm(range(self.offline_steps))
-        for _ in pbar:
+        for _ in range(self.offline_steps):
             critic_loss = agent.update()
             q_losses += critic_loss
 
