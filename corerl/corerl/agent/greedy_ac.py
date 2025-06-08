@@ -327,7 +327,7 @@ class GreedyAC(BaseAgent):
         self._app_state.metrics.write(
             agent_step=self._app_state.agent_step,
             metric="actor_var",
-            value=metrics['action_variance'].mean().item(),
+            value=metrics['actor_var'].mean().item(),
         )
 
         return np.asarray(jaxtion)
