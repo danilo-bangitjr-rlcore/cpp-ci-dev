@@ -283,13 +283,6 @@ class GreedyAC(BaseAgent):
             ensemble_variance=q.var(axis=0),
         )
 
-    def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
-        return self.critic.forward(
-            self._critic_state.params,
-            x=state.features,
-            a=jnp.asarray(actions),
-        )
-
     def get_actions(self, state: State):
         actions, _ = self._actor.get_actions(self._actor_state.actor.params, state)
 
@@ -535,30 +528,6 @@ class GreedyAC(BaseAgent):
             "policy": self._actor_buffer.size,
         }
 
-
-def state_from_batch(batch: JaxTransition) -> State:
-    """
-    Converts a JaxTransition batch to a State object.
-    """
-    return State(
-        features=jnp.asarray(batch.state),
-        a_lo=jnp.asarray(batch.action_lo),
-        a_hi=jnp.asarray(batch.action_hi),
-        dp=jnp.ones((len(batch.state), 1)),
-        last_a=jnp.asarray(batch.action),
-    )
-
-def next_state_from_batch(batch: JaxTransition) -> State:
-    """
-    Converts a JaxTransition batch to a State object, using the next state.
-    """
-    return State(
-        features=jnp.asarray(batch.next_state),
-        a_lo=jnp.asarray(batch.next_action_lo),
-        a_hi=jnp.asarray(batch.next_action_hi),
-        dp=jnp.ones((len(batch.state), 1)),
-        last_a=jnp.asarray(batch.action),
-    )
 
 def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
     """
