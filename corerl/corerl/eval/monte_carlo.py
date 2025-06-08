@@ -4,11 +4,11 @@ from collections import deque
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
+import jax
+import jax.numpy as jnp
 import numpy as np
-from torch import Tensor
 
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.component.network.utils import tensor
 from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.state import AppState
@@ -65,12 +65,12 @@ class MonteCarloEvaluator:
         self._step_queue = deque[_MonteCarloPoint](maxlen=self.return_steps)
         self.critic_samples = cfg.critic_samples
 
-        self.prev_state: Tensor | None = None  # to deal with one step offset between states and actions
+        self.prev_state: jax.Array | None = None  # to deal with one step offset between states and actions
         self.agent_step = 0
         self.app_state = app_state
         self.agent = agent
 
-    def _get_state_value(self, state: Tensor, action_lo: Tensor, action_hi: Tensor) -> float:
+    def _get_state_value(self, state: jax.Array, action_lo: jax.Array, action_hi: jax.Array) -> float:
         """
         Estimates the given state's value under the agent's current policy
         by evaluating the agent's Q function at the given state
@@ -78,31 +78,39 @@ class MonteCarloEvaluator:
         Returns a given state's value when the partial return horizon has elapsed.
         """
         # add batch dimension to everything
-        state = state.unsqueeze(0)
-        action_lo = action_lo.unsqueeze(0)
-        action_hi = action_hi.unsqueeze(0)
+        state = jnp.expand_dims(state, 0)
+        action_lo = jnp.expand_dims(action_lo, 0)
+        action_hi = jnp.expand_dims(action_hi, 0)
 
-        ar = self.agent.get_actor_actions(self.critic_samples, state, action_lo, action_hi)
+        # Sample actions from the agent's policy
+        rng = jax.random.PRNGKey(self.agent_step)
+        dist = self.agent.get_dist(state.squeeze(0))
+        sampled_actions = dist.sample(
+            seed=rng,
+            sample_shape=(self.critic_samples,),
+        )
 
-        repeat_state = state.repeat_interleave(self.critic_samples, dim=0)
-        sampled_actions = ar.direct_actions.reshape(state.size(0) * self.critic_samples, -1)
+        # Repeat state for each sampled action
+        repeat_state = jnp.repeat(state, self.critic_samples, axis=0)
+
+        # Get Q-values and average them
         sampled_a_qs = self.agent.get_values(
-            [repeat_state],
-            [sampled_actions],
+            jnp.expand_dims(repeat_state, 0),  # add ensemble dimension
+            jnp.expand_dims(sampled_actions, 0),  # add ensemble dimension
         ).reduced_value
         return float(sampled_a_qs.mean())
 
-    def _get_observed_a_q(self, state: Tensor, observed_a: Tensor) -> float:
+    def _get_observed_a_q(self, state: jax.Array, observed_a: jax.Array) -> float:
         """
         Returns the agent's action-value estimate for the given state-action pair
         under the agent's current policy.
         Returns a given state's value when the partial return horizon has elapsed.
         """
         observed_a_q = self.agent.get_values(
-            [state.expand(1, -1)],
-            [observed_a.expand(1, -1)],
+            jnp.expand_dims(state, [0, 1]),  # add (ensemble, batch) dimensions
+            jnp.expand_dims(observed_a, [0, 1]),  # add (ensemble, batch) dimensions
         )
-        return observed_a_q.reduced_value.item()
+        return float(observed_a_q.reduced_value.squeeze())
 
     def _get_partial_return(self) -> float | None:
         """
@@ -163,16 +171,16 @@ class MonteCarloEvaluator:
         action_hi = pipe_return.action_hi
         rewards = pipe_return.rewards['reward'].to_numpy()
         for i in range(len(states)):
-            curr_state = tensor(states.iloc[i].to_numpy())
+            curr_state = jnp.asarray(states.iloc[i].to_numpy())
             if self.prev_state is not None:
                 action_np = actions.iloc[i].to_numpy()
-                action = tensor(action_np)
+                action = jnp.asarray(action_np)
                 reward = float(rewards[i])
-                action_lo_i = tensor(action_lo.iloc[i].to_numpy())
-                action_hi_i = tensor(action_hi.iloc[i].to_numpy())
+                action_lo_i = jnp.asarray(action_lo.iloc[i].to_numpy())
+                action_hi_i = jnp.asarray(action_hi.iloc[i].to_numpy())
 
                 # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
-                if self.prev_state.isnan().any() or action.isnan().any() or np.isnan(reward):
+                if jnp.isnan(self.prev_state).any() or jnp.isnan(action).any() or np.isnan(reward):
                     self._step_queue.clear()
                     self.agent_step += 1
                     self.prev_state = curr_state
