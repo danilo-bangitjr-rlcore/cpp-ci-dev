@@ -1,7 +1,6 @@
 import gymnasium as gym
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.tag_config import TagConfig, TagType
-from corerl.data_pipeline.transforms import NukeConfig, TraceConfig
 
 
 def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[TagConfig]:
@@ -28,7 +27,6 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
         TagConfig(
             name=f"action-{i}",
             operating_range=(action_space.low[0].item(), action_space.high[0].item()),
-            state_constructor=[NukeConfig()],
             type=TagType.ai_setpoint,
         )
         for i in range(n_actions)
@@ -38,11 +36,6 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[T
         TagConfig(
             name=f"tag-{i}",
             operating_range=(observation_space.low[i].item(), observation_space.high[i].item()),
-            state_constructor=[
-                TraceConfig(
-                    trace_values=[0.0],
-                ),
-            ],
         )
         for i in range(n_obs)
     )
