@@ -9,7 +9,6 @@ import lib_agent.network.networks as nets
 import numpy as np
 import optax
 import pandas as pd
-import torch
 from lib_agent.critic.qrc_critic import jax_u
 
 import corerl.utils.dict as dict_u
@@ -120,8 +119,7 @@ class MaskedAutoencoder(BaseImputer):
             #   3. Or we are within our imputation horizon
             will_impute = should_impute and (can_impute or within_horizon)
             if will_impute:
-                with torch.no_grad():
-                    obs_jax = self.impute(inputs, obs_nanmask)
+                obs_jax = self.impute(inputs, obs_nanmask)
                 pf.data.loc[pf.data.index[i], self._obs_names] = np.asarray(obs_jax)
                 obs[:] = obs_jax
 
