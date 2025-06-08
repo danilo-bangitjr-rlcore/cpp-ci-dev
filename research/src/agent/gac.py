@@ -122,7 +122,7 @@ class GreedyAC:
 
     def get_actions(self, state: State):
         n_samples = 1
-        actions = self._actor.get_actions(self.agent_state.actor.actor.params, state, n_samples)
+        actions, _ = self._actor.get_actions(self.agent_state.actor.actor.params, state, n_samples)
 
         chex.assert_shape(actions, (n_samples, self.action_dim))
         return actions.squeeze(0)
@@ -156,7 +156,7 @@ class GreedyAC:
             dp=jnp.expand_dims(batch.next_dp, axis=-1),
         )
         self.rng, bs_rng = jax.random.split(self.rng)
-        next_actions = self._actor.get_actions_rng(
+        next_actions, _ = self._actor.get_actions_rng(
             self.agent_state.actor.actor.params,
             bs_rng,
             next_state,

@@ -291,7 +291,7 @@ class GreedyAC(BaseAgent):
         )
 
     def get_actions(self, state: State):
-        actions = self._actor.get_actions(self._actor_state.actor.params, state)
+        actions, _ = self._actor.get_actions(self._actor_state.actor.params, state)
 
         # remove the n_samples dimension
         return actions.squeeze(axis=-2)
@@ -317,12 +317,18 @@ class GreedyAC(BaseAgent):
             dp=jnp.ones((1,)),
             last_a=jnp.zeros_like(jaxtion_lo),
         )
-        jaxtion = self._actor.get_actions(
+        jaxtion, metrics = self._actor.get_actions(
             self._actor_state.actor.params,
             state_,
         )
         # remove the n_samples dimension
         jaxtion = jaxtion.squeeze(axis=-2)
+
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric="actor_var",
+            value=metrics['action_variance'].mean().item(),
+        )
 
         return np.asarray(jaxtion)
 
@@ -376,7 +382,7 @@ class GreedyAC(BaseAgent):
 
         batches = self.critic_buffer.sample()
         critic_batch = abs_transition_from_batch(batches)
-        next_actions = self._actor.get_actions(
+        next_actions, _ = self._actor.get_actions(
             self._actor_state.actor.params,
             critic_batch.next_state,
             self.cfg.bootstrap_action_samples,

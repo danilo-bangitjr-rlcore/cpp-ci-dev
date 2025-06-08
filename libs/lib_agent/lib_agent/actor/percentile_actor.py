@@ -161,13 +161,13 @@ class PercentileActor:
 
         rngs = jax.random.split(rng, vmap_shape)
         pi = partial(self._get_actions_for_state, actor_params, n=n, std_devs=std_devs)
-        actions = jax_u.multi_vmap(pi, levels=len(vmap_shape))(
+        actions, metrics = jax_u.multi_vmap(pi, levels=len(vmap_shape))(
             rngs,
             states,
         )
 
         chex.assert_shape(actions, (*vmap_shape, n, self.action_dim))
-        return actions
+        return actions, metrics
 
     def _get_actions_for_state(
         self,
@@ -192,7 +192,9 @@ class PercentileActor:
         )
 
         chex.assert_shape(actions, (n, self.action_dim))
-        return actions
+        return actions, {
+            'actor_var': dist_params.sigma,
+        }
 
 
     def get_dist(self, actor_params: chex.ArrayTree, state: State):
@@ -331,7 +333,7 @@ class PercentileActor:
         if proposal_samples == 0:
             return uniform_actions
 
-        proposal_actions = self.get_actions_rng(proposal_params, p_rng, state, n=proposal_samples)
+        proposal_actions, _ = self.get_actions_rng(proposal_params, p_rng, state, n=proposal_samples)
 
         return jnp.concat([uniform_actions, proposal_actions], axis=0)
 
