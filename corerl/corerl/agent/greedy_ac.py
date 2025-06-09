@@ -40,7 +40,7 @@ class CriticNetworkConfig:
 
 @config()
 class GTDCriticConfig:
-    action_regularization: float = 0.0001
+    action_regularization: float = 0.0
     buffer: BufferConfig = MISSING
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)

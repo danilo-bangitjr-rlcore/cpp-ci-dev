@@ -80,7 +80,7 @@ class QRCCritic:
             skip=True,
         )
         self._net = critic_builder(torso_cfg)
-        self._optim = optax.adam(learning_rate=cfg.stepsize)
+        self._optim = optax.adamw(learning_rate=cfg.stepsize, weight_decay=0.001)
 
     # ----------------------
     # -- Public Interface --
@@ -165,20 +165,11 @@ class QRCCritic:
             next_actions,
         )
 
-        ens_updates = []
-        ens_opts = []
-        for i in range(self._cfg.ensemble):
-            updates, new_opt_state = self._optim.update(
-                get_member(grads, i),
-                get_member(state.opt_state, i),
-                get_member(state.params, i),
-            )
-
-            ens_updates.append(updates)
-            ens_opts.append(new_opt_state)
-
-        updates = jax.tree.map(lambda *upd: jnp.stack(upd, axis=0), *ens_updates)
-        new_opt_state = jax.tree.map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
+        updates, new_opt_state = self._optim.update(
+            grads,
+            state.opt_state,
+            params=state.params,
+        )
         new_params = optax.apply_updates(state.params, updates)
 
         metrics |= {

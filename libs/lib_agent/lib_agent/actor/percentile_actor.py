@@ -106,8 +106,8 @@ class PercentileActor:
         self.actor = actor_builder(actor_torso_cfg, actor_output_act_cfg, action_dim)
         self.proposal = self.actor
 
-        self.actor_opt = optax.adam(cfg.actor_lr)
-        self.proposal_opt = optax.adam(cfg.proposal_lr)
+        self.actor_opt = optax.adamw(cfg.actor_lr, weight_decay=0.001)
+        self.proposal_opt = optax.adamw(cfg.proposal_lr, weight_decay=0.001)
 
     # -------------------------------- Init State -------------------------------- #
 
@@ -314,7 +314,7 @@ class PercentileActor:
             grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
             jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_grad_norm', float(x)), grad_norm)
 
-        updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state)
+        updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state, params=policy_state.params)
         new_params = optax.apply_updates(policy_state.params, updates)
 
         return PolicyState(
