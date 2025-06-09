@@ -25,6 +25,7 @@ if TYPE_CHECKING:
 
 
 class JaxTransition(NamedTuple):
+    last_action: jax.Array
     state: jax.Array
     action: jax.Array
     reward: jax.Array
@@ -158,6 +159,7 @@ class BaseBuffer:
         idxs = np.empty(len(transitions), dtype=np.int64)
         for j, transition in enumerate(transitions):
             idxs[j] = self._storage.add(JaxTransition(
+                last_action=jnp.asarray(transition.prior.action),
                 state=jnp.asarray(transition.state),
                 action=jnp.asarray(transition.action),
                 reward=jnp.asarray(transition.reward),

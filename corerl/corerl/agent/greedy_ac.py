@@ -570,7 +570,7 @@ def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
             a_lo=batch.action_lo,
             a_hi=batch.action_hi,
             dp=jnp.expand_dims(batch.dp, -1),
-            last_a=batch.action,
+            last_a=batch.last_action,
         ),
         next_state=State(
             features=batch.next_state,
@@ -580,6 +580,6 @@ def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
             last_a=batch.action,
         ),
         action=batch.action,
-        reward=batch.n_step_reward,
-        gamma=batch.n_step_gamma,
+        reward=batch.reward,
+        gamma=batch.gamma,
     )
