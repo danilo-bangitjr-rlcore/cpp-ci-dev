@@ -9,6 +9,7 @@ dependencies = [
     "pytest>=8.3.5",
     "rlevaluation>=1.1.1",
     "psutil>=7.0.0",
+    "filelock>=3.18.0",
 ]
 
 [build-system]
