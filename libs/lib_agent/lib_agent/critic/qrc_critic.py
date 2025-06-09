@@ -236,7 +236,10 @@ class QRCCritic:
 
         # noise loss
         rand_actions = jax.random.uniform(
-            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
+            self._rng,
+            shape=(self._cfg.num_rand_actions, action.shape[0]),
+            minval=state.a_lo,
+            maxval=state.a_hi,
         )
         out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, rand_actions)
         action_reg_loss = self._cfg.action_regularization * out_rand.q.mean()**2
