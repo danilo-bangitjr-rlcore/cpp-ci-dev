@@ -261,9 +261,6 @@ class QRCCritic:
 
         return loss, metrics
 
-def get_member(a: chex.ArrayTree, i: int):
-    return jax.tree.map(lambda x: x[i], a)
-
 
 def l2_regularizer(params: chex.ArrayTree, beta: float):
     reg = jax.tree.map(jnp.square, params)
