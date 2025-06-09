@@ -7,7 +7,6 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import optax
-from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
 from lib_agent.buffer.buffer import State
@@ -65,12 +64,11 @@ def critic_builder(cfg: nets.TorsoConfig):
     return hk.without_apply_rng(hk.transform(_inner))
 
 class QRCCritic:
-    def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
+    def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):
         self._rng = jax.random.PRNGKey(seed)
         self._cfg = cfg
         self._state_dim = state_dim
         self._action_dim = action_dim
-        self._collector = collector
 
         torso_cfg = nets.TorsoConfig(
             layers=[
@@ -140,10 +138,6 @@ class QRCCritic:
             transitions,
             next_actions,
         )
-
-        loss = jnp.mean(metrics['loss'])
-        self._collector.collect('critic_loss', float(loss))
-
         return new_state, metrics
 
     # ------------
@@ -159,7 +153,7 @@ class QRCCritic:
         """
         Updates each member of the ensemble.
         """
-        grads, metrics = jax.grad(self._ensemble_loss, has_aux=True)(
+        grads, metrics = jax_u.grad(self._ensemble_loss, has_aux=True)(
             state.params,
             transitions,
             next_actions,
@@ -181,10 +175,10 @@ class QRCCritic:
         new_opt_state = jax.tree.map(lambda *opt: jnp.stack(opt, axis=0), *ens_opts)
         new_params = optax.apply_updates(state.params, updates)
 
-        metrics |= {
-            'ensemble_grad_norms': get_ensemble_norm(grads),
-            'ensemble_weight_norms': get_ensemble_norm(new_params),
-        }
+        metrics = metrics._replace(
+            ensemble_grad_norms=get_ensemble_norm(grads),
+            ensemble_weight_norms=get_ensemble_norm(new_params),
+        )
 
         return CriticState(
             new_params,
@@ -204,12 +198,7 @@ class QRCCritic:
             next_actions,
         )
 
-        return losses.sum(), metrics | {
-            'loss': losses,
-            'q_loss': metrics['q_loss'].mean(),
-            'h_loss': metrics['h_loss'].mean(),
-            'reg_loss': metrics['reg_loss'].mean(),
-        }
+        return losses.sum(), metrics
 
 
     def _batch_loss(
@@ -261,14 +250,20 @@ class QRCCritic:
 
         loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
 
-        return loss, {
-            'q': out.q,
-            'h': out.h,
-            'q_loss': q_loss,
-            'h_loss': h_loss,
-            'reg_loss': reg_loss,
-            'delta': delta_l,
-        }
+        metrics = QRCCriticMetrics(
+            q=out.q,
+            h=out.h,
+            loss=loss,
+            q_loss=q_loss,
+            h_loss=h_loss,
+            delta=delta_l,
+
+            # filled out further up
+            ensemble_grad_norms=jnp.array(0),
+            ensemble_weight_norms=jnp.array(0),
+        )
+
+        return loss, metrics
 
 def get_member(a: chex.ArrayTree, i: int):
     return jax.tree.map(lambda x: x[i], a)
@@ -282,6 +277,16 @@ def l2_regularizer(params: chex.ArrayTree, beta: float):
 # ---------------------------------------------------------------------------- #
 #                                    metrics                                   #
 # ---------------------------------------------------------------------------- #
+class QRCCriticMetrics(NamedTuple):
+    q: jax.Array
+    h: jax.Array
+    loss: jax.Array
+    q_loss: jax.Array
+    h_loss: jax.Array
+    delta: jax.Array
+    ensemble_grad_norms: jax.Array
+    ensemble_weight_norms: jax.Array
+
 
 @jax_u.jit
 def get_ensemble_norm(tree: chex.ArrayTree):

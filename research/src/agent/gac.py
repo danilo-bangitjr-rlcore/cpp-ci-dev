@@ -7,7 +7,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
-from lib_agent.actor.percentile_actor import PercentileActor, State
+from lib_agent.actor.percentile_actor import State
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.critic.critic_registry import get_critic
 from ml_instrumentation.Collector import Collector
@@ -54,17 +54,6 @@ class BatchWithState(NamedTuple):
     gamma: jax.Array
 
 
-class GACCritic(Protocol):
-    def init_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> CriticState: ...
-    def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array) -> jax.Array: ...
-    def update(
-        self,
-        critic_state: CriticState,
-        transitions: BatchWithState,
-        next_actions: jax.Array,
-    ) -> tuple[CriticState, dict]: ...
-
-
 class GreedyAC:
     def __init__(self, cfg: GreedyACConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
         self.seed = seed
@@ -74,8 +63,8 @@ class GreedyAC:
         self._cfg = cfg
         self._collector = collector
 
-        self._critic: GACCritic = get_critic(cfg.critic, seed, state_dim, action_dim, collector)
-        self._actor: PercentileActor = get_actor(cfg.actor, seed, state_dim, action_dim)
+        self._critic = get_critic(cfg.critic, seed, state_dim, action_dim)
+        self._actor = get_actor(cfg.actor, seed, state_dim, action_dim)
 
         # Replay Buffers
         self.policy_buffer = EnsembleReplayBuffer[Batch](
@@ -162,7 +151,7 @@ class GreedyAC:
             next_state,
             10,
         )
-        new_critic_state, _ = self._critic.update(
+        new_critic_state, metrics = self._critic.update(
             critic_state=self.agent_state.critic,
             transitions=BatchWithState(
                 state=State(
@@ -181,6 +170,7 @@ class GreedyAC:
         )
 
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
+        self._collector.collect('critic_loss', metrics.loss.mean().item())
 
     def policy_update(self):
         if self.policy_buffer.size == 0:
