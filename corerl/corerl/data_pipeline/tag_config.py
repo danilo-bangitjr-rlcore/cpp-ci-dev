@@ -12,9 +12,9 @@ from pydantic import Field
 from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.transforms import DeltaConfig, NormalizerConfig, NukeConfig, TransformConfig
+from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import EventType
-from corerl.utils.list import find_index, find_instance
+from corerl.utils.list import find_instance
 from corerl.utils.maybe import Maybe
 from corerl.utils.sympy import is_affine, to_sympy
 
@@ -43,6 +43,7 @@ class TagType(StrEnum):
     day_of_year = auto()
     day_of_week = auto()
     time_of_day = auto()
+    delta = auto()
     default = auto()
 
 @config()
@@ -423,6 +424,7 @@ class TagConfig:
             case TagType.day_of_year: set_seasonal_tag_defaults(self)
             case TagType.day_of_week: set_seasonal_tag_defaults(self)
             case TagType.time_of_day: set_seasonal_tag_defaults(self)
+            case TagType.delta: return
             case _: assert_never(self.type)
 
 
@@ -443,15 +445,6 @@ class TagConfig:
 
         if norm_cfg.min is None or norm_cfg.max is None:
             norm_cfg.from_data = True
-
-    @post_processor
-    def _optional_delta_preprocessor(self, cfg: MainConfig):
-        # Make sure delta transform happens before normalization
-        norm_ind = find_index(lambda x_form: isinstance(x_form, NormalizerConfig), self.preprocess)
-        delta_ind = find_index(lambda x_form: isinstance(x_form, DeltaConfig), self.preprocess)
-        assert (
-            norm_ind is None or delta_ind is None or delta_ind < norm_ind
-        ), f"{self.name} must have the delta transform before the normalization transform in the preprocess stage"
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
