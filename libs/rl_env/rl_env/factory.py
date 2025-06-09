@@ -49,6 +49,7 @@ env_group = Group[[], Any]()
 
 def init_env(name: str, overrides: dict | None = None, perturbation_config: PerturbationConfig | None = None):
     # register environments
+    import rl_env.bsm1
     import rl_env.calibration
     import rl_env.distraction_world
     import rl_env.four_rooms
