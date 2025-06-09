@@ -26,6 +26,7 @@ from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, con
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags, DeltaStageConfig
+from corerl.data_pipeline.imputers.auto_encoder import MaskedAEConfig
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
@@ -62,6 +63,11 @@ class PipelineConfig:
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
     reward: RewardConfig | None = None
+
+    @post_processor
+    def _enable_autoencoder_imputer(self, cfg: MainConfig):
+        if cfg.feature_flags.autoencoder_imputer:
+            self.imputer = MaskedAEConfig()
 
     @post_processor
     def _cascade_dependencies(self, cfg: MainConfig):
@@ -184,7 +190,7 @@ class Pipeline:
         self.transition_creator = AllTheTimeTC(cfg.transition_creator)
         self.transition_filter = TransitionFilter(cfg.transition_filter)
         self.outlier_detectors = OddityFilterConstructor(self.tags, app_state, cfg.oddity_filter)
-        self.imputers = init_imputer(cfg.imputer, self.tags)
+        self.imputers = init_imputer(cfg.imputer, app_state, self.tags)
         self.action_constructor = ActionConstructor(app_state, self.tags, self.preprocessor)
         self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
         self.reward_constructor = (

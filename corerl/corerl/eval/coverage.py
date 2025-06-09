@@ -2,6 +2,7 @@ from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Protocol
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import torch
@@ -190,7 +191,7 @@ class AECoverage:
 
         data_tensor = tensor(dataset.data.to_numpy())
         for row in data_tensor:
-            self._buffer.add(row)
+            self._buffer.add(jnp.asarray(row))
 
         steps = 0
         loss = torch.inf
@@ -200,13 +201,13 @@ class AECoverage:
             self._optimizer.zero_grad()
 
             if self.cfg.ball_in_batch:  # add some epsilon perturbations to the batch
-                batch_1 = self._buffer.sample(self.cfg.batch_size // 2)
+                batch_1 = torch.tensor(self._buffer.sample(self.cfg.batch_size // 2))
 
                 batch_2 = tensor(sample_epsilon_ball(to_np(batch_1), self.cfg.epsilon, 1))
                 batch = torch.concat([batch_1, batch_2], dim=0)
 
             else:
-                batch = self._buffer.sample(self.cfg.batch_size)
+                batch = torch.tensor(self._buffer.sample(self.cfg.batch_size))
 
             loss = self.loss(batch, with_grad=True).mean()  # extra sum for summing loss across elements of batch
             loss.backward()
