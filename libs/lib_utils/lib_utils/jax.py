@@ -1,5 +1,6 @@
 from collections.abc import Callable, Sequence
 from inspect import Parameter, signature
+from typing import Any, Literal, overload
 
 import jax
 
@@ -10,6 +11,19 @@ def jit[**P, R](f: Callable[P, R], static_argnums: tuple[int, ...] | None = None
 
 def method_jit[**P, R](f: Callable[P, R]) -> Callable[P, R]:
     return jax.jit(f, static_argnums=(0,))
+
+
+@overload
+def grad[**P](f: Callable[P, jax.Array], has_aux: Literal[False] = False) -> Callable[P, jax.Array]: ...
+@overload
+def grad[**P, *R](
+    f: Callable[P, tuple[jax.Array, *R]],
+    has_aux: Literal[True] = True,
+) -> Callable[P, tuple[jax.Array, *R]]: ...
+
+def grad[F: Callable](f: F, has_aux: bool = False) -> F:
+    g: Any = jax.grad(f, has_aux=has_aux)
+    return g
 
 
 def vmap[F: Callable](f: F, in_axes: tuple[int | None, ...] | None = None) -> F:

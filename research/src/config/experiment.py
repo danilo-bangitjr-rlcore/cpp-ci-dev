@@ -44,7 +44,7 @@ class ExperimentConfig:
             max_steps=cfg['max_steps'],
             agent=cfg['agent'] or {},
             env=cfg['env'] or {},
-            pipeline=cfg['pipeline'] or {},
+            pipeline=cfg.get('pipeline', {}),
         )
 
 

@@ -11,7 +11,6 @@ import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
-from ml_instrumentation.Collector import Collector
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
@@ -163,7 +162,6 @@ class GreedyAC(BaseAgent):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
         self._col_desc = col_desc
-        collector = Collector(experiment_id=0)
 
         actor_cfg = PAConfig(
             name='percentile',
@@ -182,7 +180,6 @@ class GreedyAC(BaseAgent):
             app_state.cfg.seed,
             col_desc.state_dim,
             col_desc.action_dim,
-            collector,
         )
 
         critic_cfg = QRCConfig(
@@ -200,7 +197,6 @@ class GreedyAC(BaseAgent):
             app_state.cfg.seed,
             col_desc.state_dim,
             col_desc.action_dim,
-            collector,
         )
 
         self._actor_buffer = buffer_group.dispatch(cfg.policy.buffer, app_state)
@@ -281,13 +277,6 @@ class GreedyAC(BaseAgent):
             reduced_value=q.mean(axis=0),
             ensemble_values=q,
             ensemble_variance=q.var(axis=0),
-        )
-
-    def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
-        return self.critic.forward(
-            self._critic_state.params,
-            x=state.features,
-            a=jnp.asarray(actions),
         )
 
     def get_actions(self, state: State):
@@ -395,7 +384,7 @@ class GreedyAC(BaseAgent):
         )
 
         # log weight norm
-        for i, norm in enumerate(metrics['ensemble_weight_norms']):
+        for i, norm in enumerate(metrics.ensemble_weight_norms):
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric=f"network_critic_{i}_weight_norm",
@@ -403,7 +392,7 @@ class GreedyAC(BaseAgent):
             )
 
         # log grad norm
-        for i, norm in enumerate(metrics['ensemble_grad_norms']):
+        for i, norm in enumerate(metrics.ensemble_grad_norms):
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric=f"optimizer_critic_{i}_grad_norm",
@@ -417,25 +406,24 @@ class GreedyAC(BaseAgent):
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
                     metric=f"critic_{i}_stable_rank_{layer_name}",
-                    value=layer_rank,
+                    value=float(layer_rank),
                 )
 
         # log loss
-        loss_list = metrics['loss'].tolist()
-        for i, loss_i in enumerate(loss_list):
+        for i, loss_i in enumerate(metrics.loss):
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric=f"critic_loss_{i}",
-                value=loss_i,
+                value=loss_i.mean().item(),
             )
 
         self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric="avg_critic_loss",
-                value=sum(loss_list) / len(loss_list),
+                value=metrics.loss.mean().item(),
         )
 
-        return loss_list
+        return [loss.mean() for loss in metrics.loss]
 
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
         ens_forward = jax_u.vmap_only(self.critic.forward, ['params'])
@@ -457,7 +445,7 @@ class GreedyAC(BaseAgent):
             self._critic_state.params,
             actor_batch,
         )
-        return metrics['actor_loss']
+        return metrics.actor_loss.mean().item()
 
     def update(self) -> list[float]:
         q_losses = []
@@ -535,30 +523,6 @@ class GreedyAC(BaseAgent):
             "policy": self._actor_buffer.size,
         }
 
-
-def state_from_batch(batch: JaxTransition) -> State:
-    """
-    Converts a JaxTransition batch to a State object.
-    """
-    return State(
-        features=jnp.asarray(batch.state),
-        a_lo=jnp.asarray(batch.action_lo),
-        a_hi=jnp.asarray(batch.action_hi),
-        dp=jnp.ones((len(batch.state), 1)),
-        last_a=jnp.asarray(batch.action),
-    )
-
-def next_state_from_batch(batch: JaxTransition) -> State:
-    """
-    Converts a JaxTransition batch to a State object, using the next state.
-    """
-    return State(
-        features=jnp.asarray(batch.next_state),
-        a_lo=jnp.asarray(batch.next_action_lo),
-        a_hi=jnp.asarray(batch.next_action_hi),
-        dp=jnp.ones((len(batch.state), 1)),
-        last_a=jnp.asarray(batch.action),
-    )
 
 def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
     """

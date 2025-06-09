@@ -9,7 +9,6 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import optax
-from ml_instrumentation.Collector import Collector
 
 import lib_agent.network.networks as nets
 from lib_agent.buffer.buffer import State
@@ -80,21 +79,19 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
         return ActorOutputs(
             mu=mu_head_out,
-            sigma=jnp.exp(jnp.clip(sigma_head_out, -20, 2)),
+            sigma=jnp.exp(jnp.clip(sigma_head_out, -8, 2)),
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
 
 
 class PercentileActor:
-    def __init__(self, cfg: PAConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
+    def __init__(self, cfg: PAConfig, seed: int, state_dim: int, action_dim: int):
         self.seed = seed
         self.rng = jax.random.PRNGKey(seed)
         self.state_dim = state_dim
         self.action_dim = action_dim
         self._cfg = cfg
-
-        self._collector = collector
 
         actor_torso_cfg = nets.TorsoConfig(
             layers=[
@@ -228,7 +225,7 @@ class PercentileActor:
         states = jax.tree.map(lambda arr: arr[0], transitions.state) # remove ensemble dimension
         chex.assert_equal_rank(states)
 
-        actor_state, proposal_state, actor_loss = self._policy_update(
+        actor_state, proposal_state, metrics = self._policy_update(
             pa_state,
             value_estimator,
             value_estimator_params,
@@ -236,16 +233,9 @@ class PercentileActor:
             update_rng,
         )
 
-        # Log actor loss outside the JIT-compiled function
-        self._collector.collect("actor_loss", float(actor_loss))
-
-        metrics = {
-            'actor_loss': float(actor_loss),
-        }
-
         return PAState(actor_state, proposal_state), metrics
 
-    @partial(jax.jit, static_argnums=(0, 2))
+    @partial(jax_u.jit, static_argnums=(0, 2))
     def _policy_update(
         self,
         pa_state: PAState,
@@ -254,14 +244,6 @@ class PercentileActor:
         states: State,
         rng: chex.PRNGKey,
     ):
-
-        sample_state = states.features[0]
-        actor_out: ActorOutputs = self.actor.apply(params=pa_state.actor.params, x=sample_state)
-
-        for i in range(actor_out.mu.shape[0]):
-            jax.debug.callback(lambda x, i=i: self._collector.collect(f'actor_mu_{i}', float(x)), actor_out.mu[i])
-            jax.debug.callback(lambda x, i=i: self._collector.collect(f'actor_sigma_{i}', float(x)), actor_out.sigma[i])
-
         top_ranked_actions_over_batch = jax_u.vmap_only(self._get_policy_update_actions, ['state'])
         top_ranked_actions = top_ranked_actions_over_batch(
             value_estimator,
@@ -272,7 +254,7 @@ class PercentileActor:
         )
 
         # Actor Update
-        new_actor_state, actor_loss = self._compute_policy_update(
+        new_actor_state, metrics = self._compute_policy_update(
             pa_state.actor,
             self.actor,
             self.actor_opt,
@@ -288,7 +270,7 @@ class PercentileActor:
             states,
             top_ranked_actions.proposal,
         )
-        return new_actor_state, new_proposal_state, actor_loss
+        return new_actor_state, new_proposal_state, metrics
 
     def _compute_policy_update(
         self,
@@ -298,29 +280,23 @@ class PercentileActor:
         states: State,
         update_actions: jax.Array,
     ):
-        is_actor = policy is self.actor
-        prefix = "actor" if is_actor else "proposal"
-
-        def loss_fn(params: chex.ArrayTree):
-            loss = self._batch_policy_loss(params, policy, states, update_actions)
-            jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_loss', float(x)), loss)
-            return loss
-
-        loss_value = loss_fn(policy_state.params)
-        grads = jax.grad(loss_fn)(policy_state.params)
+        loss, grads = jax.value_and_grad(self._batch_policy_loss)(policy_state.params, policy, states, update_actions)
 
         grad_leaves = jax.tree_util.tree_leaves(grads)
-        if grad_leaves:
-            grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
-            jax.debug.callback(lambda x: self._collector.collect(f'{prefix}_grad_norm', float(x)), grad_norm)
+        grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
 
         updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state, params=policy_state.params)
         new_params = optax.apply_updates(policy_state.params, updates)
 
+        metrics = PercentileActorUpdateMetrics(
+            actor_loss=loss,
+            actor_grad_norm=grad_norm,
+        )
+
         return PolicyState(
             new_params,
             new_opt_state,
-        ), loss_value
+        ), metrics
 
     def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: State, rng: chex.PRNGKey):
         uniform_samples = int(self._cfg.num_samples * self._cfg.uniform_weight)
@@ -394,3 +370,8 @@ def top_k_by_other(arr: jax.Array, other: jax.Array, k: int) -> jax.Array:
 
     _, idxs = jax.lax.top_k(other, k)
     return arr[idxs]
+
+
+class PercentileActorUpdateMetrics(NamedTuple):
+    actor_loss: jax.Array
+    actor_grad_norm: jax.Array
