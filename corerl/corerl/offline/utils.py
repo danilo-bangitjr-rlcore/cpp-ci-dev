@@ -2,7 +2,6 @@ import datetime as dt
 import logging
 
 import pandas as pd
-from tqdm import tqdm
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -10,7 +9,6 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
 
@@ -96,18 +94,12 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
-        mc_eval = MonteCarloEvaluator(self.cfg.eval_cfgs.monte_carlo, app_state, agent)
-
-        agent.load_buffer(self.pipeline_out)
+        agent.update_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
             log.info(f"Agent {buffer_name} replay buffer size(s)", size)
 
         q_losses: list[float] = []
-        pbar = tqdm(range(self.offline_steps))
-        for i in pbar:
-            if i in self.cfg.offline.offline_eval_iters:
-                mc_eval.execute_offline(i, self.pipeline_out)
-
+        for _ in range(self.offline_steps):
             critic_loss = agent.update()
             q_losses += critic_loss
 

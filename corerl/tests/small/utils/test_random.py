@@ -1,4 +1,5 @@
-import torch
+import distrax
+import jax
 
 from corerl.utils.random import rejection_sample
 
@@ -16,16 +17,18 @@ def test_rejection_sample_easy():
     n_samples = 100
     action_dim = 5
 
+    rng = jax.random.PRNGKey(0)
+
     def sampler(n: int):
-        dist = torch.distributions.Normal(loc=0.2, scale=0.2)
-        return dist.sample((n, action_dim))
+        dist = distrax.Normal(loc=0.5, scale=0.2)
+        return dist.sample(seed=rng, sample_shape=(n, action_dim))
 
     def fallback(n: int):
-        dist = torch.distributions.Uniform(0, 1)
-        return dist.sample((n, action_dim))
+        dist = distrax.Uniform(low=0, high=1)
+        return dist.sample(seed=rng, sample_shape=(n, action_dim))
 
-    def predicate(arr: torch.Tensor):
-        return ((0 < arr) & (arr < 1)).all(dim=1)
+    def predicate(arr: jax.Array):
+        return ((0 < arr) & (arr < 1)).all(axis=1)
 
     sample = rejection_sample(
         sampler,
@@ -48,16 +51,18 @@ def test_rejection_sample_out_of_sample():
     n_samples = 100
     action_dim = 5
 
+    rng = jax.random.PRNGKey(0)
+
     def sampler(n: int):
-        dist = torch.distributions.Normal(loc=-5, scale=1)
-        return dist.sample((n, action_dim))
+        dist = distrax.Normal(loc=-5, scale=1)
+        return dist.sample(seed=rng, sample_shape=(n, action_dim))
 
     def fallback(n: int):
-        dist = torch.distributions.Uniform(0, 1)
-        return dist.sample((n, action_dim))
+        dist = distrax.Uniform(low=0, high=1)
+        return dist.sample(seed=rng, sample_shape=(n, action_dim))
 
-    def predicate(arr: torch.Tensor):
-        return ((0 < arr) & (arr < 1)).all(dim=1)
+    def predicate(arr: jax.Array):
+        return ((0 < arr) & (arr < 1)).all(axis=1)
 
     sample = rejection_sample(
         sampler,

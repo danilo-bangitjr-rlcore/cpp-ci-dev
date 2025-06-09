@@ -1,19 +1,12 @@
-from contextlib import nullcontext
 from dataclasses import dataclass, field
 from typing import Protocol
 
-import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-import torch
 from scipy import stats
 from sklearn.neighbors import KDTree
-from torch import nn, optim
-from tqdm import tqdm
 
-from corerl.component.network.utils import tensor, to_np
 from corerl.config import config
-from corerl.data_pipeline.imputers.auto_encoder import CircularBuffer
 
 
 @dataclass
@@ -111,131 +104,7 @@ class NeighboursCoverage:
         self.norm_const = get_norm_const(self, dataset, self.cfg.epsilon, self.cfg.n_norm_samples)
 
 
-@config()
-class AECoverageConfig(BaseCoverageConfig):
-    buffer_size: int = 50_000
-    batch_size: int = 256
-    stepsize: float = 1e-3
-    weight_decay: float = 0.01
-    err_tolerance: float = 1e-3
-    max_update_steps: int = 10000
-    sizes: list[int] | None = None
-    ball_in_batch = True
-
-
-def weights_init(m: nn.Module):
-    if isinstance(m, nn.Linear):
-        torch.nn.init.xavier_uniform_(m.weight)
-        torch.nn.init.zeros_(m.bias)
-
-
-class AECoverage:
-    def __init__(self, cfg: AECoverageConfig):
-        self.cfg = cfg
-        self.norm_const = None
-        self._model = None
-        self._optimizer = None
-        self._buffer = None
-        self._input_dim: int | None = None
-        self._scheduler: optim.lr_scheduler.ReduceLROnPlateau | None = None
-
-    def unnorm_cov(self, state_action: np.ndarray) -> np.ndarray:
-        state_action_tensor = tensor(state_action)
-        return to_np(self.loss(state_action_tensor))
-
-    def cov(self, state_action: np.ndarray) -> np.ndarray:
-        assert self.norm_const is not None
-        return self.unnorm_cov(state_action) / self.norm_const
-
-    def _set_up(self, dataset: Dataset):
-        self._input_dim = len(dataset.data.columns)
-
-        if self.cfg.sizes is None:
-            sizes = [
-                int(self._input_dim),
-                int(np.ceil(0.75 * self._input_dim)),
-                int(np.ceil(0.5 * self._input_dim)),
-                int(np.ceil(0.75 * self._input_dim)),
-                int(self._input_dim),
-            ]
-        else:
-            sizes = [int(self._input_dim), *self.cfg.sizes, int(self._input_dim)]
-
-        parts: list[nn.Module] = []
-
-        for i in range(1, len(sizes)):
-            parts.append(nn.Linear(sizes[i - 1], sizes[i]))
-            parts.append(nn.LeakyReLU(negative_slope=0.1))
-
-        self._model = nn.Sequential(*parts)
-        self._model.apply(weights_init)
-
-        self._optimizer = optim.Adam(
-            self._model.parameters(),
-            lr=self.cfg.stepsize,
-            weight_decay=self.cfg.weight_decay,
-        )
-        self._scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-            self._optimizer, "min", factor=0.5, patience=100, min_lr=1e-6, threshold=1e-4,
-        )
-
-        self._buffer = CircularBuffer(self.cfg.buffer_size)
-
-    def fit(self, dataset: Dataset) -> None:
-        if self._model is None:
-            self._set_up(dataset)
-
-        assert self._buffer is not None
-        assert self._optimizer is not None
-        assert self._scheduler is not None
-
-        data_tensor = tensor(dataset.data.to_numpy())
-        for row in data_tensor:
-            self._buffer.add(jnp.asarray(row))
-
-        steps = 0
-        loss = torch.inf
-        pbar = tqdm(total=self.cfg.max_update_steps, desc="Training")
-        while loss > self.cfg.err_tolerance and steps < self.cfg.max_update_steps:
-            steps += 1
-            self._optimizer.zero_grad()
-
-            if self.cfg.ball_in_batch:  # add some epsilon perturbations to the batch
-                batch_1 = torch.tensor(self._buffer.sample(self.cfg.batch_size // 2))
-
-                batch_2 = tensor(sample_epsilon_ball(to_np(batch_1), self.cfg.epsilon, 1))
-                batch = torch.concat([batch_1, batch_2], dim=0)
-
-            else:
-                batch = torch.tensor(self._buffer.sample(self.cfg.batch_size))
-
-            loss = self.loss(batch, with_grad=True).mean()  # extra sum for summing loss across elements of batch
-            loss.backward()
-
-            self._optimizer.step()
-            self._scheduler.step(loss.item())
-
-            pbar.update(1)
-            pbar.set_postfix(
-                {
-                    "loss": f"{loss.item():.6f}",
-                    "lr": f"{self._optimizer.param_groups[0]['lr']:.2e}",
-                },
-            )
-
-        self.norm_const = get_norm_const(self, dataset, self.cfg.epsilon, self.cfg.n_norm_samples)
-
-    def loss(self, batch: torch.Tensor, with_grad: bool = False) -> torch.Tensor:
-        assert self._model is not None
-        context = torch.no_grad() if not with_grad else nullcontext()
-        with context:
-            out = self._model(batch)
-            return torch.square(batch - out).mean(dim=1)
-
-
-
 # --------------------------------- utilities -------------------------------- #
-
 
 def sample_epsilon_ball(
     center: np.ndarray,

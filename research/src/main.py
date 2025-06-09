@@ -183,7 +183,7 @@ def main():
             features=jnp.array(state_features),
             a_lo=jnp.array(a_lo),
             a_hi=jnp.array(a_hi),
-            dp=jnp.array(dp),
+            dp=jnp.array([dp]),
             last_a=jnp.array(last_action),
         )
         action = agent.get_actions(state)

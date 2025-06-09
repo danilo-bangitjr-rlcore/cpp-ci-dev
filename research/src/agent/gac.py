@@ -121,7 +121,11 @@ class GreedyAC:
         self.policy_buffer.add(t)
 
     def get_actions(self, state: State):
-        return self._actor.safe_get_actions(self.agent_state.actor.actor.params, state)
+        n_samples = 1
+        actions, _ = self._actor.get_actions(self.agent_state.actor.actor.params, state, n_samples)
+
+        chex.assert_shape(actions, (n_samples, self.action_dim))
+        return actions.squeeze(0)
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         return self._critic.forward(
@@ -138,14 +142,6 @@ class GreedyAC:
         self.critic_update()
         self.policy_update()
 
-    @jax_u.method_jit
-    def _get_actions_over_state(self, actor_params: chex.ArrayTree, rng: chex.PRNGKey, x: State):
-        chex.assert_rank(x, 3)
-        return jax_u.vmap_only(self._actor.get_actions_rng, ['state'])(
-            actor_params,
-            rng,
-            x,
-        )
 
     def critic_update(self):
         if self.critic_buffer.size == 0:
@@ -159,8 +155,13 @@ class GreedyAC:
             last_a=batch.action,
             dp=jnp.expand_dims(batch.next_dp, axis=-1),
         )
-        next_actions = self._get_actions_over_state(self.agent_state.actor.actor.params, self.rng, next_state)
-        next_actions = jnp.expand_dims(next_actions, axis=2) # add singleton dimension for samples for expected update
+        self.rng, bs_rng = jax.random.split(self.rng)
+        next_actions, _ = self._actor.get_actions_rng(
+            self.agent_state.actor.actor.params,
+            bs_rng,
+            next_state,
+            10,
+        )
         new_critic_state, _ = self._critic.update(
             critic_state=self.agent_state.critic,
             transitions=BatchWithState(
@@ -187,7 +188,7 @@ class GreedyAC:
 
         batch = self.policy_buffer.sample()
 
-        actor_state = self._actor.update(
+        actor_state, _ = self._actor.update(
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,
@@ -197,7 +198,7 @@ class GreedyAC:
                     a_lo=batch.a_lo,
                     a_hi=batch.a_hi,
                     last_a=batch.last_a,
-                    dp=batch.dp,
+                    dp=jnp.expand_dims(batch.dp, axis=-1),
                 ),
                 action=batch.action,
                 reward=batch.reward,
@@ -206,7 +207,7 @@ class GreedyAC:
                     a_lo=batch.next_a_lo,
                     a_hi=batch.next_a_hi,
                     last_a=batch.action,
-                    dp=batch.next_dp,
+                    dp=jnp.expand_dims(batch.next_dp, axis=-1),
                 ),
                 gamma=batch.gamma,
             ),
@@ -218,4 +219,7 @@ class GreedyAC:
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
         ens_forward = jax_u.vmap_only(self._critic.forward, ['params'])
         qs = ens_forward(params, x, a)
-        return qs.mean(axis=0).squeeze(-1)
+        values = qs.mean(axis=0).squeeze(-1)
+
+        chex.assert_rank(values, 0)
+        return values

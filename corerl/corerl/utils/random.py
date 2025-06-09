@@ -1,15 +1,15 @@
 from collections.abc import Callable
-from typing import NamedTuple
 
-import torch
+import jax
+import jax.numpy as jnp
 
 
 def rejection_sample(
-    sampler: Callable[[int], torch.Tensor],
-    predicate: Callable[[torch.Tensor], torch.Tensor],
+    sampler: Callable[[int], jax.Array],
+    predicate: Callable[[jax.Array], jax.Array],
     n_samples: int,
     max_iter: int = 100,
-    fallback: Callable[[int], torch.Tensor] | None = None,
+    fallback: Callable[[int], jax.Array] | None = None,
 ):
     out = sampler(n_samples)
     to_keep = predicate(out)
@@ -27,7 +27,7 @@ def rejection_sample(
         next_out = sampler(n_samples)
         next_keep = predicate(next_out)
 
-        valid = torch.concatenate((valid, next_out[next_keep]), dim=0)
+        valid = jnp.concatenate((valid, next_out[next_keep]), axis=0)
 
     # check the last iteration
     needed = n_samples - valid.shape[0]
@@ -39,19 +39,4 @@ def rejection_sample(
         return valid
 
     fb = fallback(needed)
-    return torch.concatenate((valid, fb), dim=0)
-
-
-class DistributionStatistics(NamedTuple):
-    mean: torch.Tensor
-    stddev: torch.Tensor
-
-
-def get_dist_stats(dist: torch.distributions.Distribution, n_samples: int = 100) -> DistributionStatistics:
-    samples = dist.sample((n_samples,))
-    mean = samples.mean(dim=0)
-    stddev = samples.std(dim=0)
-    return DistributionStatistics(
-        mean=mean,
-        stddev=stddev,
-    )
+    return jnp.concatenate((valid, fb), axis=0)

@@ -125,7 +125,7 @@ class FourRoomsEnv(gym.Env):
         next_state = np.clip(next_state, 0, 1)
         next_x, next_y = next_state
 
-        def line(t: float):
+        def line(t: float | np.floating):
             return prev_state + t * (next_state - prev_state)
 
         # Take the line segment from prev_state -> next_state:

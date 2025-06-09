@@ -18,7 +18,6 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.hindsight_return import HindsightReturnEval
-from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.interaction.configs import InteractionConfig
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
@@ -68,13 +67,6 @@ class DeploymentInteraction:
         self._step_clock = clock_generator(tick_period=self.obs_period)
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
         self._state_age_tol = cfg.state_age_tol
-
-        ### Evals ###
-        self._monte_carlo_eval = MonteCarloEvaluator(
-            app_state.cfg.eval_cfgs.monte_carlo,
-            app_state,
-            agent,
-        )
 
         self._hs_return_eval = HindsightReturnEval(
             app_state.cfg.eval_cfgs.avg_reward,
@@ -168,7 +160,6 @@ class DeploymentInteraction:
 
         # perform evaluations
         self._hs_return_eval.execute(pipe_return.rewards)
-        self._monte_carlo_eval.execute(pipe_return, "online")
 
         tags = self._column_desc.state_cols
         logger.info(f"captured state {self._last_state}, with columns {tags}")
@@ -199,9 +190,7 @@ class DeploymentInteraction:
         # eval
         agent_eval.q_online(self._app_state, self._agent, state.feats, next_a)
         agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
-        agent_eval.greed_values_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
         agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
-        agent_eval.policy_variance(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
 
 
 
@@ -209,8 +198,7 @@ class DeploymentInteraction:
         self._agent.update()
 
         # metrics + eval
-        agent_eval.greed_dist_batch(self._app_state, self._agent)
-        agent_eval.greed_values_batch(self._app_state, self._agent)
+        # agent_eval.greed_dist_batch(self._app_state, self._agent)
 
 
     def _on_ping_setpoint(self):

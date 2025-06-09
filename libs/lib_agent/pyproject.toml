@@ -21,6 +21,7 @@ dev = [
     "pylint>=3.3.7",
     "pyright>=1.1.392.post0",
     "pytest>=8.4.0",
+    "pytest-xdist>=3.7.0",
     "ruff>=0.11.12",
     "uv>=0.5.24",
 ]

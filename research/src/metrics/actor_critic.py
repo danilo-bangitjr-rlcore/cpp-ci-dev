@@ -29,7 +29,7 @@ def ac_eval(collector: Collector, agent: GreedyAC, state: State):
     proposal_probs = agent.get_probs(agent.agent_state.actor.proposal.params, state, linspaced_actions)
 
     for a_dim in range(agent.action_dim):
-        constructed_actions = repeat_on_policy.at[:,a_dim].set(repeat_linspace)
+        constructed_actions = repeat_on_policy.at[:, a_dim].set(repeat_linspace)
 
         # Critic
         q_vals = agent.get_action_values(state, constructed_actions)
@@ -37,10 +37,10 @@ def ac_eval(collector: Collector, agent: GreedyAC, state: State):
         state_vals = reshaped_q_vals.mean(axis=1)
 
         # Actor
-        a_dim_actor_probs = actor_probs[:,a_dim]
+        a_dim_actor_probs = actor_probs[:, a_dim]
 
         # Proposal
-        a_dim_proposal_probs = proposal_probs[:,a_dim]
+        a_dim_proposal_probs = proposal_probs[:, a_dim]
 
         # Write to db
         for i in range(x_axis_actions):

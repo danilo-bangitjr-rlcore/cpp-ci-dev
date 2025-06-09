@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 from pydantic import Field
 from tabulate import tabulate
-from tqdm import tqdm
 
 from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import StageCode
@@ -99,7 +98,7 @@ def make_distribution_plots(
     num_bins = cfg.hist_num_bins
 
     log.info('Generating Distribution Plots...')
-    for tag in tqdm(tags):
+    for tag in tags:
         for stage_i, df in enumerate(data):
             stage_name = stages[stage_i].name
             tag_stage_output_path = output_path / tag / stage_name
@@ -178,7 +177,7 @@ def make_cross_correlation_table(
     table = [['Stage', 'tag 1', 'tag 2', 'Max Cross Correlation', 'Lag for Max Cross Correlation']]
     for stage_i, stage in enumerate(stages):
         df = data[stage_i]
-        for tag_pair in tqdm(tag_pairs):
+        for tag_pair in tag_pairs:
             tag_1, tag_2 = tag_pair
 
             assert tag_1 in all_tags

@@ -2,35 +2,21 @@
 name = "corerl"
 version = "0.142.0"
 description = ""
-requires-python = ">=3.13,<3.14"
+requires-python = "==3.13.0"
 authors = []
 dependencies = [
-    "asyncua~=1.0",
-    "backoff~=2.2.1",
-    "boto3~=1.35",
-    "casadi~=3.6",
-    "cloudpathlib[s3]~=0.20",
     "discrete-dists~=1.0",
     "fastapi[standard]~=0.115.6",
-    "gymnasium~=1.0",
-    "influxdb_client~=1.39",
-    "jaxtyping~=0.2",
-    "matplotlib~=3.8",
-    "nltk~=3.8",
     "numba~=0.60",
     "numpy~=2.0",
     "pandas~=2.2",
     "pandas-stubs~=2.2",
     "pydantic~=2.9",
-    "pygame~=2.5",
     "pyyaml~=6.0",
-    "requests~=2.31",
     "scipy~=1.13",
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
     "tabulate~=0.9.0",
-    "torch~=2.5",
-    "tqdm~=4.66",
     "scikit-learn~=1.5",
     "psycopg2-binary~=2.9",
     "pyzmq~=26.4.0",
@@ -43,7 +29,11 @@ readme = "README.md"
 [dependency-groups]
 dev = [
     "rl_env",
+    "boto3~=1.35",
+    "cloudpathlib[s3]~=0.20",
     "docker>=7.1.0",
+    "gymnasium~=1.0",
+    "matplotlib~=3.8",
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
     "pyright>=1.1.401",
