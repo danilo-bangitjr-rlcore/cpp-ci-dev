@@ -1,0 +1,21 @@
+coreio:
+  coreio_origin: "tcp://localhost:5560"
+  opc_connections:
+    - connection_id: main_opc
+      opc_conn_url: "opc.tcp://localhost:62541"
+      application_uri: "client"
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+
+
+env:
+  name: sim_async_env
+  gym:
+    gym_name : Saturation-v0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01

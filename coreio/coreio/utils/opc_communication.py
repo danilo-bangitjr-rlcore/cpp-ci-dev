@@ -11,7 +11,12 @@ from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from corerl.data_pipeline.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
-from coreio.config import OPCConnectionConfig
+from coreio.config import (
+    OPCAuthenticationModeUsernamePassword,
+    OPCConnectionConfig,
+    OPCMessageSecurityMode,
+    OPCSecurityPolicyBasic256SHA256,
+)
 from coreio.utils.io_events import OPCUANodeWriteValue
 
 logger = logging.getLogger(__name__)
@@ -42,26 +47,30 @@ class OPC_Connection:
     async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfig]):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
-        await self._register_action_nodes(tag_configs)
 
-        if cfg.client_cert_path and cfg.client_private_key_path and cfg.server_cert_path:
-            assert cfg.application_uri is not None
-            self.opc_client.application_uri = cfg.application_uri
+        assert cfg.application_uri is not None
+        self.opc_client.application_uri = cfg.application_uri
 
+        if isinstance(cfg.security_policy, OPCSecurityPolicyBasic256SHA256):
+            mode = (
+                ua.MessageSecurityMode.Sign
+                if cfg.security_policy.mode is OPCMessageSecurityMode.sign
+                else ua.MessageSecurityMode.SignAndEncrypt
+            )
             await self.opc_client.set_security(
                 SecurityPolicyBasic256Sha256,
-                certificate=cfg.client_cert_path,
-                private_key=cfg.client_private_key_path,
-                mode=ua.MessageSecurityMode.SignAndEncrypt,
-                server_certificate=cfg.server_cert_path,
+                certificate=cfg.security_policy.client_cert_path,
+                private_key=cfg.security_policy.client_key_path,
+                mode=mode,
+                server_certificate=str(cfg.security_policy.server_cert_path),
             )
-        if cfg.client_cert_path or cfg.client_private_key_path or cfg.server_cert_path:
-            logger.warning(
-                f"OPC Clinent (connection_id: {cfg.connection_id}): " +
-                "Client cert path, client private key path and server cert path " +
-                "must be declared to set an encrypted connection.\n" +
-                "Using default connection.",
-            )
+
+        if isinstance(cfg.authentication_mode, OPCAuthenticationModeUsernamePassword):
+            self.opc_client.set_user(cfg.authentication_mode.username)
+            self.opc_client.set_password(cfg.authentication_mode.password)
+
+        await self._register_action_nodes(tag_configs)
+
         return self
 
     async def register_node(self, node_id: str):
