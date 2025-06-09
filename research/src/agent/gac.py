@@ -75,7 +75,7 @@ class GreedyAC:
         self._collector = collector
 
         self._critic: GACCritic = get_critic(cfg.critic, seed, state_dim, action_dim, collector)
-        self._actor: PercentileActor = get_actor(cfg.actor, seed, state_dim, action_dim, collector)
+        self._actor: PercentileActor = get_actor(cfg.actor, seed, state_dim, action_dim)
 
         # Replay Buffers
         self.policy_buffer = EnsembleReplayBuffer[Batch](
@@ -188,7 +188,7 @@ class GreedyAC:
 
         batch = self.policy_buffer.sample()
 
-        actor_state, _ = self._actor.update(
+        actor_state, metrics = self._actor.update(
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,
@@ -213,6 +213,8 @@ class GreedyAC:
             ),
         )
         self.agent_state = self.agent_state._replace(actor=actor_state)
+
+        self._collector.collect('actor_loss', metrics.actor_loss.mean().item())
 
 
 

@@ -182,7 +182,6 @@ class GreedyAC(BaseAgent):
             app_state.cfg.seed,
             col_desc.state_dim,
             col_desc.action_dim,
-            collector,
         )
 
         critic_cfg = QRCConfig(
@@ -450,7 +449,7 @@ class GreedyAC(BaseAgent):
             self._critic_state.params,
             actor_batch,
         )
-        return metrics['actor_loss']
+        return metrics.actor_loss.mean().item()
 
     def update(self) -> list[float]:
         q_losses = []
