@@ -1,4 +1,3 @@
-
 import jax
 import jax.numpy as jnp
 
@@ -57,7 +56,7 @@ class RepresentationEval:
         ratios = value_diffs[mask] / (state_diffs[mask] + 1e-8)
 
         # calculate Lrep as average of ratios
-        lrep = 2 * jnp.mean(ratios) / (n * (n-1))
+        lrep = float(2 * jnp.mean(ratios) / (n * (n-1)))
 
         if self._lmax is None or lrep > self._lmax:
             self._lmax = lrep
