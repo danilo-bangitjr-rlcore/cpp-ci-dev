@@ -438,10 +438,12 @@ class GreedyAC(BaseAgent):
         q_losses = []
 
         alpha = self.cfg.loss_ema_factor
+        n_updates = 0
         for _ in range(self.cfg.max_critic_updates):
             losses = self.update_critic()
             q_losses += losses
             avg_critic_loss = np.mean(losses)
+            n_updates += 1
 
             for _ in range(self.cfg.max_internal_actor_updates):
                 actor_loss = self.update_actor()
@@ -457,10 +459,20 @@ class GreedyAC(BaseAgent):
             self._last_critic_loss = avg_critic_loss
             delta = avg_critic_loss - last
             self._avg_critic_delta = exp_moving_avg(alpha, self._avg_critic_delta, delta)
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="CRITIC-avg_loss_delta",
+                value=self._avg_critic_delta,
+            )
 
             if np.abs(self._avg_critic_delta) < self.cfg.loss_threshold:
                 break
 
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric="CRITIC-updates",
+            value=n_updates,
+        )
         return q_losses
 
     # ---------------------------- saving and loading ---------------------------- #
