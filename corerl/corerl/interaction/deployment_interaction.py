@@ -18,7 +18,6 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.hindsight_return import HindsightReturnEval
-from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.eval.representation import RepresentationEval
 from corerl.interaction.configs import InteractionConfig
 from corerl.messages.events import Event, EventType

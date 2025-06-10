@@ -2,7 +2,6 @@ import jax
 import jax.numpy as jnp
 
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.agent.utils import get_sampled_qs
 from corerl.state import AppState
 
 
@@ -78,26 +77,39 @@ class RepresentationEval:
         if not batches:
             return
 
-        batch = batches[0]
-        states = batch.prior.state
-        action_lo = batch.prior.action_lo
-        action_hi = batch.prior.action_hi
+        batch = jax.tree.map(lambda x: x[0], batches)
+        states = batch.state
+        action_lo = batch.action_lo
+        action_hi = batch.action_hi
 
-        qr = get_sampled_qs(
-            states=states,
-            action_lo=action_lo,
-            action_hi=action_hi,
-            n_samples=100,
-            sampler=agent.get_uniform_actions,
-            critic=agent,
+        n_samples = 100
+        num_states = states.shape[0]
+        action_dim = action_lo.shape[1]
+
+        # sample uniform actions for each state
+        sampled_actions = jax.random.uniform(
+            jax.random.PRNGKey(0),
+            shape=(num_states, n_samples, action_dim),
+            minval=action_lo[:, None, :],
+            maxval=action_hi[:, None, :],
         )
 
-        jax_states = jnp.array(states.cpu().numpy())
-        jax_q_values = jnp.array(qr.q_values.mean(dim=1).cpu().numpy())
+        # get Q-values for all (state, action) pairs
+        states_tiled = jnp.repeat(states[:, None, :], n_samples, axis=1)
+        states_flat = states_tiled.reshape(-1, states.shape[1])
+        actions_flat = sampled_actions.reshape(-1, action_dim)
+
+        qs = agent.get_values(
+            jnp.expand_dims(states_flat, 0),
+            jnp.expand_dims(actions_flat, 0),
+        ).reduced_value
+
+        # average Q-values for each state
+        mean_qs = qs.reshape(num_states, n_samples).mean(axis=1)
 
         complexity_reduction = self.get_complexity_reduction(
-            jax_states,
-            jax_q_values,
+            states,
+            mean_qs,
         )
 
         app_state.metrics.write(
