@@ -131,6 +131,23 @@ class QRCCritic:
     def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
         return self._net.apply(params, state, action).q
 
+    def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
+        def rep_func(p, s, a):
+            return self._net.apply(p, s, a).h
+
+        if a.ndim == x.ndim + 1:
+            # actions must have an n_samples dimension
+            rep_func = jax_u.vmap(rep_func, (None, None, 0))
+
+        # batch mode - vmap only over batch dim
+        batch_mode = jax_u.vmap(rep_func, (None, 0, 0))
+        if x.ndim == 2:
+            return batch_mode(params, x, a)
+
+        # ensemble mode - vmap both over ensemble and batch dim
+        # note: params also have an ensemble dimension
+        chex.assert_equal_shape_prefix((x, a), 2)
+        return jax_u.vmap(batch_mode)(params, x, a)
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
         new_state, metrics = self._ensemble_update(

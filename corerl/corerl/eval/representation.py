@@ -11,6 +11,8 @@ class RepresentationEval:
     Currently implements:
     - Complexity Reduction: Measures how much the representation helps reduce
       the required complexity in the value function
+    - Dynamics Awareness: Measures how well the representation captures state dynamics
+      by comparing distances between states and their successors vs random states
     """
     def __init__(self, app_state: AppState):
         self.app_state = app_state
@@ -62,6 +64,50 @@ class RepresentationEval:
 
         return 1 - (lrep / self._lmax)
 
+    def get_dynamics_awareness(
+        self,
+        states: jax.Array,
+        next_states: jax.Array,
+    ) -> float:
+        """
+        Calculate dynamics awareness metric for the current batch.
+
+        This metric measures how well the representation captures state dynamics by comparing
+        distances between states and their successors vs random states. A higher score indicates
+        that successor states are closer in representation space than random states, suggesting
+        the representation is dynamics-aware.
+
+        The metric is computed by:
+        1. For each state i:
+           - Calculate distance to its successor state φ'ᵢ
+           - Calculate distance to a random state φⱼ
+        2. Sum these distances across all states
+        3. Compute: (∑ᵢ ||φᵢ - φⱼ|| - ∑ᵢ ||φᵢ - φ'ᵢ||) / (∑ᵢ ||φᵢ - φⱼ||)
+
+        Returns a score between -1 and 1, where:
+        - 1 means perfect dynamics awareness (successors are much closer than random states)
+        - 0 means no dynamics awareness (successors are as far as random states)
+        - -1 means anti-dynamics awareness (successors are much further than random states)
+        """
+        n = states.shape[0]
+
+        # sample random state indices for each state
+        rng = jax.random.PRNGKey(0)
+        random_indices = jax.random.permutation(rng, n)
+
+        # calculate distances to random states
+        random_dists = jnp.sqrt(jnp.sum((states - states[random_indices])**2, axis=-1))
+        total_random_dist = jnp.sum(random_dists)
+
+        # calculate distances to successor states
+        successor_dists = jnp.sqrt(jnp.sum((states - next_states)**2, axis=-1))
+        total_successor_dist = jnp.sum(successor_dists)
+
+        # compute dynamics awareness score
+        dynamics_awareness = (total_random_dist - total_successor_dist) / (total_random_dist + 1e-8)
+
+        return float(dynamics_awareness)
+
     def evaluate(
         self,
         app_state: AppState,
@@ -79,6 +125,7 @@ class RepresentationEval:
 
         batch = jax.tree.map(lambda x: x[0], batches)
         states = batch.state
+        next_states = batch.next_state
         action_lo = batch.action_lo
         action_hi = batch.action_hi
 
@@ -94,21 +141,44 @@ class RepresentationEval:
             maxval=action_hi[:, None, :],
         )
 
-        # get Q-values for all (state, action) pairs
+        # get representations from the first layer of the critic
         states_expanded = jnp.expand_dims(states, 0)  # add ensemble dimension
         sampled_actions = jnp.expand_dims(sampled_actions, 0)
-        qs = agent.get_values(states_expanded, sampled_actions).reduced_value
 
-        # average Q-values for each state
-        mean_qs = qs.reshape(num_states, n_samples).mean(axis=1)
+        state_reps = agent.critic.get_representations(
+            agent._critic_state.params,
+            states_expanded,
+            sampled_actions,
+        )
+        next_states_expanded = jnp.expand_dims(next_states, 0)
+        next_state_reps = agent.critic.get_representations(
+            agent._critic_state.params,
+            next_states_expanded,
+            sampled_actions,
+        )
+
+        # average representations for each state
+        mean_state_reps = state_reps.reshape(num_states, n_samples, -1).mean(axis=1)
+        mean_next_state_reps = next_state_reps.reshape(num_states, n_samples, -1).mean(axis=1)
 
         complexity_reduction = self.get_complexity_reduction(
             states,
-            mean_qs,
+            mean_state_reps,
+        )
+
+        # calculate dynamics awareness using representations
+        dynamics_awareness = self.get_dynamics_awareness(
+            mean_state_reps,
+            mean_next_state_reps,
         )
 
         app_state.metrics.write(
             agent_step=app_state.agent_step,
             metric="representation_complexity_reduction",
             value=float(complexity_reduction),
+        )
+        app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric="representation_dynamics_awareness",
+            value=float(dynamics_awareness),
         )
