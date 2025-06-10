@@ -252,7 +252,7 @@ class QRCCritic:
             minval=state.a_lo,
             maxval=state.a_hi,
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, rand_actions)
+        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, state.features, rand_actions)
         action_reg_loss = self._cfg.action_regularization * jnp.abs(out_rand.q).mean()
 
         loss = q_loss + h_loss + action_reg_loss
