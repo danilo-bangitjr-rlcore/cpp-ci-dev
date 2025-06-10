@@ -184,3 +184,8 @@ class InteractionConfig:
                 continue
 
             assert start.expect() < stop.expect()
+
+    @post_processor
+    def _disable_checkpoint_loading(self, cfg: MainConfig):
+        if cfg.is_simulation:
+            self.restore_checkpoint = False
