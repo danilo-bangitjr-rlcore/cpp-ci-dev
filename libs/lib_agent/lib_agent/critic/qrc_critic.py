@@ -60,8 +60,8 @@ def critic_builder(cfg: nets.TorsoConfig):
 
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
         return CriticOutputs(
-            q=hk.Linear(1)(phi),
-            h=hk.Linear(1, name='h', w_init=small_init)(phi),
+            q=hk.Linear(1, w_init=small_init, with_bias=False)(phi),
+            h=hk.Linear(1, name='h', w_init=small_init, with_bias=False)(phi),
             phi=phi,
         )
 
