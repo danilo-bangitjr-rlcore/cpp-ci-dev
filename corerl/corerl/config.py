@@ -231,8 +231,8 @@ class MainConfig:
         if not self.feature_flags.regenerative_optimism:
             return
 
-        self.agent.policy.sort_noise = 0.025
-        self.agent.critic.action_regularization = 0.001
+        self.agent.policy.sort_noise = 0.02
+        self.agent.critic.action_regularization = 0.0001
 
         if self.feature_flags.normalize_return:
             self.agent.policy.sort_noise *= (1 - self.agent.gamma)
