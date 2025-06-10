@@ -205,7 +205,9 @@ class QRCCritic:
             transition,
             next_actions,
         )
-        return losses.mean() + l2_regularizer(params['h'], self._cfg.l2_regularization), metrics
+        h_reg_loss = l2_regularizer(params['h'], self._cfg.l2_regularization)
+        metrics = metrics._replace(h_reg_loss=h_reg_loss)
+        return losses.mean() + h_reg_loss, metrics
 
 
     def _loss(
@@ -237,9 +239,9 @@ class QRCCritic:
             self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
         )
         out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, rand_actions)
-        reg_loss = out_rand.q.mean()
+        action_reg_loss = self._cfg.action_regularization * out_rand.q.mean()**2
 
-        loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
+        loss = q_loss + h_loss + action_reg_loss
 
         metrics = QRCCriticMetrics(
             q=out.q,
@@ -247,9 +249,12 @@ class QRCCritic:
             loss=loss,
             q_loss=q_loss,
             h_loss=h_loss,
-            delta=delta_l,
+            delta_l=delta_l,
+            delta_r=delta_r,
+            action_reg_loss=action_reg_loss,
 
             # filled out further up
+            h_reg_loss=jnp.array(0),
             ensemble_grad_norms=jnp.array(0),
             ensemble_weight_norms=jnp.array(0),
         )
@@ -274,7 +279,10 @@ class QRCCriticMetrics(NamedTuple):
     loss: jax.Array
     q_loss: jax.Array
     h_loss: jax.Array
-    delta: jax.Array
+    delta_l: jax.Array
+    delta_r: jax.Array
+    action_reg_loss: jax.Array
+    h_reg_loss: jax.Array
     ensemble_grad_norms: jax.Array
     ensemble_weight_norms: jax.Array
 
