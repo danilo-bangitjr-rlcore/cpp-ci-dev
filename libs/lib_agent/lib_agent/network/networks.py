@@ -19,19 +19,19 @@ class CallableModule(hk.Module):
 class LinearConfig:
     size: int
     name: str | None = None
-    activation: str = 'relu'
+    activation: str = 'crelu'
 
 @dataclass
 class ResidualConfig:
     size: int
     name: str | None = None
-    activation: str = 'relu'
+    activation: str = 'crelu'
 
 @dataclass
 class LateFusionConfig:
     sizes: list[int]
     name: str | None = None
-    activation: str = 'relu'
+    activation: str = 'crelu'
 
 @dataclass
 class ResidualLateFusionConfig(LateFusionConfig):

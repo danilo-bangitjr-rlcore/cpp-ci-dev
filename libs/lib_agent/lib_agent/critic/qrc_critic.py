@@ -74,8 +74,8 @@ class QRCCritic:
 
         torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='relu'),
-                nets.LinearConfig(size=256, activation='relu'),
+                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='crelu'),
+                nets.LinearConfig(size=128, activation='crelu'),
             ],
             skip=True,
         )
