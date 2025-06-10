@@ -24,11 +24,6 @@ env:
 evals:
   enabled: True
 
-eval_cfgs:
-  monte_carlo:
-    enabled: True
-    precision: 0.2
-
 metrics:
   enabled: True
 

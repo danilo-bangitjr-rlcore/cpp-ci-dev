@@ -2,7 +2,6 @@ import logging
 import random
 
 import numpy as np
-import torch
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -13,7 +12,6 @@ from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState
-from corerl.utils.device import device
 
 log = logging.getLogger(__name__)
 
@@ -24,13 +22,11 @@ def main(cfg: MainConfig):
     Assuming offline data has already been written to TimescaleDB
     """
     save_path = cfg.save_path
-    device.update_device(cfg.infra.device)
 
     # set the random seeds
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
-    torch.manual_seed(seed)
 
     app_state = AppState(
         cfg=cfg,

@@ -2,9 +2,6 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
-import numpy as np
-import torch
-
 
 class Ring(Protocol):
     def __add__(self, other: Any, /) -> Any:
@@ -21,5 +18,3 @@ class Ring(Protocol):
 
     def __pow__(self, other: Any, /) -> Any:
         ...
-
-TensorLike = torch.Tensor | np.ndarray | list[torch.Tensor]

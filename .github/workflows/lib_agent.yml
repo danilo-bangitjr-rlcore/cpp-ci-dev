@@ -1,0 +1,44 @@
+name: lib_agent benchmark
+permissions: write-all
+
+on:
+  pull_request:
+    paths:
+      - "libs/lib_agent/**"
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  libs_agent-benchmark:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: libs/lib_agent
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: libs/lib_agent
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      - name: Run Pytest
+        run: |
+          pytest --benchmark-only --benchmark-json output.json tests/
+
+      - name: Store benchmark result
+        uses: benchmark-action/github-action-benchmark@v1
+        with:
+          name: Python Benchmark with pytest-benchmark
+          tool: 'pytest'
+          output-file-path: libs/lib_agent/output.json
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          alert-threshold: '130%'
+          comment-always: true
+          summary-always: true
+          fail-on-alert: true
+          alert-comment-cc-users: '@rlcoretech/rlcore-codeowners @andy-rlcore'

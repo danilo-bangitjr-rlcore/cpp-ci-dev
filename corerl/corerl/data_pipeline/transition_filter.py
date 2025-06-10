@@ -2,7 +2,8 @@ import math
 from collections.abc import Iterable
 from typing import Literal, assert_never
 
-import torch
+import jax
+import jax.numpy as jnp
 
 from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
@@ -84,8 +85,8 @@ def only_no_action_change(transition: Transition):
 
 def has_nan(obj: object):
     for value in vars(obj).values():
-        if isinstance(value, torch.Tensor):
-            if torch.isnan(value).any():
+        if isinstance(value, jax.Array):
+            if jnp.isnan(value).any():
                 return True
         elif isinstance(value, float) and math.isnan(value):
             return True
@@ -98,7 +99,7 @@ def no_nan(transition: Transition):
     first_step = transition.steps[0]
     if math.isnan(first_step.gamma):
         return False
-    if torch.isnan(first_step.state).any():
+    if jnp.isnan(first_step.state).any():
         return False
     if math.isnan(first_step.dp):
         return False

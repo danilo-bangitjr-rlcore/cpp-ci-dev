@@ -28,7 +28,6 @@ def walk_no_missing(part: object, key_path: str=""):
     ('../config/mountain_car_continuous'),
     ('../config/dep_mountain_car_continuous'),
     ('../config/web_default_config'),
-    ('../projects/victoria_ww/configs/offline_pretraining'),
     ('../projects/epcor_scrubber/configs/epcor_scrubber'),
 ])
 def test_main_configs(config_name: str):

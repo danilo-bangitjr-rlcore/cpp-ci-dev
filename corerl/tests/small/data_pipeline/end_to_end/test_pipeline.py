@@ -1,11 +1,11 @@
 import datetime
 from typing import Any
 
+import jax
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-import torch
 from test.infrastructure.utils.pandas import dfs_close
-from torch import Tensor, tensor
 
 from corerl.config import MainConfig
 from corerl.configs.loader import direct_load_config
@@ -19,9 +19,9 @@ from corerl.state import AppState
 
 def mkstep(
     reward: float,
-    action: Tensor,
+    action: jax.Array,
     gamma: float,
-    state: Tensor,
+    state: jax.Array,
     dp: bool, # decision point
     ac: bool, # action change
 ):
@@ -30,8 +30,8 @@ def mkstep(
         action=action,
         gamma=gamma,
         state=state,
-        action_lo=torch.zeros_like(action),
-        action_hi=torch.ones_like(action),
+        action_lo=jnp.zeros_like(action),
+        action_hi=jnp.ones_like(action),
         dp=dp,
         ac=ac,
     )
@@ -115,15 +115,15 @@ def test_pipeline1():
             steps=[
                 # expected state order: [tag-1, action-1-hi, action-1-lo, countdown.[0], tag-2_norm_trace-0.1]
                 mkstep(reward=3,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([0.0, 1, 0, 0, 0.18]),
+                       state=jnp.array([0.0, 1, 0, 0, 0.18]),
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([1.0, 1, 0, 0, 0.378]),
+                       state=jnp.array([1.0, 1, 0, 0, 0.378]),
                        dp=True,
                        ac=True),
             ],
@@ -133,15 +133,15 @@ def test_pipeline1():
         Transition(
             steps=[
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([1.0, 1, 0, 0, 0.378]),
+                       state=jnp.array([1.0, 1, 0, 0, 0.378]),
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([2.0, 1, 0, 0,  0.5778]),
+                       state=jnp.array([2.0, 1, 0, 0,  0.5778]),
                        dp=True,
                        ac=True),
             ],
@@ -213,15 +213,15 @@ def test_pipeline2():
             steps=[
                 # countdown comes first in the state
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([0., 0., 1, 0, 0, 0.0]),
+                       state=jnp.array([0., 0., 1, 0, 0, 0.0]),
                        dp=True,
                        ac=True),
                 mkstep(reward=3,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1., 0., 1, 0, 0, 0.15]),
+                       state=jnp.array([1., 0., 1, 0, 0, 0.15]),
                        dp=True,
                        ac=True),
             ],
@@ -231,33 +231,15 @@ def test_pipeline2():
         Transition(
             steps=[
                 mkstep(reward=3,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1., 0., 1, 0, 0, 0.15]),
+                       state=jnp.array([1., 0., 1, 0, 0, 0.15]),
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([0., 1., 1, 0, 0, 0.315]),
-                       dp=True,
-                       ac=True),
-            ],
-            n_step_reward=0.,
-            n_step_gamma=0.9,
-        ),
-        Transition(
-            steps=[
-                mkstep(reward=0,
-                       action=tensor([0.]),
-                       gamma=0.9,
-                       state=tensor([0., 1., 1, 0, 0, 0.315]),
-                       dp=True,
-                       ac=True),
-                mkstep(reward=0,
-                       action=tensor([1.]),
-                       gamma=0.9,
-                       state=tensor([1., 1., 1, 0, 0, 0.4815]),
+                       state=jnp.array([0., 1., 1, 0, 0, 0.315]),
                        dp=True,
                        ac=True),
             ],
@@ -267,15 +249,15 @@ def test_pipeline2():
         Transition(
             steps=[
                 mkstep(reward=0,
-                       action=tensor([1.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([1., 1., 1, 0, 0, 0.4815]),
+                       state=jnp.array([0., 1., 1, 0, 0, 0.315]),
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([0., 1., 1, 0, 0, 0.64815]),
+                       state=jnp.array([1., 1., 1, 0, 0, 0.4815]),
                        dp=True,
                        ac=True),
             ],
@@ -285,15 +267,33 @@ def test_pipeline2():
         Transition(
             steps=[
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([0., 1., 1, 0, 0, 0.64815]),
+                       state=jnp.array([1., 1., 1, 0, 0, 0.4815]),
+                       dp=True,
+                       ac=True),
+                mkstep(reward=0,
+                       action=jnp.array([0.]),
+                       gamma=0.9,
+                       state=jnp.array([0., 1., 1, 0, 0, 0.64815]),
+                       dp=True,
+                       ac=True),
+            ],
+            n_step_reward=0.,
+            n_step_gamma=0.9,
+        ),
+        Transition(
+            steps=[
+                mkstep(reward=0,
+                       action=jnp.array([0.]),
+                       gamma=0.9,
+                       state=jnp.array([0., 1., 1, 0, 0, 0.64815]),
                        dp=True,
                        ac=True),
                 mkstep(reward=1,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1., 4., 1, 0, 0, 0.814815]),
+                       state=jnp.array([1., 4., 1, 0, 0, 0.814815]),
                        dp=True,
                        ac=True),
             ],
@@ -303,15 +303,15 @@ def test_pipeline2():
         Transition(
             steps=[
                 mkstep(reward=1,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1., 4., 1, 0, 0, 0.814815]),
+                       state=jnp.array([1., 4., 1, 0, 0, 0.814815]),
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([0., 4., 1, 0, 0, 0.981482]),
+                       state=jnp.array([0., 4., 1, 0, 0, 0.981482]),
                        dp=True,
                        ac=True),
             ],
@@ -384,15 +384,15 @@ def test_pipeline3():
             steps=[
                 # countdown comes first in the state
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -0.866025, 0.5, -0.978856, -0.204552]),
+                       state=jnp.array([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, -0.866025, 0.5, -0.978856, -0.204552]),
                        dp=True,
                        ac=True),
                 mkstep(reward=3,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -402,33 +402,15 @@ def test_pipeline3():
         Transition(
             steps=[
                 mkstep(reward=3,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.15, -0.876727, 0.480989, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]), # noqa: E501
-                       dp=True,
-                       ac=True),
-            ],
-            n_step_reward=0.,
-            n_step_gamma=0.9,
-        ),
-        Transition(
-            steps=[
-                mkstep(reward=0,
-                       action=tensor([0.]),
-                       gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]), # noqa: E501
-                       dp=True,
-                       ac=True),
-                mkstep(reward=0,
-                       action=tensor([1.]),
-                       gamma=0.9,
-                       state=tensor([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -438,15 +420,15 @@ def test_pipeline3():
         Transition(
             steps=[
                 mkstep(reward=0,
-                       action=tensor([1.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.315, -0.887011, 0.461749, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -456,15 +438,33 @@ def test_pipeline3():
         Transition(
             steps=[
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.4815, -0.896873, 0.442289, -0.978856, -0.204552]), # noqa: E501
+                       dp=True,
+                       ac=True),
+                mkstep(reward=0,
+                       action=jnp.array([0.]),
+                       gamma=0.9,
+                       state=jnp.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]), # noqa: E501
+                       dp=True,
+                       ac=True),
+            ],
+            n_step_reward=0.,
+            n_step_gamma=0.9,
+        ),
+        Transition(
+            steps=[
+                mkstep(reward=0,
+                       action=jnp.array([0.]),
+                       gamma=0.9,
+                       state=jnp.array([0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.64815, -0.906308, 0.422618, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=1,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],
@@ -474,15 +474,15 @@ def test_pipeline3():
         Transition(
             steps=[
                 mkstep(reward=1,
-                       action=tensor([1.]),
+                       action=jnp.array([1.]),
                        gamma=0.9,
-                       state=tensor([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([1, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.814815, -0.915311, 0.402747, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
                 mkstep(reward=0,
-                       action=tensor([0.]),
+                       action=jnp.array([0.]),
                        gamma=0.9,
-                       state=tensor([0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.981482, -0.923880, 0.382683, -0.978856, -0.204552]), # noqa: E501
+                       state=jnp.array([0, 4, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0.981482, -0.923880, 0.382683, -0.978856, -0.204552]), # noqa: E501
                        dp=True,
                        ac=True),
             ],

@@ -43,12 +43,6 @@ RUN apt-get update && apt-get install curl -y
 COPY --from=base /app/corerl/dist /app/dist
 WORKDIR /app
 
-# Our corerl image is quite large with default cuda dependencies.
-# RUN pip install /app/dist/corerl-*.whl
-# Minimal CPU supported installation is used instead.
-RUN pip install torch --index-url https://download.pytorch.org/whl/cpu &&\
-  pip --no-cache-dir install --no-compile /app/dist/corerl-*cp*.whl
-
 # Set up the entrypoint to reference our corerl main script, dynamically pass arguments on run
 ENTRYPOINT ["corerl_main"]
 

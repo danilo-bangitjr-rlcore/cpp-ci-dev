@@ -69,10 +69,6 @@ class BaseAgent(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def load_buffer(self, pr: PipelineReturn) -> None:
-        raise NotImplementedError
-
-    @abstractmethod
     def save(self, path: Path) -> None:
         raise NotImplementedError
 

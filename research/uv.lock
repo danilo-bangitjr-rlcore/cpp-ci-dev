@@ -591,7 +591,10 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
 ]
 
@@ -620,7 +623,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
 ]
 
@@ -1412,7 +1417,9 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
 ]
 

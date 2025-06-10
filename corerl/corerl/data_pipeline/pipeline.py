@@ -25,6 +25,7 @@ from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
+from corerl.data_pipeline.deltaize_tags import DeltaizeTags, DeltaStageConfig
 from corerl.data_pipeline.imputers.auto_encoder import MaskedAEConfig
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
@@ -55,6 +56,7 @@ class PipelineConfig:
     max_data_gap: timedelta = MISSING
 
     # stage-wide configs
+    delta: DeltaStageConfig = Field(default_factory=DeltaStageConfig)
     imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
     oddity_filter: GlobalOddityFilterConfig = Field(default_factory=GlobalOddityFilterConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
@@ -175,6 +177,7 @@ class Pipeline:
         # initialization all stateful stages
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
         self.seasonal_tags = SeasonalTagIncluder(self.tags)
+        self.delta_tags = DeltaizeTags(self.tags, cfg.delta)
         self.virtual_tags = VirtualTagComputer(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
@@ -209,6 +212,7 @@ class Pipeline:
 
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
             StageCode.SEASONAL:   self.seasonal_tags,
+            StageCode.DELTA:      self.delta_tags,
             StageCode.VIRTUAL:    self.virtual_tags,
             StageCode.INIT:       lambda pf: invoke_stage_per_tag(pf, self.missing_data_checkers),
             StageCode.FILTER:     self.conditional_filter,
@@ -227,6 +231,7 @@ class Pipeline:
 
         self.default_stages = (
             StageCode.SEASONAL,
+            StageCode.DELTA,
             StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.FILTER,

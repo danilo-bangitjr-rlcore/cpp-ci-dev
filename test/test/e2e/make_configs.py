@@ -15,7 +15,8 @@ import gymnasium as gym
 import yaml
 from corerl.configs.loader import config_to_dict
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.utils.gymnasium import gen_tag_configs_from_env
+
+from test.e2e.opc_clients.gymnasium import gen_tag_configs_from_env
 
 log = logging.getLogger(__name__)
 

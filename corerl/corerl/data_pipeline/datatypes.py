@@ -9,11 +9,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-import torch
 from lib_agent.buffer.buffer import State
-from torch import Tensor
-
-from corerl.utils.torch import tensor_allclose
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
@@ -37,11 +33,11 @@ class Step:
     Two of these make up a transition.
     """
     reward: float
-    action: Tensor
+    action: jax.Array
     gamma: float
-    state: Tensor
-    action_lo: Tensor
-    action_hi: Tensor
+    state: jax.Array
+    action_lo: jax.Array
+    action_hi: jax.Array
     dp: bool # decision point
     ac: bool # action change
     timestamp: datetime.datetime | None = None
@@ -53,8 +49,8 @@ class Step:
         return (
                 isclose(self.gamma, other.gamma)
                 and isclose(self.reward, other.reward)
-                and tensor_allclose(self.action, other.action)
-                and tensor_allclose(self.state, other.state)
+                and jnp.allclose(self.action, other.action).item()
+                and jnp.allclose(self.state, other.state).item()
                 and self.dp == other.dp
         )
 
@@ -84,11 +80,11 @@ class Transition:
 
     @property
     def state(self):
-        return self.prior.state.numpy()
+        return np.asarray(self.prior.state)
 
     @property
     def action(self):
-        return self.post.action.numpy()
+        return np.asarray(self.post.action)
 
     @property
     def reward(self):
@@ -100,7 +96,7 @@ class Transition:
 
     @property
     def next_state(self):
-        return self.post.state.numpy()
+        return np.asarray(self.post.state)
 
     @property
     def action_dim(self):
@@ -159,162 +155,13 @@ class Transition:
         return len(self.steps)-1
 
 
-@dataclass
-class StepBatch:
-    """
-    Step attributes aggregated into Tensors for the replay buffer
-    """
-    reward: Tensor
-    action: Tensor
-    gamma: Tensor
-    state: Tensor
-    action_lo: Tensor
-    action_hi:Tensor
-    dp: Tensor
-    ac: Tensor
-
-    def __iter__(self):
-        """
-        This iterator is used in the buffer with magic ordering
-        """
-        for f in fields(self):
-            yield getattr(self, f.name)
-
-    def __eq__(self, other: object):
-        if not isinstance(other, StepBatch):
-            return False
-
-        return (
-                torch.equal(self.reward, other.reward)
-                and torch.equal(self.action, other.action)
-                and torch.equal(self.gamma, other.gamma)
-                and torch.equal(self.state, other.state)
-                and torch.equal(self.dp, other.dp)
-        )
-
-    def __getitem__(self, idx: int|slice) -> "StepBatch":
-        if isinstance(idx, int):
-            idx = slice(idx, idx+1)
-
-        return StepBatch(
-            reward=self.reward[idx],
-            action=self.action[idx],
-            gamma=self.gamma[idx],
-            state=self.state[idx],
-            action_lo=self.action_lo[idx],
-            action_hi=self.action_hi[idx],
-            dp=self.dp[idx],
-            ac=self.ac[idx],
-        )
-
-@dataclass
-class TransitionBatch:
-    idxs: np.ndarray
-    prior: StepBatch
-    post: StepBatch
-    n_step_reward: Tensor
-    n_step_gamma: Tensor
-
-    @property
-    def state(self):
-        return jnp.asarray(self.prior.state)
-
-    @property
-    def action_lo(self):
-        return jnp.asarray(self.prior.action_lo)
-
-    @property
-    def action_hi(self):
-        return jnp.asarray(self.prior.action_hi)
-
-    @property
-    def dp(self):
-        return jnp.asarray(self.prior.dp)
-
-    @property
-    def last_action(self):
-        return jnp.asarray(self.prior.action)
-
-    @property
-    def action(self):
-        return jnp.asarray(self.post.action)
-
-    @property
-    def reward(self):
-        return jnp.asarray(self.n_step_reward)
-
-    @property
-    def gamma(self):
-        return jnp.asarray(self.n_step_gamma)
-
-    @property
-    def next_state(self):
-        return jnp.asarray(self.post.state)
-
-    @property
-    def next_action_lo(self):
-        return jnp.asarray(self.post.action_lo)
-
-    @property
-    def next_action_hi(self):
-        return jnp.asarray(self.post.action_hi)
-
-    @property
-    def next_dp(self):
-        return jnp.asarray(self.post.dp)
-
-
-    def __eq__(self, other: object):
-        if not isinstance(other, TransitionBatch):
-            return False
-
-        return (
-                self.prior == other.prior
-                and self.post == other.post
-                and torch.equal(self.n_step_reward, other.n_step_reward)
-                and torch.equal(self.n_step_gamma, other.n_step_gamma)
-        )
-
-    def __getitem__(self, idx: int|slice) -> "TransitionBatch":
-        if isinstance(idx, int | np.integer):
-            idx = slice(idx, idx+1)
-
-        return TransitionBatch(
-            idxs=self.idxs[idx],
-            prior=self.prior[idx],
-            post=self.post[idx],
-            n_step_reward=self.n_step_reward[idx],
-            n_step_gamma=self.n_step_gamma[idx],
-        )
-
-
-class VectorizedTransition(NamedTuple):
+class AbsTransition(NamedTuple):
     state: State
     action: jax.Array
     reward: jax.Array
     next_state: State
     gamma: jax.Array
 
-def vect_trans_from_transition_batch(tb: list[TransitionBatch]):
-    return VectorizedTransition(
-        state=State(
-            features=jnp.stack([t.state for t in tb]),
-            a_lo=jnp.stack([t.action_lo for t in tb]),
-            a_hi=jnp.stack([t.action_hi for t in tb]),
-            dp=jnp.stack([t.dp for t in tb]),
-            last_a=jnp.stack([t.last_action for t in tb]),
-        ),
-        action=jnp.stack([t.action for t in tb]),
-        reward=jnp.stack([t.reward for t in tb]),
-        next_state=State(
-            features=jnp.stack([t.next_state for t in tb]),
-            a_lo=jnp.stack([t.next_action_lo for t in tb]),
-            a_hi=jnp.stack([t.next_action_hi for t in tb]),
-            dp=jnp.stack([t.next_dp for t in tb]),
-            last_a=jnp.stack([t.action for t in tb]),
-        ),
-        gamma=jnp.stack([t.gamma for t in tb]),
-    )
 
 class DataMode(Enum):
     OFFLINE = auto()
@@ -325,6 +172,7 @@ class DataMode(Enum):
 class StageCode(Enum):
     INIT = auto()
     SEASONAL = auto()
+    DELTA = auto()
     VIRTUAL = auto()
     FILTER = auto()
     TRIGGER = auto()

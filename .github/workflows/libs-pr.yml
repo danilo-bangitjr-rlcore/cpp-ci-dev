@@ -39,3 +39,7 @@ jobs:
         with:
           pylance-version: latest-release
           working-directory: libs/${{ matrix.lib }}
+
+      - name: Run Pytest
+        run: |
+          pytest -n auto --dist loadscope tests/

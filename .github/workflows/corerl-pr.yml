@@ -58,7 +58,7 @@ jobs:
 
       - name: Run Pytest
         run: |
-          pytest -n auto --dist loadscope --cov=. --cov-append tests/small
+          pytest --cov=. --cov-append tests/small
           pytest --cov=. --cov-append tests/medium
           pytest -n auto --dist loadscope --cov=. --cov-append tests/large
 

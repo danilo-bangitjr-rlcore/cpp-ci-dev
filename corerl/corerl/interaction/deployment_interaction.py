@@ -70,13 +70,6 @@ class DeploymentInteraction:
         self._next_action_timestamp = datetime.now(UTC) # take an action right away
         self._state_age_tol = cfg.state_age_tol
 
-        ### Evals ###
-        self._monte_carlo_eval = MonteCarloEvaluator(
-            app_state.cfg.eval_cfgs.monte_carlo,
-            app_state,
-            agent,
-        )
-
         self._hs_return_eval = HindsightReturnEval(
             app_state.cfg.eval_cfgs.avg_reward,
             app_state,
@@ -169,11 +162,15 @@ class DeploymentInteraction:
         self._write_to_metrics(pipe_return.states, prefix='STATE-')
 
         # log rewards
-        self._write_to_metrics(pipe_return.rewards) # no prefix required
+        rewards = pipe_return.rewards
+        if self._app_state.cfg.feature_flags.normalize_return:
+            gamma = self._app_state.cfg.agent.gamma
+            rewards = rewards / (1 - gamma)
+
+        self._write_to_metrics(rewards) # no prefix required
 
         # perform evaluations
         self._hs_return_eval.execute(pipe_return.rewards)
-        self._monte_carlo_eval.execute(pipe_return, "online")
 
         tags = self._column_desc.state_cols
         logger.info(f"captured state {self._last_state}, with columns {tags}")
@@ -204,9 +201,7 @@ class DeploymentInteraction:
         # eval
         agent_eval.q_online(self._app_state, self._agent, state.feats, next_a)
         agent_eval.greed_dist_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
-        agent_eval.greed_values_online(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
         agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
-        agent_eval.policy_variance(self._app_state, self._agent, state.feats, state.action_lo, state.action_hi)
 
 
 
@@ -214,8 +209,7 @@ class DeploymentInteraction:
         self._agent.update()
 
         # metrics + eval
-        agent_eval.greed_dist_batch(self._app_state, self._agent)
-        agent_eval.greed_values_batch(self._app_state, self._agent)
+        # agent_eval.greed_dist_batch(self._app_state, self._agent)
 
         # representation metrics logging
         self._representation_metrics.evaluate(self._app_state, self._agent)

@@ -30,10 +30,6 @@ pipeline:
 
   tags:
     # meta tags
-    - name: reward
-      operating_range: [0, 1]
-      type: meta
-
     - name: terminated
       type: meta
 

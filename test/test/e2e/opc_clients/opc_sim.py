@@ -15,8 +15,9 @@ from corerl.configs.config import MISSING, config
 from corerl.configs.loader import load_config
 from corerl.environment.async_env.async_env import GymEnvConfig
 from corerl.environment.factory import init_environment
-from corerl.utils.opc_connection import make_opc_node_id
 from corerl.utils.time import clock_generator, wait_for_timestamp
+
+from test.e2e.opc_clients.opc_connection import make_opc_node_id
 
 
 @config()
