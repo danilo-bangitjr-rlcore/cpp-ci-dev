@@ -95,14 +95,9 @@ class RepresentationEval:
         )
 
         # get Q-values for all (state, action) pairs
-        states_tiled = jnp.repeat(states[:, None, :], n_samples, axis=1)
-        states_flat = states_tiled.reshape(-1, states.shape[1])
-        actions_flat = sampled_actions.reshape(-1, action_dim)
-
-        qs = agent.get_values(
-            jnp.expand_dims(states_flat, 0),
-            jnp.expand_dims(actions_flat, 0),
-        ).reduced_value
+        states_expanded = jnp.expand_dims(states, 0)  # add ensemble dimension
+        sampled_actions = jnp.expand_dims(sampled_actions, 0)
+        qs = agent.get_values(states_expanded, sampled_actions).reduced_value
 
         # average Q-values for each state
         mean_qs = qs.reshape(num_states, n_samples).mean(axis=1)
