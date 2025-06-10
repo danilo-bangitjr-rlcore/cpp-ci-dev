@@ -383,21 +383,16 @@ class GreedyAC(BaseAgent):
             next_actions=next_actions,
         )
 
-        # log weight norm
-        for i, norm in enumerate(metrics.ensemble_weight_norms):
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"network_critic_{i}_weight_norm",
-                value=norm,
-            )
-
-        # log grad norm
-        for i, norm in enumerate(metrics.ensemble_grad_norms):
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"optimizer_critic_{i}_grad_norm",
-                value=norm,
-            )
+        # log critic metrics
+        for metric_name, ens_metric in metrics._asdict().items():
+            for i, metric_val in enumerate(ens_metric):
+                assert isinstance(metric_val, jax.Array)
+                metric_val = metric_val.mean().squeeze()
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"CRITIC{i}-{metric_name}",
+                    value=metric_val,
+                )
 
         # log stable ranks
         stable_ranks = get_stable_rank(self._critic_state.params)
@@ -405,22 +400,14 @@ class GreedyAC(BaseAgent):
             for layer_name, layer_rank in rank.items():
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
-                    metric=f"critic_{i}_stable_rank_{layer_name}",
+                    metric=f"CRITIC{i}-stable_rank_{layer_name}",
                     value=float(layer_rank),
                 )
 
-        # log loss
-        for i, loss_i in enumerate(metrics.loss):
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"critic_loss_{i}",
-                value=loss_i.mean().item(),
-            )
-
         self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric="avg_critic_loss",
-                value=metrics.loss.mean().item(),
+            agent_step=self._app_state.agent_step,
+            metric="CRITIC-avg_loss",
+            value=metrics.loss.mean(),
         )
 
         return [loss.mean() for loss in metrics.loss]
