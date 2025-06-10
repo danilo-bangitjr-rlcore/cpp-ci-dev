@@ -133,8 +133,10 @@ class QRCCritic:
 
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
+        self._rng, rng = jax.random.split(self._rng)
         new_state, metrics = self._ensemble_update(
             critic_state,
+            rng,
             transitions,
             next_actions,
         )
@@ -147,6 +149,7 @@ class QRCCritic:
     def _ensemble_update(
         self,
         state: CriticState,
+        rng: chex.PRNGKey,
         transitions: CriticBatch,
         next_actions: jax.Array,
     ):
@@ -155,6 +158,7 @@ class QRCCritic:
         """
         grads, metrics = jax_u.grad(self._ensemble_loss, has_aux=True)(
             state.params,
+            rng,
             transitions,
             next_actions,
         )
@@ -180,11 +184,14 @@ class QRCCritic:
     def _ensemble_loss(
         self,
         params: chex.ArrayTree,
+        rng: chex.PRNGKey,
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
+        rngs = jax.random.split(rng, self._cfg.ensemble)
         losses, metrics = jax_u.vmap(self._batch_loss)(
             params,
+            rngs,
             transition,
             next_actions,
         )
@@ -195,13 +202,16 @@ class QRCCritic:
     def _batch_loss(
         self,
         params: Any,
+        rng: chex.PRNGKey,
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
         # (batch, samples, action_dim)
         chex.assert_rank(next_actions, 3)
-        losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
+        rngs = jax.random.split(rng, next_actions.shape[0])
+        losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'rng', 'next_actions'])(
             params,
+            rngs,
             transition,
             next_actions,
         )
@@ -213,6 +223,7 @@ class QRCCritic:
     def _loss(
         self,
         params: chex.ArrayTree,
+        rng: chex.PRNGKey,
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
@@ -236,10 +247,13 @@ class QRCCritic:
 
         # noise loss
         rand_actions = jax.random.uniform(
-            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
+            rng,
+            shape=(self._cfg.num_rand_actions, action.shape[0]),
+            minval=state.a_lo,
+            maxval=state.a_hi,
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, rand_actions)
-        action_reg_loss = self._cfg.action_regularization * out_rand.q.mean()**2
+        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, state.features, rand_actions)
+        action_reg_loss = self._cfg.action_regularization * jnp.abs(out_rand.q).mean()
 
         loss = q_loss + h_loss + action_reg_loss
 
@@ -260,9 +274,6 @@ class QRCCritic:
         )
 
         return loss, metrics
-
-def get_member(a: chex.ArrayTree, i: int):
-    return jax.tree.map(lambda x: x[i], a)
 
 
 def l2_regularizer(params: chex.ArrayTree, beta: float):

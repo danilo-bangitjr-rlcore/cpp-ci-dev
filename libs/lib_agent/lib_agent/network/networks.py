@@ -125,10 +125,12 @@ def layer_factory(cfg: LayerConfig):
         return Linear(cfg)
     if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
-    if isinstance(cfg, LateFusionConfig):
-        return FusionNet(cfg)
+
+    # NOTE: subclass check needs to come before parent class check
     if isinstance(cfg, ResidualLateFusionConfig):
         return ResidualLateFusionNet(cfg)
+    if isinstance(cfg, LateFusionConfig):
+        return FusionNet(cfg)
 
     assert_never(cfg)
 
