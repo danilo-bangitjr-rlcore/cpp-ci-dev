@@ -117,6 +117,3 @@ class RepresentationEval:
             metric="representation_complexity_reduction",
             value=float(complexity_reduction),
         )
-
-
-
