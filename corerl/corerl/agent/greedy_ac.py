@@ -40,6 +40,7 @@ class CriticNetworkConfig:
 @config()
 class GTDCriticConfig:
     action_regularization: float = 0.0
+    action_regularization_epsilon: float = 0.1
     buffer: BufferConfig = MISSING
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
@@ -189,6 +190,7 @@ class GreedyAC(BaseAgent):
             ensemble_prob=cfg.critic.buffer.ensemble_probability,
             num_rand_actions=cfg.bootstrap_action_samples,
             action_regularization=cfg.critic.action_regularization,
+            action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
         )
 

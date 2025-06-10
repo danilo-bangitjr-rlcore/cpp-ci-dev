@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, NamedTuple, Protocol
 
 import chex
@@ -47,6 +48,7 @@ class QRCConfig:
     ensemble_prob: float
     num_rand_actions: int
     action_regularization: float
+    action_regularization_epsilon: float
     l2_regularization: float
 
 
@@ -246,9 +248,11 @@ class QRCCritic:
         h_loss = 0.5 * (sg(delta_l) - out.h)**2
 
         # noise loss
-        rand_actions = jax.random.uniform(
+        rand_actions = uniform_except(
             rng,
             shape=(self._cfg.num_rand_actions, action.shape[0]),
+            val=action,
+            epsilon=self._cfg.action_regularization_epsilon * (state.a_hi - state.a_lo),
             minval=state.a_lo,
             maxval=state.a_hi,
         )
@@ -353,3 +357,41 @@ def get_stable_rank(params: chex.ArrayTree):
         )
         for i in range(ensemble)
     ]
+
+
+@partial(jax_u.jit, static_argnums=(1,))
+def uniform_except(
+    key: chex.PRNGKey,
+    shape: tuple[int, ...],
+    val: jax.Array,
+    epsilon: jax.Array | float,
+    minval: jax.Array | float,
+    maxval: jax.Array | float,
+):
+    prop = jax.random.uniform(key, shape, minval=minval, maxval=maxval)
+
+    def accept(prop: jax.Array):
+        return jnp.abs(prop - val) > epsilon
+
+    def keep_trying(carry: tuple[chex.PRNGKey, jax.Array, int]):
+        _, prop, it = carry
+        return jnp.logical_not(accept(prop)).any() & (it < 25)
+
+    def body(carry: tuple[chex.PRNGKey, jax.Array, int]):
+        key, prop, it = carry
+        key, prop_key = jax.random.split(key)
+        new = jax.random.uniform(prop_key, shape, minval=minval, maxval=maxval)
+        x = jnp.where(
+            accept(new),
+            new,
+            prop,
+        )
+        return key, x, it+1
+
+    key, x, _ = jax.lax.while_loop(
+        keep_trying,
+        body,
+        (key, prop, 0),
+    )
+
+    return x
