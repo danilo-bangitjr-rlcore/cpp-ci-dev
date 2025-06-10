@@ -371,7 +371,7 @@ def uniform_except(
     prop = jax.random.uniform(key, shape, minval=minval, maxval=maxval)
 
     def accept(prop: jax.Array):
-        return jnp.abs(prop - val) > epsilon
+        return (jnp.abs(prop - val) > epsilon) & (jnp.abs(prop - val) < 2 * epsilon)
 
     def keep_trying(carry: tuple[chex.PRNGKey, jax.Array, int]):
         _, prop, it = carry
