@@ -63,9 +63,9 @@ class GTDCriticConfig:
 @config()
 class PercentileActorConfig:
     num_samples: int = 128
-    actor_percentile: float = 0.1
+    actor_percentile: float = 0.05
     sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.0
+    prop_percentile_learned: float = 0.9
     sort_noise: float = 0.0
     actor_stepsize: float = 0.0001
     sampler_stepsize: float = 0.0001
@@ -150,7 +150,7 @@ class GreedyACConfig(BaseAgentConfig):
     producing an Expected Sarsa-like update.
     """
 
-    max_action_stddev: float = np.inf
+    max_action_stddev: float = 3
     """
     Maximum number of stddevs from the mean for the action
     taken during an interaction step. Forcefully prevents
@@ -169,7 +169,7 @@ class GreedyAC(BaseAgent):
             num_samples=cfg.policy.num_samples,
             actor_percentile=cfg.policy.actor_percentile,
             proposal_percentile=cfg.policy.sampler_percentile,
-            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.actor_percentile,
+            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.sampler_percentile,
             actor_lr=cfg.policy.actor_stepsize,
             proposal_lr=cfg.policy.sampler_stepsize,
             max_action_stddev=cfg.max_action_stddev,
