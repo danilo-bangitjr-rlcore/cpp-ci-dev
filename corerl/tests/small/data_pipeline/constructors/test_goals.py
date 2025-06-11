@@ -28,6 +28,13 @@ def cfg_with_oob():
     )
 
 @pytest.fixture
+def only_optimization_cfg():
+    return direct_load_config(
+        MainConfig,
+        config_name='tests/small/data_pipeline/constructors/assets/only_optimization_config.yaml',
+    )
+
+@pytest.fixture
 def pipeline(cfg: MainConfig, dummy_app_state: AppState):
     return Pipeline(dummy_app_state, cfg.pipeline)
 
@@ -177,6 +184,75 @@ def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline):
             [-0.4],
             [-0.2],
             [-0.1],
+        ],
+    )
+
+    pd.testing.assert_frame_equal(out.rewards, expected_rewards)
+
+def test_only_optimization(only_optimization_cfg: MainConfig, dummy_app_state: AppState):
+    """
+    Since the only Priority in this test is an Optimization,
+    make sure rewards are in the range [-1, 0] rather than [-0.5, 0]
+    """
+    cfg = only_optimization_cfg
+    pipeline = Pipeline(dummy_app_state, cfg.pipeline)
+    assert cfg.pipeline.reward is not None
+
+    rc = GoalConstructor(cfg.pipeline.reward, cfg.pipeline.tags, pipeline.preprocessor)
+
+    # we want to execute all stages up to (but not including)
+    # the reward constructor
+    stages = []
+    for stage in pipeline.default_stages:
+        if stage == StageCode.RC:
+            break
+
+        stages.append(stage)
+
+    start = datetime.now(UTC)
+    Δ = timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(10)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols: Any = ['tag-0', 'tag-1', 'tag-2', 'tag-3']
+    df = pd.DataFrame(
+        data=[
+            [0,     0,     0,     0],
+            [4,     3,     7,     1],
+            [8,     8,     2,     3],
+            [10,    5,     3,     5],
+            [10,    8,     3,     1],
+            [5,     9,     1,     3],
+            [8.1,   9,     3,     4],
+            [9.1,   9,     1,     4],
+            [10,    9,     0,     2],
+            [9,     10,    1,     1],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    pr = pipeline(df, stages=stages)
+    pf = PipelineFrame(pr.df, pr.data_mode)
+    pf.actions = pr.actions
+
+    out = rc(pf)
+
+    expected_rewards = pd.DataFrame(
+        index=idx,
+        columns=['reward'],
+        data=[
+            [0],
+            [-0.2],
+            [-0.6],
+            [-1],
+            [-0.2],
+            [-0.6],
+            [-0.8],
+            [-0.8],
+            [-0.4],
+            [-0.2],
         ],
     )
 
