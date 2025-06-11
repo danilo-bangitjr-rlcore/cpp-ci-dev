@@ -16,11 +16,19 @@ from test.behavior.saturation.cases import (
     DeltaChangeSaturationTest,
     ExpandingBoundsSaturationTest,
     GoalSaturationTest,
+    MCARSaturationEasyTest,
+    MCARSaturationHardTest,
+    MCARSaturationMediumTest,
+    MultiActionSaturationBadOfflineDataTest,
+    MultiActionSaturationGoodOfflineDataTest,
+    MultiActionSaturationGreedificationTest,
     MultiActionSaturationTest,
     SaturationTest,
     SetpointChangeSaturationTest,
     SlowExpandingBoundsSaturationTest,
+    StickyMCARSaturationTest,
 )
+from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
 from test.infrastructure.utils.docker import init_docker_container
 
@@ -43,22 +51,32 @@ def bsuite_tsdb():
 
 
 TEST_CASES = [
-    DelayedSaturationTest(),
-    DistractionWorldTest(),
-    GoalSaturationTest(),
-    MountainCar(),
-    MultiActionSaturationTest(),
-    SaturationTest(),
-    StandStillMountainCar(),
-    WindyRoomTest(),
-    ExpandingBoundsSaturationTest(),
-    SetpointChangeSaturationTest(),
-    SlowExpandingBoundsSaturationTest(),
-    DeltaChangeSaturationTest(),
     CalibrationTest(),
-    SaturationPerturbationTest(),
+    DelayedSaturationTest(),
+    DeltaChangeSaturationTest(),
+    DistractionWorldTest(),
+    ExpandingBoundsSaturationTest(),
+    GoalSaturationTest(),
+    LongTMazeTest(),
+    MCARSaturationEasyTest(),
+    MCARSaturationMediumTest(),
+    MCARSaturationHardTest(),
+    MediumTMazeTest(),
+    MountainCar(),
+    MultiActionSaturationBadOfflineDataTest(),
+    MultiActionSaturationGoodOfflineDataTest(),
+    MultiActionSaturationGreedificationTest(),
     MultiActionSaturationPerturbationTest(),
+    MultiActionSaturationTest(),
+    SaturationPerturbationTest(),
+    SaturationTest(),
+    SetpointChangeSaturationTest(),
+    ShortTMazeTest(),
+    SlowExpandingBoundsSaturationTest(),
+    StandStillMountainCar(),
     StandStillMountainCarPerturbationTest(),
+    StickyMCARSaturationTest(),
+    WindyRoomTest(),
 ]
 
 ZERO_ONE_FEATURES = [
