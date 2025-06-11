@@ -18,6 +18,7 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.hindsight_return import HindsightReturnEval
+from corerl.eval.representation import RepresentationEval
 from corerl.interaction.configs import InteractionConfig
 from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
@@ -70,6 +71,10 @@ class DeploymentInteraction:
 
         self._hs_return_eval = HindsightReturnEval(
             app_state.cfg.eval_cfgs.avg_reward,
+            app_state,
+        )
+
+        self._representation_metrics = RepresentationEval(
             app_state,
         )
 
@@ -205,6 +210,8 @@ class DeploymentInteraction:
         # metrics + eval
         # agent_eval.greed_dist_batch(self._app_state, self._agent)
 
+        # representation metrics logging
+        self._representation_metrics.evaluate(self._app_state, self._agent)
 
     def _on_ping_setpoint(self):
         if self._last_action_df is None:

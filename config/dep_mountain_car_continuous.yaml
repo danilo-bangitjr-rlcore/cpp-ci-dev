@@ -19,6 +19,11 @@ coreio:
   opc_connections:
     - connection_id: mountain_car_opc_connection
       opc_conn_url: opc.tcp://admin@localhost:4840
+      application_uri: "client"
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
 
 env:
   name: dep_async_env
