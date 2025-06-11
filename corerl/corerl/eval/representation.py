@@ -108,6 +108,46 @@ class RepresentationEval:
 
         return float(dynamics_awareness)
 
+    def get_diversity(
+        self,
+        reps: jax.Array,
+        values: jax.Array,
+    ) -> float:
+        """
+        Calculate diversity metric for the current batch.
+
+        This metric measures the diversity of the learned representation, which is the opposite of specialization.
+        It compares the normalized pairwise distances in representation to the normalized pairwise distances in value.
+        If two states have similar values but are mapped to distant representations, the diversity is high.
+        If the representation is specialized to the value function, diversity is low.
+
+        The metric is computed by:
+        1. For all pairs of states (i, j):
+           - Compute ds_{i,j}: L2 distance between representations
+           - Compute dv_{i,j}: absolute difference between values
+        2. Normalize ds_{i,j} and dv_{i,j} by their respective maxima
+        3. For each pair, compute the ratio:
+             ratio_{i,j} = (dv_{i,j} / max dv) / (ds_{i,j} / max ds + 1e-2)
+           and cap at 1
+        4. Average the ratio over all pairs and subtract from 1:
+             Diversity = 1 - mean(ratio_{i,j})
+
+        Returns a score between 0 and 1, where higher is more diverse.
+        """
+        # calculate distance in representation and values
+        rep_diffs = jnp.sqrt(jnp.sum((reps[:, None] - reps[None, :])**2, axis=-1))
+        value_diffs = jnp.abs(values[:, None] - values[None, :])
+        max_rep_diff = jnp.max(rep_diffs)
+        max_value_diff = jnp.max(value_diffs)
+
+        rep_diffs_norm = rep_diffs / (max_rep_diff + 1e-8)
+        value_diffs_norm = value_diffs / (max_value_diff + 1e-8)
+
+        ratio = value_diffs_norm / (rep_diffs_norm + 1e-2)
+        ratio = jnp.minimum(ratio, 1.0)
+        diversity = 1.0 - jnp.mean(ratio)
+        return float(diversity)
+
     def evaluate(
         self,
         app_state: AppState,
@@ -161,6 +201,10 @@ class RepresentationEval:
         mean_state_reps = state_reps.reshape(num_states, n_samples, -1).mean(axis=1)
         mean_next_state_reps = next_state_reps.reshape(num_states, n_samples, -1).mean(axis=1)
 
+        # get values for each state (using Q-values for the current policy)
+        qs = agent.get_values(states_expanded, sampled_actions).reduced_value
+        mean_qs = qs.reshape(num_states, n_samples).mean(axis=1)
+
         complexity_reduction = self.get_complexity_reduction(
             states,
             mean_state_reps,
@@ -171,7 +215,10 @@ class RepresentationEval:
             mean_state_reps,
             mean_next_state_reps,
         )
-
+        diversity = self.get_diversity(
+            mean_state_reps,
+            mean_qs,
+        )
         app_state.metrics.write(
             agent_step=app_state.agent_step,
             metric="representation_complexity_reduction",
@@ -181,4 +228,9 @@ class RepresentationEval:
             agent_step=app_state.agent_step,
             metric="representation_dynamics_awareness",
             value=float(dynamics_awareness),
+        )
+        app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric="representation_diversity",
+            value=float(diversity),
         )
