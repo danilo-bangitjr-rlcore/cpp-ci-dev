@@ -3,11 +3,11 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import TYPE_CHECKING, Annotated, Literal
 
+from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config, post_processor
 from corerl.data_pipeline.tag_config import TagConfig
-from corerl.utils.maybe import Maybe
 from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
 if TYPE_CHECKING:

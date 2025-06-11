@@ -5,15 +5,15 @@ from dataclasses import fields, is_dataclass
 from pathlib import Path
 from typing import Any, Concatenate
 
+import lib_utils.dict as dict_u
 import yaml
+from lib_utils.list import find
+from lib_utils.maybe import Maybe
 from pydantic import TypeAdapter
 from pydantic.dataclasses import is_pydantic_dataclass
 from pydantic.fields import FieldInfo
 
-import corerl.utils.dict as dict_u
 from corerl.configs.errors import ConfigValidationErrors, validate_with_error_handling
-from corerl.utils.list import find
-from corerl.utils.maybe import Maybe
 
 logger = logging.getLogger(__name__)
 

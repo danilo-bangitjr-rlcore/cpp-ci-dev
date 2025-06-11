@@ -6,13 +6,13 @@ from typing import TypedDict
 import numpy as np
 import pandas as pd
 from coreio.utils.io_events import OPCUANodeWriteValue
+from lib_utils.maybe import Maybe
 
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.tag_config import TagConfig, TagType, eval_bound
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
 from corerl.utils.coreio import CoreIOLink
-from corerl.utils.maybe import Maybe
 
 logger = logging.getLogger(__name__)
 

@@ -3,13 +3,13 @@ from functools import cached_property
 
 import numpy as np
 import pandas as pd
+from lib_utils.list import find_instance
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig, TagType
 from corerl.data_pipeline.transforms.base import InvertibleTransform
 from corerl.data_pipeline.transforms.norm import Normalizer
-from corerl.utils.list import find_instance
 
 
 class Preprocessor(Constructor):

@@ -4,11 +4,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
+from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.messages.heartbeat import HeartbeatConfig
-from corerl.utils.maybe import Maybe
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
