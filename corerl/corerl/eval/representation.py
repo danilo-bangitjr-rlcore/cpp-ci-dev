@@ -210,7 +210,7 @@ class RepresentationEval:
         """
         inactive_features = jnp.abs(reps) < 1e-10
         sparsity = jnp.mean(inactive_features)
-        
+
         return float(sparsity)
 
     def evaluate(
