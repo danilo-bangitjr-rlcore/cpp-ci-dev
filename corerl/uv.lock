@@ -291,6 +291,7 @@ dependencies = [
     { name = "asyncua" },
     { name = "backoff" },
     { name = "corerl" },
+    { name = "lib-config" },
 ]
 
 [package.metadata]
@@ -298,6 +299,7 @@ requires-dist = [
     { name = "asyncua", specifier = ">=1.1.6" },
     { name = "backoff", specifier = ">=2.2.1" },
     { name = "corerl", editable = "." },
+    { name = "lib-config", editable = "../libs/lib_config" },
 ]
 
 [package.metadata.requires-dev]
@@ -320,6 +322,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "lib-agent" },
     { name = "lib-config" },
+    { name = "lib-utils" },
     { name = "numba" },
     { name = "numpy" },
     { name = "pandas" },
@@ -364,6 +367,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = "~=0.115.6" },
     { name = "lib-agent", editable = "../libs/lib_agent" },
     { name = "lib-config", editable = "../libs/lib_config" },
+    { name = "lib-utils", extras = ["jax"], editable = "../libs/lib_utils" },
     { name = "numba", specifier = "~=0.60" },
     { name = "numpy", specifier = "~=2.0" },
     { name = "pandas", specifier = "~=2.2" },
@@ -1067,24 +1071,12 @@ version = "0.0.0"
 source = { editable = "../libs/lib_utils" }
 dependencies = [
     { name = "annotated-types" },
-    { name = "chex" },
-    { name = "distrax" },
-    { name = "dm-haiku" },
-    { name = "flax" },
-    { name = "jax" },
-    { name = "optax" },
     { name = "pydantic" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "annotated-types", specifier = ">=0.7.0" },
-    { name = "chex", specifier = ">=0.1.89" },
-    { name = "distrax", specifier = ">=0.1.5" },
-    { name = "dm-haiku", specifier = ">=0.0.14" },
-    { name = "flax", specifier = ">=0.10.6" },
-    { name = "jax", specifier = ">=0.6.1" },
-    { name = "optax", specifier = ">=0.2.4" },
     { name = "pydantic", specifier = ">=2.11.5" },
 ]
 
@@ -1096,6 +1088,14 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
+]
+jax = [
+    { name = "chex", specifier = ">=0.1.89" },
+    { name = "distrax", specifier = ">=0.1.5" },
+    { name = "dm-haiku", specifier = ">=0.0.14" },
+    { name = "flax", specifier = ">=0.10.6" },
+    { name = "jax", specifier = ">=0.6.1" },
+    { name = "optax", specifier = ">=0.2.4" },
 ]
 
 [[package]]
