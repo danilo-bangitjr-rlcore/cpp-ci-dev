@@ -19,19 +19,19 @@ class CallableModule(hk.Module):
 class LinearConfig:
     size: int
     name: str | None = None
-    activation: str = 'relu'
+    activation: str = 'crelu'
 
 @dataclass
 class ResidualConfig:
     size: int
     name: str | None = None
-    activation: str = 'relu'
+    activation: str = 'crelu'
 
 @dataclass
 class LateFusionConfig:
     sizes: list[int]
     name: str | None = None
-    activation: str = 'relu'
+    activation: str = 'crelu'
 
 @dataclass
 class ResidualLateFusionConfig(LateFusionConfig):
@@ -84,15 +84,17 @@ class ResidualBlock(hk.Module):
         if output_size is None:
             output_size = cfg.size
 
+        self.activation = cfg.activation
+        projection_size = output_size if cfg.activation not in {'crelu'} else output_size * 2
+
         ortho = hk.initializers.Orthogonal(np.sqrt(2))
         self.linear = hk.Linear(output_size, w_init=ortho)
-        self.res_linear = hk.Linear(output_size, w_init=ortho)
-        self.activation = cfg.activation
+        self.projection = hk.Linear(projection_size, w_init=ortho)
 
     def __call__(self, x: jax.Array):
         out = self.linear(x)
         out = get_activation(self.activation)(out)
-        return out + self.res_linear(x)
+        return out + self.projection(x)
 
 
 class ResidualLateFusionNet(FusionNet):
@@ -125,10 +127,12 @@ def layer_factory(cfg: LayerConfig):
         return Linear(cfg)
     if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
-    if isinstance(cfg, LateFusionConfig):
-        return FusionNet(cfg)
+
+    # NOTE: subclass check needs to come before parent class check
     if isinstance(cfg, ResidualLateFusionConfig):
         return ResidualLateFusionNet(cfg)
+    if isinstance(cfg, LateFusionConfig):
+        return FusionNet(cfg)
 
     assert_never(cfg)
 
@@ -143,6 +147,7 @@ def torso_builder(cfg: TorsoConfig):
         last_layer = cfg.layers[-1]
         assert isinstance(last_layer, LinearConfig | ResidualConfig)
         out_size = last_layer.size
+        out_size = out_size * 2 if last_layer.activation in {'crelu'} else out_size
 
         input_layer = cfg.layers[0]
         assert isinstance(input_layer, LateFusionConfig | ResidualLateFusionConfig)

@@ -95,8 +95,8 @@ class PercentileActor:
 
         actor_torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.LinearConfig(size=256, activation='relu'),
-                nets.LinearConfig(size=256, activation='relu'),
+                nets.LinearConfig(size=128, activation='crelu'),
+                nets.LinearConfig(size=128, activation='crelu'),
             ],
         )
         actor_output_act_cfg = IdentityConfig()

@@ -40,6 +40,7 @@ class CriticNetworkConfig:
 @config()
 class GTDCriticConfig:
     action_regularization: float = 0.0
+    action_regularization_epsilon: float = 0.1
     buffer: BufferConfig = MISSING
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
@@ -62,9 +63,9 @@ class GTDCriticConfig:
 @config()
 class PercentileActorConfig:
     num_samples: int = 128
-    actor_percentile: float = 0.1
+    actor_percentile: float = 0.05
     sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.0
+    prop_percentile_learned: float = 0.9
     sort_noise: float = 0.0
     actor_stepsize: float = 0.0001
     sampler_stepsize: float = 0.0001
@@ -149,7 +150,7 @@ class GreedyACConfig(BaseAgentConfig):
     producing an Expected Sarsa-like update.
     """
 
-    max_action_stddev: float = np.inf
+    max_action_stddev: float = 3
     """
     Maximum number of stddevs from the mean for the action
     taken during an interaction step. Forcefully prevents
@@ -168,7 +169,7 @@ class GreedyAC(BaseAgent):
             num_samples=cfg.policy.num_samples,
             actor_percentile=cfg.policy.actor_percentile,
             proposal_percentile=cfg.policy.sampler_percentile,
-            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.actor_percentile,
+            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.sampler_percentile,
             actor_lr=cfg.policy.actor_stepsize,
             proposal_lr=cfg.policy.sampler_stepsize,
             max_action_stddev=cfg.max_action_stddev,
@@ -189,6 +190,7 @@ class GreedyAC(BaseAgent):
             ensemble_prob=cfg.critic.buffer.ensemble_probability,
             num_rand_actions=cfg.bootstrap_action_samples,
             action_regularization=cfg.critic.action_regularization,
+            action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
         )
 
@@ -383,21 +385,16 @@ class GreedyAC(BaseAgent):
             next_actions=next_actions,
         )
 
-        # log weight norm
-        for i, norm in enumerate(metrics.ensemble_weight_norms):
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"network_critic_{i}_weight_norm",
-                value=norm,
-            )
-
-        # log grad norm
-        for i, norm in enumerate(metrics.ensemble_grad_norms):
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"optimizer_critic_{i}_grad_norm",
-                value=norm,
-            )
+        # log critic metrics
+        for metric_name, ens_metric in metrics._asdict().items():
+            for i, metric_val in enumerate(ens_metric):
+                assert isinstance(metric_val, jax.Array)
+                metric_val = metric_val.mean().squeeze()
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric=f"CRITIC{i}-{metric_name}",
+                    value=metric_val,
+                )
 
         # log stable ranks
         stable_ranks = get_stable_rank(self._critic_state.params)
@@ -405,22 +402,14 @@ class GreedyAC(BaseAgent):
             for layer_name, layer_rank in rank.items():
                 self._app_state.metrics.write(
                     agent_step=self._app_state.agent_step,
-                    metric=f"critic_{i}_stable_rank_{layer_name}",
+                    metric=f"CRITIC{i}-stable_rank_{layer_name}",
                     value=float(layer_rank),
                 )
 
-        # log loss
-        for i, loss_i in enumerate(metrics.loss):
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric=f"critic_loss_{i}",
-                value=loss_i.mean().item(),
-            )
-
         self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric="avg_critic_loss",
-                value=metrics.loss.mean().item(),
+            agent_step=self._app_state.agent_step,
+            metric="CRITIC-avg_loss",
+            value=metrics.loss.mean(),
         )
 
         return [loss.mean() for loss in metrics.loss]
@@ -451,10 +440,12 @@ class GreedyAC(BaseAgent):
         q_losses = []
 
         alpha = self.cfg.loss_ema_factor
+        n_updates = 0
         for _ in range(self.cfg.max_critic_updates):
             losses = self.update_critic()
             q_losses += losses
             avg_critic_loss = np.mean(losses)
+            n_updates += 1
 
             for _ in range(self.cfg.max_internal_actor_updates):
                 actor_loss = self.update_actor()
@@ -470,10 +461,20 @@ class GreedyAC(BaseAgent):
             self._last_critic_loss = avg_critic_loss
             delta = avg_critic_loss - last
             self._avg_critic_delta = exp_moving_avg(alpha, self._avg_critic_delta, delta)
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric="CRITIC-avg_loss_delta",
+                value=self._avg_critic_delta,
+            )
 
             if np.abs(self._avg_critic_delta) < self.cfg.loss_threshold:
                 break
 
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric="CRITIC-updates",
+            value=n_updates,
+        )
         return q_losses
 
     # ---------------------------- saving and loading ---------------------------- #

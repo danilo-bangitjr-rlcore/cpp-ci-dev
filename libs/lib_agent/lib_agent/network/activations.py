@@ -84,7 +84,13 @@ def get_activation(name: str):
         return identity_act
     if name == 'relu':
         return jax.nn.relu
+    if name == 'crelu':
+        return crelu
     raise NotImplementedError
 
 def scale_shift(x: jax.Array, low: int, high: int) -> jax.Array:
     return (high - low) * x + low
+
+
+def crelu(x: jax.Array):
+    return jnp.concatenate([jax.nn.relu(x), jax.nn.relu(-x)], axis=-1)

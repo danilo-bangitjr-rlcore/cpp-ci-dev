@@ -29,17 +29,21 @@ class GoalConstructor:
             row = row_series.to_frame().transpose()
             active_idx = self._find_active_priority_idx(row)
             priority = self._cfg.priorities[active_idx]
+            num_buckets = len(self._cfg.priorities) - 1
             if not isinstance(priority, Optimization):
                 violation_percent = self._priority_violation_percent(priority, row)
 
                 # break [-1, -0.5] into num_priorities-1 buckets
-                num_buckets = len(self._cfg.priorities) - 1
                 buckets = np.linspace(-1, -0.5, num_buckets + 1)
                 r = put_in_range(-violation_percent, old_range=(-1, 0), new_range=buckets[active_idx:active_idx+1])
 
             else:
                 opt = self._avg_optimization_violation(priority, row)
-                r = put_in_range(opt, old_range=(-1, 0), new_range=(-0.5, 0))
+                if num_buckets > 0:
+                    r = put_in_range(opt, old_range=(-1, 0), new_range=(-0.5, 0))
+                else:
+                    # If the only priority is an optimization, use the full [-1, 0] reward range
+                    r = opt
 
             rewards.append(r)
 

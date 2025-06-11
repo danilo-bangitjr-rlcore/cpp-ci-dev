@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, NamedTuple, Protocol
 
 import chex
@@ -47,6 +48,7 @@ class QRCConfig:
     ensemble_prob: float
     num_rand_actions: int
     action_regularization: float
+    action_regularization_epsilon: float
     l2_regularization: float
 
 
@@ -72,8 +74,8 @@ class QRCCritic:
 
         torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='relu'),
-                nets.LinearConfig(size=256, activation='relu'),
+                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='crelu'),
+                nets.LinearConfig(size=128, activation='crelu'),
             ],
             skip=True,
         )
@@ -150,8 +152,10 @@ class QRCCritic:
         return jax_u.vmap(batch_mode)(params, x, a)
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
+        self._rng, rng = jax.random.split(self._rng)
         new_state, metrics = self._ensemble_update(
             critic_state,
+            rng,
             transitions,
             next_actions,
         )
@@ -164,6 +168,7 @@ class QRCCritic:
     def _ensemble_update(
         self,
         state: CriticState,
+        rng: chex.PRNGKey,
         transitions: CriticBatch,
         next_actions: jax.Array,
     ):
@@ -172,6 +177,7 @@ class QRCCritic:
         """
         grads, metrics = jax_u.grad(self._ensemble_loss, has_aux=True)(
             state.params,
+            rng,
             transitions,
             next_actions,
         )
@@ -197,11 +203,14 @@ class QRCCritic:
     def _ensemble_loss(
         self,
         params: chex.ArrayTree,
+        rng: chex.PRNGKey,
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
+        rngs = jax.random.split(rng, self._cfg.ensemble)
         losses, metrics = jax_u.vmap(self._batch_loss)(
             params,
+            rngs,
             transition,
             next_actions,
         )
@@ -212,22 +221,28 @@ class QRCCritic:
     def _batch_loss(
         self,
         params: Any,
+        rng: chex.PRNGKey,
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
         # (batch, samples, action_dim)
         chex.assert_rank(next_actions, 3)
-        losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'next_actions'])(
+        rngs = jax.random.split(rng, next_actions.shape[0])
+        losses, metrics = jax_u.vmap_only(self._loss, ['transition', 'rng', 'next_actions'])(
             params,
+            rngs,
             transition,
             next_actions,
         )
-        return losses.mean() + l2_regularizer(params['h'], self._cfg.l2_regularization), metrics
+        h_reg_loss = l2_regularizer(params['h'], self._cfg.l2_regularization)
+        metrics = metrics._replace(h_reg_loss=h_reg_loss)
+        return losses.mean() + h_reg_loss, metrics
 
 
     def _loss(
         self,
         params: chex.ArrayTree,
+        rng: chex.PRNGKey,
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
@@ -250,13 +265,18 @@ class QRCCritic:
         h_loss = 0.5 * (sg(delta_l) - out.h)**2
 
         # noise loss
-        rand_actions = jax.random.uniform(
-            self._rng, shape=(self._cfg.num_rand_actions, action.shape[0]),
+        rand_actions = uniform_except(
+            rng,
+            shape=(self._cfg.num_rand_actions, action.shape[0]),
+            val=action,
+            epsilon=self._cfg.action_regularization_epsilon * (state.a_hi - state.a_lo),
+            minval=state.a_lo,
+            maxval=state.a_hi,
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, next_state.features, rand_actions)
-        reg_loss = out_rand.q.mean()
+        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, state.features, rand_actions)
+        action_reg_loss = self._cfg.action_regularization * jnp.abs(out_rand.q).mean()
 
-        loss = q_loss + h_loss + self._cfg.action_regularization * reg_loss
+        loss = q_loss + h_loss + action_reg_loss
 
         metrics = QRCCriticMetrics(
             q=out.q,
@@ -264,17 +284,17 @@ class QRCCritic:
             loss=loss,
             q_loss=q_loss,
             h_loss=h_loss,
-            delta=delta_l,
+            delta_l=delta_l,
+            delta_r=delta_r,
+            action_reg_loss=action_reg_loss,
 
             # filled out further up
+            h_reg_loss=jnp.array(0),
             ensemble_grad_norms=jnp.array(0),
             ensemble_weight_norms=jnp.array(0),
         )
 
         return loss, metrics
-
-def get_member(a: chex.ArrayTree, i: int):
-    return jax.tree.map(lambda x: x[i], a)
 
 
 def l2_regularizer(params: chex.ArrayTree, beta: float):
@@ -291,7 +311,10 @@ class QRCCriticMetrics(NamedTuple):
     loss: jax.Array
     q_loss: jax.Array
     h_loss: jax.Array
-    delta: jax.Array
+    delta_l: jax.Array
+    delta_r: jax.Array
+    action_reg_loss: jax.Array
+    h_reg_loss: jax.Array
     ensemble_grad_norms: jax.Array
     ensemble_weight_norms: jax.Array
 
@@ -351,3 +374,41 @@ def get_stable_rank(params: chex.ArrayTree):
         )
         for i in range(ensemble)
     ]
+
+
+@partial(jax_u.jit, static_argnums=(1,))
+def uniform_except(
+    key: chex.PRNGKey,
+    shape: tuple[int, ...],
+    val: jax.Array,
+    epsilon: jax.Array | float,
+    minval: jax.Array | float,
+    maxval: jax.Array | float,
+):
+    prop = jax.random.uniform(key, shape, minval=minval, maxval=maxval)
+
+    def accept(prop: jax.Array):
+        return (jnp.abs(prop - val) > epsilon) & (jnp.abs(prop - val) < 2 * epsilon)
+
+    def keep_trying(carry: tuple[chex.PRNGKey, jax.Array, int]):
+        _, prop, it = carry
+        return jnp.logical_not(accept(prop)).any() & (it < 25)
+
+    def body(carry: tuple[chex.PRNGKey, jax.Array, int]):
+        key, prop, it = carry
+        key, prop_key = jax.random.split(key)
+        new = jax.random.uniform(prop_key, shape, minval=minval, maxval=maxval)
+        x = jnp.where(
+            accept(new),
+            new,
+            prop,
+        )
+        return key, x, it+1
+
+    key, x, _ = jax.lax.while_loop(
+        keep_trying,
+        body,
+        (key, prop, 0),
+    )
+
+    return x

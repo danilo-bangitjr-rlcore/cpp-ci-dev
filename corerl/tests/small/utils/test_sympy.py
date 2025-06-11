@@ -44,12 +44,12 @@ def test_is_affine():
     assert not res
 
 def test_preprocess_expression_string():
-    res = _preprocess_expression_string("2*{tag-0} - 100*{tag-1} + 0.3* {tag-2}")
+    res = _preprocess_expression_string("2*{tag-0} - 100*{tag.1} + 0.3* {tag-2}")
     assert res == "2*tag_0 - 100*tag_1 + 0.3* tag_2"
 
 def test_get_symbol_names():
-    res = _get_tag_names("2*{tag-0} - 100*{tag-1} + 0.3* {tag-2}")
-    assert res == ["tag-0", "tag-1", "tag-2"]
+    res = _get_tag_names("2*{tag-0} - 100*{tag.1} + 0.3* {tag-2}")
+    assert res == ["tag-0", "tag.1", "tag-2"]
 
     proc_res = _preprocess_tag_names(res)
     assert proc_res == ["tag_0", "tag_1", "tag_2"]
