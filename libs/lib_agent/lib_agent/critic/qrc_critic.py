@@ -25,6 +25,7 @@ class CriticState(NamedTuple):
 class CriticOutputs(NamedTuple):
     q: jax.Array
     h: jax.Array
+    phi: jax.Array
 
 
 class CriticBatch(Protocol):
@@ -61,6 +62,7 @@ def critic_builder(cfg: nets.TorsoConfig):
         return CriticOutputs(
             q=hk.Linear(1)(phi),
             h=hk.Linear(1, name='h', w_init=small_init)(phi),
+            phi=phi,
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
@@ -135,7 +137,7 @@ class QRCCritic:
 
     def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
         def rep_func(p, s, a):
-            return self._net.apply(p, s, a).h
+            return self._net.apply(p, s, a).phi
 
         if a.ndim == x.ndim + 1:
             # actions must have an n_samples dimension

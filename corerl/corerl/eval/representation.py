@@ -21,7 +21,7 @@ class RepresentationEval:
     def get_complexity_reduction(
         self,
         states: jax.Array,
-        values: jax.Array,
+        reps: jax.Array,
     ) -> float:
         """
         Calculate complexity reduction metric for the current batch.
@@ -45,16 +45,16 @@ class RepresentationEval:
         n = states.shape[0]
 
         # calculate pairwise state differences
-        state_diffs = jnp.sqrt(jnp.sum((states[:, None] - states[None, :])**2, axis=-1))
+        state_diffs = jnp.sqrt(jnp.sum((states[:, None, :] - states[None, :, :])**2, axis=-1))
 
-        # calculate pairwise value differences
-        value_diffs = jnp.abs(values[:, None] - values[None, :])
+        # calculate pairwise representation differences
+        rep_diffs = jnp.sqrt(jnp.sum((reps[:, None, :] - reps[None, :, :])**2, axis=-1))
 
         # get upper triangular indices (excluding the diagonal)
         mask = jnp.triu(jnp.ones((n, n)), k=1).astype(bool)
 
         # get ratios for all pairs
-        ratios = value_diffs[mask] / (state_diffs[mask] + 1e-8)
+        ratios = rep_diffs[mask] / (state_diffs[mask] + 1e-8)
 
         # calculate Lrep as average of ratios
         lrep = float(2 * jnp.mean(ratios) / (n * (n-1)))
