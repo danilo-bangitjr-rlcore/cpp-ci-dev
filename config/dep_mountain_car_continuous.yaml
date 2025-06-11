@@ -20,9 +20,6 @@ coreio:
     - connection_id: mountain_car_opc_connection
       opc_conn_url: opc.tcp://admin@localhost:4840
       application_uri: "urn:rlcore:client"
-      client_cert_path: null
-      client_private_key_path: null
-      server_cert_path: null
 
 env:
   name: dep_async_env
