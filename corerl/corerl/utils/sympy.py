@@ -102,7 +102,7 @@ def _preprocess_tag_names(input_tags: list[str] | str) -> list[str] | str:
     Note: `tag=0`, `tag-0` and `tag;0` will all look like `tag_0` to sympy
     """
 
-    replace_chars = str.maketrans("-=;", "___")
+    replace_chars = str.maketrans("-=;.", "____")
     if isinstance(input_tags, list):
         return [tag.translate(replace_chars) for tag in input_tags]
     return input_tags.translate(replace_chars)
