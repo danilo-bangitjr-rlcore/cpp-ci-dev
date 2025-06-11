@@ -187,6 +187,32 @@ class RepresentationEval:
 
         return float(orthogonality)
 
+    def get_sparsity(
+        self,
+        reps: jax.Array,
+    ) -> float:
+        """
+        Calculate sparsity metric for the current batch.
+
+        This metric measures how many features are inactive across all states.
+        Higher sparsity means fewer features are active for each state, which means
+        1. More efficient querying and updating
+        2. Better feature specialization
+        3. Reduced interference between features
+
+        The metric is computed by:
+        1. For each state i and feature j:
+           - Check if feature is inactive: 1(φi,j = 0) within tolerance 1e-10
+        2. Average over all states and features:
+           Sparsity = 1/(d*N) * Σᵢ Σⱼ 1(φi,j = 0)
+
+        Returns a score between 0 and 1, where 1 means all features are inactive
+        """
+        inactive_features = jnp.abs(reps) < 1e-10
+        sparsity = jnp.mean(inactive_features)
+        
+        return float(sparsity)
+
     def evaluate(
         self,
         app_state: AppState,
@@ -261,6 +287,9 @@ class RepresentationEval:
         orthogonality = self.get_orthogonality(
             mean_state_reps,
         )
+        sparsity = self.get_sparsity(
+            mean_state_reps,
+        )
         app_state.metrics.write(
             agent_step=app_state.agent_step,
             metric="representation_complexity_reduction",
@@ -280,4 +309,9 @@ class RepresentationEval:
             agent_step=app_state.agent_step,
             metric="representation_orthogonality",
             value=float(orthogonality),
+        )
+        app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric="representation_sparsity",
+            value=float(sparsity),
         )
