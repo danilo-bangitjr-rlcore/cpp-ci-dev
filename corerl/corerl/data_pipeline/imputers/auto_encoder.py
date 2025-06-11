@@ -11,8 +11,8 @@ import numpy as np
 import optax
 import pandas as pd
 from lib_agent.critic.qrc_critic import jax_u
+from lib_config.config import config, list_
 
-from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.tag_config import TagConfig, TagType

@@ -4,8 +4,8 @@ from typing import Literal, assert_never
 
 import jax
 import jax.numpy as jnp
+from lib_config.config import config, list_
 
-from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
 
 type TransitionFilterType = (

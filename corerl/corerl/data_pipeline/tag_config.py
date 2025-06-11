@@ -7,11 +7,11 @@ from functools import partial
 from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
+from lib_config.config import MISSING, config, list_, post_processor
 from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig

@@ -4,11 +4,11 @@ from pathlib import Path
 
 import yaml
 from coreio.config import CoreIOConfig
+from lib_config.config import MISSING, computed, config, list_, post_processor
+from lib_config.loader import config_to_json
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.configs.config import MISSING, computed, config, list_, post_processor
-from corerl.configs.loader import config_to_json
 from corerl.data_pipeline.pipeline import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig

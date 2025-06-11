@@ -3,9 +3,9 @@ from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
+from lib_config.config import config
 from numba import njit
 
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
 from corerl.data_pipeline.utils import update_missing_info

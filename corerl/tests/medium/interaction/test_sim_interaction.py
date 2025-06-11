@@ -1,11 +1,11 @@
 from datetime import timedelta
 from typing import Any
 
+from lib_config.loader import direct_load_config
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.evals import EvalsTable

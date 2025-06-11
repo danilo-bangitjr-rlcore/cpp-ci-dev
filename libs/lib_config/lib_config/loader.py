@@ -13,7 +13,7 @@ from pydantic import TypeAdapter
 from pydantic.dataclasses import is_pydantic_dataclass
 from pydantic.fields import FieldInfo
 
-from corerl.configs.errors import ConfigValidationErrors, validate_with_error_handling
+from lib_config.errors import ConfigValidationErrors, validate_with_error_handling
 
 logger = logging.getLogger(__name__)
 

@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING
 import jax
 import jax.numpy as jnp
 import numpy as np
+from lib_config.config import MISSING, computed, config
 
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import PipelineReturn
 from corerl.state import AppState
 

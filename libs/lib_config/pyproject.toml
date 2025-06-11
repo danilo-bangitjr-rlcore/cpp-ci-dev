@@ -4,7 +4,9 @@ version = "0.0.0"
 description = ""
 requires-python = ">=3.13,<3.14"
 authors = []
-dependencies = []
+dependencies = [
+    "lib-utils",
+]
 readme = "README.md"
 
 [dependency-groups]
@@ -42,3 +44,6 @@ version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
+
+[tool.uv.sources]
+lib-utils = { path = "../lib_utils", editable = true }

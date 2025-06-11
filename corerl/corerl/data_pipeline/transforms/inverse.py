@@ -1,8 +1,8 @@
 from typing import Literal
 
 import numpy as np
+from lib_config.config import config
 
-from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from typing import Annotated, Any, Literal, cast
 
+from lib_config.config import MISSING, config, list_
 from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
 
-from corerl.configs.config import MISSING, config, list_
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group

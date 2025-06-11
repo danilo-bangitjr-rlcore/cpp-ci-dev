@@ -14,11 +14,11 @@ from asyncua.crypto.truststore import TrustStore
 from asyncua.crypto.validator import CertificateValidator, CertificateValidatorOptions
 from asyncua.server.user_managers import CertificateUserManager
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
+from lib_config.loader import direct_load_config
 from test.infrastructure.networking import get_free_port
 
 from coreio.config import OPCSecurityPolicyBasic256SHA256

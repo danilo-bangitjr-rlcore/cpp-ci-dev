@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
+from lib_config.config import MISSING, computed, config
 
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.transforms.delta import Delta
 from corerl.data_pipeline.utils import get_tag_temporal_state

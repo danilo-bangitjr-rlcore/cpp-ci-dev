@@ -8,6 +8,7 @@ dependencies = [
     "asyncua>=1.1.6",
     "backoff>=2.2.1",
     "corerl",
+    "lib-config",
 ]
 
 [dependency-groups]
@@ -30,6 +31,7 @@ packages = ["coreio"]
 [tool.uv.sources]
 corerl = { path = "../corerl", editable = true }
 test = { path = "../test", editable = true }
+lib-config = { path = "../libs/lib_config", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'

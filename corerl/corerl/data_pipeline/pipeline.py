@@ -11,10 +11,10 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
+from lib_config.config import MISSING, computed, config, list_, post_processor
 from pandas import DataFrame
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor

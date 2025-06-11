@@ -1,4 +1,5 @@
-from corerl.configs.config import config, list_
+from lib_config.config import config, list_
+
 from corerl.data_pipeline.oddity_filters.factory import IdentityFilterConfig, OddityFilterConfig
 
 

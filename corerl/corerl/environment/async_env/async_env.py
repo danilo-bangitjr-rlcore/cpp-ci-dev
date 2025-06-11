@@ -4,9 +4,9 @@ from datetime import timedelta
 from typing import TYPE_CHECKING, Any, Literal
 
 import pandas as pd
+from lib_config.config import MISSING, computed, config
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 
 if TYPE_CHECKING:

@@ -11,6 +11,7 @@ import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
+from lib_config.config import MISSING, computed, config
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
@@ -21,7 +22,6 @@ from corerl.component.buffer import (
     RecencyBiasBufferConfig,
     buffer_group,
 )
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import AbsTransition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType

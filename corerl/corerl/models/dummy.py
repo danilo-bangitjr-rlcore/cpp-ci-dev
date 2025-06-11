@@ -1,8 +1,8 @@
 from typing import Literal
 
 import jax
+from lib_config.config import config
 
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.tag_config import TagConfig
 from corerl.models.base import BaseModel, BaseModelConfig, model_group

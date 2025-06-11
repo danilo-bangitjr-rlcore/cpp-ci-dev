@@ -5,11 +5,11 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
+from lib_config.loader import direct_load_config
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter

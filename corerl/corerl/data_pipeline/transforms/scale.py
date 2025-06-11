@@ -1,6 +1,7 @@
 from typing import Literal
 
-from corerl.configs.config import config
+from lib_config.config import config
+
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 

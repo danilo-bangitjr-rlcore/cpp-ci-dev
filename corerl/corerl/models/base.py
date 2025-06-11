@@ -1,9 +1,9 @@
 from typing import Any
 
 import jax
+from lib_config.config import MISSING, config
+from lib_config.group import Group
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.tag_config import TagConfig, TagType
 

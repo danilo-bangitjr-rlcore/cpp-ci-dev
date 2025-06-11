@@ -7,12 +7,12 @@ from typing import TYPE_CHECKING, Any
 
 import lib_utils.dict as dict_u
 import sqlalchemy
+from lib_config.config import MISSING, computed, config
 from sqlalchemy import URL, Column, Connection, DateTime, Engine, MetaData, Table, inspect, select, text
 from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from corerl.configs.config import MISSING, computed, config
 from corerl.sql_logging.base_schema import (
     Base,
     HParam,

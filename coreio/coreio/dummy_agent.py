@@ -6,7 +6,7 @@ import time
 import numpy as np
 import zmq
 from corerl.config import MainConfig
-from corerl.configs.loader import load_config
+from lib_config.loader import load_config
 
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType, OPCUANodeWriteValue
 

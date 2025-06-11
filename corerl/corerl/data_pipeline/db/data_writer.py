@@ -3,9 +3,9 @@ import logging
 from datetime import UTC, datetime
 from typing import NamedTuple
 
+from lib_config.config import config
 from sqlalchemy import text
 
-from corerl.configs.config import config
 from corerl.data_pipeline.tag_config import Agg
 from corerl.sql_logging.sql_logging import get_sql_engine
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query

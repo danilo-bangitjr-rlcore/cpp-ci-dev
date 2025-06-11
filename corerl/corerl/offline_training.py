@@ -2,10 +2,10 @@ import logging
 import random
 
 import numpy as np
+from lib_config.loader import load_config
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
-from corerl.configs.loader import load_config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable

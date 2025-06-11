@@ -1,9 +1,9 @@
 from typing import Any, Protocol, runtime_checkable
 
 import numpy as np
+from lib_config.config import MISSING, config
+from lib_config.group import Group
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.group import Group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
