@@ -148,6 +148,45 @@ class RepresentationEval:
         diversity = 1.0 - jnp.mean(ratio)
         return float(diversity)
 
+    def get_orthogonality(
+        self,
+        reps: jax.Array,
+    ) -> float:
+        """
+        Calculate orthogonality metric for the current batch.
+
+        This metric measures how orthogonal the feature vectors are to each other, normalized by their magnitudes.
+        Higher orthogonality means more feature vectors are orthogonal to each other, indicating:
+        1. Less redundancy in the representation
+        2. More distributed features
+        3. Minimal interference between features
+
+        The metric is computed by:
+        1. For all pairs of states (i, j) where i < j:
+           - Compute dot product between feature vectors: <φi, φj>
+           - Normalize by magnitudes: |<φi, φj>| / (||φi||2 * ||φj||2)
+        2. Average over all pairs and subtract from 1:
+           Orthogonality = 1 - 2/(N(N-1)) * Σ |<φi, φj>| / (||φi||2 * ||φj||2)
+
+        Returns a score between 0 and 1, where 1 is perfect orthogonality
+        """
+        n = reps.shape[0]
+
+        magnitudes = jnp.sqrt(jnp.sum(reps**2, axis=-1))
+
+        # compute dot products between all pairs
+        dot_products = jnp.matmul(reps, reps.T)
+        mask = jnp.triu(jnp.ones((n, n)), k=1).astype(bool)
+        mag_products = magnitudes[:, None] * magnitudes[None, :]
+
+        # normalize dot products by magnitudes
+        normalized_dots = jnp.abs(dot_products[mask]) / (mag_products[mask] + 1e-8)
+
+        # compute orthogonality score
+        orthogonality = 1.0 - jnp.mean(normalized_dots)
+
+        return float(orthogonality)
+
     def evaluate(
         self,
         app_state: AppState,
@@ -219,6 +258,9 @@ class RepresentationEval:
             mean_state_reps,
             mean_qs,
         )
+        orthogonality = self.get_orthogonality(
+            mean_state_reps,
+        )
         app_state.metrics.write(
             agent_step=app_state.agent_step,
             metric="representation_complexity_reduction",
@@ -233,4 +275,9 @@ class RepresentationEval:
             agent_step=app_state.agent_step,
             metric="representation_diversity",
             value=float(diversity),
+        )
+        app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric="representation_orthogonality",
+            value=float(orthogonality),
         )
