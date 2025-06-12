@@ -2,22 +2,21 @@ defaults:
   - ../computational_params
 
 agent:
-  gamma: 0.99
+  gamma: 0.0
 
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
 
-max_steps: 999
+max_steps: 499
 
 env:
   name: sim_async_env
   gym:
     gym_name: Calibration-v0
     env_config:
-      calibration_period: 500
-      instant: False
+      calibration_period: 250
 
 pipeline:
   reward:
@@ -40,12 +39,9 @@ pipeline:
     - name: action-0
       operating_range: [0, 1]
       type: ai_setpoint
-      action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
 
     - name: tag-0 # cost
       operating_range: [0, 1]
-      yellow_bounds: [null, 0.3]
-      red_bounds: [null, 0.5]
 
     - name: tag-1 # efficiency
       operating_range: [0, 1]
