@@ -29,15 +29,10 @@ class ResidualConfig:
 
 @dataclass
 class LateFusionConfig:
-    sizes: list[int]
+    streams: list[list[LinearConfig | ResidualConfig]]
     name: str | None = None
-    activation: str = 'crelu'
 
-@dataclass
-class ResidualLateFusionConfig(LateFusionConfig):
-    ...
-
-type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig | ResidualLateFusionConfig
+type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig
 
 @dataclass
 class TorsoConfig:
@@ -64,18 +59,23 @@ class FusionNet(hk.Module):
     def __init__(self, cfg: LateFusionConfig):
         super().__init__(name=cfg.name)
         self.cfg = cfg
-        ortho = hk.initializers.Orthogonal(np.sqrt(2))
         self.torso_branches = [
-            hk.Linear(size, w_init=ortho)
-            for size in cfg.sizes
+            [
+                layer_factory(layer)
+                for layer in stream
+            ]
+            for stream in cfg.streams
         ]
 
     def __call__(self, *x: jax.Array):
-        parts = [
-            self.torso_branches[i](x[i])
-            for i in range(len(x))
-        ]
-        return jnp.concat(parts, axis=-1)
+        streams: list[jax.Array] = []
+        for input, stream in zip(x, self.torso_branches, strict=True):
+            stream_out = input
+            for layer in stream:
+                stream_out = layer(stream_out)
+            streams.append(stream_out)
+
+        return jnp.concat(streams, axis=-1)
 
 
 class ResidualBlock(hk.Module):
@@ -96,14 +96,6 @@ class ResidualBlock(hk.Module):
         out = get_activation(self.activation)(out)
         return out + self.projection(x)
 
-
-class ResidualLateFusionNet(FusionNet):
-    def __init__(self, cfg: ResidualLateFusionConfig):
-        super().__init__(cfg)
-        self.torso_branches = [
-            ResidualBlock(cfg, size)
-            for size in cfg.sizes
-        ]
 
 class SkipProjNet(hk.Module):
     def __init__(self, torso: CallableModule, num_inputs: int, out_size: int):
@@ -127,10 +119,6 @@ def layer_factory(cfg: LayerConfig):
         return Linear(cfg)
     if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
-
-    # NOTE: subclass check needs to come before parent class check
-    if isinstance(cfg, ResidualLateFusionConfig):
-        return ResidualLateFusionNet(cfg)
     if isinstance(cfg, LateFusionConfig):
         return FusionNet(cfg)
 
@@ -150,9 +138,9 @@ def torso_builder(cfg: TorsoConfig):
         out_size = out_size * 2 if last_layer.activation in {'crelu'} else out_size
 
         input_layer = cfg.layers[0]
-        assert isinstance(input_layer, LateFusionConfig | ResidualLateFusionConfig)
+        assert isinstance(input_layer, LateFusionConfig)
 
-        num_inputs = len(input_layer.sizes)
+        num_inputs = len(input_layer.streams)
         torso = SkipProjNet(torso, num_inputs, out_size)
 
     return torso
