@@ -12,6 +12,7 @@ class CalibrationConfig(EnvConfig):
     name: str = 'Calibration-v0'
     seed: int = 0
     calibration_period: int = 500
+    instant: bool = True
 
 class CalibrationEnv(gym.Env):
     """
@@ -40,6 +41,8 @@ class CalibrationEnv(gym.Env):
 
         self._scale = 0.7
         self._bias = 0.3
+        self._process_var = 0.5
+        self._pv_drain = 0.01
         self._calibration_period = self._cfg.calibration_period
         self._steps = 0
 
@@ -48,11 +51,33 @@ class CalibrationEnv(gym.Env):
         self._random = np.random.default_rng(seed)
 
 
-    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
+    def _instant_step(self, action: np.ndarray):
         cost = action
-        efficiency = action * self._scale + self._bias
+        self._process_var = action
+        efficiency = self._process_var * self._scale + self._bias
 
-        self.state = np.concatenate([cost, efficiency])
+        return np.concatenate([cost, efficiency, self._process_var])
+
+    def _stateful_step(self, action: np.ndarray):
+        """
+        Treats action as a setpoint, and computes control variable
+        with a proportional controller.
+        """
+        setpoint = action
+        control_var = np.maximum(0.1 * (setpoint - self._process_var), 0)
+        self._process_var = np.maximum(self._process_var - self._pv_drain + control_var, 0)
+        efficiency = self._process_var * self._scale + self._bias
+        cost = 10*control_var
+
+        return np.concatenate([cost, efficiency, self._process_var])
+
+    def _get_next_state(self, action: np.ndarray):
+        if self._cfg.instant:
+            return self._instant_step(action)
+        return self._stateful_step(action)
+
+    def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
+        state = self._get_next_state(action)
         reward = 0. # this reward is ignored, goal constructor should be used instead
         self._steps += 1
 
@@ -63,7 +88,7 @@ class CalibrationEnv(gym.Env):
             # optimal action is ~0.286
             self._bias = 0.3
 
-        return self.state, reward, False, False, {}
+        return state, reward, False, False, {}
 
     def reset(
         self,
@@ -73,12 +98,9 @@ class CalibrationEnv(gym.Env):
     ) -> tuple[np.ndarray, dict]:
         self._steps = 0
         action = np.ones(1) * 0.5
-        cost = action
-        efficiency = action * self._scale + self._bias
+        state = self._get_next_state(action)
 
-        self.state = np.concatenate([cost, efficiency])
-
-        return self.state, {}
+        return state, {}
 
     def close(self):
         pass
