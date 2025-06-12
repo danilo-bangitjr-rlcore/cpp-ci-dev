@@ -225,7 +225,12 @@ class MultiActionSaturationBadOfflineDataTest(BSuiteTestCase):
 
         # Write offline data to db
         data_writer = utils.get_offline_data_writer(engine, infra_overrides)
+
+        # ensure table exists by writing and syncing a dummy value
+        data_writer.write(timestamp=datetime.now(UTC), name="dummy", val=0.0)
+        data_writer.flush()
+
         for sql_tup in sql_tups:
             data_writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
-
+        data_writer.flush()
         data_writer.close()
