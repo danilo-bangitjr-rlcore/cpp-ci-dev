@@ -80,17 +80,21 @@ class QRCCritic:
                     streams=[
                         # states
                         [
-                            nets.ResidualConfig(size=128, activation='crelu'),
+                            nets.LinearConfig(size=128, activation='relu'),
+                            nets.LinearConfig(size=64, activation='relu'),
+                            nets.LinearConfig(size=32, activation='crelu'),
                         ],
                         # actions
                         [
-                            nets.ResidualConfig(size=128, activation='crelu'),
+                            nets.LinearConfig(size=32, activation='relu'),
+                            nets.LinearConfig(size=32, activation='crelu'),
                         ],
                     ],
                 ),
-                nets.LinearConfig(size=128, activation='crelu'),
+                nets.LinearConfig(size=64, activation='relu'),
+                nets.LinearConfig(size=64, activation='relu'),
             ],
-            skip=True,
+            skip=False,
         )
         self._net = critic_builder(torso_cfg)
         self._optim = optax.adamw(learning_rate=cfg.stepsize, weight_decay=0.001)
