@@ -236,3 +236,11 @@ class MainConfig:
 
         if self.feature_flags.normalize_return:
             self.agent.policy.sort_noise *= (1 - self.agent.gamma)
+
+    @post_processor
+    def _enable_return_normalization(self, cfg: 'MainConfig'):
+        if not self.feature_flags.normalize_return:
+            return
+
+        self.agent.critic.action_regularization = 5e-4
+        self.agent.loss_threshold = 1e-8

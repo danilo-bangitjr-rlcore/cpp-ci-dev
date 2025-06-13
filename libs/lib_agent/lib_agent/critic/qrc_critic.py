@@ -60,8 +60,8 @@ def critic_builder(cfg: nets.TorsoConfig):
 
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
         return CriticOutputs(
-            q=hk.Linear(1)(phi),
-            h=hk.Linear(1, name='h', w_init=small_init)(phi),
+            q=hk.Linear(1, w_init=small_init, with_bias=False)(phi),
+            h=hk.Linear(1, name='h', w_init=small_init, with_bias=False)(phi),
             phi=phi,
         )
 
@@ -76,10 +76,25 @@ class QRCCritic:
 
         torso_cfg = nets.TorsoConfig(
             layers=[
-                nets.ResidualLateFusionConfig(sizes=[128, 128], activation='crelu'),
-                nets.LinearConfig(size=128, activation='crelu'),
+                nets.LateFusionConfig(
+                    streams=[
+                        # states
+                        [
+                            nets.LinearConfig(size=128, activation='relu'),
+                            nets.LinearConfig(size=64, activation='relu'),
+                            nets.LinearConfig(size=32, activation='crelu'),
+                        ],
+                        # actions
+                        [
+                            nets.LinearConfig(size=32, activation='relu'),
+                            nets.LinearConfig(size=32, activation='crelu'),
+                        ],
+                    ],
+                ),
+                nets.LinearConfig(size=64, activation='relu'),
+                nets.LinearConfig(size=64, activation='relu'),
             ],
-            skip=True,
+            skip=False,
         )
         self._net = critic_builder(torso_cfg)
         self._optim = optax.adamw(learning_rate=cfg.stepsize, weight_decay=0.001)
