@@ -155,6 +155,9 @@ class PipelineReturn:
 
 @dataclass
 class ColumnDescriptions:
+    state_tags: list[TagConfig]
+    action_tags: list[TagConfig]
+
     state_cols: list[str]
     action_cols: list[str]
 
@@ -327,7 +330,11 @@ class Pipeline:
 
     @cached_property
     def column_descriptions(self):
+        state_cfgs = StateConstructor.state_configs(self.tags)
+        action_cfgs = ActionConstructor.action_configs(self.tags)
         return ColumnDescriptions(
+            state_tags=state_cfgs,
+            action_tags=action_cfgs,
             state_cols=self.state_constructor.columns,
             action_cols=self.action_constructor.columns,
         )

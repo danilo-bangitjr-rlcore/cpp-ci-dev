@@ -32,8 +32,7 @@ class StateConstructor(Constructor):
     def _get_relevant_configs(self, tag_cfgs: list[TagConfig]):
         return {
             tag.name: tag.state_constructor if tag.state_constructor is not None else self._cfg.defaults
-            for tag in tag_cfgs
-            if tag.type not in [TagType.meta, TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
+            for tag in StateConstructor.state_configs(tag_cfgs)
         }
 
 
@@ -83,6 +82,13 @@ class StateConstructor(Constructor):
                 ),
             ],
         )
+
+    @staticmethod
+    def state_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
+        return [
+            tag for tag in tag_cfgs
+            if tag.type not in {TagType.meta, TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
+        ]
 
 
 def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: list[TagConfig]) -> None:
