@@ -2,14 +2,14 @@ defaults:
   - ../computational_params
 
 agent:
-  gamma: 0.99
+  gamma: 0.9
 
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
 
-max_steps: 499
+max_steps: 999
 
 env:
   name: sim_async_env
