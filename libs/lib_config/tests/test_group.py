@@ -1,8 +1,9 @@
 from typing import Literal
 
+from pydantic import Field
+
 from lib_config.config import config
 from lib_config.group import Group
-from pydantic import Field
 
 
 def test_group1():
