@@ -222,6 +222,12 @@ class GreedyAC(BaseAgent):
         self._jax_rng, a_rng = jax.random.split(self._jax_rng)
         self._actor_state = self._actor.init_state(a_rng, dummy_x)
 
+        self._critic_state = self.critic.initialize_to_nominal_action(
+            self._jax_rng,
+            self._critic_state,
+            jnp.ones(self.action_dim, dtype=jnp.float32) * 0.5,
+        )
+
     @property
     def actor_percentile(self) -> float:
         return self.cfg.policy.actor_percentile
