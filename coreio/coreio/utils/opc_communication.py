@@ -3,7 +3,7 @@ from asyncio import CancelledError
 from collections.abc import Sequence
 from datetime import UTC
 from types import TracebackType
-from typing import Protocol
+from typing import Protocol, assert_never
 
 import backoff
 from asyncua import Client, Node, ua
@@ -12,10 +12,14 @@ from corerl.data_pipeline.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import (
+    OPCAuthMode,
+    OPCAuthModeConfig,
     OPCAuthModeUsernamePasswordConfig,
     OPCConnectionConfig,
     OPCMessageSecurityMode,
     OPCSecurityPolicyBasic256SHA256Config,
+    OPCSecurityPolicyConfig,
+    OPCSecurityPolicyNoneConfig,
 )
 from coreio.utils.io_events import OPCUANodeWriteValue
 
@@ -51,27 +55,50 @@ class OPC_Connection:
         assert cfg.application_uri is not None
         self.opc_client.application_uri = cfg.application_uri
 
-        if isinstance(cfg.security_policy, OPCSecurityPolicyBasic256SHA256Config):
-            mode = (
-                ua.MessageSecurityMode.Sign
-                if cfg.security_policy.mode is OPCMessageSecurityMode.sign
-                else ua.MessageSecurityMode.SignAndEncrypt
-            )
-            await self.opc_client.set_security(
-                SecurityPolicyBasic256Sha256,
-                certificate=cfg.security_policy.client_cert_path,
-                private_key=cfg.security_policy.client_key_path,
-                mode=mode,
-                server_certificate=str(cfg.security_policy.server_cert_path),
-            )
-
-        if isinstance(cfg.authentication_mode, OPCAuthModeUsernamePasswordConfig):
-            self.opc_client.set_user(cfg.authentication_mode.username)
-            self.opc_client.set_password(cfg.authentication_mode.password)
+        await self._set_security_policy(cfg.security_policy)
+        await self._set_auth_mode(cfg.authentication_mode)
 
         await self._register_action_nodes(tag_configs)
 
         return self
+
+    async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+
+        match policy:
+            case OPCSecurityPolicyBasic256SHA256Config():
+                mode = (
+                    ua.MessageSecurityMode.Sign
+                    if policy.mode is OPCMessageSecurityMode.sign
+                    else ua.MessageSecurityMode.SignAndEncrypt
+                )
+                await self.opc_client.set_security(
+                    SecurityPolicyBasic256Sha256,
+                    certificate=policy.client_cert_path,
+                    private_key=policy.client_key_path,
+                    mode=mode,
+                    server_certificate=str(policy.server_cert_path),
+                )
+
+            case OPCSecurityPolicyNoneConfig():
+                pass
+
+            case _:
+                assert_never(policy)
+
+    async def _set_auth_mode(self, auth_mode: OPCAuthModeConfig):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+
+        match auth_mode:
+            case OPCAuthModeUsernamePasswordConfig():
+                self.opc_client.set_user(auth_mode.username)
+                self.opc_client.set_password(auth_mode.password)
+
+            case OPCAuthMode.anonymous:
+                pass
+
+            case _:
+                assert_never(auth_mode)
 
     async def register_node(self, node_id: str):
         assert self.opc_client is not None, 'OPC client is not initialized'
@@ -191,3 +218,6 @@ class OPC_Connection:
 
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)
+
+
+    # @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_time=30)
