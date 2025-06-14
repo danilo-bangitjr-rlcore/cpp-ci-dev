@@ -21,7 +21,7 @@ from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 from lib_config.loader import direct_load_config
 from test.infrastructure.networking import get_free_port
 
-from coreio.config import OPCSecurityPolicyBasic256SHA256
+from coreio.config import OPCSecurityPolicyBasic256SHA256Config
 from coreio.utils.opc_communication import OPC_Connection, OPCConnectionConfig
 
 
@@ -293,7 +293,7 @@ def load_config(
     assert isinstance(cfg, MainConfig)
     config = cfg.coreio.opc_connections[0]
     if (
-        isinstance(config.security_policy, OPCSecurityPolicyBasic256SHA256) and
+        isinstance(config.security_policy, OPCSecurityPolicyBasic256SHA256Config) and
         isinstance(server_client_key_certs, ServerClientKeyCerts)
     ):
         return OPCConnectionConfig(
@@ -301,7 +301,7 @@ def load_config(
             application_uri=config.application_uri,
             authentication_mode=config.authentication_mode,
             opc_conn_url=f'opc.tcp://localhost:{opc_port}',
-            security_policy=OPCSecurityPolicyBasic256SHA256(
+            security_policy=OPCSecurityPolicyBasic256SHA256Config(
                 mode=config.security_policy.mode,
                 client_cert_path=Path(server_client_key_certs.client.cert),
                 client_key_path=Path(server_client_key_certs.client.key),

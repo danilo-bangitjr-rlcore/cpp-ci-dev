@@ -12,10 +12,10 @@ from corerl.data_pipeline.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import (
-    OPCAuthenticationModeUsernamePassword,
+    OPCAuthModeUsernamePasswordConfig,
     OPCConnectionConfig,
     OPCMessageSecurityMode,
-    OPCSecurityPolicyBasic256SHA256,
+    OPCSecurityPolicyBasic256SHA256Config,
 )
 from coreio.utils.io_events import OPCUANodeWriteValue
 
@@ -51,7 +51,7 @@ class OPC_Connection:
         assert cfg.application_uri is not None
         self.opc_client.application_uri = cfg.application_uri
 
-        if isinstance(cfg.security_policy, OPCSecurityPolicyBasic256SHA256):
+        if isinstance(cfg.security_policy, OPCSecurityPolicyBasic256SHA256Config):
             mode = (
                 ua.MessageSecurityMode.Sign
                 if cfg.security_policy.mode is OPCMessageSecurityMode.sign
@@ -65,7 +65,7 @@ class OPC_Connection:
                 server_certificate=str(cfg.security_policy.server_cert_path),
             )
 
-        if isinstance(cfg.authentication_mode, OPCAuthenticationModeUsernamePassword):
+        if isinstance(cfg.authentication_mode, OPCAuthModeUsernamePasswordConfig):
             self.opc_client.set_user(cfg.authentication_mode.username)
             self.opc_client.set_password(cfg.authentication_mode.password)
 
