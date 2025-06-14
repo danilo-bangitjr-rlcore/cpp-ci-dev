@@ -61,8 +61,20 @@ class OPC_Connection:
 
         return self
 
-    async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
+
+    @backoff.on_exception(backoff.expo, Exception, max_time=30)
+    async def ensure_connected(self):
         assert self.opc_client is not None, 'OPC client is not initialized'
+        try:
+            await self.opc_client.check_connection()
+        except (ConnectionError, CancelledError):
+            await self.opc_client.connect()
+
+        return self.opc_client
+
+
+    async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
+        client = await self.ensure_connected()
 
         match policy:
             case OPCSecurityPolicyBasic256SHA256Config():
@@ -71,7 +83,7 @@ class OPC_Connection:
                     if policy.mode is OPCMessageSecurityMode.sign
                     else ua.MessageSecurityMode.SignAndEncrypt
                 )
-                await self.opc_client.set_security(
+                await client.set_security(
                     SecurityPolicyBasic256Sha256,
                     certificate=policy.client_cert_path,
                     private_key=policy.client_key_path,
@@ -86,12 +98,12 @@ class OPC_Connection:
                 assert_never(policy)
 
     async def _set_auth_mode(self, auth_mode: OPCAuthModeConfig):
-        assert self.opc_client is not None, 'OPC client is not initialized'
+        client = await self.ensure_connected()
 
         match auth_mode:
             case OPCAuthModeUsernamePasswordConfig():
-                self.opc_client.set_user(auth_mode.username)
-                self.opc_client.set_password(auth_mode.password)
+                client.set_user(auth_mode.username)
+                client.set_password(auth_mode.password)
 
             case OPCAuthMode.anonymous:
                 pass
@@ -100,18 +112,17 @@ class OPC_Connection:
                 assert_never(auth_mode)
 
     async def register_node(self, node_id: str):
-        assert self.opc_client is not None, 'OPC client is not initialized'
+        client = await self.ensure_connected()
 
-        async with self.opc_client:
-            if not node_id.startswith("ns="):
-                raise ValueError(f"Problem encountered in tag config for {node_id} " +
-                    "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
+        if not node_id.startswith("ns="):
+            raise ValueError(f"Problem encountered in tag config for {node_id} " +
+                "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
 
-            node = self.opc_client.get_node(node_id)
-            var_type = await node.read_data_type_as_variant_type()
-            logger.info(f"Registering heatbeat with OPC node id '{node_id}'")
+        node = client.get_node(node_id)
+        var_type = await node.read_data_type_as_variant_type()
+        logger.info(f"Registering heatbeat with OPC node id '{node_id}'")
 
-            self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
+        self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
     async def _register_action_nodes(self, tag_configs: Sequence[TagConfig]):
         """
@@ -119,35 +130,35 @@ class OPC_Connection:
         1. Have the relevant connection_id
         2. Are ai_setpoints
         """
-        assert self.opc_client is not None, 'OPC client is not initialized'
+        client = await self.ensure_connected()
 
-        async with self.opc_client:
-            for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
+        for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
 
-                if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
-                    continue
+            if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
+                continue
 
-                if tag_cfg.node_identifier is not None and tag_cfg.node_identifier.startswith("ns="):
-                    node_id = tag_cfg.node_identifier
-                else:
-                    raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
-                        "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
+            if tag_cfg.node_identifier is not None and tag_cfg.node_identifier.startswith("ns="):
+                node_id = tag_cfg.node_identifier
+            else:
+                raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
+                    "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
 
-                node = self.opc_client.get_node(node_id)
-                var_type = await node.read_data_type_as_variant_type()
-                logger.info(f"Registering node '{tag_cfg.name}' with OPC node id '{node_id}'")
+            node = client.get_node(node_id)
+            var_type = await node.read_data_type_as_variant_type()
+            logger.info(f"Registering node '{tag_cfg.name}' with OPC node id '{node_id}'")
 
-                self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
+            self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
 
     @backoff.on_exception(backoff.expo, (OSError), max_time=30)
     async def start(self):
-        assert self.opc_client is not None, 'OPC client is not initialized'
-        await self.opc_client.connect()
+        await self.ensure_connected()
         return self
 
     async def cleanup(self):
-        assert self.opc_client is not None, 'OPC client is not initialized'
+        if self.opc_client is None:
+            return self
+
         await self.opc_client.disconnect()
         return self
 
@@ -163,14 +174,7 @@ class OPC_Connection:
         _ = exc_type, exc, tb
         await self.cleanup()
 
-    async def ensure_connected(self):
-        assert self.opc_client is not None, 'OPC client is not initialized'
-        try:
-            await self.opc_client.check_connection()
-        except (ConnectionError, CancelledError):
-            await self.opc_client.connect()
-
-    @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30)
+    @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_time=30)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         # Reconnect if connection is not ok
