@@ -146,10 +146,6 @@ class OPC_Connection:
 
     @backoff.on_exception( backoff.expo, (ua.UaError, ConnectionError), max_time=30)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
-        """
-        Writing core-rl values into OPC
-        Some checks might seem redundant with core-rl, but those will be removed from core-rl shortly
-        """
         assert self.opc_client is not None, 'OPC client is not initialized'
         # Reconnect if connection is not ok
         await self.ensure_connected()
