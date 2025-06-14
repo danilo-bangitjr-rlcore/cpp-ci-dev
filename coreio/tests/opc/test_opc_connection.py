@@ -328,15 +328,17 @@ async def test_connect1(server: FakeOpcServer, client: OPC_Connection, opc_port:
 
 async def test_connect2(client: OPC_Connection, opc_port: int):
     """
-    Client should fail if a server is not running.
-
-    James: future behavior; client should attempt to re-connect to the server
-    continuously, and should not fail.
+    Client should connect to a server that is started after the client.
     """
-    with pytest.raises(OSError):
-        client_config = load_config(Path("assets", "basic.yaml"), opc_port)
-        await client.init(client_config, [])
-        await client.start()
+    client_config = load_config(Path("assets", "basic.yaml"), opc_port)
+    await client.init(client_config, [])
+    await client.start()
+    await asyncio.sleep(1)
+
+    server = FakeOpcServer(opc_port)
+    await server.start()
+
+    await client.ensure_connected()
 
 async def test_disconnect1(server: FakeOpcServer, client: OPC_Connection, opc_port: int):
     """

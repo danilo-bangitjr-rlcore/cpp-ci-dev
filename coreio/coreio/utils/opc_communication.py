@@ -1,5 +1,4 @@
 import logging
-from asyncio import CancelledError
 from collections.abc import Sequence
 from datetime import UTC
 from types import TracebackType
@@ -67,7 +66,8 @@ class OPC_Connection:
         assert self.opc_client is not None, 'OPC client is not initialized'
         try:
             await self.opc_client.check_connection()
-        except (ConnectionError, CancelledError):
+
+        except Exception:
             await self.opc_client.connect()
 
         return self.opc_client
@@ -150,7 +150,7 @@ class OPC_Connection:
             self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
 
-    @backoff.on_exception(backoff.expo, (OSError), max_time=30)
+    @backoff.on_exception(backoff.expo, Exception, max_time=30)
     async def start(self):
         await self.ensure_connected()
         return self
