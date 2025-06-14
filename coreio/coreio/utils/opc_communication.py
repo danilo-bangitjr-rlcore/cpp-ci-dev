@@ -61,7 +61,7 @@ class OPC_Connection:
         return self
 
 
-    @backoff.on_exception(backoff.expo, Exception, max_time=30)
+    @backoff.on_exception(backoff.expo, Exception, max_value=30)
     async def ensure_connected(self):
         assert self.opc_client is not None, 'OPC client is not initialized'
         try:
@@ -150,7 +150,7 @@ class OPC_Connection:
             self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
 
-    @backoff.on_exception(backoff.expo, Exception, max_time=30)
+    @backoff.on_exception(backoff.expo, Exception, max_value=30)
     async def start(self):
         await self.ensure_connected()
         return self
@@ -174,7 +174,7 @@ class OPC_Connection:
         _ = exc_type, exc, tb
         await self.cleanup()
 
-    @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_time=30)
+    @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_value=30)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         # Reconnect if connection is not ok
