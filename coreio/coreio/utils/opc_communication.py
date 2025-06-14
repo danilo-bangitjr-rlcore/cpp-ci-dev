@@ -217,6 +217,3 @@ class OPC_Connection:
 
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)
-
-
-    # @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_time=30)
