@@ -46,7 +46,6 @@ class OPC_Connection:
     def __init__(self):
         self.opc_client: Client | None = None
         self.registered_nodes: dict[str, NodeData] = {}
-        self._connected = False
 
     async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfig]):
         self.connection_id = cfg.connection_id
