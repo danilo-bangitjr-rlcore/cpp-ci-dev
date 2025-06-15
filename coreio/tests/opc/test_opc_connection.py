@@ -50,10 +50,9 @@ def load_config(
     )
     assert isinstance(cfg, MainConfig)
     config = cfg.coreio.opc_connections[0]
-    if (
-        isinstance(config.security_policy, OPCSecurityPolicyBasic256SHA256Config) and
-        isinstance(server_client_key_certs, ServerClientKeyCerts)
-    ):
+    if isinstance(config.security_policy, OPCSecurityPolicyBasic256SHA256Config):
+        assert server_client_key_certs is not None, "Key certs must be provided if security policy is not None"
+
         return OPCConnectionConfig(
             connection_id=config.connection_id,
             application_uri=config.application_uri,
