@@ -190,7 +190,6 @@ class OPC_Connection:
         data_values = []
 
         for node in nodes_to_write:
-            # Using get() instead of [], because it returns None instead of error if node_id is not found
             if node.node_id not in self.registered_nodes:
                 logger.warning(f"Node {node.node_id} is unknown")
                 continue
