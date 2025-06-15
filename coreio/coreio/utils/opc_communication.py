@@ -144,24 +144,15 @@ class OPC_Connection:
         1. Have the relevant connection_id
         2. Are ai_setpoints
         """
-        client = await self.ensure_connected()
-
-        for tag_cfg in sorted(tag_configs, key=lambda cfg: cfg.name):
-
+        for tag_cfg in tag_configs:
             if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
                 continue
 
-            if tag_cfg.node_identifier is not None and tag_cfg.node_identifier.startswith("ns="):
-                node_id = tag_cfg.node_identifier
-            else:
+            if tag_cfg.node_identifier is None:
                 raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
-                    "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
+                    "For ai_setpoint tags, node_identifier must be defined")
 
-            node = client.get_node(node_id)
-            var_type = await node.read_data_type_as_variant_type()
-            logger.info(f"Registering node '{tag_cfg.name}' with OPC node id '{node_id}'")
-
-            self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
+            await self.register_node(tag_cfg.node_identifier)
 
 
     @backoff.on_exception(backoff.expo, Exception, max_value=30, on_backoff=log_backoff)
