@@ -235,7 +235,7 @@ class FakeOpcServer:
 @pytest.fixture
 def opc_port():
     """
-    (Presumably) Gets a free port from localhost that the server can listen on
+    Gets a free port from localhost that the server can listen on
     instead of assuming any particular one will be free
     """
     return get_free_port('localhost')
