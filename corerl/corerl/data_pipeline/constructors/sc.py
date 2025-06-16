@@ -87,7 +87,7 @@ class StateConstructor(Constructor):
     def state_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
         return [
             tag for tag in tag_cfgs
-            if tag.type not in {TagType.meta, TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
+            if tag.type not in {TagType.meta}
         ]
 
 
