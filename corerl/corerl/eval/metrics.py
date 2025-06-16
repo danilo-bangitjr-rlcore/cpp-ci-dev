@@ -1,8 +1,9 @@
 import logging
 from datetime import UTC, datetime
-from typing import NamedTuple, SupportsFloat
+from typing import Any, NamedTuple, SupportsFloat
 
 import pandas as pd
+from lib_utils.dict import flatten_tree
 from sqlalchemy import text
 
 from corerl.configs.config import config
@@ -181,3 +182,17 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         if step_start is not None or step_end is not None:
             return self._read_by_step(metric, step_start, step_end)
         return self._read_by_metric(metric)
+
+    def write_dict(
+        self,
+        values: dict[str, SupportsFloat | dict[str, Any]],
+        prefix: str = '',
+        agent_step: int | None = None,
+    ) -> None:
+        flattened = flatten_tree(values, prefix)
+        for key, value in flattened.items():
+            self.write(
+                agent_step=agent_step,
+                metric=key,
+                value=value,
+            )

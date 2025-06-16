@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, NamedTuple, Protocol
@@ -460,3 +461,41 @@ def get_layer_norms(params: chex.ArrayTree):
         )
         for i in range(ensemble)
     ]
+
+def create_ensemble_dict(
+    data: Any,
+    metric_fn: Callable[[Any], list[dict[str, float]]],
+    prefix: str = '',
+) -> dict[str, dict[str, float]]:
+    metrics = metric_fn(data)
+    return {
+        f"CRITIC{i}": {
+            f"{prefix}{name}": float(value)
+            for name, value in member_metrics.items()
+        }
+        for i, member_metrics in enumerate(metrics)
+    }
+
+def extract_metrics(metrics: QRCCriticMetrics, metric_names: list[str]) -> list[dict[str, float]]:
+    result = []
+    for metric_name, ens_metric in metrics._asdict().items():
+        if metric_name not in metric_names:
+            continue
+
+        for i, metric_val in enumerate(ens_metric):
+            if i >= len(result):
+                result.append({})
+
+            if metric_name in ['layer_grad_norms', 'layer_weight_norms']:
+                result[i].update({
+                    f"{metric_name}_{layer_name}": float(norm)
+                    for layer_name, norm in metric_val.items()
+                })
+            else:
+                result[i][metric_name] = float(metric_val.mean().squeeze())
+
+    return result
+
+def extract_stable_ranks(params: chex.ArrayTree) -> list[dict[str, float]]:
+    """Extract stable ranks from params into a list of dictionaries."""
+    return get_stable_rank(params)
