@@ -33,8 +33,14 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.tag_configs = tag_configs
 
-        self.tag_names = [tag.name for tag in tag_configs if not tag.is_computed]
-        self.tag_aggs = {tag.name: tag.agg for tag in tag_configs if not tag.is_computed}
+        self.tag_names = [tag_cfg.name
+                          for tag_cfg in tag_configs
+                          if tag_cfg.type not in [TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
+                          and not tag_cfg.is_computed]
+        self.tag_aggs = {tag_cfg.name: tag_cfg.agg
+                         for tag_cfg in tag_configs
+                         if tag_cfg.type not in [TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
+                         and not tag_cfg.is_computed}
 
         self.data_reader = self._init_datareader()
         self.obs_period = cfg.obs_period
