@@ -59,7 +59,7 @@ class ReplayStorage[T: NamedTuple]:
         assert self._data is not None
         assert self._tuple_builder is not None
         return self._tuple_builder(
-            *(buffer[idxs] for buffer in self._data),
+            *(jnp.asarray(buffer[idxs]) for buffer in self._data),
         )
 
 
