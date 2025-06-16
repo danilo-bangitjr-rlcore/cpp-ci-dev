@@ -7,10 +7,10 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from lib_config.config import config
 from pydantic import Field
 from tabulate import tabulate
 
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import StageCode
 from corerl.eval.plotting.report import (
     plot_chunk_histogram,

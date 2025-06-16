@@ -7,15 +7,15 @@ from functools import partial
 from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
+from lib_config.config import MISSING, config, list_, post_processor
+from lib_utils.list import find_instance
+from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.configs.config import MISSING, config, list_, post_processor
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import EventType
-from corerl.utils.list import find_instance
-from corerl.utils.maybe import Maybe
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
@@ -155,6 +155,13 @@ class TagConfig:
     The type of values that this tag represents -- i.e. AI-controlled setpoints, lab tests,
     process values, etc. Specifying this value allows the data pipeline to pick smarter
     defaults.
+    """
+
+    nominal_setpoint: float | None = None
+    """
+    Kind: optional external
+
+    The default setpoint for this tag. Can only be specified for tags of type `TagType.ai_setpoint`.
     """
 
     # tag zones

@@ -12,10 +12,10 @@ from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from discrete_dists.utils.SumTree import SumTree
 from lib_agent.buffer.storage import ReplayStorage
+from lib_config.config import MISSING, computed, config
+from lib_config.group import Group
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config
-from corerl.configs.group import Group
 from corerl.data_pipeline.datatypes import DataMode, Transition
 from corerl.state import AppState
 

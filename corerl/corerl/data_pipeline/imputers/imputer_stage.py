@@ -1,8 +1,8 @@
 from typing import Literal
 
+from lib_config.config import config
 from pydantic import Field
 
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig, init_per_tag_imputer

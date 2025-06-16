@@ -1,6 +1,7 @@
 from typing import Literal
 
-from corerl.configs.config import config
+from lib_config.config import config
+
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
 

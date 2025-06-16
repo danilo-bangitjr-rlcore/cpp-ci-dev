@@ -79,7 +79,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
         return ActorOutputs(
             mu=mu_head_out,
-            sigma=jnp.exp(jnp.clip(sigma_head_out, -8, 2)),
+            sigma=jax.nn.sigmoid(sigma_head_out) * 0.1,
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
@@ -134,6 +134,51 @@ class PercentileActor:
             state.features,
         )
 
+
+    def initialize_to_nominal_action(
+        self,
+        rng: chex.PRNGKey,
+        actor_state: PolicyState,
+        nominal_actions: jax.Array,
+        state_dim: int,
+    ):
+        def regress_to_nominal(
+            params: chex.ArrayTree,
+            rng: chex.PRNGKey,
+        ):
+            BATCH = 32
+
+            states = jax.random.uniform(rng, shape=(BATCH, state_dim))
+            dist_params = jax_u.vmap_only(self.actor.apply, ['x'])(
+                params,
+                states,
+            )
+
+            mu_loss = jnp.square(dist_params.mu - nominal_actions).mean()
+            sigma_loss = jnp.square(dist_params.sigma - 0.1).mean()
+
+            return mu_loss + sigma_loss
+
+        @jax_u.jit
+        def update_params(
+            params: chex.ArrayTree,
+            opt_state: chex.ArrayTree,
+            rng: chex.PRNGKey,
+        ):
+            loss, grads = jax.value_and_grad(regress_to_nominal)(params, rng)
+            updates, new_opt_state = self.actor_opt.update(grads, opt_state, params=params)
+            new_params = optax.apply_updates(params, updates)
+            return loss, new_params, new_opt_state
+
+        params = actor_state.params
+        opt_state = self.actor_opt.init(params)
+        for _ in range(100):
+            rng, update_rng = jax.random.split(rng)
+            _, params, opt_state = update_params(params, opt_state, update_rng)
+
+        return actor_state._replace(
+            params=params,
+        )
 
     # -------------------------------- get actions ------------------------------- #
 

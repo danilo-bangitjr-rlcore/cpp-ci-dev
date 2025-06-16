@@ -2,9 +2,9 @@ from collections import defaultdict
 from typing import Any, Literal
 
 import numpy as np
+from lib_config.config import config
 from numba import njit
 
-from corerl.configs.config import config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, InvertibleTransform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 

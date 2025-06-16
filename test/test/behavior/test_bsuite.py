@@ -84,6 +84,7 @@ ZERO_ONE_FEATURES = [
     'recency_bias_buffer',
     'regenerative_optimism',
     'normalize_return',
+    'nominal_setpoint_bias',
 ]
 
 

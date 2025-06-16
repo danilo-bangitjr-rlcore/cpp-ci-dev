@@ -1,8 +1,8 @@
 from functools import cached_property
 
+from lib_config.config import config
 from pydantic import Field
 
-from corerl.configs.config import config
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.tag_config import TagConfig, TagType

@@ -4,6 +4,7 @@ permissions: write-all # Needed to comment coverage% on PR
 on:
   pull_request:
     paths:
+      - "coreio/**"
       - "corerl/**"
       - "libs/**"
 

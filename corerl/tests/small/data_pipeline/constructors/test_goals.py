@@ -3,9 +3,9 @@ from typing import Any
 
 import pandas as pd
 import pytest
+from lib_config.loader import direct_load_config
 
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline

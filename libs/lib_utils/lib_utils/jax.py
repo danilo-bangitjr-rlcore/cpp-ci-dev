@@ -2,7 +2,12 @@ from collections.abc import Callable, Sequence
 from inspect import Parameter, signature
 from typing import Any, Literal, overload
 
-import jax
+try:
+    import jax
+except ImportError as e:
+    raise ImportError(
+        "JAX is not installed. Please install it with `uv add --group=jax`.",
+    ) from e
 
 
 def jit[**P, R](f: Callable[P, R], static_argnums: tuple[int, ...] | None = None) -> Callable[P, R]:

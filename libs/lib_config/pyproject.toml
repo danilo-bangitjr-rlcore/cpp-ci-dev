@@ -1,0 +1,49 @@
+[project]
+name = "lib_config"
+version = "0.0.0"
+description = ""
+requires-python = ">=3.13,<3.14"
+authors = []
+dependencies = [
+    "lib-utils",
+]
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "pyright>=1.1.392",
+    "pytest>=8.4.0",
+    "pytest-xdist>=3.7.0",
+    "ruff>=0.11.12",
+    "uv>=0.5.24",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool]
+[tool.hatch.build.targets.wheel]
+packages = ["lib_config"]
+
+[tool.ruff]
+extend = "../../standards/python/ruff.toml"
+
+[tool.pyright]
+extends='../../standards/python/pyright.toml'
+include = ['.']
+exclude = [
+    '.venv/',
+]
+venvPath = '.'
+
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[tool.uv.sources]
+lib-utils = { path = "../lib_utils", editable = true }

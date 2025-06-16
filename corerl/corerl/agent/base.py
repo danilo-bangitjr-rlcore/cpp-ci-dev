@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy
+from lib_config.config import MISSING, computed, config
 
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 

@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable, Iterable
 from typing import Any, overload
 
-from corerl.utils.list import find
+from lib_utils.list import find
 
 
 class Maybe[T]:

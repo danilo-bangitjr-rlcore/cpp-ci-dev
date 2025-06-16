@@ -4,8 +4,8 @@ from datetime import timedelta
 from threading import Thread
 
 from coreio.utils.io_events import OPCUANodeWriteValue
+from lib_config.config import config
 
-from corerl.configs.config import config
 from corerl.utils.coreio import CoreIOLink
 from corerl.utils.time import clock_generator, wait_for_timestamp
 

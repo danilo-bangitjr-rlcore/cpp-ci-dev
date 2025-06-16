@@ -1,8 +1,8 @@
 
 import numpy as np
 import pandas as pd
+from lib_config.config import config
 
-from corerl.configs.config import config
 from corerl.state import AppState
 
 

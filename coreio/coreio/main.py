@@ -5,7 +5,7 @@ import asyncio
 import logging
 
 from corerl.config import MainConfig
-from corerl.configs.loader import load_config
+from lib_config.loader import load_config
 
 from coreio.utils.io_events import IOEventType
 from coreio.utils.opc_communication import OPC_Connection

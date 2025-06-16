@@ -2,7 +2,7 @@ from enum import StrEnum, auto
 from pathlib import Path
 from typing import Literal
 
-from corerl.configs.config import MISSING, config, list_
+from lib_config.config import MISSING, config, list_
 
 
 class OPCSecurityPolicy(StrEnum):

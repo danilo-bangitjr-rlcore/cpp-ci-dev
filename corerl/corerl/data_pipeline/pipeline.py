@@ -11,10 +11,10 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
+from lib_config.config import MISSING, computed, config, list_, post_processor
 from pandas import DataFrame
 from pydantic import Field
 
-from corerl.configs.config import MISSING, computed, config, list_, post_processor
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
@@ -155,6 +155,9 @@ class PipelineReturn:
 
 @dataclass
 class ColumnDescriptions:
+    state_tags: list[TagConfig]
+    action_tags: list[TagConfig]
+
     state_cols: list[str]
     action_cols: list[str]
 
@@ -327,7 +330,11 @@ class Pipeline:
 
     @cached_property
     def column_descriptions(self):
+        state_cfgs = StateConstructor.state_configs(self.tags)
+        action_cfgs = ActionConstructor.action_configs(self.tags)
         return ColumnDescriptions(
+            state_tags=state_cfgs,
+            action_tags=action_cfgs,
             state_cols=self.state_constructor.columns,
             action_cols=self.action_constructor.columns,
         )

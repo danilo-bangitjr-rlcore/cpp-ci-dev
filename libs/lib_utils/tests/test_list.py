@@ -1,6 +1,6 @@
 import pytest
 
-import corerl.utils.list as list_u
+import lib_utils.list as list_u
 
 
 # -------------

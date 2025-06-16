@@ -4,8 +4,8 @@ from typing import Literal
 
 import numpy as np
 import pandas as pd
+from lib_config.config import MISSING, config
 
-from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
 

@@ -23,6 +23,8 @@ dependencies = [
     "coreio",
     "sympy~=1.14",
     "lib-agent",
+    "lib-config",
+    "lib-utils[jax]",
 ]
 readme = "README.md"
 
@@ -67,6 +69,8 @@ test = { path = "../test", editable = true }
 coreio = { path = "../coreio", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
 lib-agent = { path = "../libs/lib_agent", editable = true }
+lib-config = { path = "../libs/lib_config", editable = true }
+lib-utils = { path = "../libs/lib_utils", editable = true }
 
 # ----------
 # -- Ruff --

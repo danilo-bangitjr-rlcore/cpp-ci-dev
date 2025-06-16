@@ -1,4 +1,4 @@
-from corerl.configs.config import config
+from lib_config.config import config
 
 
 @config()

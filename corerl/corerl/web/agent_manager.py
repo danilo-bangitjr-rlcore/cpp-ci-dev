@@ -22,11 +22,11 @@ import yaml
 from anyio import ClosedResourceError
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, status, websockets
 from fastapi.responses import JSONResponse
+from lib_config.errors import ConfigValidationErrors
+from lib_config.loader import config_from_dict, config_to_json
 from pydantic import BaseModel, Field
 
 from corerl.config import MainConfig
-from corerl.configs.errors import ConfigValidationErrors
-from corerl.configs.loader import config_from_dict, config_to_json
 from corerl.utils.time import now_iso
 from corerl.web import get_coreio_sqlite_path
 

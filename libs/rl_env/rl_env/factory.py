@@ -47,7 +47,7 @@ class Group[**P, R]:
 
 env_group = Group[[], Any]()
 
-def init_env(name: str, overrides: dict | None = None, perturbation_config: PerturbationConfig | None = None):
+def init_env(name: str, overrides: dict | None = None, perturbation_config: dict | None = None):
     # register environments
     import rl_env.bsm1
     import rl_env.calibration
@@ -80,6 +80,6 @@ def init_env(name: str, overrides: dict | None = None, perturbation_config: Pert
 
     env = env_group.dispatch(name, overrides)
     if perturbation_config:
-        print("perturbation_config", perturbation_config)
-        env = ObservationPerturbationWrapper(env, perturbation_config)
+        perturb_cfg = PerturbationConfig(**perturbation_config)
+        env = ObservationPerturbationWrapper(env, perturb_cfg)
     return env

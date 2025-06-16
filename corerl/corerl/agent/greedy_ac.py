@@ -10,6 +10,7 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
+<<<<<<< weights_norm
 from lib_agent.critic.qrc_critic import (
     QRCConfig,
     QRCCritic,
@@ -17,6 +18,10 @@ from lib_agent.critic.qrc_critic import (
     extract_metrics,
     extract_stable_ranks,
 )
+=======
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
+from lib_config.config import MISSING, computed, config
+>>>>>>> master
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
@@ -27,7 +32,6 @@ from corerl.component.buffer import (
     RecencyBiasBufferConfig,
     buffer_group,
 )
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.datatypes import AbsTransition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
@@ -138,7 +142,7 @@ class GreedyACConfig(BaseAgentConfig):
     Closer to 1 means slower update to avg, closer to 0 means less averaging.
     """
 
-    max_internal_actor_updates: int = 1
+    max_internal_actor_updates: int = 3
     """
     Number of actor updates per critic update. Early stopping is done
     using the loss_threshold. A minimum of 1 update will always be performed.
@@ -227,6 +231,14 @@ class GreedyAC(BaseAgent):
         self._critic_state = self.critic.init_state(c_rng, dummy_x, dummy_a)
         self._jax_rng, a_rng = jax.random.split(self._jax_rng)
         self._actor_state = self._actor.init_state(a_rng, dummy_x)
+
+        self._has_preinitialized = False
+        self._nominal_setpoints = jnp.array([
+            cfg.nominal_setpoint
+            if cfg.nominal_setpoint is not None else 0.5
+            for cfg in self._col_desc.action_tags
+        ])
+
 
     @property
     def actor_percentile(self) -> float:
@@ -439,6 +451,23 @@ class GreedyAC(BaseAgent):
         return metrics.actor_loss.mean().item()
 
     def update(self) -> list[float]:
+        if not self._has_preinitialized and self._app_state.cfg.feature_flags.nominal_setpoint_bias:
+            self._has_preinitialized = True
+            self._critic_state = self.critic.initialize_to_nominal_action(
+                self._jax_rng,
+                self._critic_state,
+                self._nominal_setpoints,
+            )
+
+            actor_state = self._actor.initialize_to_nominal_action(
+                self._jax_rng,
+                self._actor_state.actor,
+                self._nominal_setpoints,
+                self.state_dim,
+            )
+            self._actor_state = self._actor_state._replace(actor=actor_state)
+
+
         q_losses = []
 
         alpha = self.cfg.loss_ema_factor

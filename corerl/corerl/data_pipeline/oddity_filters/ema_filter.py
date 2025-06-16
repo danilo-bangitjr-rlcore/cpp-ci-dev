@@ -3,8 +3,8 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 import numpy as np
+from lib_config.config import config
 
-from corerl.configs.config import config
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group

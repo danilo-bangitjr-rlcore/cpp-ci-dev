@@ -11,6 +11,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from lib_utils.list import sort_by
 
 import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
@@ -24,7 +25,6 @@ from corerl.messages.events import Event, EventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
-from corerl.utils.list import sort_by
 from corerl.utils.time import clock_generator, split_windows_into_chunks
 
 logger = logging.getLogger(__name__)

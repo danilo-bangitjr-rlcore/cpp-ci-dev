@@ -4,19 +4,19 @@ from functools import cached_property
 
 import numpy as np
 import pandas as pd
+from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig, TagType, get_action_bounds
 from corerl.state import AppState
-from corerl.utils.maybe import Maybe
 from corerl.utils.time import percent_time_elapsed
 
 
 class ActionConstructor:
     def __init__(self, app_state: AppState, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         self._app_state = app_state
-        self.action_tags = [tag for tag in tag_cfgs if tag.type == TagType.ai_setpoint]
+        self.action_tags = ActionConstructor.action_configs(tag_cfgs)
 
         # make sure operating ranges are specified for actions
         for action_tag in self.action_tags:
@@ -122,3 +122,11 @@ class ActionConstructor:
             start=self._app_state.start_time,
             end=self._app_state.start_time + guardrail_duration,
         )
+
+    @staticmethod
+    def action_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
+        """
+        Returns a list of action tags from the provided tag configurations.
+        """
+        cfgs = [tag for tag in tag_cfgs if tag.type == TagType.ai_setpoint]
+        return sorted(cfgs, key=lambda tag: tag.name)
