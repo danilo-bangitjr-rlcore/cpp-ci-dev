@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Literal, NamedTuple
 
 import chex
 import haiku as hk
@@ -10,6 +10,7 @@ import lib_utils.dict as dict_u
 import numpy as np
 import optax
 import pandas as pd
+from lib_agent.buffer.storage import ReplayStorage
 from lib_agent.critic.qrc_critic import jax_u
 from lib_config.config import config, list_
 
@@ -44,6 +45,10 @@ class MaskedAEConfig(BaseImputerStageConfig):
     training_missing_perc: float = 0.25
     fill_val: float = 0.0
 
+class ImputeData(NamedTuple):
+    obs: jax.Array # raw observation
+    traces: jax.Array
+    obs_nanmask: jax.Array # bool array set to True where raw obs was nan
 
 class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
@@ -99,14 +104,18 @@ class MaskedAutoencoder(BaseImputer):
         # the traces
         for i in range(len(df)):
             row = df.iloc[i].copy(deep=False)
-            obs = row[self._obs_names].astype(np.float32)
+            obs_series = row[self._obs_names].astype(np.float32)
 
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            obs_jax = _series_to_jax(obs)
+            obs_jax = _series_to_jax(obs_series)
             obs_nanmask = jnp.isnan(obs_jax)
-            inputs = jnp.hstack((obs_jax, ts.last_trace, obs_nanmask))
+            obs = ImputeData(
+                obs=obs_jax,
+                traces=ts.last_trace,
+                obs_nanmask=obs_nanmask,
+            )
 
             num_nan = obs_nanmask.sum()
             perc_nan = num_nan / self._num_obs
@@ -121,20 +130,20 @@ class MaskedAutoencoder(BaseImputer):
             #   3. Or we are within our imputation horizon
             will_impute = should_impute and (can_impute or within_horizon)
             if will_impute:
-                obs_jax = self.impute(inputs, obs_nanmask)
+                obs_jax = self.impute(obs)
                 pf.data.loc[pf.data.index[i], self._obs_names] = np.asarray(obs_jax)
-                obs[:] = obs_jax
+                obs_series[:] = obs_jax
 
             # if there is enough info to impute, there
             # is enough info to train the imputer.
             if can_impute:
-                self._buffer.add(inputs)
+                self._buffer.add(obs)
                 ts.num_outside_thresh = 0
             else:
                 ts.num_outside_thresh += 1
 
             # update traces for use on next timestep
-            carry = TransformCarry(df, obs.to_frame().T, "")
+            carry = TransformCarry(df, obs_series.to_frame().T, "")
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
             ts.last_trace = _series_to_jax(carry.transform_data.iloc[0])
 
@@ -145,17 +154,17 @@ class MaskedAutoencoder(BaseImputer):
         self.train()
         return pf
 
-    def impute(self, inputs: jax.Array, obs_nanmask: jax.Array) -> jax.Array:
+    def impute(self, data: ImputeData) -> jax.Array:
         """
         Runs a forward pass through the AE to get predicted
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
-        raw_obs = inputs[: self._num_obs]
-        input_obs = jnp.where(obs_nanmask, self._fill_val, raw_obs)
-        inputs = inputs.at[: self._num_obs].set(input_obs)
+        raw_obs = data.obs
+        input_obs = jnp.where(data.obs_nanmask, self._fill_val, raw_obs)
+        inputs = jnp.hstack((input_obs, data.traces, data.obs_nanmask))
         ae_predictions = self._forward(self._params, inputs)
-        return jnp.where(obs_nanmask, ae_predictions, raw_obs)
+        return jnp.where(data.obs_nanmask, ae_predictions, raw_obs)
 
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, inputs: jax.Array) -> jax.Array:
@@ -169,18 +178,17 @@ class MaskedAutoencoder(BaseImputer):
         batch_size = self._imputer_cfg.batch_size
         while loss > self._imputer_cfg.err_tolerance and steps < self._imputer_cfg.max_update_steps:
             steps += 1
-            raw_input_batch = self._buffer.sample(batch_size)
-            raw_obs_batch = raw_input_batch[:, : self._num_obs]
+            data_batch = self._buffer.sample(batch_size)
+            raw_obs_batch = data_batch.obs
 
             # Labels may have NaNs. Store mask to
             # ignore loss for the NaN components and
             # to fill the missing values
-            label_nanmask = jnp.isnan(raw_obs_batch)
             # if all labels are nan, skip this batch
-            if (~label_nanmask).sum() == 0:
+            if (~data_batch.obs_nanmask).sum() == 0:
                 continue
             # replace nans in the labels
-            label_batch = raw_obs_batch.at[label_nanmask].set(self._fill_val)
+            label_batch = raw_obs_batch.at[data_batch.obs_nanmask].set(self._fill_val)
 
             # To force the AE to learn in the presence of
             # missingness, need to fake some missingness
@@ -191,10 +199,10 @@ class MaskedAutoencoder(BaseImputer):
             sim_missing_obs_mask = uniform_sample < self._imputer_cfg.training_missing_perc
             obs_batch = jnp.where(sim_missing_obs_mask, jnp.nan, raw_obs_batch)
 
-            # update input to include simulated nans
-            input_batch = raw_input_batch.at[:, : self._num_obs].set(obs_batch)
             # update missing indicator
-            input_batch = input_batch.at[:, -self._num_obs :].set(sim_missing_obs_mask | label_nanmask)
+            obs_nanmask = sim_missing_obs_mask | data_batch.obs_nanmask
+            # update input to include simulated nans
+            input_batch = jnp.hstack((obs_batch, data_batch.traces, obs_nanmask))
 
             # replace nans in input - these could be simulated or real
             input_nanmask = jnp.isnan(input_batch)
@@ -205,7 +213,7 @@ class MaskedAutoencoder(BaseImputer):
                 opt_state=self._opt_state,
                 input_batch=input_batch,
                 label_batch=label_batch,
-                label_nanmask=label_nanmask,
+                label_nanmask=data_batch.obs_nanmask,
             )
             self._app_state.metrics.write(self._app_state.agent_step, metric="AE-loss", value=loss)
 
@@ -247,17 +255,17 @@ def _series_to_jax(row: pd.Series) -> jax.Array:
 
 class CircularBuffer:
     def __init__(self, max_size: int):
-        self._storage: dict[int, jax.Array] = {}
+        self._storage = ReplayStorage[ImputeData](capacity=max_size)
         self._i = 0
-        self.size = 0
         self._max_size = max_size
 
-    def add(self, data: jax.Array):
-        self._storage[self._i] = data
-        self._i = (self._i + 1) % self._max_size
-        self.size = min(self.size + 1, self._max_size)
+    @property
+    def size(self):
+        return self._storage.size()
+
+    def add(self, data: ImputeData):
+        self._storage.add(data)
 
     def sample(self, batch_size: int):
-        idxs = np.random.choice(len(self._storage), size=batch_size, replace=True)
-        out = [self._storage[idx] for idx in idxs]
-        return jnp.vstack(out)
+        idxs = np.random.choice(self.size, size=batch_size, replace=True)
+        return self._storage.get_batch(idxs)
