@@ -450,7 +450,6 @@ def get_layer_norms(params: chex.ArrayTree):
 
     norms = jax_u.vmap(_tree_norm)(params)
 
-    # Convert to list of dictionaries
     return [
         dict(
             zip(
