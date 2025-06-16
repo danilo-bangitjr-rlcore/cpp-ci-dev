@@ -19,6 +19,8 @@ dev = [
     "ruff>=0.11.12",
     "uv>=0.5.24",
 ]
+
+[project.optional-dependencies]
 jax = [
     "chex>=0.1.89",
     "distrax>=0.1.5",
