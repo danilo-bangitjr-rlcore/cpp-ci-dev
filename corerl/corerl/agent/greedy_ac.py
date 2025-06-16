@@ -132,7 +132,7 @@ class GreedyACConfig(BaseAgentConfig):
     Closer to 1 means slower update to avg, closer to 0 means less averaging.
     """
 
-    max_internal_actor_updates: int = 1
+    max_internal_actor_updates: int = 3
     """
     Number of actor updates per critic update. Early stopping is done
     using the loss_threshold. A minimum of 1 update will always be performed.
