@@ -1,9 +1,9 @@
 from functools import partial
 
+from lib_config.config import config
 from pydantic import Field
 
 from corerl.agent.base import BaseAgent
-from corerl.configs.config import config
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.agent import (
     GreedDistConfig,

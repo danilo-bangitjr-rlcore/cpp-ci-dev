@@ -1,25 +1,17 @@
 [project]
-name = "lib_utils"
+name = "lib_config"
 version = "0.0.0"
 description = ""
 requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
-    "annotated-types>=0.7.0",
-    "chex>=0.1.89",
-    "distrax>=0.1.5",
-    "dm-haiku>=0.0.14",
-    "flax>=0.10.6",
-    "jax>=0.6.1",
-    "optax>=0.2.4",
-    "pydantic>=2.11.5",
+    "lib-utils",
 ]
 readme = "README.md"
 
 [dependency-groups]
 dev = [
-    "pylint>=3.3.7",
-    "pyright>=1.1.392.post0",
+    "pyright>=1.1.392",
     "pytest>=8.4.0",
     "pytest-xdist>=3.7.0",
     "ruff>=0.11.12",
@@ -32,7 +24,7 @@ build-backend = "hatchling.build"
 
 [tool]
 [tool.hatch.build.targets.wheel]
-packages = ["lib_utils"]
+packages = ["lib_config"]
 
 [tool.ruff]
 extend = "../../standards/python/ruff.toml"
@@ -52,3 +44,6 @@ version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
+
+[tool.uv.sources]
+lib-utils = { path = "../lib_utils", editable = true }

@@ -5,9 +5,9 @@ from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
 
+from lib_config.config import MISSING, computed, config
 from sqlalchemy import Engine, TextClause
 
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine, table_exists
 

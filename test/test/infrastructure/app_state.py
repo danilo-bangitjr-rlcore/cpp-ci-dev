@@ -1,10 +1,10 @@
 import pytest
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
+from lib_config.loader import direct_load_config
 
 
 @pytest.fixture()

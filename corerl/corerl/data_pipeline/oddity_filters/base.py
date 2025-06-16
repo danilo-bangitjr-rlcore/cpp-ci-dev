@@ -1,8 +1,9 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-from corerl.configs.config import MISSING, config
-from corerl.configs.group import Group
+from lib_config.config import MISSING, config
+from lib_config.group import Group
+
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
 

@@ -1,6 +1,6 @@
 import pytest
 
-from corerl.utils.maybe import Maybe
+from lib_utils.maybe import Maybe
 
 
 def test_map_positive():

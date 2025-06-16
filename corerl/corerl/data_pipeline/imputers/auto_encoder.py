@@ -6,13 +6,13 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 import lib_agent.network.networks as nets
+import lib_utils.dict as dict_u
 import numpy as np
 import optax
 import pandas as pd
 from lib_agent.critic.qrc_critic import jax_u
+from lib_config.config import config, list_
 
-import corerl.utils.dict as dict_u
-from corerl.configs.config import config, list_
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.tag_config import TagConfig, TagType

@@ -5,10 +5,10 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+from lib_config.loader import direct_load_config
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
-from corerl.configs.loader import direct_load_config
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable

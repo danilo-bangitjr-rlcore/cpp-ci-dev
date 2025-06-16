@@ -4,8 +4,8 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import pandas as pd
+from lib_config.config import MISSING, computed, config
 
-from corerl.configs.config import MISSING, computed, config
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 

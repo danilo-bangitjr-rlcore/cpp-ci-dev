@@ -1,9 +1,9 @@
 import logging
 
 import pandas as pd
+from lib_config.config import config
 from pydantic import Field
 
-from corerl.configs.config import config
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.state import AppState
 

@@ -9,8 +9,6 @@ from typing import Any
 
 from pydantic.fields import FieldInfo
 
-from corerl.utils import nullable
-
 
 def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
     if key in d:
@@ -52,8 +50,8 @@ def hash(
     _parent_path: str = '',
     _hash: hashlib._Hash | None = None,
 ) -> str:
-    ignore = nullable.default(ignore, set)
-    _hash = nullable.default(_hash, hashlib.sha1)
+    ignore = ignore if ignore is not None else set()
+    _hash = _hash if _hash is not None else hashlib.sha1()
 
     for k in sorted(d.keys()):
         path = _parent_path + k

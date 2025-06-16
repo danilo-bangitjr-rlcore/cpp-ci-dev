@@ -2,9 +2,9 @@ from dataclasses import dataclass
 from typing import Literal
 
 import numpy as np
+from lib_config.config import MISSING, config
 from numba import njit
 
-from corerl.configs.config import MISSING, config
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
 from corerl.data_pipeline.utils import get_tag_temporal_state

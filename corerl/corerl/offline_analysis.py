@@ -2,9 +2,9 @@ import logging
 import random
 
 import numpy as np
+from lib_config.loader import load_config
 
 from corerl.config import MainConfig
-from corerl.configs.loader import load_config
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report

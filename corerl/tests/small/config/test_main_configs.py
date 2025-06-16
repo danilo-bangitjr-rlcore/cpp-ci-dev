@@ -1,8 +1,8 @@
 import pytest
+from lib_config.config import MISSING
+from lib_config.loader import config_to_dict, direct_load_config
 
 from corerl.config import MainConfig
-from corerl.configs.config import MISSING
-from corerl.configs.loader import config_to_dict, direct_load_config
 
 
 def walk_no_missing(part: object, key_path: str=""):
