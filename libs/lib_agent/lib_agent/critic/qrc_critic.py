@@ -209,6 +209,8 @@ class QRCCritic:
         metrics = metrics._replace(
             ensemble_grad_norms=get_ensemble_norm(grads),
             ensemble_weight_norms=get_ensemble_norm(new_params),
+            layer_grad_norms=get_layer_norms(grads),
+            layer_weight_norms=get_layer_norms(new_params),
         )
 
         return CriticState(
@@ -309,6 +311,8 @@ class QRCCritic:
             h_reg_loss=jnp.array(0),
             ensemble_grad_norms=jnp.array(0),
             ensemble_weight_norms=jnp.array(0),
+            layer_grad_norms=jnp.array(0),
+            layer_weight_norms=jnp.array(0),
         )
 
         return loss, metrics
@@ -334,6 +338,8 @@ class QRCCriticMetrics(NamedTuple):
     h_reg_loss: jax.Array
     ensemble_grad_norms: jax.Array
     ensemble_weight_norms: jax.Array
+    layer_grad_norms: jax.Array
+    layer_weight_norms: jax.Array
 
 
 @jax_u.jit
@@ -429,3 +435,29 @@ def uniform_except(
     )
 
     return x
+
+@jax_u.jit
+def get_layer_norms(params: chex.ArrayTree):
+    leaves = jax.tree.leaves(params)
+    ensemble = leaves[0].shape[0]
+    names = get_layer_names(params)
+
+    def _norm(x: jax.Array):
+        return jnp.sqrt(jnp.sum(jnp.square(x)))
+
+    def _tree_norm(x: chex.ArrayTree):
+        return jax.tree.map(_norm, x)
+
+    norms = jax_u.vmap(_tree_norm)(params)
+
+    # Convert to list of dictionaries
+    return [
+        dict(
+            zip(
+                names,
+                [n[i] for n in jax.tree.leaves(norms)],
+                strict=True,
+            ),
+        )
+        for i in range(ensemble)
+    ]

@@ -387,14 +387,24 @@ class GreedyAC(BaseAgent):
 
         # log critic metrics
         for metric_name, ens_metric in metrics._asdict().items():
-            for i, metric_val in enumerate(ens_metric):
-                assert isinstance(metric_val, jax.Array)
-                metric_val = metric_val.mean().squeeze()
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"CRITIC{i}-{metric_name}",
-                    value=metric_val,
-                )
+            if metric_name in ['layer_grad_norms', 'layer_weight_norms']:
+                # Handle per-layer metrics
+                for i, layer_norms in enumerate(ens_metric):
+                    for layer_name, norm in layer_norms.items():
+                        self._app_state.metrics.write(
+                            agent_step=self._app_state.agent_step,
+                            metric=f"CRITIC{i}-{metric_name}_{layer_name}",
+                            value=float(norm),
+                        )
+            else:
+                for i, metric_val in enumerate(ens_metric):
+                    assert isinstance(metric_val, jax.Array)
+                    metric_val = metric_val.mean().squeeze()
+                    self._app_state.metrics.write(
+                        agent_step=self._app_state.agent_step,
+                        metric=f"CRITIC{i}-{metric_name}",
+                        value=metric_val,
+                    )
 
         # log stable ranks
         stable_ranks = get_stable_rank(self._critic_state.params)
