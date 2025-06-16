@@ -46,7 +46,7 @@ def add_seasonal_features(cfg: SeasonalConfig, pf: PipelineFrame) -> PipelineFra
 
     if cfg.day_of_week_enabled:
         weekday_cols = np.zeros((num_entries, 7))
-        weekday_cols[range(num_entries), pf.data["day_of_week"]] = 1.0
+        weekday_cols[range(num_entries), pf.data["day_of_week"].astype(int)] = 1.0
         col_names = [f"day_of_week_{i}" for i in range(7)]
         pf.data[col_names] = weekday_cols
 
