@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from functools import partial
 from typing import Literal, NamedTuple
 
 import chex
@@ -29,26 +30,47 @@ class MaskedAETemporalState:
     num_outside_thresh: int = 0
 
 
-@config()
-class MaskedAEConfig(BaseImputerStageConfig):
-    name: Literal["masked-ae"] = "masked-ae"
-    horizon: int = 10
-    proportion_missing_tolerance: float = 0.5
-    trace_values: list[float] = list_([0.5, 0.9, 0.95])
-
-    buffer_size: int = 50_000
+@config(frozen=True)
+class TrainingConfig:
+    warmup: int = 1 # min buffer size to update AE
     batch_size: int = 16
-    warmup: int = 100 # min buffer size to update AE
     stepsize: float = 1e-5
     err_tolerance: float = 1e-3
     max_update_steps: int = 100
     training_missing_perc: float = 0.25
+
+@config()
+class MaskedAEConfig(BaseImputerStageConfig):
+    name: Literal["masked-ae"] = "masked-ae"
+    horizon: int = 10
+    trace_values: list[float] = list_([0.5, 0.9, 0.95])
+    buffer_size: int = 50_000
+
     fill_val: float = 0.0
+    proportion_missing_tolerance: float = 0.5
+    train_cfg: TrainingConfig = field(default_factory=TrainingConfig)
 
 class ImputeData(NamedTuple):
     obs: jax.Array # raw observation
     traces: jax.Array
     obs_nanmask: jax.Array # bool array set to True where raw obs was nan
+
+class CircularBuffer:
+    def __init__(self, max_size: int):
+        self._storage = ReplayStorage[ImputeData](capacity=max_size)
+        self._i = 0
+        self._max_size = max_size
+
+    @property
+    def size(self):
+        return self._storage.size()
+
+    def add(self, data: ImputeData):
+        self._storage.add(data)
+
+    def sample_batches(self, batch_size: int, n_batches: int):
+        idxs = [np.random.choice(self.size, size=batch_size, replace=True) for _ in range(n_batches)]
+        return self._storage.get_ensemble_batch(idxs)
 
 class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
@@ -85,7 +107,7 @@ class MaskedAutoencoder(BaseImputer):
         )
         in_shape = (self._num_traces + 2) * self._num_obs
         self._params = self._net.init(init_rng, jnp.ones(in_shape))
-        self._optim = optax.adam(learning_rate=imputer_cfg.stepsize)
+        self._optim = optax.adam(learning_rate=imputer_cfg.train_cfg.stepsize)
         self._opt_state = self._optim.init(self._params)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
@@ -171,101 +193,132 @@ class MaskedAutoencoder(BaseImputer):
         return self._net.apply(params, inputs)
 
     def train(self):
-        if self._buffer.size < self._imputer_cfg.warmup:
+        train_cfg = self._imputer_cfg.train_cfg
+        if self._buffer.size < train_cfg.warmup:
             return
-        steps = 0
-        loss = jnp.inf
-        batch_size = self._imputer_cfg.batch_size
-        while loss > self._imputer_cfg.err_tolerance and steps < self._imputer_cfg.max_update_steps:
-            steps += 1
-            data_batch = self._buffer.sample(batch_size)
-            raw_obs_batch = data_batch.obs
 
-            # Labels may have NaNs. Store mask to
-            # ignore loss for the NaN components and
-            # to fill the missing values
-            # if all labels are nan, skip this batch
-            if (~data_batch.obs_nanmask).sum() == 0:
-                continue
-            # replace nans in the labels
-            label_batch = raw_obs_batch.at[data_batch.obs_nanmask].set(self._fill_val)
+        batches = self._buffer.sample_batches(train_cfg.batch_size, train_cfg.max_update_steps)
+        self._rng, train_rng = jax.random.split(self._rng)
+        self._params, self._opt_state, loss = _train(
+            params=self._params,
+            opt_state=self._opt_state,
+            rng=train_rng,
+            batches=batches,
+            train_cfg=train_cfg,
+            fill_val=self._imputer_cfg.fill_val,
+            net=self._net,
+            optim=self._optim,
+        )
+        self._app_state.metrics.write(self._app_state.agent_step, metric="AE-loss", value=loss)
 
-            # To force the AE to learn in the presence of
-            # missingness, need to fake some missingness
-            # in the inputs only (i.e. learn a mapping from
-            # missing value to non-missing value)
-            self._rng, sample_rng = jax.random.split(self._rng)
-            uniform_sample = jax.random.uniform(key=sample_rng, shape=(batch_size, self._num_obs))
-            sim_missing_obs_mask = uniform_sample < self._imputer_cfg.training_missing_perc
-            obs_batch = jnp.where(sim_missing_obs_mask, jnp.nan, raw_obs_batch)
+# jit on this function prevents a memory leak with jax.lax.while_loop
+@partial(jax_u.jit, static_argnums=(4,5,6,7))
+def _train(
+    params: chex.ArrayTree,
+    opt_state: chex.ArrayTree,
+    rng: chex.PRNGKey,
+    batches: ImputeData,
+    train_cfg: TrainingConfig,
+    fill_val: float,
+    net: hk.Transformed,
+    optim: optax.GradientTransformation,
+):
 
-            # update missing indicator
-            obs_nanmask = sim_missing_obs_mask | data_batch.obs_nanmask
-            # update input to include simulated nans
-            input_batch = jnp.hstack((obs_batch, data_batch.traces, obs_nanmask))
+    class TrainCarry(NamedTuple):
+        params: chex.ArrayTree
+        opt_state: chex.ArrayTree
+        loss: float
+        rng: chex.PRNGKey
+        step: int
 
-            # replace nans in input - these could be simulated or real
-            input_nanmask = jnp.isnan(input_batch)
-            input_batch = input_batch.at[input_nanmask].set(self._fill_val)
+    def continue_training(carry: TrainCarry):
+        return (carry.loss > train_cfg.err_tolerance) & (carry.step < train_cfg.max_update_steps)
 
-            self._params, self._opt_state, loss = self._update(
-                params=self._params,
-                opt_state=self._opt_state,
-                input_batch=input_batch,
-                label_batch=label_batch,
-                label_nanmask=data_batch.obs_nanmask,
-            )
-            self._app_state.metrics.write(self._app_state.agent_step, metric="AE-loss", value=loss)
+    def train_step(carry: TrainCarry):
+        raw_obs_batch = batches.obs[carry.step]
+        trace_batch = batches.traces[carry.step]
+        label_nanmask = batches.obs_nanmask[carry.step]
 
-    @jax_u.method_jit
-    def _update(
-        self,
-        params: chex.ArrayTree,
-        opt_state: chex.ArrayTree,
-        input_batch: jax.Array,
-        label_batch: jax.Array,
-        label_nanmask: jax.Array,
-    ):
-        loss, grads = jax.value_and_grad(self._batch_loss)(params, input_batch, label_batch, label_nanmask)
-        updates, new_opt_state = self._optim.update(grads, opt_state, params)
-        new_params = optax.apply_updates(params, updates)
-        return new_params, new_opt_state, loss
+        # replace nans in the labels
+        label_batch = jnp.where(label_nanmask, fill_val, raw_obs_batch)
 
-    def _batch_loss(
-        self,
-        params: chex.ArrayTree,
-        input_batch: jax.Array,
-        label_batch: jax.Array,
-        label_nanmask: jax.Array,
-    ):
-        losses = jax_u.vmap_except(self._loss, exclude=["params"])(params, input_batch, label_batch, label_nanmask)
-        return losses.sum() / len(losses)
+        # To force the AE to learn in the presence of
+        # missingness, need to fake some missingness
+        # in the inputs only (i.e. learn a mapping from
+        # missing value to non-missing value)
+        rng, sample_rng = jax.random.split(carry.rng)
+        uniform_sample = jax.random.uniform(key=sample_rng, shape=raw_obs_batch.shape)
+        sim_missing_obs_mask = uniform_sample < train_cfg.training_missing_perc
+        obs_batch = jnp.where(sim_missing_obs_mask, jnp.nan, raw_obs_batch)
 
-    def _loss(self, params: chex.ArrayTree, input: jax.Array, label: jax.Array, label_nanmask: jax.Array):
-        pred = self._net.apply(params, input)
-        # loss is a standard MSE except NaN labels
-        # are masked out
-        error = (~label_nanmask) * (pred - label)
-        return jnp.sum(error**2)
+        # update missing indicator
+        missing_mask = sim_missing_obs_mask | label_nanmask
+        # update input to include simulated nans
+        input_batch = jnp.hstack((obs_batch, trace_batch, missing_mask))
+
+        # replace nans in input - these could be simulated or real
+        input_nanmask = jnp.isnan(input_batch)
+        input_batch = jnp.where(input_nanmask, fill_val, input_batch)
+
+        params, opt_state, loss = _update(
+            params=carry.params,
+            opt_state=carry.opt_state,
+            input_batch=input_batch,
+            label_batch=label_batch,
+            label_nanmask=label_nanmask,
+            net=net,
+            optim=optim,
+        )
+        return TrainCarry(
+            params=params,
+            opt_state=opt_state,
+            loss=loss,
+            rng=rng,
+            step=carry.step + 1,
+        )
+
+    carry = TrainCarry(
+            params=params,
+            opt_state=opt_state,
+            loss=jnp.inf,
+            rng=rng,
+            step=0,
+    )
+    carry = jax.lax.while_loop(continue_training, train_step, carry)
+
+    return carry.params, carry.opt_state, carry.loss
+
+def _update(
+    params: chex.ArrayTree,
+    opt_state: chex.ArrayTree,
+    input_batch: jax.Array,
+    label_batch: jax.Array,
+    label_nanmask: jax.Array,
+    net: hk.Transformed,
+    optim: optax.GradientTransformation,
+):
+    loss, grads = jax.value_and_grad(_batch_loss)(params, input_batch, label_batch, label_nanmask, net)
+    updates, new_opt_state = optim.update(grads, opt_state, params)
+    new_params = optax.apply_updates(params, updates)
+    return new_params, new_opt_state, loss
+
+def _batch_loss(
+    params: chex.ArrayTree,
+    input_batch: jax.Array,
+    label_batch: jax.Array,
+    label_nanmask: jax.Array,
+    net: hk.Transformed,
+):
+    losses = jax_u.vmap_except(_loss, exclude=["params", "net"])(params, input_batch, label_batch, label_nanmask, net)
+    return losses.sum() / len(losses)
+
+def _loss(params: chex.ArrayTree, input: jax.Array, label: jax.Array, label_nanmask: jax.Array, net: hk.Transformed):
+    pred = net.apply(params, input)
+    # loss is a standard MSE except NaN labels
+    # are masked out
+    error = (~label_nanmask) * (pred - label)
+    return jnp.sum(error**2)
 
 
 def _series_to_jax(row: pd.Series) -> jax.Array:
     return jnp.asarray(row.to_numpy(np.float32))
-
-
-class CircularBuffer:
-    def __init__(self, max_size: int):
-        self._storage = ReplayStorage[ImputeData](capacity=max_size)
-        self._i = 0
-        self._max_size = max_size
-
-    @property
-    def size(self):
-        return self._storage.size()
-
-    def add(self, data: ImputeData):
-        self._storage.add(data)
-
-    def sample(self, batch_size: int):
-        idxs = np.random.choice(self.size, size=batch_size, replace=True)
-        return self._storage.get_batch(idxs)
