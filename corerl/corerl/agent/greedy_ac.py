@@ -10,7 +10,6 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
-<<<<<<< weights_norm
 from lib_agent.critic.qrc_critic import (
     QRCConfig,
     QRCCritic,
@@ -18,10 +17,7 @@ from lib_agent.critic.qrc_critic import (
     extract_metrics,
     extract_stable_ranks,
 )
-=======
-from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
 from lib_config.config import MISSING, computed, config
->>>>>>> master
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig

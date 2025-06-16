@@ -1,13 +1,11 @@
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, NamedTuple, SupportsFloat
 
 import pandas as pd
-<<<<<<< weights_norm
-from lib_utils.dict import flatten_tree
-=======
 from lib_config.config import config
->>>>>>> master
+from lib_utils.dict import flatten_tree
 from sqlalchemy import text
 
 from corerl.data_pipeline.db.utils import TryConnectContextManager
@@ -63,7 +61,10 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         """)
 
 
-    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
+    def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
+        if agent_step is None:
+            return
+
         if not self.cfg.enabled:
             return
 
@@ -188,7 +189,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
     def write_dict(
         self,
-        values: dict[str, SupportsFloat | dict[str, Any]],
+        values: Mapping[str, SupportsFloat | Mapping[str, Any]],
         prefix: str = '',
         agent_step: int | None = None,
     ) -> None:

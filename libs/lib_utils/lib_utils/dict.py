@@ -1,35 +1,15 @@
-<<<<<<< weights_norm
-from typing import Any, SupportsFloat, TypeVar
-
-T = TypeVar('T', bound=SupportsFloat | dict[str, Any])
-
-def flatten_tree(
-    tree: dict[str, T],
-    prefix: str = '',
-    sep: str = '_',
-) -> dict[str, float]:
-    result = {}
-    for key, value in tree.items():
-        new_key = f"{prefix}{sep}{key}" if prefix else key
-
-        if isinstance(value, dict):
-            result.update(flatten_tree(value, new_key, sep))
-        else:
-            result[new_key] = float(value)
-
-    return result
-=======
 from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Callable, Iterable, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import _MISSING_TYPE, fields, is_dataclass
 from inspect import isclass
-from typing import Any
+from typing import Any, SupportsFloat, TypeVar
 
 from pydantic.fields import FieldInfo
 
+T = TypeVar('T', bound=SupportsFloat | Mapping[str, Any])
 
 def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
     if key in d:
@@ -270,6 +250,24 @@ def dataclass_to_dict(o: Any) -> Any:
     return out
 
 
+def flatten_tree(
+    tree: Mapping[str, Any],
+    prefix: str = '',
+    sep: str = '_',
+) -> dict[str, float]:
+    result = {}
+    for key, value in tree.items():
+        new_key = f"{prefix}{sep}{key}" if prefix else key
+
+        if isinstance(value, dict):
+            result.update(flatten_tree(value, new_key, sep))
+        elif isinstance(value, int | float):
+            result[new_key] = float(value)
+        elif hasattr(value, '__float__'):
+            result[new_key] = float(value)
+
+    return result
+
 # ------------------------
 # -- Internal Utilities --
 # ------------------------
@@ -289,4 +287,3 @@ def _zip_longest[T](
             out.append(f(l1[i], l2[i]))
 
     return out
->>>>>>> master
