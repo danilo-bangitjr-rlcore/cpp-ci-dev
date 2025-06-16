@@ -10,8 +10,8 @@ feature_flags:
 offline:
   offline_steps: 1000
   offline_eval_iters: []
-  offline_start_time: "3/1/2023 00:00:00"
-  offline_end_time: "7/31/2024 23:45:00"
+  offline_start_time: 2023-03-01 00:00
+  offline_end_time: 2024-07-31 23:45
   pipeline_batch_duration: 100 days
 
 infra:
@@ -21,7 +21,7 @@ infra:
     password: "password"
     ip: "localhost"
     port: 5432
-    db_name: "postgres"
+    db_name: "bess2"
 
 event_bus:
   enabled: True
@@ -41,6 +41,11 @@ coreio:
   opc_connections:
     - connection_id: solar_matrikon
       opc_conn_url: "opc.tcp://localhost:62542"
+      application_uri: "client"
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
 
 env:
   name: dep_async_env
@@ -50,9 +55,9 @@ env:
 interaction:
   name: dep_interaction
   restore_checkpoint: False
-  obs_period: 00:01:00 # 00:05:00?
+  obs_period: 00:05:00
   action_period: 00:05:00
-  state_age_tol: 00:03:00
+  state_age_tol: 00:05:00
   update_period: 00:00:30
   warmup_period: 06:00:00
   update_warmup: 200 # number of updates before interacting. 10 critic updates per "update"
@@ -98,9 +103,8 @@ pipeline:
 
   transition_creator:
     name: all-the-time
-    # n_step should be 5, give some buffer
-    min_n_step: 4
-    max_n_step: 6
+    min_n_step: 1
+    max_n_step: 1
 
   transition_filter:
     filters:
@@ -193,55 +197,47 @@ pipeline:
       operating_range: [0.0, 100.0]
       expected_range: [10.0, 90.0] # Hitachi controller is supposed to limit SOC to [10, 90]
 
-    # No need to include in state if it's always set to true
-#    - name: SCADA1.ELS_SLR_BESS2_GRID_MODE_STAT.A_CV # BESS 2 Charging From Grid Enabled (Read)
-#      dtype: 'bool'
-#      operating_range: [0.0, 1.0]
-#      agg: last
+    - name: SCADA1.ELS_SLR_BESS2_GRID_MODE_STAT.A_CV # BESS 2 Charging From Grid Enabled (Read)
+      dtype: 'bool'
+      operating_range: [0.0, 1.0]
+      agg: last
 
     - name: SCADA1.ELS_SLR_BESS2_ENG_OUT_TOT.F_CV # BESS 2 Running Total Energy Discharged
       type: delta
       # Max discharge rate is 2MW
-      # If obs_period is 1 minute:
-      operating_range: [0.0, 0.0334] # 2MW * (1 minute obs_period / 60 minutes/hour) = 0.0334 MWh
-      # If obs_period is 5 minutes:
-      # operating_range: [0.0, 0.1667] # 2MW * (5 minute obs_period / 60 minutes/hour) = 0.1667 MWh
+      operating_range: [0.0, 0.1667] # 2MW * (5 minute obs_period / 60 minutes/hour) = 0.1667 MWh
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_BESS2_ENG_IN_TOT.F_CV # BESS 2 Running Total Energy Charged
       type: delta
       # Max charging rate is 2MW
-      # If obs_period is 1 minute:
-      operating_range: [ 0.0, 0.0334 ] # 2MW * (1 minute obs_period / 60 minutes/hour) = 0.0334 MWh
-      # If obs_period is 5 minutes:
-      # operating_range: [0.0, 0.1667] # 2MW * (5 minute obs_period / 60 minutes/hour) = 0.1667 MWh
+      operating_range: [0.0, 0.1667] # 2MW * (5 minute obs_period / 60 minutes/hour) = 0.1667 MWh
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_BESS2_KW.F_CV # BESS 2 Power Charged/Discharged
       operating_range: [ -2000.0, 2000.0 ]
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_BESS2_KVAR.F_CV # BESS 2 Reactive Power Injected/Consumed
       expected_range: [ -500.0, 1500.0 ] # From data + Kevin's feedback
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
-    # Always set to true so don't need in state
-#    - name: SCADA1.ELS_SLR_BESS2_DIS_CTRL_STAT.A_CV # BESS 2 Enable/Disable Discharge Rate Control (Read)
-#      dtype: 'bool'
-#      operating_range: [ 0.0, 1.0 ]
-#      agg: last
+    - name: SCADA1.ELS_SLR_BESS2_DIS_CTRL_STAT.A_CV # BESS 2 Enable/Disable Discharge Rate Control (Read)
+      dtype: 'bool'
+      operating_range: [ 0.0, 1.0 ]
+      agg: last
 
     - name: SCADA1.ELS_SLR_BESS2_DIS_RATE_KW_SP_LGC.F_CV # BESS 2 Discharge Rate (Read)
       operating_range: [ 0.0, 2000.0 ]
@@ -252,30 +248,27 @@ pipeline:
       operating_range: [ 0.0, null ] # Kevin says the demand can exceed 20,000kw but no clear upper bound
       expected_range: [ 0.0, 10000.0 ] # Peak power threshold is 8800kw averaged over 15 minute window but instantaneous readings can go higher
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_WTP2_KVAR.F_CV # WTP 2 Reactive Power Consumed
       expected_range: [ -100.0, 3200.0 ] # Based off data + Kevin's feedback
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_WTP2_ENG_IN_TOT.F_CV # WTP 2 Running Total Energy Consumed
       type: delta
       # Kevin says max power draw is roughly 20MW
       operating_range: [0.0, null] # No clear upper bound
       # Power peak threshold is 8.8MW
-      # If obs_period is 1 minute:
-      expected_range: [0.0, 0.1467] # 8.8MW * (1 minute obs_period / 60 minutes/hour) = 0.1467 MWh
-      # If obs_period is 5 minutes:
-      # expected_range: [0.0, 0.7334] # 8.8MW * (5 minute obs_period / 60 minutes/hour) = 0.7334 MWh
+      expected_range: [0.0, 0.7334] # 8.8MW * (5 minute obs_period / 60 minutes/hour) = 0.7334 MWh
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     # WTP Loads
     - name: ELS_HLP_P001_MS # Major Load 1 Run Status
@@ -327,28 +320,25 @@ pipeline:
     - name: SCADA1.ELS_SLR_SOLAR2_KW.F_CV # SOLAR 2 Power Produced
       operating_range: [0.0, 7200.0] # Max amount of power that can pass through inverters
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_SOLAR2_KVAR.F_CV # SOLAR 2 Power Injected/Consumed
       expected_range: [ -500.0, 3250.0 ] # From data
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_SOLAR2_ENG_OUT_TOT.F_CV # SOLAR 2 Running Total Energy Generated
       type: delta
       # Solar power generation capped at 7.2MW
-      # If obs_period is 1 minute:
-      operating_range: [0.0, 0.12] # 7.2MW * (1 minute obs_period / 60 minutes/hour) = 0.12MWh
-      # If obs_period is 5 minutes:
-      # operating_range: [0.0, 0.6] # 7.2MW * (5 minute obs_period / 60 minutes/hour) = 0.6MWh
+      operating_range: [0.0, 0.6] # 7.2MW * (5 minute obs_period / 60 minutes/hour) = 0.6MWh
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_INV2_AVAIL.A_CV # SOLAR 2 Inverter 2 Enabled/Disabled
       dtype: 'bool'
@@ -366,52 +356,47 @@ pipeline:
 
     # P12
     - name: SCADA1.ELS_SLR_ELSP12_KW.F_CV # P12 Power Imported/Exported
-      operating_range: [null, 4850.0] # Hitachi controller limits export to 4.85MW. No import limit but don't want to exceed peak power setpoint
-      expected_range: [-8800.0, 4850.0] # Lower bound is largest possible peak power setpoint
-      yellow_bounds:
-        - '-1.0 * {SCADA1.ELS_SLR_ELSP12_POWER_PEAK_SP_LGC.F_CV} + 200.0' # 200kw buffer
-        - 4700.0 # Want to discourage curtailment but no red zone because not a hard constraint
-      red_bounds:
-        - '-1.0 * {SCADA1.ELS_SLR_ELSP12_POWER_PEAK_SP_LGC.F_CV}'
-        - 4850.0 # Want to discourage curtailment but no red zone because not a hard constraint
+      operating_range: [ null, 4850.0 ] # Hitachi controller limits export to 4.85MW. No import limit but don't want to violate peak power constraint
+      expected_range: [ -20000.0, 4850.0 ] # Lower bound is based on Kevin's feedback
+      yellow_bounds: [null, 4700.0] # Discourage curtailment
+      red_bounds: [null, 4850.0]
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_ELSP12_KVAR.F_CV # P12 Reactive Power Injected/Consumed
       expected_range: [ -3100.0, 3100.0 ] # From data
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV # P12 Running Total Energy Imported
       type: delta
-      # Using SCADA1.ELS_SLR_ELSP12_KW.F_CV operating range lower bound defined above: null
-      operating_range: [0.0, null] # monotonically increasing
-      # Using SCADA1.ELS_SLR_ELSP12_KW.F_CV expected range lower bound defined above: 8800kw
-      # If obs_period is 1 minute:
-      expected_range: [0.0, 0.1467] # 8.8MW * (1 minute obs_period / 60 minutes/hour) = 0.1467 MWh
-      # If obs_period is 5 minutes:
-      # expected_range: [0.0, 0.7334] # 8.8MW * (5 minute obs_period / 60 minutes/hour) = 0.7334 MWh
+      # Peak power constraint is 8.8MW
+      operating_range: [0.0, 1.0] # 8.8MW * (5 minute obs_period / 60 minutes/hour) = 0.7334 MWh. Set to 1 for buffer
+      # Peak Power Constraint
+      yellow_bounds:
+        - null
+        - '0.95 * (({SCADA1.ELS_SLR_ELSP12_POWER_PEAK_SP_LGC.F_CV} / 1000) * 5 / 60)'
+      red_bounds:
+        - null
+        - '({SCADA1.ELS_SLR_ELSP12_POWER_PEAK_SP_LGC.F_CV} / 1000) * 5 / 60'
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_ELSP12_ENG_OUT_TOT.F_CV # P12 Running Total Energy Exported
       type: delta
       operating_range: [0.0, null] # Exports sometimes exceed 4.85MW limit
       # Using SCADA1.ELS_SLR_ELSP72_KW.F_CV operating range upper bound defined above: 4850kw
-      # If 1 minute obs_period:
-      expected_range: [0.0, 0.080834] # 4.85MW * (1 minute obs_period / 60 minutes/hour) = 0.080834 MWh
-      # If 5 minute obs_period:
-      # operating_range: [0.0, 0.404167] # 4.85MW * (5 minute obs_period / 60 minutes/hour) = 0.404167 MWh
+      expected_range: [0.0, 0.404167] # 4.85MW * (5 minute obs_period / 60 minutes/hour) = 0.404167 MWh
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV # P12 % Of SOLAR 1 Generated Power Used On-Site In Given Year
       operating_range: [ 0.0, 100.0 ]
@@ -426,39 +411,36 @@ pipeline:
       operating_range: [0.0, null]
       expected_range: [ 0.0, 1200.0 ]
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: ELS_SITE_MET_BOP_TEMP # Solar Panel Temperature
       expected_range: [-50.0, 60.0]
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     - name: ELS_SITE_MET_OUT_TEMP # Air Temperature
       expected_range: [-50.0, 50.0]
       outlier:
-        name: exp_moving
-        tolerance: 3.0
-        warmup: 20
+        - name: exp_moving
+          tolerance: 3.0
+          warmup: 100
 
     # Costs
     - name: SCADA1.ELS_SLR_ENG_IMPORT_COST_SP.F_CV # Negotiated Cost EPCOR Pays For Importing Energy From The Grid ($/MWh)
       agg: last
-      state_constructor: # Only factors into reward - not state
-        - name: "nuke"
+      expected_range: [0.0, 100.0]
 
     - name: SCADA1.ELS_SLR_ENG_EXPORT_FEE_SP.F_CV # Trading Cost For Exporting Energy Back To Grid ($/MWh)
       agg: last
-      state_constructor: # Only factors into reward - not state
-        - name: "nuke"
+      expected_range: [0.0, 1.0]
 
     - name: SCADA1.ELS_SLR_ENG_BATT_COST_SP.F_CV # BESS Battery Degradation Cost ($/MWh)
       agg: last
-      state_constructor: # Only factors into reward - not state
-        - name: "nuke"
+      expected_range: [0.0, 100.0]
 
     # AESO Price/Load Forecasts
     - name: Current_AIL # Current Alberta Internal Load
@@ -510,51 +492,39 @@ pipeline:
       is_computed: True
       # Since sigmoid starts small, we want a constraint that's violated when it gets too large
       # So we use 1 - SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV to represent % of generated energy sold back to the grid
-      value: '(1 - {SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV}) * (1 / (1 + 2.71828**(-1*(({day_of_year} - 250) / 20))))'
+      value: '(100 - {SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV}) * (1 / (1 + 2.71828**(-1*(({day_of_year} - 250) / 20))))'
       operating_range: [ 0.0, 100.0 ]
-      yellow_bounds: [0.0, 48.0]
-      red_bounds: [0.0, 49.8] # Set at 49.8% to give small buffer on constraint
+      yellow_bounds: [ 0.0, 48.0 ]
+      red_bounds: [ 0.0, 49.8 ] # Set at 49.8% to give small buffer on constraint
 
     - name: BESS_DEGRADATION_COST
       is_computed: True
       value: '{SCADA1.ELS_SLR_ENG_BATT_COST_SP.F_CV} * ({SCADA1.ELS_SLR_BESS2_ENG_IN_TOT.F_CV} + {SCADA1.ELS_SLR_BESS2_ENG_OUT_TOT.F_CV})'
-      operating_range: [0.0, null]
-      # If obs_period is 1 minute:
-      expected_range: [0.0, 3.34] # Using SCADA1.ELS_SLR_BESS1_ENG_IN_TOT.F_CV operating_range of [0.0, 0.0334] and assuming max degradation cost of $100/MWh
-      # If obs_period is 5 minutes:
-      # expected_range: [0.0, 16.7]
+      operating_range: [ 0.0, null ]
+      expected_range: [ 0.0, 16.67 ] # Using SCADA1.ELS_SLR_BESS2_ENG_IN_TOT.F_CV operating_range of [0.0, 0.1667] and assuming max degradation cost of $100/MWh
       state_constructor:
         - name: "nuke"
 
     - name: ENERGY_COST
       is_computed: True
       value: '{SCADA1.ELS_SLR_ENG_IMPORT_COST_SP.F_CV} * {SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV}'
-      operating_range: [0.0, null]
-      # If obs_period is 1 minute:
-      expected_range: [0.0, 14.67] # Using SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV expected range of [0.0, 0.1467] and assuming max energy cost of $100/MWh
-      # If obs_period is 5 minutes:
-      # expected_range: [0.0, 73.35]
+      operating_range: [ 0.0, null ]
+      expected_range: [ 0.0, 100.0 ] # Using SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV expected range of [0.0, 1.0] and assuming max energy cost of $100/MWh
       state_constructor:
         - name: "nuke"
 
     - name: ENERGY_SOLD
       is_computed: True
       value: '({Actual_Posted_Pool_Price} - {SCADA1.ELS_SLR_ENG_EXPORT_FEE_SP.F_CV}) * {SCADA1.ELS_SLR_ELSP12_ENG_OUT_TOT.F_CV}'
-      # Max Pool Price is currently $3000/MWh * 4.85MW Max Power Export * 1 substation * (1 / 60) hours = $242.5
-      # Min Pool Price is currently $-500/MWh * 4.85MW Max Power Export * 1 substation * (1 / 60) hours = -$40.42
-      # If obs_period is 1 minute:
-      expected_range: [-40.42, 242.5]
-      # If obs_period is 5 minutes:
-      # expected_range: [-202.08, 1212.5]
+      # Max Pool Price is currently $3000/MWh * 4.85MW Max Power Export * 1 substation * (5 / 60) hours = $1212.5
+      # Min Pool Price is currently $-500/MWh * 4.85MW Max Power Export * 1 substation * (5 / 60) hours = $-202.085
+      expected_range: [ -202.085, 1212.5 ]
       state_constructor:
         - name: "nuke"
 
     - name: PROFIT
       is_computed: True
       value: '{ENERGY_SOLD} - {ENERGY_COST} - {BESS_DEGRADATION_COST}'
-      # If obs_period is 1 minute:
-      expected_range: [-40.42, 242.5]
-      # If obs_period is 5 minutes:
-      # expected_range: [-202.08, 1212.5]
+      expected_range: [ -318.755, 1212.5 ]
       state_constructor:
         - name: "nuke"
