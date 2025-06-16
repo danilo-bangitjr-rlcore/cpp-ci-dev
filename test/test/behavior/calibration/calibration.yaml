@@ -2,7 +2,7 @@ defaults:
   - ../computational_params
 
 agent:
-  gamma: 0.99
+  gamma: 0.9
 
 interaction:
   name: sim_interaction

@@ -157,6 +157,13 @@ class TagConfig:
     defaults.
     """
 
+    nominal_setpoint: float | None = None
+    """
+    Kind: optional external
+
+    The default setpoint for this tag. Can only be specified for tags of type `TagType.ai_setpoint`.
+    """
+
     # tag zones
     operating_range: FloatBounds | None = None
     """

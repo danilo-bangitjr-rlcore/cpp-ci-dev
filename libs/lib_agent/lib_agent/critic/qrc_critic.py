@@ -51,6 +51,7 @@ class QRCConfig:
     action_regularization: float
     action_regularization_epsilon: float
     l2_regularization: float
+    nominal_setpoint_updates: int = 1000
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -177,6 +178,59 @@ class QRCCritic:
             next_actions,
         )
         return new_state, metrics
+
+    # --------------------
+    # -- Initialization --
+    # --------------------
+    def initialize_to_nominal_action(
+        self,
+        rng: chex.PRNGKey,
+        critic_state: CriticState,
+        nominal_action: jax.Array,
+    ):
+        chex.assert_shape(nominal_action, (self._action_dim,))
+
+        def regress_to_nominal(
+            params: chex.ArrayTree,
+            rng: chex.PRNGKey,
+        ):
+            BATCH = 32
+            ACTION_SAMPLES = 128
+
+            s_rng, a_rng = jax.random.split(rng, 2)
+            states = jax.random.uniform(s_rng, shape=(self._cfg.ensemble, BATCH, self._state_dim))
+            actions = jax.random.uniform(a_rng, shape=(self._cfg.ensemble, BATCH, ACTION_SAMPLES, self._action_dim))
+            out = self.get_values(params, states, actions).mean(axis=-1)
+            chex.assert_shape(out, (self._cfg.ensemble, BATCH, ACTION_SAMPLES))
+
+            y = -jnp.abs(actions - jnp.expand_dims(nominal_action, axis=(0, 1, 2))).sum(axis=-1)
+            return jnp.square(out - y).mean()
+
+        @jax_u.jit
+        def update_params(
+            params: chex.ArrayTree,
+            opt_state: chex.ArrayTree,
+            rng: chex.PRNGKey,
+        ):
+            loss, grad = jax.value_and_grad(regress_to_nominal)(params, rng)
+            updates, new_opt_state = self._optim.update(
+                grad,
+                opt_state,
+                params=params,
+            )
+            new_params = optax.apply_updates(params, updates)
+            return loss, new_params, new_opt_state
+
+        params = critic_state.params
+        opt_state = critic_state.opt_state
+        for _ in range(self._cfg.nominal_setpoint_updates):
+            rng, sub = jax.random.split(rng)
+            _, params, opt_state = update_params(params, opt_state, sub)
+
+        return critic_state._replace(
+            params=params,
+        )
+
 
     # ------------
     # -- Update --

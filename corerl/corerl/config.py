@@ -103,6 +103,10 @@ class FeatureFlags:
     # 2025-06-06
     autoencoder_imputer: bool = False
 
+    # 2025-06-11
+    nominal_setpoint_bias: bool = False
+
+
 @config()
 class OfflineConfig:
     offline_steps: int = 0

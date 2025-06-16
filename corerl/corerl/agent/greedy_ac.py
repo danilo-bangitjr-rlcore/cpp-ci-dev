@@ -222,6 +222,14 @@ class GreedyAC(BaseAgent):
         self._jax_rng, a_rng = jax.random.split(self._jax_rng)
         self._actor_state = self._actor.init_state(a_rng, dummy_x)
 
+        self._has_preinitialized = False
+        self._nominal_setpoints = jnp.array([
+            cfg.nominal_setpoint
+            if cfg.nominal_setpoint is not None else 0.5
+            for cfg in self._col_desc.action_tags
+        ])
+
+
     @property
     def actor_percentile(self) -> float:
         return self.cfg.policy.actor_percentile
@@ -437,6 +445,23 @@ class GreedyAC(BaseAgent):
         return metrics.actor_loss.mean().item()
 
     def update(self) -> list[float]:
+        if not self._has_preinitialized and self._app_state.cfg.feature_flags.nominal_setpoint_bias:
+            self._has_preinitialized = True
+            self._critic_state = self.critic.initialize_to_nominal_action(
+                self._jax_rng,
+                self._critic_state,
+                self._nominal_setpoints,
+            )
+
+            actor_state = self._actor.initialize_to_nominal_action(
+                self._jax_rng,
+                self._actor_state.actor,
+                self._nominal_setpoints,
+                self.state_dim,
+            )
+            self._actor_state = self._actor_state._replace(actor=actor_state)
+
+
         q_losses = []
 
         alpha = self.cfg.loss_ema_factor
