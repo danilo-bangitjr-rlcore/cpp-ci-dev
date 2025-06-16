@@ -388,7 +388,6 @@ class GreedyAC(BaseAgent):
         # log critic metrics
         for metric_name, ens_metric in metrics._asdict().items():
             if metric_name in ['layer_grad_norms', 'layer_weight_norms']:
-                # Handle per-layer metrics
                 for i, layer_norms in enumerate(ens_metric):
                     for layer_name, norm in layer_norms.items():
                         self._app_state.metrics.write(
