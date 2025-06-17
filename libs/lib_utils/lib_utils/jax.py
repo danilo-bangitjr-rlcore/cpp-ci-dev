@@ -31,7 +31,7 @@ def grad[F: Callable](f: F, has_aux: bool = False) -> F:
     return g
 
 
-def vmap[F: Callable](f: F, in_axes: tuple[int | None, ...] | None = None) -> F:
+def vmap[F: Callable](f: F, in_axes: tuple[int | None, ...] | int | None = None) -> F:
     # if no in_axes are provided, we assume all arguments are batched
     if in_axes is None:
         in_axes = tuple(
