@@ -32,10 +32,10 @@ class MaskedAETemporalState:
 
 @config(frozen=True)
 class TrainingConfig:
-    warmup: int = 1 # min buffer size to update AE
-    batch_size: int = 16
-    stepsize: float = 1e-5
-    err_tolerance: float = 1e-3
+    warmup: int = 100 # min buffer size to update AE
+    batch_size: int = 64
+    stepsize: float = 1e-4
+    err_tolerance: float = 1e-4
     max_update_steps: int = 100
     training_missing_perc: float = 0.25
 
@@ -317,7 +317,7 @@ def _loss(params: chex.ArrayTree, input: jax.Array, label: jax.Array, label_nanm
     # loss is a standard MSE except NaN labels
     # are masked out
     error = (~label_nanmask) * (pred - label)
-    return jnp.sum(error**2)
+    return jnp.sum(error**2) / jnp.sum(~label_nanmask)
 
 
 def _series_to_jax(row: pd.Series) -> jax.Array:
