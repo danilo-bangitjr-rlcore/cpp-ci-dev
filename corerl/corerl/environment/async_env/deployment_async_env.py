@@ -10,7 +10,7 @@ from lib_utils.maybe import Maybe
 
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.tag_config import TagConfig, TagType, eval_bound
+from corerl.data_pipeline.tag_config import TagConfig, TagType, eval_bound, get_scada_tags
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
 from corerl.utils.coreio import CoreIOLink
 
@@ -33,14 +33,8 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         self.tag_configs = tag_configs
 
-        self.tag_names = [tag_cfg.name
-                          for tag_cfg in tag_configs
-                          if tag_cfg.type not in [TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
-                          and not tag_cfg.is_computed]
-        self.tag_aggs = {tag_cfg.name: tag_cfg.agg
-                         for tag_cfg in tag_configs
-                         if tag_cfg.type not in [TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
-                         and not tag_cfg.is_computed}
+        self.tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(tag_configs)]
+        self.tag_aggs = {tag_cfg.name: tag_cfg.agg for tag_cfg in get_scada_tags(tag_configs)}
 
         self.data_reader = self._init_datareader()
         self.obs_period = cfg.obs_period

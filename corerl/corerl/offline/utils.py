@@ -8,7 +8,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
-from corerl.data_pipeline.tag_config import TagType
+from corerl.data_pipeline.tag_config import TagType, get_scada_tags
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.state import AppState
 from corerl.utils.time import split_into_chunks
@@ -30,10 +30,7 @@ def load_entire_dataset(
         if end_time is None:
             end_time = time_stats.end
 
-    tag_names = [tag_cfg.name
-                 for tag_cfg in cfg.pipeline.tags
-                 if tag_cfg.type not in [TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
-                 and not tag_cfg.is_computed]
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
     obs_period = cfg.interaction.obs_period
     return data_reader.batch_aggregated_read(
         names=tag_names,
@@ -68,10 +65,7 @@ class OfflineTraining:
         time_chunks = split_into_chunks(self.start_time, self.end_time, width=chunk_width)
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
-        tag_names = [tag_cfg.name
-                     for tag_cfg in self.cfg.pipeline.tags
-                     if tag_cfg.type not in [TagType.day_of_year, TagType.day_of_week, TagType.time_of_day]
-                     and not tag_cfg.is_computed]
+        tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(self.cfg.pipeline.tags)]
         for chunk_start, chunk_end in time_chunks:
             chunk_data = data_reader.batch_aggregated_read(
                 names=tag_names,

@@ -617,3 +617,11 @@ def eval_bound(
 
 def widen_bound_types(x: float | None) -> BoundsElem:
     return x
+
+def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
+    return [
+        tag_cfg
+        for tag_cfg in cfgs
+        if tag_cfg.type not in {TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
+        and not tag_cfg.is_computed
+    ]
