@@ -5,6 +5,7 @@ description = ""
 requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
+    "discrete-dists~=1.0",
     "chex>=0.1.89",
     "distrax>=0.1.5",
     "dm-haiku>=0.0.14",

@@ -38,12 +38,10 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
             for _ in range(cfg.ensemble)
         ]
 
-    def _convert_timestamp(self, timestamp: datetime | np.datetime64 | int | None) -> np.datetime64 | int | None:
+    def _convert_timestamp(self, timestamp: datetime | np.datetime64 | int | None) -> np.datetime64 | int:
         if timestamp is None:
-            return None
-
+            return 0
         if isinstance(timestamp, datetime):
-            # Convert to UTC and then to naive timestamp
             utc_ts = timestamp.astimezone(UTC)
             naive_ts = utc_ts.replace(tzinfo=None)
             return np.datetime64(naive_ts)
@@ -57,39 +55,42 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
         curr = self._convert_timestamp(curr)
         prev = self._convert_timestamp(prev)
 
-        if isinstance(curr, np.datetime64) and isinstance(prev, np.datetime64):
-            # if it's datetype we calculate the number of steps
-            # using the obs_period
-            return (curr - prev) / self._obs_period
-        # if it's an integer we calculate the number of steps
-        # using the integer difference
-        return curr - prev
+        if isinstance(curr, np.datetime64):
+            if not isinstance(prev, np.datetime64):
+                prev = np.datetime64(prev)
+            return float((curr - prev) / self._obs_period)
+        if isinstance(prev, np.datetime64):
+            prev = int(prev)
+        return float(curr - prev)
 
     def _calculate_timestamps(
         self,
         timestamp: datetime | np.datetime64 | int | None,
     ) -> tuple[np.datetime64 | int, float]:
         if timestamp is None:
-            return None, 0.0
+            return 0, 0.0
 
         timestamp = self._convert_timestamp(timestamp)
+        last_ts = self._last_timestamp if self._last_timestamp is not None else timestamp
 
-        curr_timestamp = max(
-            timestamp,
-            self._last_timestamp if self._last_timestamp is not None else timestamp,
-        )
+        if isinstance(timestamp, np.datetime64):
+            if not isinstance(last_ts, np.datetime64):
+                last_ts = np.datetime64(last_ts)
+            curr_timestamp = np.maximum(timestamp, last_ts)
+        else:
+            if isinstance(last_ts, np.datetime64):
+                last_ts = int(last_ts)
+            curr_timestamp = max(timestamp, last_ts)
 
         steps_since_transition = self._calculate_steps(curr_timestamp, timestamp)
-
         return curr_timestamp, steps_since_transition
 
-    def add(self, transition: NamedTuple, timestamp: datetime | np.datetime64 | int | None = None):
+    def add(self, transition: NamedTuple, timestamp: datetime | np.datetime64 | int | None = None) -> None:
         super().add(transition)
         idx = self.size - 1
 
         if timestamp is None:
-            # if no timestamp is provided, we don't update the ensemble distributions
-            return idx
+            return
 
         curr_timestamp, steps_since_transition = self._calculate_timestamps(timestamp)
         weights = np.power(self._discount_factor, steps_since_transition)
@@ -104,7 +105,6 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
                 dist.update_geometric(np.array([idx]), np.array([weights]))
 
         self._last_timestamp = curr_timestamp
-        return idx
 
     def get_probability(self, ens_i: int, idxs: np.ndarray):
         return self._ens_dists[ens_i].probs(idxs)
