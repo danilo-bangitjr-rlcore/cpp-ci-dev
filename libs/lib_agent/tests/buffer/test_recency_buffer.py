@@ -14,9 +14,6 @@ class FakeTransition(NamedTuple):
     next_state: jnp.ndarray
     done: bool
 
-
-
-
 def test_recency_bias_buffer_basic():
     buffer = RecencyBiasBuffer(
         RecencyBiasBufferConfig(
@@ -145,8 +142,8 @@ def test_recency_bias_buffer_datetime_timestamps():
 
     timestamps = [
         datetime(2024, 1, 1, 0, 0, 0, tzinfo=UTC),
-        datetime(2024, 1, 1, 0, 0, 5, tzinfo=UTC),  # 5 seconds later
-        datetime(2024, 1, 1, 0, 0, 10, tzinfo=UTC),  # 10 seconds later
+        datetime(2024, 1, 1, 0, 0, 5, tzinfo=UTC),
+        datetime(2024, 1, 1, 0, 0, 10, tzinfo=UTC),
     ]
 
     for i, ts in enumerate(timestamps):
@@ -177,8 +174,7 @@ def test_recency_bias_buffer_integer_timestamps():
         ),
     )
 
-    # Add transitions with integer timestamps
-    timestamps = [0, 1, 2]  # Simple integer indices
+    timestamps = [0, 1, 2]
 
     for i, ts in enumerate(timestamps):
         transition = FakeTransition(
