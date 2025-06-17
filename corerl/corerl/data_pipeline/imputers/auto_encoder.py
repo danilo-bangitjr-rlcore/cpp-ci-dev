@@ -14,10 +14,11 @@ import pandas as pd
 from lib_agent.buffer.storage import ReplayStorage
 from lib_agent.critic.qrc_critic import jax_u
 from lib_config.config import config, list_
+from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
 from corerl.state import AppState

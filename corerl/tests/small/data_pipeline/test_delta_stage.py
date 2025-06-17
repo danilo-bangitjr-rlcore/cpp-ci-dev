@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 from lib_config.loader import direct_load_config
+from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.data_pipeline.tag_config import TagType
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus

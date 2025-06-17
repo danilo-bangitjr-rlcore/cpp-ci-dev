@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
+from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
@@ -16,7 +17,7 @@ from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState

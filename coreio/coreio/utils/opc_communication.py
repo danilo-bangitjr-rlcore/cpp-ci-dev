@@ -7,7 +7,7 @@ from typing import Any, Protocol, assert_never
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-from corerl.data_pipeline.tag_config import TagType
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import (

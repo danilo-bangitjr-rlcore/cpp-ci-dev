@@ -1,11 +1,12 @@
 from functools import cached_property
 
 from lib_config.config import config
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.delta import DeltaConfig
 
