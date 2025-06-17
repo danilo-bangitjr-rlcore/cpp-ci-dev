@@ -6,6 +6,7 @@ requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "lib-utils",
+    "pyyaml>=6.0.2",
 ]
 readme = "README.md"
 
