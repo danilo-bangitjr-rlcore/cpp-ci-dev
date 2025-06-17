@@ -107,6 +107,19 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
     def get_probability(self, ens_i: int, idxs: np.ndarray):
         return self._ens_dists[ens_i].probs(idxs)
 
+    def sample(self):
+        ens_idxs: list[np.ndarray] = []
+        for m in range(self.n_ensemble):
+            valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size()])[0]
+            if len(valid_indices) == 0:
+                continue
+
+            sampled_indices = self._ens_dists[m].sample(self.rng, self.batch_size)
+            sampled_indices = sampled_indices % len(valid_indices)
+            ens_idxs.append(valid_indices[sampled_indices])
+
+        return self._storage.get_ensemble_batch(ens_idxs)
+
 
 class Geometric(Proportional):
     def __init__(self, support: Support | int):
