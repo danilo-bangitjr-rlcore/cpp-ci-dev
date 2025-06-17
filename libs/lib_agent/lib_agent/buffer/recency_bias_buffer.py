@@ -14,8 +14,8 @@ from lib_agent.buffer.buffer import EnsembleReplayBuffer
 @dataclass
 class RecencyBiasBufferConfig:
     obs_period: int  # in microseconds
-    gamma: float
-    effective_episodes: int
+    gamma: list[float]
+    effective_episodes: list[int]
     ensemble: int
     uniform_weight: float
     ensemble_probability: float
@@ -32,7 +32,15 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
         )
         self._obs_period = np.timedelta64(cfg.obs_period, 'us')
         self._last_timestamp = None
-        self._discount_factor = np.power(cfg.gamma, 1. / cfg.effective_episodes)
+
+        assert len(cfg.gamma) == cfg.ensemble, "Number of gamma values must match ensemble size"
+        assert len(cfg.effective_episodes) == cfg.ensemble, "Number of effective_episodes must match ensemble size"
+
+        self._discount_factors = [
+            np.power(gamma, 1. / episodes)
+            for gamma, episodes in zip(cfg.gamma, cfg.effective_episodes, strict=False)
+        ]
+
         self._ens_dists = [
             MaskedUGDistribution(cfg.max_size, cfg.uniform_weight, cfg.ensemble_probability)
             for _ in range(cfg.ensemble)
@@ -91,14 +99,14 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
             return
 
         curr_timestamp, steps_since_transition = self._calculate_timestamps(timestamp)
-        weights = np.power(self._discount_factor, steps_since_transition)
 
-        for i, dist in enumerate(self._ens_dists):
+        for i, (dist, discount_factor) in enumerate(zip(self._ens_dists, self._discount_factors, strict=False)):
             mask = self.ensemble_masks[i, idx]
             if self._last_timestamp is not None:
                 steps_since_last_call = self._calculate_steps(curr_timestamp, self._last_timestamp)
-                dist.discount_geometric(self._discount_factor**steps_since_last_call)
+                dist.discount_geometric(discount_factor**steps_since_last_call)
             if mask:
+                weights = np.power(discount_factor, steps_since_transition)
                 dist.update_uniform(np.array([idx]), np.array([True]))
                 dist.update_geometric(np.array([idx]), np.array([weights]))
 
