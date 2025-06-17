@@ -17,10 +17,16 @@ if TYPE_CHECKING:
 class DeltaConfig(BaseTransformConfig):
     name: Literal["delta"] = "delta"
     time_thresh: timedelta = MISSING
+    obs_period: timedelta = MISSING
 
     @computed("time_thresh")
     @classmethod
     def _time_thresh(cls, cfg: "MainConfig"):
+        return cfg.interaction.obs_period
+
+    @computed("obs_period")
+    @classmethod
+    def _obs_period(cls, cfg: "MainConfig"):
         return cfg.interaction.obs_period
 
 
@@ -61,7 +67,8 @@ class Delta:
                         ts.time[j] = time
                     continue
 
-                delta = x - ts.last[j]
+                obs_periods = (time - ts.time[j]) / self._cfg.obs_period
+                delta = (x - ts.last[j]) / obs_periods
                 ts.last[j] = x
                 ts.time[j] = time
                 carry.transform_data.iloc[i, j] = delta
