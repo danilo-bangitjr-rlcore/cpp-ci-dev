@@ -2,7 +2,7 @@ import logging
 from collections.abc import Sequence
 from datetime import UTC
 from types import TracebackType
-from typing import Protocol, assert_never
+from typing import Any, Protocol, assert_never
 
 import backoff
 from asyncua import Client, Node, ua
@@ -41,6 +41,12 @@ class TagConfig(Protocol):
     def type(self) -> TagType: ...
 
 
+def log_backoff(details: Any):
+    wait = details["wait"]
+    tries = details["tries"]
+    func = details["target"].__name__
+    logger.warning(f"Backing off {wait:.1f} seconds after {tries} tries calling {func}")
+
 class OPC_Connection:
     def __init__(self):
         self.opc_client: Client | None = None
@@ -49,6 +55,7 @@ class OPC_Connection:
     async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfig]):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
+        self._connected = False
 
         assert cfg.application_uri is not None
         self.opc_client.application_uri = cfg.application_uri
@@ -61,20 +68,27 @@ class OPC_Connection:
         return self
 
 
-    @backoff.on_exception(backoff.expo, Exception, max_value=30)
+    @backoff.on_exception(backoff.expo, Exception, max_value=30, on_backoff=log_backoff)
     async def ensure_connected(self):
         assert self.opc_client is not None, 'OPC client is not initialized'
+
+        if self._connected is False:
+            await self.opc_client.connect()
+            self._connected = True
+
         try:
             await self.opc_client.check_connection()
 
         except Exception:
             await self.opc_client.connect()
+            self._connected = True
+            await self.opc_client.check_connection()
 
         return self.opc_client
 
 
     async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
-        client = await self.ensure_connected()
+        assert self.opc_client is not None
 
         match policy:
             case OPCSecurityPolicyBasic256SHA256Config():
@@ -83,7 +97,7 @@ class OPC_Connection:
                     if policy.mode is OPCMessageSecurityMode.sign
                     else ua.MessageSecurityMode.SignAndEncrypt
                 )
-                await client.set_security(
+                await self.opc_client.set_security(
                     SecurityPolicyBasic256Sha256,
                     certificate=policy.client_cert_path,
                     private_key=policy.client_key_path,
@@ -98,12 +112,12 @@ class OPC_Connection:
                 assert_never(policy)
 
     async def _set_auth_mode(self, auth_mode: OPCAuthModeConfig):
-        client = await self.ensure_connected()
+        assert self.opc_client is not None
 
         match auth_mode:
             case OPCAuthModeUsernamePasswordConfig():
-                client.set_user(auth_mode.username)
-                client.set_password(auth_mode.password)
+                self.opc_client.set_user(auth_mode.username)
+                self.opc_client.set_password(auth_mode.password)
 
             case OPCAuthMode.anonymous:
                 pass
@@ -150,7 +164,7 @@ class OPC_Connection:
             self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
 
-    @backoff.on_exception(backoff.expo, Exception, max_value=30)
+    @backoff.on_exception(backoff.expo, Exception, max_value=30, on_backoff=log_backoff)
     async def start(self):
         await self.ensure_connected()
         return self
@@ -160,6 +174,7 @@ class OPC_Connection:
             return self
 
         await self.opc_client.disconnect()
+        self._connected = False
         return self
 
     async def __aenter__(self):
@@ -174,7 +189,7 @@ class OPC_Connection:
         _ = exc_type, exc, tb
         await self.cleanup()
 
-    @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_value=30)
+    @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_value=30, on_backoff=log_backoff)
     async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         # Reconnect if connection is not ok
