@@ -1,3 +1,4 @@
+[tool.pyright]
 venv = '.venv'
 typeCheckingMode = 'standard'
 

@@ -66,7 +66,7 @@ def vmap_except[F: Callable](f: F, exclude: Sequence[str | int], levels: int = 1
             total[i] = None
 
     for _ in range(levels):
-        f = jax.vmap(f, in_axes=total)
+        f = jax.vmap(f, in_axes=tuple(total))
 
     return f
 
@@ -94,7 +94,7 @@ def vmap_only[F: Callable](f: F, include: Sequence[str | int], levels: int = 1) 
             total[i] = 0
 
     for _ in range(levels):
-        f = jax.vmap(f, in_axes=total)
+        f = jax.vmap(f, in_axes=tuple(total))
 
     return f
 
