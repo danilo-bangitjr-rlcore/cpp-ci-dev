@@ -55,13 +55,11 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
         curr = self._convert_timestamp(curr)
         prev = self._convert_timestamp(prev)
 
-        if isinstance(curr, np.datetime64):
-            if not isinstance(prev, np.datetime64):
-                prev = np.datetime64(prev)
+        if isinstance(curr, np.datetime64) and isinstance(prev, np.datetime64):
             return float((curr - prev) / self._obs_period)
-        if isinstance(prev, np.datetime64):
-            prev = int(prev)
-        return float(curr - prev)
+        if isinstance(curr, int) and isinstance(prev, int):
+            return float(curr - prev)
+        raise ValueError(f"Cannot mix datetime and int timestamps, curr: {curr}, prev: {prev}")
 
     def _calculate_timestamps(
         self,
@@ -74,7 +72,7 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
         last_ts = self._last_timestamp if self._last_timestamp is not None else timestamp
 
         if isinstance(timestamp, np.datetime64):
-            if not isinstance(last_ts, np.datetime64):
+            if isinstance(last_ts, datetime):
                 last_ts = np.datetime64(last_ts)
             curr_timestamp = np.maximum(timestamp, last_ts)
         else:
