@@ -131,7 +131,7 @@ def test_split_ts1():
                 SplitConfig(
                     left=[
                         TraceConfig(trace_values=[0.1]),
-                        DeltaConfig(time_thresh=increment),
+                        DeltaConfig(time_thresh=increment, obs_period=increment),
                     ],
                     right=[TraceConfig(trace_values=[0.01])],
                 ),
@@ -149,8 +149,6 @@ def test_split_ts1():
     )
 
     pf = sc(pf)
-    print("Got:")
-    print(pf.data.to_string())
     expected_data = pd.DataFrame({
         'tag_1_trace-0.1_Δ': [5.9, -8.01, 0.099, 0.9099, np.nan, np.nan, 0.9, 0.99, 0.999],
         'tag_1_trace-0.01':  [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
