@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
+from typing import TYPE_CHECKING, NamedTuple
 
 from lib_config.config import MISSING, computed, config
 from sqlalchemy import Engine, TextClause
@@ -36,9 +36,7 @@ class BufferedWriterConfig(SQLEngineConfig):
         return cfg.infra.db.db_name
 
 
-T = TypeVar('T', bound=NamedTuple)
-
-class BufferedWriter(Generic[T], ABC):
+class BufferedWriter[T: NamedTuple](ABC):
     def __init__(
         self,
         cfg: BufferedWriterConfig,
