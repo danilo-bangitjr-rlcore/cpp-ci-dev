@@ -26,9 +26,6 @@ def wait_for_timestamp(timestamp: datetime) -> None:
         sleep_duration = (timestamp - now).total_seconds()
     sleep(sleep_duration)
 
-def now_iso() -> str:
-    return dt.datetime.now(UTC).isoformat()
-
 def split_windows_into_chunks(windows: list[tuple[dt.datetime | None, dt.datetime | None]], width: dt.timedelta):
     for start, stop in windows:
         if start is None or stop is None:

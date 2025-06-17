@@ -4,11 +4,11 @@ from copy import deepcopy
 import pandas as pd
 import pytest
 import pytz
+from lib_utils.time import now_iso
 from sqlalchemy import Engine
 
 from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.sql_logging.sql_logging import table_exists
-from corerl.utils.time import now_iso
 
 
 @pytest.fixture()

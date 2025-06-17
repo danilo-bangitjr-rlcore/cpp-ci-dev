@@ -2,9 +2,8 @@ import logging
 import uuid
 from enum import StrEnum, auto
 
+from lib_utils.time import now_iso
 from pydantic import BaseModel, Field, ValidationError
-
-from corerl.utils.time import now_iso
 
 logger = logging.getLogger(__name__)
 

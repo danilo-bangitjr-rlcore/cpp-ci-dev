@@ -307,7 +307,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = "~=0.115.6" },
     { name = "lib-agent", editable = "../libs/lib_agent" },
     { name = "lib-config", editable = "../libs/lib_config" },
-    { name = "lib-defs" },
+    { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "lib-utils", extras = ["jax"], editable = "../libs/lib_utils" },
     { name = "numba", specifier = "~=0.60" },
     { name = "numpy", specifier = "~=2.0" },
