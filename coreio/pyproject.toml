@@ -9,6 +9,7 @@ dependencies = [
     "backoff>=2.2.1",
     "corerl",
     "lib-config",
+    "lib-defs",
 ]
 
 [dependency-groups]
@@ -32,6 +33,7 @@ packages = ["coreio"]
 corerl = { path = "../corerl", editable = true }
 test = { path = "../test", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
+lib-defs = { path = "../libs/lib_defs", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'
