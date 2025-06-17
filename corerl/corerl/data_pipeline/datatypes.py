@@ -60,16 +60,18 @@ class Step:
             for f in fields(self)
         )
 
-    def __iter__(self):
-        """
-        This iterator is used in the buffer with magic ordering
-        """
-        for f in fields(self):
-            attr = getattr(self, f.name)
-            # skip timestamp in buffer
-            if f.name == "timestamp":
-                continue
-            yield attr
+    def __hash__(self):
+        return hash((
+            self.reward,
+            tuple(self.action),
+            self.gamma,
+            tuple(self.state),
+            self.action_lo,
+            self.action_hi,
+            self.dp,
+            self.ac,
+            self.timestamp,
+        ))
 
 
 @dataclass
@@ -137,22 +139,15 @@ class Transition:
 
         return True
 
-    def __iter__(self):
-        """
-        This iterator is used in the buffer with magic ordering
-        """
-        for f in fields(self):
-            attr = getattr(self, f.name)
-            if isinstance(attr, list):  # if attr = steps
-                prior = attr[0]
-                post = attr[-1]
-                yield from iter(prior)
-                yield from iter(post)
-            else:
-                yield attr
-
     def __len__(self) -> int:
         return len(self.steps)-1
+
+    def __hash__(self):
+        return hash((
+            tuple(self.steps),
+            self.n_step_reward,
+            self.n_step_gamma,
+        ))
 
 
 class AbsTransition(NamedTuple):
