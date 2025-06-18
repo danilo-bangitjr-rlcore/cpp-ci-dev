@@ -52,8 +52,6 @@ class SimAsyncEnv(DeploymentAsyncEnv):
         self._action_bounds = space_bounds(self._env.action_space)
         self._action_shape = space_shape(self._env.action_space)
 
-        self._all_tag_names = {tag.name for tag in tag_configs}
-
         self.clock = datetime(1984, 1, 1, tzinfo=UTC)
         self._clock_inc = cfg.obs_period
 
@@ -132,7 +130,7 @@ class SimAsyncEnv(DeploymentAsyncEnv):
         # mash all columns together to simulate tags from OPC
         tags = obs_data | action_data | meta_data
         # filter for only the tags specified in the tag configs
-        tags = { k: v for k, v in tags.items() if k in self._all_tag_names }
+        tags = { k: v for k, v in tags.items() if k in self.tag_names }
 
         idx = pd.DatetimeIndex([self.clock])
         return pd.DataFrame(tags, index=idx)
