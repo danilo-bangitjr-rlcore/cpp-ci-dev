@@ -118,60 +118,36 @@ class QRCCritic:
         )
 
 
-    @jax_u.method_jit
-    def get_values(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        # states are either (state_dim,) or (batch, state_dim) or (ensemble, batch, state_dim)
-        # this function assumes it will never receive states with shape (ensemble, state_dim)
-        # action may also have an n_samples dimension
-        q_func = self._forward
-        if a.ndim == x.ndim + 1:
-            # actions must have an n_samples dimension
-            q_func = jax_u.vmap(q_func, (None, None, 0))
+    def get_values(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+        return self.forward(params, state, action)
 
-        if x.ndim == 1:
-            return q_func(params, x, a)
+    def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
+        return self._forward(params, x, a).q
+
+    @jax_u.method_jit
+    def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> CriticOutputs:
+        # state shape is one of (state_dim,) or (batch, state_dim) or (ensemble, batch, state_dim)
+        # note this function assumes it will never receive states with shape (ensemble, state_dim)
+        # action may also have an n_samples dimension
+        f = self._net.apply
+        if action.ndim == state.ndim + 1:
+            f = jax_u.vmap(f, (None, None, 0))
+
+        if state.ndim == 1:
+            return f(params, state, action)
 
         # batch mode - vmap only over batch dim
-        batch_mode = jax_u.vmap(q_func, (None, 0, 0))
-        if x.ndim == 2:
-            return batch_mode(params, x, a)
+        f = jax_u.vmap(f, (None, 0, 0))
+        if state.ndim == 2:
+            return f(params, state, action)
 
         # ensemble mode - vmap both over ensemble and batch dim
         # note: params also have an ensemble dimension
-        chex.assert_equal_shape_prefix((x, a), 2)
-        return jax_u.vmap(batch_mode)(params, x, a)
-
-    @jax_u.method_jit
-    def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        # ensemble mode
-        if x.ndim == 3 and a.ndim == 3:
-            chex.assert_equal_shape_prefix((x, a), 2)
-            ens_forward = jax_u.vmap(self._forward)
-            return ens_forward(params, x, a)
-
-        # batch mode
-        return self._forward(params, x, a)
-
-    def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> jax.Array:
-        return self._net.apply(params, state, action).q
+        chex.assert_equal_shape_prefix((state, action), 2)
+        return jax_u.vmap(f)(params, state, action)
 
     def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        def rep_func(p: chex.ArrayTree, s: jax.Array, a: jax.Array):
-            return self._net.apply(p, s, a).phi
-
-        if a.ndim == x.ndim + 1:
-            # actions must have an n_samples dimension
-            rep_func = jax_u.vmap(rep_func, (None, None, 0))
-
-        # batch mode - vmap only over batch dim
-        batch_mode = jax_u.vmap(rep_func, (None, 0, 0))
-        if x.ndim == 2:
-            return batch_mode(params, x, a)
-
-        # ensemble mode - vmap both over ensemble and batch dim
-        # note: params also have an ensemble dimension
-        chex.assert_equal_shape_prefix((x, a), 2)
-        return jax_u.vmap(batch_mode)(params, x, a)
+        return self._forward(params, x, a).phi
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
         self._rng, rng = jax.random.split(self._rng)
