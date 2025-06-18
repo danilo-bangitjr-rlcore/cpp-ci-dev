@@ -275,18 +275,16 @@ class GreedyAC(BaseAgent):
         actions = jnp.asarray(actions)
         return self._actor.get_probs(actor_params, state, actions)
 
-    def get_values(self, state_batches: jax.Array, action_batches: jax.Array):
-        chex.assert_shape(state_batches, (self.ensemble, None, self.state_dim))
+    def get_values(self, state: jax.Array, action: jax.Array):
+        chex.assert_shape(state, (self.state_dim,))
+        assert (action.ndim == state.ndim + 1) or (action.ndim == state.ndim)
+        ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
+        qs = ens_get_values(self._critic_state.params, state, action)
 
-        q = self.critic.get_values(
-            self._critic_state.params,
-            state_batches,
-            action_batches,
-        )
         return EnsembleNetworkReturn(
-            reduced_value=q.mean(axis=0),
-            ensemble_values=q,
-            ensemble_variance=q.var(axis=0),
+            reduced_value=qs.mean(axis=0),
+            ensemble_values=qs,
+            ensemble_variance=qs.var(axis=0),
         )
 
     def get_actions(self, state: State):
