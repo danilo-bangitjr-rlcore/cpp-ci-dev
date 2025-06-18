@@ -110,16 +110,25 @@ class QRCCritic:
         rngs = jax.random.split(rng, self._cfg.ensemble)
         return ens_init(rngs, x, a)
 
-    def _init_member_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        params = self._net.init(rng, x, a)
-        return CriticState(
-            params=params,
-            opt_state=self._optim.init(params),
-        )
-
     def get_values(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array):
         return self._forward(params, state, action).q
 
+    def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
+        return self._forward(params, x, a).phi
+
+    def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
+        self._rng, rng = jax.random.split(self._rng)
+        new_state, metrics = self._ensemble_update(
+            critic_state,
+            rng,
+            transitions,
+            next_actions,
+        )
+        return new_state, metrics
+
+    # -------------------------------
+    # -- Shared net.apply vmapping --
+    # -------------------------------
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> CriticOutputs:
         # state shape is one of (state_dim,) or (batch, state_dim)
@@ -138,22 +147,16 @@ class QRCCritic:
         f = jax_u.vmap(f, (None, 0, 0))
         return f(params, state, action)
 
-    def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        return self._forward(params, x, a).phi
-
-    def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
-        self._rng, rng = jax.random.split(self._rng)
-        new_state, metrics = self._ensemble_update(
-            critic_state,
-            rng,
-            transitions,
-            next_actions,
-        )
-        return new_state, metrics
-
     # --------------------
     # -- Initialization --
     # --------------------
+    def _init_member_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
+        params = self._net.init(rng, x, a)
+        return CriticState(
+            params=params,
+            opt_state=self._optim.init(params),
+        )
+
     def initialize_to_nominal_action(
         self,
         rng: chex.PRNGKey,
