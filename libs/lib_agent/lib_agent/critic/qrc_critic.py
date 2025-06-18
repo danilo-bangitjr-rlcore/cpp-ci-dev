@@ -152,7 +152,7 @@ class QRCCritic:
         return self._net.apply(params, state, action).q
 
     def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        def rep_func(p, s, a):
+        def rep_func(p: chex.ArrayTree, s: jax.Array, a: jax.Array):
             return self._net.apply(p, s, a).phi
 
         if a.ndim == x.ndim + 1:

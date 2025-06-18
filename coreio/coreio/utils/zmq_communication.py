@@ -1,4 +1,3 @@
-# ruff: noqa: PERF203
 import logging
 import threading
 from collections.abc import Callable
