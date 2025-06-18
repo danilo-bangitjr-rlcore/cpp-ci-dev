@@ -239,16 +239,16 @@ source = { editable = "../coreio" }
 dependencies = [
     { name = "asyncua" },
     { name = "backoff" },
-    { name = "corerl" },
     { name = "lib-config" },
+    { name = "lib-defs" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "asyncua", specifier = ">=1.1.6" },
     { name = "backoff", specifier = ">=2.2.1" },
-    { name = "corerl", editable = "../corerl" },
     { name = "lib-config", editable = "../libs/lib_config" },
+    { name = "lib-defs", editable = "../libs/lib_defs" },
 ]
 
 [package.metadata.requires-dev]
@@ -271,6 +271,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "lib-agent" },
     { name = "lib-config" },
+    { name = "lib-defs" },
     { name = "lib-utils", extra = ["jax"] },
     { name = "numba" },
     { name = "numpy" },
@@ -295,6 +296,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = "~=0.115.6" },
     { name = "lib-agent", editable = "../libs/lib_agent" },
     { name = "lib-config", editable = "../libs/lib_config" },
+    { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "lib-utils", extras = ["jax"], editable = "../libs/lib_utils" },
     { name = "numba", specifier = "~=0.60" },
     { name = "numpy", specifier = "~=2.0" },
@@ -973,6 +975,30 @@ dev = [
     { name = "pyright", specifier = ">=1.1.392" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
+name = "lib-defs"
+version = "0.0.0"
+source = { editable = "../libs/lib_defs" }
+dependencies = [
+    { name = "annotated-types" },
+    { name = "pydantic" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "annotated-types", specifier = ">=0.7.0" },
+    { name = "pydantic", specifier = ">=2.11.5" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
     { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
 ]

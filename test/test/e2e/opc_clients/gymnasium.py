@@ -1,6 +1,7 @@
 import gymnasium as gym
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
+from lib_defs.config_defs.tag_config import TagType
 
 
 def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False) -> list[TagConfig]:
