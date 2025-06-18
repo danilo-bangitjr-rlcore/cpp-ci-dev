@@ -276,6 +276,9 @@ class GreedyAC(BaseAgent):
         return self._actor.get_probs(actor_params, state, actions)
 
     def get_values(self, state: jax.Array, action: jax.Array):
+        """
+        Get ensemble value estimates for a single state-action pair.
+        """
         chex.assert_shape(state, (self.state_dim,))
         assert (action.ndim == state.ndim + 1) or (action.ndim == state.ndim)
         ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
@@ -421,6 +424,7 @@ class GreedyAC(BaseAgent):
         return [loss.mean() for loss in metrics.loss]
 
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
+        # TODO: unify with get_values
         chex.assert_rank((x, a), 1)
         ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
         qs = ens_get_values(params, x, a)
