@@ -277,12 +277,25 @@ class GreedyAC(BaseAgent):
 
     def get_values(self, state: jax.Array, action: jax.Array):
         """
-        Get ensemble value estimates for a single state-action pair.
+        returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
+            1 state, and
+            1 action OR a batch of actions
+        """
+        return self._get_values(self._critic_state.params, state, action)
+
+    @jax_u.method_jit
+    def _get_values(self, critic_params: chex.ArrayTree, state: jax.Array, action: jax.Array):
+        """
+        jittable version of `self.get_values` that takes critic params as an argument
+
+        returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
+            1 state, and
+            1 action OR a batch of actions
         """
         chex.assert_shape(state, (self.state_dim,))
-        assert (action.ndim == state.ndim + 1) or (action.ndim == state.ndim)
+        assert action.ndim in {state.ndim, state.ndim + 1}
         ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
-        qs = ens_get_values(self._critic_state.params, state, action)
+        qs = ens_get_values(critic_params, state, action)
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -424,14 +437,14 @@ class GreedyAC(BaseAgent):
         return [loss.mean() for loss in metrics.loss]
 
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        # TODO: unify with get_values
-        chex.assert_rank((x, a), 1)
-        ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
-        qs = ens_get_values(params, x, a)
-        values = qs.mean(axis=0).squeeze(-1)
+        """
+        returns reduced state-action value estimate from ensemble of critics for:
+            1 state, and
+            1 action OR a batch of actions
 
-        chex.assert_rank(values, 0)
-        return values
+        shape of returned q estimates is respectively () or (n_samples,)
+        """
+        return self._get_values(params, x, a).reduced_value.squeeze(-1)
 
     def update_actor(self):
         if not self._actor_buffer.is_sampleable:
