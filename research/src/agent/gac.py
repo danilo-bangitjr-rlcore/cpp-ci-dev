@@ -117,10 +117,10 @@ class GreedyAC:
         return actions.squeeze(0)
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
-        return self._critic.forward(
+        return self._critic.get_values(
             self.agent_state.critic.params,
-            x=state.features,
-            a=jnp.asarray(actions),
+            state=state.features,
+            action=jnp.asarray(actions),
         )
 
     def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
@@ -209,7 +209,7 @@ class GreedyAC:
 
 
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        ens_forward = jax_u.vmap_only(self._critic.forward, ['params'])
+        ens_forward = jax_u.vmap_only(self._critic.get_values, ['params'])
         qs = ens_forward(params, x, a)
         values = qs.mean(axis=0).squeeze(-1)
 

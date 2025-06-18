@@ -117,12 +117,8 @@ class QRCCritic:
             opt_state=self._optim.init(params),
         )
 
-
     def get_values(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array):
-        return self.forward(params, state, action)
-
-    def forward(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        return self._forward(params, x, a).q
+        return self._forward(params, state, action).q
 
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> CriticOutputs:

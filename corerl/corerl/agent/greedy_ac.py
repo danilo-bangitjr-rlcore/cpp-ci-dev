@@ -421,8 +421,9 @@ class GreedyAC(BaseAgent):
         return [loss.mean() for loss in metrics.loss]
 
     def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        ens_forward = jax_u.vmap_only(self.critic.forward, ['params'])
-        qs = ens_forward(params, x, a)
+        chex.assert_rank((x, a), 1)
+        ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
+        qs = ens_get_values(params, x, a)
         values = qs.mean(axis=0).squeeze(-1)
 
         chex.assert_rank(values, 0)
