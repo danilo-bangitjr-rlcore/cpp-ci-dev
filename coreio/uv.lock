@@ -238,7 +238,6 @@ source = { editable = "." }
 dependencies = [
     { name = "asyncua" },
     { name = "backoff" },
-    { name = "corerl" },
     { name = "lib-config" },
     { name = "lib-defs" },
 ]
@@ -257,7 +256,6 @@ dev = [
 requires-dist = [
     { name = "asyncua", specifier = ">=1.1.6" },
     { name = "backoff", specifier = ">=2.2.1" },
-    { name = "corerl", editable = "../corerl" },
     { name = "lib-config", editable = "../libs/lib_config" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
 ]
