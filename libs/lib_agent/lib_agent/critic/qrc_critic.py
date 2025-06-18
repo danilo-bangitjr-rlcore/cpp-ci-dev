@@ -122,26 +122,21 @@ class QRCCritic:
 
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> CriticOutputs:
-        # state shape is one of (state_dim,) or (batch, state_dim) or (ensemble, batch, state_dim)
-        # note this function assumes it will never receive states with shape (ensemble, state_dim)
-        # action may also have an n_samples dimension
+        # state shape is one of (state_dim,) or (batch, state_dim)
+        # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
+        # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
         f = self._net.apply
         if action.ndim == state.ndim + 1:
+            # vmap over action samples
             f = jax_u.vmap(f, (None, None, 0))
 
         if state.ndim == 1:
             return f(params, state, action)
 
-        # batch mode - vmap only over batch dim
+        # batch mode - vmap over batch dim
+        chex.assert_rank(state, 2)
         f = jax_u.vmap(f, (None, 0, 0))
-        if state.ndim == 2:
-            return f(params, state, action)
-
-        # NOTE: ensemble mode is never invoked
-        # ensemble mode - vmap both over ensemble and batch dim
-        # note: params also have an ensemble dimension
-        chex.assert_equal_shape_prefix((state, action), 2)
-        return jax_u.vmap(f)(params, state, action)
+        return f(params, state, action)
 
     def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
         return self._forward(params, x, a).phi
