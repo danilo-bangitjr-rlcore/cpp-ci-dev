@@ -120,12 +120,16 @@ class QRCCritic:
 
     @jax_u.method_jit
     def get_values(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        # states are either (batch, state_dim) or (ensemble, batch, state_dim)
+        # states are either (state_dim,) or (batch, state_dim) or (ensemble, batch, state_dim)
+        # this function assumes it will never receive states with shape (ensemble, state_dim)
         # action may also have an n_samples dimension
         q_func = self._forward
         if a.ndim == x.ndim + 1:
             # actions must have an n_samples dimension
             q_func = jax_u.vmap(q_func, (None, None, 0))
+
+        if x.ndim == 1:
+            return q_func(params, x, a)
 
         # batch mode - vmap only over batch dim
         batch_mode = jax_u.vmap(q_func, (None, 0, 0))
