@@ -16,7 +16,7 @@ import yaml
 from corerl.data_pipeline.tag_config import TagConfig
 from lib_config.loader import config_to_dict
 
-from test.e2e.opc_clients.gymnasium import gen_tag_configs_from_env
+from test.e2e.opc_clients.gymnasium_utils import gen_tag_configs_from_env
 
 log = logging.getLogger(__name__)
 
@@ -162,7 +162,7 @@ def main():
     if args.telegraf:
         generate_telegraf_conf(current_path, tag_data)
 
-    if args.tag_entries[0] == 'all':
+    if args.tag_entries and args.tag_entries[0] == 'all':
         tag_entries = None # do not prune
         action_entries = None # do not prune
 
@@ -170,7 +170,7 @@ def main():
             warnings.warn("You are specifying additional entries for actions when already outputting all entries. "
             "Ignoring.",stacklevel=0)
 
-    elif args.action_entries[0] == 'all':
+    elif args.action_entries and args.action_entries[0] == 'all':
         tag_entries = args.tag_entries
         action_entries = None # do not prune
     else:
