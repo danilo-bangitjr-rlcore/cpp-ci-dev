@@ -173,15 +173,16 @@ class QRCCritic:
             ACTION_SAMPLES = 128
 
             s_rng, a_rng = jax.random.split(rng, 2)
-            states = jax.random.uniform(s_rng, shape=(self._cfg.ensemble, BATCH, self._state_dim))
-            actions = jax.random.uniform(a_rng, shape=(self._cfg.ensemble, BATCH, ACTION_SAMPLES, self._action_dim))
-            out = self.get_values(params, states, actions).mean(axis=-1)
-            chex.assert_shape(out, (self._cfg.ensemble, BATCH, ACTION_SAMPLES))
+            states = jax.random.uniform(s_rng, shape=(BATCH, self._state_dim))
+            actions = jax.random.uniform(a_rng, shape=(BATCH, ACTION_SAMPLES, self._action_dim))
+            q = self.get_values(params, states, actions).squeeze()
+            chex.assert_shape(q, (BATCH, ACTION_SAMPLES))
 
-            y = -jnp.abs(actions - jnp.expand_dims(nominal_action, axis=(0, 1, 2))).sum(axis=-1)
-            return jnp.square(out - y).mean()
+            y = -jnp.abs(actions - jnp.expand_dims(nominal_action, axis=(0, 1))).sum(axis=-1)
+            return jnp.square(q - y).mean()
 
         @jax_u.jit
+        @jax_u.vmap
         def update_params(
             params: chex.ArrayTree,
             opt_state: chex.ArrayTree,
@@ -200,7 +201,8 @@ class QRCCritic:
         opt_state = critic_state.opt_state
         for _ in range(self._cfg.nominal_setpoint_updates):
             rng, sub = jax.random.split(rng)
-            _, params, opt_state = update_params(params, opt_state, sub)
+            ens_rng = jax.random.split(sub, self._cfg.ensemble)
+            _, params, opt_state = update_params(params, opt_state, ens_rng)
 
         return critic_state._replace(
             params=params,
