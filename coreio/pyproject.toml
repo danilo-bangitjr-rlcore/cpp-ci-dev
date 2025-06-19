@@ -7,8 +7,8 @@ requires-python = ">=3.13"
 dependencies = [
     "asyncua>=1.1.6",
     "backoff>=2.2.1",
-    "corerl",
     "lib-config",
+    "lib-defs",
 ]
 
 [dependency-groups]
@@ -29,9 +29,9 @@ build-backend = "hatchling.build"
 packages = ["coreio"]
 
 [tool.uv.sources]
-corerl = { path = "../corerl", editable = true }
 test = { path = "../test", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
+lib-defs = { path = "../libs/lib_defs", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'

@@ -14,8 +14,8 @@ from corerl.config import MainConfig
 from corerl.sql_logging.sql_logging import add_retention_policy, table_exists
 from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.utils import git
-from corerl.utils.time import now_iso
 from lib_config.loader import direct_load_config
+from lib_utils.time import now_iso
 from sqlalchemy import Engine, text
 
 

@@ -4,11 +4,12 @@ from functools import cached_property
 
 import numpy as np
 import pandas as pd
+from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig, TagType, get_action_bounds
+from corerl.data_pipeline.tag_config import TagConfig, get_action_bounds
 from corerl.state import AppState
 from corerl.utils.time import percent_time_elapsed
 

@@ -2,7 +2,7 @@ import uuid
 from enum import StrEnum, auto
 from typing import Any
 
-from corerl.utils.time import now_iso
+from lib_utils.time import now_iso
 from pydantic import BaseModel, ConfigDict, Field
 
 

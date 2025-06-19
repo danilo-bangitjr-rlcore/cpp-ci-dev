@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from lib_config.loader import direct_load_config
+from lib_defs.config_defs.tag_config import TagType
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -14,7 +15,6 @@ from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
-from corerl.data_pipeline.tag_config import TagType
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig, EvalsTable

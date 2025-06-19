@@ -2,10 +2,11 @@ import logging
 from functools import cached_property
 
 import numpy as np
+from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.utils import update_missing_info
 
 logger = logging.getLogger(__name__)

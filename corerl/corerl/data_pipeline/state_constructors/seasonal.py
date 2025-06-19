@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pandas as pd
 from lib_config.config import MISSING, computed, config
+from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.tag_config import TagType
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

@@ -5,9 +5,9 @@ import time
 
 import numpy as np
 import zmq
-from corerl.config import MainConfig
 from lib_config.loader import load_config
 
+from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType, OPCUANodeWriteValue
 
 logging.basicConfig(
@@ -17,8 +17,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-@load_config(MainConfig)
-def main(cfg: MainConfig):
+@load_config(MainConfigAdapter)
+def main(cfg: MainConfigAdapter):
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     socket.connect(cfg.coreio.coreio_origin)

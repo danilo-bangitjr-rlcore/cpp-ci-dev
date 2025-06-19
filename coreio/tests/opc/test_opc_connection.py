@@ -2,11 +2,13 @@ import asyncio
 from pathlib import Path
 
 import pytest
-from corerl.config import MainConfig
 from lib_config.loader import direct_load_config
 from test.infrastructure.networking import get_free_port
 
 from coreio.config import OPCSecurityPolicyBasic256SHA256Config
+from coreio.utils.config_schemas import MainConfigAdapter
+
+# from corerl.config import MainConfig
 from coreio.utils.opc_communication import OPC_Connection, OPCConnectionConfig
 from tests.infrastructure.mock_opc_certs import ServerClientKeyCerts
 from tests.infrastructure.mock_opc_server import FakeOpcServer
@@ -45,10 +47,10 @@ def load_config(
     for testing, and also replaces any key/cert info with generated ones
     """
     cfg = direct_load_config(
-        MainConfig,
+        MainConfigAdapter,
         config_name=str('tests/opc/' / cfg_name),
     )
-    assert isinstance(cfg, MainConfig)
+    assert isinstance(cfg, MainConfigAdapter)
     config = cfg.coreio.opc_connections[0]
     if isinstance(config.security_policy, OPCSecurityPolicyBasic256SHA256Config):
         assert server_client_key_certs is not None, "Key certs must be provided if security policy is not None"

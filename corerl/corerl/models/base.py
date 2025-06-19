@@ -3,9 +3,10 @@ from typing import Any
 import jax
 from lib_config.config import MISSING, config
 from lib_config.group import Group
+from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 
 
 @config()

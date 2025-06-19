@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
 from lib_config.config import MISSING, config, list_, post_processor
+from lib_defs.config_defs.tag_config import TagType
 from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
 from pydantic import Field
@@ -35,16 +36,6 @@ class Agg(StrEnum):
     avg = auto()
     last = auto()
     bool_or = auto()
-
-
-class TagType(StrEnum):
-    ai_setpoint = auto()
-    meta = auto()
-    day_of_year = auto()
-    day_of_week = auto()
-    time_of_day = auto()
-    delta = auto()
-    default = auto()
 
 @config()
 class CascadeConfig:

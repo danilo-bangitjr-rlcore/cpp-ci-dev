@@ -2,12 +2,12 @@ import logging
 from collections.abc import Sequence
 from datetime import UTC
 from types import TracebackType
-from typing import Any, Protocol, assert_never
+from typing import Any, assert_never
 
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
-from corerl.data_pipeline.tag_config import TagType
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import (
@@ -20,6 +20,7 @@ from coreio.config import (
     OPCSecurityPolicyConfig,
     OPCSecurityPolicyNoneConfig,
 )
+from coreio.utils.config_schemas import TagConfigAdapter
 from coreio.utils.io_events import OPCUANodeWriteValue
 
 logger = logging.getLogger(__name__)
@@ -29,16 +30,6 @@ class NodeData(BaseModel):
     node: Node
     var_type: ua.VariantType
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-class TagConfig(Protocol):
-    @property
-    def name(self) -> str: ...
-    @property
-    def connection_id(self) -> str | None: ...
-    @property
-    def node_identifier(self) -> str | None: ...
-    @property
-    def type(self) -> TagType: ...
 
 
 def log_backoff(details: Any):
@@ -52,7 +43,7 @@ class OPC_Connection:
         self.opc_client: Client | None = None
         self.registered_nodes: dict[str, NodeData] = {}
 
-    async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfig]):
+    async def init(self, cfg: OPCConnectionConfig, tag_configs: Sequence[TagConfigAdapter]):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
         self._connected = False
@@ -138,7 +129,7 @@ class OPC_Connection:
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
-    async def _register_action_nodes(self, tag_configs: Sequence[TagConfig]):
+    async def _register_action_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
         """
         Register nodes that:
         1. Have the relevant connection_id
