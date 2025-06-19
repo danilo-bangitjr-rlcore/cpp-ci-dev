@@ -344,13 +344,13 @@ class PercentileActor:
         ), metrics
 
     def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: State, rng: chex.PRNGKey):
-        uniform_samples = int(self._cfg.num_samples * self._cfg.uniform_weight)
+        num_uniform_samples = int(self._cfg.num_samples * self._cfg.uniform_weight)
 
         rng, u_rng, p_rng = jax.random.split(rng, 3)
-        uniform_actions = jax.random.uniform(u_rng, (uniform_samples, self.action_dim))
-        uniform_actions = jnp.clip(uniform_actions, state.a_lo, state.a_hi)
+        uniform_samples = jax.random.uniform(u_rng, (num_uniform_samples, self.action_dim))
+        uniform_actions = uniform_samples * (state.a_hi - state.a_lo) + state.a_lo
 
-        proposal_samples = self._cfg.num_samples - uniform_samples
+        proposal_samples = self._cfg.num_samples - num_uniform_samples
         if proposal_samples == 0:
             return uniform_actions
 
