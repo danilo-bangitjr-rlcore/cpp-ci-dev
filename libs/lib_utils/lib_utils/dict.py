@@ -268,6 +268,25 @@ def flatten_tree(
 
     return result
 
+
+def flatten_nested_dict(
+    d: MutableMapping[str, Any],
+    separator: str = ".",
+    _parent_key: str = "",
+    _carry: dict | None = None,
+) -> dict[str, Any]:
+    _carry = _carry if _carry is not None else {}
+
+    for k, v in d.items():
+        new_k = _parent_key + k if _parent_key else k
+        if isinstance(v, MutableMapping):
+            new_parent = new_k + separator
+            flatten_nested_dict(v, separator, new_parent, _carry)
+        else:
+            _carry[new_k] = v
+
+    return _carry
+
 # ------------------------
 # -- Internal Utilities --
 # ------------------------

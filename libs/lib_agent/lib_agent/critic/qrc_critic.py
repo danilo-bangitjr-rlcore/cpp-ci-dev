@@ -9,6 +9,7 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import optax
+from lib_utils import dict as dict_u
 
 import lib_agent.network.networks as nets
 from lib_agent.buffer.buffer import State
@@ -514,26 +515,42 @@ def create_ensemble_dict(
         for i, member_metrics in enumerate(metrics)
     }
 
-def extract_metrics(metrics: QRCCriticMetrics, metric_names: list[str]) -> list[dict[str, float]]:
+def extract_metrics(
+    metrics: dict[str, Any] | QRCCriticMetrics,
+    metric_names: list[str] | None = None,
+    array_processor: Callable[[jax.Array], float] | None = None,
+    flatten_separator: str = "_",
+) -> list[dict[str, float]]:
+    if hasattr(metrics, '_asdict'):
+        metrics = metrics._asdict()
+
+    filtered = {k: v for k, v in metrics.items() if metric_names is None or k in metric_names}
+    if not filtered:
+        return []
+
+    arrays = {k: v for k, v in filtered.items() if hasattr(v, 'shape') and hasattr(v, 'mean')}
+    lists = {k: v for k, v in filtered.items() if not (hasattr(v, 'shape') and hasattr(v, 'mean'))}
+
+    ensemble_data = jax_u.extract_axis(arrays, axis=0) if arrays else []
+    ensemble_size = len(lists.get(next(iter(lists)), [])) if lists else 0
+    if not ensemble_data and ensemble_size > 0:
+        ensemble_data = [{} for _ in range(ensemble_size)]
+
+    processor = array_processor or (lambda x: float(x.mean().squeeze()))
+
     result = []
-    for metric_name, ens_metric in metrics._asdict().items():
-        if metric_name not in metric_names:
-            continue
+    for i, member in enumerate(ensemble_data):
+        member_dict = {k: processor(v) for k, v in member.items()}
 
-        for i, metric_val in enumerate(ens_metric):
-            if i >= len(result):
-                result.append({})
+        for name, lst in lists.items():
+            if i < len(lst):
+                val = lst[i]
+                if isinstance(val, dict):
+                    flattened = dict_u.flatten_nested_dict(val, separator=flatten_separator)
+                    member_dict.update({f"{name}_{k}": float(v) for k, v in flattened.items()})
+                else:
+                    member_dict[name] = float(val)
 
-            if metric_name in ['layer_grad_norms', 'layer_weight_norms']:
-                result[i].update({
-                    f"{metric_name}_{layer_name}": float(norm)
-                    for layer_name, norm in metric_val.items()
-                })
-            else:
-                result[i][metric_name] = float(metric_val.mean().squeeze())
+        result.append(member_dict)
 
     return result
-
-def extract_stable_ranks(params: chex.ArrayTree) -> list[dict[str, float]]:
-    """Extract stable ranks from params into a list of dictionaries."""
-    return get_stable_rank(params)

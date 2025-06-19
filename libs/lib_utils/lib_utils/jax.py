@@ -108,3 +108,22 @@ def multi_vmap[F: Callable](f: F, levels: int) -> F:
         f = jax.vmap(f)
 
     return f
+
+
+def extract_axis(
+    arrays: dict[str, jax.Array],
+    axis: int = 0,
+) -> list[dict[str, jax.Array]]:
+    if not arrays:
+        return []
+
+    first_array = next(iter(arrays.values()))
+    axis_size = first_array.shape[axis]
+
+    return [
+        {
+            key: jax.lax.index_in_dim(array, i, axis, keepdims=False)
+            for key, array in arrays.items()
+        }
+        for i in range(axis_size)
+    ]
