@@ -309,30 +309,15 @@ class GreedyAC(BaseAgent):
         # remove the n_samples dimension
         return actions.squeeze(axis=-2)
 
-    def get_action_interaction(
-        self,
-        state: np.ndarray,
-        action_lo: np.ndarray,
-        action_hi: np.ndarray,
-    ) -> np.ndarray:
+    def get_action_interaction(self, state: State) -> np.ndarray:
         """
         Samples a single action during interaction.
         """
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
-        state_features = jnp.asarray(state)
-        jaxtion_lo = jnp.asarray(action_lo)
-        jaxtion_hi = jnp.asarray(action_hi)
-        state_ = State(
-            features=state_features,
-            a_lo=jaxtion_lo,
-            a_hi=jaxtion_hi,
-            dp=jnp.ones((1,)),
-            last_a=jnp.zeros_like(jaxtion_lo),
-        )
         jaxtion, metrics = self._actor.get_actions(
             self._actor_state.actor.params,
-            state_,
+            state,
         )
         # remove the n_samples dimension
         jaxtion = jaxtion.squeeze(axis=-2)

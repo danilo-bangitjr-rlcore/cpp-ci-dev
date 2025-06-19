@@ -1,7 +1,9 @@
 import logging
 from datetime import UTC, datetime, timedelta
 
+import numpy as np
 import pandas as pd
+from lib_agent.buffer.buffer import State
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.datatypes import DataMode
@@ -9,7 +11,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.async_env.sim_async_env import SimAsyncEnv
 from corerl.interaction.configs import InteractionConfig
-from corerl.interaction.deployment_interaction import AgentState, DeploymentInteraction
+from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState
 from corerl.utils.time import percent_time_elapsed
@@ -54,9 +56,9 @@ class SimInteraction(DeploymentInteraction):
     # ---------
     # internals
     # ---------
-    def _get_action(self, state: AgentState):
+    def _get_action(self, state: State):
         if self._state_is_fresh() and self._state_has_no_nans():
-            return self._agent.get_action_interaction(state.feats, state.action_lo, state.action_hi)
+            return self._agent.get_action_interaction(state)
         logger.warning(f'Tried to take action, however was unable: {state}')
         if self._last_action_df is None:
             assert isinstance(self._env, SimAsyncEnv)
@@ -99,7 +101,7 @@ class SimInteraction(DeploymentInteraction):
         """
         check that a state has been previously observed
         """
-        if self._last_state.timestamp is None:
+        if self._last_state_ts is None:
             logger.error("Interaction state is None")
             return False
         return True
@@ -123,7 +125,7 @@ class SimInteraction(DeploymentInteraction):
             next_a = self._get_action(state)
             norm_next_a_df = self._pipeline.action_constructor.get_action_df(next_a)
             # clip to the normalized action bounds
-            norm_next_a_df = self._clip_action_bounds(norm_next_a_df, state.action_lo, state.action_hi)
+            norm_next_a_df = self._clip_action_bounds(norm_next_a_df, np.asarray(state.a_lo), np.asarray(state.a_hi))
             next_a_df = self._pipeline.preprocessor.inverse(norm_next_a_df)
             self._env.emit_action(next_a_df, log_action=False)
 
@@ -132,7 +134,7 @@ class SimInteraction(DeploymentInteraction):
     # -- Checkpointing --
     # -------------------
     def maybe_checkpoint(self):
-        now = self._last_state.timestamp
+        now = self._last_state_ts
         assert now is not None
         assert self._last_checkpoint is not None
         if now - self._last_checkpoint >= self._checkpoint_freq:
