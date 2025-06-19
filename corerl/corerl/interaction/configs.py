@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Literal
 
@@ -172,8 +172,9 @@ class InteractionConfig:
     @post_processor
     def _validate_hist_windows(self, cfg: MainConfig):
         for i, (start, stop) in enumerate(self.historical_windows):
-            start = Maybe(start)
-            stop = Maybe(stop)
+            start = Maybe(start).map(lambda ts: ts.astimezone(UTC))
+            stop = Maybe(stop).map(lambda ts: ts.astimezone(UTC))
+            self.historical_windows[i] = (start.unwrap(), stop.unwrap()) # maybe update tz
 
             # ensure Nones only appear at beginning or end of the sequence
             assert i == 0 or start.is_some()
