@@ -404,7 +404,7 @@ class PercentileActor:
         states: State,
         top_actions_batch: jax.Array,
     ):
-        losses = jax.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
+        losses = jax_u.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
 
 

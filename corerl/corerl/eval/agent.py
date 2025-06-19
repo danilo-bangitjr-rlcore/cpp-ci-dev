@@ -96,10 +96,7 @@ def _q_online(
     """
     assert state.ndim == 1
     assert action.ndim == 1
-    out = agent.get_values(
-        jnp.expand_dims(state, [0, 1]),
-        jnp.expand_dims(action, [0, 1]),
-    )
+    out = agent.get_values(jnp.asarray(state), jnp.asarray(action))
 
     return out.reduced_value, out.ensemble_values, out.ensemble_variance
 
@@ -133,7 +130,7 @@ class GreedDistConfig:
 def _greed_dist(
     cfg: GreedDistConfig,
     agent: GreedyAC,
-    states: np.ndarray | jax.Array,
+    state: np.ndarray | jax.Array,
     action_lo: np.ndarray | jax.Array,
     action_hi: np.ndarray | jax.Array,
 ) -> Sequence[jax.Array]:
@@ -146,32 +143,27 @@ def _greed_dist(
 
     Returns the metric for each state in the batch.
     """
-    assert states.ndim == action_lo.ndim == action_hi.ndim == 1
+    assert state.ndim == action_lo.ndim == action_hi.ndim == 1
+    state = jnp.asarray(state)
 
-    uniform_actions = np.random.uniform(
-        low=action_lo,
-        high=action_hi,
-        size=(cfg.n_samples, agent.action_dim),
+    uniform_actions = jnp.asarray(
+        np.random.uniform(
+            low=action_lo,
+            high=action_hi,
+            size=(cfg.n_samples, agent.action_dim),
+        ),
     )
 
-    q_values = agent.get_values(
-        # add (ensemble, batch) dimensions
-        jnp.expand_dims(states, [0, 1]),
-        jnp.expand_dims(uniform_actions, [0, 1]),
-    )
+    q_values = agent.get_values(state, uniform_actions)
 
-    q = q_values.reduced_value.squeeze(0)
+    q = q_values.reduced_value
     chex.assert_shape(q, (cfg.n_samples, 1))
 
     max_actions_critic = get_max_action(uniform_actions, q)
     chex.assert_shape(max_actions_critic, (1, agent.action_dim))
 
     # Get log probabilities for the sampled actions from the actor.
-    probs = agent.prob(
-        # add batch dimension
-        jnp.expand_dims(states, 0),
-        jnp.expand_dims(uniform_actions, 0),
-    ).squeeze(0)
+    probs = agent.prob(state, uniform_actions)
     chex.assert_shape(probs, (cfg.n_samples,))
 
     # Get the max direct action according to log_probs for each state
@@ -187,7 +179,7 @@ def _greed_dist(
 def greed_dist_online(
         app_state: AppState,
         agent: BaseAgent,
-        states: np.ndarray | jax.Array,
+        state: np.ndarray | jax.Array,
         action_lo: np.ndarray | jax.Array,
         action_hi: np.ndarray | jax.Array,
     ):
@@ -197,7 +189,7 @@ def greed_dist_online(
         cfg_lens=lambda app_state: app_state.cfg.eval_cfgs.greed_dist_online,
         eval_fn=_greed_dist,
         metric_names=['greed_dist_online'],
-        states=states,
+        state=state,
         action_lo=action_lo,
         action_hi=action_hi,
     )
@@ -275,24 +267,12 @@ def q_values_and_act_prob(
 
         # Next, plot q values for the entire range of direct actions
         # need to loop over the "other_action" dimension
-        # also need (ens, batch, n_samples) dimensions
-        q_func = jax_u.vmap(agent.critic.get_values, (None, None, 3))
-        qs = q_func(
-            agent._critic_state.params,
-            jnp.expand_dims(state, [0, 1]),
-            jnp.expand_dims(query_actions, [0, 1]),
-        )
-
-        # because we looped the other_action dimension first,
-        # we need some reordering
-        qs = qs.transpose(1, 2, 3, 0, 4)
-        chex.assert_shape(
-            qs,
-            (agent.ensemble, 1, cfg.primary_action_samples, cfg.other_action_samples, 1),
-        )
-
-        # avg over ensemble, batch, and other_action dimensions, remove the trailing value dim
-        qs = qs.mean(axis=(0, 1, 3)).squeeze(-1)
+        chex.assert_shape(query_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
+        other_action_get_vals = jax_u.vmap(agent.get_values, in_axes=(None, 1), out_axes=-2)
+        out = other_action_get_vals(state, query_actions)
+        chex.assert_shape(out.reduced_value, (cfg.primary_action_samples, cfg.other_action_samples, 1))
+        # remove the trailing value dim and avg over other_action dim
+        qs = out.reduced_value.squeeze(-1).mean(axis=-1)
 
         measure = XYEval(data=[
             XY(x=float(x), y=float(y))
