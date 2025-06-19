@@ -88,7 +88,7 @@ class BSM1Env(gym.Env):
 
         return np.array(obs), 0.0, False, False, {}
 
-    def reset(self, *, seed = None, options = None):
+    def reset(self, *, seed: int | None = None, options: dict | None = None):
         self._influent = InfluentModel(self._params.influent_sensors)
         self._tanks = [TankModel(self._params.tank_sensors[i]) for i in range(5)]
         self._clarifier = ClarifierModel(self._params.effluent_sensors)

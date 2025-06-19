@@ -36,12 +36,10 @@ def test_time_of_day():
     expected = pd.DataFrame({
         "tag-1": [1, 2, 3],
         "tag-2": [4, 5, 6],
+        "time_of_day": [25200, 37800, 65831],
         "time_of_day_sin": [0.9659258, 0.382683, -0.99719058],
         "time_of_day_cos": [-0.258819, -0.9238795, 0.074906209],
     })
-
-    print("pf.data:")
-    print(pf.data)
 
     assert dfs_close(pf.data, expected)
 
@@ -67,6 +65,7 @@ def test_day_of_week():
     expected = pd.DataFrame({
         "tag-1": [1, 2, 3],
         "tag-2": [4, 5, 6],
+        "day_of_week": [2, 0, 5],
         "day_of_week_0": [0, 1, 0],
         "day_of_week_1": [0, 0, 0],
         "day_of_week_2": [1, 0, 0],
@@ -100,6 +99,7 @@ def test_time_of_year():
     expected = pd.DataFrame({
         "tag-1": [1, 2, 3],
         "tag-2": [4, 5, 6],
+        "day_of_year": [18, 86, 195],
         "time_of_year_sin": [0.3049212, 0.995919, -0.204552],
         "time_of_year_cos": [0.9523775, 0.0902516, -0.978855],
     })

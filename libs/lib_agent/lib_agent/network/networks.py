@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import assert_never
 
 import haiku as hk
 import jax
@@ -119,10 +118,8 @@ def layer_factory(cfg: LayerConfig):
         return Linear(cfg)
     if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
-    if isinstance(cfg, LateFusionConfig):
-        return FusionNet(cfg)
 
-    assert_never(cfg)
+    return FusionNet(cfg)
 
 def torso_builder(cfg: TorsoConfig):
     layers: list[hk.Module] = [

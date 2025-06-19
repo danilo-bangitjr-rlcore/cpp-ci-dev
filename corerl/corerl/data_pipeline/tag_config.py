@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
 from lib_config.config import MISSING, config, list_, post_processor
+from lib_defs.config_defs.tag_config import TagType
 from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
 from pydantic import Field
@@ -35,16 +36,6 @@ class Agg(StrEnum):
     avg = auto()
     last = auto()
     bool_or = auto()
-
-
-class TagType(StrEnum):
-    ai_setpoint = auto()
-    meta = auto()
-    day_of_year = auto()
-    day_of_week = auto()
-    time_of_day = auto()
-    delta = auto()
-    default = auto()
 
 @config()
 class CascadeConfig:
@@ -499,7 +490,7 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 
 def set_seasonal_tag_defaults(tag_cfg: TagConfig):
     tag_cfg.preprocess = []
-    tag_cfg.state_constructor = []
+    tag_cfg.state_constructor = [NukeConfig()]
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
@@ -617,3 +608,11 @@ def eval_bound(
 
 def widen_bound_types(x: float | None) -> BoundsElem:
     return x
+
+def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
+    return [
+        tag_cfg
+        for tag_cfg in cfgs
+        if tag_cfg.type not in {TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
+        and not tag_cfg.is_computed
+    ]

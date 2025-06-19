@@ -31,7 +31,11 @@ def grad[F: Callable](f: F, has_aux: bool = False) -> F:
     return g
 
 
-def vmap[F: Callable](f: F, in_axes: tuple[int | None, ...] | None = None) -> F:
+def vmap[F: Callable](
+    f: F,
+    in_axes: tuple[int | None, ...] | int | None = None,
+    out_axes: tuple[int | None, ...] | int | None = 0,
+) -> F:
     # if no in_axes are provided, we assume all arguments are batched
     if in_axes is None:
         in_axes = tuple(
@@ -39,7 +43,7 @@ def vmap[F: Callable](f: F, in_axes: tuple[int | None, ...] | None = None) -> F:
             for p in signature(f).parameters.values()
         )
 
-    return jax.vmap(f, in_axes=in_axes)
+    return jax.vmap(f, in_axes=in_axes, out_axes=out_axes)
 
 
 def vmap_except[F: Callable](f: F, exclude: Sequence[str | int], levels: int = 1) -> F:
@@ -66,7 +70,7 @@ def vmap_except[F: Callable](f: F, exclude: Sequence[str | int], levels: int = 1
             total[i] = None
 
     for _ in range(levels):
-        f = jax.vmap(f, in_axes=total)
+        f = jax.vmap(f, in_axes=tuple(total))
 
     return f
 
@@ -94,7 +98,7 @@ def vmap_only[F: Callable](f: F, include: Sequence[str | int], levels: int = 1) 
             total[i] = 0
 
     for _ in range(levels):
-        f = jax.vmap(f, in_axes=total)
+        f = jax.vmap(f, in_axes=tuple(total))
 
     return f
 

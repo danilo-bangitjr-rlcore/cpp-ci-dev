@@ -4,9 +4,11 @@
 import asyncio
 import logging
 
-from corerl.config import MainConfig
 from lib_config.loader import load_config
 
+from coreio.utils.config_schemas import MainConfigAdapter
+
+# from corerl.config import MainConfig
 from coreio.utils.io_events import IOEventType
 from coreio.utils.opc_communication import OPC_Connection
 from coreio.utils.zmq_communication import ZMQ_Communication
@@ -21,8 +23,8 @@ logger = logging.getLogger(__name__)
 logging.getLogger("asyncua").setLevel(logging.WARNING)
 logging.getLogger("asyncuagds").setLevel(logging.WARNING)
 
-@load_config(MainConfig)
-async def coreio_loop(cfg: MainConfig):
+@load_config(MainConfigAdapter)
+async def coreio_loop(cfg: MainConfigAdapter):
     opc_connections: dict[str, OPC_Connection] = {}
     for opc_conn_cfg in cfg.coreio.opc_connections:
         opc_connections[opc_conn_cfg.connection_id] = await OPC_Connection().init(opc_conn_cfg, cfg.pipeline.tags)

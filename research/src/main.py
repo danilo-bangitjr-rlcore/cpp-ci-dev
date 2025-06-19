@@ -55,7 +55,7 @@ def process_overrides(override_args: list) -> list[tuple]:
     return override_list
 
 
-def flatten_config(cfg):
+def flatten_config(cfg: dict[str, Any]):
     flattened = {}
     for key, value in cfg.items():
         if isinstance(value, dict):

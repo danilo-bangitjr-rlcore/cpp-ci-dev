@@ -14,43 +14,44 @@ class OPCMessageSecurityMode(StrEnum):
     sign = auto()
     sign_and_encrypt = auto()
 
-class OPCAuthenticationMode(StrEnum):
+class OPCAuthMode(StrEnum):
     anonymous = auto()
     username_password = auto()
 
-type OPCMessageSecurityModeNone = Literal[OPCMessageSecurityMode.none]
-type OPCMessageSecurityModeNotNone = Literal[OPCMessageSecurityMode.sign, OPCMessageSecurityMode.sign_and_encrypt]
-type OPCMessageSecurityModeAll = OPCMessageSecurityModeNone | OPCMessageSecurityModeNotNone
+
+type OPCSecurityMode = Literal[OPCMessageSecurityMode.sign, OPCMessageSecurityMode.sign_and_encrypt]
+
 
 @config(frozen=True)
-class OPCSecurityPolicyNone:
+class OPCSecurityPolicyNoneConfig:
     policy: Literal[OPCSecurityPolicy.none] = OPCSecurityPolicy.none
-    mode: OPCMessageSecurityModeNone = OPCMessageSecurityMode.none
+    mode: Literal[OPCMessageSecurityMode.none] = OPCMessageSecurityMode.none
+
 
 @config(frozen=True)
-class OPCSecurityPolicyBasic256SHA256:
+class OPCSecurityPolicyBasic256SHA256Config:
     policy: Literal[OPCSecurityPolicy.basic256_sha256] = OPCSecurityPolicy.basic256_sha256
-    mode: OPCMessageSecurityModeNotNone = OPCMessageSecurityMode.sign_and_encrypt
+    mode: OPCSecurityMode = OPCMessageSecurityMode.sign_and_encrypt
     client_cert_path: Path = MISSING
     client_key_path: Path = MISSING
     server_cert_path: Path = MISSING
 
-type OPCSecurityPolicies = OPCSecurityPolicyNone | OPCSecurityPolicyBasic256SHA256
+type OPCSecurityPolicyConfig = OPCSecurityPolicyNoneConfig | OPCSecurityPolicyBasic256SHA256Config
 
 @config(frozen=True)
-class OPCAuthenticationModeUsernamePassword:
+class OPCAuthModeUsernamePasswordConfig:
     username: str = MISSING
     password: str = ""
 
-type OPCAuthenticationModes = Literal[OPCAuthenticationMode.anonymous] | OPCAuthenticationModeUsernamePassword
+type OPCAuthModeConfig = Literal[OPCAuthMode.anonymous] | OPCAuthModeUsernamePasswordConfig
 
 @config(frozen=True)
 class OPCConnectionConfig:
     connection_id: str = MISSING
     opc_conn_url: str = MISSING
     application_uri: str | None = None
-    security_policy: OPCSecurityPolicies = MISSING
-    authentication_mode: OPCAuthenticationModes = MISSING
+    security_policy: OPCSecurityPolicyConfig = MISSING
+    authentication_mode: OPCAuthModeConfig = MISSING
 
 @config(frozen=True)
 class CoreIOConfig:

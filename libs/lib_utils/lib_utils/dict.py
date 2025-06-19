@@ -99,7 +99,7 @@ def merge(d1: dict[str, Any], d2: dict[str, Any], _path: list[str] | None = None
 
         elif isinstance(v, dict):
             assert isinstance(d1[k], dict), f"Key type mismatch at {'.'.join(_path)}. Expected dict."
-            out[k] = merge(d1[k], d2[k], [*_path, k])
+            out[k] = merge(d1[k], v, [*_path, k])
 
         elif isinstance(v, list) and len(v) > 0 and isinstance(v[0], dict):
             out[k] = _zip_longest(merge, d1[k], v)

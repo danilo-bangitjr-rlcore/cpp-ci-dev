@@ -1,5 +1,7 @@
+import chex
 import jax
 import jax.numpy as jnp
+import lib_utils.jax as jax_u
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.state import AppState
@@ -246,29 +248,28 @@ class RepresentationEval:
             maxval=action_hi[:, None, :],
         )
 
-        # get representations from the first layer of the critic
-        states_expanded = jnp.expand_dims(states, 0)  # add ensemble dimension
-        sampled_actions = jnp.expand_dims(sampled_actions, 0)
-
-        state_reps = agent.critic.get_representations(
+        get_ens_state_reps = jax_u.vmap_only(agent.critic.get_representations, ["params"])
+        ens_state_reps = get_ens_state_reps(
             agent._critic_state.params,
-            states_expanded,
+            states,
             sampled_actions,
         )
-        next_states_expanded = jnp.expand_dims(next_states, 0)
-        next_state_reps = agent.critic.get_representations(
+        chex.assert_shape(ens_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
+        ens_next_state_reps = get_ens_state_reps(
             agent._critic_state.params,
-            next_states_expanded,
+            next_states,
             sampled_actions,
         )
+        chex.assert_shape(ens_next_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
 
-        # average representations for each state
-        mean_state_reps = state_reps.reshape(num_states, n_samples, -1).mean(axis=1)
-        mean_next_state_reps = next_state_reps.reshape(num_states, n_samples, -1).mean(axis=1)
+        # average representations for each state: avg over ensemble and action samples
+        mean_state_reps = ens_state_reps.mean(axis=(0, 2))
+        mean_next_state_reps = ens_next_state_reps.mean(axis=(0, 2))
 
         # get values for each state (using Q-values for the current policy)
-        qs = agent.get_values(states_expanded, sampled_actions).reduced_value
-        mean_qs = qs.reshape(num_states, n_samples).mean(axis=1)
+        qs = jax_u.vmap_only(agent.critic.get_values, ["params"])(agent._critic_state.params, states, sampled_actions)
+        chex.assert_shape(qs, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, 1))
+        mean_qs = qs.mean(axis=(0, 2)).squeeze(-1) # avg over ensemble members and action samples
 
         complexity_reduction = self.get_complexity_reduction(
             states,

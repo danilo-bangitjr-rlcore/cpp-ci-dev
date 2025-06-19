@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import datetime
 import logging
-import warnings
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -267,12 +266,22 @@ class Pipeline:
 
         first_time = pf.get_first_timestamp()
         if first_time - last_seen_time > self.cfg.max_data_gap:
-            warnings.warn(
+            logger.warning(
                 "The temporal state is invalid. "
                 f"The temporal state has timestamp {last_seen_time} "
                 f"while the current pipeframe has initial timestamp {first_time}",
                 stacklevel=2,
             )
+
+        if first_time < last_seen_time:
+            logger.warning(
+                "The temporal state is invalid. "
+                f"The temporal state has timestamp {last_seen_time} "
+                f"while the current pipeframe has initial timestamp {first_time} "
+                "which comes before the previous pipeline invocation. "
+                "Resetting the temporal state.",
+            )
+            return {}
 
         return ts
 

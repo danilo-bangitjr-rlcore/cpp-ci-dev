@@ -4,13 +4,14 @@ from functools import cached_property
 import lib_utils.list as list_u
 import pandas as pd
 from lib_config.config import config, list_
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add_seasonal_features
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TraceConfig, TransformConfig
 
 
@@ -87,7 +88,7 @@ class StateConstructor(Constructor):
     def state_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
         return [
             tag for tag in tag_cfgs
-            if tag.type not in {TagType.meta, TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
+            if tag.type not in {TagType.meta}
         ]
 
 

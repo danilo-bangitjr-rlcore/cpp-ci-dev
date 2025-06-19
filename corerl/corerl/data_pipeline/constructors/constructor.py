@@ -3,9 +3,10 @@ from collections import defaultdict
 from functools import cached_property
 
 import pandas as pd
+from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig, TagType
+from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry

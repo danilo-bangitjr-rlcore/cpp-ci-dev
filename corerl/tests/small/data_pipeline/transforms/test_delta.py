@@ -9,7 +9,10 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 
 
 def test_delta_xform():
-    cfg = DeltaConfig(time_thresh=dt.timedelta(hours=2))
+    cfg = DeltaConfig(
+        time_thresh=dt.timedelta(hours=2),
+        obs_period=dt.timedelta(hours=1),
+    )
     xform = Delta(cfg)
 
     df = pd.DataFrame({
@@ -29,12 +32,15 @@ def test_delta_xform():
 
     expected = pd.DataFrame({
         'tag-1_a_Δ': [np.nan, 1, np.nan, np.nan, np.nan],
-        'tag-1_b_Δ': [np.nan, np.nan, np.nan, 2, np.nan],
+        'tag-1_b_Δ': [np.nan, np.nan, np.nan, 1, np.nan],
     })
     assert dfs_close(carry.transform_data, expected)
 
 def test_delta_xform_ts():
-    cfg = DeltaConfig(time_thresh=dt.timedelta(hours=2))
+    cfg = DeltaConfig(
+        time_thresh=dt.timedelta(hours=2),
+        obs_period=dt.timedelta(hours=1),
+    )
     xform = Delta(cfg)
 
     df1 = pd.DataFrame({
@@ -58,7 +64,7 @@ def test_delta_xform_ts():
         # df1 -> df2
         # [1, 2, 3] -> [5, 8, 12]
         'tag-1_a_Δ': [np.nan, 3, 4],
-        'tag-1_b_Δ': [4, 2, 0],
+        'tag-1_b_Δ': [2, 2, 0],
     })
 
     assert dfs_close(carry.transform_data, expected)
