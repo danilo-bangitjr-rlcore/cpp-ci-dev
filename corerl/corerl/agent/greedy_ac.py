@@ -362,11 +362,11 @@ class GreedyAC(BaseAgent):
             recent_actor_batch = self._actor_buffer.get_batch(recent_actor_idxs)
 
             state = State(
-                features=jnp.asarray(recent_actor_batch.state),
-                a_lo=jnp.asarray(recent_actor_batch.action_lo),
-                a_hi=jnp.asarray(recent_actor_batch.action_hi),
+                features=recent_actor_batch.state,
+                a_lo=recent_actor_batch.action_lo,
+                a_hi=recent_actor_batch.action_hi,
                 dp=jnp.ones((len(recent_actor_batch.state), 1)),
-                last_a=jnp.asarray(recent_actor_batch.action),
+                last_a=recent_actor_batch.action,
             )
 
             actor_loss = -jnp.log(self._actor.get_probs(
