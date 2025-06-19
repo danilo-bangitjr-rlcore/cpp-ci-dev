@@ -490,7 +490,7 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 
 def set_seasonal_tag_defaults(tag_cfg: TagConfig):
     tag_cfg.preprocess = []
-    tag_cfg.state_constructor = []
+    tag_cfg.state_constructor = [NukeConfig()]
 
 def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
