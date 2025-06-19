@@ -232,5 +232,4 @@ class MultiActionSaturationBadOfflineDataTest(BSuiteTestCase):
 
         for sql_tup in sql_tups:
             data_writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
-        data_writer.flush()
         data_writer.close()
