@@ -521,7 +521,7 @@ def extract_metrics(
     array_processor: Callable[[jax.Array], float] | None = None,
     flatten_separator: str = "_",
 ) -> list[dict[str, float]]:
-    if hasattr(metrics, '_asdict'):
+    if isinstance(metrics, QRCCriticMetrics):
         metrics = metrics._asdict()
 
     filtered = {k: v for k, v in metrics.items() if metric_names is None or k in metric_names}

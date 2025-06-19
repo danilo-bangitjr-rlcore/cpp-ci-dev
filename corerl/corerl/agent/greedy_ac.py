@@ -15,7 +15,7 @@ from lib_agent.critic.qrc_critic import (
     QRCCritic,
     create_ensemble_dict,
     extract_metrics,
-    extract_stable_ranks,
+    get_stable_rank,
 )
 from lib_config.config import MISSING, computed, config
 from pydantic import Field, TypeAdapter
@@ -432,7 +432,7 @@ class GreedyAC(BaseAgent):
 
         stable_ranks_dict = create_ensemble_dict(
             self._critic_state.params,
-            extract_stable_ranks,
+            get_stable_rank,
             prefix='stable_rank_',
         )
         self._app_state.metrics.write_dict(
