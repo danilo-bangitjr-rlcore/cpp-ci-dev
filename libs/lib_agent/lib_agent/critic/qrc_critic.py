@@ -228,7 +228,7 @@ class QRCCritic:
             next_actions,
         )
 
-        updates, new_opt_state = self._optim.update(
+        updates, new_opt_state = jax_u.vmap(self._optim.update, in_axes=0)(
             grads,
             state.opt_state,
             params=state.params,

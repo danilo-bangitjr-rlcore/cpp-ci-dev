@@ -11,6 +11,7 @@ from corerl.sql_logging.sql_logging import table_exists
     'pendulum',
     'saturation',
     'mountain_car_continuous',
+    'ensemble_mountain_car',
 ])
 @pytest.mark.timeout(360)
 def test_main_configs(

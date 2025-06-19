@@ -83,10 +83,14 @@ class PercentileActorConfig:
         )
 
         ta = TypeAdapter(default_buffer_type)
-        default_buffer = default_buffer_type(id='critic')
+        default_buffer = default_buffer_type(id='actor')
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
-        return ta.validate_python(default_buffer_dict, context=main_cfg)
+        buffer_cfg = ta.validate_python(default_buffer_dict, context=main_cfg)
+        buffer_cfg.ensemble = 1
+        buffer_cfg.ensemble_probability = 1
+
+        return buffer_cfg
 
 
 class EnsembleNetworkReturn(NamedTuple):
