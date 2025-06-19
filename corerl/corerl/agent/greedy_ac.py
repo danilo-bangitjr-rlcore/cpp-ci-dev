@@ -275,10 +275,6 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
-        actions = jnp.asarray(actions)
-        return self._actor.get_probs(actor_params, state, actions)
-
     def get_values(self, state: jax.Array, action: jax.Array):
         """
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
