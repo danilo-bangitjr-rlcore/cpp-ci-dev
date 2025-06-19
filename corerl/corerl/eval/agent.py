@@ -87,8 +87,8 @@ class QOnlineConfig:
 def _q_online(
     cfg: QOnlineConfig,
     agent: GreedyAC,
-    state: np.ndarray | jax.Array,
-    action: np.ndarray | jax.Array,
+    state: jax.Array,
+    action: jax.Array,
 ):
     """
     Records the Q value of the action taken, the variance across the ensemble
@@ -96,15 +96,15 @@ def _q_online(
     """
     assert state.ndim == 1
     assert action.ndim == 1
-    out = agent.get_values(jnp.asarray(state), jnp.asarray(action))
+    out = agent.get_values(state, action)
 
     return out.reduced_value, out.ensemble_values, out.ensemble_variance
 
 def q_online(
         app_state: AppState,
         agent: BaseAgent,
-        state: np.ndarray | jax.Array,
-        action: np.ndarray | jax.Array,
+        state: jax.Array,
+        action: jax.Array,
     ):
     return agent_eval(
         app_state,
@@ -118,7 +118,7 @@ def q_online(
 
 # ------------------------------ Greed Dist ------------------------------ #
 
-def get_max_action(actions: np.ndarray | jax.Array, values: jax.Array):
+def get_max_action(actions: jax.Array, values: jax.Array):
     max_indices = jnp.argmax(values, axis=0)
     return actions[max_indices, :]
 
@@ -130,9 +130,9 @@ class GreedDistConfig:
 def _greed_dist(
     cfg: GreedDistConfig,
     agent: GreedyAC,
-    state: np.ndarray | jax.Array,
-    action_lo: np.ndarray | jax.Array,
-    action_hi: np.ndarray | jax.Array,
+    state: jax.Array,
+    action_lo: jax.Array,
+    action_hi: jax.Array,
 ) -> Sequence[jax.Array]:
     """
     Evaluates whether the policy is greedy w.r.t. the critic in terms of a distance metric.
@@ -144,7 +144,6 @@ def _greed_dist(
     Returns the metric for each state in the batch.
     """
     assert state.ndim == action_lo.ndim == action_hi.ndim == 1
-    state = jnp.asarray(state)
 
     uniform_actions = jnp.asarray(
         np.random.uniform(
@@ -179,9 +178,9 @@ def _greed_dist(
 def greed_dist_online(
         app_state: AppState,
         agent: BaseAgent,
-        state: np.ndarray | jax.Array,
-        action_lo: np.ndarray | jax.Array,
-        action_hi: np.ndarray | jax.Array,
+        state: jax.Array,
+        action_lo: jax.Array,
+        action_hi: jax.Array,
     ):
     return agent_eval(
         app_state,
@@ -218,9 +217,9 @@ class QPDFPlotsConfig:
 def q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
-    state: np.ndarray | jax.Array,
-    action_lo: np.ndarray | jax.Array,
-    action_hi: np.ndarray | jax.Array,
+    state: jax.Array,
+    action_lo: jax.Array,
+    action_hi: jax.Array,
 ):
     """
     Logs the probability density function of the policy and the Q values.
@@ -234,9 +233,6 @@ def q_values_and_act_prob(
     if not cfg.enabled:
         return
 
-    state = jnp.asarray(state)
-    action_lo = jnp.asarray(action_lo)
-    action_hi = jnp.asarray(action_hi)
     chex.assert_rank((state, action_lo, action_hi), 1)
 
     rng = jax.random.PRNGKey(app_state.agent_step)
@@ -257,7 +253,7 @@ def q_values_and_act_prob(
 
         measure = XYEval(data=[
             XY(x=float(x), y=float(y))
-            for x, y in zip(x_axis_actions, np.asarray(probs.mean(axis=1)), strict=True)
+            for x, y in zip(x_axis_actions, probs.mean(axis=1), strict=True)
         ])
         app_state.evals.write(
             agent_step=app_state.agent_step,

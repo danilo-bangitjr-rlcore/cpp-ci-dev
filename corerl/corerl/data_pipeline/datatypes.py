@@ -82,11 +82,11 @@ class Transition:
 
     @property
     def state(self):
-        return np.asarray(self.prior.state)
+        return self.prior.state
 
     @property
     def action(self):
-        return np.asarray(self.post.action)
+        return self.post.action
 
     @property
     def reward(self):
@@ -98,7 +98,7 @@ class Transition:
 
     @property
     def next_state(self):
-        return np.asarray(self.post.state)
+        return self.post.state
 
     @property
     def action_dim(self):

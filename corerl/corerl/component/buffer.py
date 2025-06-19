@@ -159,17 +159,17 @@ class BaseBuffer:
         idxs = np.empty(len(transitions), dtype=np.int64)
         for j, transition in enumerate(transitions):
             idxs[j] = self._storage.add(JaxTransition(
-                last_action=jnp.asarray(transition.prior.action),
-                state=jnp.asarray(transition.state),
-                action=jnp.asarray(transition.action),
+                last_action=transition.prior.action,
+                state=transition.state,
+                action=transition.action,
                 reward=jnp.asarray(transition.reward),
-                next_state=jnp.asarray(transition.next_state),
+                next_state=transition.next_state,
                 gamma=jnp.asarray(transition.gamma),
 
-                action_lo=jnp.asarray(transition.steps[0].action_lo),
-                action_hi=jnp.asarray(transition.steps[0].action_hi),
-                next_action_lo=jnp.asarray(transition.steps[-1].action_lo),
-                next_action_hi=jnp.asarray(transition.steps[-1].action_hi),
+                action_lo=transition.steps[0].action_lo,
+                action_hi=transition.steps[0].action_hi,
+                next_action_lo=transition.steps[-1].action_lo,
+                next_action_hi=transition.steps[-1].action_hi,
 
                 dp=jnp.asarray(transition.steps[0].dp),
                 next_dp=jnp.asarray(transition.steps[-1].dp),

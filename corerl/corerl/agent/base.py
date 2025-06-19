@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import numpy
+from lib_agent.buffer.buffer import State
 from lib_config.config import MISSING, computed, config
 
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
@@ -49,12 +50,7 @@ class BaseAgent(ABC):
         self.n_updates = cfg.n_updates  # how many updates to apply each time update() is called
 
     @abstractmethod
-    def get_action_interaction(
-        self,
-        state: numpy.ndarray,
-        action_lo: numpy.ndarray,
-        action_hi: numpy.ndarray,
-    ) -> numpy.ndarray:  # must return a numpy array, not a tensor.
+    def get_action_interaction(self, state: State) -> numpy.ndarray: # must return a numpy array, not a jax Array
         """
         This method is for getting actions for the main agent/environment interaction loop.
         """

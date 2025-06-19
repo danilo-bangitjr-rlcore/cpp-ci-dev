@@ -275,10 +275,6 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
-        actions = jnp.asarray(actions)
-        return self._actor.get_probs(actor_params, state, actions)
-
     def get_values(self, state: jax.Array, action: jax.Array):
         """
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
@@ -313,30 +309,15 @@ class GreedyAC(BaseAgent):
         # remove the n_samples dimension
         return actions.squeeze(axis=-2)
 
-    def get_action_interaction(
-        self,
-        state: np.ndarray,
-        action_lo: np.ndarray,
-        action_hi: np.ndarray,
-    ) -> np.ndarray:
+    def get_action_interaction(self, state: State) -> np.ndarray:
         """
         Samples a single action during interaction.
         """
         self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
-        state_features = jnp.asarray(state)
-        jaxtion_lo = jnp.asarray(action_lo)
-        jaxtion_hi = jnp.asarray(action_hi)
-        state_ = State(
-            features=state_features,
-            a_lo=jaxtion_lo,
-            a_hi=jaxtion_hi,
-            dp=jnp.ones((1,)),
-            last_a=jnp.zeros_like(jaxtion_lo),
-        )
         jaxtion, metrics = self._actor.get_actions(
             self._actor_state.actor.params,
-            state_,
+            state,
         )
         # remove the n_samples dimension
         jaxtion = jaxtion.squeeze(axis=-2)
@@ -362,11 +343,11 @@ class GreedyAC(BaseAgent):
             recent_actor_batch = self._actor_buffer.get_batch(recent_actor_idxs)
 
             state = State(
-                features=jnp.asarray(recent_actor_batch.state),
-                a_lo=jnp.asarray(recent_actor_batch.action_lo),
-                a_hi=jnp.asarray(recent_actor_batch.action_hi),
+                features=recent_actor_batch.state,
+                a_lo=recent_actor_batch.action_lo,
+                a_hi=recent_actor_batch.action_hi,
                 dp=jnp.ones((len(recent_actor_batch.state), 1)),
-                last_a=jnp.asarray(recent_actor_batch.action),
+                last_a=recent_actor_batch.action,
             )
 
             actor_loss = -jnp.log(self._actor.get_probs(
