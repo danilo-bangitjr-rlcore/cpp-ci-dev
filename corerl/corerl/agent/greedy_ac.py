@@ -64,8 +64,8 @@ class GTDCriticConfig:
 class PercentileActorConfig:
     num_samples: int = 128
     actor_percentile: float = 0.05
-    sampler_percentile: float = 0.2
-    prop_percentile_learned: float = 0.9
+    proposal_percentile: float = 0.2
+    prop_percentile_learned: float = 0.8
     sort_noise: float = 0.0
     actor_stepsize: float = 0.0001
     sampler_stepsize: float = 0.0001
@@ -172,8 +172,8 @@ class GreedyAC(BaseAgent):
             name='percentile',
             num_samples=cfg.policy.num_samples,
             actor_percentile=cfg.policy.actor_percentile,
-            proposal_percentile=cfg.policy.sampler_percentile,
-            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.sampler_percentile,
+            proposal_percentile=cfg.policy.proposal_percentile,
+            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.proposal_percentile,
             actor_lr=cfg.policy.actor_stepsize,
             proposal_lr=cfg.policy.sampler_stepsize,
             max_action_stddev=cfg.max_action_stddev,
