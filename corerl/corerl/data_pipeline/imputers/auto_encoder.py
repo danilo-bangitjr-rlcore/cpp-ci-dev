@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Literal, NamedTuple
@@ -23,6 +24,7 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
 from corerl.state import AppState
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class MaskedAETemporalState:
@@ -33,7 +35,7 @@ class MaskedAETemporalState:
 
 @config(frozen=True)
 class TrainingConfig:
-    warmup: int = 100 # min buffer size to update AE
+    init_train_steps = 100
     batch_size: int = 64
     stepsize: float = 1e-4
     err_tolerance: float = 1e-4
@@ -48,7 +50,7 @@ class MaskedAEConfig(BaseImputerStageConfig):
     buffer_size: int = 50_000
 
     fill_val: float = 0.0
-    proportion_missing_tolerance: float = 0.5
+    prop_missing_tol: float = 0.5
     train_cfg: TrainingConfig = field(default_factory=TrainingConfig)
 
 class ImputeData(NamedTuple):
@@ -76,11 +78,13 @@ class CircularBuffer:
 class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
         super().__init__(imputer_cfg, app_state, tag_cfgs)
+        self._dormant = True # dormant until NaN encountered online
         self._imputer_cfg = imputer_cfg
         self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
         self._fill_val = imputer_cfg.fill_val
+        self._prop_missing_tol = imputer_cfg.prop_missing_tol
 
         self._traces = TraceConstructor(
             TraceConfig(
@@ -96,7 +100,7 @@ class MaskedAutoencoder(BaseImputer):
             layers=[
                 nets.LinearConfig(size=256, activation="relu"),
                 nets.LinearConfig(size=128, activation="relu"),
-                nets.LinearConfig(size=int(np.ceil(0.5 * self._num_obs)), activation="relu"),
+                nets.LinearConfig(size=2*self._num_obs, activation="relu"),
                 nets.LinearConfig(size=128, activation="relu"),
                 nets.LinearConfig(size=256, activation="relu"),
                 nets.LinearConfig(size=int(self._num_obs), activation="relu"),
@@ -144,8 +148,11 @@ class MaskedAutoencoder(BaseImputer):
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
-            can_impute = perc_nan <= self._imputer_cfg.proportion_missing_tolerance
+            can_impute = perc_nan <= self._prop_missing_tol
             within_horizon = ts.num_outside_thresh <= self._imputer_cfg.horizon
+            if not (can_impute or within_horizon):
+                logger.warning(f"Unable to imptute: {perc_nan*100}% of observations are NaN. \
+                                 Tolerance is {self._prop_missing_tol*100}%")
 
             # only impute if
             #   1. We need to (i.e. there are missing values)
@@ -183,6 +190,11 @@ class MaskedAutoencoder(BaseImputer):
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
+        if self._dormant:
+            self._dormant = False
+            logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
+            for _ in range(self._imputer_cfg.train_cfg.init_train_steps): self.train()
+
         raw_obs = data.obs
         input_obs = jnp.where(data.obs_nanmask, self._fill_val, raw_obs)
         inputs = jnp.hstack((input_obs, data.traces, data.obs_nanmask))
@@ -195,7 +207,7 @@ class MaskedAutoencoder(BaseImputer):
 
     def train(self):
         train_cfg = self._imputer_cfg.train_cfg
-        if self._buffer.size < train_cfg.warmup:
+        if self._dormant:
             return
 
         batches = self._buffer.sample_batches(train_cfg.batch_size, train_cfg.max_update_steps)

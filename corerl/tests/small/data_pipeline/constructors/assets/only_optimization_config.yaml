@@ -1,3 +1,6 @@
+feature_flags:
+  autoencoder_imputer: False
+
 env:
   name: sim_async_env
   gym:
