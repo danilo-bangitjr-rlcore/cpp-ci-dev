@@ -1,3 +1,4 @@
+import logging
 from dataclasses import dataclass, field
 from functools import partial
 from typing import Literal, NamedTuple
@@ -22,6 +23,7 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
 from corerl.state import AppState
 
+logger = logging.getLogger(__name__)
 
 @dataclass
 class MaskedAETemporalState:
@@ -32,7 +34,7 @@ class MaskedAETemporalState:
 
 @config(frozen=True)
 class TrainingConfig:
-    warmup: int = 100 # min buffer size to update AE
+    init_train_steps = 100
     batch_size: int = 64
     stepsize: float = 1e-4
     err_tolerance: float = 1e-4
@@ -75,6 +77,7 @@ class CircularBuffer:
 class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
         super().__init__(imputer_cfg, app_state, tag_cfgs)
+        self._dormant = True # dormant until NaN encountered online
         self._imputer_cfg = imputer_cfg
         self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
         self._num_obs = len(self._obs_names)
@@ -182,6 +185,11 @@ class MaskedAutoencoder(BaseImputer):
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
+        if self._dormant:
+            self._dormant = False
+            logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
+            for _ in range(self._imputer_cfg.train_cfg.init_train_steps): self.train()
+
         raw_obs = data.obs
         input_obs = jnp.where(data.obs_nanmask, self._fill_val, raw_obs)
         inputs = jnp.hstack((input_obs, data.traces, data.obs_nanmask))
@@ -194,7 +202,7 @@ class MaskedAutoencoder(BaseImputer):
 
     def train(self):
         train_cfg = self._imputer_cfg.train_cfg
-        if self._buffer.size < train_cfg.warmup:
+        if self._dormant:
             return
 
         batches = self._buffer.sample_batches(train_cfg.batch_size, train_cfg.max_update_steps)
