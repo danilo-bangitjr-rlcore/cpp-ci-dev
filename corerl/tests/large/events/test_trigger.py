@@ -36,6 +36,7 @@ def test_no_trigger(
         main_cfg.event_bus,
         main_cfg.env,
     )
+    event_bus.start()
 
     app_state = AppState(
         cfg=main_cfg,
@@ -64,6 +65,7 @@ def test_no_trigger(
     event = event_bus.recv_event()
     assert event is None
 
+    event_bus.cleanup()
 
 def test_trigger(
     main_cfg: MainConfig,
