@@ -49,7 +49,7 @@ class MaskedAEConfig(BaseImputerStageConfig):
     buffer_size: int = 50_000
 
     fill_val: float = 0.0
-    proportion_missing_tolerance: float = 0.5
+    prop_missing_tol: float = 0.5
     train_cfg: TrainingConfig = field(default_factory=TrainingConfig)
 
 class ImputeData(NamedTuple):
@@ -83,6 +83,7 @@ class MaskedAutoencoder(BaseImputer):
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
         self._fill_val = imputer_cfg.fill_val
+        self._prop_missing_tol = imputer_cfg.prop_missing_tol
 
         self._traces = TraceConstructor(
             TraceConfig(
@@ -146,8 +147,11 @@ class MaskedAutoencoder(BaseImputer):
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
-            can_impute = perc_nan <= self._imputer_cfg.proportion_missing_tolerance
+            can_impute = perc_nan <= self._prop_missing_tol
             within_horizon = ts.num_outside_thresh <= self._imputer_cfg.horizon
+            if not (can_impute or within_horizon):
+                logger.warning(f"Unable to imptute: {perc_nan*100}% of observations are NaN. \
+                                 Tolerance is {self._prop_missing_tol*100}%")
 
             # only impute if
             #   1. We need to (i.e. there are missing values)
