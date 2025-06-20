@@ -99,7 +99,7 @@ class MaskedAutoencoder(BaseImputer):
             layers=[
                 nets.LinearConfig(size=256, activation="relu"),
                 nets.LinearConfig(size=128, activation="relu"),
-                nets.LinearConfig(size=int(np.ceil(0.5 * self._num_obs)), activation="relu"),
+                nets.LinearConfig(size=2*self._num_obs, activation="relu"),
                 nets.LinearConfig(size=128, activation="relu"),
                 nets.LinearConfig(size=256, activation="relu"),
                 nets.LinearConfig(size=int(self._num_obs), activation="relu"),
