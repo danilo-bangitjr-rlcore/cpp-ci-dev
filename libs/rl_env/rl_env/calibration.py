@@ -31,8 +31,8 @@ class CalibrationEnv(gym.Env):
     def __init__(self, cfg:  CalibrationConfig):
         self._cfg = cfg
         self._random = np.random.default_rng(self._cfg.seed)
-        self._obs_min = np.zeros(2)
-        self._obs_max = np.ones(2)
+        self._obs_min = np.zeros(3)
+        self._obs_max = np.ones(3)
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max, dtype=np.float64)
 
         self._action_min = np.zeros(1)
