@@ -350,11 +350,14 @@ class GreedyAC(BaseAgent):
                 last_a=recent_actor_batch.action,
             )
 
-            actor_loss = -jnp.log(self._actor.get_probs(
-                self._actor_state.actor.params,
-                state,
-                recent_actor_batch.action,
-            )).item()
+            # vmap over batch
+            actor_loss = -jnp.log(
+                jax_u.vmap_except(self._actor.get_probs, exclude=["params"])(
+                    self._actor_state.actor.params,
+                    state,
+                    jnp.expand_dims(recent_actor_batch.action, axis=1), # one action per state
+                ),
+            ).mean() # avg over batch
 
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
