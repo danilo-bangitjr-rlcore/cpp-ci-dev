@@ -1,5 +1,9 @@
 log_path: outputs/main/coag
 
+feature_flags:
+  nominal_setpoint_bias: true
+  normalize_return: true
+
 infra:
   db:
     drivername: postgresql+psycopg2
@@ -21,7 +25,7 @@ interaction:
   action_period: PT2H
   warmup_period: 03:00:00
   state_age_tol: 00:30:00
-  update_warmup: 200 # number of updates before interacting
+  update_warmup: 30 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
   historical_windows:
   - [2025-04-16 00:00:00+0000, null]
@@ -36,6 +40,11 @@ coreio:
   opc_connections:
     - connection_id: main_opc
       opc_conn_url: "opc.tcp://localhost:62541"
+      application_uri: main_coag
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
 env:
   name: dep_async_env
   db:
@@ -71,34 +80,14 @@ evals:
 pipeline:
   reward:
     priorities:
-    - op: and
-      goals:
-        - op: up_to
-          tag: UV03_UV254_PV
-          thresh: '{COAG_AI_UVT_SP}'
-        - op: or
-          goals:
-          - op: down_to
-            tag: FLR03_CDOM_PV
-            thresh: 27
-          - op: down_to
-            tag: FLR03_TRYP_PV
-            thresh: 4.5
+    - op: down_to
+      tag: FLR03_TRYP_PV
+      thresh: 4.5
     - tags:
       - DEP_COAG_AI_SP
       directions: min
       weights:
       - 1.0
-
-  imputer:
-    name: per-tag
-    default:
-      name: copy
-      imputation_horizon: 3
-
-  #  oddity_filter:
-  #    defaults:
-  #      - name: exp_moving
 
   state_constructor:
     defaults:
@@ -139,35 +128,17 @@ pipeline:
       ai_mode_val: 1
       mode_is_bool: True
 
-  - name: COAG_AI_UVT_SP
-    connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
-    node_identifier: ns=1;s=[main-veolia]UVT_TARGET_SP_F.OUT
-    operating_range:
-    - 0.0
-    - 100.0
-    expected_range: [70, 100]
-    outlier:
-      - name: exp_moving
-        alpha: 0.948
-      #    preprocess:
-      #    - name: normalize
-      #      min: 80.0
-      #      max: 100.0
-
-  - name: UV03_UV254_PV
-    connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
-    node_identifier: ns=1;s=[main-isl]UV03_UV254.IN
-    operating_range:
-    - 0.0
-    - 100.0
-    expected_range: [70, 100]
-    outlier:
-      - name: exp_moving
-        alpha: 0.948
-      #    preprocess:
-      #    - name: normalize
-      #      min: 80.0
-      #      max: 100.0
+  # - name: COAG_AI_UVT_SP
+  #   connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
+  #   node_identifier: ns=1;s=[main-veolia]UVT_TARGET_SP_F.OUT
+  #   operating_range: [0, 100]
+  #   expected_range: [70, 100]
+  # 
+  # - name: UV03_UV254_PV
+  #   connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
+  #   node_identifier: ns=1;s=[main-isl]UV03_UV254.IN
+  #   operating_range: [0, 100]
+  #   expected_range: [70, 100]
 
   - name: Dose_AL_SP_F_SP
     connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
@@ -175,9 +146,6 @@ pipeline:
     operating_range:
     - 0.0
     - 5.0
-    outlier:
-      - name: exp_moving
-        alpha: 0.948
       #    trigger:
       #      event: action_period_reset
       #      condition:
@@ -192,14 +160,11 @@ pipeline:
     operating_range:
     - 0.0
     - 5.0
-    outlier:
-      - name: exp_moving
-        alpha: 0.948
 
   - name: FLR03_CDOM_PV
     operating_range: [0, 100]
-    expected_range: [10, 40]
+    expected_range: [10, 30]
 
   - name: FLR03_TRYP_PV
     operating_range: [0, 20]
-    expected_range: [0, 10]
+    expected_range: [2, 5]
