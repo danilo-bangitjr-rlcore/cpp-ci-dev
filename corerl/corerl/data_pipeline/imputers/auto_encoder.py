@@ -58,6 +58,9 @@ class ImputeData(NamedTuple):
     traces: jax.Array
     obs_nanmask: jax.Array # bool array set to True where raw obs was nan
 
+def _to_input(data: ImputeData):
+    return jnp.hstack((data.obs, data.traces, data.obs_nanmask))
+
 class CircularBuffer:
     def __init__(self, max_size: int):
         self._storage = ReplayStorage[ImputeData](capacity=max_size)
@@ -201,7 +204,7 @@ class MaskedAutoencoder(BaseImputer):
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
             for _ in range(self._cfg.train_cfg.init_train_steps): self.train()
 
-        inputs = jnp.hstack((data.obs, data.traces, data.obs_nanmask))
+        inputs = _to_input(data)
         ae_predictions = self._forward(self._params, inputs)
         return jnp.where(data.obs_nanmask, ae_predictions, data.obs)
 
@@ -254,7 +257,6 @@ def _train(
     def train_step(carry: TrainCarry):
         true_obs_batch = batches.obs[carry.step]
         true_obs_nanmask = batches.obs_nanmask[carry.step]
-        trace_batch = batches.traces[carry.step]
 
         # To force the AE to learn in the presence of
         # missingness, need to fake some missingness
@@ -268,8 +270,13 @@ def _train(
         # update missing indicator
         train_obs_nanmask = sim_obs_nanmask | true_obs_nanmask
 
-        # update input to include simulated nans
-        input_batch = jnp.hstack((train_obs_batch, trace_batch, train_obs_nanmask))
+        # update impute_data to include simulated nans
+        train_impute_data = ImputeData(
+            obs=train_obs_batch,
+            traces=batches.traces[carry.step],
+            obs_nanmask=train_obs_nanmask,
+        )
+        input_batch = _to_input(train_impute_data)
 
         params, opt_state, loss = _update(
             params=carry.params,
