@@ -32,6 +32,7 @@ class TraceConstructor:
         cols = set(carry.transform_data.columns)
         for col in cols:
             x = carry.transform_data[col].to_numpy()
+            assert x.ndim == 1, f"shape of column {col}: {x.shape}, transform_data: {carry.transform_data}"
 
             trace_vals, new_mu = compute_trace_with_nan(
                 data=x,
