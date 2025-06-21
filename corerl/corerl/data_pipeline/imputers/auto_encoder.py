@@ -190,7 +190,7 @@ class MaskedAutoencoder(BaseImputer):
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
-        if self._dormant:
+        if self._dormant and self._buffer.size > 0:
             self._dormant = False
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
             for _ in range(self._imputer_cfg.train_cfg.init_train_steps): self.train()
