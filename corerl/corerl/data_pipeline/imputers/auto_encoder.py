@@ -57,9 +57,10 @@ class ImputeData(NamedTuple):
     obs: jax.Array # raw observation
     traces: jax.Array
     obs_nanmask: jax.Array # bool array set to True where raw obs was nan
+    trace_nanmask: jax.Array # bool array set to True when trace was nan
 
 def _to_input(data: ImputeData):
-    return jnp.hstack((data.obs, data.traces, data.obs_nanmask))
+    return jnp.hstack((data.obs, data.traces, data.obs_nanmask, data.trace_nanmask))
 
 class CircularBuffer:
     def __init__(self, max_size: int):
@@ -112,7 +113,8 @@ class MaskedAutoencoder(BaseImputer):
         self._net = hk.without_apply_rng(
             hk.transform(lambda x: nets.torso_builder(torso_cfg)(x)),
         )
-        in_shape = (self._num_traces + 2) * self._num_obs
+        # input includes (obs, traces) + (obs_nanmask, trace_nanmask)
+        in_shape = 2 * (1 + self._num_traces) * self._num_obs
         self._params = self._net.init(init_rng, jnp.ones(in_shape))
         self._optim = optax.adam(learning_rate=imputer_cfg.train_cfg.stepsize)
         self._opt_state = self._optim.init(self._params)
@@ -148,6 +150,7 @@ class MaskedAutoencoder(BaseImputer):
                 obs=jnp.where(obs_nanmask, self._fill_val, obs),
                 traces=jnp.where(trace_nanmask, self._fill_val, ts.last_trace),
                 obs_nanmask=obs_nanmask,
+                trace_nanmask=trace_nanmask,
             )
 
             num_nan = obs_nanmask.sum()
@@ -275,6 +278,7 @@ def _train(
             obs=train_obs_batch,
             traces=batches.traces[carry.step],
             obs_nanmask=train_obs_nanmask,
+            trace_nanmask=batches.trace_nanmask[carry.step],
         )
         input_batch = _to_input(train_impute_data)
 
