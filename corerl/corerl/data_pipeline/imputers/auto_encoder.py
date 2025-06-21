@@ -138,11 +138,12 @@ class MaskedAutoencoder(BaseImputer):
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            obs_jax = _series_to_jax(obs_series)
-            obs_nanmask = jnp.isnan(obs_jax)
-            obs = ImputeData(
-                obs=obs_jax,
-                traces=ts.last_trace,
+            obs = _series_to_jax(obs_series)
+            obs_nanmask = jnp.isnan(obs)
+            trace_nanmask = jnp.isnan(ts.last_trace)
+            impute_data = ImputeData(
+                obs=jnp.where(obs_nanmask, self._fill_val, obs),
+                traces=jnp.where(trace_nanmask, self._fill_val, ts.last_trace),
                 obs_nanmask=obs_nanmask,
             )
 
@@ -164,15 +165,15 @@ class MaskedAutoencoder(BaseImputer):
             #   3. Or we are within our imputation horizon
             will_impute = should_impute and (can_impute or within_horizon)
             if will_impute:
-                obs_jax = self.impute(obs)
-                pf.data.loc[row_idx, self._obs_names] = np.asarray(obs_jax)
-                obs_series[:] = obs_jax
+                obs = self.impute(impute_data)
+                pf.data.loc[row_idx, self._obs_names] = np.asarray(obs)
+                obs_series[:] = obs
                 total_imputes += 1
 
             # if there is enough info to impute, there
             # is enough info to train the imputer.
             if can_impute:
-                self._buffer.add(obs)
+                self._buffer.add(impute_data)
                 ts.num_outside_thresh = 0
             else:
                 ts.num_outside_thresh += 1
@@ -200,11 +201,9 @@ class MaskedAutoencoder(BaseImputer):
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
             for _ in range(self._cfg.train_cfg.init_train_steps): self.train()
 
-        raw_obs = data.obs
-        input_obs = jnp.where(data.obs_nanmask, self._fill_val, raw_obs)
-        inputs = jnp.hstack((input_obs, data.traces, data.obs_nanmask))
+        inputs = jnp.hstack((data.obs, data.traces, data.obs_nanmask))
         ae_predictions = self._forward(self._params, inputs)
-        return jnp.where(data.obs_nanmask, ae_predictions, raw_obs)
+        return jnp.where(data.obs_nanmask, ae_predictions, data.obs)
 
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, inputs: jax.Array) -> jax.Array:
@@ -253,37 +252,31 @@ def _train(
         return (carry.loss > train_cfg.err_tolerance) & (carry.step < train_cfg.max_update_steps)
 
     def train_step(carry: TrainCarry):
-        raw_obs_batch = batches.obs[carry.step]
+        true_obs_batch = batches.obs[carry.step]
+        true_obs_nanmask = batches.obs_nanmask[carry.step]
         trace_batch = batches.traces[carry.step]
-        label_nanmask = batches.obs_nanmask[carry.step]
-
-        # replace nans in the labels
-        label_batch = jnp.where(label_nanmask, fill_val, raw_obs_batch)
 
         # To force the AE to learn in the presence of
         # missingness, need to fake some missingness
         # in the inputs only (i.e. learn a mapping from
         # missing value to non-missing value)
         rng, sample_rng = jax.random.split(carry.rng)
-        uniform_sample = jax.random.uniform(key=sample_rng, shape=raw_obs_batch.shape)
-        sim_missing_obs_mask = uniform_sample < train_cfg.training_missing_perc
-        obs_batch = jnp.where(sim_missing_obs_mask, jnp.nan, raw_obs_batch)
+        uniform_sample = jax.random.uniform(key=sample_rng, shape=true_obs_batch.shape)
+        sim_obs_nanmask = uniform_sample < train_cfg.training_missing_perc
+        train_obs_batch = jnp.where(sim_obs_nanmask, fill_val, true_obs_batch)
 
         # update missing indicator
-        missing_mask = sim_missing_obs_mask | label_nanmask
-        # update input to include simulated nans
-        input_batch = jnp.hstack((obs_batch, trace_batch, missing_mask))
+        train_obs_nanmask = sim_obs_nanmask | true_obs_nanmask
 
-        # replace nans in input - these could be simulated or real
-        input_nanmask = jnp.isnan(input_batch)
-        input_batch = jnp.where(input_nanmask, fill_val, input_batch)
+        # update input to include simulated nans
+        input_batch = jnp.hstack((train_obs_batch, trace_batch, train_obs_nanmask))
 
         params, opt_state, loss = _update(
             params=carry.params,
             opt_state=carry.opt_state,
             input_batch=input_batch,
-            label_batch=label_batch,
-            label_nanmask=label_nanmask,
+            label_batch=true_obs_batch,
+            label_nanmask=true_obs_nanmask,
             net=net,
             optim=optim,
         )
