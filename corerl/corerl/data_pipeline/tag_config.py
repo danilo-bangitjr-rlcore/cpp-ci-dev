@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
@@ -616,3 +616,8 @@ def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
         if tag_cfg.type not in {TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
         and not tag_cfg.is_computed
     ]
+
+def in_taglist(name: str, taglist: Sequence[TagConfig]):
+    for tc in taglist:
+        if tc.name == name: return True
+    return False
