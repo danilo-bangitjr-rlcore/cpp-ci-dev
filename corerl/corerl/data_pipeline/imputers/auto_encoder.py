@@ -129,8 +129,11 @@ class MaskedAutoencoder(BaseImputer):
         # loop through data and impute one row at a time
         # this way we can use imputed values to compute
         # the traces
+        total_nans = 0
+        total_imputes = 0
         for i in range(len(df)):
             row = df.iloc[i].copy(deep=False)
+            row_idx = pf.data.index[i]
             obs_series = row[self._obs_names].astype(np.float32)
 
             # inputs to the NN are the current row
@@ -145,14 +148,16 @@ class MaskedAutoencoder(BaseImputer):
             )
 
             num_nan = obs_nanmask.sum()
+            total_nans += num_nan
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
             can_impute = perc_nan <= self._prop_missing_tol
             within_horizon = ts.num_outside_thresh <= self._imputer_cfg.horizon
-            if not (can_impute or within_horizon):
-                logger.warning(f"Unable to imptute: {perc_nan*100}% of observations are NaN. \
-                                 Tolerance is {self._prop_missing_tol*100}%")
+            if len(df) == 1 and not (can_impute or within_horizon):
+                logger.warning(f"Unable to impute at {row_idx}: "
+                               f"{perc_nan*100:3.2f}% of observations are NaN. "
+                               f"Tolerance is {self._prop_missing_tol*100:3.2f}%")
 
             # only impute if
             #   1. We need to (i.e. there are missing values)
@@ -161,8 +166,9 @@ class MaskedAutoencoder(BaseImputer):
             will_impute = should_impute and (can_impute or within_horizon)
             if will_impute:
                 obs_jax = self.impute(obs)
-                pf.data.loc[pf.data.index[i], self._obs_names] = np.asarray(obs_jax)
+                pf.data.loc[row_idx, self._obs_names] = np.asarray(obs_jax)
                 obs_series[:] = obs_jax
+                total_imputes += 1
 
             # if there is enough info to impute, there
             # is enough info to train the imputer.
@@ -177,9 +183,9 @@ class MaskedAutoencoder(BaseImputer):
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
             ts.last_trace = _series_to_jax(carry.transform_data.iloc[0])
 
-            # log number of nans and whether imputation occurred
-            self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan', value=num_nan)
-            self._app_state.metrics.write(self._app_state.agent_step, metric='AE-imputed', value=will_impute)
+        # log number of nans and whether imputation occurred
+        self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan', value=total_nans)
+        self._app_state.metrics.write(self._app_state.agent_step, metric='AE-imputed', value=total_imputes)
 
         self.train()
         return pf
@@ -190,7 +196,7 @@ class MaskedAutoencoder(BaseImputer):
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
-        if self._dormant:
+        if self._dormant and self._buffer.size > 0:
             self._dormant = False
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
             for _ in range(self._imputer_cfg.train_cfg.init_train_steps): self.train()
