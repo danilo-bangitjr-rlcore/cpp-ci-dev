@@ -18,7 +18,7 @@ class WindyRoomConfig(EnvConfig):
     red_zone_thresh = 0.05
 
     initial_wind_direction = np.pi
-    wind_magnitude: float  = 0.01
+    wind_magnitude: float  = 0.005
     wind_direction_delta: float = (2*np.pi)/1000 # 1000 steps to complete a full circle
     action_magnitude: float = 0.02
     no_zones: bool = True
