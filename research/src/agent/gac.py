@@ -162,9 +162,9 @@ class GreedyAC:
                     dp=batch.dp,
                 ),
                 action=batch.action,
-                reward=batch.reward,
+                reward=batch.reward.squeeze(-1),
                 next_state=next_state,
-                gamma=batch.gamma,
+                gamma=batch.gamma.squeeze(-1),
             ),
             next_actions=next_actions,
         )
