@@ -20,6 +20,8 @@ class RepresentationEval:
         self.app_state = app_state
         self._lmax: float | None = None
 
+        self._rng = jax.random.PRNGKey(0)
+
     def get_complexity_reduction(
         self,
         states: jax.Array,
@@ -239,10 +241,11 @@ class RepresentationEval:
         n_samples = 100
         num_states = states.shape[0]
         action_dim = action_lo.shape[1]
+        self._rng, sample_rng = jax.random.split(self._rng)
 
         # sample uniform actions for each state
         sampled_actions = jax.random.uniform(
-            jax.random.PRNGKey(0),
+            sample_rng,
             shape=(num_states, n_samples, action_dim),
             minval=action_lo[:, None, :],
             maxval=action_hi[:, None, :],
