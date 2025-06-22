@@ -66,7 +66,7 @@ def critic_builder(cfg: nets.TorsoConfig):
             phi=phi,
         )
 
-    return hk.without_apply_rng(hk.transform(_inner))
+    return hk.transform(_inner)
 
 class QRCCritic:
     def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):
@@ -110,11 +110,11 @@ class QRCCritic:
         rngs = jax.random.split(rng, self._cfg.ensemble)
         return ens_init(rngs, x, a)
 
-    def get_values(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array):
-        return self._forward(params, state, action).q
+    def get_values(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
+        return self._forward(params, rng, state, action).q
 
-    def get_representations(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
-        return self._forward(params, x, a).phi
+    def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
+        return self._forward(params, rng, x, a).phi
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
         self._rng, rng = jax.random.split(self._rng)
@@ -130,22 +130,22 @@ class QRCCritic:
     # -- Shared net.apply vmapping --
     # -------------------------------
     @jax_u.method_jit
-    def _forward(self, params: chex.ArrayTree, state: jax.Array, action: jax.Array) -> CriticOutputs:
+    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> CriticOutputs:
         # state shape is one of (state_dim,) or (batch, state_dim)
         # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
         # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
         f = self._net.apply
         if action.ndim == state.ndim + 1:
-            # vmap over action samples
-            f = jax_u.vmap(f, (None, None, 0))
+            # vmap over action samples and rngs
+            f = jax_u.vmap(f, (None, 0, None, 0))
 
         if state.ndim == 1:
-            return f(params, state, action)
+            return f(params, rng, state, action)
 
         # batch mode - vmap over batch dim
         chex.assert_rank(state, 2)
-        f = jax_u.vmap(f, (None, 0, 0))
-        return f(params, state, action)
+        f = jax_u.vmap(f, (None, 0, 0, 0))
+        return f(params, rng, state, action)
 
     # --------------------
     # -- Initialization --
@@ -172,10 +172,11 @@ class QRCCritic:
             BATCH = 32
             ACTION_SAMPLES = 128
 
-            s_rng, a_rng = jax.random.split(rng, 2)
+            s_rng, a_rng, q_rng = jax.random.split(rng, 3)
+            q_rngs = jax.random.split(q_rng, (BATCH, ACTION_SAMPLES))
             states = jax.random.uniform(s_rng, shape=(BATCH, self._state_dim))
             actions = jax.random.uniform(a_rng, shape=(BATCH, ACTION_SAMPLES, self._action_dim))
-            q = self.get_values(params, states, actions).squeeze()
+            q = self._forward(params, q_rngs, states, actions).q.squeeze()
             chex.assert_shape(q, (BATCH, ACTION_SAMPLES))
 
             y = -jnp.abs(actions - jnp.expand_dims(nominal_action, axis=(0, 1))).sum(axis=-1)
@@ -305,12 +306,15 @@ class QRCCritic:
         chex.assert_rank(next_actions, 2) # (num_samples, action_dim)
         chex.assert_rank((reward, gamma), 0) # scalars
 
-        out = self._forward(params, state.features, action)
+        q_rng, qp_rng, a_rng = jax.random.split(rng, 3)
+        qp_rngs = jax.random.split(qp_rng, self._cfg.num_rand_actions)
+
+        out = self._forward(params, q_rng, state.features, action)
         q = out.q
         h = out.h
 
         # q_prime takes expectation of state-action value over actions sampled from some dist
-        q_prime = self.get_values(params, next_state.features, next_actions).mean()
+        q_prime = self.get_values(params, qp_rngs, next_state.features, next_actions).mean()
 
         target = reward + gamma * q_prime
 
@@ -323,14 +327,14 @@ class QRCCritic:
 
         # optimism loss
         rand_actions = uniform_except(
-            rng,
+            a_rng,
             shape=(self._cfg.num_rand_actions, action.shape[0]),
             val=action,
             epsilon=self._cfg.action_regularization_epsilon * (state.a_hi - state.a_lo),
             minval=state.a_lo,
             maxval=state.a_hi,
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [2])(params, state.features, rand_actions)
+        out_rand = jax_u.vmap_only(self._net.apply, [1, 3])(params, qp_rngs, state.features, rand_actions)
         action_reg_loss = self._cfg.action_regularization * jnp.abs(out_rand.q).mean()
 
         loss = q_loss + h_loss + action_reg_loss
