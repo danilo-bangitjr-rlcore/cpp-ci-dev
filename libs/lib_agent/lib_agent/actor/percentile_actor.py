@@ -79,7 +79,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
         return ActorOutputs(
             mu=mu_head_out,
-            sigma=jax.nn.sigmoid(sigma_head_out) * 0.1,
+            sigma=jax.nn.sigmoid(sigma_head_out) * 0.1 + 1e-5,
         )
 
     return hk.without_apply_rng(hk.transform(_inner))
