@@ -52,6 +52,7 @@ class QRCConfig:
     action_regularization_epsilon: float
     l2_regularization: float
     nominal_setpoint_updates: int = 1000
+    use_noisy_nets: bool = False
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -75,25 +76,31 @@ class QRCCritic:
         self._state_dim = state_dim
         self._action_dim = action_dim
 
+        interior_layer_cfg = (
+            nets.NoisyLinearConfig
+            if cfg.use_noisy_nets
+            else nets.LinearConfig
+        )
+
         torso_cfg = nets.TorsoConfig(
             layers=[
                 nets.LateFusionConfig(
                     streams=[
                         # states
                         [
-                            nets.LinearConfig(size=128, activation='relu'),
-                            nets.LinearConfig(size=64, activation='relu'),
-                            nets.LinearConfig(size=32, activation='crelu'),
+                            interior_layer_cfg(size=128, activation='relu'),
+                            interior_layer_cfg(size=64, activation='relu'),
+                            interior_layer_cfg(size=32, activation='crelu'),
                         ],
                         # actions
                         [
-                            nets.LinearConfig(size=32, activation='relu'),
-                            nets.LinearConfig(size=32, activation='crelu'),
+                            interior_layer_cfg(size=32, activation='relu'),
+                            interior_layer_cfg(size=32, activation='crelu'),
                         ],
                     ],
                 ),
-                nets.LinearConfig(size=64, activation='relu'),
-                nets.LinearConfig(size=64, activation='relu'),
+                interior_layer_cfg(size=64, activation='relu'),
+                interior_layer_cfg(size=64, activation='relu'),
             ],
             skip=False,
         )

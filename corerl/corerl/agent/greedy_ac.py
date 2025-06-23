@@ -196,6 +196,7 @@ class GreedyAC(BaseAgent):
             action_regularization=cfg.critic.action_regularization,
             action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
+            use_noisy_nets=app_state.cfg.feature_flags.noisy_networks,
         )
 
         self.critic = QRCCritic(

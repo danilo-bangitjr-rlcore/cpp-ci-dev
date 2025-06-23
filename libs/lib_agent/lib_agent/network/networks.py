@@ -25,8 +25,10 @@ class LinearConfig:
 @dataclass
 class NoisyLinearConfig:
     size: int
+    name: str | None = None
     init_std: float = 0.5
     activation: str = 'crelu'
+    with_bias: bool = True
 
 @dataclass
 class ResidualConfig:
@@ -131,16 +133,19 @@ def noisy_linear(cfg: NoisyLinearConfig):
     def forward(x: jax.Array):
         n = x.shape[-1]
 
+        name = f'{cfg.name}_' if cfg.name is not None else ''
+
         mu = hk.Linear(
             cfg.size,
-            name='mu',
+            name=name+'mu',
             w_init=hk.initializers.Orthogonal(np.sqrt(2)),
             b_init=hk.initializers.Constant(0.0),
+            with_bias=cfg.with_bias,
         )
 
         sigma = hk.Linear(
             cfg.size,
-            name='sigma',
+            name=name+'sigma',
             with_bias=True,
             w_init=hk.initializers.Orthogonal(cfg.init_std  / np.sqrt(n)),
             b_init=hk.initializers.Constant(0),

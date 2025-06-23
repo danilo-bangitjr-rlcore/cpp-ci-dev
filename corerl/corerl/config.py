@@ -106,6 +106,9 @@ class FeatureFlags:
     # 2025-06-11
     nominal_setpoint_bias: bool = False
 
+    # 2025-06-22
+    noisy_networks: bool = False
+
 
 @config()
 class OfflineConfig:
