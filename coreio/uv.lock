@@ -977,6 +977,7 @@ dev = [
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
 ]
@@ -2031,6 +2032,7 @@ dependencies = [
     { name = "corerl" },
     { name = "docker" },
     { name = "filelock" },
+    { name = "gymnasium" },
     { name = "psutil" },
     { name = "pytest" },
     { name = "rl-env" },
@@ -2042,6 +2044,7 @@ requires-dist = [
     { name = "corerl", editable = "../corerl" },
     { name = "docker", specifier = ">=7.1.0" },
     { name = "filelock", specifier = ">=3.18.0" },
+    { name = "gymnasium", specifier = "~=1.0" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "pytest", specifier = ">=8.3.5" },
     { name = "rl-env", editable = "../libs/rl_env" },
