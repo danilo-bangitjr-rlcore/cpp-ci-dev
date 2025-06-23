@@ -55,6 +55,7 @@ services:
     # corerl web server for direct main config API
     build:
       context: .
+      dockerfile: ./corerl/Dockerfile
       ssh:
         - default
     ports:
@@ -65,7 +66,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    entrypoint: ["python", "/usr/local/bin/corerl_start_web"]
+    entrypoint: ["corerl_start_web"]
     develop:
       watch:
         - action: rebuild
