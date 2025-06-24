@@ -125,7 +125,7 @@ class OPC_Connection:
 
         node = client.get_node(node_id)
         var_type = await node.read_data_type_as_variant_type()
-        logger.info(f"Registering heatbeat with OPC node id '{node_id}'")
+        logger.info(f"Registering OPC node with id '{node_id}'")
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 

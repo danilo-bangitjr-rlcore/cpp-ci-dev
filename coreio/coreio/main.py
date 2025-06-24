@@ -27,6 +27,7 @@ logging.getLogger("asyncuagds").setLevel(logging.WARNING)
 async def coreio_loop(cfg: MainConfigAdapter):
     opc_connections: dict[str, OPC_Connection] = {}
     for opc_conn_cfg in cfg.coreio.opc_connections:
+        logger.info(f"Connecting to OPC Connection {opc_conn_cfg.connection_id} at {opc_conn_cfg.opc_conn_url}")
         opc_connections[opc_conn_cfg.connection_id] = await OPC_Connection().init(opc_conn_cfg, cfg.pipeline.tags)
 
         # Register heartbeat_id separately
@@ -36,6 +37,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
             if heartbeat_id is not None:
                 await opc_connections[opc_conn_cfg.connection_id].register_node(heartbeat_id)
 
+    logger.info("Starting ZMQ communication")
     zmq_communication = ZMQ_Communication(cfg.coreio)
     zmq_communication.start()
 
@@ -59,6 +61,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
                         await opc_conn.write_opcua_nodes(payload)
 
             case IOEventType.exit_io:
+                logger.info("Received exit event, shutting down CoreIO...")
                 break
 
     zmq_communication.cleanup()
