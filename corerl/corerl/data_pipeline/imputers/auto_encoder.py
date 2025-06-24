@@ -79,7 +79,7 @@ class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
         super().__init__(imputer_cfg, app_state, tag_cfgs)
         self._dormant = True # dormant until NaN encountered online
-        self._imputer_cfg = imputer_cfg
+        self._cfg = imputer_cfg
         self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
@@ -153,7 +153,7 @@ class MaskedAutoencoder(BaseImputer):
 
             should_impute = num_nan > 0
             can_impute = perc_nan <= self._prop_missing_tol
-            within_horizon = ts.num_outside_thresh <= self._imputer_cfg.horizon
+            within_horizon = ts.num_outside_thresh <= self._cfg.horizon
             if len(df) == 1 and not (can_impute or within_horizon):
                 logger.warning(f"Unable to impute at {row_idx}: "
                                f"{perc_nan*100:3.2f}% of observations are NaN. "
@@ -199,7 +199,7 @@ class MaskedAutoencoder(BaseImputer):
         if self._dormant and self._buffer.size > 0:
             self._dormant = False
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
-            for _ in range(self._imputer_cfg.train_cfg.init_train_steps): self.train()
+            for _ in range(self._cfg.train_cfg.init_train_steps): self.train()
 
         raw_obs = data.obs
         input_obs = jnp.where(data.obs_nanmask, self._fill_val, raw_obs)
@@ -212,7 +212,7 @@ class MaskedAutoencoder(BaseImputer):
         return self._net.apply(params, inputs)
 
     def train(self):
-        train_cfg = self._imputer_cfg.train_cfg
+        train_cfg = self._cfg.train_cfg
         if self._dormant:
             return
 
@@ -224,7 +224,7 @@ class MaskedAutoencoder(BaseImputer):
             rng=train_rng,
             batches=batches,
             train_cfg=train_cfg,
-            fill_val=self._imputer_cfg.fill_val,
+            fill_val=self._cfg.fill_val,
             net=self._net,
             optim=self._optim,
         )
