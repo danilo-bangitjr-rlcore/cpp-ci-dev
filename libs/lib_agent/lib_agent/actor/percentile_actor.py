@@ -258,10 +258,7 @@ class PercentileActor:
     @jax_u.method_jit
     def get_log_probs(self, params: chex.ArrayTree, state: State, actions: jax.Array):
         dist = self.get_dist(params, state)
-        return jax_u.vmap_only(self._get_log_prob, ['action'])(dist, actions)
-
-    def _get_log_prob(self, dist: distrax.Distribution, action: jax.Array):
-        return dist.log_prob(action)
+        return jax_u.vmap(dist.log_prob)(actions)
 
     # ---------------------------------- updates --------------------------------- #
 
