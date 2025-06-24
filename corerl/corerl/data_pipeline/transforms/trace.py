@@ -3,6 +3,7 @@ from typing import Literal
 
 import numpy as np
 from lib_config.config import config, list_
+from lib_utils.maybe import Maybe
 from numba import njit
 
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
@@ -17,7 +18,7 @@ class TraceConfig(BaseTransformConfig):
 
 @dataclass
 class TraceTemporalState:
-    mu: dict[str, np.ndarray | None] | None = None
+    mu: dict[str, np.ndarray] | None = None
 
 
 class TraceConstructor:
@@ -32,12 +33,13 @@ class TraceConstructor:
         cols = set(carry.transform_data.columns)
         for col in cols:
             x = carry.transform_data[col].to_numpy()
+            mu_0 = Maybe(mu.get(col)).or_else(np.ones_like(self._decays, dtype=np.float64) * np.nan)
             assert x.ndim == 1, f"shape of column {col}: {x.shape}, transform_data: {carry.transform_data}"
 
             trace_vals, new_mu = compute_trace_with_nan(
                 data=x,
                 decays=self._decays,
-                mu_0=mu.get(col),
+                mu_0=mu_0,
             )
 
             mu[col] = new_mu
@@ -59,23 +61,21 @@ transform_group.dispatcher(TraceConstructor)
 def compute_trace_with_nan(
     data: np.ndarray,
     decays: np.ndarray,
-    mu_0: np.ndarray | None = None,
+    mu_0: np.ndarray,
 ):
     n_samples = len(data)
     n_traces = len(decays)
     out = np.zeros((n_samples, n_traces), dtype=np.float64)
-    mu: np.ndarray | None = mu_0
+    mu = mu_0
 
     for i in range(n_samples):
-        x: float = data[i]
-        if np.isnan(x):
-            mu = None
-            out[i] = np.nan
-            continue
+        x = data[i]
 
-        if mu is None:
-            mu = np.ones(n_traces, dtype=np.float64) * x
+        # initialize trace if it has been reset to nan
+        nanmask = np.isnan(mu)
+        mu[nanmask] = np.ones(nanmask.sum()) * x
 
+        # update trace
         mu = decays * mu + (1 - decays) * x
         out[i] = mu
 

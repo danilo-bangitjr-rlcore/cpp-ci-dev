@@ -30,6 +30,7 @@ def test_compute_trace1():
     trace, mu = compute_trace_with_nan(
         data,
         decays=np.array([0.1]),
+        mu_0=np.ones(1) * np.nan,
     )
 
     assert trace.shape == (9, 1)
@@ -56,6 +57,7 @@ def test_compute_trace2():
     trace, mu = compute_trace_with_nan(
         data,
         decays=np.array([0.1]),
+        mu_0=np.ones(1) * np.nan,
     )
 
     assert trace.shape == (6, 1)
@@ -69,7 +71,7 @@ def test_compute_trace2():
 def test_compute_trace3():
     """
     Given a sequence that ends with some np.nan,
-    create a trace and return a None temporal state (mu)
+    create a trace and return a nan
     """
     data = np.array([1, 2, 3, 4, np.nan, np.nan])
 
@@ -82,12 +84,13 @@ def test_compute_trace3():
     trace, mu = compute_trace_with_nan(
         data,
         decays=np.array([0.1]),
+        mu_0=np.ones(1) * np.nan,
     )
 
     assert trace.shape == (6, 1)
     assert np.allclose(expected, trace, equal_nan=True)
 
-    assert mu is None
+    assert np.allclose(mu, np.ones(1) * np.nan, equal_nan=True)
 
 
 def test_compute_multiple_traces():
@@ -108,12 +111,13 @@ def test_compute_multiple_traces():
     trace, mu = compute_trace_with_nan(
         data,
         decays=np.array([0.1, 0.01]),
+        mu_0=np.ones(2) * np.nan,
     )
 
     assert trace.shape == (8, 2)
     assert np.allclose(expected, trace, equal_nan=True)
 
-    assert mu is None
+    assert np.allclose(mu, np.ones(2) * np.nan, equal_nan=True)
 
 
 def test_trace_first_data():
@@ -181,7 +185,7 @@ def test_trace_first_data():
 
     # obs_2 did end in nan, so does not have a carry state
     mu_obs2 = new_ts.mu['obs_2']
-    assert mu_obs2 is None
+    assert np.allclose(mu_obs2, np.ones(1) * np.nan, equal_nan=True)
 
 
 def test_trace_temporal_state():
@@ -209,7 +213,7 @@ def test_trace_temporal_state():
 
     ts = TraceTemporalState(
         mu={
-            'obs_1': None,
+            'obs_1': np.ones(2) * np.nan,
             'obs_2': np.array([20., 40.]),
         },
     )
