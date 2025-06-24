@@ -133,7 +133,8 @@ class MaskedAutoencoder(BaseImputer):
         # loop through data and impute one row at a time
         # this way we can use imputed values to compute
         # the traces
-        total_nans = 0
+        total_nan_obs = 0
+        total_nan_trace = 0
         total_imputes = 0
         for i in range(len(df)):
             row = df.iloc[i].copy(deep=False)
@@ -153,16 +154,22 @@ class MaskedAutoencoder(BaseImputer):
                 trace_nanmask=trace_nanmask,
             )
 
-            num_nan = obs_nanmask.sum()
-            total_nans += num_nan
-            perc_nan = num_nan / self._num_obs
+            num_nan_obs = obs_nanmask.sum()
+            total_nan_obs += num_nan_obs
+            perc_nan_obs = num_nan_obs / self._num_obs
 
-            should_impute = num_nan > 0
-            can_impute = perc_nan <= self._cfg.train_cfg.training_missing_perc
+            num_nan_trace = trace_nanmask.sum()
+            total_nan_trace += num_nan_trace
+            perc_nan_trace = num_nan_trace / (self._num_traces * self._num_obs)
+
+            should_impute = num_nan_obs > 0
+            nan_tol = self._cfg.train_cfg.training_missing_perc
+            can_impute = (perc_nan_obs <= nan_tol) and (perc_nan_trace <= nan_tol)
             within_horizon = ts.num_outside_thresh <= self._cfg.horizon
             if len(df) == 1 and not (can_impute or within_horizon):
                 logger.warning(f"Unable to impute at {row_idx}: "
-                               f"{perc_nan*100:3.2f}% of observations are NaN. "
+                               f"{perc_nan_obs*100:3.2f}% of observations are NaN. "
+                               f"{perc_nan_trace*100:3.2f}% of traces are NaN. "
                                f"Tolerance is {self._cfg.train_cfg.training_missing_perc*100:3.2f}%")
 
             # only impute if
@@ -190,7 +197,8 @@ class MaskedAutoencoder(BaseImputer):
             ts.last_trace = _series_to_jax(carry.transform_data.iloc[0])
 
         # log number of nans and whether imputation occurred
-        self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan', value=total_nans)
+        self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan_obs', value=total_nan_obs)
+        self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan_trace', value=total_nan_trace)
         self._app_state.metrics.write(self._app_state.agent_step, metric='AE-imputed', value=total_imputes)
 
         self.train()
