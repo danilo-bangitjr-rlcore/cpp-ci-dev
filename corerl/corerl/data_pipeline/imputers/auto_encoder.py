@@ -260,6 +260,8 @@ def _train(
     def train_step(carry: TrainCarry):
         true_obs_batch = batches.obs[carry.step]
         true_obs_nanmask = batches.obs_nanmask[carry.step]
+        true_trace_batch = batches.traces[carry.step]
+        true_trace_nanmask = batches.trace_nanmask[carry.step]
 
         # To force the AE to learn in the presence of
         # missingness, need to fake some missingness
@@ -269,16 +271,23 @@ def _train(
         uniform_sample = jax.random.uniform(key=sample_rng, shape=true_obs_batch.shape)
         sim_obs_nanmask = uniform_sample < train_cfg.training_missing_perc
         train_obs_batch = jnp.where(sim_obs_nanmask, fill_val, true_obs_batch)
-
         # update missing indicator
         train_obs_nanmask = sim_obs_nanmask | true_obs_nanmask
+
+        # simulate missingness of traces
+        rng, sample_rng = jax.random.split(rng)
+        uniform_sample = jax.random.uniform(key=sample_rng, shape=true_trace_batch.shape)
+        sim_trace_nanmask = uniform_sample < train_cfg.training_missing_perc
+        train_trace_batch = jnp.where(sim_trace_nanmask, fill_val, true_trace_batch)
+        # update missing indicator
+        train_trace_nanmask = sim_trace_nanmask | true_trace_nanmask
 
         # update impute_data to include simulated nans
         train_impute_data = ImputeData(
             obs=train_obs_batch,
-            traces=batches.traces[carry.step],
+            traces=train_trace_batch,
             obs_nanmask=train_obs_nanmask,
-            trace_nanmask=batches.trace_nanmask[carry.step],
+            trace_nanmask=train_trace_nanmask,
         )
         input_batch = _to_input(train_impute_data)
 
