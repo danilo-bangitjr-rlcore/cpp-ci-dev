@@ -84,7 +84,6 @@ class MaskedAutoencoder(BaseImputer):
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
         self._fill_val = imputer_cfg.fill_val
-        self._prop_missing_tol = imputer_cfg.prop_missing_tol
 
         self._traces = TraceConstructor(
             TraceConfig(
@@ -152,12 +151,12 @@ class MaskedAutoencoder(BaseImputer):
             perc_nan = num_nan / self._num_obs
 
             should_impute = num_nan > 0
-            can_impute = perc_nan <= self._prop_missing_tol
+            can_impute = perc_nan <= self._cfg.train_cfg.training_missing_perc
             within_horizon = ts.num_outside_thresh <= self._cfg.horizon
             if len(df) == 1 and not (can_impute or within_horizon):
                 logger.warning(f"Unable to impute at {row_idx}: "
                                f"{perc_nan*100:3.2f}% of observations are NaN. "
-                               f"Tolerance is {self._prop_missing_tol*100:3.2f}%")
+                               f"Tolerance is {self._cfg.train_cfg.training_missing_perc*100:3.2f}%")
 
             # only impute if
             #   1. We need to (i.e. there are missing values)
