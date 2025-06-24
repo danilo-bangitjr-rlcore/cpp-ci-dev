@@ -18,7 +18,7 @@ class WindyRoomConfig(EnvConfig):
     red_zone_thresh = 0.05
 
     initial_wind_direction = np.pi
-    wind_magnitude: float  = 0.01
+    wind_magnitude: float  = 0.005
     wind_direction_delta: float = (2*np.pi)/1000 # 1000 steps to complete a full circle
     action_magnitude: float = 0.02
     no_zones: bool = True
@@ -60,10 +60,10 @@ class WindyRoom(gym.Env):
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict]:
         xy = self.state[:STATE_DIM]
         # increment position components of the state
-        xy = xy + self._cfg.action_magnitude*action
+        xy = xy + self._cfg.action_magnitude*action/self._cfg.room_size
         wind_delta = np.array([np.cos(self.wind_direction), np.sin(self.wind_direction)])*self._cfg.wind_magnitude
         xy = xy + wind_delta
-        xy = np.clip(xy, BOUNDS_LOW * self._cfg.room_size, BOUNDS_HIGH * self._cfg.room_size)
+        xy = np.clip(xy, BOUNDS_LOW, BOUNDS_HIGH)
 
         # adjust wind direction
         self.wind_direction = self.wind_direction + self._cfg.wind_direction_delta
@@ -78,14 +78,14 @@ class WindyRoom(gym.Env):
         if self._cfg.no_zones:
             return 0.
 
-        yellow_lo = self._cfg.yellow_zone_thresh * self._cfg.room_size
-        yellow_hi = (1 - self._cfg.yellow_zone_thresh) * self._cfg.room_size
+        yellow_lo = self._cfg.yellow_zone_thresh
+        yellow_hi = (1 - self._cfg.yellow_zone_thresh)
 
-        red_lo = self._cfg.red_zone_thresh * self._cfg.room_size
-        red_hi = (1 - self._cfg.red_zone_thresh) * self._cfg.room_size
+        red_lo = self._cfg.red_zone_thresh
+        red_hi = (1 - self._cfg.red_zone_thresh)
 
-        bounds_low = BOUNDS_LOW * self._cfg.room_size
-        bounds_high = BOUNDS_HIGH * self._cfg.room_size
+        bounds_low = BOUNDS_LOW
+        bounds_high = BOUNDS_HIGH
 
         #mimic yellow/red zones in corerl
         for v in xy:
