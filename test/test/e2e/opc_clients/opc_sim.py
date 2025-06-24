@@ -19,6 +19,7 @@ from lib_config.loader import load_config
 
 from test.e2e.opc_clients.opc_connection import make_opc_node_id
 
+_logger = logging.getLogger(__name__)
 
 @config()
 class OPCSimConfig:
@@ -142,6 +143,9 @@ def wait_for_agent_step(client: Client, agent_step_node: SyncNode):
 
 @load_config(OPCSimConfig)
 def main(cfg: OPCSimConfig):
+    log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
+    logging.basicConfig(format=log_fmt, encoding="utf-8", level=logging.INFO)
+    logging.getLogger('asyncua').setLevel(logging.CRITICAL)
     env: gym.Env = init_environment(cfg.gym)
     _logger.info(f"Running OPC env simulation {env}")
 
@@ -157,8 +161,4 @@ def main(cfg: OPCSimConfig):
 
 
 if __name__ == "__main__":
-    _logger = logging.getLogger(__name__)
-    log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
-    logging.basicConfig(format=log_fmt, encoding="utf-8", level=logging.INFO)
-    logging.getLogger('asyncua').setLevel(logging.CRITICAL)
     main()

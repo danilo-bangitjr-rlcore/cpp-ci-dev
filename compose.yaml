@@ -55,6 +55,7 @@ services:
     # corerl web server for direct main config API
     build:
       context: .
+      dockerfile: ./corerl/Dockerfile
       ssh:
         - default
     ports:
@@ -65,7 +66,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-    entrypoint: ["python", "/usr/local/bin/corerl_start_web"]
+    entrypoint: ["corerl_start_web"]
     develop:
       watch:
         - action: rebuild
@@ -165,6 +166,7 @@ services:
   opc-sim:
     build:
       context: .
+      dockerfile: ./test/Dockerfile
       ssh:
         - default
 
@@ -174,12 +176,9 @@ services:
       opc-server:
         condition: service_healthy
     volumes:
-      - ./test/test/e2e/opc_clients:/app/e2e/opc_clients
-      - ./config/opc_sim:/app/config/opc_sim
-    entrypoint: ["python"]
-    command:
-      [
-        "e2e/opc_clients/opc_sim.py",
+      - ./config/opc_sim:/app/test/config/opc_sim
+    entrypoint: ["opc_sim"]
+    command: [
         "--config-name",
         "config/opc_sim/async_mountain_car_continuous.yaml",
         "opc_endpoint_uri=opc.tcp://admin@opc-server:4840/rlcore/server/",

@@ -1,3 +1,6 @@
+# !!!! ATTENTION: BROKEN !!!!
+# The image build successfully, but it doesn't install the python packages correctly
+
 # syntax=docker/dockerfile:1
 
 # Ensure that an SSH agent that is able to access our private dependencies is forwarded:
