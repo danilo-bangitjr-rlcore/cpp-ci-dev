@@ -10,7 +10,13 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
-from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic, get_stable_rank
+from lib_agent.critic.qrc_critic import (
+    QRCConfig,
+    QRCCritic,
+    create_ensemble_dict,
+    extract_metrics,
+    get_stable_rank,
+)
 from lib_config.config import MISSING, computed, config
 from pydantic import Field, TypeAdapter
 
@@ -400,31 +406,27 @@ class GreedyAC(BaseAgent):
             next_actions=next_actions,
         )
 
-        # log critic metrics
-        for metric_name, ens_metric in metrics._asdict().items():
-            for i, metric_val in enumerate(ens_metric):
-                assert isinstance(metric_val, jax.Array)
-                metric_val = metric_val.mean().squeeze()
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"CRITIC{i}-{metric_name}",
-                    value=metric_val,
-                )
-
-        # log stable ranks
-        stable_ranks = get_stable_rank(self._critic_state.params)
-        for i, rank in enumerate(stable_ranks):
-            for layer_name, layer_rank in rank.items():
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric=f"CRITIC{i}-stable_rank_{layer_name}",
-                    value=float(layer_rank),
-                )
-
-        self._app_state.metrics.write(
+        metrics_dict = create_ensemble_dict(
+            metrics,
+            lambda m: extract_metrics(m, [
+                'layer_grad_norms', 'layer_weight_norms', 'loss', 'q_loss', 'h_loss',
+                'q', 'h', 'delta_l', 'delta_r', 'action_reg_loss', 'h_reg_loss',
+                'ensemble_grad_norms', 'ensemble_weight_norms',
+            ]),
+        )
+        self._app_state.metrics.write_dict(
+            metrics_dict,
             agent_step=self._app_state.agent_step,
-            metric="CRITIC-avg_loss",
-            value=metrics.loss.mean(),
+        )
+
+        stable_ranks_dict = create_ensemble_dict(
+            self._critic_state.params,
+            get_stable_rank,
+            prefix='stable_rank_',
+        )
+        self._app_state.metrics.write_dict(
+            stable_ranks_dict,
+            agent_step=self._app_state.agent_step,
         )
 
         return [loss.mean() for loss in metrics.loss]

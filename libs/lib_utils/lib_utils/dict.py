@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import hashlib
 import re
-from collections.abc import Callable, Iterable, MutableMapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, MutableMapping, Sequence
 from dataclasses import _MISSING_TYPE, fields, is_dataclass
 from inspect import isclass
-from typing import Any
+from typing import Any, SupportsFloat, TypeVar
 
 from pydantic.fields import FieldInfo
 
+T = TypeVar('T', bound=SupportsFloat | Mapping[str, Any])
 
 def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
     if key in d:
@@ -248,6 +249,43 @@ def dataclass_to_dict(o: Any) -> Any:
 
     return out
 
+
+def flatten_tree(
+    tree: Mapping[str, Any],
+    prefix: str = '',
+    sep: str = '_',
+) -> dict[str, float]:
+    result = {}
+    for key, value in tree.items():
+        new_key = f"{prefix}{sep}{key}" if prefix else key
+
+        if isinstance(value, dict):
+            result.update(flatten_tree(value, new_key, sep))
+        elif isinstance(value, int | float):
+            result[new_key] = float(value)
+        elif hasattr(value, '__float__'):
+            result[new_key] = float(value)
+
+    return result
+
+
+def flatten_nested_dict(
+    d: MutableMapping[str, Any],
+    separator: str = ".",
+    _parent_key: str = "",
+    _carry: dict | None = None,
+) -> dict[str, Any]:
+    _carry = _carry if _carry is not None else {}
+
+    for k, v in d.items():
+        new_k = _parent_key + k if _parent_key else k
+        if isinstance(v, MutableMapping):
+            new_parent = new_k + separator
+            flatten_nested_dict(v, separator, new_parent, _carry)
+        else:
+            _carry[new_k] = v
+
+    return _carry
 
 # ------------------------
 # -- Internal Utilities --

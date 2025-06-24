@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
 from typing import Any, NamedTuple, Protocol
@@ -8,6 +9,7 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import optax
+from lib_utils import dict as dict_u
 
 import lib_agent.network.networks as nets
 from lib_agent.buffer.buffer import State
@@ -248,6 +250,8 @@ class QRCCritic:
         metrics = metrics._replace(
             ensemble_grad_norms=get_ensemble_norm(grads),
             ensemble_weight_norms=get_ensemble_norm(new_params),
+            layer_grad_norms=get_layer_norms(grads),
+            layer_weight_norms=get_layer_norms(new_params),
         )
 
         return CriticState(
@@ -360,6 +364,8 @@ class QRCCritic:
             h_reg_loss=jnp.array(0),
             ensemble_grad_norms=jnp.array(0),
             ensemble_weight_norms=jnp.array(0),
+            layer_grad_norms=jnp.array(0),
+            layer_weight_norms=jnp.array(0),
         )
 
         return loss, metrics
@@ -385,6 +391,8 @@ class QRCCriticMetrics(NamedTuple):
     h_reg_loss: jax.Array
     ensemble_grad_norms: jax.Array
     ensemble_weight_norms: jax.Array
+    layer_grad_norms: jax.Array
+    layer_weight_norms: jax.Array
 
 
 @jax_u.jit
@@ -480,3 +488,82 @@ def uniform_except(
     )
 
     return x
+
+@jax_u.jit
+def get_layer_norms(params: chex.ArrayTree):
+    leaves = jax.tree.leaves(params)
+    ensemble = leaves[0].shape[0]
+    names = get_layer_names(params)
+
+    def _norm(x: jax.Array):
+        return jnp.sqrt(jnp.sum(jnp.square(x)))
+
+    def _tree_norm(x: chex.ArrayTree):
+        return jax.tree.map(_norm, x)
+
+    norms = jax_u.vmap(_tree_norm)(params)
+
+    return [
+        dict(
+            zip(
+                names,
+                [n[i] for n in jax.tree.leaves(norms)],
+                strict=True,
+            ),
+        )
+        for i in range(ensemble)
+    ]
+
+def create_ensemble_dict(
+    data: Any,
+    metric_fn: Callable[[Any], list[dict[str, float]]],
+    prefix: str = '',
+) -> dict[str, dict[str, float]]:
+    metrics = metric_fn(data)
+    return {
+        f"CRITIC{i}": {
+            f"{prefix}{name}": float(value)
+            for name, value in member_metrics.items()
+        }
+        for i, member_metrics in enumerate(metrics)
+    }
+
+def extract_metrics(
+    metrics: dict[str, Any] | QRCCriticMetrics,
+    metric_names: list[str] | None = None,
+    array_processor: Callable[[jax.Array], float] | None = None,
+    flatten_separator: str = "_",
+) -> list[dict[str, float]]:
+    if isinstance(metrics, QRCCriticMetrics):
+        metrics = metrics._asdict()
+
+    filtered = {k: v for k, v in metrics.items() if metric_names is None or k in metric_names}
+    if not filtered:
+        return []
+
+    arrays = {k: v for k, v in filtered.items() if hasattr(v, 'shape') and hasattr(v, 'mean')}
+    lists = {k: v for k, v in filtered.items() if not (hasattr(v, 'shape') and hasattr(v, 'mean'))}
+
+    ensemble_data = jax_u.extract_axis(arrays, axis=0) if arrays else []
+    ensemble_size = len(lists.get(next(iter(lists)), [])) if lists else 0
+    if not ensemble_data and ensemble_size > 0:
+        ensemble_data = [{} for _ in range(ensemble_size)]
+
+    processor = array_processor or (lambda x: float(x.mean().squeeze()))
+
+    result = []
+    for i, member in enumerate(ensemble_data):
+        member_dict = {k: processor(v) for k, v in member.items()}
+
+        for name, lst in lists.items():
+            if i < len(lst):
+                val = lst[i]
+                if isinstance(val, dict):
+                    flattened = dict_u.flatten_nested_dict(val, separator=flatten_separator)
+                    member_dict.update({f"{name}_{k}": float(v) for k, v in flattened.items()})
+                else:
+                    member_dict[name] = float(val)
+
+        result.append(member_dict)
+
+    return result

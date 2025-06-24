@@ -1,9 +1,11 @@
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import NamedTuple, SupportsFloat
+from typing import Any, NamedTuple, SupportsFloat
 
 import pandas as pd
 from lib_config.config import config
+from lib_utils.dict import flatten_tree
 from lib_utils.time import now_iso
 from sqlalchemy import text
 
@@ -59,7 +61,10 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         """)
 
 
-    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
+    def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
+        if agent_step is None:
+            return
+
         if not self.cfg.enabled:
             return
 
@@ -181,3 +186,17 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         if step_start is not None or step_end is not None:
             return self._read_by_step(metric, step_start, step_end)
         return self._read_by_metric(metric)
+
+    def write_dict(
+        self,
+        values: Mapping[str, SupportsFloat | Mapping[str, Any]],
+        prefix: str = '',
+        agent_step: int | None = None,
+    ) -> None:
+        flattened = flatten_tree(values, prefix)
+        for key, value in flattened.items():
+            self.write(
+                agent_step=agent_step,
+                metric=key,
+                value=value,
+            )
