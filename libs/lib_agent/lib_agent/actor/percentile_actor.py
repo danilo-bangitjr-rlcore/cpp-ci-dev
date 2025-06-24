@@ -48,6 +48,7 @@ class ValueEstimator(Protocol):
     def __call__(
         self,
         params: chex.ArrayTree,
+        rng: chex.PRNGKey,
         x: jax.Array,
         a: jax.Array,
     ) -> jax.Array: ...
@@ -368,14 +369,15 @@ class PercentileActor:
     ):
         chex.assert_shape(state.features, (self.state_dim, ))
 
-        sample_rng, rng = jax.random.split(rng, 2)
+        rng, sample_rng, q_rng = jax.random.split(rng, 3)
+
         proposal_actions = self._get_proposal_samples(proposal_params, state, sample_rng)
         # clip proposal action to prevent log prob from being nan
         proposal_actions = jnp.clip(proposal_actions, 1e-5, 1 - 1e-5)
         chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
 
         q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
-        q_vals = q_over_proposal(value_estimator_params, state.features, proposal_actions)
+        q_vals = q_over_proposal(value_estimator_params, q_rng, state.features, proposal_actions)
         q_vals = q_vals + self._cfg.sort_noise * jax.random.normal(
             rng, shape=q_vals.shape, dtype=q_vals.dtype,
         )

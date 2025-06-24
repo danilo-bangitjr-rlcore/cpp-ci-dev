@@ -85,6 +85,7 @@ ZERO_ONE_FEATURES = [
     'regenerative_optimism',
     'normalize_return',
     'nominal_setpoint_bias',
+    'noisy_networks',
 ]
 
 

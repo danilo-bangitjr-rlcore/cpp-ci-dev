@@ -1,6 +1,7 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
+import chex
 import haiku as hk
 import jax
 import jax.numpy as jnp
@@ -20,6 +21,15 @@ class LinearConfig:
     name: str | None = None
     activation: str = 'crelu'
 
+
+@dataclass
+class NoisyLinearConfig:
+    size: int
+    name: str | None = None
+    init_std: float = 0.5
+    activation: str = 'crelu'
+    with_bias: bool = True
+
 @dataclass
 class ResidualConfig:
     size: int
@@ -28,10 +38,10 @@ class ResidualConfig:
 
 @dataclass
 class LateFusionConfig:
-    streams: list[list[LinearConfig | ResidualConfig]]
+    streams: list[list[LinearConfig | ResidualConfig | NoisyLinearConfig]]
     name: str | None = None
 
-type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig
+type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig | NoisyLinearConfig
 
 @dataclass
 class TorsoConfig:
@@ -112,17 +122,58 @@ class SkipProjNet(hk.Module):
 
         return out
 
+def noisy_linear(cfg: NoisyLinearConfig):
+    """Linear layer with weight randomization http://arxiv.org/abs/1706.10295"""
+
+    sg = jax.lax.stop_gradient
+    def sqrt_noise(rng: chex.PRNGKey, shape: tuple[int, ...]) -> jax.Array:
+        noise = jax.random.truncated_normal(rng, lower=-2.0, upper=2.0, shape=shape)
+        return sg(jnp.sign(noise) * jnp.sqrt(jnp.abs(noise)))
+
+    def forward(x: jax.Array):
+        n = x.shape[-1]
+
+        name = f'{cfg.name}_' if cfg.name is not None else ''
+
+        mu = hk.Linear(
+            cfg.size,
+            name=name+'mu',
+            w_init=hk.initializers.Orthogonal(np.sqrt(2)),
+            b_init=hk.initializers.Constant(0.0),
+            with_bias=cfg.with_bias,
+        )
+
+        sigma = hk.Linear(
+            cfg.size,
+            name=name+'sigma',
+            with_bias=True,
+            w_init=hk.initializers.Orthogonal(cfg.init_std  / np.sqrt(n)),
+            b_init=hk.initializers.Constant(0),
+        )
+
+        input_noise = sqrt_noise(hk.next_rng_key(), (n, ))
+        output_noise = sqrt_noise(hk.next_rng_key(), (cfg.size, ))
+
+        noisy_inputs = input_noise * x
+        noisy_outputs = output_noise * sigma(noisy_inputs)
+        z = mu(x) + noisy_outputs
+        return get_activation(cfg.activation)(z)
+
+    return forward
+
 
 def layer_factory(cfg: LayerConfig):
     if isinstance(cfg, LinearConfig):
         return Linear(cfg)
     if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
+    if isinstance(cfg, NoisyLinearConfig):
+        return noisy_linear(cfg)
 
     return FusionNet(cfg)
 
 def torso_builder(cfg: TorsoConfig):
-    layers: list[hk.Module] = [
+    layers: list[Callable[..., jax.Array]] = [
         layer_factory(layer_cfg)
         for layer_cfg in cfg.layers
     ]
@@ -130,7 +181,7 @@ def torso_builder(cfg: TorsoConfig):
 
     if cfg.skip:
         last_layer = cfg.layers[-1]
-        assert isinstance(last_layer, LinearConfig | ResidualConfig)
+        assert isinstance(last_layer, LinearConfig | NoisyLinearConfig | ResidualConfig)
         out_size = last_layer.size
         out_size = out_size * 2 if last_layer.activation in {'crelu'} else out_size
 

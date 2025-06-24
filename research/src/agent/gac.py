@@ -117,8 +117,10 @@ class GreedyAC:
         return actions.squeeze(0)
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
+        self.rng, c_rng = jax.random.split(self.rng)
         return self._critic.get_values(
             self.agent_state.critic.params,
+            c_rng,
             state=state.features,
             action=jnp.asarray(actions),
         )
@@ -162,9 +164,9 @@ class GreedyAC:
                     dp=batch.dp,
                 ),
                 action=batch.action,
-                reward=batch.reward,
+                reward=batch.reward.squeeze(-1),
                 next_state=next_state,
-                gamma=batch.gamma,
+                gamma=batch.gamma.squeeze(-1),
             ),
             next_actions=next_actions,
         )
@@ -208,9 +210,9 @@ class GreedyAC:
 
 
 
-    def ensemble_ve(self, params: chex.ArrayTree, x: jax.Array, a: jax.Array):
+    def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         ens_forward = jax_u.vmap_only(self._critic.get_values, ['params'])
-        qs = ens_forward(params, x, a)
+        qs = ens_forward(params, rng, x, a)
         values = qs.mean(axis=0).squeeze(-1)
 
         chex.assert_rank(values, 0)

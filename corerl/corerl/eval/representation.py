@@ -20,6 +20,8 @@ class RepresentationEval:
         self.app_state = app_state
         self._lmax: float | None = None
 
+        self._rng = jax.random.PRNGKey(0)
+
     def get_complexity_reduction(
         self,
         states: jax.Array,
@@ -239,10 +241,12 @@ class RepresentationEval:
         n_samples = 100
         num_states = states.shape[0]
         action_dim = action_lo.shape[1]
+        self._rng, sample_rng = jax.random.split(self._rng)
+        q_rngs = jax.random.split(sample_rng, (num_states, n_samples))
 
         # sample uniform actions for each state
         sampled_actions = jax.random.uniform(
-            jax.random.PRNGKey(0),
+            sample_rng,
             shape=(num_states, n_samples, action_dim),
             minval=action_lo[:, None, :],
             maxval=action_hi[:, None, :],
@@ -251,12 +255,14 @@ class RepresentationEval:
         get_ens_state_reps = jax_u.vmap_only(agent.critic.get_representations, ["params"])
         ens_state_reps = get_ens_state_reps(
             agent._critic_state.params,
+            q_rngs,
             states,
             sampled_actions,
         )
         chex.assert_shape(ens_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
         ens_next_state_reps = get_ens_state_reps(
             agent._critic_state.params,
+            q_rngs,
             next_states,
             sampled_actions,
         )
@@ -267,7 +273,12 @@ class RepresentationEval:
         mean_next_state_reps = ens_next_state_reps.mean(axis=(0, 2))
 
         # get values for each state (using Q-values for the current policy)
-        qs = jax_u.vmap_only(agent.critic.get_values, ["params"])(agent._critic_state.params, states, sampled_actions)
+        qs = jax_u.vmap_only(agent.critic.get_values, ["params"])(
+            agent._critic_state.params,
+            q_rngs,
+            states,
+            sampled_actions,
+        )
         chex.assert_shape(qs, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, 1))
         mean_qs = qs.mean(axis=(0, 2)).squeeze(-1) # avg over ensemble members and action samples
 
