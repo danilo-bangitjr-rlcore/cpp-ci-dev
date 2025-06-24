@@ -48,7 +48,6 @@ class OPC_Connection:
         self.opc_client = Client(cfg.opc_conn_url)
         self._connected = False
 
-        assert cfg.application_uri is not None
         self.opc_client.application_uri = cfg.application_uri
 
         await self._set_security_policy(cfg.security_policy)
