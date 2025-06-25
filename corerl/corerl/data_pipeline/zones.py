@@ -144,6 +144,7 @@ class ZoneDiscourager:
             logger.error(f"Red zone violation for tag {violation.tag.name} at level: {violation.percent}")
 
 
+        self._apply_red_zone_reaction(pf, violation)
         return -4 - (4 * violation.percent)
 
 
@@ -250,3 +251,19 @@ class ZoneDiscourager:
             )
 
         return None
+
+
+    def _apply_red_zone_reaction(self, pf: PipelineFrame, violation: ZoneViolation):
+        if violation.tag.red_zone_reaction is None:
+            return
+
+        for reflex_cfg in violation.tag.red_zone_reaction:
+            if violation.direction != reflex_cfg.kind:
+                continue
+
+            lo, hi = reflex_cfg.bounds
+            if lo is not None:
+                pf.action_lo.loc[violation.row_idx, f'{reflex_cfg.tag}-lo'] = lo
+
+            if hi is not None:
+                pf.action_hi.loc[violation.row_idx, f'{reflex_cfg.tag}-hi'] = hi
