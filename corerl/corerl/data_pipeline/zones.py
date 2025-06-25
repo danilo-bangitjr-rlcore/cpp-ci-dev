@@ -1,14 +1,15 @@
 import logging
 from dataclasses import dataclass
 from functools import partial
-from typing import Literal, assert_never
+from typing import Any, Literal, assert_never
 
+import numpy as np
 import pandas as pd
 from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig, eval_bound
+from corerl.data_pipeline.tag_config import TagConfig, ViolationDirection, eval_bound
 from corerl.messages.events import EventType
 from corerl.state import AppState
 
@@ -17,8 +18,10 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class ZoneViolation:
+    row_idx: Any
     tag: TagConfig
-    penalty: float
+    percent: float
+    direction: ViolationDirection
     kind: Literal['red', 'yellow']
 
 
@@ -38,106 +41,113 @@ class ZoneDiscourager:
         df = self._prep_stage.inverse(pf.data)
 
         rewards = pf.rewards['reward'].to_numpy(copy=True)
-        for i, (_, row_series) in enumerate(df.iterrows()):
+        for i, (index, row_series) in enumerate(df.iterrows()):
             row = row_series.to_frame().transpose()
 
-            penalty = self._get_penalty_for_row(pf.data_mode, row)
-            if penalty is None:
+            violation, penalty = self._get_penalty_for_row(pf, row, index)
+            if violation is None:
                 continue
 
             # red zones are replacing to encode a priority level
-            if penalty.kind == 'red':
-                rewards[i] = penalty.penalty
+            if violation.kind == 'red':
+                rewards[i] = penalty
 
             # yellow zones are additive to encode light penalty
-            elif penalty.kind == 'yellow':
-                rewards[i] += penalty.penalty
+            elif violation.kind == 'yellow':
+                rewards[i] += penalty
 
             # no other types of zones
             else:
-                assert_never(penalty.kind)
+                assert_never(violation.kind)
 
 
         pf.rewards['reward'] = rewards
         return pf
 
 
-    def _get_penalty_for_row(self, data_mode: DataMode, row: pd.DataFrame):
+    def _get_penalty_for_row(self, pf: PipelineFrame, row: pd.DataFrame, row_idx: Any):
         red_violations = [
-            self._red_violation_percent(row, tag)
+            self._detect_red_violation(row, row_idx, tag)
             for tag in self._bounded_tag_cfgs
         ]
+        max_penalty: float = np.inf
+        max_violation: ZoneViolation | None = None
+        for violation in red_violations:
+            if violation is None:
+                continue
 
-        # first check for red zone violations
-        idx = _argmax(red_violations)
-        if idx is not None:
-            tag = self._bounded_tag_cfgs[idx]
-            percent = red_violations[idx]
-            assert percent is not None
-            penalty = self._handle_red_violation(data_mode, tag, percent)
-            return ZoneViolation(tag, penalty, 'red')
+            penalty = self._handle_red_violation(pf, violation)
+            if penalty < max_penalty:
+                max_penalty = penalty
+                max_violation = violation
+
 
         # then yellow zone
         yellow_violations = [
-            self._yellow_violation_percent(row, tag)
+            self._detect_yellow_violation(row, row_idx, tag)
             for tag in self._bounded_tag_cfgs
         ]
+        for violation in yellow_violations:
+            if violation is None:
+                continue
 
-        idx = _argmax(yellow_violations)
-        if idx is not None:
-            tag = self._bounded_tag_cfgs[idx]
-            percent = yellow_violations[idx]
-            assert percent is not None
-            penalty = self._handle_yellow_violation(data_mode, tag, percent)
-            return ZoneViolation(tag, penalty, 'yellow')
+            penalty = self._handle_yellow_violation(pf, violation)
+            if penalty < max_penalty:
+                max_penalty = penalty
+                max_violation = violation
 
-        return None
+        return max_violation, max_penalty
 
 
-    def _handle_yellow_violation(self, data_mode: DataMode, tag: TagConfig, percent: float):
+    def _handle_yellow_violation(self, pf: PipelineFrame, violation: ZoneViolation):
         """
         Lifecycle method to handle yellow zone violations. Computes the reward penalty
         given degree of violation.
 
         Reward penalty ramps slowly from 0 to -2.
         """
-        if data_mode == DataMode.ONLINE:
+        if pf.data_mode == DataMode.ONLINE:
             self._app_state.event_bus.emit_event(EventType.yellow_zone_violation)
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric='yellow_zone_violation',
-                value=percent,
+                value=violation.percent,
             )
-            logger.warning(f"Yellow zone violation for tag {tag.name} at level: {percent}")
+            logger.warning(f"Yellow zone violation for tag {violation.tag.name} at level: {violation.percent}")
 
-        return -2 * (percent**2)
+        return -2 * (violation.percent**2)
 
 
-    def _handle_red_violation(self, data_mode: DataMode, tag: TagConfig, percent: float):
+    def _handle_red_violation(
+        self,
+        pf: PipelineFrame,
+        violation: ZoneViolation,
+    ):
         """
         Lifecycle method to handle red zone violations. Computes the reward penalty
         given degree of violation.
 
         Reward penalty ramps quickly from -4 to -8.
         """
-        if data_mode == DataMode.ONLINE:
+        if pf.data_mode == DataMode.ONLINE:
             self._app_state.event_bus.emit_event(EventType.red_zone_violation)
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric='red_zone_violation',
-                value=percent,
+                value=violation.percent,
             )
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric='yellow_zone_violation',
                 value=1.0,
             )
-            logger.error(f"Red zone violation for tag {tag.name} at level: {percent}")
-
-        return -4 - (4 * percent)
+            logger.error(f"Red zone violation for tag {violation.tag.name} at level: {violation.percent}")
 
 
-    def _yellow_violation_percent(self, row: pd.DataFrame, tag: TagConfig):
+        return -4 - (4 * violation.percent)
+
+
+    def _detect_yellow_violation(self, row: pd.DataFrame, row_idx: int, tag: TagConfig):
         x: float = row[tag.name].to_numpy()[0]
 
         yellow_lo = (
@@ -165,8 +175,13 @@ class ZoneDiscourager:
                 # and if neither exists, we're in trouble
                 .expect(f'Yellow zone specified for tag {tag.name}, but no lower bound found')
             )
-
-            return (yellow_lo - x) / (yellow_lo - next_lo)
+            return ZoneViolation(
+                row_idx=row_idx,
+                tag=tag,
+                percent=np.clip((yellow_lo - x) / (yellow_lo - next_lo), 0, 1),
+                direction=ViolationDirection.lower_violation,
+                kind='yellow',
+            )
 
         if yellow_hi is not None and x > yellow_hi:
             next_hi = (
@@ -180,12 +195,17 @@ class ZoneDiscourager:
                 # and if neither exists, we're in trouble
                 .expect(f'Yellow zone specified for tag {tag.name}, but no upper bound found')
             )
-
-            return (x - yellow_hi) / (next_hi - yellow_hi)
+            return ZoneViolation(
+                row_idx=row_idx,
+                tag=tag,
+                percent=np.clip((x - yellow_hi) / (next_hi - yellow_hi), 0, 1),
+                direction=ViolationDirection.upper_violation,
+                kind='yellow',
+            )
 
         return None
 
-    def _red_violation_percent(self, row: pd.DataFrame, tag: TagConfig):
+    def _detect_red_violation(self, row: pd.DataFrame, row_idx: Any, tag: TagConfig):
         x: float = row[tag.name].to_numpy()[0]
 
         red_lo = (
@@ -207,8 +227,13 @@ class ZoneDiscourager:
                 .map(lambda rng: rng[0])
                 .expect(f'Red zone specified for tag {tag.name}, but no lower bound found')
             )
-
-            return (red_lo - x) / (red_lo - op_lo)
+            return ZoneViolation(
+                row_idx=row_idx,
+                tag=tag,
+                percent=(red_lo - x) / (red_lo - op_lo),
+                direction=ViolationDirection.lower_violation,
+                kind='red',
+            )
 
         if red_hi is not None and x > red_hi:
             op_hi = (
@@ -216,21 +241,12 @@ class ZoneDiscourager:
                 .map(lambda rng: rng[1])
                 .expect(f'Red zone specified for tag {tag.name}, but no upper bound found')
             )
-
-            return (x - red_hi) / (op_hi - red_hi)
+            return ZoneViolation(
+                row_idx=row_idx,
+                tag=tag,
+                percent=(x - red_hi) / (op_hi - red_hi),
+                direction=ViolationDirection.upper_violation,
+                kind='red',
+            )
 
         return None
-
-
-def _argmax(arr: list[float | None]) -> int | None:
-    v = -1
-    idx = None
-    for i, x in enumerate(arr):
-        if x is None:
-            continue
-
-        if x > v:
-            v = x
-            idx = i
-
-    return idx
