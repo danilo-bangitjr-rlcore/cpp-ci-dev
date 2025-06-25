@@ -49,7 +49,7 @@ type OPCAuthModeConfig = Literal[OPCAuthMode.anonymous] | OPCAuthModeUsernamePas
 class OPCConnectionConfig:
     connection_id: str = MISSING
     opc_conn_url: str = MISSING
-    application_uri: str | None = None
+    application_uri: str = ""
     security_policy: OPCSecurityPolicyConfig = MISSING
     authentication_mode: OPCAuthModeConfig = MISSING
 

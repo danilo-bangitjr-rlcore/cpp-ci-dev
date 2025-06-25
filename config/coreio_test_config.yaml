@@ -3,7 +3,6 @@ coreio:
   opc_connections:
     - connection_id: asdxf
       opc_conn_url: opc.tcp://admin@localhost:4840
-      application_uri: ""
       security_policy:
         policy: none
         mode: none

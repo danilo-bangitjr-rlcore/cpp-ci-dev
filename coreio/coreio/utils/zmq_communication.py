@@ -55,7 +55,8 @@ class ZMQ_Communication:
         event = None
 
         try:
-            return self.queue.get(True, 0.5)
+            event = self.queue.get(True, 0.5)
+            return event # noqa: RET504
         except Empty:
             return None
         finally:
@@ -74,9 +75,9 @@ class ZMQ_Communication:
                 self.queue.task_done()
             except Empty:
                 empty_raised = True
-        self.queue.join()
 
-        self.consumer_thread.join()
+        self.queue.join()
+        self.consumer_thread.join(timeout=5)
 
         self.subscriber_socket.close()
         self.zmq_context.term()

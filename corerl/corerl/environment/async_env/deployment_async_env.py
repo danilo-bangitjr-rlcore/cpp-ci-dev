@@ -67,7 +67,7 @@ class DeploymentAsyncEnv(AsyncEnv):
             assert tag_cfg.connection_id is not None, "Tag Config action missing connection_id"
             connection_id = tag_cfg.connection_id
 
-            logger.info(f"Registering action '{tag_name}' with OPC node id '{node_id}' on conn '{connection_id}'")
+            logger.info(f"Mapping ai_setpoint '{tag_name}' -> OPC node id '{node_id}' on conn '{connection_id}'")
             self.action_nodes[tag_name] = ActionNodeData(
                 connection_id=connection_id, node_id=node_id )
 
