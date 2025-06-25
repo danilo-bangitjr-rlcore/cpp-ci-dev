@@ -308,6 +308,7 @@ dependencies = [
     { name = "jax" },
     { name = "lib-utils", extra = ["jax"] },
     { name = "optax" },
+    { name = "discrete-dists" },
 ]
 
 [package.dev-dependencies]
@@ -330,6 +331,7 @@ requires-dist = [
     { name = "jax", specifier = ">=0.6.1" },
     { name = "lib-utils", extras = ["jax"], editable = "../lib_utils" },
     { name = "optax", specifier = ">=0.2.4" },
+    { name = "discrete-dists", specifier = "~=1.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -1003,4 +1005,20 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/e3/02/0f2892c661036d50ede074e376733dca2ae7c6eb617489437771209d4180/zipp-3.23.0.tar.gz", hash = "sha256:a07157588a12518c9d4034df3fbbee09c814741a33ff63c05fa29d26a2404166", size = 25547, upload-time = "2025-06-08T17:06:39.4Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/2e/54/647ade08bf0db230bfea292f893923872fd20be6ac6f53b2b936ba839d75/zipp-3.23.0-py3-none-any.whl", hash = "sha256:071652d6115ed432f5ce1d34c336c0adfd6a884660d1e9712a256d3d3bd4b14e", size = 10276, upload-time = "2025-06-08T17:06:38.034Z" },
+]
+
+[[package]]
+name = "discrete-dists"
+version = "1.1.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9d/12/428ff73c5c4c7622492469a3c96c2a06e6df1d054dee978e552831f97880/discrete_dists-1.1.2.tar.gz", hash = "sha256:26d4a01d61a377a5a95f509b3644e337ad3cb6abdcc151faebf6bf09730e2b2a", size = 14671, upload-time = "2025-03-17T03:10:01.847Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b1/00/f697b33ab47a4d93b580d6866afd8eaef4f2f32acd57b3ce3d8721f96859/discrete_dists-1.1.2-cp313-cp313-macosx_11_0_arm64.whl", hash = "sha256:2759ede26a68c1c416438e5fcdbc7ff4819b02084e8f78a692d11e03619d7ce0", size = 275630, upload-time = "2025-03-17T03:10:00.739Z" },
+    { url = "https://files.pythonhosted.org/packages/1a/66/ea9cb00023b5fef1635f177da3c7e0659dfee07f7bafd321bf3cf85a9ec7/discrete_dists-1.1.2-cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:7043c12a9c6f5fd52073efe1c89bd4410b735f6badaa8d37f4e093cb8feb65c0", size = 314196, upload-time = "2025-03-17T03:09:52.831Z" },
+    { url = "https://files.pythonhosted.org/packages/62/b2/251cdcf79a3b8ffceedbc094d6fcde0d19a6af180af48521b2d82d456696/discrete_dists-1.1.2-cp313-cp313-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:8eb0a80366de1250cc21a7cb24ec049f0973a6f2f8786568592746297ed68ed3", size = 348452, upload-time = "2025-03-17T03:09:42.488Z" },
+    { url = "https://files.pythonhosted.org/packages/67/06/aef3a3fd2884d13da4883e7abc8f4bf2208957ff879762d7fd41fda13fef/discrete_dists-1.1.2-cp313-cp313-win32.whl", hash = "sha256:6d9dde27dbc48adffa72528b7a7a8e9a26ec2ad16676494d1cdeb4c557a8e4ef", size = 174691, upload-time = "2025-03-17T03:10:13.004Z" },
+    { url = "https://files.pythonhosted.org/packages/af/d9/af931c76083b3a8b3e6ecf0164f31b8974a30ab55f1b2e5af87dc429549b/discrete_dists-1.1.2-cp313-cp313-win_amd64.whl", hash = "sha256:e60beb6f7abd21c2f1e484946d654ee786d65d3b56bba3e74f2a5cef3029b5f2", size = 170263, upload-time = "2025-03-17T03:10:06.837Z" },
 ]
