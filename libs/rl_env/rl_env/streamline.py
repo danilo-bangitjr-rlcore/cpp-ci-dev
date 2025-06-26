@@ -140,10 +140,10 @@ class PipelineEnv(gym.Env):
 
     def _get_obs(self):
         return {
-                "tank_levels": np.array([item.level for key, item in self.tanks.items()]),
+                "tank_levels": np.array([item.level for item in self.tanks.values()]),
                 "receipts_forecast": self.observation['receipts_forecast'],
-                "stops": np.array([s.stop for i, s in self.segments.items()]),
-                "starts": np.array([s.start for i, s in self.segments.items()]),
+                "stops": np.array([s.stop for s in self.segments.values()]),
+                "starts": np.array([s.start for s in self.segments.values()]),
             }
 
 
@@ -178,8 +178,8 @@ class PipelineEnv(gym.Env):
 
         for i, t in self.tanks.items():
             t.start_volume = t.level * t.capacity
-            t.inflow = sum([j.flow for k, j in self.junctions.items() if i in j.outputs])
-            t.outflow = sum([j.flow for k, j in self.junctions.items() if i in j.inputs])
+            t.inflow = sum([j.flow for j in self.junctions.values() if i in j.outputs])
+            t.outflow = sum([j.flow for j in self.junctions.values() if i in j.inputs])
             t.end_volume = t.start_volume  + t.inflow - t.outflow
             t.level = t.end_volume / t.capacity
             volumeaward = (1-t.level)*(t.level)*self.weights.volumereward
