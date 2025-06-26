@@ -70,16 +70,17 @@ class PipelineData:
 @dataclass
 class PipelineConfig(EnvConfig):
     name: str = 'Pipeline-v0'
+    pipeline_data: PipelineData = field(default_factory=PipelineData)
 
 class PipelineEnv(gym.Env):
-    def __init__(self, dm: PipelineData):
-        self.horizon = dm.horizon
-        self.segments = dm.segments
-        self.tanks = dm.tanks
-        self.receipts = dm.receipts
-        self.deliveries = dm.deliveries
-        self.junctions = dm.junctions
-        self.weights = dm.weights
+    def __init__(self, cfg: PipelineConfig):
+        self.horizon = cfg.pipeline_data.horizon
+        self.segments = cfg.pipeline_data.segments
+        self.tanks = cfg.pipeline_data.tanks
+        self.receipts = cfg.pipeline_data.receipts
+        self.deliveries = cfg.pipeline_data.deliveries
+        self.junctions = cfg.pipeline_data.junctions
+        self.weights = cfg.pipeline_data.weights
         self.nodes = list(self.segments.keys()) + list(self.tanks.keys()) + list(self.receipts.keys()) + list(self.deliveries.keys())
         # Action space is the flow rates on each pipeline segment
         self.action_space = gym.spaces.Box(0, 1, shape=(len(self.segments),), dtype=np.float64)
