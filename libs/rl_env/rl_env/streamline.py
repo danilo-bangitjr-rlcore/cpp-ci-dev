@@ -58,11 +58,30 @@ class Weights:
 
 @dataclass
 class PipelineData:
-    segments: dict[str, Segment] = field(default_factory=dict)
-    tanks: dict[str, Tank] = field(default_factory=dict)
-    receipts: dict[str, Receipt] = field(default_factory=dict)
-    deliveries: dict[str, Delivery] = field(default_factory=dict)
-    junctions: dict[str, Junction] = field(default_factory=dict)
+    segments: dict[str, Segment] = field(default_factory=lambda: {
+        't1_t2': Segment(max_flow=2000, min_flow=100, start_cost=100),
+        't2_t3': Segment(max_flow=2000, min_flow=100, start_cost=100),
+    })
+    tanks: dict[str, Tank] = field(default_factory=lambda: {
+        't1': Tank(level=500, capacity=5000),
+        't2': Tank(level=500, capacity=5000),
+        't3': Tank(level=500, capacity=5000),
+    })
+    receipts: dict[str, Receipt] = field(default_factory=lambda: {
+        'r1': Receipt(nom=500),
+        'r2': Receipt(nom=500),
+    })
+    deliveries: dict[str, Delivery] = field(default_factory=lambda: {
+        'd1': Delivery(values=[1000]),
+    })
+    junctions: dict[str, Junction] = field(default_factory=lambda: {
+        'j1': Junction(inputs=['r1'], outputs=['t1']),
+        'j2': Junction(inputs=['t1'], outputs=['t1_t2']),
+        'j3': Junction(inputs=['t1_t2', 'r2'], outputs=['t2']),
+        'j4': Junction(inputs=['t2'], outputs=['t2_t3']),
+        'j5': Junction(inputs=['t2_t3'], outputs=['t3']),
+        'j6': Junction(inputs=['t3'], outputs=['d1']),
+    })
     weights: Weights = field(default_factory=lambda: Weights(volumereward=100, tankpenalty=1000, deliveryreward=10))
 
 
@@ -73,7 +92,6 @@ class PipelineConfig(EnvConfig):
 
 class PipelineEnv(gym.Env):
     def __init__(self, cfg: PipelineConfig):
-        self.horizon = cfg.pipeline_data.horizon
         self.segments = cfg.pipeline_data.segments
         self.tanks = cfg.pipeline_data.tanks
         self.receipts = cfg.pipeline_data.receipts
@@ -172,8 +190,6 @@ class PipelineEnv(gym.Env):
         self.t +=1
         observation = self._get_obs()
         reward = self.reward
-        if self.t >= self.horizon -1:
-            terminated = True
         info = {"segments": self.segments, "tanks": self.tanks}
         return observation, reward, terminated, truncated, info
 
