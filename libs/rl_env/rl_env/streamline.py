@@ -64,9 +64,9 @@ class PipelineData:
         't2_t3': Segment(max_flow=2000, min_flow=100, start_cost=100),
     })
     tanks: dict[str, Tank] = field(default_factory=lambda: {
-        't1': Tank(level=500, capacity=5000),
-        't2': Tank(level=500, capacity=5000),
-        't3': Tank(level=500, capacity=5000),
+        't1': Tank(level=0.5, capacity=50000),
+        't2': Tank(level=0.5, capacity=50000),
+        't3': Tank(level=0.5, capacity=50000),
     })
     receipts: dict[str, Receipt] = field(default_factory=lambda: {
         'r1': Receipt(nom=500),
@@ -118,8 +118,8 @@ class PipelineEnv(gym.Env):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
         self.observation = self.observation_space.sample()
-        for i, k in enumerate(self.tanks):
-            self.tanks[k].level = self.observation[i]
+        # for i, k in enumerate(self.tanks):
+        #     self.tanks[k].level = self.observation[i]
         for s in self.segments.values():
             s.flowing = 0
             s.start = 0
@@ -179,7 +179,7 @@ class PipelineEnv(gym.Env):
             self.reward += volumeaward
             if (t.level > 1) or (t.level < 0):
                 self.reward += -self.weights.tankpenalty
-                truncated = True
+                # truncated = True
 
 
         # Calculate rewards/penalties
