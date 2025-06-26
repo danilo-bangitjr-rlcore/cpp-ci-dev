@@ -63,6 +63,16 @@ pipeline:
       directions: max
 
   tags:
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [0.0, 1.0]
+    # action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
+
+  - name: action-1
+    type: ai_setpoint
+    operating_range: [0.0, 1.0]
+    # action_bounds: ['{action-1}-0.3', '{action-1}+0.3']
+
   # tank levels (3)
   - name: tag-0 # L0
     operating_range: [-1, 2]
