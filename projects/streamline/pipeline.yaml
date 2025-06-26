@@ -82,19 +82,47 @@ pipeline:
     operating_range: [-1, 2]
     expected_range: [0, 1]
     yellow_bounds: [0.2, 0.8]
-    red_bounds: [0, 1]
+    red_bounds: [0.1, 0.9]
+    red_zone_reaction:
+      - tag: action-0
+        kind: lower_violation
+        bounds: [0, 0.01]
+      - tag: action-0
+        kind: upper_violation
+        bounds: [0.99, 1]
+
 
   - name: tag-1 # L1
     operating_range: [-1, 2]
     expected_range: [0, 1]
     yellow_bounds: [0.2, 0.8]
-    red_bounds: [0, 1]
+    red_bounds: [0.1, 0.9]
+    red_zone_reaction:
+      - tag: action-0
+        kind: lower_violation
+        bounds: [0.99, 1]
+      - tag: action-0
+        kind: upper_violation
+        bounds: [0.0, 0.01]
+      - tag: action-1
+        kind: lower_violation
+        bounds: [0.0, 0.01]
+      - tag: action-1
+        kind: upper_violation
+        bounds: [.99, 1]
 
   - name: tag-2 # L2
     operating_range: [-1, 2]
     expected_range: [0, 1]
     yellow_bounds: [0.2, 0.8]
-    red_bounds: [0, 1]
+    red_bounds: [0.1, 0.9]
+    red_zone_reaction:
+      - tag: action-1
+        kind: lower_violation
+        bounds: [0.99, 1]
+      - tag: action-1
+        kind: upper_violation
+        bounds: [0.0, 0.01]
 
   # receipts (2)
   - name: tag-3 # R0
