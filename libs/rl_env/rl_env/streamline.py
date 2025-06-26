@@ -32,13 +32,14 @@ class Tank:
 @dataclass
 class Receipt:
     nom: float
+    max: float = 1000.
 
     # state variables
     forecast: float = 0
 
 @dataclass
 class Delivery:
-    values: list[float]
+    value: list[float]
 
 @dataclass
 class Junction:
@@ -107,14 +108,8 @@ class PipelineEnv(gym.Env):
         # Action space is the flow rates on each pipeline segment
         self.action_space = gym.spaces.Box(0, 1, shape=(len(self.segments),), dtype=np.float64)
         # Observation space includes tank levels, forecasted receipts, and incurred stops and starts on the segments
-        self.observation_space = gym.spaces.Dict(
-            {
-                "tank_levels": gym.spaces.Box(0, 1, shape=(len(self.tanks),), dtype=np.float64),
-                "receipts_forecast": gym.spaces.Box(0, 1, dtype=np.float64),
-                "stops": gym.spaces.MultiBinary(len(self.segments)),
-                "starts": gym.spaces.MultiBinary(len(self.segments)),
-            },
-        )
+        n_obs = len(self._get_obs())
+        self.observation_space = gym.spaces.Box(np.zeros(n_obs),np.ones(n_obs))
         self.observation = self.observation_space.sample()
         self.reward = 0
         self.t = 0
@@ -129,8 +124,8 @@ class PipelineEnv(gym.Env):
             s.flowing = 0
             s.start = 0
             s.stop = 0
-        for r in self.receipts.values():
-            r.forecast = r.nom * 2 in self.observation['receipts_forecast']
+        for k, r in self.receipts.items():
+            r.forecast = r.nom
         self.reward = 0
         self.t = 0
 
@@ -139,13 +134,11 @@ class PipelineEnv(gym.Env):
 
 
     def _get_obs(self):
-        return {
-                "tank_levels": np.array([item.level for item in self.tanks.values()]),
-                "receipts_forecast": self.observation['receipts_forecast'],
-                "stops": np.array([s.stop for s in self.segments.values()]),
-                "starts": np.array([s.start for s in self.segments.values()]),
-            }
-
+        return np.hstack([np.array([item.level for _, item in self.tanks.items()],dtype='float32'),
+                          np.array([item.forecast/item.max for _, item in self.receipts.items()],dtype='float32'),
+                          np.array([item.value for _, item in self.deliveries.items()],dtype='float32'),
+                          np.array([s.stop for i, s in self.segments.items()],dtype='float32'),
+                          np.array([s.start for i, s in self.segments.items()],dtype='float32')])
 
     def step(self, action: np.ndarray):
         terminated = False
@@ -215,7 +208,7 @@ dm = PipelineData(
         'r2': Receipt(nom=500),
     },
     deliveries={
-        'd1': Delivery(values=[1000]),
+        'd1': Delivery(value=1000),
     },
     junctions={
         'j1': Junction(inputs=['r1'], outputs=['t1']),
