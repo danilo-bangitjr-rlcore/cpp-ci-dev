@@ -39,7 +39,7 @@ class Receipt:
 
 @dataclass
 class Delivery:
-    value: list[float]
+    value: float
 
 @dataclass
 class Junction:
@@ -73,7 +73,7 @@ class PipelineData:
         'r2': Receipt(nom=500),
     })
     deliveries: dict[str, Delivery] = field(default_factory=lambda: {
-        'd1': Delivery(values=[1000]),
+        'd1': Delivery(value=1000),
     })
     junctions: dict[str, Junction] = field(default_factory=lambda: {
         'j1': Junction(inputs=['r1'], outputs=['t1']),
@@ -119,12 +119,12 @@ class PipelineEnv(gym.Env):
         super().reset(seed=seed)
         self.observation = self.observation_space.sample()
         for i, k in enumerate(self.tanks):
-            self.tanks[k].level = self.observation['tank_levels'][i]
+            self.tanks[k].level = self.observation[i]
         for s in self.segments.values():
             s.flowing = 0
             s.start = 0
             s.stop = 0
-        for k, r in self.receipts.items():
+        for r in self.receipts.values():
             r.forecast = r.nom
         self.reward = 0
         self.t = 0
@@ -166,7 +166,7 @@ class PipelineEnv(gym.Env):
             j.inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
             j.inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
             j.outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
-            j.outflow += sum([r.values[0] for key, r in self.deliveries.items() if key in j.outputs])
+            j.outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
             j.flow = j.inflow+ j.outflow
 
         for i, t in self.tanks.items():
@@ -184,7 +184,7 @@ class PipelineEnv(gym.Env):
 
         # Calculate rewards/penalties
         for d in self.deliveries.values():
-            self.reward += d.values[0]*self.weights.deliveryreward
+            self.reward += d.value*self.weights.deliveryreward
         self.t +=1
         observation = self._get_obs()
         reward = self.reward
