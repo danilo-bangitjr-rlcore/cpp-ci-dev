@@ -8,13 +8,13 @@ from rl_env.factory import EnvConfig, env_group
 
 @dataclass
 class Segment:
-    max_flow: int
-    min_flow: int
+    max_flow: float
+    min_flow: float
     start_cost: int
 
     # state variables
     flowing: int = 0  # 1 if the segment is flowing, 0 otherwise
-    flow: int = 0  # current flow rate
+    flow: float = 0  # current flow rate
     start: int = 0  # 1 if the segment was started this step, 0 otherwise
     stop: int = 0  # 1 if the segment was stopped
 
@@ -25,20 +25,20 @@ class Tank:
 
     # state variables
     start_volume: float = 0  # volume at the start of the step
-    inflow: int = 0  # total inflow to the tank
-    outflow: int = 0  # total outflow
+    inflow: float = 0  # total inflow to the tank
+    outflow: float = 0  # total outflow
     end_volume: float = 0  # volume at the end of the step, calculated
 
 @dataclass
 class Receipt:
-    nom: int
+    nom: float
 
     # state variables
-    forecast: int = 0
+    forecast: float = 0
 
 @dataclass
 class Delivery:
-    values: list[int]
+    values: list[float]
 
 @dataclass
 class Junction:
@@ -46,9 +46,9 @@ class Junction:
     outputs: list[str]
 
     # state variables
-    inflow: int = 0  # total inflow to the junction
-    outflow: int = 0  # total outflow from the junction
-    flow: int = 0  # net flow through the junction, inflow - out
+    inflow: float = 0  # total inflow to the junction
+    outflow: float = 0  # total outflow from the junction
+    flow: float = 0  # net flow through the junction, inflow - out
 
 @dataclass
 class Weights:
