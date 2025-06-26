@@ -1,6 +1,14 @@
-from typing import Optional
-import numpy as np
+from dataclasses import dataclass
+
 import gymnasium as gym
+import numpy as np
+
+from rl_env.factory import EnvConfig, env_group
+
+
+@dataclass
+class PipelineConfig(EnvConfig):
+    name: str = 'Pipeline-v0'
 
 class PipelineEnv(gym.Env):
     def __init__(self, dm):
@@ -21,13 +29,13 @@ class PipelineEnv(gym.Env):
                 "receipts_forecast": gym.spaces.Box(0, 1, dtype=np.float64),
                 "stops": gym.spaces.MultiBinary(len(self.segments)),
                 "starts": gym.spaces.MultiBinary(len(self.segments)),
-            }
+            },
         )
         self.observation = self.observation_space.sample()
         self.reward = 0
         self.t = 0
 
-    def reset(self, seed: Optional[int] = None, options: Optional[dict] = None):
+    def reset(self, seed: int | None = None, options: dict | None = None):
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
         self.observation = self.observation_space.sample()
@@ -51,10 +59,10 @@ class PipelineEnv(gym.Env):
                 "tank_levels": np.array([item['level'] for key, item in self.tanks.items()]),
                 "receipts_forecast": self.observation['receipts_forecast'],
                 "stops": np.array([s['stop'] for i, s in self.segments.items()]),
-                "starts": np.array([s['start'] for i, s in self.segments.items()])
+                "starts": np.array([s['start'] for i, s in self.segments.items()]),
             }
-    
-   
+
+
     def step(self, action):
         terminated = False
         truncated = False
@@ -63,7 +71,7 @@ class PipelineEnv(gym.Env):
             flowing = action[i] > 0
             flow = action[i]*s['max_flow']
             minflow = flow > s['min_flow']
-            
+
             if flowing and not s['flowing']:
                 s['start'] = 1
                 self.reward -= s['start_cost']
@@ -96,7 +104,7 @@ class PipelineEnv(gym.Env):
                 self.reward += -self.weights['tankpenalty']
                 truncated = True
 
-            
+
         # Calculate rewards/penalties
         for i, d in self.deliveries.items():
             self.reward += d[0]*self.weights['deliveryreward']
@@ -113,19 +121,19 @@ dm = {
     "horizon": 10,
     "segments": {
             't1_t2':{'max_flow':2000, 'min_flow':100, 'start_cost':100},
-            't2_t3':{'max_flow':2000, 'min_flow':100, 'start_cost':100}
+            't2_t3':{'max_flow':2000, 'min_flow':100, 'start_cost':100},
             },
     "tanks": {
             't1':{'level':500, 'capacity': 5000},
             't2':{'level':500, 'capacity': 5000},
-            't3':{'level':500, 'capacity': 5000}
+            't3':{'level':500, 'capacity': 5000},
         },
     "receipts": {
             'r1':{'nom':500},
-            'r2':{'nom':500}
+            'r2':{'nom':500},
             },
     "deliveries": {
-            'd1':[1000]
+            'd1':[1000],
             },
     "junctions": {
             'j1':{'inputs':['r1'], 'outputs':['t1']},
@@ -133,13 +141,15 @@ dm = {
             'j3':{'inputs':['t1_t2', 'r2'], 'outputs':['t2']},
             'j4':{'inputs':['t2'], 'outputs':['t2_t3']},
             'j5':{'inputs':['t2_t3'], 'outputs':['t3']},
-            'j6':{'inputs':['t3'], 'outputs':['d1']}
+            'j6':{'inputs':['t3'], 'outputs':['d1']},
             },
      "weights": {
                 'volumereward':100,
                 'tankpenalty':1000,
-                'deliveryreward':10
-                
-     }
+                'deliveryreward':10,
+
+     },
     }
+
+env_group.dispatcher(PipelineConfig(), PipelineEnv)
 
