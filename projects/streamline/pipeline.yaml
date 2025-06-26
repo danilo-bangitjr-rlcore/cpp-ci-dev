@@ -45,7 +45,6 @@ env:
   name: sim_async_env
   gym:
     gym_name: Pipeline-v0
-    init_type : gym.make
 
 metrics:
   enabled: True
@@ -59,10 +58,15 @@ pipeline:
     # - tags: [L0_health, L1_health, L2_health]
     #   directions: max
     #   weights: [1.0, 1.0, 1.0]
-    - tags: total_reward
+    - tags: [total_reward]
       directions: max
 
   tags:
+  - name: terminated
+    type: meta
+  - name: truncated
+    type: meta
+
   - name: action-0
     type: ai_setpoint
     operating_range: [0.0, 1.0]
@@ -135,5 +139,5 @@ pipeline:
   - name: total_reward
     operating_range: [-2, 0.75]
     is_computed: true
-    value: "{L0_health} + {L1_health} + {L2_health} - {tag-6} - {tag-7}"
+    value: "{L0_health} + {L1_health} + {L2_health} - {tag-8} - {tag-9}"
 
