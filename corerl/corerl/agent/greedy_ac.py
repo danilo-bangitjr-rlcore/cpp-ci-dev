@@ -75,8 +75,8 @@ class PercentileActorConfig:
     sort_noise: float = 0.0
     actor_stepsize: float = 0.0001
     sampler_stepsize: float = 0.0001
-    actor_mu_lr: float | None = None
-    actor_sigma_lr: float | None = None
+    mu_multiplier: float = 1.0
+    sigma_multiplier: float = 1.0
 
     # components
     buffer: BufferConfig = MISSING
@@ -184,8 +184,8 @@ class GreedyAC(BaseAgent):
             uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.proposal_percentile,
             actor_lr=cfg.policy.actor_stepsize,
             proposal_lr=cfg.policy.sampler_stepsize,
-            actor_mu_lr=cfg.policy.actor_mu_lr,
-            actor_sigma_lr=cfg.policy.actor_sigma_lr,
+            mu_multiplier=cfg.policy.mu_multiplier,
+            sigma_multiplier=cfg.policy.sigma_multiplier,
             max_action_stddev=cfg.max_action_stddev,
             sort_noise=cfg.policy.sort_noise,
         )

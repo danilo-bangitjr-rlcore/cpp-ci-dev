@@ -67,8 +67,8 @@ class PAConfig:
     uniform_weight: float
     actor_lr: float
     proposal_lr: float
-    actor_mu_lr: float | None = None
-    actor_sigma_lr: float | None = None
+    mu_multiplier: float = 1.0
+    sigma_multiplier: float = 1.0
     max_action_stddev: float = jnp.inf
     sort_noise: float = 0.0
 
@@ -113,14 +113,17 @@ class PercentileActor:
         self.actor_opt = optax.adamw(cfg.actor_lr, weight_decay=0.001)
         self.proposal_opt = optax.adamw(cfg.proposal_lr, weight_decay=0.001)
 
-        if cfg.actor_mu_lr is not None and cfg.actor_sigma_lr is not None:
-            self._param_manager = self._create_mu_sigma_groups(
-                mu_lr=cfg.actor_mu_lr,
-                sigma_lr=cfg.actor_sigma_lr,
-                shared_lr=cfg.actor_lr,
-            )
-        else:
-            self._param_manager = param_groups.ParameterGroupManager()
+        self._actor_param_manager = self._create_mu_sigma_groups(
+            mu_lr=cfg.actor_lr * cfg.mu_multiplier,
+            sigma_lr=cfg.actor_lr * cfg.sigma_multiplier,
+            shared_lr=cfg.actor_lr,
+        )
+
+        self._proposal_param_manager = self._create_mu_sigma_groups(
+            mu_lr=cfg.proposal_lr * cfg.mu_multiplier,
+            sigma_lr=cfg.proposal_lr * cfg.sigma_multiplier,
+            shared_lr=cfg.proposal_lr,
+        )
 
     def _create_mu_sigma_groups(
         self,
@@ -153,24 +156,22 @@ class PercentileActor:
     def init_state(self, rng: chex.PRNGKey, x: jax.Array):
         rng_1, rng_2 = jax.random.split(rng)
         actor_params = self.actor.init(rng=rng_1, x=x)
-        if self._param_manager.has_groups():
-            group_opt_states = self._param_manager.init_optimizer_states(actor_params)
-            actor_state = PolicyState(
-                params=actor_params,
-                opt_state=None,
-                mu_opt_state=group_opt_states.get('mu'),
-                sigma_opt_state=group_opt_states.get('sigma'),
-                group_opt_states=group_opt_states,
-            )
-        else:
-            actor_state = PolicyState(
-                params=actor_params,
-                opt_state=self.actor_opt.init(actor_params),
-            )
+        actor_group_opt_states = self._actor_param_manager.init_optimizer_states(actor_params)
+        actor_state = PolicyState(
+            params=actor_params,
+            opt_state=None,
+            mu_opt_state=actor_group_opt_states.get('mu'),
+            sigma_opt_state=actor_group_opt_states.get('sigma'),
+            group_opt_states=actor_group_opt_states,
+        )
         proposal_params = self.proposal.init(rng=rng_2, x=x)
+        proposal_group_opt_states = self._proposal_param_manager.init_optimizer_states(proposal_params)
         proposal_state = PolicyState(
             params=proposal_params,
-            opt_state=self.proposal_opt.init(proposal_params),
+            opt_state=None,
+            mu_opt_state=proposal_group_opt_states.get('mu'),
+            sigma_opt_state=proposal_group_opt_states.get('sigma'),
+            group_opt_states=proposal_group_opt_states,
         )
         return PAState(actor_state, proposal_state)
 
@@ -379,8 +380,9 @@ class PercentileActor:
         grad_leaves = jax.tree_util.tree_leaves(grads)
         grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
 
-        if self._param_manager.has_groups() and policy_state.group_opt_states is not None:
-            new_params, new_opt_states = self._param_manager.update_parameters(
+        if policy_state.group_opt_states is not None:
+            param_manager = self._actor_param_manager if policy is self.actor else self._proposal_param_manager
+            new_params, new_opt_states = param_manager.update_parameters(
                 policy_state.params, grads, policy_state.group_opt_states,
             )
 
