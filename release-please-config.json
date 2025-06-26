@@ -1,10 +1,12 @@
 {
     "packages": {
         "corerl": {
-            "release-type": "python"
+            "release-type": "python",
+            "changelog-path": "corerl/CHANGELOG.md"
         },
         "coreio": {
-            "release-type": "python"
+            "release-type": "python",
+            "changelog-path": "coreio/CHANGELOG.md"
         }
     }
 }
