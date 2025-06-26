@@ -1,0 +1,10 @@
+{
+    "packages": {
+        "corerl": {
+            "release-type": "python"
+        },
+        "coreio": {
+            "release-type": "python"
+        }
+    }
+}
