@@ -8,6 +8,7 @@ import haiku as hk
 import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
+import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
@@ -25,7 +26,10 @@ class UpdateActions(NamedTuple):
 
 class PolicyState(NamedTuple):
     params: chex.ArrayTree
-    opt_state: chex.ArrayTree
+    opt_state: chex.ArrayTree | None = None
+    mu_opt_state: chex.ArrayTree | None = None
+    sigma_opt_state: chex.ArrayTree | None = None
+    group_opt_states: dict[str, chex.ArrayTree] | None = None
 
 class PAState(NamedTuple):
     actor: PolicyState
@@ -63,6 +67,8 @@ class PAConfig:
     uniform_weight: float
     actor_lr: float
     proposal_lr: float
+    actor_mu_lr: float | None = None
+    actor_sigma_lr: float | None = None
     max_action_stddev: float = jnp.inf
     sort_noise: float = 0.0
 
@@ -75,8 +81,8 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
         torso = nets.torso_builder(cfg)
         phi = torso(x)
         output_act = get_output_activation(act_cfg)
-        mu_head_out = output_act(hk.Linear(act_dim)(phi))
-        sigma_head_out = output_act(hk.Linear(act_dim)(phi))
+        mu_head_out = output_act(hk.Linear(act_dim, name='mu_head')(phi))
+        sigma_head_out = output_act(hk.Linear(act_dim, name='sigma_head')(phi))
 
         return ActorOutputs(
             mu=mu_head_out,
@@ -107,25 +113,66 @@ class PercentileActor:
         self.actor_opt = optax.adamw(cfg.actor_lr, weight_decay=0.001)
         self.proposal_opt = optax.adamw(cfg.proposal_lr, weight_decay=0.001)
 
+        if cfg.actor_mu_lr is not None and cfg.actor_sigma_lr is not None:
+            self._param_manager = self._create_mu_sigma_groups(
+                mu_lr=cfg.actor_mu_lr,
+                sigma_lr=cfg.actor_sigma_lr,
+                shared_lr=cfg.actor_lr,
+            )
+        else:
+            self._param_manager = param_groups.ParameterGroupManager()
+
+    def _create_mu_sigma_groups(
+        self,
+        mu_lr: float,
+        sigma_lr: float,
+        shared_lr: float,
+        weight_decay: float = 0.001,
+    ) -> param_groups.ParameterGroupManager:
+        manager = param_groups.ParameterGroupManager()
+        manager.add_group(
+            'mu',
+            ['mu_head'],
+            optax.adamw(mu_lr, weight_decay=weight_decay),
+        )
+        manager.add_group(
+            'sigma',
+            ['sigma_head'],
+            optax.adamw(sigma_lr, weight_decay=weight_decay),
+        )
+        manager.add_group(
+            'shared',
+            ['linear'],
+            optax.adamw(shared_lr, weight_decay=weight_decay),
+        )
+        return manager
+
     # -------------------------------- Init State -------------------------------- #
 
     @jax_u.method_jit
     def init_state(self, rng: chex.PRNGKey, x: jax.Array):
         rng_1, rng_2 = jax.random.split(rng)
         actor_params = self.actor.init(rng=rng_1, x=x)
-        actor_state = PolicyState(
-            params=actor_params,
-            opt_state=self.actor_opt.init(actor_params),
-        )
-
+        if self._param_manager.has_groups():
+            group_opt_states = self._param_manager.init_optimizer_states(actor_params)
+            actor_state = PolicyState(
+                params=actor_params,
+                opt_state=None,
+                mu_opt_state=group_opt_states.get('mu'),
+                sigma_opt_state=group_opt_states.get('sigma'),
+                group_opt_states=group_opt_states,
+            )
+        else:
+            actor_state = PolicyState(
+                params=actor_params,
+                opt_state=self.actor_opt.init(actor_params),
+            )
         proposal_params = self.proposal.init(rng=rng_2, x=x)
         proposal_state = PolicyState(
             params=proposal_params,
             opt_state=self.proposal_opt.init(proposal_params),
         )
-
         return PAState(actor_state, proposal_state)
-
 
     @jax_u.method_jit
     def _forward(self, actor_params: chex.ArrayTree, state: State) -> ActorOutputs:
@@ -332,18 +379,33 @@ class PercentileActor:
         grad_leaves = jax.tree_util.tree_leaves(grads)
         grad_norm = jnp.sqrt(sum(jnp.sum(jnp.square(g)) for g in grad_leaves))
 
-        updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state, params=policy_state.params)
-        new_params = optax.apply_updates(policy_state.params, updates)
+        if self._param_manager.has_groups() and policy_state.group_opt_states is not None:
+            new_params, new_opt_states = self._param_manager.update_parameters(
+                policy_state.params, grads, policy_state.group_opt_states,
+            )
 
-        metrics = PercentileActorUpdateMetrics(
-            actor_loss=loss,
-            actor_grad_norm=grad_norm,
-        )
+            return PolicyState(
+                new_params,
+                None,
+                new_opt_states.get('mu'),
+                new_opt_states.get('sigma'),
+                new_opt_states,
+            ), PercentileActorUpdateMetrics(
+                actor_loss=loss,
+                actor_grad_norm=grad_norm,
+            )
+        if policy_state.opt_state is not None:
+            updates, new_opt_state = policy_opt.update(grads, policy_state.opt_state, params=policy_state.params)
+            new_params = optax.apply_updates(policy_state.params, updates)
 
-        return PolicyState(
-            new_params,
-            new_opt_state,
-        ), metrics
+            return PolicyState(
+                new_params,
+                new_opt_state,
+            ), PercentileActorUpdateMetrics(
+                actor_loss=loss,
+                actor_grad_norm=grad_norm,
+            )
+        raise ValueError("Invalid state: neither parameter groups nor standard optimizer state available")
 
     def _get_proposal_samples(self, proposal_params: chex.ArrayTree, state: State, rng: chex.PRNGKey):
         num_uniform_samples = int(self._cfg.num_samples * self._cfg.uniform_weight)
