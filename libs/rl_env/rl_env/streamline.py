@@ -131,11 +131,13 @@ class PipelineEnv(gym.Env):
 
 
     def _get_obs(self):
-        return np.hstack([np.array([tank.level / tank.capacity for tank in self.tanks.values()],dtype='float32'),
-                          np.array([recpt.forecast/recpt.max for recpt in self.receipts.values()],dtype='float32'),
-                          np.array([deliv.value for deliv in self.deliveries.values()],dtype='float32'),
-                          np.array([seg.stop for seg in self.segments.values()],dtype='float32'),
-                          np.array([seg.start for seg in self.segments.values()],dtype='float32')])
+        return np.hstack(
+            [np.array([tank.level / tank.capacity for tank in self.tanks.values()],dtype='float32'),
+             np.array([recpt.forecast / recpt.max for recpt in self.receipts.values()],dtype='float32'),
+             np.array([deliv.value / deliv.max for deliv in self.deliveries.values()],dtype='float32'),
+             np.array([seg.stop for seg in self.segments.values()],dtype='float32'),
+             np.array([seg.start for seg in self.segments.values()],dtype='float32')],
+        )
 
     def step(self, action: np.ndarray):
         terminated = False
