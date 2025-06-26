@@ -58,7 +58,6 @@ class Weights:
 
 @dataclass
 class PipelineData:
-    horizon: int = 10
     segments: dict[str, Segment] = field(default_factory=dict)
     tanks: dict[str, Tank] = field(default_factory=dict)
     receipts: dict[str, Receipt] = field(default_factory=dict)
@@ -181,7 +180,6 @@ class PipelineEnv(gym.Env):
 env_group.dispatcher(PipelineConfig(), PipelineEnv)
 
 dm = PipelineData(
-    horizon=10,
     segments={
         't1_t2': Segment(max_flow=2000, min_flow=100, start_cost=100),
         't2_t3': Segment(max_flow=2000, min_flow=100, start_cost=100),
