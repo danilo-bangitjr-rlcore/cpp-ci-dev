@@ -162,22 +162,11 @@ class PipelineEnv(gym.Env):
 
         for key in self.junctions:
             j = self.junctions[key]
-            if False:
-            # if any([t.level<=0 for key, t in self.tanks.items() if key in j.inputs]) or \
-            #    any([t.level>=t.capacity for key, t in self.tanks.items() if key in j.outputs]):
-                for s in self.segments:
-                    if s in j.inputs:
-                        self.segments[s].flow = 0.
-                        self.segments[s].flowing = 0
-                        self.segments[s].stop = 1
-                        self.segments[s].start = 0
-                j.flow = 0
-            else:
-                inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
-                inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
-                outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
-                outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
-                j.flow = inflow + outflow
+            inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
+            inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
+            outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
+            outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
+            j.flow = inflow + outflow
 
         for tank_name, t in self.tanks.items():
             t.inflow = sum([j.flow for j in self.junctions.values() if tank_name in j.outputs])
