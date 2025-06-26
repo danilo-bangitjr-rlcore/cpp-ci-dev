@@ -98,7 +98,12 @@ class PipelineEnv(gym.Env):
         self.deliveries = cfg.pipeline_data.deliveries
         self.junctions = cfg.pipeline_data.junctions
         self.weights = cfg.pipeline_data.weights
-        self.nodes = list(self.segments.keys()) + list(self.tanks.keys()) + list(self.receipts.keys()) + list(self.deliveries.keys())
+        self.nodes = (
+            list(self.segments.keys())
+            + list(self.tanks.keys())
+            + list(self.receipts.keys())
+            + list(self.deliveries.keys())
+        )
         # Action space is the flow rates on each pipeline segment
         self.action_space = gym.spaces.Box(0, 1, shape=(len(self.segments),), dtype=np.float64)
         # Observation space includes tank levels, forecasted receipts, and incurred stops and starts on the segments
@@ -114,17 +119,17 @@ class PipelineEnv(gym.Env):
         self.reward = 0
         self.t = 0
 
-    def reset(self, seed: int | None = None, options: dict | None = None):
+    def reset(self, seed: int | None = None, options: dict | None = None): # type: ignore
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
         self.observation = self.observation_space.sample()
         for i, k in enumerate(self.tanks):
             self.tanks[k].level = self.observation['tank_levels'][i]
-        for k, s in self.segments.items():
+        for s in self.segments.values():
             s.flowing = 0
             s.start = 0
             s.stop = 0
-        for k, r in self.receipts.items():
+        for r in self.receipts.values():
             r.forecast = r.nom * 2 in self.observation['receipts_forecast']
         self.reward = 0
         self.t = 0
@@ -163,7 +168,7 @@ class PipelineEnv(gym.Env):
             s.flowing = minflow
             s.flow = flow
 
-        for i, key in enumerate(self.junctions):
+        for key in self.junctions:
             j = self.junctions[key]
             j.inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
             j.inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
@@ -185,7 +190,7 @@ class PipelineEnv(gym.Env):
 
 
         # Calculate rewards/penalties
-        for i, d in self.deliveries.items():
+        for d in self.deliveries.values():
             self.reward += d.values[0]*self.weights.deliveryreward
         self.t +=1
         observation = self._get_obs()
