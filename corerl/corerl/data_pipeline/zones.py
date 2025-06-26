@@ -10,7 +10,7 @@ from lib_utils.maybe import Maybe
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.tag_config import TagConfig, ViolationDirection, eval_bound
-from corerl.messages.events import EventType
+from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -107,7 +107,8 @@ class ZoneDiscourager:
         Reward penalty ramps slowly from 0 to -2.
         """
         if pf.data_mode == DataMode.ONLINE:
-            self._app_state.event_bus.emit_event(EventType.yellow_zone_violation)
+            event = ZoneViolationEvent.from_violation(violation)
+            self._app_state.event_bus.emit_event(event)
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric='yellow_zone_violation',
@@ -130,7 +131,8 @@ class ZoneDiscourager:
         Reward penalty ramps quickly from -4 to -8.
         """
         if pf.data_mode == DataMode.ONLINE:
-            self._app_state.event_bus.emit_event(EventType.red_zone_violation)
+            event = ZoneViolationEvent.from_violation(violation)
+            self._app_state.event_bus.emit_event(event)
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
                 metric='red_zone_violation',
@@ -267,3 +269,18 @@ class ZoneDiscourager:
 
             if hi is not None:
                 pf.action_hi.loc[violation.row_idx, f'{reflex_cfg.tag}-hi'] = hi
+
+
+class ZoneViolationEvent(Event):
+    tag: str
+    percent: float
+    direction: ViolationDirection
+
+    @staticmethod
+    def from_violation(violation: ZoneViolation):
+        return ZoneViolationEvent(
+            type=EventType.red_zone_violation if violation.kind == 'red' else EventType.yellow_zone_violation,
+            tag=violation.tag.name,
+            percent=violation.percent,
+            direction=violation.direction,
+        )
