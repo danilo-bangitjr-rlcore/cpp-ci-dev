@@ -132,7 +132,7 @@ class PipelineEnv(gym.Env):
 
     def _get_obs(self):
         return np.hstack(
-            [np.clip(np.array([tank.level / tank.capacity for tank in self.tanks.values()],dtype='float32'), 0, 1),
+            [np.array([tank.level / tank.capacity for tank in self.tanks.values()],dtype='float32'),
              np.array([recpt.forecast / recpt.max for recpt in self.receipts.values()],dtype='float32'),
              np.array([deliv.value / deliv.max for deliv in self.deliveries.values()],dtype='float32'),
              np.array([seg.stop for seg in self.segments.values()],dtype='float32'),
@@ -162,8 +162,9 @@ class PipelineEnv(gym.Env):
 
         for key in self.junctions:
             j = self.junctions[key]
-            if any([t.level<=0 for key, t in self.tanks.items() if key in j.inputs]) or \
-               any([t.level>=t.capacity for key, t in self.tanks.items() if key in j.outputs]):
+            if False:
+            # if any([t.level<=0 for key, t in self.tanks.items() if key in j.inputs]) or \
+            #    any([t.level>=t.capacity for key, t in self.tanks.items() if key in j.outputs]):
                 for s in self.segments:
                     if s in j.inputs:
                         self.segments[s].flow = 0.
