@@ -45,8 +45,6 @@ class Junction:
     outputs: list[str]
 
     # state variables
-    inflow: float = 0  # total inflow to the junction
-    outflow: float = 0  # total outflow from the junction
     flow: float = 0  # net flow through the junction, inflow - out
 
 @dataclass
@@ -132,11 +130,11 @@ class PipelineEnv(gym.Env):
 
 
     def _get_obs(self):
-        return np.hstack([np.array([item.level / item.capacity for _, item in self.tanks.items()],dtype='float32'),
-                          np.array([item.forecast/item.max for _, item in self.receipts.items()],dtype='float32'),
-                          np.array([item.value for _, item in self.deliveries.items()],dtype='float32'),
-                          np.array([s.stop for i, s in self.segments.items()],dtype='float32'),
-                          np.array([s.start for i, s in self.segments.items()],dtype='float32')])
+        return np.hstack([np.array([tank.level / tank.capacity for tank in self.tanks.values()],dtype='float32'),
+                          np.array([recpt.forecast/recpt.max for recpt in self.receipts.values()],dtype='float32'),
+                          np.array([deliv.value for deliv in self.deliveries.values()],dtype='float32'),
+                          np.array([seg.stop for seg in self.segments.values()],dtype='float32'),
+                          np.array([seg.start for seg in self.segments.values()],dtype='float32')])
 
     def step(self, action: np.ndarray):
         terminated = False
@@ -161,11 +159,11 @@ class PipelineEnv(gym.Env):
 
         for key in self.junctions:
             j = self.junctions[key]
-            j.inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
-            j.inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
-            j.outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
-            j.outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
-            j.flow = j.inflow - j.outflow
+            inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
+            inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
+            outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
+            outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
+            j.flow = inflow + outflow
 
         for tank_name, t in self.tanks.items():
             t.inflow = sum([j.flow for j in self.junctions.values() if tank_name in j.outputs])
