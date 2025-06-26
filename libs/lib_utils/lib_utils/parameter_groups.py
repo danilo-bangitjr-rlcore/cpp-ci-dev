@@ -31,7 +31,7 @@ class ParameterGroupManager:
 
         group = self._groups[group_name]
 
-        def filter_grads(path):
+        def filter_grads(path: tuple) -> bool:
             path_str = '/'.join(str(p) for p in path)
             return any(key in path_str for key in group.parameter_keys)
 
