@@ -24,10 +24,8 @@ class Tank:
     capacity: float
 
     # state variables
-    start_volume: float = 0  # volume at the start of the step
     inflow: float = 0  # total inflow to the tank
     outflow: float = 0  # total outflow
-    end_volume: float = 0  # volume at the end of the step, calculated
 
 @dataclass
 class Receipt:
@@ -64,9 +62,9 @@ class PipelineData:
         't2_t3': Segment(max_flow=2000, min_flow=100, start_cost=100),
     })
     tanks: dict[str, Tank] = field(default_factory=lambda: {
-        't1': Tank(level=0.5, capacity=50000),
-        't2': Tank(level=0.5, capacity=50000),
-        't3': Tank(level=0.5, capacity=50000),
+        't1': Tank(level=25000, capacity=50000),
+        't2': Tank(level=25000, capacity=50000),
+        't3': Tank(level=25000, capacity=50000),
     })
     receipts: dict[str, Receipt] = field(default_factory=lambda: {
         'r1': Receipt(nom=500),
@@ -117,9 +115,9 @@ class PipelineEnv(gym.Env):
     def reset(self, seed: int | None = None, options: dict | None = None): # type: ignore
         # We need the following line to seed self.np_random
         super().reset(seed=seed)
-        self.observation = self.observation_space.sample()
-        # for i, k in enumerate(self.tanks):
-        #     self.tanks[k].level = self.observation[i]
+        # for k in self.tanks.keys():
+        #     self.tanks[k].level = self.np_random.random() * self.tanks[k].capacity
+
         for s in self.segments.values():
             s.flowing = 0
             s.start = 0
@@ -134,7 +132,7 @@ class PipelineEnv(gym.Env):
 
 
     def _get_obs(self):
-        return np.hstack([np.array([item.level for _, item in self.tanks.items()],dtype='float32'),
+        return np.hstack([np.array([item.level / item.capacity for _, item in self.tanks.items()],dtype='float32'),
                           np.array([item.forecast/item.max for _, item in self.receipts.items()],dtype='float32'),
                           np.array([item.value for _, item in self.deliveries.items()],dtype='float32'),
                           np.array([s.stop for i, s in self.segments.items()],dtype='float32'),
@@ -167,17 +165,17 @@ class PipelineEnv(gym.Env):
             j.inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
             j.outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
             j.outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
-            j.flow = j.inflow+ j.outflow
+            j.flow = j.inflow - j.outflow
 
-        for i, t in self.tanks.items():
-            t.start_volume = t.level * t.capacity
-            t.inflow = sum([j.flow for j in self.junctions.values() if i in j.outputs])
-            t.outflow = sum([j.flow for j in self.junctions.values() if i in j.inputs])
-            t.end_volume = t.start_volume  + t.inflow - t.outflow
-            t.level = t.end_volume / t.capacity
-            volumeaward = (1-t.level)*(t.level)*self.weights.volumereward
+        for tank_name, t in self.tanks.items():
+            t.inflow = sum([j.flow for j in self.junctions.values() if tank_name in j.outputs])
+            t.outflow = sum([j.flow for j in self.junctions.values() if tank_name in j.inputs])
+            t.level += t.inflow - t.outflow
+
+            perc = t.level / t.capacity
+            volumeaward = (1-perc)*(perc)*self.weights.volumereward
             self.reward += volumeaward
-            if (t.level > 1) or (t.level < 0):
+            if (perc > 1) or (perc < 0):
                 self.reward += -self.weights.tankpenalty
                 # truncated = True
 
