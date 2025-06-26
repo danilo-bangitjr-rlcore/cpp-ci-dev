@@ -38,6 +38,7 @@ class Receipt:
 @dataclass
 class Delivery:
     value: float
+    max: float = 2000.
 
 @dataclass
 class Junction:
