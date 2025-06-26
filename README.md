@@ -4,6 +4,8 @@
 
 This is the main repo containing code for the agent, the surrounding microservices, the research codebase, and project specific code.
 
+System architecture diagrams are contained in [docs](docs/diagrams/), including our [plan for MVP](docs/diagrams/mvp.md).
+
 ## Python
 
 We are using the [`uv` Python package and project manager](https://docs.astral.sh/uv/) for python projects.
