@@ -49,3 +49,6 @@ jobs:
         with:
           pylance-version: latest-release
           working-directory: research
+
+      - name: Run Pytest
+        run: pytest tests/

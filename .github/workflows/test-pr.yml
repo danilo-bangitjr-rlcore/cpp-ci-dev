@@ -6,6 +6,7 @@ on:
     paths:
       - "test/**"
       - "libs/**"
+      - "configs/**"
 
 concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
