@@ -187,32 +187,36 @@ class OPC_Connection:
             node_entry = self.registered_nodes[node.node_id]
 
             var_type = node_entry.var_type
-            if var_type in {
-                ua.VariantType.SByte,
-                ua.VariantType.Byte,
-                ua.VariantType.Int16,
-                ua.VariantType.UInt16,
-                ua.VariantType.Int32,
-                ua.VariantType.UInt32,
-                ua.VariantType.Int64,
-                ua.VariantType.UInt64,
-            }:
-                write_val = int(node.value)
-            elif var_type in {ua.VariantType.Double, ua.VariantType.Float}:
-                write_val = float(node.value)
-            else:
-                logger.warning(f"Var type of {var_type} is unknown in {node.node_id}")
-                write_val = node.value
 
-            # the source timestamp is sent to the OPC server, which itself has a server timestamp
-            # recorded when it receives the write. if these values are too far apart, some OPC
-            # implementations will consider the quality of this tag to be bad, so we need
-            # to ensure that the values we write have an up-to-date timestamp
-            # (and that they align with the server).
-            dt = ua.uatypes.DateTime.now(UTC) # this is a load bearing timestamp
-            data_value = ua.DataValue(ua.Variant(write_val, var_type), SourceTimestamp=dt)
-            nodes.append(node_entry.node)
-            data_values.append(data_value)
+            try:
+                if var_type in {
+                    ua.VariantType.SByte,
+                    ua.VariantType.Byte,
+                    ua.VariantType.Int16,
+                    ua.VariantType.UInt16,
+                    ua.VariantType.Int32,
+                    ua.VariantType.UInt32,
+                    ua.VariantType.Int64,
+                    ua.VariantType.UInt64,
+                }:
+                    write_val = int(node.value)
+                elif var_type in {ua.VariantType.Double, ua.VariantType.Float}:
+                    write_val = float(node.value)
+                else:
+                    logger.warning(f"Var type of {var_type} is unknown in {node.node_id}")
+                    write_val = node.value
+
+                # the source timestamp is sent to the OPC server, which itself has a server timestamp
+                # recorded when it receives the write. if these values are too far apart, some OPC
+                # implementations will consider the quality of this tag to be bad, so we need
+                # to ensure that the values we write have an up-to-date timestamp
+                # (and that they align with the server).
+                dt = ua.uatypes.DateTime.now(UTC) # this is a load bearing timestamp
+                data_value = ua.DataValue(ua.Variant(write_val, var_type), SourceTimestamp=dt)
+                nodes.append(node_entry.node)
+                data_values.append(data_value)
+            except (TypeError, ValueError) as e:
+                logger.warning(f"Failed to convert value {node.value} to {var_type} for node {node.node_id}: {e}")
 
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)

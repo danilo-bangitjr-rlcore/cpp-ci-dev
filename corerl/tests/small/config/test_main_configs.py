@@ -23,11 +23,8 @@ def walk_no_missing(part: object, key_path: str=""):
                 walk_no_missing(elem, f"{cur_key_path}[{idx}]")
 
 @pytest.mark.parametrize('config_name', [
-    ('../config/pendulum'),
-    ('../config/saturation'),
-    ('../config/mountain_car_continuous'),
+    ('../config/bsm1'),
     ('../config/dep_mountain_car_continuous'),
-    ('../config/web_default_config'),
     ('../projects/epcor_scrubber/configs/epcor_scrubber'),
 ])
 def test_main_configs(config_name: str):

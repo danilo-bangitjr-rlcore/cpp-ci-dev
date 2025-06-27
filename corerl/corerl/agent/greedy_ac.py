@@ -75,6 +75,8 @@ class PercentileActorConfig:
     sort_noise: float = 0.0
     actor_stepsize: float = 0.0001
     sampler_stepsize: float = 0.0001
+    mu_multiplier: float = 1.0
+    sigma_multiplier: float = 1.0
 
     # components
     buffer: BufferConfig = MISSING
@@ -124,7 +126,7 @@ class GreedyACConfig(BaseAgentConfig):
     name: Literal["greedy_ac"] = "greedy_ac"
 
     critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
-    policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
+    policy: PercentileActorConfig = Field(default_factory=lambda: PercentileActorConfig())
 
     loss_threshold: float = 0.0001
     """
@@ -182,6 +184,8 @@ class GreedyAC(BaseAgent):
             uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.proposal_percentile,
             actor_lr=cfg.policy.actor_stepsize,
             proposal_lr=cfg.policy.sampler_stepsize,
+            mu_multiplier=cfg.policy.mu_multiplier,
+            sigma_multiplier=cfg.policy.sigma_multiplier,
             max_action_stddev=cfg.max_action_stddev,
             sort_noise=cfg.policy.sort_noise,
         )

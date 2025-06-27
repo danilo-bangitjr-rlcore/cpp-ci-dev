@@ -33,9 +33,6 @@ pipeline:
 
   tags:
   # meta tags
-  - name: reward
-    type: meta
-
   - name: terminated
     type: meta
 

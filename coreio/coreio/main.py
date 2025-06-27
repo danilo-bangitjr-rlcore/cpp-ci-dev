@@ -4,21 +4,30 @@
 import asyncio
 import logging
 
+import colorlog
 from lib_config.loader import load_config
 
 from coreio.utils.config_schemas import MainConfigAdapter
-
-# from corerl.config import MainConfig
 from coreio.utils.io_events import IOEventType
 from coreio.utils.opc_communication import OPC_Connection
 from coreio.utils.zmq_communication import ZMQ_Communication
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S',
+colorlog.basicConfig(
+    level=logging.DEBUG,
+    format='%(log_color)s%(levelname)s%(reset)s: %(asctime)s %(message)s',
+    datefmt= '%Y-%m-%d %H:%M:%S',
+    reset=True,
+    log_colors={
+        'DEBUG': 'cyan',
+        'INFO': 'green',
+        'WARNING': 'yellow',
+        'ERROR': 'red',
+        'CRITICAL': 'red,bg_white',
+    },
 )
+
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 logging.getLogger("asyncua").setLevel(logging.WARNING)
 logging.getLogger("asyncuagds").setLevel(logging.WARNING)
@@ -50,7 +59,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
         match event.type:
             case IOEventType.write_opcua_nodes:
-                logger.info(f"Writing {event}")
+                logger.info(f"Received writing event {event}")
                 for connection_id, payload in event.data.items():
                     opc_conn = opc_connections.get(connection_id)
                     if opc_conn is None:

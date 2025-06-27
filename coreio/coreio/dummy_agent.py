@@ -26,9 +26,14 @@ def main(cfg: MainConfigAdapter):
 
     topic = IOEventTopic.coreio
 
-    for _ in range(30):
+    for i in range(10):
         # Make message
         x = np.random.rand()
+        if i % 3 == 1:
+            x = None
+        if i % 3 == 2:
+            x = np.nan
+
         messagedata = IOEvent(
             type=IOEventType.write_opcua_nodes,
             data={"asdxf": [OPCUANodeWriteValue(node_id= "ns=2;i=2", value= x)]},
@@ -37,7 +42,7 @@ def main(cfg: MainConfigAdapter):
         payload = f"{topic} {messagedata}"
         logger.info(payload)
         socket.send_string(payload)
-        time.sleep(2)
+        time.sleep(0.2)
 
     # Exit message
     messagedata = IOEvent(type=IOEventType.exit_io).model_dump_json()
