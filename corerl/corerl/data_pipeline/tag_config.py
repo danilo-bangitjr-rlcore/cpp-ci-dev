@@ -37,6 +37,10 @@ class Agg(StrEnum):
     last = auto()
     bool_or = auto()
 
+class ViolationDirection(StrEnum):
+    upper_violation = auto()
+    lower_violation = auto()
+
 @config()
 class CascadeConfig:
     """
@@ -72,6 +76,35 @@ class GuardrailScheduleConfig:
 
     starting_range: FloatBounds = MISSING
     duration: timedelta = MISSING
+
+
+@config()
+class RedZoneReflexConfig:
+    """
+    Kind: optional external
+
+    Specifies the reaction to a red zone violation.
+    """
+
+    tag: str = MISSING
+    """
+    Kind: required external
+    The tag to which the reaction applies.
+    """
+
+    kind: ViolationDirection = MISSING
+    """
+    Kind: required external
+
+    The direction of the violation (upper or lower).
+    """
+
+    bounds: FloatBounds = MISSING
+    """
+    Kind: required external
+    The bounds of the red zone. This is used to determine the
+    reaction to the violation.
+    """
 
 # -----------------
 # -- Tag Trigger --
@@ -242,6 +275,13 @@ class TagConfig:
     In case that the yellow_bounds are specified as strings representing sympy functions,
     the yellow_bounds_function will hold the functions for computing the lower and/or upper ranges,
     and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
+    """
+
+    red_zone_reaction: list[RedZoneReflexConfig] | None = None
+    """
+    Kind: optional external
+
+    Specifies the reaction to a red zone violation.
     """
 
     guardrail_schedule: GuardrailScheduleConfig | None = None
@@ -446,6 +486,9 @@ class TagConfig:
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
+        # --------------------------
+        # -- Setpoint validations --
+        # --------------------------
         if self.type == TagType.ai_setpoint:
             assert (
                 self.operating_range is not None
@@ -472,6 +515,9 @@ class TagConfig:
                     self.guardrail_schedule.starting_range[1] <= hi
                 ), "Guardrail starting range must be less than or equal to the operating range."
 
+        # -----------------------------
+        # -- Virtual tag validations --
+        # -----------------------------
         if self.is_computed:
             assert self.value is not None, \
                 "A value string must be specified for computed virtual tags."
@@ -483,6 +529,14 @@ class TagConfig:
 
             for dep in dependent_tags:
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
+
+
+        # ----------------------
+        # -- Zone validations --
+        # ----------------------
+        if self.red_zone_reaction is not None:
+            assert self.red_bounds is not None, \
+                "Red zone reaction specified, but no red bounds defined."
 
 
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
