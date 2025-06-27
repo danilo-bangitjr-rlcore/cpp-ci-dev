@@ -109,6 +109,15 @@ class FeatureFlags:
     # 2025-06-22
     noisy_networks: bool = False
 
+    # 2025-06-27
+    higher_critic_lr: bool = False
+
+    # 2025-06-27
+    ensemble_2: bool = False
+
+    # 2025-06-27
+    custom_mu_sigma_multipliers: bool = False
+
 
 @config()
 class OfflineConfig:
@@ -184,6 +193,17 @@ class MainConfig:
 
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
+
+    @post_processor
+    def _enable_ensemble_2(self, cfg: 'MainConfig'):
+        if self.feature_flags.ensemble_2:
+            self.agent.critic.critic_network.ensemble = 2
+            self.agent.critic.buffer.ensemble = 2
+
+    @post_processor
+    def _enable_higher_critic_lr(self, cfg: 'MainConfig'):
+        if self.feature_flags.higher_critic_lr:
+            self.agent.critic.stepsize = 0.001
 
     @post_processor
     def _enable_recency_bias_buffer(self, cfg: 'MainConfig'):

@@ -86,6 +86,8 @@ ZERO_ONE_FEATURES = [
     'normalize_return',
     'nominal_setpoint_bias',
     'noisy_networks',
+    'higher_critic_lr',
+    'ensemble_2',
 ]
 
 
