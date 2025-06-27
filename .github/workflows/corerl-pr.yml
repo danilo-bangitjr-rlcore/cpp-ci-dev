@@ -7,6 +7,7 @@ on:
       - "coreio/**"
       - "corerl/**"
       - "libs/**"
+      - "configs/**"
 
 concurrency:
   group: corerl-${{ github.workflow }}-${{ github.ref }}
