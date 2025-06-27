@@ -12,6 +12,11 @@ max_steps: 1500
 
 agent:
   gamma: 0.95
+  policy:
+    mu_multiplier: 10.0
+    sigma_multiplier: 1.0
+  critic:
+    stepsize: 0.001
 
 pipeline:
   tags:
