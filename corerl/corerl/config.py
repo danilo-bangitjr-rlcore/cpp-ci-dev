@@ -116,7 +116,7 @@ class FeatureFlags:
     ensemble_2: bool = False
 
     # 2025-06-27
-    custom_mu_sigma_multipliers: bool = False
+    mu_sigma_multipliers: bool = False
 
 
 @config()
@@ -204,6 +204,12 @@ class MainConfig:
     def _enable_higher_critic_lr(self, cfg: 'MainConfig'):
         if self.feature_flags.higher_critic_lr:
             self.agent.critic.stepsize = 0.001
+
+    @post_processor
+    def _enable_mu_sigma_multipliers(self, cfg: 'MainConfig'):
+        if self.feature_flags.mu_sigma_multipliers:
+            self.agent.policy.mu_multiplier = 10.0
+            self.agent.policy.sigma_multiplier = 1.0
 
     @post_processor
     def _enable_recency_bias_buffer(self, cfg: 'MainConfig'):

@@ -88,6 +88,7 @@ ZERO_ONE_FEATURES = [
     'noisy_networks',
     'higher_critic_lr',
     'ensemble_2',
+    'mu_sigma_multipliers',
 ]
 
 
