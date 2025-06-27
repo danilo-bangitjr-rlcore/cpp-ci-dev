@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from lib_config.config import MISSING, config, list_
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
@@ -24,6 +26,8 @@ class HeartbeatConfigAdapter:
 @config(allow_extra=True, frozen=True)
 class InteractionConfigAdapter:
     heartbeat: HeartbeatConfigAdapter = Field(default_factory=HeartbeatConfigAdapter)
+    obs_period: timedelta = MISSING
+    action_period: timedelta = MISSING
 
 @config(allow_extra=True, frozen=True)
 class MainConfigAdapter:

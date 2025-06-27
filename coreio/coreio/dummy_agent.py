@@ -25,6 +25,9 @@ def main(cfg: MainConfigAdapter):
     time.sleep(0.001)
 
     topic = IOEventTopic.coreio
+    node_id = cfg.pipeline.tags[0].node_identifier
+    action_period = cfg.interaction.action_period.total_seconds()
+    assert node_id is not None, "No tags in config.yaml"
 
     for i in range(10):
         # Make message
@@ -36,13 +39,13 @@ def main(cfg: MainConfigAdapter):
 
         messagedata = IOEvent(
             type=IOEventType.write_opcua_nodes,
-            data={"asdxf": [OPCUANodeWriteValue(node_id= "ns=2;i=2", value= x)]},
+            data={"asdxf": [OPCUANodeWriteValue(node_id=node_id, value= x)]},
         ).model_dump_json()
 
         payload = f"{topic} {messagedata}"
         logger.info(payload)
         socket.send_string(payload)
-        time.sleep(0.2)
+        time.sleep(action_period)
 
     # Exit message
     messagedata = IOEvent(type=IOEventType.exit_io).model_dump_json()
