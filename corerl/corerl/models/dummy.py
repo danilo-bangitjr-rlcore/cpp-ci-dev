@@ -4,8 +4,8 @@ import jax
 from lib_config.config import config
 
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.models.base import BaseModel, BaseModelConfig, model_group
+from corerl.tags.tag_config import TagConfig
 
 
 @config()

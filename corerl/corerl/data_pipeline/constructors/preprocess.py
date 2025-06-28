@@ -8,9 +8,9 @@ from lib_utils.list import find_instance
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.base import InvertibleTransform
 from corerl.data_pipeline.transforms.norm import Normalizer
+from corerl.tags.tag_config import TagConfig
 
 
 class Preprocessor(Constructor):

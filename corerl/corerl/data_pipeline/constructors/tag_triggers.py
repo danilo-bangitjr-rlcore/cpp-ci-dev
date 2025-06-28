@@ -5,9 +5,9 @@ import numpy as np
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.messages.events import EventTopic
 from corerl.state import AppState
+from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 

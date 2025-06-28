@@ -13,8 +13,8 @@ from sqlalchemy.sql import text
 import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.db.utils import TryConnectContextManager
-from corerl.data_pipeline.tag_config import Agg
 from corerl.sql_logging.sql_logging import get_sql_engine
+from corerl.tags.tag_config import Agg
 
 logger = logging.getLogger(__name__)
 

@@ -11,8 +11,8 @@ from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add_seasonal_features
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TraceConfig, TransformConfig
+from corerl.tags.tag_config import TagConfig
 
 
 @config()

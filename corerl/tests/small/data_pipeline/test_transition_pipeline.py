@@ -8,9 +8,9 @@ from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
+from corerl.tags.tag_config import TagConfig
 
 
 def pf_from_actions(actions: np.ndarray, ts: dict | None = None) -> PipelineFrame:

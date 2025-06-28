@@ -8,11 +8,11 @@ from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import DeltaConfig, NukeConfig
 from corerl.data_pipeline.transforms.delta import DeltaTemporalState
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
+from corerl.tags.tag_config import TagConfig
 
 
 def test_split1():

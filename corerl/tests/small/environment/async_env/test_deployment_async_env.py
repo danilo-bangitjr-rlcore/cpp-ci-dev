@@ -2,9 +2,9 @@ from lib_defs.config_defs.tag_config import TagType
 from pandas import DataFrame
 from test.infrastructure.utils.pandas import dfs_close
 
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import NukeConfig
 from corerl.environment.async_env.deployment_async_env import clip_action, sanitize_actions
+from corerl.tags.tag_config import TagConfig
 
 
 def test_action_clipping():

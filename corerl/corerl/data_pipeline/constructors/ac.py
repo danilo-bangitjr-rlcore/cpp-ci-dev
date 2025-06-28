@@ -9,8 +9,8 @@ from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig, get_action_bounds
 from corerl.state import AppState
+from corerl.tags.tag_config import TagConfig, get_action_bounds
 from corerl.utils.time import percent_time_elapsed
 
 

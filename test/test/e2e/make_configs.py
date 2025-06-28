@@ -13,7 +13,7 @@ from typing import Any
 
 import gymnasium as gym
 import yaml
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.tags.tag_config import TagConfig
 from lib_config.loader import config_to_dict
 
 from test.e2e.opc_clients.gymnasium_utils import gen_tag_configs_from_env

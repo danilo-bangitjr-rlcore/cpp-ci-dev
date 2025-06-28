@@ -4,12 +4,12 @@ import pandas as pd
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TagName
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.nuke import Nuke
 from corerl.data_pipeline.utils import get_tag_temporal_state, invoke_stage_per_tag
+from corerl.tags.tag_config import TagConfig
 
 
 class RewardComponentConstructor:

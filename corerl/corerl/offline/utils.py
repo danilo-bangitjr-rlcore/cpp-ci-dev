@@ -8,9 +8,9 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
-from corerl.data_pipeline.tag_config import get_scada_tags
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.state import AppState
+from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import split_into_chunks
 
 log = logging.getLogger(__name__)

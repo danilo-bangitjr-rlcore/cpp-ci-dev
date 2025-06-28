@@ -12,7 +12,7 @@ import corerl.data_pipeline.transforms as xform
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.tags.tag_config import TagConfig
 
 
 @pytest.fixture

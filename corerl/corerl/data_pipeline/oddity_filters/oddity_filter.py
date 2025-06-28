@@ -4,8 +4,8 @@ from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.state import AppState
+from corerl.tags.tag_config import TagConfig
 
 
 class OddityFilterConstructor:
