@@ -1,9 +1,11 @@
 import pandas as pd
 import pytest
+from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig, add_seasonal_features
+from corerl.data_pipeline.state_constructors.seasonal import SeasonalTagFeatures
+from corerl.tags.tag_config import TagConfig
 
 
 @pytest.fixture()
@@ -25,13 +27,12 @@ def test_time_of_day():
         data_mode=DataMode.ONLINE,
     )
 
-    cfg = SeasonalConfig(
-        time_of_day_enabled=True,
-        day_of_week_enabled=False,
-        time_of_year_enabled=False,
-    )
+    tag_cfgs = [
+        TagConfig(name='time_of_day', type=TagType.seasonal),
+    ]
 
-    pf = add_seasonal_features(cfg, pf)
+    seasonal_features = SeasonalTagFeatures(tag_cfgs)
+    pf = seasonal_features(pf)
 
     expected = pd.DataFrame({
         "tag-1": [1, 2, 3],
@@ -54,13 +55,12 @@ def test_day_of_week():
         data_mode=DataMode.ONLINE,
     )
 
-    cfg = SeasonalConfig(
-        time_of_day_enabled=False,
-        day_of_week_enabled=True,
-        time_of_year_enabled=False,
-    )
+    tag_cfgs = [
+        TagConfig(name='day_of_week', type=TagType.seasonal),
+    ]
 
-    pf = add_seasonal_features(cfg, pf)
+    seasonal_features = SeasonalTagFeatures(tag_cfgs)
+    pf = seasonal_features(pf)
 
     expected = pd.DataFrame({
         "tag-1": [1, 2, 3],
@@ -77,7 +77,7 @@ def test_day_of_week():
 
     assert dfs_close(pf.data, expected)
 
-def test_time_of_year():
+def test_day_of_year():
     df = pd.DataFrame(
         data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "day_of_year": [18, 86, 195]},
         index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
@@ -88,13 +88,12 @@ def test_time_of_year():
         data_mode=DataMode.ONLINE,
     )
 
-    cfg = SeasonalConfig(
-        time_of_day_enabled=False,
-        day_of_week_enabled=False,
-        time_of_year_enabled=True,
-    )
+    tag_cfgs = [
+        TagConfig(name='day_of_year', type=TagType.seasonal),
+    ]
 
-    pf = add_seasonal_features(cfg, pf)
+    seasonal_features = SeasonalTagFeatures(tag_cfgs)
+    pf = seasonal_features(pf)
 
     expected = pd.DataFrame({
         "tag-1": [1, 2, 3],

@@ -1,5 +1,6 @@
 import pandas as pd
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
 from corerl.tags.tag_config import TagConfig
@@ -7,9 +8,11 @@ from corerl.tags.tag_config import TagConfig
 
 class SeasonalTagIncluder:
     def __init__(self, tag_cfgs: list[TagConfig]):
-        self.has_day_of_year = any(tag_cfg.type == TagType.day_of_year for tag_cfg in tag_cfgs)
-        self.has_day_of_week = any(tag_cfg.type == TagType.day_of_week for tag_cfg in tag_cfgs)
-        self.has_time_of_day = any(tag_cfg.type == TagType.time_of_day for tag_cfg in tag_cfgs)
+        seasonal_tags = [tag_cfg for tag_cfg in tag_cfgs if tag_cfg.type == TagType.seasonal]
+
+        self.has_day_of_year = Maybe.find(lambda tag_cfg: tag_cfg.name == "day_of_year", seasonal_tags).is_some()
+        self.has_day_of_week = Maybe.find(lambda tag_cfg: tag_cfg.name == "day_of_week", seasonal_tags).is_some()
+        self.has_time_of_day = Maybe.find(lambda tag_cfg: tag_cfg.name == "time_of_day", seasonal_tags).is_some()
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         timestamps = pf.data.index

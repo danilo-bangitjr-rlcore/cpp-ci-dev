@@ -40,15 +40,15 @@ def test_all_seasonal_tags_enabled():
     tag_cfgs = [
         TagConfig(
             name="day_of_year",
-            type=TagType.day_of_year,
+            type=TagType.seasonal,
         ),
         TagConfig(
             name="day_of_week",
-            type=TagType.day_of_week,
+            type=TagType.seasonal,
         ),
         TagConfig(
             name="time_of_day",
-            type=TagType.time_of_day,
+            type=TagType.seasonal,
         ),
         TagConfig(
             name="tag_1",
@@ -88,11 +88,11 @@ def test_some_seasonal_tags_enabled():
     tag_cfgs = [
         TagConfig(
             name="day_of_year",
-            type=TagType.day_of_year,
+            type=TagType.seasonal,
         ),
         TagConfig(
             name="time_of_day",
-            type=TagType.time_of_day,
+            type=TagType.seasonal,
         ),
         TagConfig(
             name="tag_1",
