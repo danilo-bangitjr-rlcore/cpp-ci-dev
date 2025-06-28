@@ -421,6 +421,26 @@ class TagConfig(BaseTagConfig):
                 "Red zone reaction specified, but no red bounds defined."
 
 
+    # -----------------------
+    # -- Utility Functions --
+    # -----------------------
+    def get_normalization_bounds(self) -> FloatBounds:
+        def _get_bound(idx: int):
+            return (
+                Maybe(self.expected_range and self.expected_range[idx])
+                .otherwise(lambda: self.red_bounds and self.red_bounds[idx])
+                .otherwise(lambda: self.operating_range and self.operating_range[idx])
+                .otherwise(lambda: self.yellow_bounds and self.yellow_bounds[idx])
+                .is_instance(float)
+                .unwrap()
+            )
+
+        lo = _get_bound(0)
+        hi = _get_bound(1)
+
+        return lo, hi
+
+
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
     tag_cfg.agg = Agg.last
 
@@ -475,47 +495,6 @@ def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
         # and if neither exists, we're in trouble
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
-    return lo, hi
-
-
-def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
-    """
-    Note: If you have access to the `pf.data`, it is preferred to use `get_tag_bounds`.
-
-    This function gets the tag bounds only if they are defined as float in the config file.
-    If they are str (sympy expressions), it returns none.
-
-    It is used to initialize other parts of the config.
-
-    Each bound type is fully optional.
-    Prefer to use red zone, fallback to black zone then yellow
-    """
-    lo = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[0])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
-        .is_instance(float)
-    )
-
-    hi = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[1])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
-        .is_instance(float)
-    )
-
     return lo, hi
 
 
