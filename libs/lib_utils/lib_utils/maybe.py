@@ -63,7 +63,7 @@ class Maybe[T]:
     # ------------------------
     # -- Negative Accessors --
     # ------------------------
-    def otherwise(self, f: Callable[[], T | None]) -> Maybe[T]:
+    def otherwise[U](self, f: Callable[[], U | None]) -> Maybe[T] | Maybe[U]:
         """
         The same, but opposite, of `map(f)`.
         Whenever the Maybe[T] contains a None, the
@@ -75,7 +75,7 @@ class Maybe[T]:
         return self
 
 
-    def flat_otherwise(self, f: Callable[[], Maybe[T]]) -> Maybe[T]:
+    def flat_otherwise[U](self, f: Callable[[], Maybe[U]]) -> Maybe[T] | Maybe[U]:
         """
         The same, but opposite, of `flat_map(f)`.
         Whenever the Maybe[T] contains a None, the
