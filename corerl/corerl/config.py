@@ -104,7 +104,7 @@ class FeatureFlags:
     autoencoder_imputer: bool = True
 
     # 2025-06-11
-    nominal_setpoint_bias: bool = False
+    nominal_setpoint_bias: bool = True
 
     # 2025-06-22
     noisy_networks: bool = False
