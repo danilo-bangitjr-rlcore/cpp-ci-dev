@@ -7,26 +7,18 @@ from functools import partial
 from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
-from lib_config.config import MISSING, config, list_, post_processor
+from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
-from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
-from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
-from corerl.messages.events import EventType
+from corerl.data_pipeline.transforms import NukeConfig
+from corerl.tags.base import BaseTagConfig, Bounds, BoundsElem, FloatBounds
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
     from corerl.data_pipeline.pipeline import PipelineConfig
-
-BoundsElem = float | str | None
-
-Bounds = tuple[BoundsElem, BoundsElem]
-FloatBounds = tuple[float | None, float | None]
 
 BoundsFunction = tuple[Callable[..., float] | None, Callable[..., float] | None]
 BoundsTags = tuple[list[str] | None, list[str] | None]
@@ -106,19 +98,11 @@ class RedZoneReflexConfig:
     reaction to the violation.
     """
 
-# -----------------
-# -- Tag Trigger --
-# -----------------
-@config()
-class TagTriggerConfig:
-    condition: list[TransformConfig] = MISSING
-    event: EventType | list[EventType] = MISSING
-
 # ----------------
 # -- Tag Config --
 # ----------------
 @config()
-class TagConfig:
+class TagConfig(BaseTagConfig):
     """
     Kind: required external
 
@@ -163,15 +147,6 @@ class TagConfig:
     may be a boolean, integer, or string.
     """
 
-    is_endogenous: bool = True
-    """
-    Kind: optional external
-
-    Whether the tag can be controlled (even indirectly) by the agent. In the control theory
-    field, this is sometimes called a "controlled" variable. This may be used for plant modeling
-    to simplify counterfactual reasoning.
-    """
-
     type: TagType = TagType.default
     """
     Kind: optional external
@@ -189,15 +164,6 @@ class TagConfig:
     """
 
     # tag zones
-    operating_range: FloatBounds | None = None
-    """
-    Kind: optional external
-
-    The maximal range of values that the tag can take. Often called the "engineering range".
-    If specified on an AI-controlled setpoint, this determines the range of values that the agent
-    can select.
-    """
-
     action_bounds: Bounds | None = None
     """
     Kind: optional external
@@ -214,14 +180,6 @@ class TagConfig:
     In case that the action_bounds are specified as strings representing sympy functions,
     the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
     and the action_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    expected_range: FloatBounds | None = None
-    """
-    Kind: optional external
-
-    The range of values that the tag is expected to take. If specified, this range controls
-    the min/max for normalization and reward scaling.
     """
 
     red_bounds: Bounds | None = None
@@ -304,70 +262,6 @@ class TagConfig:
 
     The bound checker sets tag readings outside of the optionally defined operating_range to NaNs.
     BoundCheckerConfig enables you to customize the tolerance of the bounds on a per-tag basis.
-    """
-
-    outlier: list[OddityFilterConfig] | None = None
-    """
-    Kind: internal
-
-    A per-tag configuration for outlier detection. Particularly useful for
-    lab-tests or other tags with wildly different frequencies.
-    """
-
-    imputer: ImputerConfig | None = None
-    """
-    Kind: internal
-
-    A per-tag configuration for imputation. Used when tags have unusual
-    temporal or spatial structure, for example lab-tests.
-    """
-
-    # per-tag constructors
-    preprocess: list[TransformConfig] = list_([NormalizerConfig()])
-    """
-    Kind: internal
-
-    Specifies a pipeline of preprocessing steps to apply to the tag.
-    Is not designed to be front-end compatible and exposed to the user.
-    Instead, modifications of this configuration should be made through
-    computed configurations based on tag_type or other user-exposed toggles.
-    """
-
-    reward_constructor: list[TransformConfig] = list_([NukeConfig()])
-    """
-    Kind: internal
-
-    Specifies a transformation pipeline to produce rewards from tags.
-    Exposed primarily for testing.
-    """
-
-    state_constructor: list[TransformConfig] | None = None
-    """
-    Kind: internal
-
-    Specifies a transformation pipeline to produce states from tags.
-    Used to produce a sufficient history of interaction to satisfy
-    the Markov property.
-    """
-
-    filter: list[TransformConfig] | None = None
-    """
-    Kind: optional external
-
-    Specifies a pipeline producing a boolean mask from transformations
-    on other tags. If the pipeline produces True for a given timestep,
-    then the value of this tag is converted to NaN.
-
-    Used when certain operating modes, such as maintenance mode, are
-    a clear signal of data degradation.
-    """
-
-    trigger: TagTriggerConfig | None = None
-    """
-    Kind: optional external
-
-    Allows triggering an event based on a transformation pipeline that
-    evaluates truthy.
     """
 
     is_computed: bool = False
@@ -471,24 +365,6 @@ class TagConfig:
             case TagType.delta: return
             case _: assert_never(self.type)
 
-
-    @post_processor
-    def _default_normalize_preprocessor(self, cfg: MainConfig):
-        # Since we don't have a dataframe, the sympy expressions are treated as None
-        lo, hi = get_tag_bounds_no_eval(self)
-
-        # although each constructor type may _also_ have a normalizer
-        # only automatically set the preprocessor normalizer bounds
-        norm_cfg = find_instance(NormalizerConfig, self.preprocess)
-        if norm_cfg is None:
-            return
-
-        norm_cfg.min = Maybe(norm_cfg.min).flat_otherwise(lambda: lo).unwrap()
-
-        norm_cfg.max = Maybe(norm_cfg.max).flat_otherwise(lambda: hi).unwrap()
-
-        if norm_cfg.min is None or norm_cfg.max is None:
-            norm_cfg.from_data = True
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
