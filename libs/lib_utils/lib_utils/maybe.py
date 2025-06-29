@@ -93,11 +93,16 @@ class Maybe[T]:
 
 
     @overload
-    def or_else(self, t: T | None, msg: str) -> T: ...
+    def or_else[U](self, t: U | None, msg: str) -> T | U: ...
+    # first try to match with type T or any type covariant to T
+    # for instance, if T is list[A | None], then match on list[None]
     @overload
     def or_else(self, t: T) -> T: ...
+    # otherwise, allow any type U that is not T
+    @overload
+    def or_else[U](self, t: U) -> T | U: ...
 
-    def or_else(self, t: T | None, msg: str = '') -> T:
+    def or_else[U](self, t: U | None, msg: str = '') -> T | U:
         """
         Pops out of the Maybe, providing back a raw
         type. If the Maybe contains a None, then
