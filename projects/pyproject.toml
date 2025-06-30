@@ -1,17 +1,27 @@
 [project]
 name="projects"
 version="0.0.0"
+requires-python = ">=3.13"
 dependencies = [
     "corerl",
+    "pytest>=8.3.5",
 ]
 
-[tool]
-[tool.uv.sources]
-corerl = { workspace = true }
-
-[tool.setuptools.packages.find]
-include = ["cenovus"]
+[dependency-groups]
+dev = [
+    "gymnasium~=1.0",
+    "matplotlib~=3.8",
+    "pytest>=8.3.5",
+    "uv>=0.7.8",
+]
 
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool]
+[tool.hatch.build.targets.wheel]
+packages = ["epcor_solar"]
+
+[tool.uv.sources]
+corerl = { path = "../corerl", editable = true }
