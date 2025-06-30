@@ -13,6 +13,7 @@ from corerl.tags.tag_config import FloatBounds, TagConfig
 @dataclass
 class Case:
     bounds: dict[str, FloatBounds]
+    tols: dict[str, float]
     raw: dict[str, list[float]]
     expected: dict[str, list[bool]]
 
@@ -22,17 +23,20 @@ class Case:
     [
         Case(
             bounds={   'tag-1': (None, None),          'tag-2': (None, None) },
+            tols={     'tag-1': 0.0,                   'tag-2': 0.0 },
             raw={      'tag-1': [3.4, -0.2, 2.7],      'tag-2': [-0.4, 6.3, -3.8] },
             expected={ 'tag-1': [False, False, False], 'tag-2': [False, False, False] },
         ),
         Case(
             bounds={   'tag-1': (0, 10),               'tag-2': (-1, 10) },
+            tols={     'tag-1': 0.0,                   'tag-2': 0.0 },
             raw={      'tag-1': [3.4, -0.2, 2.7],      'tag-2': [-0.4, 6.3, -3.8] },
             expected={ 'tag-1': [False, True, False],  'tag-2': [False, False, True] },
         ),
         Case(
             bounds={   'tag-1': (0, 1),                'tag-2': (-1, 10) },
-            raw={      'tag-1': [0.4, 1.3, 0.7],       'tag-2': [11.9, -0.5, 3.6] },
+            tols={     'tag-1': 0.1,                   'tag-2': 0.5 },
+            raw={      'tag-1': [-0.05, 1.3, 0.7],       'tag-2': [11.9, -0.5, 10.2] },
             expected={ 'tag-1': [False, True, False],  'tag-2': [True, False, False] },
         ),
     ],
@@ -42,6 +46,7 @@ def test_bounds(case: Case):
         TagConfig(
             name=key,
             operating_range=bound,
+            bound_checker_tol=case.tols[key],
             preprocess=[],
         )
         for key, bound in case.bounds.items()
@@ -53,7 +58,7 @@ def test_bounds(case: Case):
 
     for cfg in tag_cfgs:
         assert cfg.operating_range is not None
-        pf = bound_checker(pf, cfg.name, cfg.operating_range, prep)
+        pf = bound_checker(pf, cfg.name, cfg.operating_range, prep, cfg.bound_checker_tol)
 
     for key, expect in case.expected.items():
         assert np.all(pf.data[key].isna() == expect)
