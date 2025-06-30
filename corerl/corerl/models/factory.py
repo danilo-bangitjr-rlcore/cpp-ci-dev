@@ -1,5 +1,5 @@
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.models.base import BaseModel, BaseModelConfig, model_group
+from corerl.tags.tag_config import TagConfig
 
 
 def init_model(cfg: BaseModelConfig, tag_configs: list[TagConfig]) -> BaseModel:

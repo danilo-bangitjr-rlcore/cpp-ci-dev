@@ -33,7 +33,6 @@ from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
-from corerl.data_pipeline.tag_config import Agg, TagConfig, in_taglist
 from corerl.data_pipeline.transforms import NukeConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.data_pipeline.utils import invoke_stage_per_tag
@@ -41,6 +40,7 @@ from corerl.data_pipeline.virtual_tags import VirtualTagComputer
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
+from corerl.tags.tag_config import Agg, TagConfig, in_taglist
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

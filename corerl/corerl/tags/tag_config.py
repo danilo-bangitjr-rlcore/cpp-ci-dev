@@ -459,9 +459,7 @@ class TagConfig:
             case TagType.default: return
             case TagType.meta: return
             case TagType.ai_setpoint: set_ai_setpoint_defaults(self)
-            case TagType.day_of_year: set_seasonal_tag_defaults(self)
-            case TagType.day_of_week: set_seasonal_tag_defaults(self)
-            case TagType.time_of_day: set_seasonal_tag_defaults(self)
+            case TagType.seasonal: set_seasonal_tag_defaults(self)
             case TagType.delta: return
             case _: assert_never(self.type)
 
@@ -667,7 +665,7 @@ def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
     return [
         tag_cfg
         for tag_cfg in cfgs
-        if tag_cfg.type not in {TagType.day_of_year, TagType.day_of_week, TagType.time_of_day}
+        if tag_cfg.type != TagType.seasonal
         and not tag_cfg.is_computed
     ]
 

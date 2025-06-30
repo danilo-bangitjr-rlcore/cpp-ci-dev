@@ -9,9 +9,9 @@ from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.tag_config import TagConfig, ViolationDirection, eval_bound
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
+from corerl.tags.tag_config import TagConfig, ViolationDirection, eval_bound
 
 logger = logging.getLogger(__name__)
 

@@ -8,8 +8,8 @@ from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.state import AppState
+from corerl.tags.tag_config import TagConfig
 
 
 def test_oddity0(dummy_app_state: AppState):

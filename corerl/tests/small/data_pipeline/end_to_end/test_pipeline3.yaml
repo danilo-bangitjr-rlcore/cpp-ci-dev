@@ -25,11 +25,11 @@ pipeline:
   tags:
   # seasonal
   - name: day_of_year
-    type: day_of_year
+    type: seasonal
   - name: day_of_week
-    type: day_of_week
+    type: seasonal
   - name: time_of_day
-    type: time_of_day
+    type: seasonal
 
   # meta tags
   - name: reward

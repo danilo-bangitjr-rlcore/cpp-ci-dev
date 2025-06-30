@@ -7,7 +7,7 @@ from lib_config.config import MISSING, computed, config, post_processor
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.tags.tag_config import TagConfig
 from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
 if TYPE_CHECKING:

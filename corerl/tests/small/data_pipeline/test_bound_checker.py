@@ -7,7 +7,7 @@ import pytest
 from corerl.data_pipeline.bound_checker import bound_checker
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.tag_config import FloatBounds, TagConfig
+from corerl.tags.tag_config import FloatBounds, TagConfig
 
 
 @dataclass

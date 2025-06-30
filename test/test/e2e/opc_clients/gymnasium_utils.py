@@ -1,6 +1,6 @@
 import gymnasium as gym
 from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
-from corerl.data_pipeline.tag_config import TagConfig
+from corerl.tags.tag_config import TagConfig
 from lib_defs.config_defs.tag_config import TagType
 
 

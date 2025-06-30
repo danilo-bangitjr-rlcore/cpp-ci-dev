@@ -16,11 +16,10 @@ from corerl.data_pipeline.datatypes import DataMode, StageCode
 from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.state_constructors.seasonal import SeasonalConfig
-from corerl.data_pipeline.tag_config import TagConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
+from corerl.tags.tag_config import TagConfig
 
 
 def test_construct_pipeline(dummy_app_state: AppState):
@@ -39,11 +38,6 @@ def test_construct_pipeline(dummy_app_state: AppState):
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=15),
                 obs_period=timedelta(minutes=15),
-            ),
-            seasonal=SeasonalConfig(
-                time_of_day_enabled=False,
-                day_of_week_enabled=False,
-                time_of_year_enabled=False,
             ),
         ),
     )
@@ -67,11 +61,6 @@ def test_passing_data_to_pipeline(dummy_app_state: AppState):
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=15),
                 obs_period=timedelta(minutes=15),
-            ),
-            seasonal=SeasonalConfig(
-                time_of_day_enabled=False,
-                day_of_week_enabled=False,
-                time_of_year_enabled=False,
             ),
         ),
     )
@@ -113,11 +102,6 @@ def test_state_action_dim(dummy_app_state: AppState):
                 obs_period=timedelta(minutes=5),
             ),
             defaults=[],
-            seasonal=SeasonalConfig(
-                time_of_day_enabled=False,
-                day_of_week_enabled=False,
-                time_of_year_enabled=False,
-            ),
         ),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
@@ -163,11 +147,6 @@ def test_sub_pipeline1(dummy_app_state: AppState):
             countdown=CountdownConfig(
                 action_period=timedelta(minutes=5),
                 obs_period=timedelta(minutes=5),
-            ),
-            seasonal=SeasonalConfig(
-                time_of_day_enabled=False,
-                day_of_week_enabled=False,
-                time_of_year_enabled=False,
             ),
         ),
     )

@@ -481,11 +481,11 @@ pipeline:
 
     # Seasonal Tags
     - name: day_of_year
-      type: day_of_year
+      type: seasonal
     - name: day_of_week
-      type: day_of_week
+      type: seasonal
     - name: time_of_day
-      type: time_of_day
+      type: seasonal
 
     # Virtual Sensors
     - name: P72_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT # (1 - SCADA1.ELS_SLR_ELSP72_MAJORITY_LGC.F_CV) * Sigmoid
