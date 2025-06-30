@@ -1,0 +1,31 @@
+name: epcor solar tests
+permissions: write-all
+
+on:
+  pull_request:
+    paths:
+      - "projects/epcor_solar/**"
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  epcor_solar-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: projects
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: projects
+
+      - name: set up path
+        run: echo "$PWD/projects/.venv/bin" >> $GITHUB_PATH
+
+      - name: Run Pytest
+        run: |
+          pytest epcor_solar/test/
