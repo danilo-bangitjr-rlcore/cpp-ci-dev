@@ -7,6 +7,7 @@ from lib_config.config import MISSING, computed, config, post_processor
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
+from corerl.tags.components.bounds import BoundedTag
 from corerl.tags.tag_config import TagConfig
 from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
@@ -121,6 +122,7 @@ def _assert_tag_in_range(priority: Priority, tag_cfgs: list[TagConfig]):
     if isinstance(priority, Goal) and isinstance(priority.thresh, float):
         op_range = (
             Maybe.find(lambda cfg: cfg.name == priority.tag, tag_cfgs)
+            .is_instance(BoundedTag)
             .map(lambda cfg: cfg.operating_range)
         )
 

@@ -40,6 +40,10 @@ class SimAsyncEnv(DeploymentAsyncEnv):
     def __init__(self, cfg: AsyncEnvConfig, tag_configs: list[TagConfig]):
         super().__init__(cfg, tag_configs)
 
+        # override DeploymentAsyncEnv tag names, because there are no "scada" tags
+        # in simulation
+        self.tag_names = [tag_cfg.name for tag_cfg in tag_configs]
+
         ### simulation specific initialization ###
         assert self._cfg.gym is not None
         self._sim_cfg = self._cfg.gym

@@ -10,7 +10,7 @@ from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, D
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig
 
 
 def pf_from_actions(actions: np.ndarray, ts: dict | None = None) -> PipelineFrame:
@@ -122,7 +122,7 @@ def test_regular_rl_capture(dummy_app_state: AppState):
     sc = StateConstructor(
         dummy_app_state,
         tag_cfgs=[
-            TagConfig(name='obs_0'),
+            BasicTagConfig(name='obs_0'),
         ],
         cfg=SCConfig(
             defaults=[

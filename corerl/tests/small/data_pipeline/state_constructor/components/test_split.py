@@ -12,7 +12,7 @@ from corerl.data_pipeline.transforms.delta import DeltaTemporalState
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig
 
 
 def test_split1(dummy_app_state: AppState):
@@ -37,8 +37,8 @@ def test_split1(dummy_app_state: AppState):
     sc = StateConstructor(
         dummy_app_state,
         tag_cfgs=[
-            TagConfig(name='tag_1'),
-            TagConfig(name='action'),
+            BasicTagConfig(name='tag_1'),
+            BasicTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -117,8 +117,8 @@ def test_split_ts1(dummy_app_state: AppState):
     sc = StateConstructor(
         dummy_app_state,
         tag_cfgs=[
-            TagConfig(name='tag_1'),
-            TagConfig(
+            BasicTagConfig(name='tag_1'),
+            BasicTagConfig(
                 name='action',
                 state_constructor=[NukeConfig()],
             ),

@@ -4,11 +4,11 @@ import pandas as pd
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig
 
 
 def test_only_normalize_preprocess():
-    tag_cfg1 = TagConfig(
+    tag_cfg1 = BasicTagConfig(
         name="tag_1",
         operating_range=(0, 10),
         preprocess=[

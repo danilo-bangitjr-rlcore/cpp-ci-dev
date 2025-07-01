@@ -19,14 +19,14 @@ from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig
 
 
 def test_construct_pipeline(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
-            TagConfig(name='sensor_x', operating_range=(-1, 1)),
-            TagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
+            BasicTagConfig(name='sensor_x', operating_range=(-1, 1)),
+            BasicTagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
@@ -47,8 +47,8 @@ def test_construct_pipeline(dummy_app_state: AppState):
 def test_passing_data_to_pipeline(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
-            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
-            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
+            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
+            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
         ],
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
@@ -82,8 +82,8 @@ def test_passing_data_to_pipeline(dummy_app_state: AppState):
 def test_state_action_dim(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
-            TagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
-            TagConfig(
+            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
+            BasicTagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
                 yellow_bounds=(-1, None),
@@ -93,8 +93,8 @@ def test_state_action_dim(dummy_app_state: AppState):
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            TagConfig(name='tag-3', operating_range=(0, 1), type=TagType.ai_setpoint),
-            TagConfig(name='tag-4', operating_range=(0, 1), type=TagType.ai_setpoint),
+            BasicTagConfig(name='tag-3', operating_range=(0, 1), type=TagType.ai_setpoint),
+            BasicTagConfig(name='tag-4', operating_range=(0, 1), type=TagType.ai_setpoint),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(
@@ -121,12 +121,12 @@ def test_state_action_dim(dummy_app_state: AppState):
 def test_sub_pipeline1(dummy_app_state: AppState):
     cfg = PipelineConfig(
         tags=[
-            TagConfig(
+            BasicTagConfig(
                 name='tag-1',
                 preprocess=[NormalizerConfig(min=0, max=5)],
                 state_constructor=[],
             ),
-            TagConfig(
+            BasicTagConfig(
                 name='tag-2',
                 operating_range=(None, 10),
                 preprocess=[NormalizerConfig(min=0, max=10)],

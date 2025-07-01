@@ -21,6 +21,7 @@ from corerl.tags.components.bounds import (
     eval_bound,
 )
 from corerl.tags.components.opc import Agg, OPCTag
+from corerl.tags.meta import MetaTagConfig
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
@@ -70,7 +71,7 @@ class GuardrailScheduleConfig:
 # -- Tag Config --
 # ----------------
 @config()
-class TagConfig(
+class BasicTagConfig(
     SafetyZonedTag,
     OPCTag,
 ):
@@ -96,7 +97,6 @@ class TagConfig(
 
     type: Literal[
         TagType.default,
-        TagType.meta,
         TagType.ai_setpoint,
         TagType.seasonal,
         TagType.delta,
@@ -286,15 +286,20 @@ class TagConfig(
 
 
 
-def set_ai_setpoint_defaults(tag_cfg: TagConfig):
+
+TagConfig = BasicTagConfig | MetaTagConfig
+
+
+
+def set_ai_setpoint_defaults(tag_cfg: BasicTagConfig):
     tag_cfg.agg = Agg.last
 
-def set_seasonal_tag_defaults(tag_cfg: TagConfig):
+def set_seasonal_tag_defaults(tag_cfg: BasicTagConfig):
     tag_cfg.preprocess = []
     tag_cfg.state_constructor = [NukeConfig()]
 
 
-def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
+def get_action_bounds(cfg: BasicTagConfig, row: pd.DataFrame) -> tuple[float, float]:
     lo = (
         # the next lowest bound is either the red zone if one exists
         Maybe(cfg.action_bounds and cfg.action_bounds[0])
@@ -316,11 +321,12 @@ def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
     return lo, hi
 
 
-def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
+def get_scada_tags(cfgs: list[TagConfig]) -> list[BasicTagConfig]:
     return [
         tag_cfg
         for tag_cfg in cfgs
         if tag_cfg.type != TagType.seasonal
+        and isinstance(tag_cfg, OPCTag)
         and not tag_cfg.is_computed
     ]
 

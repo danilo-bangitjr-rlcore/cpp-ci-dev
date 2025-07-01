@@ -5,6 +5,7 @@ import argparse
 import logging
 import shutil
 import warnings
+from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -13,7 +14,7 @@ from typing import Any
 
 import gymnasium as gym
 import yaml
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import JustATagConfig, TagConfig
 from lib_config.loader import config_to_dict
 
 from test.e2e.opc_clients.gymnasium_utils import gen_tag_configs_from_env
@@ -28,7 +29,7 @@ class TagData:
     id_type: str = "s"
 
 
-def generate_telegraf_conf(path: Path, tag_data: list[TagData]):
+def generate_telegraf_conf(path: Path, tag_data: Sequence[TagData]):
     _logger = logging.getLogger(__name__)
     shutil.copyfile(path / "telegraf/base_telegraf.conf", path / "telegraf/generated_telegraf.conf")
     block = ""
@@ -47,7 +48,7 @@ def generate_telegraf_conf(path: Path, tag_data: list[TagData]):
 
 
 def generate_tag_yaml(
-        path: Path, tags: list[TagConfig],
+        path: Path, tags: Sequence[TagConfig],
         tag_entries: list[str] | None = None,
         action_entries: list[str]| None = None,
     ):
@@ -76,7 +77,7 @@ def generate_tag_yaml(
         ]
 
     with open(tag_path, "w+") as f:
-        raw_tags = config_to_dict(list[TagConfig], tags)
+        raw_tags = config_to_dict(list[JustATagConfig], tags)
         action_tags = [tag for tag in raw_tags if 'action' in tag['name']]
         other_tags = [tag for tag in raw_tags if 'action' not in tag['name'] and tag['type'] != 'meta']
         meta_tags =  [tag for tag in raw_tags if tag['type'] == 'meta']
@@ -146,7 +147,7 @@ def main():
 
     tag_configs = gen_tag_configs_from_env(env, args.meta)
     for tag in tag_configs:
-        log.debug(f"{pformat(config_to_dict(TagConfig, tag), sort_dicts=False)}")
+        log.debug(f"{pformat(config_to_dict(JustATagConfig, tag), sort_dicts=False)}")
 
     tag_data = [
         TagData(
