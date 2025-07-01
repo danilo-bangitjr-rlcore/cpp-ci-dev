@@ -1,14 +1,11 @@
 from typing import Any
 
-from lib_config.config import MISSING, config, list_, post_processor
-from lib_utils.list import find_instance
-from lib_utils.maybe import Maybe
+from lib_config.config import MISSING, config, list_
 
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import EventType
-from corerl.tags.components.bounds import FloatBounds
 
 
 # -----------------
@@ -34,24 +31,6 @@ class BaseTagConfig:
     field, this is sometimes called a "controlled" variable. This may be used for plant modeling
     to simplify counterfactual reasoning.
     """
-
-    operating_range: FloatBounds | None = None
-    """
-    Kind: optional external
-
-    The maximal range of values that the tag can take. Often called the "engineering range".
-    If specified on an AI-controlled setpoint, this determines the range of values that the agent
-    can select.
-    """
-
-    expected_range: FloatBounds | None = None
-    """
-    Kind: optional external
-
-    The range of values that the tag is expected to take. If specified, this range controls
-    the min/max for normalization and reward scaling.
-    """
-
 
     # ----------------------
     # -- Pipeline Configs --
@@ -120,39 +99,3 @@ class BaseTagConfig:
     Allows triggering an event based on a transformation pipeline that
     evaluates truthy.
     """
-
-
-    # -----------------
-    # -- Validations --
-    # -----------------
-    @post_processor
-    def _set_normalization_bounds(self, _: object):
-        lo, hi = self.get_normalization_bounds()
-
-        norm_cfg = find_instance(NormalizerConfig, self.preprocess)
-        if norm_cfg is None:
-            return
-
-        norm_cfg.min = Maybe(norm_cfg.min).otherwise(lambda: lo).unwrap()
-        norm_cfg.max = Maybe(norm_cfg.max).otherwise(lambda: hi).unwrap()
-
-        if norm_cfg.min is None or norm_cfg.max is None:
-            norm_cfg.from_data = True
-
-
-    # -----------------------
-    # -- Utility Functions --
-    # -----------------------
-
-    def get_normalization_bounds(self) -> FloatBounds:
-        def _get_bound(idx: int):
-            return (
-                Maybe[float](self.expected_range and self.expected_range[idx])
-                .otherwise(lambda: self.operating_range and self.operating_range[idx])
-                .unwrap()
-            )
-
-        lo = _get_bound(0)
-        hi = _get_bound(1)
-
-        return lo, hi

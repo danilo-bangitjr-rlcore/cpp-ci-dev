@@ -4,7 +4,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, assert_never
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
@@ -13,8 +13,14 @@ from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.data_pipeline.transforms import NukeConfig
-from corerl.tags.base import BaseTagConfig
-from corerl.tags.components.bounds import Bounds, BoundsElem, BoundsFunction, BoundsTags, FloatBounds
+from corerl.tags.components.bounds import (
+    Bounds,
+    BoundsFunction,
+    BoundsTags,
+    FloatBounds,
+    SafetyZonedTag,
+    eval_bound,
+)
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
@@ -68,39 +74,12 @@ class GuardrailScheduleConfig:
     duration: timedelta = MISSING
 
 
-@config()
-class RedZoneReflexConfig:
-    """
-    Kind: optional external
-
-    Specifies the reaction to a red zone violation.
-    """
-
-    tag: str = MISSING
-    """
-    Kind: required external
-    The tag to which the reaction applies.
-    """
-
-    kind: ViolationDirection = MISSING
-    """
-    Kind: required external
-
-    The direction of the violation (upper or lower).
-    """
-
-    bounds: FloatBounds = MISSING
-    """
-    Kind: required external
-    The bounds of the red zone. This is used to determine the
-    reaction to the violation.
-    """
 
 # ----------------
 # -- Tag Config --
 # ----------------
 @config()
-class TagConfig(BaseTagConfig):
+class TagConfig(SafetyZonedTag):
     """
     Kind: required external
 
@@ -178,66 +157,6 @@ class TagConfig(BaseTagConfig):
     In case that the action_bounds are specified as strings representing sympy functions,
     the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
     and the action_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    red_bounds: Bounds | None = None
-    """
-    Kind: optional external
-
-    The interior endpoints of the two red zones. The lower value specifies a red zone
-    between:
-        (operating_range[0] and red_bounds[0])
-
-    The upper value specifies a red zone between:
-        (red_bounds[1] and operating_range[1])
-
-    See also:
-    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
-    """
-
-    red_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
-    red_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
-    """
-    Kind: computed internal
-
-    In case that the red_bounds are specified as strings representing sympy functions,
-    the red_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the red_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    yellow_bounds: Bounds | None = None
-    """
-    Kind: optional external
-
-    The interior endpoints of the two yellow zones. The lower value specifies a yellow zone
-    between:
-        (red_bounds[0] and yellow_bounds[0])
-
-    The upper value specifies a yellow zone between:
-        (yellow_bounds[1] and red_bounds[1])
-
-    If a corresponding red zone is not specified, the yellow zone's exterior endpoint
-    is determined by the operating range.
-
-    See also:
-    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
-    """
-
-    yellow_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
-    yellow_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
-    """
-    Kind: computed internal
-
-    In case that the yellow_bounds are specified as strings representing sympy functions,
-    the yellow_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    red_zone_reaction: list[RedZoneReflexConfig] | None = None
-    """
-    Kind: optional external
-
-    Specifies the reaction to a red zone violation.
     """
 
     guardrail_schedule: GuardrailScheduleConfig | None = None
@@ -318,11 +237,6 @@ class TagConfig(BaseTagConfig):
                 self.action_bounds, known_tags, allow_circular=True,
             )
 
-        if self.red_bounds is not None:
-            self.red_bounds_func, self.red_bounds_tags = self._bounds_parse_sympy(self.red_bounds, known_tags)
-
-        if self.yellow_bounds is not None:
-            self.yellow_bounds_func, self.yellow_bounds_tags = self._bounds_parse_sympy(self.yellow_bounds, known_tags)
 
     def _bounds_parse_sympy(
         self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False,
@@ -411,33 +325,6 @@ class TagConfig(BaseTagConfig):
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
 
 
-        # ----------------------
-        # -- Zone validations --
-        # ----------------------
-        if self.red_zone_reaction is not None:
-            assert self.red_bounds is not None, \
-                "Red zone reaction specified, but no red bounds defined."
-
-
-    # -----------------------
-    # -- Utility Functions --
-    # -----------------------
-    def get_normalization_bounds(self) -> FloatBounds:
-        def _get_bound(idx: int):
-            return (
-                Maybe(self.expected_range and self.expected_range[idx])
-                .otherwise(lambda: self.red_bounds and self.red_bounds[idx])
-                .otherwise(lambda: self.operating_range and self.operating_range[idx])
-                .otherwise(lambda: self.yellow_bounds and self.yellow_bounds[idx])
-                .is_instance(float)
-                .unwrap()
-            )
-
-        lo = _get_bound(0)
-        hi = _get_bound(1)
-
-        return lo, hi
-
 
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
     tag_cfg.agg = Agg.last
@@ -445,33 +332,6 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 def set_seasonal_tag_defaults(tag_cfg: TagConfig):
     tag_cfg.preprocess = []
     tag_cfg.state_constructor = [NukeConfig()]
-
-def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
-    # each bound type is fully optional
-    # prefer to use expected range, fallback to red zone, then operating range, then yellow
-    lo = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[0])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
-        .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
-        .map(partial(eval_bound, row, "lo", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
-    )
-
-    hi = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[1])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
-        .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
-        .map(partial(eval_bound, row, "hi", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
-    )
-
-    return lo, hi
 
 
 def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
@@ -495,32 +355,6 @@ def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
     )
     return lo, hi
 
-
-def eval_bound(
-    data: pd.DataFrame,
-    side: Literal["lo", "hi"],
-    bounds_func: BoundsFunction | None,
-    bounds_tags: BoundsTags | None,
-    bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
-) -> float | None:
-    index = {"lo": 0, "hi": 1}[side]
-
-    if isinstance(bound, str):
-        assert bounds_func and bounds_tags  # Assertion for pyright
-        res_func, res_tags = bounds_func[index], bounds_tags[index]
-        assert res_func and res_tags  # Assertion for pyright
-
-        values = [data[res_tag].item() for res_tag in res_tags]
-        bound = res_func(*values)
-
-    if bound is not None:
-        bound = float(bound)
-
-    return bound
-
-
-def widen_bound_types(x: float | None) -> BoundsElem:
-    return x
 
 def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
     return [
