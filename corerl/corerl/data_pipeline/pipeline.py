@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
 from lib_config.config import MISSING, computed, config, list_, post_processor
+from lib_defs.config_defs.tag_config import TagType
 from pandas import DataFrame
 from pydantic import Field
 
@@ -71,7 +72,7 @@ class PipelineConfig:
     @post_processor
     def _cascade_dependencies(self, cfg: MainConfig):
         for tag in self.tags:
-            if tag.cascade is None:
+            if tag.type != TagType.ai_setpoint or tag.cascade is None:
                 continue
             for dep in [tag.cascade.op_sp, tag.cascade.ai_sp]:
                 if in_taglist(dep, self.tags): continue
