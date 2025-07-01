@@ -22,6 +22,7 @@ from corerl.tags.components.bounds import (
 )
 from corerl.tags.components.opc import Agg, OPCTag
 from corerl.tags.meta import MetaTagConfig
+from corerl.tags.seasonal import SeasonalTagConfig
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
@@ -98,7 +99,6 @@ class BasicTagConfig(
     type: Literal[
         TagType.default,
         TagType.ai_setpoint,
-        TagType.seasonal,
         TagType.delta,
     ] = TagType.default
     """
@@ -287,7 +287,7 @@ class BasicTagConfig(
 
 
 
-TagConfig = BasicTagConfig | MetaTagConfig
+TagConfig = BasicTagConfig | MetaTagConfig | SeasonalTagConfig
 
 
 
