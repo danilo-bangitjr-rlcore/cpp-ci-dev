@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from datetime import timedelta
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, assert_never
+from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
@@ -94,7 +94,13 @@ class TagConfig(
     This is used for all internal references to the tag, such as in the reward construction.
     """
 
-    type: TagType = TagType.default
+    type: Literal[
+        TagType.default,
+        TagType.meta,
+        TagType.ai_setpoint,
+        TagType.seasonal,
+        TagType.delta,
+    ] = TagType.default
     """
     Kind: optional external
 
