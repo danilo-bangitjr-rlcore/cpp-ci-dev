@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Sequence
 from functools import cached_property
 
 import numpy as np
@@ -13,11 +14,11 @@ logger = logging.getLogger(__name__)
 
 
 class TagTrigger(Constructor):
-    def __init__(self, app_state: AppState, tag_cfgs: list[TagConfig]):
+    def __init__(self, app_state: AppState, tag_cfgs: Sequence[TagConfig]):
         super().__init__(tag_cfgs)
         self._app_state = app_state
 
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]):
+    def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]):
         return {
             tag.name: tag.trigger.condition
             for tag in tag_cfgs

@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 import pandas as pd
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
@@ -7,7 +9,7 @@ from corerl.tags.tag_config import TagConfig
 
 
 class SeasonalTagIncluder:
-    def __init__(self, tag_cfgs: list[TagConfig]):
+    def __init__(self, tag_cfgs: Sequence[TagConfig]):
         seasonal_tags = [tag_cfg for tag_cfg in tag_cfgs if tag_cfg.type == TagType.seasonal]
 
         self.has_day_of_year = Maybe.find(lambda tag_cfg: tag_cfg.name == "day_of_year", seasonal_tags).is_some()

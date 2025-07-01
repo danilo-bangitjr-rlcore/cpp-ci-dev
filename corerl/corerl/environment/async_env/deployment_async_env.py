@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from functools import partial
 from typing import TypedDict
@@ -114,7 +115,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return self._cfg
 
 
-def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
+def sanitize_actions(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig], rtol: float = 0.001) -> None:
     if len(action) < 1:
         logger.error("Action df empty")
         return
@@ -125,7 +126,7 @@ def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rt
 
     clip_action(action, action_cfgs, rtol)
 
-def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
+def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig], rtol: float = 0.001) -> None:
     for action_name, action_cfg in action_cfgs.items():
         action_val = action[action_name].iloc[0]
         lo, hi = get_clip_bounds(action_cfg, action)
