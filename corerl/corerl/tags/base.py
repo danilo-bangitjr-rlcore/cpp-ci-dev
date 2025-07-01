@@ -8,11 +8,8 @@ from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import EventType
+from corerl.tags.components.bounds import FloatBounds
 
-BoundsElem = float | str | None
-
-Bounds = tuple[BoundsElem, BoundsElem]
-FloatBounds = tuple[float | None, float | None]
 
 # -----------------
 # -- Tag Trigger --

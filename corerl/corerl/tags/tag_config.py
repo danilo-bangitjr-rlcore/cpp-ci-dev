@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
@@ -13,15 +13,13 @@ from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.data_pipeline.transforms import NukeConfig
-from corerl.tags.base import BaseTagConfig, Bounds, BoundsElem, FloatBounds
+from corerl.tags.base import BaseTagConfig
+from corerl.tags.components.bounds import Bounds, BoundsElem, BoundsFunction, BoundsTags, FloatBounds
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
     from corerl.data_pipeline.pipeline import PipelineConfig
-
-BoundsFunction = tuple[Callable[..., float] | None, Callable[..., float] | None]
-BoundsTags = tuple[list[str] | None, list[str] | None]
 
 
 class Agg(StrEnum):
