@@ -11,7 +11,8 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig, ViolationDirection, eval_bound
+from corerl.tags.components.bounds import ViolationDirection
+from corerl.tags.tag_config import TagConfig, eval_bound
 
 logger = logging.getLogger(__name__)
 
