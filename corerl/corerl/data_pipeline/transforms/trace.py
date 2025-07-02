@@ -8,6 +8,7 @@ from numba import njit
 
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
+from corerl.state import AppState
 
 
 @config()
@@ -20,48 +21,54 @@ class TraceConfig(BaseTransformConfig):
 @dataclass
 class TraceTemporalState:
     trace: dict[str, np.ndarray] | None = None
+    quality: dict[str, np.ndarray] | None = None
 
 class TraceParams(NamedTuple):
     decays: np.ndarray
+    missing_tol: float
 
 class TraceData(NamedTuple):
     trace: np.ndarray # size == (len(decays),)
+    quality: np.ndarray # size == (len(decays),)
     obs: np.ndarray # size == (n,)
 
 class TraceConstructor:
     def __init__(self, cfg: TraceConfig):
         self._cfg = cfg
-
-        decays = np.array(cfg.trace_values)
-
         self._trace_params = TraceParams(
-            decays=decays,
+            decays=np.array(cfg.trace_values),
+            missing_tol=cfg.missing_tol,
         )
 
     def __call__(self, carry: TransformCarry, ts: object | None):
         assert isinstance(ts, TraceTemporalState | None)
         trace = (ts and ts.trace) or {}
+        quality = (ts and ts.quality) or {}
 
         cols = set(carry.transform_data.columns)
         for col in cols:
             obs = carry.transform_data[col].to_numpy()
             prev_trace = Maybe(trace.get(col)).or_else(np.ones_like(self._trace_params.decays, dtype=np.float64)*np.nan)
+            prev_quality = Maybe(quality.get(col)).or_else(np.zeros_like(self._trace_params.decays, dtype=np.float64))
             assert obs.ndim == 1, f"shape of column {col}: {obs.shape}, transform_data: {carry.transform_data}"
 
             trace_data = TraceData(
                 trace=prev_trace,
+                quality=prev_quality,
                 obs=obs,
             )
             out, new_trace_data = compute_trace_with_nan(self._trace_params, trace_data)
 
             trace[col] = new_trace_data.trace
+            quality[col] = new_trace_data.quality
             carry.transform_data.drop(col, axis=1, inplace=True)
 
             for i, decay in enumerate(self._trace_params.decays):
                 new_name = f'{col}_trace-{decay}'
                 carry.transform_data[new_name] = out[:, i]
 
-        return carry, TraceTemporalState(trace)
+
+        return carry, TraceTemporalState(trace, quality)
 
     def reset(self) -> None:
         pass
@@ -77,19 +84,22 @@ def compute_trace_with_nan(trace_params: TraceParams, trace_data: TraceData):
 
     decays = trace_params.decays
     trace = trace_data.trace
+    quality = trace_data.quality
 
     for i in range(n_samples):
-        x = trace_data.obs[i]
+        obs = trace_data.obs[i]
 
-        # initialize trace nans if this was the first obs
+        # initialize trace if needed
         trace_nanmask = np.isnan(trace)
-        trace = np.where(trace_nanmask, x, trace)
+        trace = np.where(trace_nanmask, obs, trace)
 
         # update trace if obs is not nan, otherwise forward old trace
-        obs_is_nan = np.isnan(x)
-        trace = decays * trace + (1 - decays) * x if ~obs_is_nan else trace
+        obs_not_nan = ~np.isnan(obs)
+        trace = decays * trace + (1 - decays) * obs if obs_not_nan else trace
+        quality = decays * quality + (1 - decays) * obs_not_nan
 
         # output trace value
-        out[i] = trace
+        high_quality = quality > (1 - trace_params.missing_tol)
+        out[i] = np.where(high_quality, trace, np.nan)
 
-    return out, TraceData(trace, trace_data.obs)
+    return out, TraceData(trace, quality, trace_data.obs)
