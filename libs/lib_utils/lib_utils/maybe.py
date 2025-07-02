@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any, overload
 
 from lib_utils.list import find
@@ -137,6 +137,13 @@ class Maybe[T]:
     def is_some(self):
         return self._v is not None
 
+    def split[U, V](self, u: type[U], v: type[V], /) -> tuple[Maybe[U], Maybe[V]]:
+        if not isinstance(self._v, Sequence): # captures self._v is None
+            return Maybe[U](None), Maybe[V](None)
+
+        left = Maybe(self._v[0]).is_instance(u)
+        right = Maybe(self._v[1]).is_instance(v)
+        return left, right
 
     # ---------------
     # -- Utilities --
