@@ -128,7 +128,7 @@ class MaskedAutoencoder(BaseImputer):
         # try to recover traces from the temporal state
         # otherwise, start fresh
         if ts.last_trace is None:
-            ts.last_trace = jnp.zeros(self._num_traces * self._num_obs)
+            ts.last_trace = jnp.ones(self._num_traces * self._num_obs) * np.nan
 
         # loop through data and impute one row at a time
         # this way we can use imputed values to compute
@@ -176,7 +176,7 @@ class MaskedAutoencoder(BaseImputer):
             #   1. We need to (i.e. there are missing values)
             #   2. We can (i.e. there aren't too many missing values)
             #   3. Or we are within our imputation horizon
-            will_impute = should_impute and (can_impute or within_horizon)
+            will_impute = should_impute and (can_impute or within_horizon) and self._buffer.size > 0
             if will_impute:
                 obs = self.impute(impute_data)
                 pf.data.loc[row_idx, self._obs_names] = np.asarray(obs)

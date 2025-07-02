@@ -90,7 +90,7 @@ def test_split_ts1():
     ts = SplitTemporalState(
         left_state=[
             TraceTemporalState(
-                mu={'tag_1': np.array([100.])},
+                trace={'tag_1': np.array([100.])},
             ),
             DeltaTemporalState(
                 last=np.array([5.0]),
