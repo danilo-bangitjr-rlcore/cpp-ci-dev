@@ -196,7 +196,7 @@ class Pipeline:
         self.outlier_detectors = OddityFilterConstructor(self.tags, app_state, cfg.oddity_filter)
         self.imputers = init_imputer(cfg.imputer, app_state, self.tags)
         self.action_constructor = ActionConstructor(app_state, self.tags, self.preprocessor)
-        self.state_constructor = StateConstructor(self.tags, cfg.state_constructor)
+        self.state_constructor = StateConstructor(app_state, self.tags, cfg.state_constructor)
         self.reward_constructor = (
             RewardConstructor(self.tags, self.preprocessor)
             if cfg.reward is None else

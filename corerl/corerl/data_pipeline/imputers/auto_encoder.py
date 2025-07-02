@@ -20,11 +20,12 @@ from lib_defs.config_defs.tag_config import TagType
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState
+from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState, log_trace_quality
 from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
+
 
 @dataclass
 class MaskedAETemporalState:
@@ -200,6 +201,7 @@ class MaskedAutoencoder(BaseImputer):
         self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan_obs', value=total_nan_obs)
         self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan_trace', value=total_nan_trace)
         self._app_state.metrics.write(self._app_state.agent_step, metric='AE-imputed', value=total_imputes)
+        log_trace_quality(self._app_state, prefix='AE', decays=self._cfg.trace_values, trace_ts=ts.trace_ts)
 
         self.train()
         return pf

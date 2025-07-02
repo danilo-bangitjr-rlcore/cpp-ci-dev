@@ -5,13 +5,17 @@ import lib_utils.list as list_u
 import pandas as pd
 from lib_config.config import config, list_
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.data_pipeline.constructors.constructor import Constructor
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalTagFeatures
 from corerl.data_pipeline.transforms import TraceConfig, TransformConfig
+from corerl.data_pipeline.transforms.base import Transform
+from corerl.data_pipeline.transforms.trace import TraceConstructor, TraceTemporalState, log_trace_quality
+from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
 
 
@@ -22,8 +26,9 @@ class SCConfig:
 
 
 class StateConstructor(Constructor):
-    def __init__(self, tag_cfgs: list[TagConfig], cfg: SCConfig):
+    def __init__(self, app_state: AppState, tag_cfgs: list[TagConfig], cfg: SCConfig):
         self._cfg = cfg
+        self._app_state = app_state
         super().__init__(tag_cfgs)
 
         self._cd_adder = DecisionPointDetector(cfg.countdown)
@@ -58,6 +63,8 @@ class StateConstructor(Constructor):
         sorted_cols = self.sort_cols(cols)
         pf.data = pf.data.loc[:, sorted_cols]
         pf.states = pf.data[sorted_cols]
+
+        maybe_log_trace_quality(self._app_state, self._components, pf.temporal_state)
 
         return pf
 
@@ -96,3 +103,23 @@ def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: list[TagConfig]) ->
     for tag_cfg in tag_cfgs:
         if tag_cfg.state_constructor is None:
             tag_cfg.state_constructor = sc_cfg.defaults
+
+def maybe_log_trace_quality(app_state: AppState, components: dict[str, list[Transform]], ts: TemporalState):
+    """
+    Assumes there is at most one TraceConstructor in each transform list
+    """
+    def _log_trace_qual(trace_con: TraceConstructor, trace_ts: TraceTemporalState):
+        decays = trace_con._cfg.trace_values
+        log_trace_quality(app_state, prefix='STATE', decays=decays, trace_ts=trace_ts)
+
+    sc_ts = ts.get(StageCode.SC, {})
+    assert isinstance(sc_ts, dict)
+
+    for tag, xforms in components.items():
+        tag_ts = sc_ts[tag]
+
+        trace_con, trace_ts = Maybe.find(
+            lambda x: isinstance(x[0], TraceConstructor), zip(xforms, tag_ts, strict=True),
+        ).split(TraceConstructor, TraceTemporalState)
+
+        Maybe.tap_all(_log_trace_qual, trace_con, trace_ts)

@@ -103,3 +103,9 @@ def compute_trace_with_nan(trace_params: TraceParams, trace_data: TraceData):
         out[i] = np.where(high_quality, trace, np.nan)
 
     return out, TraceData(trace, quality, trace_data.obs)
+
+def log_trace_quality(app_state: AppState, prefix: str, decays: list[float], trace_ts: TraceTemporalState):
+    for tag, quality in Maybe(trace_ts.quality).expect().items():
+        for i, decay in enumerate(decays):
+            metric_name = f'{prefix}-QUALITY-{tag}_trace_{decay}'
+            app_state.metrics.write(app_state.agent_step, metric=metric_name, value=quality[i])
