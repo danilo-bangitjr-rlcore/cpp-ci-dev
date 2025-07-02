@@ -20,10 +20,5 @@ pipeline:
 
 interaction:
   name: dep_interaction
-  restore_checkpoint: False
-  historical_batch_size: 100
-  setpoint_ping_period: 00:00:10
   obs_period: 00:00:01
-  action_period: 00:00:03
-  update_period: 00:00:01
-  state_age_tol: 00:00:01
+  action_period: 00:00:01

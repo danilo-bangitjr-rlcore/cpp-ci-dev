@@ -7,6 +7,7 @@ import pandas as pd
 import pytest
 from lib_config.loader import direct_load_config
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.sql_logging.sql_logging import table_exists
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -21,7 +22,6 @@ from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import OfflineTraining
-from corerl.sql_logging.sql_logging import table_exists
 from corerl.state import AppState
 
 

@@ -66,6 +66,7 @@ async def test_communication(opc_port: int):
             "coreio/dummy_agent.py",
             "--config-name",
             "../config/coreio_test_config.yaml",
+            "interaction.action_period=00:00:00.02",
         ))
 
         try:
