@@ -1,6 +1,44 @@
+from enum import Enum, auto
 from typing import NamedTuple
 
 import jax
+
+
+class DataMode(Enum):
+    OFFLINE = auto()
+    ONLINE = auto()
+    REFRESH = auto()
+
+
+class Transition:
+    def __init__(self, prior, post, steps, n_step_reward, n_step_gamma, state_dim, action_dim):
+        self.prior = prior
+        self.post = post
+        self.steps = steps
+        self.n_step_reward = n_step_reward
+        self.n_step_gamma = n_step_gamma
+        self.state_dim = state_dim
+        self.action_dim = action_dim
+
+    @property
+    def state(self):
+        return self.prior.state
+
+    @property
+    def action(self):
+        return self.post.action
+
+    @property
+    def reward(self):
+        return self.n_step_reward
+
+    @property
+    def gamma(self):
+        return self.n_step_gamma
+
+    @property
+    def next_state(self):
+        return self.post.state
 
 
 class JaxTransition(NamedTuple):

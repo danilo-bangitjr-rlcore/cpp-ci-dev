@@ -4,18 +4,12 @@ from typing import Literal
 
 import jax.numpy as jnp
 import numpy as np
-from corerl.data_pipeline.datatypes import Transition
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from lib_config.config import config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
-from lib_agent.buffer.datatypes import JaxTransition
-
-
-class DataMode:
-    ONLINE = "online"
-    OFFLINE = "offline"
+from lib_agent.buffer.datatypes import DataMode, JaxTransition, Transition
 
 
 class MaskedABDistribution:
@@ -59,6 +53,7 @@ class MaskedABDistribution:
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
     n_ensemble: int = 1
+    ensemble: int = 1
     max_size: int = 1_000_000
     ensemble_probability: float = 0.5
     batch_size: int = 256
@@ -103,7 +98,6 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
         self._most_recent_online_idxs = deque(maxlen=n_most_recent)
 
     def _convert_transition_to_jax_transition(self, transition: Transition) -> JaxTransition:
-        """Convert a Transition object to a JaxTransition object."""
         return JaxTransition(
             last_action=transition.prior.action,
             state=transition.state,
@@ -136,7 +130,7 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
             idxs[i] = j
         return idxs
 
-    def feed(self, transitions: Sequence[Transition], data_mode: str) -> np.ndarray:
+    def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
         idxs = np.empty(len(transitions), dtype=np.int64)
         for j, transition in enumerate(transitions):
             jax_transition = self._convert_transition_to_jax_transition(transition)

@@ -215,7 +215,7 @@ class GreedyAC(BaseAgent):
         self._actor_buffer = buffer_group.dispatch(cfg.policy.buffer)
         self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer)
 
-        self.ensemble = self.cfg.critic.buffer.ensemble
+        self.ensemble = self.cfg.critic.buffer.n_ensemble
 
         # for early stopping
         self._last_critic_loss = 0.
@@ -553,7 +553,7 @@ class GreedyAC(BaseAgent):
             self.critic_buffer = pkl.load(f)
         self.critic_buffer.app_state = self._app_state
 
-    def get_buffer_sizes(self) -> dict[str, list[int]]:
+    def get_buffer_sizes(self) -> dict[str, int]:
         return {
             "critic": self.critic_buffer.size,
             "policy": self._actor_buffer.size,
