@@ -86,7 +86,7 @@ def test_pipeline1():
             [2,      1, 0, 0, 0.5778],
             [np.nan, 1, 0, 0, 0.77778],
             [np.nan, 1, 0, 0, 0.977778],
-            [5,      1, 0, 0, np.nan],
+            [5,      1, 0, 0, 0.977778],
         ],
         columns=cols,
         index=idx,

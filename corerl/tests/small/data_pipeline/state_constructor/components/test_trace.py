@@ -17,74 +17,22 @@ def test_compute_trace1():
     Given a sequence with a temporal break, get back
     a trace that restarts after the trace.
     """
-    data = np.array([1, 2, 3, 4, np.nan, 1, 2, 3, 4])
+    data = np.array([1, 2, 3, 4])
 
-    # expect a (n_samples, n_traces) == (9, 1) array
+    # expect a (n_samples, n_traces) == (4, 1) array
     expected = np.array([[
-        # first sequence until nan
-        1., 1.9, 2.89, 3.889,
-        # nan break
-        np.nan,
-        # second sequence starts over again
         1., 1.9, 2.89, 3.889,
     ]]).T
 
-    trace_params = TraceParams(decays=np.array([0.1]), warmups=np.zeros(1), nantol=np.zeros(1))
-    trace_data = TraceData(trace=np.ones(1)*np.nan, obs=data, n_obs=0, n_nan=0)
+    trace_params = TraceParams(decays=np.array([0.1]), missing_tol=1.0)
+    trace_data = TraceData(trace=np.ones(1)*np.nan, obs=data, quality=np.zeros(1))
     trace, trace_data = compute_trace_with_nan(trace_params, trace_data)
 
-    assert trace.shape == (9, 1)
+    assert trace.shape == (4, 1)
     assert np.allclose(expected, trace, equal_nan=True)
 
     assert trace_data.trace.shape == (1,)
     assert np.isclose(trace_data.trace, [3.889])
-
-
-def test_compute_trace2():
-    """
-    Given a sequence that starts with some np.nan,
-    create a trace starting from first non-nan idx
-    """
-    data = np.array([np.nan, np.nan, 1, 2, 3, 4])
-
-    # expect a (n_samples, n_traces) == (6, 1) array
-    expected = np.array([[
-        np.nan, np.nan,
-        1., 1.9, 2.89, 3.889,
-    ]]).T
-
-    trace_params = TraceParams(decays=np.array([0.1]), warmups=np.zeros(1), nantol=np.zeros(1))
-    trace_data = TraceData(trace=np.ones(1)*np.nan, obs=data, n_obs=0, n_nan=0)
-    trace, trace_data = compute_trace_with_nan(trace_params, trace_data)
-
-    assert trace.shape == (6, 1)
-    assert np.allclose(expected, trace, equal_nan=True)
-
-    assert trace_data.trace.shape == (1,)
-    assert np.isclose(trace_data.trace, [3.889])
-
-
-def test_compute_trace3():
-    """
-    Given a sequence that ends with some np.nan,
-    create a trace and return a nan
-    """
-    data = np.array([1, 2, 3, 4, np.nan, np.nan])
-
-    # expect a (n_samples, n_traces) == (6, 1) array
-    expected = np.array([[
-        1., 1.9, 2.89, 3.889,
-        np.nan, np.nan,
-    ]]).T
-
-    trace_params = TraceParams(decays=np.array([0.1]), warmups=np.zeros(1), nantol=np.zeros(1))
-    trace_data = TraceData(trace=np.ones(1)*np.nan, obs=data, n_obs=0, n_nan=0)
-    trace, trace_data = compute_trace_with_nan(trace_params, trace_data)
-
-    assert trace.shape == (6, 1)
-    assert np.allclose(expected, trace, equal_nan=True)
-
-    assert np.allclose(trace_data.trace, np.ones(1) * np.nan, equal_nan=True)
 
 
 def test_compute_multiple_traces():
@@ -92,24 +40,22 @@ def test_compute_multiple_traces():
     Specifying multiple trace decays produces multiple outputs
     from a single input stream.
     """
-    data = np.array([np.nan, 1, 2, 3, np.nan, 1, 2, np.nan])
+    data = np.array([1, 2, 3])
 
     # expect a (n_samples, n_traces) == (8, 2) array
     expected = np.array([
         # decay=0.1
-        [np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9, np.nan],
+        [1., 1.9, 2.89],
         # decay=0.01
-        [np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99, np.nan],
+        [1., 1.99, 2.9899],
     ]).T
 
-    trace_params = TraceParams(decays=np.array([0.1, 0.01]), warmups=np.zeros(2), nantol=np.zeros(2))
-    trace_data = TraceData(trace=np.ones(2)*np.nan, obs=data, n_obs=0, n_nan=0)
+    trace_params = TraceParams(decays=np.array([0.1, 0.01]), missing_tol=1.0)
+    trace_data = TraceData(trace=np.ones(2)*np.nan, obs=data, quality=np.zeros(2))
     trace, trace_data = compute_trace_with_nan(trace_params, trace_data)
 
-    assert trace.shape == (8, 2)
+    assert trace.shape == (3, 2)
     assert np.allclose(expected, trace, equal_nan=True)
-
-    assert np.allclose(trace_data.trace, np.ones(2) * np.nan, equal_nan=True)
 
 
 def test_trace_first_data():
@@ -120,8 +66,8 @@ def test_trace_first_data():
     each column and a new temporal state.
     """
     raw_obs = pd.DataFrame({
-        'obs_1': np.array([np.nan, 1, 2, 3, np.nan, 1, 2]),
-        'obs_2': np.array([1, 2, np.nan, 1, 2, 3, np.nan]),
+        'obs_1': np.array([1, 2, 3]),
+        'obs_2': np.array([1, 2, 3]),
     })
 
     carry = TransformCarry(
@@ -133,6 +79,7 @@ def test_trace_first_data():
     trace_sc = TraceConstructor(
         cfg=TraceConfig(
             trace_values=[0.1, 0.01],
+            missing_tol=1.0,
         ),
     )
 
@@ -144,40 +91,28 @@ def test_trace_first_data():
         'obs_2_trace-0.1',
         'obs_2_trace-0.01',
     }
-    assert new_carry.transform_data.shape == (7, 4)
+    assert new_carry.transform_data.shape == (3, 4)
     assert np.allclose(
         new_carry.transform_data['obs_1_trace-0.1'],
-        np.array([np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9]),
+        np.array([1., 1.9, 2.89]),
         equal_nan=True,
     )
     assert np.allclose(
         new_carry.transform_data['obs_1_trace-0.01'],
-        np.array([np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99]),
+        np.array([1., 1.99, 2.9899]),
         equal_nan=True,
     )
     assert np.allclose(
         new_carry.transform_data['obs_2_trace-0.1'],
-        np.array([1., 1.9, np.nan, 1., 1.9, 2.89, np.nan]),
+        np.array([1., 1.9, 2.89]),
         equal_nan=True,
     )
     assert np.allclose(
         new_carry.transform_data['obs_2_trace-0.01'],
-        np.array([1., 1.99, np.nan, 1., 1.99, 2.9899, np.nan]),
+        np.array([1., 1.99, 2.9899]),
         equal_nan=True,
     )
     assert new_ts.trace is not None
-
-    # obs_1 did not end in np.nan, so has a carry state
-    mu_obs1 = new_ts.trace['obs_1']
-    assert mu_obs1 is not None
-    assert np.allclose(
-        mu_obs1,
-        np.array([1.9, 1.99]),
-    )
-
-    # obs_2 did end in nan, so does not have a carry state
-    mu_obs2 = new_ts.trace['obs_2']
-    assert np.allclose(mu_obs2, np.ones(1) * np.nan, equal_nan=True)
 
 
 def test_trace_temporal_state():
@@ -200,6 +135,7 @@ def test_trace_temporal_state():
     trace_sc = TraceConstructor(
         cfg=TraceConfig(
             trace_values=[0.1, 0.01],
+            missing_tol=1.0,
         ),
     )
 
@@ -214,21 +150,21 @@ def test_trace_temporal_state():
 
     assert np.allclose(
         new_carry.transform_data['obs_1_trace-0.1'],
-        [np.nan, 1., 1.9, 2.89, np.nan, 1., 1.9],
+        [np.nan, 1., 1.9, 2.89, 2.89, 1.189, 1.9189],
         equal_nan=True,
     )
     assert np.allclose(
         new_carry.transform_data['obs_1_trace-0.01'],
-        [np.nan, 1., 1.99, 2.9899, np.nan, 1., 1.99],
+        [np.nan, 1., 1.99, 2.9899, 2.9899, 1.019899, 1.990199],
         equal_nan=True,
     )
     assert np.allclose(
         new_carry.transform_data['obs_2_trace-0.1'],
-        [2.9, 2.09, np.nan, np.nan, np.nan, np.nan, np.nan],
+        [2.9, 2.09, 2.09, 2.09, 2.09, 2.09, 2.09],
         equal_nan=True,
     )
     assert np.allclose(
         new_carry.transform_data['obs_2_trace-0.01'],
-        [1.39, 1.9939, np.nan, np.nan, np.nan, np.nan, np.nan],
+        [1.39, 1.9939, 1.9939, 1.9939, 1.9939, 1.9939, 1.9939],
         equal_nan=True,
     )

@@ -61,6 +61,7 @@ pipeline:
         max: 10
       - name: multi_trace
         trace_values: [ 0.1 ]
+        missing_tol: 1.0
 
   # actions
   - name: action-1

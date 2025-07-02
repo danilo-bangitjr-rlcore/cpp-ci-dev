@@ -11,19 +11,20 @@ from corerl.data_pipeline.transforms import DeltaConfig, NukeConfig
 from corerl.data_pipeline.transforms.delta import DeltaTemporalState
 from corerl.data_pipeline.transforms.split import SplitConfig, SplitTemporalState
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceTemporalState
+from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
 
 
-def test_split1():
+def test_split1(dummy_app_state: AppState):
     obs = pd.DataFrame({
-        'tag_1':  [1, 2, 3, 4, np.nan, 1, 2, 3, 4],
-        'action': [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        'tag_1':  [1, 2, 3, 4],
+        'action': [0, 0, 0, 0],
     })
     action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        'action-lo': [0, 0, 0, 0],
     })
     action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'action-hi': [1, 1, 1, 1],
     })
 
     pf = PipelineFrame(
@@ -34,6 +35,7 @@ def test_split1():
     pf.action_hi = action_hi
 
     sc = StateConstructor(
+        dummy_app_state,
         tag_cfgs=[
             TagConfig(name='tag_1'),
             TagConfig(name='action'),
@@ -41,8 +43,8 @@ def test_split1():
         cfg=SCConfig(
             defaults=[
                 SplitConfig(
-                    left=[TraceConfig(trace_values=[0.1])],
-                    right=[TraceConfig(trace_values=[0.01])],
+                    left=[TraceConfig(trace_values=[0.1], missing_tol=1.0)],
+                    right=[TraceConfig(trace_values=[0.01], missing_tol=1.0)],
                 ),
             ],
             countdown=CountdownConfig(
@@ -54,27 +56,27 @@ def test_split1():
 
     pf = sc(pf)
     expected_data = pd.DataFrame({
-        'tag_1_trace-0.1':   [1., 1.9, 2.89, 3.889, np.nan, 1., 1.9, 2.89, 3.889],
-        'tag_1_trace-0.01':  [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
-        'action_trace-0.1':  [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        'action_trace-0.01': [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        'action-lo':         [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        'action-hi':         [1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'tag_1_trace-0.1':   [1., 1.9, 2.89, 3.889],
+        'tag_1_trace-0.01':  [1., 1.99, 2.9899, 3.989899],
+        'action_trace-0.1':  [0, 0, 0, 0],
+        'action_trace-0.01': [0, 0, 0, 0],
+        'action-lo':         [0, 0, 0, 0],
+        'action-hi':         [1, 1, 1, 1],
     })
 
     assert dfs_close(pf.data, expected_data)
 
 
-def test_split_ts1():
+def test_split_ts1(dummy_app_state: AppState):
     obs = pd.DataFrame({
-        'tag_1': [1, 2, 3, 4, np.nan, 1, 2, 3, 4],
-        'action': [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        'tag_1': [1, 2, 3, 4],
+        'action': [0, 0, 0, 0],
     })
     action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0, 0, 0, 0, 0],
+        'action-lo': [0, 0, 0, 0],
     })
     action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'action-hi': [1, 1, 1, 1],
     })
 
     start_time = datetime(2023, 4, 11, 2)
@@ -113,6 +115,7 @@ def test_split_ts1():
     pf.action_hi = action_hi
 
     sc = StateConstructor(
+        dummy_app_state,
         tag_cfgs=[
             TagConfig(name='tag_1'),
             TagConfig(
@@ -124,10 +127,10 @@ def test_split_ts1():
             defaults=[
                 SplitConfig(
                     left=[
-                        TraceConfig(trace_values=[0.1]),
+                        TraceConfig(trace_values=[0.1], missing_tol=1.0),
                         DeltaConfig(time_thresh=increment, obs_period=increment),
                     ],
-                    right=[TraceConfig(trace_values=[0.01])],
+                    right=[TraceConfig(trace_values=[0.01], missing_tol=1.0)],
                 ),
             ],
             countdown=CountdownConfig(
@@ -139,10 +142,10 @@ def test_split_ts1():
 
     pf = sc(pf)
     expected_data = pd.DataFrame({
-        'tag_1_trace-0.1_Δ': [5.9, -8.01, 0.099, 0.9099, np.nan, np.nan, 0.9, 0.99, 0.999],
-        'tag_1_trace-0.01':  [1., 1.99, 2.9899, 3.989899, np.nan, 1., 1.99, 2.9899, 3.989899],
-        'action-lo':         [0, 0, 0, 0, 0, 0, 0, 0, 0],
-        'action-hi':         [1, 1, 1, 1, 1, 1, 1, 1, 1],
+        'tag_1_trace-0.1_Δ': [5.9, -8.01, 0.099, 0.9099],
+        'tag_1_trace-0.01':  [1., 1.99, 2.9899, 3.989899],
+        'action-lo':         [0, 0, 0, 0],
+        'action-hi':         [1, 1, 1, 1],
     })
 
     assert dfs_close(pf.data, expected_data)

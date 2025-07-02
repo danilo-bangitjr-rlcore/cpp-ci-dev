@@ -9,6 +9,7 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
+from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
 
 
@@ -93,7 +94,7 @@ def test_dp_and_ac_capture():
     assert pf.data['countdown.[0]'].iloc[6] == 0
 
 
-def test_regular_rl_capture():
+def test_regular_rl_capture(dummy_app_state: AppState):
     obs_period = datetime.timedelta(minutes=1)
     action_period = datetime.timedelta(minutes=3)
 
@@ -119,6 +120,7 @@ def test_regular_rl_capture():
     )
 
     sc = StateConstructor(
+        dummy_app_state,
         tag_cfgs=[
             TagConfig(name='obs_0'),
         ],
