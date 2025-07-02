@@ -168,3 +168,41 @@ def test_trace_temporal_state():
         [1.39, 1.9939, 1.9939, 1.9939, 1.9939, 1.9939, 1.9939],
         equal_nan=True,
     )
+
+
+def test_trace_warmup():
+    """
+    Traces remain NaN for some number of initial steps based on decay and missing_tol
+    """
+    data = np.array([1, 2, 3, np.nan, 1, 2, np.nan])
+
+    # expect a (n_samples, n_traces) == (7, 3) array
+    expected = np.array([
+        [np.nan, 1.3, 1.81, np.nan, 1.567, 1.6969, 1.6969],
+        [np.nan, np.nan, np.nan, np.nan, 1.448, 1.5584, np.nan],
+        [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
+    ]).T
+
+    trace_params = TraceParams(decays=np.array([0.7, 0.8, 0.99]), missing_tol=0.5)
+    trace_data = TraceData(trace=np.ones(3)*np.nan, obs=data, quality=np.zeros(3))
+    trace, trace_data = compute_trace_with_nan(trace_params, trace_data)
+
+    assert trace.shape == (7, 3)
+    assert np.allclose(expected, trace, equal_nan=True)
+
+def test_trace_nantol():
+    """
+    Test that traces can tolerate some NaNs midstream with large decay and sufficient missing_tol
+    """
+    data = np.array([1, 2, np.nan, 3])
+
+    expected = np.array([
+        [1., 1.25, 1.25, 1.6875],
+    ]).T
+
+    trace_params = TraceParams(decays=np.array([0.75]), missing_tol=0.9)
+    trace_data = TraceData(trace=np.ones(1)*np.nan, obs=data, quality=np.zeros(1))
+    trace, trace_data = compute_trace_with_nan(trace_params, trace_data)
+
+    assert trace.shape == (4, 1)
+    assert np.allclose(expected, trace, equal_nan=True)
