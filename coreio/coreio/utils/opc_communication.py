@@ -127,6 +127,8 @@ class OPC_Connection:
         logger.info(f"Registering OPC node with id '{node_id}'")
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
+        await client.disconnect()
+        self._connected = False
 
     async def _register_action_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
         """
