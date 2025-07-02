@@ -1,17 +1,16 @@
 from __future__ import annotations
 
 import logging
-import time
 from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 import lib_utils.dict as dict_u
 import sqlalchemy
 from lib_config.config import MISSING, computed, config
-from sqlalchemy import URL, Column, Connection, DateTime, Engine, MetaData, Table, inspect, select, text
+from lib_utils.sql_logging.sql_logging import maybe_create_database, maybe_drop_database, try_create_engine
+from sqlalchemy import Connection, Engine, inspect, select, text
 from sqlalchemy.orm import Session
-from sqlalchemy.sql import func
-from sqlalchemy_utils import create_database, database_exists, drop_database
+from sqlalchemy_utils import create_database, drop_database
 
 from corerl.sql_logging.base_schema import (
     Base,
@@ -21,7 +20,6 @@ from corerl.sql_logging.base_schema import (
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
-
 
 logger = logging.getLogger(__name__)
 
@@ -78,108 +76,6 @@ def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop: bool = Fa
 
     return engine
 
-def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int = 5) -> Engine:
-    engine = None
-    tries = 0
-    while not engine is not None:
-        if tries >= max_tries:
-            raise Exception("sql engine creation failed")
-        try:
-            engine = sqlalchemy.create_engine(url_object, pool_recycle=280, pool_pre_ping=True)
-        except Exception:
-            logger.warning(f"failed to create sql engine, retrying in {backoff_seconds} seconds...")
-            time.sleep(backoff_seconds)
-        tries += 1
-
-    return engine
-
-def maybe_drop_database(conn_url: URL) -> None:
-    if not database_exists(conn_url):
-        return
-    drop_database(conn_url)
-
-def maybe_create_database(conn_url: URL, backoff_seconds: int = 5, max_tries: int = 5) -> None:
-    if database_exists(conn_url):
-        return
-
-    success = False
-    tries = 0
-    while not success:
-        if tries >= max_tries:
-            raise Exception("database creation failed")
-        try:
-            if database_exists(conn_url):
-                success = True
-            else:
-                create_database(conn_url)
-                success = True
-        except Exception as e:
-            logger.warning(f"failed to create database, retrying in {backoff_seconds} seconds...")
-            logger.error(e, exc_info=True)
-            time.sleep(backoff_seconds)
-        tries += 1
-
-
-def create_column(name: str, dtype: str, primary_key: bool = False) -> Column:
-    # TODO: support onupdate
-    if dtype == "DateTime":
-        col = Column(
-            name,
-            DateTime(timezone=True),
-            server_default=func.now(),
-            primary_key=primary_key,
-        )
-    else:
-        dtype_obj = getattr(sqlalchemy, dtype)
-        col = Column(name, dtype_obj, nullable=False, primary_key=primary_key)
-
-    return col
-
-
-def create_table(metadata: MetaData, schema: dict) -> Table:
-    """
-    schema like:
-
-        name: critic_weights
-        columns:
-            id: Integer
-            ts: DateTime
-            network: BLOB
-        primary_keys: [id]
-        autoincrement: True
-
-    """
-    # TODO: test support compount primary keys
-
-    cols = []
-    for key in schema["columns"]:
-        if key in schema["primary_keys"]:
-            primary_key = True
-        else:
-            primary_key = False
-
-        col = create_column(
-            name=key, dtype=schema["columns"][key], primary_key=primary_key,
-        )
-        cols.append(col)
-
-    return Table(schema["name"], metadata, *cols)
-
-
-
-def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
-    for table_name, values in schemas.items():
-        create_table(
-            metadata=metadata, schema={"name": table_name, **values},
-        )
-
-    metadata.create_all(engine, checkfirst=True)
-
-def table_exists(engine: Engine, table_name: str, schema: str = 'public') -> bool:
-    iengine = inspect(engine)
-    exisiting_tables = iengine.get_table_names(schema)
-
-    return table_name in exisiting_tables
 
 def is_sane_database(engine: Engine):
     """

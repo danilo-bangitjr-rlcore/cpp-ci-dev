@@ -29,11 +29,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import config_from_dict, config_to_json
+from lib_utils.sql_logging.sql_logging import table_exists
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
 from corerl.config import DBConfig, MainConfig
-from corerl.sql_logging.sql_logging import table_exists
 from corerl.web import get_coreio_sqlite_path
 from corerl.web.agent_manager import router as agent_manager
 from corerl.web.agent_manager import shutdown_agents

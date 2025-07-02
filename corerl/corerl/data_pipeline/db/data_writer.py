@@ -4,10 +4,10 @@ from datetime import UTC, datetime
 from typing import NamedTuple
 
 from lib_config.config import config
+from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from sqlalchemy import text
 
 from corerl.sql_logging.sql_logging import get_sql_engine
-from corerl.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from corerl.tags.tag_config import Agg
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 

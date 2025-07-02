@@ -1152,6 +1152,8 @@ dev = [
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
+    { name = "sqlalchemy", specifier = "~=2.0" },
+    { name = "sqlalchemy-utils", specifier = "~=0.41" },
     { name = "uv", specifier = ">=0.5.24" },
 ]
 
