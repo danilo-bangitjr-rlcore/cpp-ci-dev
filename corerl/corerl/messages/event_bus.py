@@ -6,13 +6,11 @@ from queue import Empty, Queue
 from typing import Any
 
 import zmq
+from lib_utils.consumer_task import consumer_task
 
 from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig
-
-from lib_utils.corerl_consumer import consumer_task
-
 
 _logger = logging.getLogger(__name__)
 
@@ -42,7 +40,6 @@ class EventBus:
             kwargs={
                     "event_class": Event,
                     "topic": EventTopic.corerl,
-                    "should_toggle_logging": True
                 },
             daemon=True,
             name="corerl_event_bus_consumer",

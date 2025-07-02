@@ -5,12 +5,11 @@ from queue import Empty, Queue
 from typing import Any
 
 import zmq
+from lib_utils.consumer_task import consumer_task
 from pydantic import ValidationError
 
 from coreio.config import CoreIOConfig
 from coreio.utils.io_events import IOEvent, IOEventTopic
-
-from lib_utils.corerl_consumer import consumer_task
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,6 @@ class ZMQ_Communication:
             kwargs={
                     "event_class": IOEvent,
                     "topic": IOEventTopic.coreio,
-                    "should_toggle_logging": False
                 },
             daemon=True,
             name="coreio_consumer",

@@ -7,6 +7,7 @@ authors = []
 dependencies = [
     "annotated-types>=0.7.0",
     "pydantic>=2.11.5",
+     "pyzmq~=26.4.0",
 ]
 readme = "README.md"
 
@@ -16,6 +17,7 @@ dev = [
     "pyright>=1.1.392.post0",
     "pytest>=8.4.0",
     "pytest-xdist>=3.7.0",
+    "pytest-mock>=3.14.1",
     "ruff>=0.11.12",
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
