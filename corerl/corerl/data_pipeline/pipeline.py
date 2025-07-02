@@ -185,7 +185,7 @@ class Pipeline:
         self.virtual_tags = VirtualTagComputer(self.tags)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
-            tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.bound_checker_tol)
+            tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.operating_range_tol)
             for tag in self.tags
             if tag.operating_range is not None
         }

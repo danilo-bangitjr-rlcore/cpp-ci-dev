@@ -173,14 +173,6 @@ class TagConfig(SafetyZonedTag):
     this should be Agg.avg. For setpoints, this should be Agg.last.
     """
 
-    bound_checker_tol: float = 1e-10
-    """
-    Kind: internal
-
-    The bound checker sets tag readings outside of the optionally defined operating_range to NaNs.
-    BoundCheckerConfig enables you to customize the tolerance of the bounds on a per-tag basis.
-    """
-
     is_computed: bool = False
     """
     Kind: optional external

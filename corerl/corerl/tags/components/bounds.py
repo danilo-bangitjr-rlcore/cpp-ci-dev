@@ -76,6 +76,14 @@ class BoundedTag(BaseTagConfig):
     the min/max for normalization and reward scaling.
     """
 
+    operating_range_tol: float = 1e-10
+    """
+    Kind: internal
+
+    The bound checker sets tag readings outside of the optionally defined operating_range to NaNs.
+    BoundCheckerConfig enables you to customize the tolerance of the bounds on a per-tag basis.
+    """
+
     # -----------------------
     # -- Utility Functions --
     # -----------------------

@@ -46,7 +46,7 @@ def test_bounds(case: Case):
         TagConfig(
             name=key,
             operating_range=bound,
-            bound_checker_tol=case.tols[key],
+            operating_range_tol=case.tols[key],
             preprocess=[],
         )
         for key, bound in case.bounds.items()
@@ -58,7 +58,7 @@ def test_bounds(case: Case):
 
     for cfg in tag_cfgs:
         assert cfg.operating_range is not None
-        pf = bound_checker(pf, cfg.name, cfg.operating_range, prep, cfg.bound_checker_tol)
+        pf = bound_checker(pf, cfg.name, cfg.operating_range, prep, cfg.operating_range_tol)
 
     for key, expect in case.expected.items():
         assert np.all(pf.data[key].isna() == expect)
