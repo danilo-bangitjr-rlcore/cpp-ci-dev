@@ -1,34 +1,46 @@
-from dataclasses import dataclass
+from collections.abc import Sequence
+from dataclasses import field
 from datetime import UTC, datetime
-from typing import NamedTuple
+from typing import Literal
 
+import jax.numpy as jnp
 import numpy as np
+from corerl.data_pipeline.datatypes import Transition
 from discrete_dists.distribution import Support
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from discrete_dists.utils.SumTree import SumTree
+from lib_config.config import config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
+from lib_agent.buffer.datatypes import JaxTransition
 
 
-@dataclass
+@config()
 class RecencyBiasBufferConfig:
-    obs_period: int  # in microseconds
-    gamma: list[float]
-    effective_episodes: list[int]
-    ensemble: int
-    uniform_weight: float
-    ensemble_probability: float
+    name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
+    obs_period: int = 1000000  # in microseconds
+    gamma: list[float] = field(default_factory=lambda: [0.99])
+    effective_episodes: list[int] = field(default_factory=lambda: [100])
+    ensemble: int = 2
+    uniform_weight: float = 0.01
+    ensemble_probability: float = 0.5
     batch_size: int = 32
     max_size: int = 1_000_000
+    seed: int = 0
+    n_most_recent: int = 1
+    id: str = ""
 
-class RecencyBiasBuffer(EnsembleReplayBuffer):
+
+class RecencyBiasBuffer(EnsembleReplayBuffer[JaxTransition]):
     def __init__(self, cfg: RecencyBiasBufferConfig):
         super().__init__(
             n_ensemble=cfg.ensemble,
-            ensemble_prob=cfg.ensemble_probability,
+            ensemble_probability=cfg.ensemble_probability,
             batch_size=cfg.batch_size,
             max_size=cfg.max_size,
+            seed=cfg.seed,
+            n_most_recent=cfg.n_most_recent,
         )
         self._obs_period = np.timedelta64(cfg.obs_period, 'us')
         self._last_timestamp = None
@@ -45,6 +57,30 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
             MaskedUGDistribution(cfg.max_size, cfg.uniform_weight, cfg.ensemble_probability)
             for _ in range(cfg.ensemble)
         ]
+
+    def _convert_transition_to_jax_transition(self, transition: Transition) -> JaxTransition:
+        """Convert a Transition object to a JaxTransition object."""
+        return JaxTransition(
+            last_action=transition.prior.action,
+            state=transition.state,
+            action=transition.action,
+            reward=jnp.asarray(transition.reward),
+            next_state=transition.next_state,
+            gamma=jnp.asarray(transition.gamma),
+
+            action_lo=transition.steps[0].action_lo,
+            action_hi=transition.steps[0].action_hi,
+            next_action_lo=transition.steps[-1].action_lo,
+            next_action_hi=transition.steps[-1].action_hi,
+
+            dp=jnp.asarray(transition.steps[0].dp),
+            next_dp=jnp.asarray(transition.steps[-1].dp),
+
+            n_step_reward=jnp.asarray(transition.n_step_reward),
+            n_step_gamma=jnp.asarray(transition.n_step_gamma),
+            state_dim=transition.state_dim,
+            action_dim=transition.action_dim,
+        )
 
     def _convert_timestamp(self, timestamp: datetime | np.datetime64 | int | None) -> np.datetime64 | int:
         if timestamp is None:
@@ -91,7 +127,7 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
         steps_since_transition = self._calculate_steps(curr_timestamp, timestamp)
         return curr_timestamp, steps_since_transition
 
-    def add(self, transition: NamedTuple, timestamp: datetime | np.datetime64 | int | None = None) -> None:
+    def add(self, transition: JaxTransition, timestamp: datetime | np.datetime64 | int | None = None) -> None:
         super().add(transition)
         idx = self.size - 1
 
@@ -127,6 +163,24 @@ class RecencyBiasBuffer(EnsembleReplayBuffer):
             ens_idxs.append(valid_indices[sampled_indices])
 
         return self._storage.get_ensemble_batch(ens_idxs)
+
+    def feed(self, transitions: Sequence[Transition], data_mode: str) -> np.ndarray:
+        idxs = np.empty(len(transitions), dtype=np.int64)
+        for j, transition in enumerate(transitions):
+            jax_transition = self._convert_transition_to_jax_transition(transition)
+            idxs[j] = self._storage.add(jax_transition)
+        return idxs
+
+    def get_batch(self, idxs: np.ndarray):
+        return self._storage.get_batch(idxs)
+
+    @property
+    def ensemble_sizes(self) -> list[int]:
+        return [d.size() for d in self._ens_dists]
+
+    @property
+    def is_sampleable(self) -> bool:
+        return min(self.ensemble_sizes) > 0
 
 
 class Geometric(Proportional):

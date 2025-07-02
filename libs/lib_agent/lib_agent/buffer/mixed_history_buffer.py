@@ -60,7 +60,7 @@ class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
     n_ensemble: int = 1
     max_size: int = 1_000_000
-    ensemble_prob: float = 0.5
+    ensemble_probability: float = 0.5
     batch_size: int = 256
     seed: int = 0
     n_most_recent: int = 1
@@ -73,7 +73,7 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
         self,
         n_ensemble: int = 2,
         max_size: int = 1_000_000,
-        ensemble_prob: float = 0.5,
+        ensemble_probability: float = 0.5,
         batch_size: int = 256,
         seed: int = 0,
         n_most_recent: int = 1,
@@ -83,7 +83,7 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
         super().__init__(
             n_ensemble=n_ensemble,
             max_size=max_size,
-            ensemble_prob=ensemble_prob,
+            ensemble_probability=ensemble_probability,
             batch_size=batch_size,
             seed=seed,
             n_most_recent=n_most_recent,
@@ -96,7 +96,7 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
             MaskedABDistribution(
                 max_size,
                 online_weight,
-                ensemble_prob,
+                ensemble_probability,
             ) for _ in range(n_ensemble)
         ]
 
@@ -153,7 +153,7 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
         return idxs
 
     def _get_ensemble_masks(self, batch_size: int) -> np.ndarray:
-        ensemble_masks = self.rng.random((self.n_ensemble, batch_size)) < self.ensemble_prob
+        ensemble_masks = self.rng.random((self.n_ensemble, batch_size)) < self.ensemble_probability
 
         no_ensemble = ~ensemble_masks.any(axis=0)
 
@@ -178,18 +178,18 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
         return self._storage.get_batch(idxs)
 
     @property
-    def size(self) -> list[int]:
+    def ensemble_sizes(self) -> list[int]:
         return [d.size() for d in self._ens_dists]
 
     @property
     def is_sampleable(self) -> bool:
-        return min(self.size) > 0
+        return min(self.ensemble_sizes) > 0
 
 def create_mixed_history_buffer_from_config(cfg: MixedHistoryBufferConfig) -> MixedHistoryBuffer:
     return MixedHistoryBuffer(
         n_ensemble=cfg.n_ensemble,
         max_size=cfg.max_size,
-        ensemble_prob=cfg.ensemble_prob,
+        ensemble_probability=cfg.ensemble_probability,
         batch_size=cfg.batch_size,
         seed=cfg.seed,
         n_most_recent=cfg.n_most_recent,

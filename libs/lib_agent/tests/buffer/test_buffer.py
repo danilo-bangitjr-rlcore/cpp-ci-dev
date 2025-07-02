@@ -53,7 +53,7 @@ def test_buffer_ensemble_mask_at_least_one():
     buffer = EnsembleReplayBuffer[FakeTransition](
         n_ensemble=3,
         max_size=10,
-        ensemble_prob=0.0,
+        ensemble_probability=0.0,
         seed=42,
     )
 
@@ -156,7 +156,7 @@ def test_buffer_ensemble_probability():
     buffer_high = EnsembleReplayBuffer[FakeTransition](
         n_ensemble=3,
         max_size=10,
-        ensemble_prob=0.9,
+        ensemble_probability=0.9,
         seed=42,
     )
 
@@ -164,7 +164,7 @@ def test_buffer_ensemble_probability():
     buffer_low = EnsembleReplayBuffer[FakeTransition](
         n_ensemble=3,
         max_size=10,
-        ensemble_prob=0.1,
+        ensemble_probability=0.1,
         seed=42,
     )
 

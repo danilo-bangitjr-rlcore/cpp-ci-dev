@@ -79,7 +79,7 @@ class EnsembleReplayBuffer[T: NamedTuple]:
     def add(self, transition: T) -> None:
         ptr = self._storage.add(transition)
 
-        ensemble_mask = self.rng.uniform(size=self.n_ensemble) < self.ensemble_prob
+        ensemble_mask = self.rng.uniform(size=self.n_ensemble) < self.ensemble_probability
         # ensure that at least one member gets the transition
         if not np.any(ensemble_mask):
             random_member = self.rng.integers(0, self.n_ensemble)
