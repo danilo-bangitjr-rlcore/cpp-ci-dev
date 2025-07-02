@@ -10,6 +10,10 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
+from lib_agent.buffer.buffer_group import BufferConfig, buffer_group
+from lib_agent.buffer.datatypes import JaxTransition
+from lib_agent.buffer.mixed_history_buffer import MixedHistoryBufferConfig
+from lib_agent.buffer.recency_bias_buffer import RecencyBiasBufferConfig
 from lib_agent.critic.qrc_critic import (
     QRCConfig,
     QRCCritic,
@@ -21,13 +25,6 @@ from lib_config.config import MISSING, computed, config
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.buffer import (
-    BufferConfig,
-    JaxTransition,
-    MixedHistoryBufferConfig,
-    RecencyBiasBufferConfig,
-    buffer_group,
-)
 from corerl.data_pipeline.datatypes import AbsTransition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
@@ -78,7 +75,6 @@ class PercentileActorConfig:
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
 
-    # components
     buffer: BufferConfig = MISSING
 
     @computed('buffer')
@@ -201,7 +197,7 @@ class GreedyAC(BaseAgent):
             name='qrc',
             stepsize=cfg.critic.stepsize,
             ensemble=cfg.critic.critic_network.ensemble,
-            ensemble_prob=cfg.critic.buffer.ensemble_probability,
+            ensemble_probability=cfg.critic.buffer.ensemble_probability,
             num_rand_actions=cfg.bootstrap_action_samples,
             action_regularization=cfg.critic.action_regularization,
             action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
@@ -216,8 +212,8 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        self._actor_buffer = buffer_group.dispatch(cfg.policy.buffer, app_state)
-        self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
+        self._actor_buffer = buffer_group.dispatch(cfg.policy.buffer)
+        self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
 

@@ -59,9 +59,9 @@ class State(NamedTuple):
 class EnsembleReplayBuffer[T: NamedTuple]:
     def __init__(
         self,
-        n_ensemble: int = 2,
+        n_ensemble: int = 1,
         max_size: int = 1_000_000,
-        ensemble_prob: float = 0.5,
+        ensemble_probability: float = 0.5,
         batch_size:int = 256,
         seed: int = 0,
         n_most_recent: int = 1,
@@ -69,7 +69,7 @@ class EnsembleReplayBuffer[T: NamedTuple]:
         self._storage = ReplayStorage[T](max_size)
         self.max_size = max_size
         self.n_ensemble = n_ensemble
-        self.ensemble_prob = ensemble_prob
+        self.ensemble_probability = ensemble_probability
         self.batch_size = batch_size
         self.n_most_recent = n_most_recent
 
