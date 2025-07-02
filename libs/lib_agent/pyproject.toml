@@ -12,6 +12,7 @@ dependencies = [
     "flax>=0.10.6",
     "jax>=0.6.1",
     "lib_utils[jax]",
+    "lib_config",
     "optax>=0.2.4",
 ]
 readme = "README.md"
@@ -56,3 +57,4 @@ major_version_zero = true
 
 [tool.uv.sources]
 lib_utils = { path = "../lib_utils", editable = true }
+lib_config = { path = "../lib_config", editable = true }

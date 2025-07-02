@@ -21,7 +21,7 @@ def create_mixed_history_buffer(cfg: MixedHistoryBufferConfig) -> MixedHistoryBu
     return MixedHistoryBuffer(
         n_ensemble=cfg.n_ensemble,
         max_size=cfg.max_size,
-        ensemble_prob=cfg.ensemble_prob,
+        ensemble_probability=cfg.ensemble_probability,
         batch_size=cfg.batch_size,
         seed=cfg.seed,
         n_most_recent=cfg.n_most_recent,

@@ -10,6 +10,7 @@ from functools import cached_property
 from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
+from lib_agent.buffer.datatypes import DataMode
 from lib_config.config import MISSING, computed, config, list_, post_processor
 from pandas import DataFrame
 from pydantic import Field
@@ -23,7 +24,7 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags, DeltaStageConfig
 from corerl.data_pipeline.imputers.auto_encoder import MaskedAEConfig
 from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer

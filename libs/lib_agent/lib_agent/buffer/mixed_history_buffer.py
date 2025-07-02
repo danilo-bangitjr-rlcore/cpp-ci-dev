@@ -1,15 +1,14 @@
 from collections import deque
 from collections.abc import Sequence
-from typing import Literal
+from typing import Literal, NamedTuple
 
-import jax.numpy as jnp
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from lib_config.config import config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
-from lib_agent.buffer.datatypes import DataMode, JaxTransition, Transition
+from lib_agent.buffer.datatypes import DataMode
 
 
 class MaskedABDistribution:
@@ -38,12 +37,14 @@ class MaskedABDistribution:
         self,
         rng: np.random.Generator,
         elements: np.ndarray,
-        mode: str,
+        mode: DataMode,
         ensemble_mask: np.ndarray,
     ):
         batch_size = len(elements)
 
-        online_mask = np.full(batch_size, mode == DataMode.ONLINE)
+        is_online = mode == DataMode.ONLINE
+
+        online_mask = np.full(batch_size, is_online)
 
         self._online.update(elements, ensemble_mask & online_mask)
         self._historical.update(elements, ensemble_mask & ~online_mask)
@@ -63,7 +64,7 @@ class MixedHistoryBufferConfig:
     id: str = ""
 
 
-class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
+class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
     def __init__(
         self,
         n_ensemble: int = 2,
@@ -97,30 +98,7 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
 
         self._most_recent_online_idxs = deque(maxlen=n_most_recent)
 
-    def _convert_transition_to_jax_transition(self, transition: Transition) -> JaxTransition:
-        return JaxTransition(
-            last_action=transition.prior.action,
-            state=transition.state,
-            action=transition.action,
-            reward=jnp.asarray(transition.reward),
-            next_state=transition.next_state,
-            gamma=jnp.asarray(transition.gamma),
-
-            action_lo=transition.steps[0].action_lo,
-            action_hi=transition.steps[0].action_hi,
-            next_action_lo=transition.steps[-1].action_lo,
-            next_action_hi=transition.steps[-1].action_hi,
-
-            dp=jnp.asarray(transition.steps[0].dp),
-            next_dp=jnp.asarray(transition.steps[-1].dp),
-
-            n_step_reward=jnp.asarray(transition.n_step_reward),
-            n_step_gamma=jnp.asarray(transition.n_step_gamma),
-            state_dim=transition.state_dim,
-            action_dim=transition.action_dim,
-        )
-
-    def _update_n_most_recent(self, idxs: np.ndarray, data_mode: str) -> None:
+    def _update_n_most_recent(self, idxs: np.ndarray, data_mode: DataMode) -> None:
         if data_mode == DataMode.ONLINE:
             for i in idxs:
                 self._most_recent_online_idxs.appendleft(int(i))
@@ -130,11 +108,10 @@ class MixedHistoryBuffer(EnsembleReplayBuffer[JaxTransition]):
             idxs[i] = j
         return idxs
 
-    def feed(self, transitions: Sequence[Transition], data_mode: DataMode) -> np.ndarray:
+    def feed(self, transitions: Sequence[T], data_mode: DataMode) -> np.ndarray:
         idxs = np.empty(len(transitions), dtype=np.int64)
         for j, transition in enumerate(transitions):
-            jax_transition = self._convert_transition_to_jax_transition(transition)
-            idxs[j] = self._storage.add(jax_transition)
+            idxs[j] = self._storage.add(transition)
 
         batch_size = len(idxs)
         ensemble_masks = self._get_ensemble_masks(batch_size)

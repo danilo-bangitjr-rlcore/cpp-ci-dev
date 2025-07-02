@@ -3,13 +3,16 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import Enum, IntFlag, auto
 from math import isclose
-from typing import Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
+
+if TYPE_CHECKING:
+    from lib_agent.buffer.datatypes import DataMode
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
@@ -158,12 +161,6 @@ class AbsTransition(NamedTuple):
     gamma: jax.Array
 
 
-class DataMode(Enum):
-    OFFLINE = auto()
-    ONLINE = auto()
-    REFRESH = auto()
-
-
 class StageCode(Enum):
     INIT = auto()
     SEASONAL = auto()
@@ -189,7 +186,7 @@ type TemporalState = dict[StageCode, object | None]
 @dataclass
 class PipelineFrame:
     data: pd.DataFrame
-    data_mode: DataMode
+    data_mode: 'DataMode'
     last_stage : StageCode | None = None
     states: pd.DataFrame = field(init=False)
     actions: pd.DataFrame = field(init=False)

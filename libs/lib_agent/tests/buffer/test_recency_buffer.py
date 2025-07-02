@@ -12,7 +12,36 @@ class FakeTransition(NamedTuple):
     action: jnp.ndarray
     reward: float
     next_state: jnp.ndarray
-    done: bool
+    gamma: float
+    a_lo: jnp.ndarray
+    a_hi: jnp.ndarray
+    next_a_lo: jnp.ndarray
+    next_a_hi: jnp.ndarray
+    dp: bool
+    next_dp: bool
+    last_a: jnp.ndarray
+    state_dim: int
+    action_dim: int
+
+
+def create_test_transition(i: int) -> FakeTransition:
+    return FakeTransition(
+        state=jnp.array([i]),
+        action=jnp.array([i]),
+        reward=float(i),
+        next_state=jnp.array([i+1]),
+        gamma=0.99,
+        a_lo=jnp.array([i-0.5]),
+        a_hi=jnp.array([i+0.5]),
+        next_a_lo=jnp.array([i+0.5]),
+        next_a_hi=jnp.array([i+1.5]),
+        dp=True,
+        next_dp=True,
+        last_a=jnp.array([i-1]),
+        state_dim=1,
+        action_dim=1,
+    )
+
 
 def test_recency_bias_buffer_basic():
     buffer = RecencyBiasBuffer(
@@ -33,13 +62,7 @@ def test_recency_bias_buffer_basic():
     ])
 
     for i in range(3):
-        transition = FakeTransition(
-            state=jnp.array([i]),
-            action=jnp.array([i]),
-            reward=float(i),
-            next_state=jnp.array([i+1]),
-            done=False,
-        )
+        transition = create_test_transition(i)
         buffer.add(transition, timestamps[i])
 
     assert buffer.size == 3
@@ -69,13 +92,7 @@ def test_recency_bias_buffer_weights():
     ])
 
     for i in range(3):
-        transition = FakeTransition(
-            state=jnp.array([i]),
-            action=jnp.array([i]),
-            reward=float(i),
-            next_state=jnp.array([i+1]),
-            done=False,
-        )
+        transition = create_test_transition(i)
         buffer.add(transition, timestamps[i])
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
@@ -102,24 +119,12 @@ def test_recency_bias_buffer_discount():
     ])
 
     for i in range(2):
-        transition = FakeTransition(
-            state=jnp.array([i]),
-            action=jnp.array([i]),
-            reward=float(i),
-            next_state=jnp.array([i+1]),
-            done=False,
-        )
+        transition = create_test_transition(i)
         buffer.add(transition, timestamps[i])
     initial_probs = buffer.get_probability(0, np.array([0, 1]))
 
     later_timestamp = np.datetime64('2024-01-01T00:00:10')
-    transition = FakeTransition(
-        state=jnp.array([2]),
-        action=jnp.array([2]),
-        reward=2.0,
-        next_state=jnp.array([3]),
-        done=False,
-    )
+    transition = create_test_transition(2)
     buffer.add(transition, later_timestamp)
     new_probs = buffer.get_probability(0, np.array([0, 1, 2]))
     assert new_probs[0] < initial_probs[0]
@@ -147,13 +152,7 @@ def test_recency_bias_buffer_datetime_timestamps():
     ]
 
     for i, ts in enumerate(timestamps):
-        transition = FakeTransition(
-            state=jnp.array([i]),
-            action=jnp.array([i]),
-            reward=float(i),
-            next_state=jnp.array([i+1]),
-            done=False,
-        )
+        transition = create_test_transition(i)
         buffer.add(transition, ts)
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
@@ -177,13 +176,7 @@ def test_recency_bias_buffer_integer_timestamps():
     timestamps = [0, 1, 2]
 
     for i, ts in enumerate(timestamps):
-        transition = FakeTransition(
-            state=jnp.array([i]),
-            action=jnp.array([i]),
-            reward=float(i),
-            next_state=jnp.array([i+1]),
-            done=False,
-        )
+        transition = create_test_transition(i)
         buffer.add(transition, ts)
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
@@ -207,13 +200,7 @@ def test_recency_bias_buffer_different_discounts():
 
     n_transitions = 10
     for i in range(n_transitions):
-        transition = FakeTransition(
-            state=jnp.array([i]),
-            action=jnp.array([i]),
-            reward=float(i),
-            next_state=jnp.array([i+1]),
-            done=False,
-        )
+        transition = create_test_transition(i)
         buffer.add(transition, i)
 
     probs_0 = buffer.get_probability(0, np.arange(n_transitions))
