@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int = 5) -> Engine:
     engine = None
     tries = 0
-    while not engine is not None:
+    while engine is None:
         if tries >= max_tries:
             raise Exception("sql engine creation failed")
         try:
@@ -110,6 +110,6 @@ def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
 
 def table_exists(engine: Engine, table_name: str, schema: str = 'public') -> bool:
     iengine = inspect(engine)
-    exisiting_tables = iengine.get_table_names(schema)
+    existing_tables = iengine.get_table_names(schema)
 
-    return table_name in exisiting_tables
+    return table_name in existing_tables
