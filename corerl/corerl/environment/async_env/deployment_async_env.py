@@ -13,7 +13,7 @@ from lib_utils.maybe import Maybe
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.tags.setpoint import eval_bound
+from corerl.tags.setpoint import SetpointTagConfig, eval_bound
 from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
 
@@ -44,7 +44,7 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         # create dict of action tags
         action_cfgs = [tag for tag in tag_configs if tag.type == TagType.ai_setpoint]
-        self._action_cfgs: dict[str, TagConfig] = {}
+        self._action_cfgs: dict[str, SetpointTagConfig] = {}
         for tag_cfg in sorted(action_cfgs, key=lambda cfg: cfg.name):
             self._action_cfgs[tag_cfg.name] = tag_cfg
 
@@ -116,7 +116,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return self._cfg
 
 
-def sanitize_actions(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig], rtol: float = 0.001) -> None:
+def sanitize_actions(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfig], rtol: float = 0.001) -> None:
     if len(action) < 1:
         logger.error("Action df empty")
         return
@@ -127,7 +127,7 @@ def sanitize_actions(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig],
 
     clip_action(action, action_cfgs, rtol)
 
-def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig], rtol: float = 0.001) -> None:
+def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfig], rtol: float = 0.001) -> None:
     for action_name, action_cfg in action_cfgs.items():
         action_val = action[action_name].iloc[0]
         lo, hi = get_clip_bounds(action_cfg, action)
@@ -140,9 +140,7 @@ def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig], rtol
 
         action[action_name] = np.clip(action_val, lo + atol, hi - atol)
 
-def get_clip_bounds(action_cfg: TagConfig, action: pd.DataFrame):
-    assert action_cfg.type == TagType.ai_setpoint
-
+def get_clip_bounds(action_cfg: SetpointTagConfig, action: pd.DataFrame):
     # prefer to use red zones, otherwise use operating range
     lo = (
         Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])
