@@ -89,7 +89,7 @@ class PipelineData:
 class PipelineConfig(EnvConfig):
     name: str = 'Pipeline-v0'
     pipeline_data: PipelineData = field(default_factory=PipelineData)
-    control_strategy: Literal['agent', "mpc", "dagger"] = Literal["dagger"]
+    control_strategy: Literal['agent', "mpc", "dagger"] = "dagger"
 
 class PipelineEnv(gym.Env):
     def __init__(self, cfg: PipelineConfig):
@@ -148,9 +148,9 @@ class PipelineEnv(gym.Env):
         truncated = False
         use_mpc = False
 
-        if self.control_strategy == Literal['mpc']:
+        if self.control_strategy == 'mpc':
             use_mpc = True
-        elif self.control_strategy == Literal['dagger']:
+        elif self.control_strategy == 'dagger':
             mpc_ratio = np.clip(1-0.003*self.t,0,1)
             use_mpc = np.random.rand() < mpc_ratio
         if use_mpc:
