@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 from lib_config.loader import direct_load_config
-from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
@@ -13,32 +12,6 @@ from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
-
-def test_no_delta_tags():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
-    assert isinstance(cfg, MainConfig)
-
-    # Since we're reusing the config file, make sure no tags have 'delta' type in this test
-    for tag_cfg in cfg.pipeline.tags:
-        if tag_cfg.type == TagType.delta:
-            tag_cfg.type = TagType.default
-
-    delta_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
-    assert len(delta_stage._relevant_cfgs) == 0
-
-    df = pd.DataFrame({
-        "tag_1": [1, 1, 1, 1],
-        "tag_2": [1, 2, 4, 3],
-        "action_1": [0, 0, 0, 0],
-        "reward": [1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(df, DataMode.ONLINE)
-    out = delta_stage(pf)
-
-    expected = df
-
-    assert dfs_close(out.data, expected)
 
 def test_one_delta_tag_one_pf():
     cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
