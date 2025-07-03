@@ -10,7 +10,8 @@ from multiprocessing.pool import Pool
 
 import numpy as np
 import pandas as pd
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
+from corerl.sql_logging.sql_logging import SQLEngineConfig
+from lib_utils.sql_logging.sql_logging import get_sql_engine
 from rlevaluation.backend.statistics import PercentileBootstrapResult, ToleranceIntervalResult
 from rlevaluation.statistics import percentile_bootstrap_ci, tolerance_interval
 

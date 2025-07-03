@@ -5,9 +5,8 @@ from collections.abc import MutableMapping
 from typing import TYPE_CHECKING, Any
 
 import lib_utils.dict as dict_u
-import sqlalchemy
 from lib_config.config import MISSING, computed, config
-from lib_utils.sql_logging.sql_logging import maybe_create_database, maybe_drop_database, try_create_engine
+from lib_utils.sql_logging.sql_logging import get_sql_engine
 from sqlalchemy import Connection, Engine, inspect, select, text
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import create_database, drop_database
@@ -55,26 +54,6 @@ class SQLEngineConfig:
     @classmethod
     def _port(cls, cfg: MainConfig):
         return cfg.infra.db.port
-
-
-def get_sql_engine(db_data: SQLEngineConfig, db_name: str, force_drop: bool = False) -> Engine:
-    url_object = sqlalchemy.URL.create(
-        drivername=db_data.drivername,
-        username=db_data.username,
-        password=db_data.password,
-        host=db_data.ip,
-        port=db_data.port,
-        database=db_name,
-    )
-    logger.debug("creating sql engine...")
-    engine = try_create_engine(url_object=url_object)
-
-    if force_drop:
-        maybe_drop_database(engine.url)
-
-    maybe_create_database(engine.url)
-
-    return engine
 
 
 def is_sane_database(engine: Engine):
