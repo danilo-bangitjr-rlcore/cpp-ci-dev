@@ -180,7 +180,7 @@ class MainConfig:
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble
         self.agent.critic.critic_network.ensemble = ensemble_size
-        self.agent.critic.buffer.ensemble = ensemble_size
+        self.agent.critic.buffer.n_ensemble = ensemble_size
 
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.

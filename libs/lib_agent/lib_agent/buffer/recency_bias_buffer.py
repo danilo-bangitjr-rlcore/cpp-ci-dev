@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.distribution import Support
@@ -11,9 +11,6 @@ from discrete_dists.utils.SumTree import SumTree
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
-
-if TYPE_CHECKING:
-    from corerl.state import AppState
 
 
 @dataclass
@@ -33,9 +30,9 @@ class RecencyBiasBufferConfig:
 
     def __post_init__(self):
         if self.gamma is None:
-            self.gamma = [0.99]
+            self.gamma = [0.99] * self.n_ensemble
         if self.effective_episodes is None:
-            self.effective_episodes = [100]
+            self.effective_episodes = [100] * self.n_ensemble
 
 
 class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
@@ -82,7 +79,7 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
             for _ in range(n_ensemble)
         ]
 
-        self.app_state: AppState | None = None
+        self.app_state: Any | None = None
 
     def _convert_timestamp(self, timestamp: datetime | np.datetime64 | int | None) -> np.datetime64 | int:
         if timestamp is None:

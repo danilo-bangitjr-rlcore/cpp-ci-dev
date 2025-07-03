@@ -1,7 +1,7 @@
 from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import Any, Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
@@ -9,9 +9,6 @@ from discrete_dists.proportional import Proportional
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
-
-if TYPE_CHECKING:
-    from corerl.state import AppState
 
 
 class MaskedABDistribution:
@@ -100,7 +97,7 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
 
         self._most_recent_online_idxs = deque(maxlen=n_most_recent)
 
-        self.app_state: AppState | None = None
+        self.app_state: Any | None = None
 
     def _update_n_most_recent(self, idxs: np.ndarray, data_mode: DataMode) -> None:
         if data_mode == DataMode.ONLINE:
