@@ -10,7 +10,8 @@ from lib_utils.maybe import Maybe
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig, get_action_bounds
+from corerl.tags.setpoint import get_action_bounds
+from corerl.tags.tag_config import TagConfig
 from corerl.utils.time import percent_time_elapsed
 
 
@@ -129,7 +130,7 @@ class ActionConstructor:
         )
 
     @staticmethod
-    def action_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
+    def action_configs(tag_cfgs: list[TagConfig]):
         """
         Returns a list of action tags from the provided tag configurations.
         """

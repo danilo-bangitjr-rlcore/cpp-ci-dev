@@ -7,7 +7,8 @@ import pytest
 from corerl.data_pipeline.bound_checker import bound_checker
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.tags.tag_config import BasicTagConfig, FloatBounds
+from corerl.tags.setpoint import FloatBounds
+from corerl.tags.tag_config import BasicTagConfig
 
 
 @dataclass
@@ -36,7 +37,7 @@ class Case:
         Case(
             bounds={   'tag-1': (0, 1),                'tag-2': (-1, 10) },
             tols={     'tag-1': 0.1,                   'tag-2': 0.5 },
-            raw={      'tag-1': [-0.05, 1.3, 0.7],       'tag-2': [11.9, -0.5, 10.2] },
+            raw={      'tag-1': [-0.05, 1.3, 0.7],     'tag-2': [11.9, -0.5, 10.2] },
             expected={ 'tag-1': [False, True, False],  'tag-2': [True, False, False] },
         ),
     ],

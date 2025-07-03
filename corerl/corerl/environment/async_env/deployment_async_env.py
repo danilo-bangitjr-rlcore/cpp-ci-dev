@@ -13,7 +13,8 @@ from lib_utils.maybe import Maybe
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.tags.tag_config import TagConfig, eval_bound, get_scada_tags
+from corerl.tags.setpoint import eval_bound
+from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
 
 logger = logging.getLogger(__name__)

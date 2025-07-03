@@ -1,0 +1,246 @@
+from datetime import timedelta
+from functools import partial
+from typing import TYPE_CHECKING, Annotated, Literal
+
+import pandas as pd
+from lib_config.config import MISSING, config, post_processor
+from lib_defs.config_defs.tag_config import TagType
+from lib_utils.maybe import Maybe
+from pydantic import Field
+
+from corerl.tags.components.bounds import (
+    Bounds,
+    BoundsElem,
+    BoundsFunction,
+    BoundsTags,
+    FloatBounds,
+    SafetyZonedTag,
+    parse_string_bounds,
+)
+from corerl.tags.components.computed import ComputedTag
+from corerl.tags.components.opc import Agg, OPCTag
+from corerl.utils.sympy import to_sympy
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
+
+
+@config()
+class CascadeConfig:
+    """
+    Kind: optional external
+
+    Specifies how the value of this virtual tag should be computed.
+    The value will copy the value of the "ai setpoint" or "operator setpoint"
+    as a function of a third "mode" tag.
+
+    If the mode takes a val other than op_mode_val or ai_mode_val, the computed value
+    will be NaN.
+    """
+
+    mode: str = MISSING
+    op_sp: str = MISSING
+    ai_sp: str = MISSING
+    op_mode_val: float | int | bool = MISSING # value of mode indicating operator control
+    ai_mode_val: float | int | bool = MISSING # value of mode indicating ai control
+    mode_is_bool: bool = False
+
+
+# -----------------------
+# -- Bounds Scheduling --
+# -----------------------
+@config()
+class GuardrailScheduleConfig:
+    """
+    Kind: optional external
+
+    A schedule for slowly widening the bounds of an AI-controlled
+    setpoint tag. Starts within the starting_range and slowly approaches
+    the full operating range over the duration.
+    """
+
+    starting_range: FloatBounds = MISSING
+    duration: timedelta = MISSING
+
+
+@config()
+class SetpointTagConfig(
+    SafetyZonedTag,
+    ComputedTag,
+    OPCTag,
+):
+    name: str = MISSING
+    type: Literal[TagType.ai_setpoint] = TagType.ai_setpoint
+
+    is_endogenous: bool = True
+    agg: Agg = Agg.last
+
+    nominal_setpoint: float | None = None
+    """
+    Kind: optional external
+
+    The default setpoint for this tag. Can only be specified for tags of type `TagType.ai_setpoint`.
+    """
+
+    # tag zones
+    action_bounds: Bounds | None = None
+    """
+    Kind: optional external
+
+    The lower and upper bounds of values that the agent can write to this tag. This interval
+    may be a subset of the operating range.
+    """
+
+    action_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
+    action_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    """
+    Kind: computed internal
+
+    In case that the action_bounds are specified as strings representing sympy functions,
+    the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
+    and the action_bounds_tags will hold the lists of tags that those functions depend on.
+    """
+
+    guardrail_schedule: GuardrailScheduleConfig | None = None
+    """
+    Kind: optional external
+    """
+
+    is_computed: bool = False
+    """
+    Kind: optional external
+
+    Specifies whether this is a computed virtual tag.
+    """
+
+    value: str | None = None
+    """
+    Kind: optional external
+
+    If this is a computed virtual tag, then a value string must be specified
+    in order to construct the value of the tag as a function of other tags.
+    """
+
+    cascade: CascadeConfig | None = None
+    """
+    Kind: optional external
+
+    Specifies whether this tag should take the one of two values
+    (the "ai setpoint" or "operator setpoint") as a function of a third "mode" tag.
+    """
+
+    @post_processor
+    def _initialize_cascade_tag(self, cfg: 'MainConfig'):
+        if self.cascade is None:
+            return
+
+        # mark tag as computed and define piecewise expression
+        self.is_computed = True
+        self.value = (
+            "Piecewise("
+                f"({{{self.cascade.op_sp}}}, Eq({{{self.cascade.mode}}}, {self.cascade.op_mode_val})),"
+                f"({{{self.cascade.ai_sp}}}, Eq({{{self.cascade.mode}}}, {self.cascade.ai_mode_val}))"
+            ")"
+        )
+
+    # --------------
+    # -- Defaults --
+    # --------------
+    @post_processor
+    def _set_action_bounds(self, cfg: 'MainConfig'):
+        tags = {tag.name for tag in cfg.pipeline.tags}
+
+        self.action_bounds_func, self.action_bounds_tags = (
+            Maybe(self.action_bounds)
+                .map(lambda bounds: parse_string_bounds(self, bounds, tags, allow_circular=True))
+                .or_else((None, None))
+        )
+
+
+    # -----------------
+    # -- Validations --
+    # -----------------
+    @post_processor
+    def _validate(self, cfg: 'MainConfig'):
+        if self.operating_range is None:
+            raise ValueError(f"Setpoint tag '{self.name}' must have an operating range defined.")
+
+
+        if self.guardrail_schedule is not None:
+            assert self.operating_range is not None
+            lo, hi = self.operating_range
+            assert lo is not None and hi is not None
+
+            if isinstance(lo, float) and self.guardrail_schedule.starting_range[0] is not None:
+                assert (
+                    self.guardrail_schedule.starting_range[0] >= lo
+                ), "Guardrail starting range must be greater than or equal to the operating range."
+
+            if isinstance(hi, float) and self.guardrail_schedule.starting_range[1] is not None:
+                assert (
+                    self.guardrail_schedule.starting_range[1] <= hi
+                ), "Guardrail starting range must be less than or equal to the operating range."
+
+        # -----------------------------
+        # -- Virtual tag validations --
+        # -----------------------------
+        if self.is_computed:
+            assert self.value is not None, \
+                "A value string must be specified for computed virtual tags."
+
+            known_tags = {tag.name for tag in cfg.pipeline.tags}
+            if self.cascade is not None:
+                known_tags |= {self.cascade.mode, self.cascade.op_sp, self.cascade.ai_sp}
+            _, _, dependent_tags = to_sympy(self.value)
+
+            for dep in dependent_tags:
+                assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
+
+
+def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float, float]:
+    lo = (
+        Maybe(cfg.action_bounds and cfg.action_bounds[0])
+        .map(partial(eval_bound, row, "lo", cfg.action_bounds_func, cfg.action_bounds_tags))
+        # the next lowest bound is either the red zone if one exists
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
+        .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
+        # or the operating bound if one exists
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
+        # and if neither exists, we're in trouble
+        .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
+    )
+    hi = (
+        Maybe(cfg.action_bounds and cfg.action_bounds[1])
+        .map(partial(eval_bound, row, "hi", cfg.action_bounds_func, cfg.action_bounds_tags))
+        # the next lowest bound is either the red zone if one exists
+        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
+        .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
+        # or the operating bound if one exists
+        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
+        # and if neither exists, we're in trouble
+        .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
+    )
+    return lo, hi
+
+def eval_bound(
+    data: pd.DataFrame,
+    side: Literal["lo", "hi"],
+    bounds_func: BoundsFunction | None,
+    bounds_tags: BoundsTags | None,
+    bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
+) -> float | None:
+    index = {"lo": 0, "hi": 1}[side]
+
+    if isinstance(bound, str):
+        assert bounds_func and bounds_tags  # Assertion for pyright
+        res_func, res_tags = bounds_func[index], bounds_tags[index]
+        assert res_func and res_tags  # Assertion for pyright
+
+        values = [data[res_tag].item() for res_tag in res_tags]
+        bound = res_func(*values)
+
+    if bound is not None:
+        bound = float(bound)
+
+    return bound

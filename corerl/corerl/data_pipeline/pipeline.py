@@ -42,7 +42,8 @@ from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
 from corerl.tags.components.bounds import BoundedTag
-from corerl.tags.tag_config import Agg, BasicTagConfig, TagConfig, in_taglist
+from corerl.tags.components.opc import Agg
+from corerl.tags.tag_config import BasicTagConfig, TagConfig, in_taglist
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

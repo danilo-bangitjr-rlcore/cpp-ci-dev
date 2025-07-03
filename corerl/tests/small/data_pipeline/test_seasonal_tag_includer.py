@@ -1,10 +1,10 @@
 import pandas as pd
-from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.tags.seasonal import SeasonalTagConfig, SeasonalTags
+from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import BasicTagConfig
 
 
@@ -13,9 +13,8 @@ def test_no_seasonal_tags_enabled():
         BasicTagConfig(
             name="tag_1",
         ),
-        BasicTagConfig(
+        SetpointTagConfig(
             name="action_1",
-            type=TagType.ai_setpoint,
         ),
     ]
 
@@ -51,9 +50,8 @@ def test_all_seasonal_tags_enabled():
         BasicTagConfig(
             name="tag_1",
         ),
-        BasicTagConfig(
+        SetpointTagConfig(
             name="action_1",
-            type=TagType.ai_setpoint,
         ),
     ]
 
@@ -93,9 +91,8 @@ def test_some_seasonal_tags_enabled():
         BasicTagConfig(
             name="tag_1",
         ),
-        BasicTagConfig(
+        SetpointTagConfig(
             name="action_1",
-            type=TagType.ai_setpoint,
         ),
     ]
 
