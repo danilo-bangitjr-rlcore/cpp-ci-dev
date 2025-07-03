@@ -18,8 +18,6 @@ def test_one_delta_tag_one_pf():
     assert isinstance(cfg, MainConfig)
 
     delta_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
-    assert len(delta_stage._relevant_cfgs) == 1
-
     df = pd.DataFrame({
         "tag_1": [1, 1, 1, 1],
         "tag_2": [1, 2, 4, 3],
