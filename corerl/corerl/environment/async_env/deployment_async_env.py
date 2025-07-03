@@ -45,7 +45,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         # create dict of action tags
         action_cfgs = [tag for tag in tag_configs if tag.type == TagType.ai_setpoint]
         self._action_cfgs: dict[str, SetpointTagConfig] = {}
-        for tag_cfg in sorted(action_cfgs, key=lambda cfg: cfg.name):
+        for tag_cfg in action_cfgs:
             self._action_cfgs[tag_cfg.name] = tag_cfg
 
         # define opc action nodes
