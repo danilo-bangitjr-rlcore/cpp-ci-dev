@@ -46,6 +46,8 @@ async def test_communication(opc_port: int):
     await server.start()
     await asyncio.sleep(0.1)
 
+    zmq_port = get_free_port('localhost')
+
     try:
         await asyncio.sleep(0.1)
 
@@ -56,6 +58,7 @@ async def test_communication(opc_port: int):
             "--config-name",
             "../config/coreio_test_config.yaml",
             f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
+            f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
         ))
 
         await asyncio.sleep(1)  # Wait for coreio startup
@@ -67,6 +70,7 @@ async def test_communication(opc_port: int):
             "--config-name",
             "../config/coreio_test_config.yaml",
             "interaction.action_period=00:00:00.02",
+            f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
         ))
 
         try:
