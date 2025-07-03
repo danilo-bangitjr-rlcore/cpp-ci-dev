@@ -59,10 +59,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return DataReader(db_cfg=self._cfg.db)
 
     def _register_action_nodes(self):
-        for tag_cfg in sorted(self.tag_configs, key=lambda cfg: cfg.name):
-            if tag_cfg.type != TagType.ai_setpoint:
-                continue
-
+        for tag_cfg in sorted(self._action_cfgs.values(), key=lambda cfg: cfg.name):
             tag_name = tag_cfg.name
             assert tag_cfg.node_identifier is not None, "Tag Config action missing node_identifier"
             node_id = tag_cfg.node_identifier
