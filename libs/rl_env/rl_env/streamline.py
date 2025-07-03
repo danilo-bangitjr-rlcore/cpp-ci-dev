@@ -89,7 +89,7 @@ class PipelineData:
 class PipelineConfig(EnvConfig):
     name: str = 'Pipeline-v0'
     pipeline_data: PipelineData = field(default_factory=PipelineData)
-    control_strategy: Literal['agent'] | Literal["mpc"] | Literal["dagger"] = Literal["dagger"]
+    control_strategy: Literal['agent', "mpc", "dagger"] = Literal["dagger"]
 
 class PipelineEnv(gym.Env):
     def __init__(self, cfg: PipelineConfig):
@@ -146,15 +146,16 @@ class PipelineEnv(gym.Env):
     def step(self, action: np.ndarray):
         terminated = False
         truncated = False
-        
+        use_mpc = False
+
         if self.control_strategy == 'mpc':
-            use_mpc
+            use_mpc = True
         elif self.control_strategy == 'dagger':
             mpc_ratio = np.clip(1-0.001*self.t,0,1)
             use_mpc = np.random.rand() < mpc_ratio
         if use_mpc:
-            action = self._solve_mpc(np.array([tank.level / tank.capacity for tank in self.tanks.values()]), 
-                                     np.array([recpt.forecast for recpt in self.receipts.values()]), 
+            action = self._solve_mpc(np.array([tank.level / tank.capacity for tank in self.tanks.values()]),
+                                     np.array([recpt.forecast for recpt in self.receipts.values()]),
                                      np.array([deliv.value for deliv in self.deliveries.values()]))
 
         for i, key in enumerate(self.segments):
@@ -162,13 +163,13 @@ class PipelineEnv(gym.Env):
             flowing = action[i] > 0
             flow = action[i]*s.max_flow
 
-            for j in self.junctions.values(): 
+            for j in self.junctions.values():
                 if key in j.outputs:
                     for t_key, t in self.tanks.items():
                         if t_key in j.inputs and t.level <= 0.01:
                             flow = 0
                             flowing = False
-            
+
             minflow = flow > s.min_flow
 
             if flowing and not s.flowing:
@@ -190,7 +191,7 @@ class PipelineEnv(gym.Env):
             outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
             outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
             j.flow = inflow + outflow
-            
+
             # if any(t.level<0.01 for key, t in self.tanks.items() if key in j.inputs) or \
             #    any(t.level>0.99 for key, t in self.tanks.items() if key in j.outputs):
             #     # Input underflow or output overflow, zero all segments
@@ -214,6 +215,8 @@ class PipelineEnv(gym.Env):
         # Calculate rewards/penalties
         for d in self.deliveries.values():
             self.reward += d.value*self.weights.deliveryreward
+
+        # Update receipts and deliveries
         if np.mod(self.t,10) == 0:
             for d in self.deliveries:
                 self.deliveries[d].value = np.random.random()*self.deliveries[d].max
@@ -241,9 +244,10 @@ class PipelineEnv(gym.Env):
         bounds = [(0,1)]*3*n_steps + [(lb,1) for lb in u_lb]*n_steps + [(0,None)]*3
 
         _A = np.eye(3)
-        _B = np.vstack([np.array([-1/capacity[0],1/capacity[1],0])*max_flow[0],np.array([0,-1/capacity[1],1/capacity[2]])*max_flow[1]]).T
+        _B = np.vstack([np.array([-1/capacity[0],1/capacity[1],0])*max_flow[0],
+                        np.array([0,-1/capacity[1],1/capacity[2]])*max_flow[1]]).T
         _C = np.hstack([receipt_forecast, -delivery])/capacity
-        
+
         A_eq, b_eq, A_ub, b_ub, c = self._lp_mats(_A, _B, _C, final_soft_bounds, n_steps, x_0)
 
         sol = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds)
@@ -252,12 +256,13 @@ class PipelineEnv(gym.Env):
             x_out = sol.x
             n_states = len(_A)
             n_actions = np.size(_B,1)
-            mpc_actions = x_out[n_states*n_steps : n_states*n_steps + n_actions] # Grab the first action out of the solution
+            # Grab the first action out of the solution
+            mpc_actions = x_out[n_states*n_steps : n_states*n_steps + n_actions] 
         else:
             mpc_actions = np.ones(n_actions)*0.5
-        
+
         return mpc_actions
-    
+
     def _lp_mats(self, A, B, C, soft_bounds, n_steps, x_0):
         n_states = len(A)
         n_actions = np.size(B,1)
@@ -267,7 +272,7 @@ class PipelineEnv(gym.Env):
             if i > 0:
                 A_mat[i*n_states : (i+1)*n_states, (i-1)*n_states : i*n_states] = A[:,:]
             A_mat[i*n_states : (i+1)*n_states, n_steps*n_states+i*n_actions : n_steps*n_states+(i+1)*n_actions] = B[:,:]
-        
+
         A_eq = np.hstack([np.eye(n_states*n_steps),np.zeros([n_states*n_steps,n_actions*n_steps+3])]) - A_mat
         b_eq = (np.hstack([x_0,np.zeros(n_states*(n_steps-1))]) + np.tile(C,[1,n_steps])).T
 
@@ -291,6 +296,6 @@ class PipelineEnv(gym.Env):
         c = np.hstack([np.zeros(n_states*n_steps),np.ones(n_actions*n_steps),1000*np.ones(2),100])
 
         return A_eq, b_eq, A_ub, b_ub, c
-        
+
 
 env_group.dispatcher(PipelineConfig(), PipelineEnv)
