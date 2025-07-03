@@ -20,6 +20,7 @@ from corerl.tags.components.bounds import (
     SafetyZonedTag,
     eval_bound,
 )
+from corerl.tags.components.computed import ComputedTag
 from corerl.tags.components.opc import Agg, OPCTag
 from corerl.tags.meta import MetaTagConfig
 from corerl.tags.seasonal import SeasonalTagConfig
@@ -74,6 +75,7 @@ class GuardrailScheduleConfig:
 @config()
 class BasicTagConfig(
     SafetyZonedTag,
+    ComputedTag,
     OPCTag,
 ):
     """
@@ -138,22 +140,6 @@ class BasicTagConfig(
     guardrail_schedule: GuardrailScheduleConfig | None = None
     """
     Kind: optional external
-    """
-
-    # per-tag pipeline configuration
-    is_computed: bool = False
-    """
-    Kind: optional external
-
-    Specifies whether this is a computed virtual tag.
-    """
-
-    value: str | None = None
-    """
-    Kind: optional external
-
-    If this is a computed virtual tag, then a value string must be specified
-    in order to construct the value of the tag as a function of other tags.
     """
 
     cascade: CascadeConfig | None = None
