@@ -3,16 +3,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field, fields
 from enum import Enum, IntFlag, auto
 from math import isclose
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import Any, NamedTuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
-
-if TYPE_CHECKING:
-    from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]

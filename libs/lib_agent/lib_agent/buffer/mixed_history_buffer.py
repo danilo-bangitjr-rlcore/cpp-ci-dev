@@ -1,14 +1,17 @@
 from collections import deque
 from collections.abc import Sequence
-from typing import Literal, NamedTuple
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
-from lib_config.config import config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
+
+if TYPE_CHECKING:
+    from corerl.state import AppState
 
 
 class MaskedABDistribution:
@@ -50,11 +53,10 @@ class MaskedABDistribution:
         self._historical.update(elements, ensemble_mask & ~online_mask)
 
 
-@config()
+@dataclass
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
     n_ensemble: int = 1
-    ensemble: int = 1
     max_size: int = 1_000_000
     ensemble_probability: float = 0.5
     batch_size: int = 256
@@ -97,6 +99,8 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
         ]
 
         self._most_recent_online_idxs = deque(maxlen=n_most_recent)
+
+        self.app_state: AppState | None = None
 
     def _update_n_most_recent(self, idxs: np.ndarray, data_mode: DataMode) -> None:
         if data_mode == DataMode.ONLINE:

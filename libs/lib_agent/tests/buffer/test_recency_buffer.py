@@ -44,16 +44,23 @@ def create_test_transition(i: int) -> FakeTransition:
 
 
 def test_recency_bias_buffer_basic():
+    cfg = RecencyBiasBufferConfig(
+        obs_period=1000,
+        gamma=[0.99],
+        effective_episodes=[100],
+        n_ensemble=1,
+        uniform_weight=0.5,
+        ensemble_probability=0.5,
+        max_size=1000,
+    )
     buffer = RecencyBiasBuffer(
-        RecencyBiasBufferConfig(
-            obs_period=1000,  # 1ms
-            gamma=[0.99],
-            effective_episodes=[100],
-            ensemble=1,
-            uniform_weight=0.5,
-            ensemble_probability=0.5,
-            max_size=1000,
-        ),
+        obs_period=cfg.obs_period,
+        gamma=cfg.gamma,
+        effective_episodes=cfg.effective_episodes,
+        n_ensemble=cfg.n_ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        max_size=cfg.max_size,
     )
     timestamps = np.array([
         np.datetime64('2024-01-01T00:00:00'),
@@ -67,22 +74,29 @@ def test_recency_bias_buffer_basic():
 
     assert buffer.size == 3
 
-    assert buffer.ensemble_masks.shape == (1, 1000)  # (n_ensemble, max_size)
+    assert buffer.ensemble_masks.shape == (1, 1000)
     assert np.sum(buffer.ensemble_masks[:, 3:]) == 0
     assert np.all(np.sum(buffer.ensemble_masks[:, :3], axis=0) >= 1)
 
 
 def test_recency_bias_buffer_weights():
+    cfg = RecencyBiasBufferConfig(
+        obs_period=1000,
+        gamma=[0.99],
+        effective_episodes=[100],
+        n_ensemble=1,
+        uniform_weight=0.5,
+        ensemble_probability=1.0,
+        max_size=1000,
+    )
     buffer = RecencyBiasBuffer(
-        RecencyBiasBufferConfig(
-            obs_period=1000,
-            gamma=[0.99],
-            effective_episodes=[100],
-            ensemble=1,
-            uniform_weight=0.5,
-            ensemble_probability=1.0,
-            max_size=1000,
-        ),
+        obs_period=cfg.obs_period,
+        gamma=cfg.gamma,
+        effective_episodes=cfg.effective_episodes,
+        n_ensemble=cfg.n_ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        max_size=cfg.max_size,
     )
 
     timestamps = np.array([
@@ -101,16 +115,23 @@ def test_recency_bias_buffer_weights():
 
 
 def test_recency_bias_buffer_discount():
+    cfg = RecencyBiasBufferConfig(
+        obs_period=1000,
+        gamma=[0.99],
+        effective_episodes=[100],
+        n_ensemble=1,
+        uniform_weight=0.5,
+        ensemble_probability=1.0,
+        max_size=1000,
+    )
     buffer = RecencyBiasBuffer(
-        RecencyBiasBufferConfig(
-            obs_period=1000,  # 1ms
-            gamma=[0.99],
-            effective_episodes=[100],
-            ensemble=1,
-            uniform_weight=0.5,
-            ensemble_probability=1.0,
-            max_size=1000,
-        ),
+        obs_period=cfg.obs_period,
+        gamma=cfg.gamma,
+        effective_episodes=cfg.effective_episodes,
+        n_ensemble=cfg.n_ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        max_size=cfg.max_size,
     )
 
     timestamps = np.array([
@@ -133,16 +154,23 @@ def test_recency_bias_buffer_discount():
 
 
 def test_recency_bias_buffer_datetime_timestamps():
+    cfg = RecencyBiasBufferConfig(
+        obs_period=1000,
+        gamma=[0.99],
+        effective_episodes=[100],
+        n_ensemble=1,
+        uniform_weight=0.5,
+        ensemble_probability=1.0,
+        max_size=1000,
+    )
     buffer = RecencyBiasBuffer(
-        RecencyBiasBufferConfig(
-            obs_period=1000,  # 1ms
-            gamma=[0.99],
-            effective_episodes=[100],
-            ensemble=1,
-            uniform_weight=0.5,
-            ensemble_probability=1.0,
-            max_size=1000,
-        ),
+        obs_period=cfg.obs_period,
+        gamma=cfg.gamma,
+        effective_episodes=cfg.effective_episodes,
+        n_ensemble=cfg.n_ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        max_size=cfg.max_size,
     )
 
     timestamps = [
@@ -161,16 +189,23 @@ def test_recency_bias_buffer_datetime_timestamps():
 
 
 def test_recency_bias_buffer_integer_timestamps():
+    cfg = RecencyBiasBufferConfig(
+        obs_period=1000,
+        gamma=[0.99],
+        effective_episodes=[100],
+        n_ensemble=1,
+        uniform_weight=0.5,
+        ensemble_probability=1.0,
+        max_size=1000,
+    )
     buffer = RecencyBiasBuffer(
-        RecencyBiasBufferConfig(
-            obs_period=1000,  # 1ms
-            gamma=[0.99],
-            effective_episodes=[100],
-            ensemble=1,
-            uniform_weight=0.5,
-            ensemble_probability=1.0,
-            max_size=1000,
-        ),
+        obs_period=cfg.obs_period,
+        gamma=cfg.gamma,
+        effective_episodes=cfg.effective_episodes,
+        n_ensemble=cfg.n_ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        max_size=cfg.max_size,
     )
 
     timestamps = [0, 1, 2]
@@ -185,17 +220,25 @@ def test_recency_bias_buffer_integer_timestamps():
 
 
 def test_recency_bias_buffer_different_discounts():
+    cfg = RecencyBiasBufferConfig(
+        obs_period=1,
+        gamma=[0.9, 0.99],
+        effective_episodes=[5, 10],
+        n_ensemble=2,
+        uniform_weight=0.1,
+        ensemble_probability=1.0,
+        max_size=1000,
+        batch_size=1,
+    )
     buffer = RecencyBiasBuffer(
-        RecencyBiasBufferConfig(
-            obs_period=1,
-            gamma=[0.9, 0.99],
-            effective_episodes=[5, 10],
-            ensemble=2,
-            uniform_weight=0.1,
-            ensemble_probability=1.0,
-            max_size=1000,
-            batch_size=1,
-        ),
+        obs_period=cfg.obs_period,
+        gamma=cfg.gamma,
+        effective_episodes=cfg.effective_episodes,
+        n_ensemble=cfg.n_ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        max_size=cfg.max_size,
+        batch_size=cfg.batch_size,
     )
 
     n_transitions = 10

@@ -1,6 +1,5 @@
 from typing import Annotated
 
-from lib_config.group import Group
 from pydantic import Field
 
 from lib_agent.buffer.mixed_history_buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
@@ -11,28 +10,34 @@ BufferConfig = Annotated[(
     | RecencyBiasBufferConfig
 ), Field(discriminator='name')]
 
-buffer_group = Group[
-    [],
-    MixedHistoryBuffer | RecencyBiasBuffer,
-]()
+
+def buffer_group_dispatch(cfg: BufferConfig):
+    if cfg.name == "mixed_history_buffer":
+        return MixedHistoryBuffer(
+            n_ensemble=cfg.n_ensemble,
+            max_size=cfg.max_size,
+            ensemble_probability=cfg.ensemble_probability,
+            batch_size=cfg.batch_size,
+            seed=cfg.seed,
+            n_most_recent=cfg.n_most_recent,
+            online_weight=cfg.online_weight,
+            id=cfg.id,
+        )
+    if cfg.name == "recency_bias_buffer":
+        return RecencyBiasBuffer(
+            obs_period=cfg.obs_period,
+            gamma=cfg.gamma,
+            effective_episodes=cfg.effective_episodes,
+            n_ensemble=cfg.n_ensemble,
+            uniform_weight=cfg.uniform_weight,
+            ensemble_probability=cfg.ensemble_probability,
+            batch_size=cfg.batch_size,
+            max_size=cfg.max_size,
+            seed=cfg.seed,
+            n_most_recent=cfg.n_most_recent,
+            id=cfg.id,
+        )
+    raise ValueError(f"Unknown buffer type: {cfg.name}")
 
 
-def create_mixed_history_buffer(cfg: MixedHistoryBufferConfig) -> MixedHistoryBuffer:
-    return MixedHistoryBuffer(
-        n_ensemble=cfg.n_ensemble,
-        max_size=cfg.max_size,
-        ensemble_probability=cfg.ensemble_probability,
-        batch_size=cfg.batch_size,
-        seed=cfg.seed,
-        n_most_recent=cfg.n_most_recent,
-        online_weight=cfg.online_weight,
-        id=cfg.id,
-    )
-
-
-def create_recency_bias_buffer(cfg: RecencyBiasBufferConfig) -> RecencyBiasBuffer:
-    return RecencyBiasBuffer(cfg)
-
-
-buffer_group.dispatcher(create_mixed_history_buffer)
-buffer_group.dispatcher(create_recency_bias_buffer)
+buffer_group = type('BufferGroup', (), {'dispatch': buffer_group_dispatch})()

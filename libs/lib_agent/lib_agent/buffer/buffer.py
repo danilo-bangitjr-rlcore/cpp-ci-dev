@@ -1,10 +1,12 @@
-from typing import NamedTuple, Protocol
+from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 import jax
 import numpy as np
 
 from lib_agent.buffer.storage import ReplayStorage
 
+if TYPE_CHECKING:
+    from corerl.state import AppState
 
 class Transition(Protocol):
     @property
@@ -75,6 +77,8 @@ class EnsembleReplayBuffer[T: NamedTuple]:
 
         self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
         self.rng = np.random.default_rng(seed)
+
+        self.app_state: AppState | None = None
 
     def add(self, transition: T) -> None:
         ptr = self._storage.add(transition)

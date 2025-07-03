@@ -25,7 +25,7 @@ from lib_config.config import MISSING, computed, config
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.data_pipeline.datatypes import AbsTransition
+from corerl.data_pipeline.datatypes import AbsTransition, Transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -96,7 +96,7 @@ class PercentileActorConfig:
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
         buffer_cfg = ta.validate_python(default_buffer_dict, context=main_cfg)
-        buffer_cfg.ensemble = 1
+        buffer_cfg.n_ensemble = 1
         buffer_cfg.ensemble_probability = 1
 
         return buffer_cfg
@@ -592,7 +592,7 @@ def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
         gamma=batch.gamma,
     )
 
-def convert_corerl_transition_to_jax_transition(corerl_transition) -> JaxTransition:
+def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -> JaxTransition:
     return JaxTransition(
         last_action=corerl_transition.prior.action,
         state=corerl_transition.state,
