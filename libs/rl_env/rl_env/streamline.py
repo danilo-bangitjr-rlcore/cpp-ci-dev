@@ -148,10 +148,10 @@ class PipelineEnv(gym.Env):
         truncated = False
         use_mpc = False
 
-        if self.control_strategy == 'mpc':
+        if self.control_strategy == Literal['mpc']:
             use_mpc = True
-        elif self.control_strategy == 'dagger':
-            mpc_ratio = np.clip(1-0.001*self.t,0,1)
+        elif self.control_strategy == Literal['dagger']:
+            mpc_ratio = np.clip(1-0.003*self.t,0,1)
             use_mpc = np.random.rand() < mpc_ratio
         if use_mpc:
             action = self._solve_mpc(np.array([tank.level / tank.capacity for tank in self.tanks.values()]),
@@ -191,11 +191,6 @@ class PipelineEnv(gym.Env):
             outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
             outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
             j.flow = inflow + outflow
-
-            # if any(t.level<0.01 for key, t in self.tanks.items() if key in j.inputs) or \
-            #    any(t.level>0.99 for key, t in self.tanks.items() if key in j.outputs):
-            #     # Input underflow or output overflow, zero all segments
-            #     j.flow = 0
 
         for tank_name, t in self.tanks.items():
             t.inflow = sum([j.flow for j in self.junctions.values() if tank_name in j.outputs])
@@ -257,7 +252,7 @@ class PipelineEnv(gym.Env):
             n_states = len(_A)
             n_actions = np.size(_B,1)
             # Grab the first action out of the solution
-            mpc_actions = x_out[n_states*n_steps : n_states*n_steps + n_actions] 
+            mpc_actions = x_out[n_states*n_steps : n_states*n_steps + n_actions]
         else:
             mpc_actions = np.ones(n_actions)*0.5
 
