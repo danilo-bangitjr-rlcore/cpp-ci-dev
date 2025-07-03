@@ -18,7 +18,7 @@ infra:
 
 agent:
   name: greedy_ac
-  gamma: 0.99
+  gamma: 0.8
 
   critic:
     buffer:
@@ -40,6 +40,10 @@ interaction:
   name: sim_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
+  # update_warmup: 500 # number of updates before interacting
+  # historical_batch_size: 51840 # 180 days @ 5 minute obs period
+  # historical_windows:
+  # - [2025-07-02 17:30:00-0700, null]
 
 env:
   name: sim_async_env
@@ -53,6 +57,11 @@ evals:
   enabled: True
 
 pipeline:
+  # state_constructor:
+  #   defaults:
+  #     - name: multi_trace
+  #       trace_values: [0.] # half life 2 hours
+
   reward:
     priorities:
     # - tags: [L0_health, L1_health, L2_health]
@@ -70,12 +79,12 @@ pipeline:
   - name: action-0
     type: ai_setpoint
     operating_range: [0.0, 1.0]
-    # action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
+    # action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
 
   - name: action-1
     type: ai_setpoint
     operating_range: [0.0, 1.0]
-    # action_bounds: ['{action-1}-0.3', '{action-1}+0.3']
+    # action_bounds: ['{action-1}-0.1', '{action-1}+0.1']
 
   # tank levels (3)
   - name: tag-0 # L0
@@ -83,13 +92,13 @@ pipeline:
     expected_range: [0, 1]
     yellow_bounds: [0.2, 0.8]
     red_bounds: [0.1, 0.9]
-    red_zone_reaction:
-      - tag: action-0
-        kind: lower_violation
-        bounds: [0, 0.01]
-      - tag: action-0
-        kind: upper_violation
-        bounds: [0.99, 1]
+    # red_zone_reaction:
+    #   - tag: action-0
+    #     kind: lower_violation
+    #     bounds: [0, 0.01]
+    #   - tag: action-0
+    #     kind: upper_violation
+    #     bounds: [0.99, 1]
 
 
   - name: tag-1 # L1
@@ -98,31 +107,31 @@ pipeline:
     yellow_bounds: [0.2, 0.8]
     red_bounds: [0.1, 0.9]
     red_zone_reaction:
-      - tag: action-0
-        kind: lower_violation
-        bounds: [0.99, 1]
-      - tag: action-0
-        kind: upper_violation
-        bounds: [0.0, 0.01]
-      - tag: action-1
-        kind: lower_violation
-        bounds: [0.0, 0.01]
-      - tag: action-1
-        kind: upper_violation
-        bounds: [.99, 1]
+      # - tag: action-0
+      #   kind: lower_violation
+      #   bounds: [0.99, 1]
+      # - tag: action-0
+      #   kind: upper_violation
+      #   bounds: [0, 0.01]
+      # - tag: action-1
+      #   kind: lower_violation
+      #   bounds: [0, 0.01]
+      # - tag: action-1
+      #   kind: upper_violation
+      #   bounds: [0.99, 1]
 
   - name: tag-2 # L2
     operating_range: [-1, 2]
     expected_range: [0, 1]
     yellow_bounds: [0.2, 0.8]
     red_bounds: [0.1, 0.9]
-    red_zone_reaction:
-      - tag: action-1
-        kind: lower_violation
-        bounds: [0.99, 1]
-      - tag: action-1
-        kind: upper_violation
-        bounds: [0.0, 0.01]
+    # red_zone_reaction:
+    #   - tag: action-1
+    #     kind: lower_violation
+    #     bounds: [0.99, 1]
+    #   - tag: action-1
+    #     kind: upper_violation
+    #     bounds: [0, 0.01]
 
   # receipts (2)
   - name: tag-3 # R0
@@ -150,20 +159,20 @@ pipeline:
     operating_range: [0, 1]
 
   - name: L0_health
-    operating_range: [0, 0.25]
-    # expected_range: [0, 0.25]
+    operating_range: [0, 0.01]
+    # expected_range: [0, 0.01]
     is_computed: true
     value: "(1 - {tag-0})*{tag-0}"
 
   - name: L1_health
-    operating_range: [0, 0.25]
-    # expected_range: [0, 0.25]
+    operating_range: [0, 0.01]
+    # expected_range: [0, 0.01]
     is_computed: true
     value: "(1 - {tag-1})*{tag-1}"
 
   - name: L2_health
-    operating_range: [0, 0.25]
-    # expected_range: [0, 0.25]
+    operating_range: [0, 0.01]
+    # expected_range: [0, 0.01]
     is_computed: true
     value: "(1 - {tag-2})*{tag-2}"
 
