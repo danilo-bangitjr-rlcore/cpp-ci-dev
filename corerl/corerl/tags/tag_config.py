@@ -15,6 +15,7 @@ from corerl.tags.components.bounds import (
 )
 from corerl.tags.components.computed import ComputedTag
 from corerl.tags.components.opc import OPCTag
+from corerl.tags.delta import DeltaTagConfig
 from corerl.tags.meta import MetaTagConfig
 from corerl.tags.seasonal import SeasonalTagConfig
 from corerl.tags.setpoint import SetpointTagConfig
@@ -54,10 +55,7 @@ class BasicTagConfig(
     This is used for all internal references to the tag, such as in the reward construction.
     """
 
-    type: Literal[
-        TagType.default,
-        TagType.delta,
-    ] = TagType.default
+    type: Literal[TagType.default] = TagType.default
     """
     Kind: optional external
 
@@ -141,15 +139,14 @@ class BasicTagConfig(
 
 
 
-TagConfig = BasicTagConfig | MetaTagConfig | SeasonalTagConfig | SetpointTagConfig
+TagConfig = BasicTagConfig | MetaTagConfig | SeasonalTagConfig | SetpointTagConfig | DeltaTagConfig
 
 
 def get_scada_tags(cfgs: list[TagConfig]):
     return [
         tag_cfg
         for tag_cfg in cfgs
-        if tag_cfg.type != TagType.seasonal
-        and isinstance(tag_cfg, OPCTag)
+        if isinstance(tag_cfg, OPCTag)
         and not tag_cfg.is_computed
     ]
 
