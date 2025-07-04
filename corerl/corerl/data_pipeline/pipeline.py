@@ -163,8 +163,8 @@ class PipelineReturn:
 
 @dataclass
 class ColumnDescriptions:
-    state_tags: list[BasicTagConfig]
-    action_tags: list[TagConfig]
+    state_tags: Sequence[TagConfig]
+    action_tags: Sequence[TagConfig]
 
     state_cols: list[str]
     action_cols: list[str]

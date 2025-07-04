@@ -1,11 +1,10 @@
 import pandas as pd
 import pytest
-from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalTagFeatures
-from corerl.tags.tag_config import BasicTagConfig
+from corerl.tags.seasonal import SeasonalTagConfig, SeasonalTags
 
 
 @pytest.fixture()
@@ -28,7 +27,7 @@ def test_time_of_day():
     )
 
     tag_cfgs = [
-        BasicTagConfig(name='time_of_day', type=TagType.seasonal),
+        SeasonalTagConfig(name=SeasonalTags.time_of_day),
     ]
 
     seasonal_features = SeasonalTagFeatures(tag_cfgs)
@@ -56,7 +55,7 @@ def test_day_of_week():
     )
 
     tag_cfgs = [
-        BasicTagConfig(name='day_of_week', type=TagType.seasonal),
+        SeasonalTagConfig(name=SeasonalTags.day_of_week),
     ]
 
     seasonal_features = SeasonalTagFeatures(tag_cfgs)
@@ -89,7 +88,7 @@ def test_day_of_year():
     )
 
     tag_cfgs = [
-        BasicTagConfig(name='day_of_year', type=TagType.seasonal),
+        SeasonalTagConfig(name=SeasonalTags.day_of_year),
     ]
 
     seasonal_features = SeasonalTagFeatures(tag_cfgs)
