@@ -1,5 +1,6 @@
 from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
-from corerl.tags.tag_config import BasicTagConfig, TagConfig
+from corerl.tags.components.computed import ComputedTag
+from corerl.tags.tag_config import TagConfig
 from corerl.utils.sympy import to_sympy
 
 
@@ -9,7 +10,7 @@ class VirtualTagComputer:
         self._evaluators = {
             tag.name: to_sympy(tag.value)
             for tag in self._tag_cfgs
-            if isinstance(tag, BasicTagConfig)
+            if isinstance(tag, ComputedTag)
                 and tag.is_computed
                 and tag.value is not None
         }

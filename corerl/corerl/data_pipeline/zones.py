@@ -12,7 +12,8 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
 from corerl.tags.components.bounds import SafetyZonedTag, ViolationDirection
-from corerl.tags.tag_config import TagConfig, eval_bound
+from corerl.tags.setpoint import eval_bound
+from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 

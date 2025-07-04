@@ -3,7 +3,6 @@ from datetime import timedelta
 import numpy as np
 import pandas as pd
 import pytest
-from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
@@ -14,6 +13,7 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
+from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import BasicTagConfig
 
 
@@ -45,7 +45,7 @@ def test_sc1(test_pf: PipelineFrame, dummy_app_state: AppState):
         tag_cfgs=[
             BasicTagConfig(name='tag_1'),
             BasicTagConfig(name='tag_2'),
-            BasicTagConfig(name='action'),
+            SetpointTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -103,7 +103,7 @@ def test_norm_sc(dummy_app_state: AppState):
                     TraceConfig(trace_values=[0.1, 0.01], missing_tol=1.0),
                 ],
             ),
-            BasicTagConfig(
+            SetpointTagConfig(
                 name='action',
                 state_constructor=[
                     NormalizerConfig(
@@ -144,7 +144,7 @@ def test_sc_add_raw(test_pf: PipelineFrame, dummy_app_state: AppState):
         tag_cfgs=[
             BasicTagConfig(name='tag_1'),
             BasicTagConfig(name='tag_2'),
-            BasicTagConfig(name='action'),
+            SetpointTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -205,7 +205,7 @@ def test_sc_integration1(dummy_app_state: AppState):
         dummy_app_state,
         tag_cfgs=[
             BasicTagConfig(name='tag-1'),
-            BasicTagConfig(name='action'),
+            SetpointTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -276,7 +276,7 @@ def test_sc_integration2(dummy_app_state: AppState):
                     ),
                 ],
             ),
-            BasicTagConfig(
+            SetpointTagConfig(
                 name='action',
                 state_constructor=[
                     NormalizerConfig(
@@ -345,7 +345,7 @@ def test_sc_integration3(dummy_app_state: AppState):
         dummy_app_state,
         tag_cfgs=[
             BasicTagConfig(name='tag-1'),
-            BasicTagConfig(name='action'),
+            SetpointTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -406,7 +406,7 @@ def test_sc_integration4(dummy_app_state: AppState):
         dummy_app_state,
         tag_cfgs=[
             BasicTagConfig(name='tag-1'),
-            BasicTagConfig(name='action'),
+            SetpointTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[
@@ -476,7 +476,7 @@ def test_sc_decision_point_detection(dummy_app_state: AppState):
         dummy_app_state,
         tag_cfgs=[
             BasicTagConfig(name='tag-1'),
-            BasicTagConfig(name='tag-action', state_constructor=[], type=TagType.ai_setpoint),
+            SetpointTagConfig(name='tag-action', state_constructor=[]),
         ],
         cfg=SCConfig(
             defaults=[
@@ -539,7 +539,7 @@ def test_per_tag_overrides(dummy_app_state: AppState):
                     TraceConfig(trace_values=[0.1]),
                 ],
             ),
-            BasicTagConfig(name='action'),
+            SetpointTagConfig(name='action'),
         ],
         cfg=SCConfig(
             defaults=[

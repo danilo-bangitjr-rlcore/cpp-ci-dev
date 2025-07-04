@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
-from lib_defs.config_defs.tag_config import TagType
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
@@ -19,6 +18,7 @@ from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
+from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import BasicTagConfig
 
 
@@ -93,8 +93,8 @@ def test_state_action_dim(dummy_app_state: AppState):
                     TraceConfig(trace_values=[0.1, 0.9]),
                 ],
             ),
-            BasicTagConfig(name='tag-3', operating_range=(0, 1), type=TagType.ai_setpoint),
-            BasicTagConfig(name='tag-4', operating_range=(0, 1), type=TagType.ai_setpoint),
+            SetpointTagConfig(name='tag-3', operating_range=(0, 1)),
+            SetpointTagConfig(name='tag-4', operating_range=(0, 1)),
         ],
         state_constructor=SCConfig(
             countdown=CountdownConfig(
