@@ -140,6 +140,8 @@ def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, TagConfig], rtol
         action[action_name] = np.clip(action_val, lo + atol, hi - atol)
 
 def get_clip_bounds(action_cfg: TagConfig, action: pd.DataFrame):
+    assert action_cfg.type == TagType.ai_setpoint
+
     # prefer to use red zones, otherwise use operating range
     lo = (
         Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])

@@ -10,7 +10,7 @@ from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.data_pipeline.transforms import NormalizerConfig
-from corerl.tags.base import BaseTagConfig
+from corerl.tags.base import GlobalTagAttributes
 from corerl.utils.sympy import is_affine, to_sympy
 
 BoundsElem = float | str | None
@@ -58,7 +58,7 @@ class RedZoneReflexConfig:
 
 
 @config()
-class BoundedTag(BaseTagConfig):
+class BoundedTag(GlobalTagAttributes):
     operating_range: FloatBounds | None = None
     """
     Kind: optional external
@@ -202,7 +202,7 @@ class SafetyZonedTag(BoundedTag):
 
 
 def parse_string_bounds(
-    cfg: BaseTagConfig,
+    cfg: GlobalTagAttributes,
     input_bounds: Bounds,
     known_tags: set[str],
     allow_circular: bool = False,

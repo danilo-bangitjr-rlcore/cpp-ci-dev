@@ -6,6 +6,7 @@ import yaml
 from coreio.config import CoreIOConfig
 from lib_config.config import MISSING, computed, config, list_, post_processor
 from lib_config.loader import config_to_json
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
@@ -238,7 +239,7 @@ class MainConfig:
         self.interaction.heartbeat.heartbeat_period /= self.interaction.time_dilation
 
         for tag_cfg in self.pipeline.tags:
-            if tag_cfg.guardrail_schedule is not None:
+            if tag_cfg.type == TagType.ai_setpoint and tag_cfg.guardrail_schedule is not None:
                 tag_cfg.guardrail_schedule.duration /= self.interaction.time_dilation
 
 

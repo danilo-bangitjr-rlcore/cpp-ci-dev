@@ -8,7 +8,7 @@ from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilt
 from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
 from corerl.data_pipeline.transforms import BinaryConfig, ScaleConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig
 
 
 def test_filter_constructor():
@@ -35,7 +35,7 @@ def test_filter_constructor():
 
 
     tags=[
-        TagConfig(
+        BasicTagConfig(
             name='tag-1',
             # set tag-1 to nan if its value*3 == 6
             filter=[
@@ -43,7 +43,7 @@ def test_filter_constructor():
                 ComparatorConfig(op='==', val=6),
             ],
         ),
-        TagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
+        BasicTagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
     ]
 
 
@@ -104,7 +104,7 @@ def test_filter_constructor_with_replace():
 
 
     tags=[
-        TagConfig(
+        BasicTagConfig(
             name='tag-1',
             # set tag-1 to nan if tag-2 == 4
             filter=[
@@ -112,7 +112,7 @@ def test_filter_constructor_with_replace():
                 ComparatorConfig(op='==', val=4),
             ],
         ),
-        TagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
+        BasicTagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
     ]
 
 

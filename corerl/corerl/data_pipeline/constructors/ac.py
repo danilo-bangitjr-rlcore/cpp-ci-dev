@@ -21,6 +21,7 @@ class ActionConstructor:
 
         # make sure operating ranges are specified for actions
         for action_tag in self.action_tags:
+            assert action_tag.type == TagType.ai_setpoint
             name = action_tag.name
             Maybe(action_tag.operating_range).map(lambda r: r[0]).expect(
                 f"Action {name} did not specify an operating range lower bound.",
@@ -45,6 +46,8 @@ class ActionConstructor:
             a_lo = {}
             a_hi = {}
             for action_tag in self.action_tags:
+                assert action_tag.type == TagType.ai_setpoint
+
                 ab_lo, ab_hi = get_action_bounds(action_tag, row)
                 operating_range = Maybe(action_tag.operating_range).expect()
                 op_lo, op_hi = Maybe(operating_range[0]).expect(), Maybe(operating_range[1]).expect()
@@ -97,6 +100,7 @@ class ActionConstructor:
         return sorted(cols)
 
     def _get_guardrails(self, cfg: TagConfig, a_lo: float, a_hi: float):
+        assert cfg.type == TagType.ai_setpoint
         guard_lo, guard_hi = None, None
 
         if cfg.guardrail_schedule is None:

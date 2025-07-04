@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Literal, Self
 
 import pandas as pd
 from lib_config.config import MISSING, computed, config, list_, post_processor
+from lib_defs.config_defs.tag_config import TagType
 from pandas import DataFrame
 from pydantic import Field
 
@@ -40,7 +41,8 @@ from corerl.data_pipeline.virtual_tags import VirtualTagComputer
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import Agg, TagConfig, in_taglist
+from corerl.tags.components.bounds import BoundedTag
+from corerl.tags.tag_config import Agg, BasicTagConfig, TagConfig, in_taglist
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -71,15 +73,20 @@ class PipelineConfig:
     @post_processor
     def _cascade_dependencies(self, cfg: MainConfig):
         for tag in self.tags:
-            if tag.cascade is None:
+            if tag.type != TagType.ai_setpoint or tag.cascade is None:
                 continue
             for dep in [tag.cascade.op_sp, tag.cascade.ai_sp]:
                 if in_taglist(dep, self.tags): continue
-                self.tags.append(TagConfig(name=dep, agg=Agg.last, preprocess=[], state_constructor=[NukeConfig()]))
+                self.tags.append(BasicTagConfig(
+                    name=dep,
+                    agg=Agg.last,
+                    preprocess=[],
+                    state_constructor=[NukeConfig()],
+                ))
 
             if in_taglist(tag.cascade.mode, self.tags): continue
             self.tags.append(
-                TagConfig(
+                BasicTagConfig(
                     name=tag.cascade.mode,
                     agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
                     preprocess=[],
@@ -156,7 +163,7 @@ class PipelineReturn:
 
 @dataclass
 class ColumnDescriptions:
-    state_tags: list[TagConfig]
+    state_tags: list[BasicTagConfig]
     action_tags: list[TagConfig]
 
     state_cols: list[str]
@@ -187,7 +194,7 @@ class Pipeline:
         self.bound_checkers = {
             tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.operating_range_tol)
             for tag in self.tags
-            if tag.operating_range is not None
+            if isinstance(tag, BoundedTag) and tag.operating_range is not None
         }
         self.tag_trigger = TagTrigger(app_state, self.tags)
         self.conditional_filter = ConditionalFilter(self.tags)

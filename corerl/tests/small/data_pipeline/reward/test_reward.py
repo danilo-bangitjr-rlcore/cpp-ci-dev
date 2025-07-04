@@ -12,17 +12,17 @@ import corerl.data_pipeline.transforms as xform
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig, TagConfig
 
 
 @pytest.fixture
 def tag_cfgs():
     return [
-        TagConfig(
+        BasicTagConfig(
             name='obs-1',
             preprocess=[],
         ),
-        TagConfig(
+        BasicTagConfig(
             name='obs-2',
             preprocess=[],
         ),
@@ -110,12 +110,12 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
 def test_lessthan_xform():
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name="obs-1",
             preprocess=[],
             # default null reward config
         ),
-        TagConfig(
+        BasicTagConfig(
             name="obs-2",
             preprocess=[],
             reward_constructor=[
@@ -162,12 +162,12 @@ def test_lessthan_xform():
 
 def test_greaterthan_xform():
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name="obs-1",
             preprocess=[],
             # default null reward config
         ),
-        TagConfig(
+        BasicTagConfig(
             name="obs-2",
             preprocess=[],
             reward_constructor=[
@@ -221,12 +221,12 @@ def test_greaterthan_penalty_reward():
             r = 0
     """
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name="obs-1",
             preprocess=[],
             # default null reward config
         ),
-        TagConfig(
+        BasicTagConfig(
             name="obs-2",
             preprocess=[],
             reward_constructor=[
@@ -573,7 +573,7 @@ def test_epcor_reward():
     }
 
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name=name,
             preprocess=[],
             reward_constructor=xforms,
