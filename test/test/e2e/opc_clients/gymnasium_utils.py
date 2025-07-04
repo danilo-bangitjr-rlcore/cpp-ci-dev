@@ -1,6 +1,6 @@
 import gymnasium as gym
 from corerl.tags.meta import MetaTagConfig
-from corerl.tags.tag_config import JustATagConfig, TagConfig
+from corerl.tags.tag_config import BasicTagConfig, TagConfig
 from lib_defs.config_defs.tag_config import TagType
 
 
@@ -25,7 +25,7 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False):
     n_obs = observation_space.shape[0]
 
     tag_configs: list[TagConfig] = [
-        JustATagConfig(
+        BasicTagConfig(
             name=f"action-{i}",
             operating_range=(action_space.low[0].item(), action_space.high[0].item()),
             type=TagType.ai_setpoint,
@@ -34,7 +34,7 @@ def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False):
     ]
 
     tag_configs.extend(
-        JustATagConfig(
+        BasicTagConfig(
             name=f"tag-{i}",
             operating_range=(observation_space.low[i].item(), observation_space.high[i].item()),
         )

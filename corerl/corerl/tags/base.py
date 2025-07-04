@@ -18,7 +18,7 @@ class TagTriggerConfig:
 
 
 @config()
-class BaseTagConfig:
+class GlobalTagAttributes:
     # NOTE: being non-prescriptive about the type of the tag name
     # so that children can do type-narrowing.
     name: Any = MISSING

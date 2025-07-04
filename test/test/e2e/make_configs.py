@@ -14,7 +14,7 @@ from typing import Any
 
 import gymnasium as gym
 import yaml
-from corerl.tags.tag_config import JustATagConfig, TagConfig
+from corerl.tags.tag_config import BasicTagConfig, TagConfig
 from lib_config.loader import config_to_dict
 
 from test.e2e.opc_clients.gymnasium_utils import gen_tag_configs_from_env
@@ -77,7 +77,7 @@ def generate_tag_yaml(
         ]
 
     with open(tag_path, "w+") as f:
-        raw_tags = config_to_dict(list[JustATagConfig], tags)
+        raw_tags = config_to_dict(list[BasicTagConfig], tags)
         action_tags = [tag for tag in raw_tags if 'action' in tag['name']]
         other_tags = [tag for tag in raw_tags if 'action' not in tag['name'] and tag['type'] != 'meta']
         meta_tags =  [tag for tag in raw_tags if tag['type'] == 'meta']
@@ -147,7 +147,7 @@ def main():
 
     tag_configs = gen_tag_configs_from_env(env, args.meta)
     for tag in tag_configs:
-        log.debug(f"{pformat(config_to_dict(JustATagConfig, tag), sort_dicts=False)}")
+        log.debug(f"{pformat(config_to_dict(BasicTagConfig, tag), sort_dicts=False)}")
 
     tag_data = [
         TagData(
