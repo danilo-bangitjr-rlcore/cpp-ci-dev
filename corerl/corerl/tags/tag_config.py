@@ -1,35 +1,31 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from datetime import timedelta
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Literal, assert_never
+from typing import TYPE_CHECKING, Annotated, assert_never
 
 import pandas as pd
-from lib_config.config import MISSING, config, list_, post_processor
+from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
-from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
-from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
-from corerl.messages.events import EventType
+from corerl.data_pipeline.transforms import NukeConfig
+from corerl.tags.components.bounds import (
+    Bounds,
+    BoundsFunction,
+    BoundsTags,
+    FloatBounds,
+    SafetyZonedTag,
+    eval_bound,
+)
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
     from corerl.data_pipeline.pipeline import PipelineConfig
-
-BoundsElem = float | str | None
-
-Bounds = tuple[BoundsElem, BoundsElem]
-FloatBounds = tuple[float | None, float | None]
-
-BoundsFunction = tuple[Callable[..., float] | None, Callable[..., float] | None]
-BoundsTags = tuple[list[str] | None, list[str] | None]
 
 
 class Agg(StrEnum):
@@ -78,47 +74,12 @@ class GuardrailScheduleConfig:
     duration: timedelta = MISSING
 
 
-@config()
-class RedZoneReflexConfig:
-    """
-    Kind: optional external
-
-    Specifies the reaction to a red zone violation.
-    """
-
-    tag: str = MISSING
-    """
-    Kind: required external
-    The tag to which the reaction applies.
-    """
-
-    kind: ViolationDirection = MISSING
-    """
-    Kind: required external
-
-    The direction of the violation (upper or lower).
-    """
-
-    bounds: FloatBounds = MISSING
-    """
-    Kind: required external
-    The bounds of the red zone. This is used to determine the
-    reaction to the violation.
-    """
-
-# -----------------
-# -- Tag Trigger --
-# -----------------
-@config()
-class TagTriggerConfig:
-    condition: list[TransformConfig] = MISSING
-    event: EventType | list[EventType] = MISSING
 
 # ----------------
 # -- Tag Config --
 # ----------------
 @config()
-class TagConfig:
+class TagConfig(SafetyZonedTag):
     """
     Kind: required external
 
@@ -163,15 +124,6 @@ class TagConfig:
     may be a boolean, integer, or string.
     """
 
-    is_endogenous: bool = True
-    """
-    Kind: optional external
-
-    Whether the tag can be controlled (even indirectly) by the agent. In the control theory
-    field, this is sometimes called a "controlled" variable. This may be used for plant modeling
-    to simplify counterfactual reasoning.
-    """
-
     type: TagType = TagType.default
     """
     Kind: optional external
@@ -189,15 +141,6 @@ class TagConfig:
     """
 
     # tag zones
-    operating_range: FloatBounds | None = None
-    """
-    Kind: optional external
-
-    The maximal range of values that the tag can take. Often called the "engineering range".
-    If specified on an AI-controlled setpoint, this determines the range of values that the agent
-    can select.
-    """
-
     action_bounds: Bounds | None = None
     """
     Kind: optional external
@@ -216,74 +159,6 @@ class TagConfig:
     and the action_bounds_tags will hold the lists of tags that those functions depend on.
     """
 
-    expected_range: FloatBounds | None = None
-    """
-    Kind: optional external
-
-    The range of values that the tag is expected to take. If specified, this range controls
-    the min/max for normalization and reward scaling.
-    """
-
-    red_bounds: Bounds | None = None
-    """
-    Kind: optional external
-
-    The interior endpoints of the two red zones. The lower value specifies a red zone
-    between:
-        (operating_range[0] and red_bounds[0])
-
-    The upper value specifies a red zone between:
-        (red_bounds[1] and operating_range[1])
-
-    See also:
-    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
-    """
-
-    red_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
-    red_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
-    """
-    Kind: computed internal
-
-    In case that the red_bounds are specified as strings representing sympy functions,
-    the red_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the red_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    yellow_bounds: Bounds | None = None
-    """
-    Kind: optional external
-
-    The interior endpoints of the two yellow zones. The lower value specifies a yellow zone
-    between:
-        (red_bounds[0] and yellow_bounds[0])
-
-    The upper value specifies a yellow zone between:
-        (yellow_bounds[1] and red_bounds[1])
-
-    If a corresponding red zone is not specified, the yellow zone's exterior endpoint
-    is determined by the operating range.
-
-    See also:
-    https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
-    """
-
-    yellow_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
-    yellow_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
-    """
-    Kind: computed internal
-
-    In case that the yellow_bounds are specified as strings representing sympy functions,
-    the yellow_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-    red_zone_reaction: list[RedZoneReflexConfig] | None = None
-    """
-    Kind: optional external
-
-    Specifies the reaction to a red zone violation.
-    """
-
     guardrail_schedule: GuardrailScheduleConfig | None = None
     """
     Kind: optional external
@@ -296,78 +171,6 @@ class TagConfig:
 
     The temporal aggregation strategy used when querying timescale db. For most tags,
     this should be Agg.avg. For setpoints, this should be Agg.last.
-    """
-
-    bound_checker_tol: float = 1e-10
-    """
-    Kind: internal
-
-    The bound checker sets tag readings outside of the optionally defined operating_range to NaNs.
-    BoundCheckerConfig enables you to customize the tolerance of the bounds on a per-tag basis.
-    """
-
-    outlier: list[OddityFilterConfig] | None = None
-    """
-    Kind: internal
-
-    A per-tag configuration for outlier detection. Particularly useful for
-    lab-tests or other tags with wildly different frequencies.
-    """
-
-    imputer: ImputerConfig | None = None
-    """
-    Kind: internal
-
-    A per-tag configuration for imputation. Used when tags have unusual
-    temporal or spatial structure, for example lab-tests.
-    """
-
-    # per-tag constructors
-    preprocess: list[TransformConfig] = list_([NormalizerConfig()])
-    """
-    Kind: internal
-
-    Specifies a pipeline of preprocessing steps to apply to the tag.
-    Is not designed to be front-end compatible and exposed to the user.
-    Instead, modifications of this configuration should be made through
-    computed configurations based on tag_type or other user-exposed toggles.
-    """
-
-    reward_constructor: list[TransformConfig] = list_([NukeConfig()])
-    """
-    Kind: internal
-
-    Specifies a transformation pipeline to produce rewards from tags.
-    Exposed primarily for testing.
-    """
-
-    state_constructor: list[TransformConfig] | None = None
-    """
-    Kind: internal
-
-    Specifies a transformation pipeline to produce states from tags.
-    Used to produce a sufficient history of interaction to satisfy
-    the Markov property.
-    """
-
-    filter: list[TransformConfig] | None = None
-    """
-    Kind: optional external
-
-    Specifies a pipeline producing a boolean mask from transformations
-    on other tags. If the pipeline produces True for a given timestep,
-    then the value of this tag is converted to NaN.
-
-    Used when certain operating modes, such as maintenance mode, are
-    a clear signal of data degradation.
-    """
-
-    trigger: TagTriggerConfig | None = None
-    """
-    Kind: optional external
-
-    Allows triggering an event based on a transformation pipeline that
-    evaluates truthy.
     """
 
     is_computed: bool = False
@@ -426,11 +229,6 @@ class TagConfig:
                 self.action_bounds, known_tags, allow_circular=True,
             )
 
-        if self.red_bounds is not None:
-            self.red_bounds_func, self.red_bounds_tags = self._bounds_parse_sympy(self.red_bounds, known_tags)
-
-        if self.yellow_bounds is not None:
-            self.yellow_bounds_func, self.yellow_bounds_tags = self._bounds_parse_sympy(self.yellow_bounds, known_tags)
 
     def _bounds_parse_sympy(
         self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False,
@@ -471,24 +269,6 @@ class TagConfig:
             case TagType.delta: return
             case _: assert_never(self.type)
 
-
-    @post_processor
-    def _default_normalize_preprocessor(self, cfg: MainConfig):
-        # Since we don't have a dataframe, the sympy expressions are treated as None
-        lo, hi = get_tag_bounds_no_eval(self)
-
-        # although each constructor type may _also_ have a normalizer
-        # only automatically set the preprocessor normalizer bounds
-        norm_cfg = find_instance(NormalizerConfig, self.preprocess)
-        if norm_cfg is None:
-            return
-
-        norm_cfg.min = Maybe(norm_cfg.min).flat_otherwise(lambda: lo).unwrap()
-
-        norm_cfg.max = Maybe(norm_cfg.max).flat_otherwise(lambda: hi).unwrap()
-
-        if norm_cfg.min is None or norm_cfg.max is None:
-            norm_cfg.from_data = True
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
@@ -537,13 +317,6 @@ class TagConfig:
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
 
 
-        # ----------------------
-        # -- Zone validations --
-        # ----------------------
-        if self.red_zone_reaction is not None:
-            assert self.red_bounds is not None, \
-                "Red zone reaction specified, but no red bounds defined."
-
 
 def set_ai_setpoint_defaults(tag_cfg: TagConfig):
     tag_cfg.agg = Agg.last
@@ -551,33 +324,6 @@ def set_ai_setpoint_defaults(tag_cfg: TagConfig):
 def set_seasonal_tag_defaults(tag_cfg: TagConfig):
     tag_cfg.preprocess = []
     tag_cfg.state_constructor = [NukeConfig()]
-
-def get_tag_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
-    # each bound type is fully optional
-    # prefer to use expected range, fallback to red zone, then operating range, then yellow
-    lo = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[0])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
-        .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
-        .map(partial(eval_bound, row, "lo", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
-    )
-
-    hi = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[1])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
-        .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
-        .map(partial(eval_bound, row, "hi", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
-    )
-
-    return lo, hi
 
 
 def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
@@ -601,73 +347,6 @@ def get_action_bounds(cfg: TagConfig, row: pd.DataFrame) -> tuple[float, float]:
     )
     return lo, hi
 
-
-def get_tag_bounds_no_eval(cfg: TagConfig) -> tuple[Maybe[float], Maybe[float]]:
-    """
-    Note: If you have access to the `pf.data`, it is preferred to use `get_tag_bounds`.
-
-    This function gets the tag bounds only if they are defined as float in the config file.
-    If they are str (sympy expressions), it returns none.
-
-    It is used to initialize other parts of the config.
-
-    Each bound type is fully optional.
-    Prefer to use red zone, fallback to black zone then yellow
-    """
-    lo = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[0])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
-        .is_instance(float)
-    )
-
-    hi = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[1])
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-        .is_instance(float)
-        .map(widen_bound_types)
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
-        .is_instance(float)
-    )
-
-    return lo, hi
-
-
-def eval_bound(
-    data: pd.DataFrame,
-    side: Literal["lo", "hi"],
-    bounds_func: BoundsFunction | None,
-    bounds_tags: BoundsTags | None,
-    bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
-) -> float | None:
-    index = {"lo": 0, "hi": 1}[side]
-
-    if isinstance(bound, str):
-        assert bounds_func and bounds_tags  # Assertion for pyright
-        res_func, res_tags = bounds_func[index], bounds_tags[index]
-        assert res_func and res_tags  # Assertion for pyright
-
-        values = [data[res_tag].item() for res_tag in res_tags]
-        bound = res_func(*values)
-
-    if bound is not None:
-        bound = float(bound)
-
-    return bound
-
-
-def widen_bound_types(x: float | None) -> BoundsElem:
-    return x
 
 def get_scada_tags(cfgs: list[TagConfig]) -> list[TagConfig]:
     return [

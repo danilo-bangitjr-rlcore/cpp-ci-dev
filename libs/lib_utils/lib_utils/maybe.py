@@ -63,7 +63,7 @@ class Maybe[T]:
     # ------------------------
     # -- Negative Accessors --
     # ------------------------
-    def otherwise(self, f: Callable[[], T | None]) -> Maybe[T]:
+    def otherwise[U](self, f: Callable[[], U | None]) -> Maybe[T] | Maybe[U]:
         """
         The same, but opposite, of `map(f)`.
         Whenever the Maybe[T] contains a None, the
@@ -75,7 +75,7 @@ class Maybe[T]:
         return self
 
 
-    def flat_otherwise(self, f: Callable[[], Maybe[T]]) -> Maybe[T]:
+    def flat_otherwise[U](self, f: Callable[[], Maybe[U]]) -> Maybe[T] | Maybe[U]:
         """
         The same, but opposite, of `flat_map(f)`.
         Whenever the Maybe[T] contains a None, the
@@ -93,11 +93,16 @@ class Maybe[T]:
 
 
     @overload
-    def or_else(self, t: T | None, msg: str) -> T: ...
+    def or_else[U](self, t: U | None, msg: str) -> T | U: ...
+    # first try to match with type T or any type covariant to T
+    # for instance, if T is list[A | None], then match on list[None]
     @overload
     def or_else(self, t: T) -> T: ...
+    # otherwise, allow any type U that is not T
+    @overload
+    def or_else[U](self, t: U) -> T | U: ...
 
-    def or_else(self, t: T | None, msg: str = '') -> T:
+    def or_else[U](self, t: U | None, msg: str = '') -> T | U:
         """
         Pops out of the Maybe, providing back a raw
         type. If the Maybe contains a None, then
