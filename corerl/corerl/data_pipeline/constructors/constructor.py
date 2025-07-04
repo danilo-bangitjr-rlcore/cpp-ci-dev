@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from collections import defaultdict
+from collections.abc import Sequence
 from functools import cached_property
 
 import pandas as pd
@@ -13,7 +14,7 @@ from corerl.tags.tag_config import TagConfig
 
 
 class Constructor(ABC):
-    def __init__(self, tag_cfgs: list[TagConfig]):
+    def __init__(self, tag_cfgs: Sequence[TagConfig]):
         self._relevant_cfgs = self._get_relevant_configs(tag_cfgs)
 
         self._components: dict[str, list[Transform]] = {
@@ -31,7 +32,7 @@ class Constructor(ABC):
     # -- Required Overrides --
     # ------------------------
     @abstractmethod
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]) -> dict[str, list[TransformConfig]]:
+    def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]) -> dict[str, list[TransformConfig]]:
         ...
 
 

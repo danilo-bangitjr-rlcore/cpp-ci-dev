@@ -45,7 +45,7 @@ class RewardComponentConstructor:
 
 
 class RewardConstructor:
-    def __init__(self, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
+    def __init__(self, tag_cfgs: Sequence[TagConfig], prep_stage: Preprocessor):
         self.component_constructors = _filter_null_components(tag_cfgs)
         self._tag_cfgs = tag_cfgs
         self._prep_stage = prep_stage
@@ -77,7 +77,7 @@ class RewardConstructor:
 
 
 def _filter_null_components(
-    tag_cfgs: list[TagConfig],
+    tag_cfgs: Sequence[TagConfig],
 ) -> dict[TagName, RewardComponentConstructor]:
     nonnull_ccs = {}
     for tag in tag_cfgs:

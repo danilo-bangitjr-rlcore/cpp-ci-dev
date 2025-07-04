@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import timedelta
-from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, assert_never
+from typing import TYPE_CHECKING, Annotated, Literal, assert_never
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
@@ -21,21 +20,13 @@ from corerl.tags.components.bounds import (
     SafetyZonedTag,
     eval_bound,
 )
+from corerl.tags.components.opc import Agg, OPCTag
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
     from corerl.data_pipeline.pipeline import PipelineConfig
 
-
-class Agg(StrEnum):
-    avg = auto()
-    last = auto()
-    bool_or = auto()
-
-class ViolationDirection(StrEnum):
-    upper_violation = auto()
-    lower_violation = auto()
 
 @config()
 class CascadeConfig:
@@ -79,7 +70,10 @@ class GuardrailScheduleConfig:
 # -- Tag Config --
 # ----------------
 @config()
-class TagConfig(SafetyZonedTag):
+class TagConfig(
+    SafetyZonedTag,
+    OPCTag,
+):
     """
     Kind: required external
 
@@ -100,31 +94,13 @@ class TagConfig(SafetyZonedTag):
     This is used for all internal references to the tag, such as in the reward construction.
     """
 
-
-    connection_id: str | None = None
-    """
-    Kind: required external
-
-    The UUID associated to the OPC-UA server connection, used within the CoreIO thin client.
-    """
-
-    node_identifier: str | None = None
-    """
-    Kind: required for ai_setpoint, external
-
-    The full OPC-UA node identifier string (e.g. ns=#;i=?). This is used by coreio in
-    communication with the OPC server.
-    """
-
-    dtype: str = 'float'
-    """
-    Kind: optional external
-
-    The datatype of the OPC data. Typically this will just be a float. In rare cases, this
-    may be a boolean, integer, or string.
-    """
-
-    type: TagType = TagType.default
+    type: Literal[
+        TagType.default,
+        TagType.meta,
+        TagType.ai_setpoint,
+        TagType.seasonal,
+        TagType.delta,
+    ] = TagType.default
     """
     Kind: optional external
 
@@ -165,14 +141,6 @@ class TagConfig(SafetyZonedTag):
     """
 
     # per-tag pipeline configuration
-    agg: Agg = Agg.avg
-    """
-    Kind: internal
-
-    The temporal aggregation strategy used when querying timescale db. For most tags,
-    this should be Agg.avg. For setpoints, this should be Agg.last.
-    """
-
     is_computed: bool = False
     """
     Kind: optional external

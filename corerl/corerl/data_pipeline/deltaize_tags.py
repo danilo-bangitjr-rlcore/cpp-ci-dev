@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from functools import cached_property
 
 from lib_config.config import config
@@ -16,7 +17,7 @@ class DeltaStageConfig:
     delta_cfg: DeltaConfig = Field(default_factory=DeltaConfig)
 
 class DeltaizeTags(Constructor):
-    def __init__(self, tag_cfgs: list[TagConfig], cfg: DeltaStageConfig):
+    def __init__(self, tag_cfgs: Sequence[TagConfig], cfg: DeltaStageConfig):
         self._cfg = cfg
         super().__init__(tag_cfgs)
 
@@ -27,7 +28,7 @@ class DeltaizeTags(Constructor):
 
         return pf
 
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]) -> dict[str, list[TransformConfig]]:
+    def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]) -> dict[str, list[TransformConfig]]:
         return {
             tag.name: [self._cfg.delta_cfg]
             for tag in tag_cfgs

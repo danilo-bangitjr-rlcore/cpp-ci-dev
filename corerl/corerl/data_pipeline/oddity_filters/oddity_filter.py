@@ -1,3 +1,5 @@
+from collections.abc import Sequence
+
 from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
@@ -9,7 +11,7 @@ from corerl.tags.tag_config import TagConfig
 
 
 class OddityFilterConstructor:
-    def __init__(self, tag_cfgs: list[TagConfig], app_state: AppState, cfg: GlobalOddityFilterConfig):
+    def __init__(self, tag_cfgs: Sequence[TagConfig], app_state: AppState, cfg: GlobalOddityFilterConfig):
         self._app_state = app_state
         self._cfg = cfg
         self._relevant_cfgs = self._get_relevant_configs(tag_cfgs)
@@ -22,7 +24,7 @@ class OddityFilterConstructor:
 
         self._tag_cfgs = {tag.name: tag for tag in tag_cfgs}
 
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]) -> dict[str, list[OddityFilterConfig]]:
+    def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]) -> dict[str, list[OddityFilterConfig]]:
         return {
             tag.name: tag.outlier if tag.outlier is not None else self._cfg.defaults
             for tag in tag_cfgs
@@ -59,5 +61,5 @@ class OddityFilterConstructor:
 
         return pf
 
-    def _construct_components(self, sub_cfgs: list[OddityFilterConfig]):
+    def _construct_components(self, sub_cfgs: Sequence[OddityFilterConfig]):
         return [outlier_group.dispatch(sub_cfg, self._app_state) for sub_cfg in sub_cfgs]

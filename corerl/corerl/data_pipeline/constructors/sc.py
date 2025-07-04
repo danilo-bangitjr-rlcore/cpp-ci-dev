@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from functools import cached_property
 
 import lib_utils.list as list_u
@@ -26,7 +26,7 @@ class SCConfig:
 
 
 class StateConstructor(Constructor):
-    def __init__(self, app_state: AppState, tag_cfgs: list[TagConfig], cfg: SCConfig):
+    def __init__(self, app_state: AppState, tag_cfgs: Sequence[TagConfig], cfg: SCConfig):
         self._cfg = cfg
         self._app_state = app_state
         super().__init__(tag_cfgs)
@@ -35,7 +35,7 @@ class StateConstructor(Constructor):
         self._seasonal_features = SeasonalTagFeatures(tag_cfgs)
 
 
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]):
+    def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]):
         return {
             tag.name: tag.state_constructor if tag.state_constructor is not None else self._cfg.defaults
             for tag in StateConstructor.state_configs(tag_cfgs)
@@ -92,14 +92,14 @@ class StateConstructor(Constructor):
         )
 
     @staticmethod
-    def state_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
+    def state_configs(tag_cfgs: Sequence[TagConfig]):
         return [
             tag for tag in tag_cfgs
-            if tag.type not in {TagType.meta}
+            if tag.type != TagType.meta
         ]
 
 
-def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: list[TagConfig]) -> None:
+def construct_default_sc_configs(sc_cfg: SCConfig, tag_cfgs: Sequence[TagConfig]) -> None:
     for tag_cfg in tag_cfgs:
         if tag_cfg.state_constructor is None:
             tag_cfg.state_constructor = sc_cfg.defaults
