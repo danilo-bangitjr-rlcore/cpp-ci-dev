@@ -20,9 +20,6 @@ from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
-from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.tags.tag_config import BasicTagConfig
 
@@ -52,6 +49,10 @@ def pipeline1_config():
     cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
     assert not isinstance(cfg, ConfigValidationErrors)
     return cfg
+
+
+def make_time_index(start: datetime.datetime, steps: int, delta: datetime.timedelta):
+    return pd.DatetimeIndex([start + i * delta for i in range(steps)])
 
 
 def test_construct_pipeline(dummy_app_state: AppState, pipeline1_config: MainConfig):
@@ -86,24 +87,12 @@ def test_state_action_dim(dummy_app_state: AppState, pipeline1_config: MainConfi
     assert col_desc.action_dim == 1
 
 
-def test_pipeline1():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
-    assert isinstance(cfg, MainConfig)
-
-    app_state = AppState(
-        cfg=cfg,
-        metrics=MetricsTable(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
-        event_bus=DummyEventBus(),
-    )
-
+def test_pipeline1(dummy_app_state: AppState, pipeline1_config: MainConfig):
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
+    idx = make_time_index(start, 7, Δ)
 
-    dates = [start + i * Δ for i in range(7)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-1', 'tag-2', 'reward', 'action-1']
+    cols = ['tag-1', 'tag-2', 'reward', 'action-1']
     df = pd.DataFrame(
         data=[
             # note alternation between actions
@@ -120,11 +109,8 @@ def test_pipeline1():
         index=idx,
     )
 
-    pipeline = Pipeline(app_state, cfg.pipeline)
-    got = pipeline(
-        df,
-        data_mode=DataMode.ONLINE,
-    )
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    got = pipeline(df, data_mode=DataMode.ONLINE)
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
     cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_norm_trace-0.1']
@@ -156,7 +142,6 @@ def test_pipeline1():
         index=idx,
     )
 
-    # breakpoint()
     assert dfs_close(got.df, expected_df, col_order_matters=True)
     assert dfs_close(got.rewards, expected_reward)
     assert got.transitions == [
@@ -199,7 +184,6 @@ def test_pipeline1():
             n_step_gamma=0.9,
         ),
     ]
-
 
 
 def test_sub_pipeline1(dummy_app_state: AppState):
