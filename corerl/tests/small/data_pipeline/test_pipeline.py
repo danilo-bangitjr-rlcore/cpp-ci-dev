@@ -16,7 +16,7 @@ from corerl.state import AppState
 
 @pytest.fixture
 def pipeline1_config():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
+    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/assets/test_pipeline1.yaml')
     assert not isinstance(cfg, ConfigValidationErrors)
     return cfg
 
