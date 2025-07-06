@@ -55,29 +55,11 @@ def test_passing_data_to_pipeline(dummy_app_state: AppState, pipeline1_config: M
     _ = pipeline(df, data_mode=DataMode.OFFLINE)
 
 
-def test_state_action_dim(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
-            BasicTagConfig(
-                name='tag-2',
-                operating_range=(None, 10),
-                yellow_bounds=(-1, None),
-                imputer=LinearImputerConfig(max_gap=2),
-                state_constructor=[
-                    NormalizerConfig(from_data=True),
-                    TraceConfig(trace_values=[0.1, 0.9]),
-                ],
-            ),
-            SetpointTagConfig(name='tag-3', operating_range=(0, 1)),
-            SetpointTagConfig(name='tag-4', operating_range=(0, 1)),
-        ],
-        state_constructor=SCConfig(
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=5),
-                obs_period=timedelta(minutes=5),
-            ),
-            defaults=[],
+def test_state_action_dim(dummy_app_state: AppState, pipeline1_config: MainConfig):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    col_desc = pipeline.column_descriptions
+    assert col_desc.state_dim == 5
+    assert col_desc.action_dim == 1
         ),
         transition_creator=AllTheTimeTCConfig(
             # set arbitrarily
