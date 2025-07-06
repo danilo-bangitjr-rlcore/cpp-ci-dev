@@ -1,5 +1,4 @@
 import datetime
-from typing import Any
 
 import jax.numpy as jnp
 import numpy as np
@@ -171,40 +170,19 @@ def test_pipeline1(
     ]
 
 
-def test_pipeline_overlapping_time(dummy_app_state: AppState):
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
-    assert not isinstance(cfg, ConfigValidationErrors)
-    pipeline = Pipeline(dummy_app_state, cfg.pipeline)
-
-    start = datetime.datetime.now(datetime.UTC)
-    Δ = datetime.timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(7)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-1', 'tag-2', 'reward', 'action-1']
-    df = pd.DataFrame(
-        data=[
-            [np.nan, 0,        0,    0],
-            [0,      2,        3,    1],
-            [1,      4,        0,    0],
-            [2,      6,        0,    1],
-            [np.nan, np.nan,   0,    0],
-            [4,      10,       1,    1],
-            [5,      12,       0,    0],
-        ],
-        columns=cols,
-        index=idx,
-    )
-
+def test_pipeline_overlapping_time(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    df, idx = fake_pipeline1_data
     pipeline(df)
 
-    # NOTE: overlap time by two time steps
-    dates = [start + (i - 2) * Δ for i in range(7)]
-    idx = pd.DatetimeIndex(dates)
-
+    # Overlap time by two time steps
+    Δ = idx[1] - idx[0]
+    shifted_idx = pd.DatetimeIndex([t - 2 * Δ for t in idx])
     first_value = 3
-
     prior_df = pd.DataFrame(
         data=[
             [3,  first_value,  0,    0],
@@ -215,10 +193,9 @@ def test_pipeline_overlapping_time(dummy_app_state: AppState):
             [4,      10,       1,    1],
             [5,      np.nan,   np.nan, np.nan],
         ],
-        columns=cols,
-        index=idx,
+        columns=['tag-1', 'tag-2', 'reward', 'action-1'],
+        index=shifted_idx,
     )
-
     out = pipeline(prior_df)
 
     # this can only be true if the temporal state is being reset
