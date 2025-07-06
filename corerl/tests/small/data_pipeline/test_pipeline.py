@@ -4,6 +4,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pytest
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 from test.infrastructure.utils.pandas import dfs_close
@@ -33,33 +34,19 @@ def test_construct_pipeline(dummy_app_state: AppState, pipeline1_config: MainCon
     _ = Pipeline(dummy_app_state, pipeline1_config.pipeline)
 
 
-def test_passing_data_to_pipeline(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
-            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
-        ],
-        transition_creator=AllTheTimeTCConfig(
-            # set arbitrarily
-            gamma=0.9,
-            min_n_step=1,
-            max_n_step=30,
-        ),
-        state_constructor=SCConfig(
-            defaults=[NormalizerConfig(from_data=True)],
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=15),
-                obs_period=timedelta(minutes=15),
-            ),
-        ),
-    )
-    pipeline = Pipeline(dummy_app_state, cfg)
+def test_passing_data_to_pipeline(dummy_app_state: AppState, pipeline1_config: MainConfig):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
 
-    cols = {"sensor_x": [np.nan, 1.0, 2.0], "sensor_y": [2.0, np.nan, 3.0], "reward": [1., 2., 3.]}
+    cols = {
+        "tag-1": [np.nan, 0, 1],
+        "tag-2": [0, 2, 4],
+        "reward": [1., 2., 3.],
+        "action-1": [0, 1, 0],
+    }
     dates = [
         datetime.datetime(2024, 1, 1, 1, 1),
-        datetime.datetime(2024, 1, 1, 1, 2),
-        datetime.datetime(2024, 1, 1, 1, 3),
+        datetime.datetime(2024, 1, 1, 1, 6),
+        datetime.datetime(2024, 1, 1, 1, 11),
     ]
     datetime_index = pd.DatetimeIndex(dates)
     df = pd.DataFrame(cols, index=datetime_index)
