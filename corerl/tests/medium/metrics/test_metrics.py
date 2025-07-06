@@ -119,3 +119,30 @@ def test_db_metrics_read_by_metric(
         assert rewards_df.iloc[i]["value"] == 2 * i
         assert q_df.iloc[i]["agent_step"] == i
         assert q_df.iloc[i]["value"] == i
+
+
+
+def test_disconnect_between_writes(tsdb_engine: Engine, db_metrics_table: MetricsTable):
+    # 1. Start the database and connect (handled by fixture)
+    # 2. Write a few metrics
+    db_metrics_table.write(agent_step=0, metric="q", value=1.0, timestamp="2023-07-13T06:00:00+00:00")
+    db_metrics_table.write(agent_step=0, metric="reward", value=2.0, timestamp="2023-07-13T06:00:00+00:00")
+    db_metrics_table.blocking_sync()
+
+    # 3. Simulate an accidental disconnect
+    tsdb_engine.dispose()
+
+    # 4. Attempt to write more metrics (should be buffered, not written immediately)
+    db_metrics_table.write(agent_step=1, metric="q", value=2.0, timestamp="2023-07-13T07:00:00+00:00")
+    db_metrics_table.write(agent_step=1, metric="reward", value=4.0, timestamp="2023-07-13T07:00:00+00:00")
+
+    # 5. Sync and verify all metrics are accessible
+    db_metrics_table.blocking_sync()
+    with tsdb_engine.connect() as conn:
+        metrics_df = pd.read_sql_table('metrics', con=conn)
+
+    assert len(metrics_df) >= 4
+    assert ((metrics_df['agent_step'] == 0) & (metrics_df['metric'] == 'q')).any()
+    assert ((metrics_df['agent_step'] == 0) & (metrics_df['metric'] == 'reward')).any()
+    assert ((metrics_df['agent_step'] == 1) & (metrics_df['metric'] == 'q')).any()
+    assert ((metrics_df['agent_step'] == 1) & (metrics_df['metric'] == 'reward')).any()
