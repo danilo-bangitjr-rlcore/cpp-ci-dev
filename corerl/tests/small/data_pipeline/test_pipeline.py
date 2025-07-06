@@ -34,64 +34,64 @@ def make_time_index(start: datetime.datetime, steps: int, delta: datetime.timede
     return pd.DatetimeIndex([start + i * delta for i in range(steps)])
 
 
-def test_construct_pipeline(dummy_app_state: AppState, pipeline1_config: MainConfig):
-    _ = Pipeline(dummy_app_state, pipeline1_config.pipeline)
-
-
-def test_passing_data_to_pipeline(dummy_app_state: AppState, pipeline1_config: MainConfig):
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
-
-    cols = {
-        "tag-1": [np.nan, 0, 1],
-        "tag-2": [0, 2, 4],
-        "reward": [1., 2., 3.],
-        "action-1": [0, 1, 0],
-    }
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, 1),
-        datetime.datetime(2024, 1, 1, 1, 6),
-        datetime.datetime(2024, 1, 1, 1, 11),
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-
-    # test that we can run the pf through the pipeline
-    _ = pipeline(df, data_mode=DataMode.OFFLINE)
-
-
-def test_state_action_dim(dummy_app_state: AppState, pipeline1_config: MainConfig):
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
-    col_desc = pipeline.column_descriptions
-    assert col_desc.state_dim == 5
-    assert col_desc.action_dim == 1
-
-
-def test_pipeline1(dummy_app_state: AppState, pipeline1_config: MainConfig):
+@pytest.fixture
+def fake_pipeline1_data():
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
     idx = make_time_index(start, 7, Δ)
-
     cols = ['tag-1', 'tag-2', 'reward', 'action-1']
     df = pd.DataFrame(
         data=[
-            # note alternation between actions
             [np.nan, 0,        0,    0],
             [0,      2,        3,    1],
             [1,      4,        0,    0],
             [2,      6,        0,    1],
             [np.nan, np.nan,   0,    0],
             [4,      10,       1,    1],
-            # tag-2 is out-of-bounds
             [5,      12,       0,    0],
         ],
         columns=cols,
         index=idx,
     )
+    return df, idx
 
+
+def test_construct_pipeline(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+):
+    _ = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+
+
+def test_passing_data_to_pipeline(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    df, _ = fake_pipeline1_data
+    _ = pipeline(df, data_mode=DataMode.OFFLINE)
+
+
+def test_state_action_dim(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    col_desc = pipeline.column_descriptions
+    assert col_desc.state_dim == 5
+    assert col_desc.action_dim == 1
+
+
+def test_pipeline1(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+):
+    df, idx = fake_pipeline1_data
     pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
-    # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
     cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
@@ -124,7 +124,6 @@ def test_pipeline1(dummy_app_state: AppState, pipeline1_config: MainConfig):
     assert dfs_close(got.df, expected_df, col_order_matters=True)
     assert dfs_close(got.rewards, expected_reward)
     assert got.transitions == [
-        # notice that the first row of the DF was skipped due to the np.nan
         Transition(
             steps=[
                 Step(
