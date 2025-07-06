@@ -4,8 +4,6 @@ from copy import deepcopy
 import pandas as pd
 import pytest
 import pytz
-from lib_utils.sql_logging.sql_logging import table_exists
-from lib_utils.time import now_iso
 from sqlalchemy import Engine
 
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
@@ -37,27 +35,8 @@ def db_metrics_table(
 
     metrics_table.close()
 
-def test_db_metrics_writer(tsdb_engine: Engine, db_metrics_table: MetricsTable):
-    metrics_val = 1.5
-    db_metrics_table.write(
-        agent_step=0,
-        metric="q",
-        value=metrics_val,
-        timestamp=now_iso(),
-    )
-    db_metrics_table.blocking_sync()
-
-    with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics', con=conn)
-
-    assert len(metrics_df) == 1
-
-    entry = metrics_df.iloc[0]
-    assert entry["agent_step"] == 0
-    assert entry["metric"] == "q"
-    assert entry["value"] == metrics_val
-
-def test_db_metrics_read_by_time(tsdb_engine: Engine, db_metrics_table: MetricsTable):
+@pytest.fixture()
+def populated_metrics_table(db_metrics_table: MetricsTable):
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -76,11 +55,21 @@ def test_db_metrics_read_by_time(tsdb_engine: Engine, db_metrics_table: MetricsT
         )
         curr_time += delta
     db_metrics_table.blocking_sync()
+    return db_metrics_table, start_time, delta
 
-    # ensure metrics table exists
-    assert table_exists(tsdb_engine, 'metrics')
+def test_db_metrics_read_by_time(
+    tsdb_engine: Engine,
+    populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
+):
+    db_metrics_table, start_time, delta = populated_metrics_table
 
-    # Read metrics tably by timestamp
+    with tsdb_engine.connect() as conn:
+        metrics_df = pd.read_sql_table('metrics', con=conn)
+
+    # Check that all rows were written
+    assert len(metrics_df) == 10  # 5 'q' + 5 'reward'
+
+    # Read metrics table by timestamp
     start_ind = 1
     end_ind = 3
     query_start = start_time + (start_ind * delta)
@@ -88,7 +77,6 @@ def test_db_metrics_read_by_time(tsdb_engine: Engine, db_metrics_table: MetricsT
     rewards_df = db_metrics_table.read("reward", start_time=query_start, end_time=query_end)
     q_df = db_metrics_table.read("q", start_time=query_start, end_time=query_end)
 
-    # Ensure the correct entries are in the read DFs
     assert len(rewards_df) == end_ind - start_ind + 1
     assert len(q_df) == end_ind - start_ind + 1
     for i in range(start_ind, end_ind + 1):
@@ -97,36 +85,17 @@ def test_db_metrics_read_by_time(tsdb_engine: Engine, db_metrics_table: MetricsT
         assert q_df.iloc[i - start_ind]["time"] == pd.Timestamp(start_time + (i * delta))
         assert q_df.iloc[i - start_ind]["value"] == i
 
-def test_db_metrics_read_by_step(tsdb_engine: Engine, db_metrics_table: MetricsTable):
-    start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
-    curr_time = deepcopy(start_time)
-    delta = dt.timedelta(hours=1)
-    for i in range(5):
-        db_metrics_table.write(
-            agent_step=i,
-            metric="q",
-            value=i,
-            timestamp=curr_time.isoformat(),
-        )
-        db_metrics_table.write(
-            agent_step=i,
-            metric="reward",
-            value=2*i,
-            timestamp=curr_time.isoformat(),
-        )
-        curr_time += delta
-    db_metrics_table.blocking_sync()
+def test_db_metrics_read_by_step(
+    populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
+):
+    db_metrics_table, _, _ = populated_metrics_table
 
-    # ensure metrics table exists
-    assert table_exists(tsdb_engine, 'metrics')
-
-    # Read metrics tably by agent_step
+    # Read metrics table by agent_step
     start_step = None
     end_step = 3
     rewards_df = db_metrics_table.read("reward", step_start=start_step, step_end=end_step)
     q_df = db_metrics_table.read("q", step_start=start_step, step_end=end_step)
 
-    # Ensure the correct entries are in the read DFs
     assert len(rewards_df) == end_step + 1
     assert len(q_df) == end_step + 1
     for i in range(end_step + 1):
@@ -135,38 +104,17 @@ def test_db_metrics_read_by_step(tsdb_engine: Engine, db_metrics_table: MetricsT
         assert q_df.iloc[i]["agent_step"] == i
         assert q_df.iloc[i]["value"] == i
 
-def test_db_metrics_read_by_metric(tsdb_engine: Engine, db_metrics_table: MetricsTable):
-    start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
-    curr_time = deepcopy(start_time)
-    delta = dt.timedelta(hours=1)
-    steps = 5
-    for i in range(steps):
-        db_metrics_table.write(
-            agent_step=i,
-            metric="reward",
-            value=2*i,
-            timestamp=curr_time.isoformat(),
-        )
-        db_metrics_table.write(
-            agent_step=i,
-            metric="q",
-            value=i,
-            timestamp=curr_time.isoformat(),
-        )
-        curr_time += delta
-    db_metrics_table.blocking_sync()
+def test_db_metrics_read_by_metric(
+    populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
+):
+    db_metrics_table, _, _ = populated_metrics_table
 
-    # ensure metrics table exists
-    assert table_exists(tsdb_engine, 'metrics')
-
-    # Read metrics table by metric
     rewards_df = db_metrics_table.read("reward")
     q_df = db_metrics_table.read("q")
 
-    # Ensure the correct entries are in the read DFs
-    assert len(rewards_df) == steps
-    assert len(q_df) == steps
-    for i in range(steps):
+    assert len(rewards_df) == 5
+    assert len(q_df) == 5
+    for i in range(5):
         assert rewards_df.iloc[i]["agent_step"] == i
         assert rewards_df.iloc[i]["value"] == 2 * i
         assert q_df.iloc[i]["agent_step"] == i
