@@ -2,7 +2,6 @@ import datetime
 from datetime import timedelta
 from typing import Any
 
-import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
@@ -22,26 +21,6 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
 from corerl.tags.tag_config import BasicTagConfig
-
-
-def mkstep(
-    reward: float,
-    action: jax.Array,
-    gamma: float,
-    state: jax.Array,
-    dp: bool, # decision point
-    ac: bool, # action change
-):
-    return Step(
-        reward=reward,
-        action=action,
-        gamma=gamma,
-        state=state,
-        action_lo=jnp.zeros_like(action),
-        action_hi=jnp.ones_like(action),
-        dp=dp,
-        ac=ac,
-    )
 
 
 @pytest.fixture
@@ -148,37 +127,52 @@ def test_pipeline1(dummy_app_state: AppState, pipeline1_config: MainConfig):
         # notice that the first row of the DF was skipped due to the np.nan
         Transition(
             steps=[
-                # expected state order: [tag-1, action-1-hi, action-1-lo, countdown.[0], tag-2_norm_trace-0.1]
-                mkstep(reward=3,
-                       action=jnp.array([1.]),
-                       gamma=0.9,
-                       state=jnp.array([0.0, 1, 0, 0, 0.18]),
-                       dp=True,
-                       ac=True),
-                mkstep(reward=0,
-                       action=jnp.array([0.]),
-                       gamma=0.9,
-                       state=jnp.array([1.0, 1, 0, 0, 0.378]),
-                       dp=True,
-                       ac=True),
+                Step(
+                    reward=3,
+                    action=jnp.array([1.]),
+                    gamma=0.9,
+                    state=jnp.array([0.0, 1, 0, 0, 0.18]),
+                    action_lo=jnp.zeros_like(jnp.array([1.])),
+                    action_hi=jnp.ones_like(jnp.array([1.])),
+                    dp=True,
+                    ac=True,
+                ),
+                Step(
+                    reward=0,
+                    action=jnp.array([0.]),
+                    gamma=0.9,
+                    state=jnp.array([1.0, 1, 0, 0, 0.378]),
+                    action_lo=jnp.zeros_like(jnp.array([0.])),
+                    action_hi=jnp.ones_like(jnp.array([0.])),
+                    dp=True,
+                    ac=True,
+                ),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
         Transition(
             steps=[
-                mkstep(reward=0,
-                       action=jnp.array([0.]),
-                       gamma=0.9,
-                       state=jnp.array([1.0, 1, 0, 0, 0.378]),
-                       dp=True,
-                       ac=True),
-                mkstep(reward=0,
-                       action=jnp.array([1.]),
-                       gamma=0.9,
-                       state=jnp.array([2.0, 1, 0, 0,  0.5778]),
-                       dp=True,
-                       ac=True),
+                Step(
+                    reward=0,
+                    action=jnp.array([0.]),
+                    gamma=0.9,
+                    state=jnp.array([1.0, 1, 0, 0, 0.378]),
+                    action_lo=jnp.zeros_like(jnp.array([0.])),
+                    action_hi=jnp.ones_like(jnp.array([0.])),
+                    dp=True,
+                    ac=True,
+                ),
+                Step(
+                    reward=0,
+                    action=jnp.array([1.]),
+                    gamma=0.9,
+                    state=jnp.array([2.0, 1, 0, 0,  0.5778]),
+                    action_lo=jnp.zeros_like(jnp.array([1.])),
+                    action_hi=jnp.ones_like(jnp.array([1.])),
+                    dp=True,
+                    ac=True,
+                ),
             ],
             n_step_reward=0.,
             n_step_gamma=0.9,
