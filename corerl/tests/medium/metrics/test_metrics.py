@@ -47,18 +47,15 @@ def test_db_metrics_writer(tsdb_engine: Engine, db_metrics_table: MetricsTable):
     )
     db_metrics_table.blocking_sync()
 
-    # ensure metrics table exists
-    assert table_exists(tsdb_engine, 'metrics')
-
-    # Ensure the entry written above exists in the metrics table
     with tsdb_engine.connect() as conn:
         metrics_df = pd.read_sql_table('metrics', con=conn)
-        assert len(metrics_df) == 1
 
-        entry = metrics_df.iloc[0]
-        assert entry["agent_step"] == 0
-        assert entry["metric"] == "q"
-        assert entry["value"] == 1.5
+    assert len(metrics_df) == 1
+
+    entry = metrics_df.iloc[0]
+    assert entry["agent_step"] == 0
+    assert entry["metric"] == "q"
+    assert entry["value"] == metrics_val
 
 def test_db_metrics_read_by_time(tsdb_engine: Engine, db_metrics_table: MetricsTable):
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
