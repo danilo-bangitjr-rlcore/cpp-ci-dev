@@ -22,26 +22,15 @@ from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import BasicTagConfig
 
 
-def test_construct_pipeline(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(name='sensor_x', operating_range=(-1, 1)),
-            BasicTagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
-        ],
-        transition_creator=AllTheTimeTCConfig(
-            # set arbitrarily
-            gamma=0.9,
-            min_n_step=1,
-            max_n_step=30,
-        ),
-        state_constructor=SCConfig(
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=15),
-                obs_period=timedelta(minutes=15),
-            ),
-        ),
-    )
-    _ = Pipeline(dummy_app_state, cfg)
+@pytest.fixture
+def pipeline1_config():
+    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
+    assert not isinstance(cfg, ConfigValidationErrors)
+    return cfg
+
+
+def test_construct_pipeline(dummy_app_state: AppState, pipeline1_config: MainConfig):
+    _ = Pipeline(dummy_app_state, pipeline1_config.pipeline)
 
 
 def test_passing_data_to_pipeline(dummy_app_state: AppState):
