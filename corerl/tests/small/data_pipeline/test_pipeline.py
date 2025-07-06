@@ -113,7 +113,7 @@ def test_pipeline1(dummy_app_state: AppState, pipeline1_config: MainConfig):
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
     # returned df has columns sorted in order: action, endogenous, exogenous, state, reward
-    cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_norm_trace-0.1']
+    cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
             [np.nan, 1, 0, 0, 0],
@@ -326,6 +326,6 @@ def test_pipeline_overlapping_time(dummy_app_state: AppState):
     # this can only be true if the temporal state is being reset
     # between invocations
     assert np.isclose(
-        out.states['tag-2_norm_trace-0.1'].iloc[0],
+        out.states['tag-2_trace-0.1'].iloc[0],
         0.1 * first_value,
     )
