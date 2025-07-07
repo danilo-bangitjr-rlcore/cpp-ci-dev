@@ -1,3 +1,5 @@
+from typing import Any
+
 import filelock
 import pytest
 from corerl.sql_logging.sql_logging import SQLEngineConfig
@@ -103,21 +105,6 @@ KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
 }
 
 
-def _zero_one_matrix(flags: list[str]):
-    """
-    Produces a matrix of feature flags with only one-hot values.
-    Example:
-    { 'delta_actions': True, 'zone_violations': False, 'action_embedding': False }
-    """
-    matrix: list[dict[str, bool]] = []
-    for flag in flags:
-        vals = dict.fromkeys(flags, False)
-        vals[flag] = True
-        matrix.append(vals)
-
-    return matrix
-
-
 def get_tests_by_category(category: BehaviourCategory) -> list[BSuiteTestCase]:
     return [
         test_case for test_case in TEST_CASES
@@ -125,26 +112,23 @@ def get_tests_by_category(category: BehaviourCategory) -> list[BSuiteTestCase]:
     ]
 
 
+@pytest.fixture(scope='session')
+def feature_flag(pytestconfig: Any):
+    return pytestconfig.getoption('feature_flag')
+
+
 @pytest.mark.parametrize('test_case', TEST_CASES, ids=lambda tc: tc.name)
-@pytest.mark.parametrize('feature_flags', _zero_one_matrix(ZERO_ONE_FEATURES), ids=str)
 def test_bsuite(
     test_case: BSuiteTestCase,
     bsuite_tsdb: None,
-    feature_flags: dict[str, bool],
+    feature_flag: str,
 ):
     # skip the test if any required feature is disabled
-    for req_feature in test_case.required_features:
-        if not feature_flags[req_feature]:
-            pytest.skip()
+    if test_case.required_features and feature_flag not in test_case.required_features:
+        pytest.skip()
 
-    enabled_features = [
-        feature for feature, enabled in feature_flags.items() if enabled
-    ]
-    feature_postfix = '_'.join(enabled_features)
-    if feature_postfix:
-        feature_postfix = '_' + feature_postfix
-
-    schema = test_case.name.lower().replace(' ', '_') + feature_postfix
+    feature_flags = { feature_flag: True }
+    schema = test_case.name.lower().replace(' ', '_') + f'_{feature_flag}'
 
     PORT = 22222
     db_name = 'bsuite'
@@ -171,7 +155,7 @@ def test_bsuite(
 
         # if known to fail for given enabled features, xfail
         assert isinstance(fail_conditions, dict)
-        if any(fail_conditions.get(f, False) for f in enabled_features):
+        if any(fail_conditions.get(f, False) for f, enabled in feature_flags.items() if enabled):
             pytest.xfail()
 
         raise e
