@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Sequence
 from typing import Any, overload
 
 from lib_utils.list import find
@@ -63,7 +63,7 @@ class Maybe[T]:
     # ------------------------
     # -- Negative Accessors --
     # ------------------------
-    def otherwise(self, f: Callable[[], T | None]) -> Maybe[T]:
+    def otherwise[U](self, f: Callable[[], U | None]) -> Maybe[T] | Maybe[U]:
         """
         The same, but opposite, of `map(f)`.
         Whenever the Maybe[T] contains a None, the
@@ -75,7 +75,7 @@ class Maybe[T]:
         return self
 
 
-    def flat_otherwise(self, f: Callable[[], Maybe[T]]) -> Maybe[T]:
+    def flat_otherwise[U](self, f: Callable[[], Maybe[U]]) -> Maybe[T] | Maybe[U]:
         """
         The same, but opposite, of `flat_map(f)`.
         Whenever the Maybe[T] contains a None, the
@@ -93,11 +93,16 @@ class Maybe[T]:
 
 
     @overload
-    def or_else(self, t: T | None, msg: str) -> T: ...
+    def or_else[U](self, t: U | None, msg: str) -> T | U: ...
+    # first try to match with type T or any type covariant to T
+    # for instance, if T is list[A | None], then match on list[None]
     @overload
     def or_else(self, t: T) -> T: ...
+    # otherwise, allow any type U that is not T
+    @overload
+    def or_else[U](self, t: U) -> T | U: ...
 
-    def or_else(self, t: T | None, msg: str = '') -> T:
+    def or_else[U](self, t: U | None, msg: str = '') -> T | U:
         """
         Pops out of the Maybe, providing back a raw
         type. If the Maybe contains a None, then
@@ -137,10 +142,32 @@ class Maybe[T]:
     def is_some(self):
         return self._v is not None
 
-
     # ---------------
     # -- Utilities --
     # ---------------
+
+    def split[U, V](self, u: type[U], v: type[V], /) -> tuple[Maybe[U], Maybe[V]]:
+        if not isinstance(self._v, Sequence): # captures self._v is None
+            return Maybe[U](None), Maybe[V](None)
+
+        left = Maybe(self._v[0]).is_instance(u)
+        right = Maybe(self._v[1]).is_instance(v)
+        return left, right
+
+    @overload
+    @staticmethod
+    def tap_all[U, V, W](f: Callable[[U, V, W], Any], a: Maybe[U], b: Maybe[V], c: Maybe[W], /): ...
+    @overload
+    @staticmethod
+    def tap_all[U, V](f: Callable[[U, V], Any], a: Maybe[U], b: Maybe[V], /): ...
+    @staticmethod
+    def tap_all(f: Callable[..., Any], *args: Maybe[Any]):
+        un_args = [args.unwrap() for args in args]
+        if any(arg is None for arg in un_args):
+            return
+
+        f(*un_args)
+
     def is_instance[U](self, typ: type[U]) -> Maybe[U]:
         if isinstance(self._v, typ):
             return Maybe[U](self._v)

@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
 from functools import cached_property
 
 import numpy as np
@@ -14,7 +14,7 @@ from corerl.tags.tag_config import TagConfig
 
 
 class Preprocessor(Constructor):
-    def _get_relevant_configs(self, tag_cfgs: list[TagConfig]):
+    def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]):
         return {
             tag.name: tag.preprocess
             for tag in tag_cfgs

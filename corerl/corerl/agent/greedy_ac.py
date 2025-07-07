@@ -22,6 +22,7 @@ from lib_agent.critic.qrc_critic import (
     get_stable_rank,
 )
 from lib_config.config import MISSING, computed, config
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
@@ -239,6 +240,7 @@ class GreedyAC(BaseAgent):
             cfg.nominal_setpoint
             if cfg.nominal_setpoint is not None else 0.5
             for cfg in self._col_desc.action_tags
+            if cfg.type == TagType.ai_setpoint
         ])
 
 

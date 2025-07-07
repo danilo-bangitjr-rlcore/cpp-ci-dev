@@ -11,7 +11,9 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.messages.events import Event, EventType
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig, ViolationDirection, eval_bound
+from corerl.tags.components.bounds import SafetyZonedTag, ViolationDirection
+from corerl.tags.setpoint import eval_bound
+from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +21,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class ZoneViolation:
     row_idx: Any
-    tag: TagConfig
+    tag: SafetyZonedTag
     percent: float
     direction: ViolationDirection
     kind: Literal['red', 'yellow']
@@ -32,8 +34,11 @@ class ZoneDiscourager:
 
         self._bounded_tag_cfgs = [
             tag_cfg for tag_cfg in tag_configs
-            if tag_cfg.yellow_bounds is not None
-            or tag_cfg.red_bounds is not None
+            if isinstance(tag_cfg, SafetyZonedTag)
+            and (
+                tag_cfg.yellow_bounds is not None
+                or tag_cfg.red_bounds is not None
+            )
         ]
 
 
@@ -150,7 +155,7 @@ class ZoneDiscourager:
         return -4 - (4 * violation.percent)
 
 
-    def _detect_yellow_violation(self, row: pd.DataFrame, row_idx: int, tag: TagConfig):
+    def _detect_yellow_violation(self, row: pd.DataFrame, row_idx: int, tag: SafetyZonedTag):
         x: float = row[tag.name].to_numpy()[0]
 
         yellow_lo = (
@@ -208,7 +213,7 @@ class ZoneDiscourager:
 
         return None
 
-    def _detect_red_violation(self, row: pd.DataFrame, row_idx: Any, tag: TagConfig):
+    def _detect_red_violation(self, row: pd.DataFrame, row_idx: Any, tag: SafetyZonedTag):
         x: float = row[tag.name].to_numpy()[0]
 
         red_lo = (

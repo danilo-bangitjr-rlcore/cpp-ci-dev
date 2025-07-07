@@ -2,9 +2,8 @@ import subprocess
 
 import pandas as pd
 import pytest
+from lib_utils.sql_logging.sql_logging import table_exists
 from sqlalchemy import Engine
-
-from corerl.sql_logging.sql_logging import table_exists
 
 
 @pytest.mark.parametrize('config_name', [

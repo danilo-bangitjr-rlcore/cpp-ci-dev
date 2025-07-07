@@ -6,6 +6,7 @@ import yaml
 from coreio.config import CoreIOConfig
 from lib_config.config import MISSING, computed, config, list_, post_processor
 from lib_config.loader import config_to_json
+from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
@@ -109,6 +110,15 @@ class FeatureFlags:
     # 2025-06-22
     noisy_networks: bool = False
 
+    # 2025-06-27
+    higher_critic_lr: bool = False
+
+    # 2025-06-27
+    ensemble_2: bool = False
+
+    # 2025-06-27
+    mu_sigma_multipliers: bool = False
+
 
 @config()
 class OfflineConfig:
@@ -186,6 +196,23 @@ class MainConfig:
             self.agent.critic.buffer.ensemble_probability = 1.
 
     @post_processor
+    def _enable_ensemble_2(self, cfg: 'MainConfig'):
+        if self.feature_flags.ensemble_2:
+            self.agent.critic.critic_network.ensemble = 2
+            self.agent.critic.buffer.ensemble = 2
+
+    @post_processor
+    def _enable_higher_critic_lr(self, cfg: 'MainConfig'):
+        if self.feature_flags.higher_critic_lr:
+            self.agent.critic.stepsize = 0.001
+
+    @post_processor
+    def _enable_mu_sigma_multipliers(self, cfg: 'MainConfig'):
+        if self.feature_flags.mu_sigma_multipliers:
+            self.agent.policy.mu_multiplier = 10.0
+            self.agent.policy.sigma_multiplier = 1.0
+
+    @post_processor
     def _enable_recency_bias_buffer(self, cfg: 'MainConfig'):
         if not self.feature_flags.recency_bias_buffer:
             return
@@ -212,7 +239,7 @@ class MainConfig:
         self.interaction.heartbeat.heartbeat_period /= self.interaction.time_dilation
 
         for tag_cfg in self.pipeline.tags:
-            if tag_cfg.guardrail_schedule is not None:
+            if tag_cfg.type == TagType.ai_setpoint and tag_cfg.guardrail_schedule is not None:
                 tag_cfg.guardrail_schedule.duration /= self.interaction.time_dilation
 
 

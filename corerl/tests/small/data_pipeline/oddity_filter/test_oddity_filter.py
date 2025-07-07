@@ -9,12 +9,12 @@ from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig
 
 
 def test_oddity0(dummy_app_state: AppState):
 
-    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    tags = [BasicTagConfig(name="obs_1"), BasicTagConfig(name="obs_2")]
     oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[IdentityFilterConfig()])
     oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
 
@@ -44,7 +44,7 @@ def test_oddity0(dummy_app_state: AppState):
 
 def test_oddity1(dummy_app_state: AppState):
 
-    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    tags = [BasicTagConfig(name="obs_1"), BasicTagConfig(name="obs_2")]
     oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[EMAFilterConfig(warmup=3)])
     oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
 
@@ -74,7 +74,7 @@ def test_oddity1(dummy_app_state: AppState):
 
 def test_oddity2(dummy_app_state: AppState):
 
-    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    tags = [BasicTagConfig(name="obs_1"), BasicTagConfig(name="obs_2")]
     oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[EMAFilterConfig(warmup=3)])
     oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
 
@@ -129,7 +129,7 @@ def test_oddity3(dummy_app_state: AppState):
     Same as oddity filter 2, with identity filter added to the chain of oddity detectors
     """
 
-    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    tags = [BasicTagConfig(name="obs_1"), BasicTagConfig(name="obs_2")]
     oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[EMAFilterConfig(warmup=3), IdentityFilterConfig()])
     oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
 
@@ -184,7 +184,7 @@ def test_stuck1(dummy_app_state: AppState):
     Same as oddity filter 2, with identity filter added to the chain of oddity detectors
     """
 
-    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    tags = [BasicTagConfig(name="obs_1"), BasicTagConfig(name="obs_2")]
     oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[StuckDetectorConfig(step_tol=2)])
     oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
 
@@ -218,7 +218,7 @@ def test_stuck_and_ema(dummy_app_state: AppState):
     Same as oddity filter 2, with identity filter added to the chain of oddity detectors
     """
 
-    tags = [TagConfig("obs_1"), TagConfig("obs_2")]
+    tags = [BasicTagConfig(name="obs_1"), BasicTagConfig(name="obs_2")]
     oddity_filter_cfg = GlobalOddityFilterConfig(defaults=[StuckDetectorConfig(step_tol=2), EMAFilterConfig(warmup=3)])
     oddity_filter = OddityFilterConstructor(tags, dummy_app_state, oddity_filter_cfg)
 

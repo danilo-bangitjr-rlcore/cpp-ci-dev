@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from functools import partial
 from typing import TypedDict
@@ -12,7 +13,8 @@ from lib_utils.maybe import Maybe
 # Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.tags.tag_config import TagConfig, eval_bound, get_scada_tags
+from corerl.tags.setpoint import SetpointTagConfig, eval_bound
+from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
 
 logger = logging.getLogger(__name__)
@@ -42,8 +44,8 @@ class DeploymentAsyncEnv(AsyncEnv):
 
         # create dict of action tags
         action_cfgs = [tag for tag in tag_configs if tag.type == TagType.ai_setpoint]
-        self._action_cfgs: dict[str, TagConfig] = {}
-        for tag_cfg in sorted(action_cfgs, key=lambda cfg: cfg.name):
+        self._action_cfgs: dict[str, SetpointTagConfig] = {}
+        for tag_cfg in action_cfgs:
             self._action_cfgs[tag_cfg.name] = tag_cfg
 
         # define opc action nodes
@@ -57,10 +59,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return DataReader(db_cfg=self._cfg.db)
 
     def _register_action_nodes(self):
-        for tag_cfg in sorted(self.tag_configs, key=lambda cfg: cfg.name):
-            if tag_cfg.type != TagType.ai_setpoint:
-                continue
-
+        for tag_cfg in sorted(self._action_cfgs.values(), key=lambda cfg: cfg.name):
             tag_name = tag_cfg.name
             assert tag_cfg.node_identifier is not None, "Tag Config action missing node_identifier"
             node_id = tag_cfg.node_identifier
@@ -114,7 +113,7 @@ class DeploymentAsyncEnv(AsyncEnv):
         return self._cfg
 
 
-def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
+def sanitize_actions(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfig], rtol: float = 0.001) -> None:
     if len(action) < 1:
         logger.error("Action df empty")
         return
@@ -125,7 +124,7 @@ def sanitize_actions(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rt
 
     clip_action(action, action_cfgs, rtol)
 
-def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: float = 0.001) -> None:
+def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfig], rtol: float = 0.001) -> None:
     for action_name, action_cfg in action_cfgs.items():
         action_val = action[action_name].iloc[0]
         lo, hi = get_clip_bounds(action_cfg, action)
@@ -138,7 +137,7 @@ def clip_action(action: pd.DataFrame, action_cfgs: dict[str, TagConfig], rtol: f
 
         action[action_name] = np.clip(action_val, lo + atol, hi - atol)
 
-def get_clip_bounds(action_cfg: TagConfig, action: pd.DataFrame):
+def get_clip_bounds(action_cfg: SetpointTagConfig, action: pd.DataFrame):
     # prefer to use red zones, otherwise use operating range
     lo = (
         Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])

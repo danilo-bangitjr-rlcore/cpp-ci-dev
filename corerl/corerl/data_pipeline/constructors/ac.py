@@ -10,7 +10,8 @@ from lib_utils.maybe import Maybe
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig, get_action_bounds
+from corerl.tags.setpoint import SetpointTagConfig, get_action_bounds
+from corerl.tags.tag_config import TagConfig
 from corerl.utils.time import percent_time_elapsed
 
 
@@ -96,7 +97,7 @@ class ActionConstructor:
     def sort_cols(self, cols: Iterable[str]):
         return sorted(cols)
 
-    def _get_guardrails(self, cfg: TagConfig, a_lo: float, a_hi: float):
+    def _get_guardrails(self, cfg: SetpointTagConfig, a_lo: float, a_hi: float):
         guard_lo, guard_hi = None, None
 
         if cfg.guardrail_schedule is None:
@@ -125,7 +126,7 @@ class ActionConstructor:
         )
 
     @staticmethod
-    def action_configs(tag_cfgs: list[TagConfig]) -> list[TagConfig]:
+    def action_configs(tag_cfgs: list[TagConfig]):
         """
         Returns a list of action tags from the provided tag configurations.
         """

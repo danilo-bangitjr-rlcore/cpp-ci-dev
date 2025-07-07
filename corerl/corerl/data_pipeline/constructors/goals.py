@@ -8,7 +8,8 @@ from lib_utils.maybe import Maybe
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.environment.reward.config import Goal, JointGoal, Optimization, RewardConfig
-from corerl.tags.tag_config import TagConfig, get_tag_bounds
+from corerl.tags.components.bounds import BoundedTag, SafetyZonedTag, get_tag_bounds
+from corerl.tags.tag_config import TagConfig
 from corerl.utils.math import put_in_range
 
 logger = logging.getLogger(__name__)
@@ -83,6 +84,7 @@ class GoalConstructor:
         """
         bounds = (
             Maybe.find(lambda cfg: cfg.name == tag, self._tag_cfgs)
+            .is_instance(SafetyZonedTag)
             .map(partial(get_tag_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {tag}')
         )
@@ -102,6 +104,7 @@ class GoalConstructor:
         """
         tag_config = (
             Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
+            .is_instance(BoundedTag)
             .expect(f'Was unable to find tag config for tag: {goal.tag}')
         )
         if tag_config.operating_range is None:
@@ -201,6 +204,7 @@ class GoalConstructor:
 
         bounds = (
             Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
+            .is_instance(SafetyZonedTag)
             .map(partial(get_tag_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {goal.tag}')
         )

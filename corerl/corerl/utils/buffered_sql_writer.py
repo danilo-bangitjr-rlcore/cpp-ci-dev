@@ -6,10 +6,11 @@ from concurrent.futures import Future, ThreadPoolExecutor
 from typing import TYPE_CHECKING, NamedTuple
 
 from lib_config.config import MISSING, computed, config
+from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
 from sqlalchemy import Engine, TextClause
 
 from corerl.data_pipeline.db.utils import TryConnectContextManager
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine, table_exists
+from corerl.sql_logging.sql_logging import SQLEngineConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

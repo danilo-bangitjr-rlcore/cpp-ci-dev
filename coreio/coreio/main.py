@@ -37,14 +37,19 @@ async def coreio_loop(cfg: MainConfigAdapter):
     opc_connections: dict[str, OPC_Connection] = {}
     for opc_conn_cfg in cfg.coreio.opc_connections:
         logger.info(f"Connecting to OPC Connection {opc_conn_cfg.connection_id} at {opc_conn_cfg.opc_conn_url}")
-        opc_connections[opc_conn_cfg.connection_id] = await OPC_Connection().init(opc_conn_cfg, cfg.pipeline.tags)
+        opc_conn = await OPC_Connection().init(opc_conn_cfg)
+        opc_connections[opc_conn_cfg.connection_id] = opc_conn
+
+        async with opc_conn:
+            await opc_conn.register_action_nodes(cfg.pipeline.tags)
 
         # Register heartbeat_id separately
         if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
             heartbeat_id = cfg.interaction.heartbeat.heartbeat_node_id
 
             if heartbeat_id is not None:
-                await opc_connections[opc_conn_cfg.connection_id].register_node(heartbeat_id)
+                async with opc_conn:
+                    await opc_conn.register_node(heartbeat_id)
 
     logger.info("Starting ZMQ communication")
     zmq_communication = ZMQ_Communication(cfg.coreio)

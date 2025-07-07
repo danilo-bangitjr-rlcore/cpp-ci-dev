@@ -81,7 +81,7 @@ async def test_connect1(server: FakeOpcServer, client: OPC_Connection, opc_port:
     Client should be able to connect to a running server.
     """
     config = load_config(Path("assets", "basic.yaml"), opc_port)
-    await client.init(config, [])
+    await client.init(config)
     await client.start()
 
     # Cleanup
@@ -92,7 +92,7 @@ async def test_connect2(client: OPC_Connection, opc_port: int):
     Client should connect to a server that is started after the client.
     """
     client_config = load_config(Path("assets", "basic.yaml"), opc_port)
-    connect_task = asyncio.create_task(client.init(client_config, [])) # Client tries to connect during init
+    connect_task = asyncio.create_task(client.init(client_config)) # Client tries to connect during init
     await asyncio.sleep(1)
 
     server = FakeOpcServer(opc_port)
@@ -116,7 +116,7 @@ async def test_disconnect1(server: FakeOpcServer, client: OPC_Connection, opc_po
       4. Client implicitly reconnects in the background
     """
     client_config = load_config(Path("assets", "basic.yaml"), opc_port)
-    await client.init(client_config, [])
+    await client.init(client_config)
     await server.close()
     await asyncio.sleep(0.1)
     await server.start()
@@ -135,5 +135,5 @@ async def test_connect_encrypt(
     to a server endpoint with same config
     """
     client_config = load_config(Path("assets", "sha256_se_up.yaml"), opc_port, client_server_key_certs)
-    await client.init(client_config, [])
+    await client.init(client_config)
     await client.start()

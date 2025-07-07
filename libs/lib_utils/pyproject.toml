@@ -17,6 +17,8 @@ dev = [
     "pytest>=8.4.0",
     "pytest-xdist>=3.7.0",
     "ruff>=0.11.12",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
     "uv>=0.5.24",
 ]
 

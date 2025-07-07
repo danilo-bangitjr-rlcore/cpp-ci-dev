@@ -1,6 +1,7 @@
 import filelock
 import pytest
-from corerl.sql_logging.sql_logging import SQLEngineConfig, get_sql_engine
+from corerl.sql_logging.sql_logging import SQLEngineConfig
+from lib_utils.sql_logging.sql_logging import get_sql_engine
 
 from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
@@ -85,6 +86,9 @@ ZERO_ONE_FEATURES = [
     'regenerative_optimism',
     'normalize_return',
     'noisy_networks',
+    'higher_critic_lr',
+    'ensemble_2',
+    'mu_sigma_multipliers',
 ]
 
 

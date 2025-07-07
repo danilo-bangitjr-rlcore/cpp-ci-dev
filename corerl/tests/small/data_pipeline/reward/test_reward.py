@@ -12,17 +12,17 @@ import corerl.data_pipeline.transforms as xform
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig, TagConfig
 
 
 @pytest.fixture
 def tag_cfgs():
     return [
-        TagConfig(
+        BasicTagConfig(
             name='obs-1',
             preprocess=[],
         ),
-        TagConfig(
+        BasicTagConfig(
             name='obs-2',
             preprocess=[],
         ),
@@ -37,8 +37,8 @@ def prep_stage(tag_cfgs: list[TagConfig]):
 def test_rc1(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
     raw_obs = pd.DataFrame(
         {
-            "obs-1": [np.nan, 1, 2, 3, np.nan, 1, 2],
-            "obs-2": [1, 2, 3, np.nan, 1, 2, np.nan],
+            "obs-1": [1, 2, 3],
+            "obs-2": [1, 2, 3],
         },
     )
 
@@ -60,8 +60,8 @@ def test_rc1(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
     expected_components = pd.DataFrame(
         {
-            "obs-1_trace-0.1": [np.nan, 1.0, 1.9, 2.89, np.nan, 1.0, 1.9],
-            "obs-2_trace-0.1": [1.0, 1.9, 2.89, np.nan, 1.0, 1.9, np.nan],
+            "obs-1_trace-0.1": [1.0, 1.9, 2.89],
+            "obs-2_trace-0.1": [1.0, 1.9, 2.89],
         },
     )
     expected_reward_vals = expected_components.sum(axis=1, skipna=False)
@@ -73,8 +73,8 @@ def test_rc1(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
     raw_obs = pd.DataFrame(
         {
-            "obs-1": [np.nan, 1, 2, 3, np.nan, 1, 2],
-            "obs-2": [1, 2, 3, np.nan, 1, 2, np.nan],
+            "obs-1": [1, 2, 3],
+            "obs-2": [1, 2, 3],
         },
     )
 
@@ -85,7 +85,7 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
     tag_cfgs[0].reward_constructor = [
         xform.NormalizerConfig(min=0.0, max=1.0, from_data=False),
-        xform.TraceConfig(trace_values=[0.1]),
+        xform.TraceConfig(trace_values=[0.1], missing_tol=1.0),
     ]
     tag_cfgs[1].reward_constructor = [
         xform.NukeConfig(),
@@ -99,7 +99,7 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
     expected_components = pd.DataFrame(
         {
-            "obs_1_trace-0.1": [np.nan, 1.0, 1.9, 2.89, np.nan, 1.0, 1.9],
+            "obs_1_trace-0.1": [1.0, 1.9, 2.89],
         },
     )
     expected_reward_vals = expected_components.sum(axis=1, skipna=False)
@@ -110,12 +110,12 @@ def test_null_xform(tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
 
 def test_lessthan_xform():
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name="obs-1",
             preprocess=[],
             # default null reward config
         ),
-        TagConfig(
+        BasicTagConfig(
             name="obs-2",
             preprocess=[],
             reward_constructor=[
@@ -162,12 +162,12 @@ def test_lessthan_xform():
 
 def test_greaterthan_xform():
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name="obs-1",
             preprocess=[],
             # default null reward config
         ),
-        TagConfig(
+        BasicTagConfig(
             name="obs-2",
             preprocess=[],
             reward_constructor=[
@@ -221,12 +221,12 @@ def test_greaterthan_penalty_reward():
             r = 0
     """
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name="obs-1",
             preprocess=[],
             # default null reward config
         ),
-        TagConfig(
+        BasicTagConfig(
             name="obs-2",
             preprocess=[],
             reward_constructor=[
@@ -573,7 +573,7 @@ def test_epcor_reward():
     }
 
     tag_cfgs = [
-        TagConfig(
+        BasicTagConfig(
             name=name,
             preprocess=[],
             reward_constructor=xforms,

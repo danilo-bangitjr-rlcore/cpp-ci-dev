@@ -619,6 +619,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
+                  "value STATE-tag-1_trace-0.0",
                   "value STATE-tag-0_trace-0.0"
                 ],
                 "prefix": "All except:",
@@ -668,7 +669,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'STATE%'\nORDER BY \"time\"",
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'STATE%'\nAND metric NOT LIKE 'STATE-QUALITY%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -765,11 +766,9 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "value CRITIC0-loss",
-                  "value CRITIC0-q_loss",
-                  "value CRITIC0-h_loss",
-                  "value CRITIC0-action_reg_loss",
-                  "value CRITIC0-h_reg_loss"
+                  "value STATE-QUALITY-tag-1_trace_0.75",
+                  "value STATE-QUALITY-tag-1_trace_0.9",
+                  "value STATE-QUALITY-tag-1_trace_0.95"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -793,6 +792,152 @@
         "w": 24,
         "x": 0,
         "y": 34
+      },
+      "id": 18,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "grafana-postgresql-datasource",
+            "uid": "fe9zkc0takwlcc"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'STATE-QUALITY%'\nORDER BY \"time\"",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "State Trace Quality",
+      "transformations": [
+        {
+          "id": "prepareTimeSeries",
+          "options": {
+            "format": "multi"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "fe9zkc0takwlcc"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": 5000,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": 5000,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "value CRITIC0_loss"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 42
       },
       "id": 16,
       "options": {
@@ -915,7 +1060,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "value CRITIC0-ensemble_grad_norms"
+                  "value CRITIC0_q"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -938,7 +1083,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 50
       },
       "id": 17,
       "options": {
@@ -1053,13 +1198,38 @@
             ]
           }
         },
-        "overrides": []
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "value AE-loss"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 50
+        "y": 58
       },
       "id": 15,
       "options": {
@@ -1081,7 +1251,7 @@
           "editorMode": "code",
           "format": "table",
           "rawQuery": true,
-          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'AE%'\nORDER BY \"time\"",
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\") \nAND metric LIKE 'AE%'\nAND metric NOT LIKE 'AE-QUALITY%'\nORDER BY \"time\"",
           "refId": "A",
           "sql": {
             "columns": [
@@ -1103,6 +1273,150 @@
         }
       ],
       "title": "Autoencoder",
+      "transformations": [
+        {
+          "id": "prepareTimeSeries",
+          "options": {
+            "format": "multi"
+          }
+        }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "grafana-postgresql-datasource",
+        "uid": "fe9zkc0takwlcc"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "__systemRef": "hideSeriesFrom",
+            "matcher": {
+              "id": "byNames",
+              "options": {
+                "mode": "exclude",
+                "names": [
+                  "value AE-QUALITY-tag-1_trace_0.5",
+                  "value AE-QUALITY-tag-1_trace_0.9",
+                  "value AE-QUALITY-tag-1_trace_0.95"
+                ],
+                "prefix": "All except:",
+                "readOnly": true
+              }
+            },
+            "properties": [
+              {
+                "id": "custom.hideFrom",
+                "value": {
+                  "legend": false,
+                  "tooltip": false,
+                  "viz": true
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 66
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "11.6.0",
+      "targets": [
+        {
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT value, time, metric \nFROM metrics \nWHERE $__timeFilter(\"time\")\nAND metric LIKE 'AE-QUALITY%'\nORDER BY \"time\"",
+          "refId": "A",
+          "sql": {
+            "columns": [
+              {
+                "parameters": [],
+                "type": "function"
+              }
+            ],
+            "groupBy": [
+              {
+                "property": {
+                  "type": "string"
+                },
+                "type": "groupBy"
+              }
+            ],
+            "limit": 50
+          }
+        }
+      ],
+      "title": "AE Trace Quality",
       "transformations": [
         {
           "id": "prepareTimeSeries",
@@ -1176,7 +1490,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 58
+        "y": 74
       },
       "id": 6,
       "options": {
@@ -1322,7 +1636,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 66
+        "y": 82
       },
       "id": 7,
       "options": {
@@ -1468,7 +1782,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 90
       },
       "id": 12,
       "options": {
@@ -1589,7 +1903,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 98
       },
       "id": 9,
       "options": {
@@ -1712,7 +2026,7 @@
               "options": {
                 "mode": "exclude",
                 "names": [
-                  "value actor_loss"
+                  "value CRITIC0_loss"
                 ],
                 "prefix": "All except:",
                 "readOnly": true
@@ -1735,7 +2049,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 90
+        "y": 106
       },
       "id": 10,
       "options": {
@@ -1856,7 +2170,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 98
+        "y": 114
       },
       "id": 11,
       "options": {
@@ -2004,7 +2318,7 @@
         "h": 8,
         "w": 24,
         "x": 0,
-        "y": 106
+        "y": 122
       },
       "id": 5,
       "options": {
@@ -2143,5 +2457,5 @@
   "timezone": "browser",
   "title": "OPC TSDB Local Visualization",
   "uid": "ee9wfo0vhboxsb",
-  "version": 15
+  "version": 16
 }
