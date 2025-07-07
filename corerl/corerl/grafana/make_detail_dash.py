@@ -146,5 +146,4 @@ def create_coag_dashboard():
 
 # Generate the dashboard JSON
 dashboard = create_coag_dashboard()
-with open('out.json', 'w') as json_file:
-    json_file.write(dashboard.to_json())
+dashboard.write_to_file('out.json')
