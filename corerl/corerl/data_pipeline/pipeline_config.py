@@ -43,6 +43,11 @@ class PipelineConfig:
     transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
     reward: RewardConfig | None = None
 
+    @computed('max_data_gap')
+    @classmethod
+    def _max_data_gap(cls, cfg: MainConfig):
+        return 2 * cfg.interaction.obs_period
+
     @post_processor
     def _enable_autoencoder_imputer(self, cfg: MainConfig):
         if cfg.feature_flags.autoencoder_imputer:
@@ -83,8 +88,3 @@ class PipelineConfig:
                 continue
 
             tag.imputer = self.imputer.default
-
-    @computed('max_data_gap')
-    @classmethod
-    def _max_data_gap(cls, cfg: MainConfig):
-        return 2 * cfg.interaction.obs_period
