@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, Literal, NamedTuple
+from typing import Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.distribution import Support
@@ -78,8 +78,6 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
             MaskedUGDistribution(max_size, uniform_weight, ensemble_probability)
             for _ in range(n_ensemble)
         ]
-
-        self.app_state: Any | None = None
 
     def _convert_timestamp(self, timestamp: datetime | np.datetime64 | int | None) -> np.datetime64 | int:
         if timestamp is None:

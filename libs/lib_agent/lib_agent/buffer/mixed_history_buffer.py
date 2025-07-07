@@ -1,7 +1,7 @@
 from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, Literal, NamedTuple
+from typing import Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
@@ -97,7 +97,8 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
 
         self._most_recent_online_idxs = deque(maxlen=n_most_recent)
 
-        self.app_state: Any | None = None
+        self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
+        self.rng = np.random.default_rng(seed)
 
     def _update_n_most_recent(self, idxs: np.ndarray, data_mode: DataMode) -> None:
         if data_mode == DataMode.ONLINE:

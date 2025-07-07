@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple, Protocol
+from typing import NamedTuple, Protocol
 
 import jax
 import numpy as np
@@ -75,8 +75,6 @@ class EnsembleReplayBuffer[T: NamedTuple]:
 
         self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
         self.rng = np.random.default_rng(seed)
-
-        self.app_state: Any | None = None
 
     def add(self, transition: T) -> None:
         ptr = self._storage.add(transition)
