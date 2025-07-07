@@ -1,0 +1,32 @@
+name: Behavior Test - Feature flags
+
+on:
+  schedule:
+    - cron: '0 */8 * * *'
+  workflow_dispatch:
+
+jobs:
+  behavior-test:
+    runs-on: threadripper-1
+    strategy:
+      matrix:
+        feature_flag: [
+            recency_bias_buffer,
+            regenerative_optimism,
+            normalize_return,
+            noisy_networks,
+            higher_critic_lr,
+            ensemble_2,
+            mu_sigma_multipliers,
+        ]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: test
+
+      - name: Run Pytest
+        run: |
+          cd test
+          uv run pytest -n auto --dist worksteal test/behavior/test_bsuite.py --feature_flag ${{ matrix.feature_flag }}
