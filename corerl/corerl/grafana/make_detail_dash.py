@@ -136,13 +136,11 @@ def create_coag_dashboard():
     panels.append(make_reward_panel(datasource))
     panels.append(make_action_panel(datasource, 'action-0'))
 
-    dashboard = Dashboard(
+    return Dashboard(
         title="Detail Dashboard",
         uid="fdsqy8vove874f",
         panels=panels,
     ).auto_panel_ids()
-
-    return dashboard
 
 # Generate the dashboard JSON
 dashboard = create_coag_dashboard()
