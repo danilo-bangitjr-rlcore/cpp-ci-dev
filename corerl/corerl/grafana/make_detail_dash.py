@@ -103,9 +103,9 @@ def make_action_panel(datasource: Datasource, action_name: str):
                 rawSql="SELECT value, time, metric\n"\
                        "FROM metrics\n"\
                        "WHERE $__timeFilter(\"time\")\n"\
-                       f"AND metric LIKE '%{action_name}%-lo'\n"\
+                       f"AND (metric LIKE '%{action_name}%-lo'\n"\
                        f"OR metric LIKE '%{action_name}%-hi'\n"\
-                       f"OR metric LIKE 'ACTION-{action_name}%'\n"\
+                       f"OR metric LIKE 'ACTION-{action_name}%')\n"\
                        "ORDER BY \"time\"",
                 refId="A",
                 format="table",
