@@ -82,23 +82,6 @@ TEST_CASES = [
     WindyRoomTest(),
 ]
 
-ZERO_ONE_FEATURES = [
-    'base', # special feature indicating "no features enabled"
-    'recency_bias_buffer',
-    'regenerative_optimism',
-    'normalize_return',
-    'noisy_networks',
-    'higher_critic_lr',
-    'ensemble_2',
-    'mu_sigma_multipliers',
-]
-
-
-def all_except(flags: list[str]):
-    return {
-        f: True for f in ZERO_ONE_FEATURES if f not in flags
-    }
-
 
 KNOWN_FAILURES: dict[str, bool | dict[str, bool]] = {
     WindyRoomTest.name: True,
