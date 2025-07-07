@@ -1,222 +1,36 @@
 import datetime
-from datetime import timedelta
-from typing import Any
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+import pytest
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.constructors.sc import SCConfig
-from corerl.data_pipeline.datatypes import DataMode, StageCode
-from corerl.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
-from corerl.data_pipeline.pipeline import Pipeline, PipelineConfig
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transforms.trace import TraceConfig
+from corerl.data_pipeline.datatypes import DataMode, Step, Transition
+from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
-from corerl.tags.setpoint import SetpointTagConfig
-from corerl.tags.tag_config import BasicTagConfig
 
 
-def test_construct_pipeline(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(name='sensor_x', operating_range=(-1, 1)),
-            BasicTagConfig(name='sensor_y', red_bounds=(1.1, 3.3)),
-        ],
-        transition_creator=AllTheTimeTCConfig(
-            # set arbitrarily
-            gamma=0.9,
-            min_n_step=1,
-            max_n_step=30,
-        ),
-        state_constructor=SCConfig(
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=15),
-                obs_period=timedelta(minutes=15),
-            ),
-        ),
-    )
-    _ = Pipeline(dummy_app_state, cfg)
-
-
-def test_passing_data_to_pipeline(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_x', operating_range=(-3, 3)),
-            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='sensor_y', red_bounds=(1.1, 3.3)),
-        ],
-        transition_creator=AllTheTimeTCConfig(
-            # set arbitrarily
-            gamma=0.9,
-            min_n_step=1,
-            max_n_step=30,
-        ),
-        state_constructor=SCConfig(
-            defaults=[NormalizerConfig(from_data=True)],
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=15),
-                obs_period=timedelta(minutes=15),
-            ),
-        ),
-    )
-    pipeline = Pipeline(dummy_app_state, cfg)
-
-    cols = {"sensor_x": [np.nan, 1.0, 2.0], "sensor_y": [2.0, np.nan, 3.0], "reward": [1., 2., 3.]}
-    dates = [
-        datetime.datetime(2024, 1, 1, 1, 1),
-        datetime.datetime(2024, 1, 1, 1, 2),
-        datetime.datetime(2024, 1, 1, 1, 3),
-    ]
-    datetime_index = pd.DatetimeIndex(dates)
-    df = pd.DataFrame(cols, index=datetime_index)
-
-    # test that we can run the pf through the pipeline
-    _ = pipeline(df, data_mode=DataMode.OFFLINE)
-
-
-def test_state_action_dim(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(preprocess=[NormalizerConfig(from_data=True)], name='tag-1'),
-            BasicTagConfig(
-                name='tag-2',
-                operating_range=(None, 10),
-                yellow_bounds=(-1, None),
-                imputer=LinearImputerConfig(max_gap=2),
-                state_constructor=[
-                    NormalizerConfig(from_data=True),
-                    TraceConfig(trace_values=[0.1, 0.9]),
-                ],
-            ),
-            SetpointTagConfig(name='tag-3', operating_range=(0, 1)),
-            SetpointTagConfig(name='tag-4', operating_range=(0, 1)),
-        ],
-        state_constructor=SCConfig(
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=5),
-                obs_period=timedelta(minutes=5),
-            ),
-            defaults=[],
-        ),
-        transition_creator=AllTheTimeTCConfig(
-            # set arbitrarily
-            gamma=0.9,
-            min_n_step=1,
-            max_n_step=30,
-        ),
-    )
-
-    pipeline = Pipeline(dummy_app_state, cfg)
-
-    col_desc = pipeline.column_descriptions
-    assert col_desc.state_dim == 9
-    assert col_desc.action_dim == 2
-
-
-def test_sub_pipeline1(dummy_app_state: AppState):
-    cfg = PipelineConfig(
-        tags=[
-            BasicTagConfig(
-                name='tag-1',
-                preprocess=[NormalizerConfig(min=0, max=5)],
-                state_constructor=[],
-            ),
-            BasicTagConfig(
-                name='tag-2',
-                operating_range=(None, 10),
-                preprocess=[NormalizerConfig(min=0, max=10)],
-                imputer=LinearImputerConfig(max_gap=2),
-                state_constructor=[
-                    TraceConfig(trace_values=[0.1]),
-                ],
-            ),
-        ],
-        transition_creator=AllTheTimeTCConfig(
-            # set arbitrarily
-            gamma=0.9,
-            min_n_step=1,
-            max_n_step=30,
-        ),
-        state_constructor=SCConfig(
-            defaults=[NormalizerConfig(from_data=True)],
-            countdown=CountdownConfig(
-                action_period=timedelta(minutes=5),
-                obs_period=timedelta(minutes=5),
-            ),
-        ),
-    )
-
-    start = datetime.datetime.now(datetime.UTC)
-    Δ = datetime.timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(7)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-1', 'tag-2']
-    df = pd.DataFrame(
-        data=[
-            [np.nan, 0],
-            [0,      2],
-            [1,      4],
-            [2,      6],
-            [np.nan, np.nan],
-            [4,      10],
-            [5,      12],
-        ],
-        columns=cols,
-        index=idx,
-    )
-
-    pipeline = Pipeline(dummy_app_state, cfg)
-    got = pipeline(
-        df,
-        data_mode=DataMode.ONLINE,
-        stages=(
-            StageCode.PREPROCESS,
-            StageCode.BOUNDS,
-            StageCode.ODDITY,
-            StageCode.IMPUTER,
-            StageCode.AC,
-            StageCode.SC,
-        ),
-    )
-
-    cols = ['tag-1', 'tag-2_trace-0.1']
-    expected_df = pd.DataFrame(
-        data=[
-            [np.nan,   0],
-            [0,        0.18],
-            [0.2,      0.378],
-            [0.4,      0.5778],
-            [np.nan,   0.77778],
-            [0.8,      0.977778],
-            [1.0,      np.nan],
-        ],
-        columns=cols,
-        index=idx,
-    )
-
-    assert dfs_close(got.df, expected_df)
-    assert got.transitions is None
-
-
-def test_pipeline_overlapping_time(dummy_app_state: AppState):
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/end_to_end/test_pipeline1.yaml')
+@pytest.fixture
+def pipeline1_config():
+    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/assets/test_pipeline1.yaml')
     assert not isinstance(cfg, ConfigValidationErrors)
-    pipeline = Pipeline(dummy_app_state, cfg.pipeline)
+    return cfg
 
+
+def make_time_index(start: datetime.datetime, steps: int, delta: datetime.timedelta):
+    return pd.DatetimeIndex([start + i * delta for i in range(steps)])
+
+
+@pytest.fixture
+def fake_pipeline1_data():
     start = datetime.datetime.now(datetime.UTC)
     Δ = datetime.timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(7)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-1', 'tag-2', 'reward', 'action-1']
+    idx = make_time_index(start, 7, Δ)
+    cols = ['tag-1', 'tag-2', 'reward', 'action-1']
     df = pd.DataFrame(
         data=[
             [np.nan, 0,        0,    0],
@@ -230,15 +44,145 @@ def test_pipeline_overlapping_time(dummy_app_state: AppState):
         columns=cols,
         index=idx,
     )
+    return df, idx
 
+
+def test_construct_pipeline(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+):
+    _ = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+
+
+def test_passing_data_to_pipeline(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    df, _ = fake_pipeline1_data
+    _ = pipeline(df, data_mode=DataMode.OFFLINE)
+
+
+def test_state_action_dim(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    col_desc = pipeline.column_descriptions
+    assert col_desc.state_dim == 5
+    assert col_desc.action_dim == 1
+
+
+def test_pipeline1(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+):
+    df, idx = fake_pipeline1_data
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    got = pipeline(df, data_mode=DataMode.ONLINE)
+
+    cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_trace-0.1']
+    expected_df = pd.DataFrame(
+        data=[
+            [np.nan, 1, 0, 0, 0],
+            [0,      1, 0, 0, 0.18],
+            [1,      1, 0, 0, 0.378],
+            [2,      1, 0, 0, 0.5778],
+            [np.nan, 1, 0, 0, 0.77778],
+            [np.nan, 1, 0, 0, 0.977778],
+            [5,      1, 0, 0, 0.977778],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    expected_reward = pd.DataFrame(
+        data=[
+            [0],
+            [3],
+            [0],
+            [0],
+            [0],
+            [1],
+            [0],
+        ],
+        columns=['reward'],
+        index=idx,
+    )
+
+    assert dfs_close(got.df, expected_df, col_order_matters=True)
+    assert dfs_close(got.rewards, expected_reward)
+    assert got.transitions == [
+        Transition(
+            steps=[
+                Step(
+                    reward=3,
+                    action=jnp.array([1.]),
+                    gamma=0.9,
+                    state=jnp.array([0.0, 1, 0, 0, 0.18]),
+                    action_lo=jnp.zeros_like(jnp.array([1.])),
+                    action_hi=jnp.ones_like(jnp.array([1.])),
+                    dp=True,
+                    ac=True,
+                ),
+                Step(
+                    reward=0,
+                    action=jnp.array([0.]),
+                    gamma=0.9,
+                    state=jnp.array([1.0, 1, 0, 0, 0.378]),
+                    action_lo=jnp.zeros_like(jnp.array([0.])),
+                    action_hi=jnp.ones_like(jnp.array([0.])),
+                    dp=True,
+                    ac=True,
+                ),
+            ],
+            n_step_reward=0.,
+            n_step_gamma=0.9,
+        ),
+        Transition(
+            steps=[
+                Step(
+                    reward=0,
+                    action=jnp.array([0.]),
+                    gamma=0.9,
+                    state=jnp.array([1.0, 1, 0, 0, 0.378]),
+                    action_lo=jnp.zeros_like(jnp.array([0.])),
+                    action_hi=jnp.ones_like(jnp.array([0.])),
+                    dp=True,
+                    ac=True,
+                ),
+                Step(
+                    reward=0,
+                    action=jnp.array([1.]),
+                    gamma=0.9,
+                    state=jnp.array([2.0, 1, 0, 0,  0.5778]),
+                    action_lo=jnp.zeros_like(jnp.array([1.])),
+                    action_hi=jnp.ones_like(jnp.array([1.])),
+                    dp=True,
+                    ac=True,
+                ),
+            ],
+            n_step_reward=0.,
+            n_step_gamma=0.9,
+        ),
+    ]
+
+
+def test_pipeline_overlapping_time(
+    dummy_app_state: AppState,
+    pipeline1_config: MainConfig,
+    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+):
+    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    df, idx = fake_pipeline1_data
     pipeline(df)
 
-    # NOTE: overlap time by two time steps
-    dates = [start + (i - 2) * Δ for i in range(7)]
-    idx = pd.DatetimeIndex(dates)
-
+    # Overlap time by two time steps
+    Δ = idx[1] - idx[0]
+    shifted_idx = pd.DatetimeIndex([t - 2 * Δ for t in idx])
     first_value = 3
-
     prior_df = pd.DataFrame(
         data=[
             [3,  first_value,  0,    0],
@@ -249,15 +193,14 @@ def test_pipeline_overlapping_time(dummy_app_state: AppState):
             [4,      10,       1,    1],
             [5,      np.nan,   np.nan, np.nan],
         ],
-        columns=cols,
-        index=idx,
+        columns=['tag-1', 'tag-2', 'reward', 'action-1'],
+        index=shifted_idx,
     )
-
     out = pipeline(prior_df)
 
     # this can only be true if the temporal state is being reset
     # between invocations
     assert np.isclose(
-        out.states['tag-2_norm_trace-0.1'].iloc[0],
+        out.states['tag-2_trace-0.1'].iloc[0],
         0.1 * first_value,
     )
