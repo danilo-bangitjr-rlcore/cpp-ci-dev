@@ -1,0 +1,15 @@
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+pipeline:
+  tags:
+  # observations
+  - name: tag-0
+    operating_range: [0, 1]
+
+  # actions
+  - name: tag-0
+    type: ai_setpoint
+    operating_range: [0, 0.5]

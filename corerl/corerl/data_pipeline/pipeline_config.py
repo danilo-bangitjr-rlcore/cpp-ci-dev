@@ -88,3 +88,13 @@ class PipelineConfig:
                 continue
 
             tag.imputer = self.imputer.default
+
+
+    @post_processor
+    def _validate_tags(self, cfg: MainConfig):
+        seen = set[str]()
+        for tag in self.tags:
+            if tag.name in seen:
+                raise ValueError(f"Duplicate tag name found: {tag.name}")
+
+            seen.add(tag.name)
