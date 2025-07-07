@@ -208,7 +208,7 @@ class Pipeline:
         self.reward_constructor = (
             RewardConstructor(self.tags, self.preprocessor)
             if cfg.reward is None else
-            GoalConstructor(cfg.reward, self.tags, self.preprocessor)
+            GoalConstructor(app_state, cfg.reward, self.tags, self.preprocessor)
         )
         self.zone_discourager = ZoneDiscourager(app_state, self.tags, self.preprocessor)
 
