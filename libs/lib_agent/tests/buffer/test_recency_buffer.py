@@ -63,9 +63,9 @@ def test_recency_bias_buffer_basic():
         max_size=cfg.max_size,
     )
     timestamps = np.array([
-        np.datetime64('2024-01-01T00:00:00'),
-        np.datetime64('2024-01-01T00:00:01'),
-        np.datetime64('2024-01-01T00:00:02'),
+        int(np.datetime64('2024-01-01T00:00:00').astype('datetime64[s]').astype('int')),
+        int(np.datetime64('2024-01-01T00:00:01').astype('datetime64[s]').astype('int')),
+        int(np.datetime64('2024-01-01T00:00:02').astype('datetime64[s]').astype('int')),
     ])
 
     for i in range(3):
@@ -100,9 +100,9 @@ def test_recency_bias_buffer_weights():
     )
 
     timestamps = np.array([
-        np.datetime64('2024-01-01T00:00:00'),
-        np.datetime64('2024-01-01T00:00:01'),
-        np.datetime64('2024-01-01T00:00:02'),
+        int(np.datetime64('2024-01-01T00:00:00').astype('datetime64[s]').astype('int')),
+        int(np.datetime64('2024-01-01T00:00:01').astype('datetime64[s]').astype('int')),
+        int(np.datetime64('2024-01-01T00:00:02').astype('datetime64[s]').astype('int')),
     ])
 
     for i in range(3):
@@ -135,8 +135,8 @@ def test_recency_bias_buffer_discount():
     )
 
     timestamps = np.array([
-        np.datetime64('2024-01-01T00:00:00'),
-        np.datetime64('2024-01-01T00:00:01'),
+        int(np.datetime64('2024-01-01T00:00:00').astype('datetime64[s]').astype('int')),
+        int(np.datetime64('2024-01-01T00:00:01').astype('datetime64[s]').astype('int')),
     ])
 
     for i in range(2):
@@ -144,7 +144,7 @@ def test_recency_bias_buffer_discount():
         buffer.add(transition, timestamps[i])
     initial_probs = buffer.get_probability(0, np.array([0, 1]))
 
-    later_timestamp = np.datetime64('2024-01-01T00:00:10')
+    later_timestamp = int(np.datetime64('2024-01-01T00:00:10').astype('datetime64[s]').astype('int'))
     transition = create_test_transition(2)
     buffer.add(transition, later_timestamp)
     new_probs = buffer.get_probability(0, np.array([0, 1, 2]))
@@ -181,7 +181,7 @@ def test_recency_bias_buffer_datetime_timestamps():
 
     for i, ts in enumerate(timestamps):
         transition = create_test_transition(i)
-        buffer.add(transition, ts)
+        buffer.add(transition, int(ts.timestamp()))
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
     assert np.all(np.diff(probs) > 0)

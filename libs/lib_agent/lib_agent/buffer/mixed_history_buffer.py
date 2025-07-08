@@ -60,6 +60,7 @@ class MixedHistoryBufferConfig:
     seed: int = 0
     n_most_recent: int = 1
     online_weight: float = 0.75
+    id: str = ""
 
     @computed('ensemble')
     @classmethod
