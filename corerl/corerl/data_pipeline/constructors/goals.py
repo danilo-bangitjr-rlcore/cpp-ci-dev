@@ -23,6 +23,40 @@ class GoalConstructor:
         self._prep_stage = prep_stage
         self.ignore_oob_tags_in_compound_goals = reward_cfg.ignore_oob_tags_in_compound_goals
 
+    def _compute_priority_violations(self, row: pd.DataFrame):
+        priority_violations = []
+
+        for priority_idx, priority in enumerate(self._cfg.priorities):
+            if not isinstance(priority, Optimization):
+                violation_percent = self._priority_violation_percent(priority, row, priority_idx)
+                priority_violations.append(violation_percent)
+
+            else:
+                opt_violation = self._avg_optimization_violation(priority, row)
+                priority_violations.append(opt_violation)
+
+        return priority_violations
+
+
+    def _priority_violations_to_rewards(self, row: pd.DataFrame, priority_violations: list[float]):
+        active_idx = self._find_active_priority_idx(row)
+        num_buckets = len(self._cfg.priorities) - 1
+        violation = priority_violations[active_idx]
+
+        # if we are not in optimization mode
+        if active_idx != len(self._cfg.priorities) - 1:
+            buckets = np.linspace(-1, -0.5, num_buckets + 1)
+            r = put_in_range(-violation, old_range=(-1, 0), new_range=buckets[active_idx:active_idx+1])
+
+        # next two cases are if we are in optimization mode
+        elif num_buckets > 0:
+            r = put_in_range(violation, old_range=(-1, 0), new_range=(-0.5, 0))
+        else:
+            # If the only priority is an optimization, use the full [-1, 0] reward range
+            r = violation
+        return r
+
+
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         # denormalize all tags before checking constraint violations
         pf.rewards = self.denormalize_tags(pf.data)
@@ -30,24 +64,8 @@ class GoalConstructor:
         rewards = []
         for (_, row_series) in pf.rewards.iterrows():
             row = row_series.to_frame().transpose()
-            active_idx = self._find_active_priority_idx(row)
-            priority = self._cfg.priorities[active_idx]
-            num_buckets = len(self._cfg.priorities) - 1
-            if not isinstance(priority, Optimization):
-                violation_percent = self._priority_violation_percent(priority, row)
-
-                # break [-1, -0.5] into num_priorities-1 buckets
-                buckets = np.linspace(-1, -0.5, num_buckets + 1)
-                r = put_in_range(-violation_percent, old_range=(-1, 0), new_range=buckets[active_idx:active_idx+1])
-
-            else:
-                opt = self._avg_optimization_violation(priority, row)
-                if num_buckets > 0:
-                    r = put_in_range(opt, old_range=(-1, 0), new_range=(-0.5, 0))
-                else:
-                    # If the only priority is an optimization, use the full [-1, 0] reward range
-                    r = opt
-
+            priority_violations = self._compute_priority_violations(row)
+            r = self._priority_violations_to_rewards(row, priority_violations)
             rewards.append(r)
 
         pf.rewards = pd.DataFrame({
@@ -127,7 +145,7 @@ class GoalConstructor:
         return False
 
 
-    def _priority_violation_percent(self, priority: Goal | JointGoal, row: pd.DataFrame) -> float:
+    def _priority_violation_percent(self, priority: Goal | JointGoal, row: pd.DataFrame, active_idx: int) -> float:
         """
         Because a priority can be composed of an arbitrary tree of Goals,
         we have to recursively loop over the priority tree to calculate the violation percent.
@@ -149,7 +167,7 @@ class GoalConstructor:
         """
         if isinstance(priority, JointGoal):
             violation_percents = [
-                (goal, self._priority_violation_percent(goal, row))
+                (goal, self._priority_violation_percent(goal, row, active_idx))
                 for goal in priority.goals
             ]
 
@@ -176,10 +194,11 @@ class GoalConstructor:
                 return np.max([pct[1] for pct in violation_percents])
             return np.min([pct[1] for pct in violation_percents])
 
-        return self._goal_violation_percent(priority, row)
+
+        return self._goal_violation_percent(priority, row, active_idx)
 
 
-    def _goal_violation_percent(self, goal: Goal, row: pd.DataFrame):
+    def _goal_violation_percent(self, goal: Goal, row: pd.DataFrame, active_idx: int) :
         """
         To produce a sloped reward for violating a goal, we need the degree of violation.
         This degree of violation is expressed as a percent of the range of the tag.
@@ -219,6 +238,7 @@ class GoalConstructor:
 
         lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {goal.tag}')
         delta = thresh - x
+
         return delta / (thresh - lo)
 
 
