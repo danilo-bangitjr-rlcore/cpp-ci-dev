@@ -16,7 +16,13 @@ from corerl.utils.math import put_in_range
 logger = logging.getLogger(__name__)
 
 class GoalConstructor:
-    def __init__(self, app_state: AppState, reward_cfg: RewardConfig, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
+    def __init__(
+            self,
+            app_state: AppState,
+            reward_cfg: RewardConfig,
+            tag_cfgs: list[TagConfig],
+            prep_stage: Preprocessor,
+        ):
         self._app_state = app_state
         self._cfg = reward_cfg
         self._tag_cfgs = tag_cfgs
