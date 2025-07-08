@@ -58,12 +58,11 @@ class GoalConstructor:
 
 
     def _priority_violations_to_rewards(self, row: pd.DataFrame, priority_violations: list[float]):
-        active_idx = self._find_active_priority_idx(row)
+        active_idx, is_opt = self._find_active_priority_idx(row)
         num_buckets = len(self._cfg.priorities) - 1
         violation = priority_violations[active_idx]
 
-        # if we are not in optimization mode
-        if active_idx != len(self._cfg.priorities) - 1:
+        if not is_opt:
             buckets = np.linspace(-1, -0.5, num_buckets + 1)
             r = put_in_range(-violation, old_range=(-1, 0), new_range=buckets[active_idx:active_idx+1])
 
@@ -277,13 +276,14 @@ class GoalConstructor:
     def _find_active_priority_idx(self, row: pd.DataFrame):
         """
         Active priority is the first priority that is not satisfied.
+        Also returns whether the priority is the optimization or not.
         """
         for i, priority in enumerate(self._cfg.priorities):
             if isinstance(priority, Optimization):
-                return i
+                return i, True
 
             if not self._priority_is_satisfied(priority, row):
-                return i
+                return i, False
 
         raise ValueError('No active goal found')
 
