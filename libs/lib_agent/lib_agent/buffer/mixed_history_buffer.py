@@ -1,11 +1,11 @@
 from collections import deque
 from collections.abc import Sequence
-from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
+from lib_config.config import computed, config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
@@ -50,23 +50,27 @@ class MaskedABDistribution:
         self._historical.update(elements, ensemble_mask & ~online_mask)
 
 
-@dataclass
+@config()
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
-    n_ensemble: int = 1
+    ensemble: int = 1
     max_size: int = 1_000_000
     ensemble_probability: float = 0.5
     batch_size: int = 256
     seed: int = 0
     n_most_recent: int = 1
     online_weight: float = 0.75
-    id: str = ""
+
+    @computed('ensemble')
+    @classmethod
+    def _ensemble(cls, cfg: "MixedHistoryBufferConfig"):
+        return cfg.ensemble
 
 
 class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
     def __init__(
         self,
-        n_ensemble: int = 2,
+        ensemble: int = 2,
         max_size: int = 1_000_000,
         ensemble_probability: float = 0.5,
         batch_size: int = 256,
@@ -76,7 +80,7 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
         id: str = "",
     ):
         super().__init__(
-            n_ensemble=n_ensemble,
+            ensemble=ensemble,
             max_size=max_size,
             ensemble_probability=ensemble_probability,
             batch_size=batch_size,
@@ -92,12 +96,12 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
                 max_size,
                 online_weight,
                 ensemble_probability,
-            ) for _ in range(n_ensemble)
+            ) for _ in range(ensemble)
         ]
 
         self._most_recent_online_idxs = deque(maxlen=n_most_recent)
 
-        self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
+        self.ensemble_masks = np.zeros((ensemble, max_size), dtype=bool)
         self.rng = np.random.default_rng(seed)
 
     def _update_n_most_recent(self, idxs: np.ndarray, data_mode: DataMode) -> None:
@@ -126,12 +130,12 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
         return idxs
 
     def _get_ensemble_masks(self, batch_size: int) -> np.ndarray:
-        ensemble_masks = self.rng.random((self.n_ensemble, batch_size)) < self.ensemble_probability
+        ensemble_masks = self.rng.random((self.ensemble, batch_size)) < self.ensemble_probability
 
         no_ensemble = ~ensemble_masks.any(axis=0)
 
         for idx in np.where(no_ensemble)[0]:
-            random_member = self.rng.integers(0, self.n_ensemble)
+            random_member = self.rng.integers(0, self.ensemble)
             ensemble_masks[random_member, idx] = True
         return ensemble_masks
 
@@ -160,7 +164,7 @@ class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
 
 def create_mixed_history_buffer_from_config(cfg: MixedHistoryBufferConfig) -> MixedHistoryBuffer:
     return MixedHistoryBuffer(
-        n_ensemble=cfg.n_ensemble,
+        ensemble=cfg.ensemble,
         max_size=cfg.max_size,
         ensemble_probability=cfg.ensemble_probability,
         batch_size=cfg.batch_size,

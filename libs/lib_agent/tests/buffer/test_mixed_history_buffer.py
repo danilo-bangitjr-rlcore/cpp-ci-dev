@@ -12,17 +12,6 @@ class FakeTransition(NamedTuple):
     state: jnp.ndarray
     action: jnp.ndarray
     reward: float
-    next_state: jnp.ndarray
-    gamma: float
-    a_lo: jnp.ndarray
-    a_hi: jnp.ndarray
-    next_a_lo: jnp.ndarray
-    next_a_hi: jnp.ndarray
-    dp: bool
-    next_dp: bool
-    last_a: jnp.ndarray
-    state_dim: int
-    action_dim: int
 
 
 def create_test_transition(i: int) -> FakeTransition:
@@ -30,24 +19,13 @@ def create_test_transition(i: int) -> FakeTransition:
         state=jnp.array([i]),
         action=jnp.array([i]),
         reward=float(i),
-        next_state=jnp.array([i+1]),
-        gamma=0.99,
-        a_lo=jnp.array([i-0.5]),
-        a_hi=jnp.array([i+0.5]),
-        next_a_lo=jnp.array([i+0.5]),
-        next_a_hi=jnp.array([i+1.5]),
-        dp=True,
-        next_dp=True,
-        last_a=jnp.array([i-1]),
-        state_dim=1,
-        action_dim=1,
     )
 
 
 def test_feed_online_mode():
     for _ in range(100):
         buffer = MixedHistoryBuffer(
-            n_ensemble=1,
+            ensemble=1,
             max_size=100,
             batch_size=10,
             n_most_recent=2,
@@ -122,7 +100,7 @@ def test_masked_ug_distribution():
 
 def test_mixed_history_buffer_online_offline_mixing():
     buffer = MixedHistoryBuffer(
-        n_ensemble=1,
+        ensemble=1,
         max_size=100,
         batch_size=10,
         n_most_recent=1,
@@ -142,7 +120,7 @@ def test_mixed_history_buffer_online_offline_mixing():
 
 def test_mixed_history_buffer_ensemble():
     buffer = MixedHistoryBuffer(
-        n_ensemble=2,
+        ensemble=2,
         max_size=100,
         batch_size=5,
         n_most_recent=1,
@@ -163,7 +141,7 @@ def test_mixed_history_buffer_ensemble():
 
 def test_mixed_history_buffer_sampleable():
     buffer = MixedHistoryBuffer(
-        n_ensemble=1,
+        ensemble=1,
         max_size=100,
         batch_size=5,
         n_most_recent=1,
@@ -180,7 +158,7 @@ def test_mixed_history_buffer_sampleable():
 
 def test_mixed_history_buffer_get_batch():
     buffer = MixedHistoryBuffer(
-        n_ensemble=1,
+        ensemble=1,
         max_size=100,
         batch_size=5,
         n_most_recent=1,

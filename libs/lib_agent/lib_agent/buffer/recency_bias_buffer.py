@@ -1,6 +1,4 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
-from datetime import UTC, datetime
 from typing import Literal, NamedTuple
 
 import numpy as np
@@ -8,18 +6,19 @@ from discrete_dists.distribution import Support
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from discrete_dists.utils.SumTree import SumTree
+from lib_config.config import computed, config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
 
 
-@dataclass
+@config()
 class RecencyBiasBufferConfig:
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
     obs_period: int = 1000000
     gamma: list[float] | None = None
     effective_episodes: list[int] | None = None
-    n_ensemble: int = 2
+    ensemble: int = 2
     uniform_weight: float = 0.01
     ensemble_probability: float = 0.5
     batch_size: int = 32
@@ -28,11 +27,20 @@ class RecencyBiasBufferConfig:
     n_most_recent: int = 1
     id: str = ""
 
-    def __post_init__(self):
-        if self.gamma is None:
-            self.gamma = [0.99] * self.n_ensemble
-        if self.effective_episodes is None:
-            self.effective_episodes = [100] * self.n_ensemble
+    @computed('obs_period')
+    @classmethod
+    def _obs_period(cls, cfg: "RecencyBiasBufferConfig"):
+        return cfg.obs_period
+
+    @computed('gamma')
+    @classmethod
+    def _gamma(cls, cfg: "RecencyBiasBufferConfig"):
+        return cfg.gamma
+
+    @computed('ensemble')
+    @classmethod
+    def _ensemble(cls, cfg: "RecencyBiasBufferConfig"):
+        return cfg.ensemble
 
 
 class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
@@ -41,7 +49,7 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
         obs_period: int = 1000000,
         gamma: list[float] | None = None,
         effective_episodes: list[int] | None = None,
-        n_ensemble: int = 2,
+        ensemble: int = 2,
         uniform_weight: float = 0.01,
         ensemble_probability: float = 0.5,
         batch_size: int = 32,
@@ -56,18 +64,18 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
             effective_episodes = [100]
 
         super().__init__(
-            n_ensemble=n_ensemble,
+            ensemble=ensemble,
             ensemble_probability=ensemble_probability,
             batch_size=batch_size,
             max_size=max_size,
             seed=seed,
             n_most_recent=n_most_recent,
         )
-        self._obs_period = np.timedelta64(int(obs_period), 'us')
-        self._last_timestamp = None
+        self._obs_period = obs_period
+        self._last_timestamp: int | None = None
 
-        assert len(gamma) == n_ensemble, "Number of gamma values must match ensemble size"
-        assert len(effective_episodes) == n_ensemble, "Number of effective_episodes must match ensemble size"
+        assert len(gamma) == ensemble, "Number of gamma values must match ensemble size"
+        assert len(effective_episodes) == ensemble, "Number of effective_episodes must match ensemble size"
 
         self._discount_factors = [
             np.power(g, 1. / episodes)
@@ -76,55 +84,24 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
 
         self._ens_dists = [
             MaskedUGDistribution(max_size, uniform_weight, ensemble_probability)
-            for _ in range(n_ensemble)
+            for _ in range(ensemble)
         ]
 
-    def _convert_timestamp(self, timestamp: datetime | np.datetime64 | int | None) -> np.datetime64 | int:
-        if timestamp is None:
-            return 0
-        if isinstance(timestamp, datetime):
-            utc_ts = timestamp.astimezone(UTC)
-            naive_ts = utc_ts.replace(tzinfo=None)
-            return np.datetime64(naive_ts)
-        return timestamp
-
-    def _calculate_steps(self, curr: datetime | np.datetime64 | int,
-                         prev: datetime | np.datetime64 | int | None) -> float:
+    def _calculate_steps(self, curr: int, prev: int | None) -> float:
         if prev is None:
             return 0.0
+        return float(curr - prev) / self._obs_period
 
-        curr = self._convert_timestamp(curr)
-        prev = self._convert_timestamp(prev)
-
-        if isinstance(curr, np.datetime64) and isinstance(prev, np.datetime64):
-            return float((curr - prev) / self._obs_period)
-        if isinstance(curr, int) and isinstance(prev, int):
-            return float(curr - prev)
-        raise ValueError(f"Cannot mix datetime and int timestamps, curr: {curr}, prev: {prev}")
-
-    def _calculate_timestamps(
-        self,
-        timestamp: datetime | np.datetime64 | int | None,
-    ) -> tuple[np.datetime64 | int, float]:
+    def _calculate_timestamps(self, timestamp: int | None) -> tuple[int, float]:
         if timestamp is None:
             return 0, 0.0
 
-        timestamp = self._convert_timestamp(timestamp)
         last_ts = self._last_timestamp if self._last_timestamp is not None else timestamp
-
-        if isinstance(timestamp, np.datetime64):
-            if isinstance(last_ts, datetime):
-                last_ts = np.datetime64(last_ts)
-            curr_timestamp = np.maximum(timestamp, last_ts)
-        else:
-            if isinstance(last_ts, np.datetime64):
-                last_ts = int(last_ts)
-            curr_timestamp = max(timestamp, last_ts)
-
+        curr_timestamp = max(timestamp, last_ts)
         steps_since_transition = self._calculate_steps(curr_timestamp, timestamp)
         return curr_timestamp, steps_since_transition
 
-    def add(self, transition: T, timestamp: datetime | np.datetime64 | int | None = None) -> None:
+    def add(self, transition: T, timestamp: int | None = None) -> None:
         super().add(transition)
         idx = self.size - 1
 
@@ -160,12 +137,12 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
         return idxs
 
     def _get_ensemble_masks(self, batch_size: int) -> np.ndarray:
-        ensemble_masks = self.rng.random((self.n_ensemble, batch_size)) < self.ensemble_probability
+        ensemble_masks = self.rng.random((self.ensemble, batch_size)) < self.ensemble_probability
 
         no_ensemble = ~ensemble_masks.any(axis=0)
 
         for idx in np.where(no_ensemble)[0]:
-            random_member = self.rng.integers(0, self.n_ensemble)
+            random_member = self.rng.integers(0, self.ensemble)
             ensemble_masks[random_member, idx] = True
         return ensemble_masks
 
@@ -174,7 +151,7 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
 
     def sample(self):
         ens_idxs: list[np.ndarray] = []
-        for m in range(self.n_ensemble):
+        for m in range(self.ensemble):
             valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size()])[0]
             if len(valid_indices) == 0:
                 continue
@@ -207,9 +184,6 @@ class Geometric(Proportional):
         self.tree = SumTree(rang)
 
     def discount(self, discount_factor: float):
-        """
-        Discount the values in the distribution by the given discount factor.
-        """
         old_values = self.tree.get_values(np.arange(self._support[0], self._support[1]))
         new_values = old_values * discount_factor
         self.tree.update(np.arange(self._support[0], self._support[1]), new_values)
@@ -257,4 +231,23 @@ class MaskedUGDistribution:
         discount: float,
     ):
         self._geometric.discount(discount)
+
+
+def create_recency_bias_buffer_from_config(cfg: RecencyBiasBufferConfig) -> RecencyBiasBuffer:
+    gamma = cfg.gamma if cfg.gamma is not None else [0.99] * cfg.ensemble
+    effective_episodes = cfg.effective_episodes if cfg.effective_episodes is not None else [100] * cfg.ensemble
+
+    return RecencyBiasBuffer(
+        obs_period=cfg.obs_period,
+        gamma=gamma,
+        effective_episodes=effective_episodes,
+        ensemble=cfg.ensemble,
+        uniform_weight=cfg.uniform_weight,
+        ensemble_probability=cfg.ensemble_probability,
+        batch_size=cfg.batch_size,
+        max_size=cfg.max_size,
+        seed=cfg.seed,
+        n_most_recent=cfg.n_most_recent,
+        id=cfg.id,
+    )
 

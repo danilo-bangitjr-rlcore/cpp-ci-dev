@@ -26,7 +26,7 @@ from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.data_pipeline.datatypes import AbsTransition, Transition
+from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -93,7 +93,7 @@ class PercentileActorConfig:
         default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
         main_cfg: Any = cfg
         buffer_cfg = ta.validate_python(default_buffer_dict, context=main_cfg)
-        buffer_cfg.n_ensemble = 1
+        buffer_cfg.ensemble = 1
         buffer_cfg.ensemble_probability = 1
 
         return buffer_cfg
@@ -217,7 +217,7 @@ class GreedyAC(BaseAgent):
         self._actor_buffer = build_buffer(cfg.policy.buffer, JaxTransition)
         self.critic_buffer = build_buffer(cfg.critic.buffer, JaxTransition)
 
-        self.ensemble = self.cfg.critic.buffer.n_ensemble
+        self.ensemble = self.cfg.critic.buffer.ensemble
 
         # for early stopping
         self._last_critic_loss = 0.
@@ -586,24 +586,4 @@ def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
         action=batch.action,
         reward=batch.reward,
         gamma=batch.gamma,
-    )
-
-def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -> JaxTransition:
-    return JaxTransition(
-        last_action=corerl_transition.prior.action,
-        state=corerl_transition.state,
-        action=corerl_transition.action,
-        reward=jnp.asarray(corerl_transition.reward),
-        next_state=corerl_transition.next_state,
-        gamma=jnp.asarray(corerl_transition.gamma),
-        action_lo=corerl_transition.prior.action_lo,
-        action_hi=corerl_transition.prior.action_hi,
-        next_action_lo=corerl_transition.post.action_lo,
-        next_action_hi=corerl_transition.post.action_hi,
-        dp=jnp.asarray(corerl_transition.prior.dp),
-        next_dp=jnp.asarray(corerl_transition.post.dp),
-        n_step_reward=jnp.asarray(corerl_transition.n_step_reward),
-        n_step_gamma=jnp.asarray(corerl_transition.n_step_gamma),
-        state_dim=corerl_transition.state_dim,
-        action_dim=corerl_transition.action_dim,
     )

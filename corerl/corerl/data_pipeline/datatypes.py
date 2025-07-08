@@ -10,7 +10,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode, JaxTransition
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
@@ -224,3 +224,23 @@ class PipelineFrame:
         first_index = self.data.index[0]
         assert isinstance(first_index, datetime.datetime)
         return first_index
+
+def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -> JaxTransition:
+    return JaxTransition(
+        last_action=corerl_transition.prior.action,
+        state=corerl_transition.state,
+        action=corerl_transition.action,
+        reward=jnp.asarray(corerl_transition.reward),
+        next_state=corerl_transition.next_state,
+        gamma=jnp.asarray(corerl_transition.gamma),
+        action_lo=corerl_transition.prior.action_lo,
+        action_hi=corerl_transition.prior.action_hi,
+        next_action_lo=corerl_transition.post.action_lo,
+        next_action_hi=corerl_transition.post.action_hi,
+        dp=jnp.asarray(corerl_transition.prior.dp),
+        next_dp=jnp.asarray(corerl_transition.post.dp),
+        n_step_reward=jnp.asarray(corerl_transition.n_step_reward),
+        n_step_gamma=jnp.asarray(corerl_transition.n_step_gamma),
+        state_dim=corerl_transition.state_dim,
+        action_dim=corerl_transition.action_dim,
+    )

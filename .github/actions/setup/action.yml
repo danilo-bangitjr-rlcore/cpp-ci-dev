@@ -19,4 +19,4 @@ runs:
       shell: bash
       run: |
         cd ${{ inputs.subrepo }}
-        uv sync --all-extras --dev --frozen
+        uv sync --all-extras --dev

@@ -14,7 +14,7 @@ BufferConfig = Annotated[(
 def build_buffer[T: NamedTuple](cfg: BufferConfig, transition_type: type[T]):
     if cfg.name == "mixed_history_buffer":
         return MixedHistoryBuffer[T](
-            n_ensemble=cfg.n_ensemble,
+            ensemble=cfg.ensemble,
             max_size=cfg.max_size,
             ensemble_probability=cfg.ensemble_probability,
             batch_size=cfg.batch_size,
@@ -28,7 +28,7 @@ def build_buffer[T: NamedTuple](cfg: BufferConfig, transition_type: type[T]):
             obs_period=cfg.obs_period,
             gamma=cfg.gamma,
             effective_episodes=cfg.effective_episodes,
-            n_ensemble=cfg.n_ensemble,
+            ensemble=cfg.ensemble,
             uniform_weight=cfg.uniform_weight,
             ensemble_probability=cfg.ensemble_probability,
             batch_size=cfg.batch_size,
