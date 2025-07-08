@@ -448,11 +448,15 @@ class PercentileActor:
         )
         chex.assert_shape(q_vals, (self._cfg.num_samples, ))
 
+        # Select top-k actions based on the value estimator's output
         actor_k = int(self._cfg.actor_percentile * self._cfg.num_samples)
-        actor_update_actions = top_k_by_other(proposal_actions, q_vals, actor_k)
-
         proposal_k = int(self._cfg.proposal_percentile * self._cfg.num_samples)
-        proposal_update_actions = top_k_by_other(proposal_actions, q_vals, proposal_k)
+        bigger_k = max(actor_k, proposal_k)
+
+        _, top_idxs = jax.lax.top_k(q_vals, bigger_k)
+
+        actor_update_actions = proposal_actions[top_idxs[:actor_k]]
+        proposal_update_actions = proposal_actions[top_idxs[:proposal_k]]
 
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
@@ -473,15 +477,6 @@ class PercentileActor:
     ):
         losses = jax_u.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
-
-
-def top_k_by_other(arr: jax.Array, other: jax.Array, k: int) -> jax.Array:
-    chex.assert_equal_shape_prefix((arr, other), prefix_len=1)
-    chex.assert_axis_dimension_gteq(arr, 0, k)
-    chex.assert_axis_dimension_gteq(other, 0, k)
-
-    _, idxs = jax.lax.top_k(other, k)
-    return arr[idxs]
 
 
 class PercentileActorUpdateMetrics(NamedTuple):

@@ -19,7 +19,6 @@ pipeline:
   tags:
     # meta tags
     - name: reward
-      operating_range: [-1, 1]
       type: meta
 
     - name: terminated

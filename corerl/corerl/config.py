@@ -10,7 +10,7 @@ from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
 from corerl.agent.greedy_ac import GreedyACConfig
-from corerl.data_pipeline.pipeline import PipelineConfig
+from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig

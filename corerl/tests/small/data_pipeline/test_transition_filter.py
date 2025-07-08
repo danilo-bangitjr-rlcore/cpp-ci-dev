@@ -136,41 +136,9 @@ def test_only_no_action_change(actions: list[float], expected: bool):
 
 
 def test_no_nan():
-    """
-    Nan checking should ignore nans on the action and reward of the first step
-    """
-    steps = [
-        make_test_step(0, action=np.nan, reward=np.nan),
-        make_test_step(1),
-        make_test_step(2),
-    ]
-
-    transition = Transition(
-        steps=steps,
-        n_step_gamma=0.81,
-        n_step_reward=1.9,
-    )
-
-    assert no_nan(transition)
-
-    # but other nans should be caught
     steps = [
         make_test_step(0, action=np.nan, reward=np.nan),
         make_test_step(1, action=np.nan),
-        make_test_step(2),
-    ]
-
-    transition = Transition(
-        steps=steps,
-        n_step_gamma=0.81,
-        n_step_reward=1.9,
-    )
-
-    assert not no_nan(transition)
-
-    steps = [
-        make_test_step(0, action=np.nan, reward=np.nan),
-        make_test_step(1, reward=np.nan),
         make_test_step(2),
     ]
 
@@ -196,6 +164,20 @@ def test_no_nan():
     )
 
     assert not no_nan(transition)
+
+    steps = [
+        make_test_step(0),
+        make_test_step(1),
+        make_test_step(2),
+    ]
+
+    transition = Transition(
+        steps=steps,
+        n_step_gamma=0.81,
+        n_step_reward=1.9,
+    )
+
+    assert no_nan(transition)
 
 
 def test_transition_filter_1():

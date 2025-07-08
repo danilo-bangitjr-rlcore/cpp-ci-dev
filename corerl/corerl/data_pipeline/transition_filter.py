@@ -94,18 +94,4 @@ def has_nan(obj: object):
 
 
 def no_nan(transition: Transition):
-    """Checks to see if there are any nans in the transition. Ignores the reward and action
-    on the first step in the transition, as it is valid for this to be nan (e.g. the first step)."""
-    first_step = transition.steps[0]
-    if math.isnan(first_step.gamma):
-        return False
-    if jnp.isnan(first_step.state).any():
-        return False
-    if math.isnan(first_step.dp):
-        return False
-
-    for step in transition.steps[1:]:
-        if has_nan(step):
-            return False
-
-    return True
+    return not any(has_nan(step) for step in transition.steps)

@@ -23,11 +23,9 @@ pipeline:
   # meta tags
   - name: terminated
     type: meta
-    agg: bool_or
 
   - name: truncated
     type: meta
-    agg: bool_or
 
   - name: reward
     type: meta

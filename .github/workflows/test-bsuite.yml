@@ -1,19 +1,19 @@
-name: Behavior Test
+name: Behavior Test - Base agent
 
 on:
   schedule:
-    - cron: '0 */6 * * *' # run every 6 hours
+    - cron: '0 */2 * * *'
   workflow_dispatch:
 
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}-base
   cancel-in-progress: true
 
 
 jobs:
   behavior-test:
-    runs-on: threadripper-1
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v4
       - name: Setup
@@ -24,4 +24,4 @@ jobs:
       - name: Run Pytest
         run: |
           cd test
-          uv run pytest -n auto --dist worksteal test/behavior
+          uv run pytest -n auto --dist worksteal test/behavior/test_bsuite.py --feature_flag base
