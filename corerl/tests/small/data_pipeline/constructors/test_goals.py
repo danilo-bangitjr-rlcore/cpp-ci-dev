@@ -43,10 +43,10 @@ def test_reward_cfg_schema(cfg: MainConfig):
     assert isinstance(cfg.pipeline.reward, RewardConfig)
 
 
-def test_goal1(cfg: MainConfig, pipeline: Pipeline):
+def test_goal1(cfg: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
     assert cfg.pipeline.reward is not None
 
-    rc = GoalConstructor(cfg.pipeline.reward, cfg.pipeline.tags, pipeline.preprocessor)
+    rc = GoalConstructor(dummy_app_state, cfg.pipeline.reward, cfg.pipeline.tags, pipeline.preprocessor)
 
     # we want to execute all stages up to (but not including)
     # the reward constructor
@@ -115,11 +115,11 @@ def test_goal1(cfg: MainConfig, pipeline: Pipeline):
 
     pd.testing.assert_frame_equal(out.rewards, expected_rewards)
 
-def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline):
+def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
     assert cfg_with_oob.pipeline.reward
     assert cfg_with_oob.pipeline.reward.ignore_oob_tags_in_compound_goals, "feature flag is not set"
 
-    rc = GoalConstructor(cfg_with_oob.pipeline.reward, cfg_with_oob.pipeline.tags, pipeline.preprocessor)
+    rc = GoalConstructor(dummy_app_state, cfg_with_oob.pipeline.reward, cfg_with_oob.pipeline.tags, pipeline.preprocessor)
 
     stages = []
     for stage in pipeline.default_stages:
@@ -198,7 +198,7 @@ def test_only_optimization(only_optimization_cfg: MainConfig, dummy_app_state: A
     pipeline = Pipeline(dummy_app_state, cfg.pipeline)
     assert cfg.pipeline.reward is not None
 
-    rc = GoalConstructor(cfg.pipeline.reward, cfg.pipeline.tags, pipeline.preprocessor)
+    rc = GoalConstructor(dummy_app_state, cfg.pipeline.reward, cfg.pipeline.tags, pipeline.preprocessor)
 
     # we want to execute all stages up to (but not including)
     # the reward constructor
