@@ -204,3 +204,14 @@ def test_pipeline_overlapping_time(
         out.states['tag-2_trace-0.1'].iloc[0],
         0.1 * first_value,
     )
+
+
+def test_duplicate_tag_names_raises():
+    cfg_or_err = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/assets/pipeline_dup_tag.yaml')
+    assert isinstance(cfg_or_err, ConfigValidationErrors)
+
+    # We need to make sure this error is specifically due to duplicate tag names
+    # and not some other validation error.
+    # However, we don't want to tightly couple this test to the exact error message.
+    # In the future, we will have dedicated error types for different validation issues.
+    assert "duplicate" in cfg_or_err.meta['pipeline'].message.lower()

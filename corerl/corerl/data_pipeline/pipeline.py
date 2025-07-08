@@ -5,112 +5,40 @@ import logging
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from datetime import timedelta
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, Literal, Self
+from typing import Any, Literal, Self
 
 import pandas as pd
-from lib_config.config import MISSING, computed, config, list_, post_processor
-from lib_defs.config_defs.tag_config import TagType
 from pandas import DataFrame
-from pydantic import Field
 
-from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
+from corerl.data_pipeline.all_the_time import AllTheTimeTC
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
-from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor, construct_default_sc_configs
+from corerl.data_pipeline.constructors.sc import StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
-from corerl.data_pipeline.deltaize_tags import DeltaizeTags, DeltaStageConfig
-from corerl.data_pipeline.imputers.auto_encoder import MaskedAEConfig
-from corerl.data_pipeline.imputers.factory import ImputerStageConfig, init_imputer
-from corerl.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
+from corerl.data_pipeline.deltaize_tags import DeltaizeTags
+from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker
-from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
-from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
+from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
-from corerl.data_pipeline.transforms import NukeConfig, register_dispatchers
-from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
+from corerl.data_pipeline.transforms import register_dispatchers
+from corerl.data_pipeline.transition_filter import TransitionFilter
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.virtual_tags import VirtualTagComputer
 from corerl.data_pipeline.zones import ZoneDiscourager
-from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
 from corerl.tags.components.bounds import BoundedTag
-from corerl.tags.components.opc import Agg
-from corerl.tags.tag_config import BasicTagConfig, TagConfig, in_taglist
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
+from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 register_dispatchers()
 
-
-@config()
-class PipelineConfig:
-    tags: list[TagConfig] = list_()
-    max_data_gap: timedelta = MISSING
-
-    # stage-wide configs
-    delta: DeltaStageConfig = Field(default_factory=DeltaStageConfig)
-    imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
-    oddity_filter: GlobalOddityFilterConfig = Field(default_factory=GlobalOddityFilterConfig)
-    state_constructor: SCConfig = Field(default_factory=SCConfig)
-    transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
-    transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
-    reward: RewardConfig | None = None
-
-    @post_processor
-    def _enable_autoencoder_imputer(self, cfg: MainConfig):
-        if cfg.feature_flags.autoencoder_imputer:
-            self.imputer = MaskedAEConfig()
-
-    @post_processor
-    def _cascade_dependencies(self, cfg: MainConfig):
-        for tag in self.tags:
-            if tag.type != TagType.ai_setpoint or tag.cascade is None:
-                continue
-            for dep in [tag.cascade.op_sp, tag.cascade.ai_sp]:
-                if in_taglist(dep, self.tags): continue
-                self.tags.append(BasicTagConfig(
-                    name=dep,
-                    agg=Agg.last,
-                    preprocess=[],
-                    state_constructor=[NukeConfig()],
-                ))
-
-            if in_taglist(tag.cascade.mode, self.tags): continue
-            self.tags.append(
-                BasicTagConfig(
-                    name=tag.cascade.mode,
-                    agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
-                    preprocess=[],
-                    state_constructor=[NukeConfig()],
-                    outlier=[IdentityFilterConfig()],
-                ),
-            )
-
-    @post_processor
-    def _default_imputers(self, cfg: MainConfig):
-        if not isinstance(self.imputer, PerTagImputerConfig):
-            return
-
-        for tag in self.tags:
-            if tag.imputer is not None:
-                continue
-
-            tag.imputer = self.imputer.default
-
-    @computed('max_data_gap')
-    @classmethod
-    def _max_data_gap(cls, cfg: MainConfig):
-        return 2 * cfg.interaction.obs_period
 
 @dataclass
 class PipelineReturn:
