@@ -10,7 +10,7 @@ from corerl.tags.components.opc import OPCTag
 @config()
 class DeltaTagConfig(
     SafetyZonedTag,
-    OPCTag
+    OPCTag,
 ):
     name: str = MISSING
     type: Literal[TagType.delta] = TagType.delta
