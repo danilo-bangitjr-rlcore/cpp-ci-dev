@@ -63,36 +63,6 @@ class BasicTagConfig(
     defaults.
     """
 
-    def _bounds_parse_sympy(
-        self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False,
-    ) -> tuple[BoundsFunction, BoundsTags]:
-        lo_func, hi_func = None, None
-        lo_tags, hi_tags = None, None
-
-        if input_bounds is not None and isinstance(input_bounds[0], str):
-            expression_lo, lo_func, lo_tags = to_sympy(input_bounds[0])
-            for tag in lo_tags:
-                assert tag in known_tags, f"Unknown tag name in lower bound or range expression of {self.name}"
-                assert (
-                    allow_circular or tag != self.name
-                ), f"Circular definition in lower bound or rage expression of {self.name}"
-            assert is_affine(expression_lo), f"Expression on the lower bound or range of {self.name} is not affine"
-
-        if input_bounds is not None and isinstance(input_bounds[1], str):
-            expression_hi, hi_func, hi_tags = to_sympy(input_bounds[1])
-            for tag in hi_tags:
-                assert tag in known_tags, f"Unknown tag name in upper bound or range expression of {self.name}"
-                assert (
-                    allow_circular or tag != self.name
-                ), f"Circular definition in upper bound or rage expression of {self.name}"
-            assert is_affine(expression_hi), f"Expression on the upper bound or range of {self.name} is not affine"
-
-        bounds_func: BoundsFunction = (lo_func, hi_func)
-        bounds_tags: BoundsTags = (lo_tags, hi_tags)
-
-        return bounds_func, bounds_tags
-
-
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
         # -----------------------------
