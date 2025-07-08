@@ -31,9 +31,22 @@ class GoalConstructor:
                 violation_percent = self._priority_violation_percent(priority, row, priority_idx)
                 priority_violations.append(violation_percent)
 
+                # log violation satisfaction
+                self._app_state.metrics.write(
+                    self._app_state.agent_step,
+                    f'priority_{priority}_satisfaction',
+                    1-violation_percent,
+                )
             else:
                 opt_violation = self._avg_optimization_violation(priority, row)
                 priority_violations.append(opt_violation)
+
+                # log optimization satisfaction
+                self._app_state.metrics.write(
+                    self._app_state.agent_step,
+                    'optimization_satisfaction',
+                    1+opt_violation,
+                )
 
         return priority_violations
 
@@ -238,6 +251,19 @@ class GoalConstructor:
 
         lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {goal.tag}')
         delta = thresh - x
+
+        # log the tags value as well as the threshold
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            f'priority_{active_idx}_{goal.tag}',
+            x,
+        )
+
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            f'priority_{active_idx}_{goal.tag}_thresh',
+            thresh,
+        )
 
         return delta / (thresh - lo)
 
