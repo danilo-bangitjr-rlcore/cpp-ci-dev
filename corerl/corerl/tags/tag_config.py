@@ -64,33 +64,6 @@ class BasicTagConfig(
     defaults.
     """
 
-    nominal_setpoint: float | None = None
-    """
-    Kind: optional external
-
-    The default setpoint for this tag. Can only be specified for tags of type `TagType.ai_setpoint`.
-    """
-
-    # tag zones
-    action_bounds: Bounds | None = None
-    """
-    Kind: optional external
-
-    The lower and upper bounds of values that the agent can write to this tag. This interval
-    may be a subset of the operating range.
-    """
-
-    action_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
-    action_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
-    """
-    Kind: computed internal
-
-    In case that the action_bounds are specified as strings representing sympy functions,
-    the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the action_bounds_tags will hold the lists of tags that those functions depend on.
-    """
-
-
     def _bounds_parse_sympy(
         self, input_bounds: Bounds, known_tags: set[str], allow_circular: bool = False,
     ) -> tuple[BoundsFunction, BoundsTags]:
