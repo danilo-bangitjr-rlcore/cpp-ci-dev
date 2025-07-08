@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from enum import StrEnum, auto
 from functools import partial
-from typing import Annotated, Literal
+from typing import TYPE_CHECKING, Annotated, Literal
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
@@ -12,6 +12,9 @@ from pydantic import Field
 from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.tags.base import GlobalTagAttributes
 from corerl.utils.sympy import is_affine, to_sympy
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 BoundsElem = float | str | None
 
@@ -180,6 +183,27 @@ class SafetyZonedTag(BoundedTag):
 
     Specifies the reaction to a red zone violation.
     """
+
+    # --------------
+    # -- Defaults --
+    # --------------
+    @post_processor
+    def _set_zone_bounds(self, cfg: 'MainConfig'):
+        tags = {tag.name for tag in cfg.pipeline.tags}
+
+        if self.red_bounds is not None:
+            self.red_bounds_func, self.red_bounds_tags = (
+                Maybe(self.red_bounds)
+                .map(lambda bounds: parse_string_bounds(self, bounds, tags, allow_circular=True))
+                .or_else((None, None))
+            )
+
+        if self.yellow_bounds is not None:
+            self.yellow_bounds_func, self.yellow_bounds_tags = (
+                Maybe(self.yellow_bounds)
+                .map(lambda bounds: parse_string_bounds(self, bounds, tags, allow_circular=True))
+                .or_else((None, None))
+            )
 
     # -----------------------
     # -- Utility Functions --
