@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Literal
 
 from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
-from pydantic import Field
 
 from corerl.tags.components.bounds import (
     Bounds,
