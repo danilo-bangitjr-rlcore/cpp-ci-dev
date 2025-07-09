@@ -8,6 +8,7 @@ import colorlog
 from lib_config.loader import load_config
 
 from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.sql_communication import SQL_Manager
 from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEventType
@@ -51,10 +52,9 @@ async def coreio_loop(cfg: MainConfigAdapter):
                 async with opc_conn:
                     await opc_conn.register_node(heartbeat_id)
 
-    # Future functionality
-    # if cfg.coreio.data_ingress.enabled:
-    #     logger.info("Starting SQL communication")
-    #     sql_communication = SQL_Manager(cfg.infra, table_name=cfg.env.db.table_name)
+    if cfg.coreio.data_ingress.enabled:
+        logger.info("Starting SQL communication")
+        sql_communication = SQL_Manager(cfg.infra, table_name=cfg.env.db.table_name) #noqa: F841
 
     logger.info("Starting ZMQ communication")
     zmq_communication = ZMQ_Communication(cfg.coreio)
