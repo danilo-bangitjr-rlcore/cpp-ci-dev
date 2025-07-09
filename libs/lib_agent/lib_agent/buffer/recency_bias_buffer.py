@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
 import numpy as np
@@ -6,13 +7,12 @@ from discrete_dists.distribution import Support
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
 from discrete_dists.utils.SumTree import SumTree
-from lib_config.config import computed, config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
 
 
-@config()
+@dataclass
 class RecencyBiasBufferConfig:
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
     obs_period: int = 1000000
@@ -26,21 +26,6 @@ class RecencyBiasBufferConfig:
     seed: int = 0
     n_most_recent: int = 1
     id: str = ""
-
-    @computed('obs_period')
-    @classmethod
-    def _obs_period(cls, cfg: "RecencyBiasBufferConfig"):
-        return cfg.obs_period
-
-    @computed('gamma')
-    @classmethod
-    def _gamma(cls, cfg: "RecencyBiasBufferConfig"):
-        return cfg.gamma
-
-    @computed('ensemble')
-    @classmethod
-    def _ensemble(cls, cfg: "RecencyBiasBufferConfig"):
-        return cfg.ensemble
 
 
 class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):

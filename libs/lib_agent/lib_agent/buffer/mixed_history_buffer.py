@@ -1,11 +1,11 @@
 from collections import deque
 from collections.abc import Sequence
+from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
 from discrete_dists.proportional import Proportional
-from lib_config.config import computed, config
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
@@ -50,7 +50,7 @@ class MaskedABDistribution:
         self._historical.update(elements, ensemble_mask & ~online_mask)
 
 
-@config()
+@dataclass
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
     ensemble: int = 1
@@ -61,11 +61,6 @@ class MixedHistoryBufferConfig:
     n_most_recent: int = 1
     online_weight: float = 0.75
     id: str = ""
-
-    @computed('ensemble')
-    @classmethod
-    def _ensemble(cls, cfg: "MixedHistoryBufferConfig"):
-        return cfg.ensemble
 
 
 class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):

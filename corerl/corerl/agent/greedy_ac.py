@@ -12,8 +12,6 @@ from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import BufferConfig, build_buffer
-from lib_agent.buffer.mixed_history_buffer import MixedHistoryBufferConfig
-from lib_agent.buffer.recency_bias_buffer import RecencyBiasBufferConfig
 from lib_agent.critic.qrc_critic import (
     QRCConfig,
     QRCCritic,
@@ -26,6 +24,7 @@ from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
+from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
 from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType

@@ -155,11 +155,11 @@ def test_recency_bias_buffer_discount():
 
 def test_recency_bias_buffer_datetime_timestamps():
     cfg = RecencyBiasBufferConfig(
-        obs_period=1000,
-        gamma=[0.99],
-        effective_episodes=[100],
+        obs_period=1,
+        gamma=[0.5],
+        effective_episodes=[10],
         ensemble=1,
-        uniform_weight=0.5,
+        uniform_weight=0.1,
         ensemble_probability=1.0,
         max_size=1000,
     )
