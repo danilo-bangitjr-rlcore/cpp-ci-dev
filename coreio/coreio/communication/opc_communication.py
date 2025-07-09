@@ -181,20 +181,14 @@ class OPC_Connection:
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
 
     @requires_context
-    async def register_action_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
+    async def register_cfg_nodes(self, tag_configs: Sequence[TagConfigAdapter], ai_setpoint_only: bool = False):
         assert self.opc_client is not None, 'OPC client is not initialized'
-        """
-        Register nodes that:
-        1. Have the relevant connection_id
-        2. Are ai_setpoints
-        """
         for tag_cfg in tag_configs:
-            if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
+            if tag_cfg.connection_id != self.connection_id or tag_cfg.node_identifier is None:
                 continue
 
-            if tag_cfg.node_identifier is None:
-                raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
-                    "For ai_setpoint tags, node_identifier must be defined")
+            if ai_setpoint_only and tag_cfg.type != TagType.ai_setpoint:
+                continue
 
             await self.register_node(tag_cfg.node_identifier)
 
