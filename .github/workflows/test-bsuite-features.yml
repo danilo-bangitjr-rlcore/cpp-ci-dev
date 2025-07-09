@@ -9,6 +9,7 @@ jobs:
   behavior-test:
     runs-on: self-hosted
     strategy:
+      fail-fast: false
       matrix:
         feature_flag: [
             recency_bias_buffer,
