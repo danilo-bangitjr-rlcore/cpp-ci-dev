@@ -7,6 +7,22 @@ coreio:
         policy: none
         mode: none
       authentication_mode: anonymous
+  data_ingress:
+    enabled: True
+
+infra:
+  db:
+    drivername: postgresql+psycopg2
+    username: postgres
+    password: password
+    ip: localhost
+    port: 5432
+    db_name: postgres
+
+env:
+  name: dep_async_env
+  db:
+    table_name: main
 
 pipeline:
   tags:
