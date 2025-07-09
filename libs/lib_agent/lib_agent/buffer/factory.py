@@ -1,45 +1,41 @@
-from typing import Annotated, Any, NamedTuple
-
-from pydantic import Field
+from typing import NamedTuple
 
 from lib_agent.buffer.mixed_history_buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
 from lib_agent.buffer.recency_bias_buffer import RecencyBiasBuffer, RecencyBiasBufferConfig
 
-BufferConfig = Annotated[MixedHistoryBufferConfig | RecencyBiasBufferConfig | Any, Field(discriminator='name')]
+BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
 
-def _to_lib_config(cfg: Any) -> MixedHistoryBufferConfig | RecencyBiasBufferConfig:
-    if hasattr(cfg, 'to_lib_config'):
-        return cfg.to_lib_config()
-    return cfg
+def build_buffer[
+    T: NamedTuple
+](
+    cfg: BufferConfig,
+    transition_type: type[T],
+) -> MixedHistoryBuffer[T] | RecencyBiasBuffer[T]:
 
-
-def build_buffer[T: NamedTuple](cfg: Any, transition_type: type[T]):
-    lib_cfg = _to_lib_config(cfg)
-
-    if lib_cfg.name == "mixed_history_buffer":
+    if cfg.name == "mixed_history_buffer":
         return MixedHistoryBuffer[T](
-            ensemble=lib_cfg.ensemble,
-            max_size=lib_cfg.max_size,
-            ensemble_probability=lib_cfg.ensemble_probability,
-            batch_size=lib_cfg.batch_size,
-            seed=lib_cfg.seed,
-            n_most_recent=lib_cfg.n_most_recent,
-            online_weight=lib_cfg.online_weight,
-            id=lib_cfg.id,
+            ensemble=cfg.ensemble,
+            max_size=cfg.max_size,
+            ensemble_probability=cfg.ensemble_probability,
+            batch_size=cfg.batch_size,
+            seed=cfg.seed,
+            n_most_recent=cfg.n_most_recent,
+            online_weight=cfg.online_weight,
+            id=cfg.id,
         )
-    if lib_cfg.name == "recency_bias_buffer":
+    if cfg.name == "recency_bias_buffer":
         return RecencyBiasBuffer[T](
-            obs_period=lib_cfg.obs_period,
-            gamma=lib_cfg.gamma,
-            effective_episodes=lib_cfg.effective_episodes,
-            ensemble=lib_cfg.ensemble,
-            uniform_weight=lib_cfg.uniform_weight,
-            ensemble_probability=lib_cfg.ensemble_probability,
-            batch_size=lib_cfg.batch_size,
-            max_size=lib_cfg.max_size,
-            seed=lib_cfg.seed,
-            n_most_recent=lib_cfg.n_most_recent,
-            id=lib_cfg.id,
+            obs_period=cfg.obs_period,
+            gamma=cfg.gamma,
+            effective_episodes=cfg.effective_episodes,
+            ensemble=cfg.ensemble,
+            uniform_weight=cfg.uniform_weight,
+            ensemble_probability=cfg.ensemble_probability,
+            batch_size=cfg.batch_size,
+            max_size=cfg.max_size,
+            seed=cfg.seed,
+            n_most_recent=cfg.n_most_recent,
+            id=cfg.id,
         )
-    raise ValueError(f"Unknown buffer type: {lib_cfg.name}")
+    raise ValueError(f"Unknown buffer type: {cfg.name}")

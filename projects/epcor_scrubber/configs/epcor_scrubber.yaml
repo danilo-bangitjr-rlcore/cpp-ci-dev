@@ -64,7 +64,7 @@ agent:
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24
-      n_ensemble: 1
+      ensemble: 1
       ensemble_probability: 1
       id: critic # for metric logging
 
@@ -72,7 +72,7 @@ agent:
     buffer:
       name: mixed_history_buffer
       n_most_recent: 24
-      n_ensemble: 1
+      ensemble: 1
       ensemble_probability: 1
       id: actor # for metric logging
 

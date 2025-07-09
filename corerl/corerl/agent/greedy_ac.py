@@ -11,7 +11,7 @@ import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
-from lib_agent.buffer.factory import BufferConfig, build_buffer
+from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.qrc_critic import (
     QRCConfig,
     QRCCritic,
@@ -32,10 +32,11 @@ from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
 
 if TYPE_CHECKING:
-
     from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
+
+BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
 @config()
 class CriticNetworkConfig:
@@ -213,8 +214,8 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        self._actor_buffer = build_buffer(cfg.policy.buffer, JaxTransition)
-        self.critic_buffer = build_buffer(cfg.critic.buffer, JaxTransition)
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
+        self.critic_buffer = build_buffer(cfg.critic.buffer.to_lib_config(), JaxTransition)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
 
