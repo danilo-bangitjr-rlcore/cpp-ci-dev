@@ -10,6 +10,9 @@ dependencies = [
     "colorlog>=6.9.0",
     "lib-config",
     "lib-defs",
+    "lib-utils",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
 ]
 
 [dependency-groups]
@@ -34,6 +37,7 @@ packages = ["coreio"]
 test = { path = "../test", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-defs = { path = "../libs/lib_defs", editable = true }
+lib-utils = { path = "../libs/lib_utils", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'
