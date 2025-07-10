@@ -47,16 +47,16 @@ deactivate
 popd > /dev/null
 log "After popd from coreio: $(pwd)"
 
-if [ -f "/home/runner/work/core-rl/core-rl/coreio/dist/corerl" ]; then
-    mv /home/runner/work/core-rl/core-rl/coreio/dist/ "dist/corerl-v${CORERL_VERSION}"
+if [ -f "./corerl/dist/corerl" ]; then
+    mv ./corerl/dist/ "dist/corerl-v${CORERL_VERSION}"
     log "Created: dist/corerl-v${CORERL_VERSION}"
 else
     log "Error: corerl/dist/corerl not found"
     exit 1
 fi
 
-if [ -f "/home/runner/work/core-rl/core-rl/coreio/dist/coreio" ]; then
-    mv /home/runner/work/core-rl/core-rl/coreio/dist/ "dist/coreio-v${COREIO_VERSION}"
+if [ -f "./coreio/dist/coreio" ]; then
+    mv ./coreio/dist/ "dist/coreio-v${COREIO_VERSION}"
     log "Created: dist/coreio-v${COREIO_VERSION}"
 else
     log "Error: coreio/dist/coreio not found"
