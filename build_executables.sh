@@ -47,6 +47,7 @@ deactivate
 popd > /dev/null
 log "After popd from coreio: $(pwd)"
 
+mkdir -p dist
 if [ -f "./corerl/dist/corerl" ]; then
     mv ./corerl/dist/corerl "dist/corerl-v${CORERL_VERSION}"
     log "Created: dist/corerl-v${CORERL_VERSION}"
