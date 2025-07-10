@@ -10,7 +10,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import OfflineTraining
+from corerl.offline.utils import OfflineTraining, run_offline_evaluation_phase
 from corerl.state import AppState
 
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +45,7 @@ def main(cfg: MainConfig):
     offline_training = OfflineTraining(cfg)
     offline_training.load_offline_transitions(pipeline)
     offline_training.train(agent)
+    run_offline_evaluation_phase(cfg, agent, pipeline)
 
     app_state.metrics.close()
     app_state.evals.close()

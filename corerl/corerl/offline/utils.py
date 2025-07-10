@@ -107,6 +107,49 @@ class OfflineTraining:
 
         return q_losses
 
+def run_offline_evaluation_phase(cfg: MainConfig, agent: GreedyAC, pipeline: Pipeline):
+    """
+    Runs the offline evaluation phase using the provided config, agent, and pipeline.
+    Loads data in single obs_period chunks between offline_eval_start_time and offline_eval_end_time,
+    processes through the pipeline, and updates the agent.
+    """
+    eval_start = cfg.offline.offline_eval_start_time
+    eval_end = cfg.offline.offline_eval_end_time
+    obs_period = cfg.interaction.obs_period
+    if eval_start is None or eval_end is None:
+        log.info("No evaluation phase: offline_eval_start_time or offline_eval_end_time not set.")
+        return
+
+    log.info(f"Starting evaluation phase: {eval_start} to {eval_end}")
+    data_reader = DataReader(db_cfg=cfg.env.db)
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
+
+    # Create 1 obs_period-wide chunks
+    time_chunks = split_into_chunks(eval_start, eval_end, width=obs_period)
+    for chunk_start, chunk_end in time_chunks:
+        chunk_data = data_reader.batch_aggregated_read(
+            names=tag_names,
+            start_time=chunk_start,
+            end_time=chunk_end,
+            bucket_width=obs_period,
+            aggregation=cfg.env.db.data_agg,
+        )
+        chunk_pr = pipeline(
+            data=chunk_data,
+            data_mode=DataMode.ONLINE,
+            reset_temporal_state=False,
+        )
+
+        if chunk_pr.transitions is None or len(chunk_pr.transitions) == 0:
+            log.warning(f"No transitions found for eval chunk: {chunk_start} to {chunk_end}")
+            continue
+
+        agent.update_buffer(chunk_pr)
+        loss = agent.update()
+        log.info(
+            f"Eval chunk {chunk_start} to {chunk_end}: transitions={len(chunk_pr.transitions)}, loss={loss}",
+        )
+
 
 def get_data_start_end_times(
     data_reader: DataReader, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None,

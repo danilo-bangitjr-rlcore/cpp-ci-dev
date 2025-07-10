@@ -110,6 +110,8 @@ class OfflineConfig:
     offline_steps: int = 0
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
+    offline_eval_start_time: datetime | None = None
+    offline_eval_end_time: datetime | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
 
     @post_processor
