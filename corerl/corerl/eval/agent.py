@@ -280,6 +280,47 @@ def q_values_and_act_prob(
             value=measure.model_dump_json(),
         )
 
+def offline_q_values_and_act_probs(
+    app_state: AppState,
+    agent: GreedyAC,
+    state: jax.Array,
+):
+    cfg = app_state.cfg.eval_cfgs.q_pdf_plots
+
+    chex.assert_rank(state, 1)
+
+    rng = jax.random.PRNGKey(app_state.agent_step)
+    dist = agent.get_dist(state)
+
+    on_policy_actions: jax.Array = dist.sample(
+        seed=rng,
+        sample_shape=(cfg.primary_action_samples, cfg.other_action_samples),
+    )
+    chex.assert_shape(on_policy_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
+
+    x_axis_actions = jnp.linspace(0, 1, cfg.primary_action_samples)
+
+    qs = []
+    probs = []
+    for a_dim_idx in range(agent.action_dim):
+        query_actions = on_policy_actions.at[:, :, a_dim_idx].set(jnp.expand_dims(x_axis_actions, 1))
+        a_dim_probs = dist.prob(query_actions)
+        mean_a_dim_probs = a_dim_probs.mean(axis=1)
+        chex.assert_shape(a_dim_probs, (cfg.primary_action_samples, cfg.other_action_samples))
+        probs.append(mean_a_dim_probs)
+
+        # Next, plot q values for the entire range of direct actions
+        # need to loop over the "other_action" dimension
+        chex.assert_shape(query_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
+        other_action_get_vals = jax_u.vmap(agent.get_values, in_axes=(None, 1), out_axes=-2)
+        out = other_action_get_vals(state, query_actions)
+        chex.assert_shape(out.reduced_value, (cfg.primary_action_samples, cfg.other_action_samples, 1))
+        # remove the trailing value dim and avg over other_action dim
+        a_dim_qs = out.reduced_value.squeeze(-1).mean(axis=-1)
+        qs.append(a_dim_qs)
+
+    return x_axis_actions, jnp.asarray(probs), jnp.asarray(qs)
+
 
 class XY(BaseModel):
     x: float
