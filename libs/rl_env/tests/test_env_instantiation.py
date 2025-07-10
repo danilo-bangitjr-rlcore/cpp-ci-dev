@@ -21,3 +21,13 @@ env_names = [
 def test_env_instantiation(env_name: str):
     env = init_env(env_name)
     assert env is not None
+
+def test_saturation_env_with_overrides():
+    overrides = {
+        'decay': 0.42,
+        'effect': 0.99,
+        'effect_period': 123,
+        'trace_val': 0.77,
+    }
+    env = init_env('Saturation-v0', overrides=overrides)
+    assert env is not None
