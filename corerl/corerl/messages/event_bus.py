@@ -6,9 +6,9 @@ from queue import Empty, Queue
 from typing import Any
 
 import zmq
+from lib_utils.consumer_task import consumer_task
 
 from corerl.environment.async_env.factory import AsyncEnvConfig
-from corerl.messages.consumer import consumer_task
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig
 
@@ -36,10 +36,13 @@ class EventBus:
             args=(
                 self.subscriber_socket,
                 self.queue,
-                self.event_bus_stop_event,
-            ),
+                self.event_bus_stop_event),
+            kwargs={
+                    "event_class": Event,
+                    "topic": EventTopic.corerl,
+                },
             daemon=True,
-            name= "corerl_event_bus_consumer",
+            name="corerl_event_bus_consumer",
         )
 
         self.subscriber_socket.bind(self.cfg_event_bus.app_connection)

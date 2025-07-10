@@ -43,11 +43,6 @@ class EventType(StrEnum):
     ping_setpoints = auto()
     flush_buffers = auto()
 
-    # -----------
-    # -- Debug --
-    # -----------
-    toggle_event_logging = auto()
-
 class EventTopic(StrEnum):
     # Topic filtering occurs using subscriber-side prefixing
     corerl = auto()

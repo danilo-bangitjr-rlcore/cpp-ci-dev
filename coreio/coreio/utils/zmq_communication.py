@@ -5,11 +5,11 @@ from queue import Empty, Queue
 from typing import Any
 
 import zmq
+from lib_utils.consumer_task import consumer_task
 from pydantic import ValidationError
 
 from coreio.config import CoreIOConfig
-from coreio.utils.consumer_task import coreio_consumer_task
-from coreio.utils.io_events import IOEvent
+from coreio.utils.io_events import IOEvent, IOEventTopic
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +34,15 @@ class ZMQ_Communication:
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
         self.coreio_stop_event = threading.Event()
         self.consumer_thread = threading.Thread(
-            target=coreio_consumer_task,
+            target=consumer_task,
             args=(
                 self.subscriber_socket,
                 self.queue,
-                self.coreio_stop_event,
-            ),
+                self.coreio_stop_event),
+            kwargs={
+                    "event_class": IOEvent,
+                    "topic": IOEventTopic.coreio,
+                },
             daemon=True,
             name="coreio_consumer",
         )
