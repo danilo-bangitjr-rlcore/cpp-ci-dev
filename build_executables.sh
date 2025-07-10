@@ -48,7 +48,7 @@ popd > /dev/null
 log "After popd from coreio: $(pwd)"
 
 if [ -f "./corerl/dist/corerl" ]; then
-    mv ./corerl/dist/ "dist/corerl-v${CORERL_VERSION}"
+    mv ./corerl/dist/corerl "dist/corerl-v${CORERL_VERSION}"
     log "Created: dist/corerl-v${CORERL_VERSION}"
 else
     log "Error: corerl/dist/corerl not found"
@@ -56,7 +56,7 @@ else
 fi
 
 if [ -f "./coreio/dist/coreio" ]; then
-    mv ./coreio/dist/ "dist/coreio-v${COREIO_VERSION}"
+    mv ./coreio/dist/coreio "dist/coreio-v${COREIO_VERSION}"
     log "Created: dist/coreio-v${COREIO_VERSION}"
 else
     log "Error: coreio/dist/coreio not found"
