@@ -1,15 +1,14 @@
 # Import modules
-from dataclasses import dataclass
-
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
 from gymnasium import spaces
+from lib_config.config import config
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class FourRoomsConfig(EnvConfig):
     name: str = 'FourRooms-v0'
     continuous_action: bool = True

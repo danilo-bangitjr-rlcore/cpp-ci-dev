@@ -1,13 +1,13 @@
-from dataclasses import dataclass
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class SaturationGoalsConfig(EnvConfig):
     name: str = 'SaturationGoals-v0'
     setpoint_change_period: int = 400
