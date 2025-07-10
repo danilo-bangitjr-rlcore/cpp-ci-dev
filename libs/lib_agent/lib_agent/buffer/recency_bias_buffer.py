@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Literal, NamedTuple
 
 import numpy as np
@@ -14,10 +14,10 @@ from lib_agent.buffer.datatypes import DataMode
 
 @dataclass
 class RecencyBiasBufferConfig:
+    obs_period: int
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
-    obs_period: int = 1000000
-    gamma: list[float] | None = None
-    effective_episodes: list[int] | None = None
+    gamma: list[float] = field(default_factory=lambda: [0.99])
+    effective_episodes: list[int] = field(default_factory=lambda: [100])
     ensemble: int = 2
     uniform_weight: float = 0.01
     ensemble_probability: float = 0.5
@@ -31,9 +31,9 @@ class RecencyBiasBufferConfig:
 class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
     def __init__(
         self,
-        obs_period: int = 1000000,
-        gamma: list[float] | None = None,
-        effective_episodes: list[int] | None = None,
+        obs_period: int,
+        gamma: Sequence[float] = [0.99],
+        effective_episodes: Sequence[int] = [100],
         ensemble: int = 2,
         uniform_weight: float = 0.01,
         ensemble_probability: float = 0.5,
@@ -43,11 +43,6 @@ class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
         n_most_recent: int = 1,
         id: str = "",
     ):
-        if gamma is None:
-            gamma = [0.99]
-        if effective_episodes is None:
-            effective_episodes = [100]
-
         super().__init__(
             ensemble=ensemble,
             ensemble_probability=ensemble_probability,
