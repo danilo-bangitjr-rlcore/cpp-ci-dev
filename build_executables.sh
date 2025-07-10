@@ -6,6 +6,8 @@ log() { echo "[build] $*"; }
 
 start_time=$(date +%s)
 
+log "Starting directory: $(pwd)"
+
 if [ ! -f ".release-please-manifest.json" ]; then
     log "Error: .release-please-manifest.json not found"
     exit 1
@@ -20,7 +22,9 @@ log "CoreIO version: $COREIO_VERSION"
 rm -rf dist build corerl/.venv coreio/.venv
 
 log "Building CoreRL executable..."
+log "Before pushd corerl: $(pwd)"
 pushd corerl > /dev/null
+log "Inside corerl directory: $(pwd)"
 uv venv
 source .venv/bin/activate
 uv sync
@@ -28,9 +32,12 @@ uv pip install pyinstaller
 pyinstaller --name "corerl" --onefile corerl/main.py
 deactivate
 popd > /dev/null
+log "After popd from corerl: $(pwd)"
 
 log "Building CoreIO executable..."
+log "Before pushd coreio: $(pwd)"
 pushd coreio > /dev/null
+log "Inside coreio directory: $(pwd)"
 uv venv
 source .venv/bin/activate
 uv sync
@@ -38,17 +45,18 @@ uv pip install pyinstaller
 pyinstaller --name "coreio" --onefile coreio/main.py
 deactivate
 popd > /dev/null
+log "After popd from coreio: $(pwd)"
 
-if [ -f "corerl/corerl/dist/corerl" ]; then
-    mv corerl/dist/corerl "dist/corerl-v${CORERL_VERSION}"
+if [ -f "/home/runner/work/core-rl/core-rl/coreio/dist/corerl" ]; then
+    mv /home/runner/work/core-rl/core-rl/coreio/dist/ "dist/corerl-v${CORERL_VERSION}"
     log "Created: dist/corerl-v${CORERL_VERSION}"
 else
     log "Error: corerl/dist/corerl not found"
     exit 1
 fi
 
-if [ -f "corerl/coreio/dist/coreio" ]; then
-    mv coreio/dist/coreio "dist/coreio-v${COREIO_VERSION}"
+if [ -f "/home/runner/work/core-rl/core-rl/coreio/dist/coreio" ]; then
+    mv /home/runner/work/core-rl/core-rl/coreio/dist/ "dist/coreio-v${COREIO_VERSION}"
     log "Created: dist/coreio-v${COREIO_VERSION}"
 else
     log "Error: coreio/dist/coreio not found"
