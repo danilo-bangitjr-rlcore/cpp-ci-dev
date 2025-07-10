@@ -6,9 +6,6 @@ log() { echo "[build] $*"; }
 
 start_time=$(date +%s)
 
-echo "Install uv"
-curl -fsSL https://get.uv.dev | sh
-
 if [ ! -f ".release-please-manifest.json" ]; then
     log "Error: .release-please-manifest.json not found"
     exit 1
