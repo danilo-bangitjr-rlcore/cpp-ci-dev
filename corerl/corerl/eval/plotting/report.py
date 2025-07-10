@@ -1,6 +1,6 @@
-
 from pathlib import Path
 
+import jax
 import matplotlib.pyplot as plt
 import pandas as pd
 
@@ -124,3 +124,29 @@ def plot_chunk_histogram(
     chunk_lengths = length_of_chunks(is_not_nan)
     chunk_lengths = pd.Series(chunk_lengths)
     plot_histogram(chunk_lengths, title, save_path, 'Chunk Length', show_mean, percentiles, bins)
+
+def make_actor_critic_plots(
+    eval_date: str,
+    x_axis_actions: jax.Array,
+    probs: jax.Array,
+    qs: jax.Array,
+    step: int,
+    eval_state_num: int,
+    save_path: Path,
+):
+    probs_a_dims, _ = probs.shape
+    qs_a_dims, _ = qs.shape
+    assert probs_a_dims == qs_a_dims
+
+    fig, axs = plt.subplots(2, qs_a_dims, sharex=True, figsize=(5*qs_a_dims, 10))
+    for a_dim in range(qs_a_dims):
+        axs[0, a_dim].set_title("Actor", fontsize=18)
+        axs[0, a_dim].plot(x_axis_actions, probs[a_dim])
+        axs[1, a_dim].set_title("Critic", fontsize=18)
+        axs[1, a_dim].plot(x_axis_actions, qs[a_dim])
+
+    fig.suptitle(eval_date, fontsize=32)
+    fig.tight_layout()
+
+    fig.savefig(save_path / f"offline_iter_{step}_state_{eval_state_num}_actor_critic_plot.png")
+    plt.close(fig)
