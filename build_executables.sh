@@ -39,7 +39,7 @@ pyinstaller --name "coreio" --onefile coreio/main.py
 deactivate
 popd > /dev/null
 
-if [ -f "corerl/dist/corerl" ]; then
+if [ -f "corerl/corerl/dist/corerl" ]; then
     mv corerl/dist/corerl "dist/corerl-v${CORERL_VERSION}"
     log "Created: dist/corerl-v${CORERL_VERSION}"
 else
@@ -47,7 +47,7 @@ else
     exit 1
 fi
 
-if [ -f "coreio/dist/coreio" ]; then
+if [ -f "corerl/coreio/dist/coreio" ]; then
     mv coreio/dist/coreio "dist/coreio-v${COREIO_VERSION}"
     log "Created: dist/coreio-v${COREIO_VERSION}"
 else
