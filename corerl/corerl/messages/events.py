@@ -1,14 +1,15 @@
 import logging
 import uuid
-from enum import StrEnum, auto
+from enum import auto
 
+from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 from lib_utils.time import now_iso
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import Field, ValidationError
 
 logger = logging.getLogger(__name__)
 
 
-class EventType(StrEnum):
+class EventType(BaseEventType):
     # ---------------
     # -- Lifecycle --
     # ---------------
@@ -43,7 +44,7 @@ class EventType(StrEnum):
     ping_setpoints = auto()
     flush_buffers = auto()
 
-class EventTopic(StrEnum):
+class EventTopic(BaseEventTopic):
     # Topic filtering occurs using subscriber-side prefixing
     corerl = auto()
     corerl_scheduler = auto()
@@ -51,7 +52,7 @@ class EventTopic(StrEnum):
     debug_app = auto()
 
 
-class Event(BaseModel):
+class Event(BaseEvent[EventType]):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
     type: EventType
