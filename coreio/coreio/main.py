@@ -6,13 +6,13 @@ import logging
 
 import colorlog
 from lib_config.loader import load_config
+from lib_utils.base_event_bus import BaseEventBus
 
 from coreio.communication.opc_communication import OPC_Connection
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
-from coreio.utils.io_events import IOEventType
-from coreio.utils.opc_utils import concat_opc_nodes
+from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
 
 colorlog.basicConfig(
     level=logging.DEBUG,
@@ -63,7 +63,12 @@ async def coreio_loop(cfg: MainConfigAdapter):
         )
 
     logger.info("Starting ZMQ communication")
-    zmq_communication = ZMQ_Communication(cfg.coreio)
+    zmq_communication = BaseEventBus(
+        event_class=IOEvent,
+        topic=IOEventTopic.coreio,
+        consumer_name="coreio_consumer",
+        subscriber_sockets=[cfg.coreio.coreio_origin],
+    )
     zmq_communication.start()
 
     logger.info("CoreIO is ready")
