@@ -24,11 +24,8 @@ jobs:
     with:
       push_to_registry: true
 
-  build-and-push-whl:
+  build-and-push-executables:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: corerl
 
     steps:
       - name: Generate a token
@@ -45,22 +42,20 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v6
         with:
-          enable-cache: true
-          prune-cache: false
-          cache-dependency-glob: "uv.lock"
+          python-version: 3.13.0
 
-      - name: Build Python Wheel
-        run: |
-          uv venv
-          uv build
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Upload assets to GitHub Release
-        id: upload_whl_to_release
-        env:
-          GITHUB_TOKEN: ${{ steps.generate-token.outputs.token }}
+      - name: Build Executables
         run: |
-          gh release upload \
-            ${{ github.ref_name }} \
-            ./dist/*
+          ./build_executables.sh
+
+      - name: Upload executables as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: corerl-executables
+          path: ./dist/
+          retention-days: 30
