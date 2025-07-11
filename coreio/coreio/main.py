@@ -62,29 +62,33 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     logger.info("CoreIO is ready")
 
-    while True:
-        event = zmq_communication.recv_event()
-        if event is None:
-            continue
 
-        match event.type:
-            case IOEventType.write_opcua_nodes:
-                logger.info(f"Received writing event {event}")
-                for connection_id, payload in event.data.items():
-                    opc_conn = opc_connections.get(connection_id)
-                    if opc_conn is None:
-                        logger.warning(f"Connection Id {connection_id} is unkown.")
-                        continue
+    try:
+        while True:
+            event = zmq_communication.recv_event()
+            if event is None:
+                continue
 
-                    async with opc_conn:
-                        await opc_conn.write_opcua_nodes(payload)
+            match event.type:
+                case IOEventType.write_opcua_nodes:
+                    logger.info(f"Received writing event {event}")
+                    for connection_id, payload in event.data.items():
+                        opc_conn = opc_connections.get(connection_id)
+                        if opc_conn is None:
+                            logger.warning(f"Connection Id {connection_id} is unkown.")
+                            continue
 
-            case IOEventType.exit_io:
-                logger.info("Received exit event, shutting down CoreIO...")
-                break
+                        async with opc_conn:
+                            await opc_conn.write_opcua_nodes(payload)
 
-    zmq_communication.cleanup()
-    logger.info("CoreIO finished cleanup")
+                case IOEventType.exit_io:
+                    logger.info("Received exit event, shutting down CoreIO...")
+                    break
+    except Exception:
+        logger.exception("CoreIO error occurred")
+    finally:
+        zmq_communication.cleanup()
+        logger.info("CoreIO finished cleanup")
 
 def main():
     asyncio.run(coreio_loop())
