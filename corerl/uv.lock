@@ -305,6 +305,9 @@ dependencies = [
     { name = "colorlog" },
     { name = "lib-config" },
     { name = "lib-defs" },
+    { name = "lib-utils" },
+    { name = "sqlalchemy" },
+    { name = "sqlalchemy-utils" },
 ]
 
 [package.metadata]
@@ -314,6 +317,9 @@ requires-dist = [
     { name = "colorlog", specifier = ">=6.9.0" },
     { name = "lib-config", editable = "../libs/lib_config" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
+    { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "sqlalchemy", specifier = "~=2.0" },
+    { name = "sqlalchemy-utils", specifier = "~=0.41" },
 ]
 
 [package.metadata.requires-dev]

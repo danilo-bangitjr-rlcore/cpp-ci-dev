@@ -6,6 +6,7 @@ from typing import Protocol
 
 import sqlalchemy
 from sqlalchemy import URL, Column, DateTime, Engine, MetaData, Table, inspect
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import func
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
@@ -140,3 +141,12 @@ def table_exists(engine: Engine, table_name: str, schema: str = 'public') -> boo
     existing_tables = iengine.get_table_names(schema)
 
     return table_name in existing_tables
+
+def column_exists(engine: Engine, table_name: str, column_name: str,  schema: str = 'public') -> bool:
+    try:
+        iengine = inspect(engine)
+        columns = iengine.get_columns(table_name, schema=schema)
+        return any(col['name'] == column_name for col in columns)
+    except SQLAlchemyError:
+        return False
+
