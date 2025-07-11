@@ -50,7 +50,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
             if heartbeat_id is not None:
                 async with opc_conn:
-                    await opc_conn.register_node(heartbeat_id)
+                    await opc_conn.register_node(heartbeat_id, "heartbeat")
 
     if cfg.coreio.data_ingress.enabled:
         logger.info("Starting SQL communication")
