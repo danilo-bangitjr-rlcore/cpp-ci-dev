@@ -5,10 +5,30 @@ import time
 from typing import Protocol
 
 import sqlalchemy
-from sqlalchemy import URL, Column, DateTime, Engine, MetaData, Table, inspect
+from sqlalchemy import (
+    CHAR,
+    URL,
+    BigInteger,
+    Column,
+    DateTime,
+    Double,
+    Engine,
+    Float,
+    Integer,
+    MetaData,
+    Numeric,
+    SmallInteger,
+    String,
+    Table,
+    Text,
+    inspect,
+)
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import func
+from sqlalchemy.types import TypeEngine
 from sqlalchemy_utils import create_database, database_exists, drop_database
+
+from lib_utils.list import find
 
 logger = logging.getLogger(__name__)
 
@@ -150,3 +170,40 @@ def column_exists(engine: Engine, table_name: str, column_name: str,  schema: st
     except SQLAlchemyError:
         return False
 
+def get_column_type(engine: Engine, table_name: str, column_name: str,  schema: str = 'public'):
+    assert column_exists(engine, table_name, column_name, schema), "SQL Error, column not found"
+    iengine = inspect(engine)
+    columns = iengine.get_columns(table_name, schema=schema)
+    column = find(lambda col: col["name"] == column_name, columns)
+    assert column is not None # Check for pyright, since we already checked that column exists
+    return column["type"]
+
+
+def are_types_compatible(existing_type: TypeEngine, expected_type: TypeEngine):
+    if type(existing_type) is type(expected_type):
+        return True
+
+    existing_class = type(existing_type)
+    expected_class = type(expected_type)
+
+    safe_conversions = {
+
+        # Numeric widening (safe)
+        SmallInteger: (Integer, BigInteger, Float, Double, Numeric),
+        Integer: (BigInteger, Float, Double, Numeric),
+        BigInteger: (Float, Numeric, Double),
+        Float: (Numeric, Double),
+        Double: (Numeric,),
+
+        # String widening (safe)
+        String: (Text,),  # VARCHAR to TEXT
+        CHAR: (String, Text),
+
+        # Add more as needed ...
+    }
+
+    # Check if conversion is explicitly safe
+    if existing_class in safe_conversions:
+        return expected_class in safe_conversions[existing_class]
+
+    return False
