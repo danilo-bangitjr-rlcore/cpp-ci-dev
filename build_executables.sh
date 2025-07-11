@@ -3,9 +3,6 @@
 set -euo pipefail
 
 log() { echo "[build] $*"; }
-
-start_time=$(date +%s)
-
 log "Starting directory: $(pwd)"
 
 if [ ! -f ".release-please-manifest.json" ]; then
@@ -68,7 +65,3 @@ log "Build completed successfully!"
 log "Executables:"
 log "  - dist/corerl-v${CORERL_VERSION}"
 log "  - dist/coreio-v${COREIO_VERSION}"
-
-end_time=$(date +%s)
-elapsed=$((end_time - start_time))
-log "Total build time: ${elapsed}s"

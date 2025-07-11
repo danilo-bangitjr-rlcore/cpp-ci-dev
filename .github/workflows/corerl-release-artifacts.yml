@@ -43,9 +43,9 @@ jobs:
           token: ${{ steps.generate-token.outputs.token }}
 
       - name: Install uv
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.13.0
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
