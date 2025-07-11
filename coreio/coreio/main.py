@@ -12,6 +12,7 @@ from coreio.communication.sql_communication import SQL_Manager
 from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEventType
+from coreio.utils.opc_utils import concat_opc_nodes
 
 colorlog.basicConfig(
     level=logging.DEBUG,
@@ -54,7 +55,13 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     if cfg.coreio.data_ingress.enabled:
         logger.info("Starting SQL communication")
-        sql_communication = SQL_Manager(cfg.infra, table_name=cfg.env.db.table_name) #noqa: F841
+        all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
+        sql_communication = SQL_Manager(
+            cfg.infra,
+            table_name=cfg.env.db.table_name,
+            nodes_to_persist=all_registered_nodes
+        )
+        print(sql_communication)
 
     logger.info("Starting ZMQ communication")
     zmq_communication = ZMQ_Communication(cfg.coreio)
