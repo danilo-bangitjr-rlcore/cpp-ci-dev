@@ -1959,6 +1959,7 @@ version = "0.133.0"
 source = { editable = "../libs/rl_env" }
 dependencies = [
     { name = "gymnasium" },
+    { name = "lib-config" },
     { name = "matplotlib" },
     { name = "numpy" },
     { name = "pydantic" },
@@ -1969,6 +1970,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "gymnasium", specifier = "~=1.0" },
+    { name = "lib-config", directory = "../libs/lib_config" },
     { name = "matplotlib", specifier = "~=3.8" },
     { name = "numpy", specifier = "~=2.0" },
     { name = "pydantic", specifier = "~=2.9" },
