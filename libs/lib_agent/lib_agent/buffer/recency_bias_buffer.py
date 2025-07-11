@@ -16,8 +16,8 @@ from lib_agent.buffer.datatypes import DataMode
 class RecencyBiasBufferConfig:
     obs_period: int
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
-    gamma: list[float] = field(default_factory=lambda: [0.99])
-    effective_episodes: list[int] = field(default_factory=lambda: [100])
+    gamma: Sequence[float] = field(default_factory=lambda: [0.99])
+    effective_episodes: Sequence[int] = field(default_factory=lambda: [100])
     ensemble: int = 2
     uniform_weight: float = 0.01
     ensemble_probability: float = 0.5
