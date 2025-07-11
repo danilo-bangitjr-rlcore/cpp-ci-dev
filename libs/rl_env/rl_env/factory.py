@@ -1,8 +1,10 @@
 import logging
 import warnings
 from collections.abc import Callable
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from typing import Any, Concatenate, Protocol, TypeVar
+
+from lib_config.config import config
 
 from rl_env.pertube_env import ObservationPerturbationWrapper, PerturbationConfig
 
@@ -10,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 MISSING: Any = "|???|"
 
-@dataclass
+@config()
 class EnvConfig:
     name : str = MISSING
     seed : int = 0

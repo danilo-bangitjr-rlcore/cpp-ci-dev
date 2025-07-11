@@ -1,14 +1,15 @@
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
+from pydantic import Field
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class SaturationConfig(EnvConfig):
     name: str = 'Saturation-v0'
     effect_period: float = 100
@@ -17,9 +18,9 @@ class SaturationConfig(EnvConfig):
     decay: float | None = None
     effect: float | None = 1.0
     trace_val: float = 0.0
-    setpoint_schedule: dict = field(default_factory=lambda:{0: 0.5})
-    delta_schedule: dict = field(default_factory=lambda:{0: 0.})
-    anchor_schedule: dict = field(default_factory=lambda:{0: 0.})
+    setpoint_schedule: dict = Field(default_factory=lambda: {0: 0.5})
+    delta_schedule: dict = Field(default_factory=lambda: {0: 0.})
+    anchor_schedule: dict = Field(default_factory=lambda: {0: 0.})
 
 class Saturation(gym.Env):
     def __init__(self, cfg: SaturationConfig):

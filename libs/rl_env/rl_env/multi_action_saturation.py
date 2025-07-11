@@ -1,16 +1,17 @@
-from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
+from lib_config.config import config
+from pydantic import Field
 from scipy.optimize import minimize
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class MultiActionSaturationConfig(EnvConfig):
     name: str = 'MultiActionSaturation-v0'
     effect_period: float = 100
@@ -18,14 +19,14 @@ class MultiActionSaturationConfig(EnvConfig):
     trace_val: float = 0.9
     num_controllers: int = 3
     noise_std: float = 0.00
-    coupling_matrix: list[list[float]] = field(default_factory=lambda: [
+    coupling_matrix: list[list[float]] = Field(default_factory=lambda: [
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
         [0.0, 0.0, 0.0],
     ])
-    frequencies: list[float] = field(default_factory=lambda: [1.0, 1.5, 2.0])
-    phase_shifts: list[float] = field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
-    setpoints: list[float] = field(default_factory=lambda: [0.3, 0.5, 0.7])
+    frequencies: list[float] = Field(default_factory=lambda: [1.0, 1.5, 2.0])
+    phase_shifts: list[float] = Field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
+    setpoints: list[float] = Field(default_factory=lambda: [0.3, 0.5, 0.7])
 
 class MultiActionSaturation(gym.Env):
     """Multi-Action Saturation Environment

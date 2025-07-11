@@ -1,19 +1,20 @@
 from collections.abc import Sequence
-from dataclasses import dataclass, field
 from typing import Any
 
 import matplotlib.pyplot as plt
 import numpy as np
 import sympy as sym
 from gymnasium import Env, spaces
+from lib_config.config import config
 from matplotlib.animation import FuncAnimation, PillowWriter
+from pydantic import Field
 from scipy import signal
 from scipy.special import softmax
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class PVSConfig(EnvConfig):
     name: str = 'PVS-v0'
     reward_type: str = "combined"  # "mse" or "combined"
@@ -23,13 +24,13 @@ class PVSConfig(EnvConfig):
     internal_iterations: int = 500
     random_sp: Sequence[float] = (4.0, 5.0)
     state_normalizer: float = 1.
-    pid_limits: dict = field(default_factory=lambda: {
+    pid_limits: dict = Field(default_factory=lambda: {
         "kp_max": 5,
         "kp_min": 0,
         "ti_max": 20,
         "ti_min": 0.1,
     })
-    reward_coeffs: dict = field(default_factory=lambda: {
+    reward_coeffs: dict = Field(default_factory=lambda: {
         "mse_coeff": 1/15,
         "overshoot_coeff": 1.5,
         "settling_coeff": 1.2,
