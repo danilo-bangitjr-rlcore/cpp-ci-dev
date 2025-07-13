@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
@@ -7,9 +7,9 @@ from lib_config.config import config
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
+@config(frozen=True)
 class SaturationGoalsConfig(EnvConfig):
-    name: str = 'SaturationGoals-v0'
+    name: Literal['SaturationGoals-v0'] = 'SaturationGoals-v0'
     setpoint_change_period: int = 400
 
 class SaturationGoals(gym.Env):

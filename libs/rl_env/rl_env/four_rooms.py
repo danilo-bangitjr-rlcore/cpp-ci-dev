@@ -1,4 +1,6 @@
 # Import modules
+from typing import Literal
+
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
@@ -8,9 +10,9 @@ from lib_config.config import config
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
+@config(frozen=True)
 class FourRoomsConfig(EnvConfig):
-    name: str = 'FourRooms-v0'
+    name: Literal['FourRooms-v0'] = 'FourRooms-v0'
     continuous_action: bool = True
     action_scale: float = 0.01
     noise_scale: float = 0.0

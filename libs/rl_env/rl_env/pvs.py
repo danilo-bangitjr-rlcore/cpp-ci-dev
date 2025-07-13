@@ -1,5 +1,5 @@
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -14,9 +14,9 @@ from scipy.special import softmax
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
+@config(frozen=True)
 class PVSConfig(EnvConfig):
-    name: str = 'PVS-v0'
+    name: Literal['PVS-v0'] = 'PVS-v0'
     reward_type: str = "combined"  # "mse" or "combined"
     use_constraints: bool = False
     use_reset_buffer: bool = True
@@ -640,7 +640,7 @@ class PVSChangeAction(BasePVSEnv):
         self,
         *,
         seed: int | None=None,
-        options: dict | None=None,
+        options: dict | None = None,
     ) -> tuple[np.ndarray, dict]:
         super(BasePVSEnv, self).reset(seed=seed, options=options)
         self.prev_pid_params = self.initial_pid_params.copy()

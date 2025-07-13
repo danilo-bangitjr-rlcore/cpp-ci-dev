@@ -6,7 +6,7 @@ from lib_config.config import config
 
 MISSING: Any = "|???|"
 
-@config()
+@config(frozen=True)
 class EnvConfig:
     name : str = MISSING
     seed : int = 0
@@ -31,7 +31,9 @@ class Group[**P, R]:
         self._cfgs[cfg.name] = cfg
         return f
 
-    def dispatch(self, name: str, overrides: dict | None = None):
+    def dispatch(self, name: str, overrides: dict | None = None, cfg_obj: Any = None):
+        if cfg_obj is not None:
+            return self._dispatchers[name](cfg_obj)
         if overrides is None:
             overrides = {}
         cfg = self._cfgs[name]

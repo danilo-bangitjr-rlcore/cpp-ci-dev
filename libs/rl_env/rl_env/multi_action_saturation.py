@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -11,9 +11,9 @@ from scipy.optimize import minimize
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
+@config(frozen=True)
 class MultiActionSaturationConfig(EnvConfig):
-    name: str = 'MultiActionSaturation-v0'
+    name: Literal['MultiActionSaturation-v0'] = 'MultiActionSaturation-v0'
     effect_period: float = 100
     decay: float = 0.75
     trace_val: float = 0.9
