@@ -67,6 +67,7 @@ jobs:
           pytest --cov=. --cov-append tests/small
           pytest --cov=. --cov-append tests/medium
           pytest -n auto --dist loadscope --cov=. --cov-append tests/large
+          pytest ../test/test/test_validate_configs.py
 
       - name: Combine coverage
         run: |
