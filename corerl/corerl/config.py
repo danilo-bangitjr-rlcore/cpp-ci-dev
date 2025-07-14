@@ -111,7 +111,7 @@ class FeatureFlags:
     noisy_networks: bool = False
 
     # 2025-06-27
-    higher_critic_lr: bool = False
+    higher_critic_lr: bool = True
 
     # 2025-06-27
     ensemble_2: bool = False
