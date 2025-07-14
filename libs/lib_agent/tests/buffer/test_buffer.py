@@ -15,7 +15,7 @@ class FakeTransition(NamedTuple):
 
 
 def test_buffer_add_single():
-    buffer = EnsembleReplayBuffer[FakeTransition](n_ensemble=2, max_size=10, seed=42)
+    buffer = EnsembleReplayBuffer[FakeTransition](ensemble=2, max_size=10, seed=42)
 
     transition = FakeTransition(
         state=jnp.array([1.0, 2.0]),
@@ -33,7 +33,7 @@ def test_buffer_add_single():
 
 
 def test_buffer_add_multiple():
-    buffer = EnsembleReplayBuffer[FakeTransition](n_ensemble=2, max_size=10, seed=42)
+    buffer = EnsembleReplayBuffer[FakeTransition](ensemble=2, max_size=10, seed=42)
 
     for i in range(5):
         transition = FakeTransition(
@@ -51,9 +51,9 @@ def test_buffer_add_multiple():
 def test_buffer_ensemble_mask_at_least_one():
     """Test that at least one ensemble member gets each transition."""
     buffer = EnsembleReplayBuffer[FakeTransition](
-        n_ensemble=3,
+        ensemble=3,
         max_size=10,
-        ensemble_prob=0.0,
+        ensemble_probability=0.0,
         seed=42,
     )
 
@@ -73,7 +73,7 @@ def test_buffer_ensemble_mask_at_least_one():
 
 def test_buffer_sample_basic():
     buffer = EnsembleReplayBuffer[FakeTransition](
-        n_ensemble=2,
+        ensemble=2,
         max_size=100,
         batch_size=4,
         seed=42,
@@ -93,7 +93,7 @@ def test_buffer_sample_basic():
     batch = buffer.sample()
 
     # Should return batch for each ensemble member
-    assert batch.state.shape == (2, 4, 2)  # (n_ensemble, batch_size, state_dim)
+    assert batch.state.shape == (2, 4, 2)  # (ensemble, batch_size, state_dim)
     assert batch.action.shape == (2, 4, 1)
     assert jnp.asarray(batch.reward).shape == (2, 4)
     assert batch.next_state.shape == (2, 4, 2)
@@ -104,7 +104,7 @@ def test_buffer_sample_basic():
 
 def test_buffer_sample_with_recent():
     buffer = EnsembleReplayBuffer[FakeTransition](
-        n_ensemble=1,
+        ensemble=1,
         max_size=100,
         batch_size=4,
         n_most_recent=2,
@@ -131,7 +131,7 @@ def test_buffer_sample_with_recent():
 
 def test_buffer_wraparound():
     """Test buffer behavior when it wraps around."""
-    buffer = EnsembleReplayBuffer[FakeTransition](n_ensemble=2, max_size=3, seed=42)
+    buffer = EnsembleReplayBuffer[FakeTransition](ensemble=2, max_size=3, seed=42)
 
     # Fill beyond capacity
     for i in range(5):
@@ -154,17 +154,17 @@ def test_buffer_ensemble_probability():
     """Test that ensemble probability affects mask generation."""
     # High probability - most transitions should be in multiple ensembles
     buffer_high = EnsembleReplayBuffer[FakeTransition](
-        n_ensemble=3,
+        ensemble=3,
         max_size=10,
-        ensemble_prob=0.9,
+        ensemble_probability=0.9,
         seed=42,
     )
 
     # Low probability - fewer transitions in multiple ensembles
     buffer_low = EnsembleReplayBuffer[FakeTransition](
-        n_ensemble=3,
+        ensemble=3,
         max_size=10,
-        ensemble_prob=0.1,
+        ensemble_probability=0.1,
         seed=42,
     )
 

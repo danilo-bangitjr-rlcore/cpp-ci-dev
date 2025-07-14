@@ -9,6 +9,7 @@ from functools import cached_property
 from typing import Any, Literal, Self
 
 import pandas as pd
+from lib_agent.buffer.datatypes import DataMode
 from pandas import DataFrame
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC
@@ -20,7 +21,7 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode, TemporalState, Transition
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.missing_data_checker import missing_data_checker

@@ -59,37 +59,37 @@ class State(NamedTuple):
 class EnsembleReplayBuffer[T: NamedTuple]:
     def __init__(
         self,
-        n_ensemble: int = 2,
+        ensemble: int = 1,
         max_size: int = 1_000_000,
-        ensemble_prob: float = 0.5,
+        ensemble_probability: float = 0.5,
         batch_size:int = 256,
         seed: int = 0,
         n_most_recent: int = 1,
     ):
         self._storage = ReplayStorage[T](max_size)
         self.max_size = max_size
-        self.n_ensemble = n_ensemble
-        self.ensemble_prob = ensemble_prob
+        self.ensemble = ensemble
+        self.ensemble_probability = ensemble_probability
         self.batch_size = batch_size
         self.n_most_recent = n_most_recent
 
-        self.ensemble_masks = np.zeros((n_ensemble, max_size), dtype=bool)
+        self.ensemble_masks = np.zeros((ensemble, max_size), dtype=bool)
         self.rng = np.random.default_rng(seed)
 
     def add(self, transition: T) -> None:
         ptr = self._storage.add(transition)
 
-        ensemble_mask = self.rng.uniform(size=self.n_ensemble) < self.ensemble_prob
+        ensemble_mask = self.rng.uniform(size=self.ensemble) < self.ensemble_probability
         # ensure that at least one member gets the transition
         if not np.any(ensemble_mask):
-            random_member = self.rng.integers(0, self.n_ensemble)
+            random_member = self.rng.integers(0, self.ensemble)
             ensemble_mask[random_member] = True
 
         self.ensemble_masks[:, ptr] = ensemble_mask
 
     def sample(self):
         ens_idxs: list[np.ndarray] = []
-        for m in range(self.n_ensemble):
+        for m in range(self.ensemble):
             valid_indices = np.nonzero(self.ensemble_masks[m, :self._storage.size()])[0]
 
             recent_indices = np.array([])

@@ -23,9 +23,6 @@ jobs:
         with:
           subrepo: libs/lib_agent
 
-      - name: set up path
-        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
-
       - name: Run Pytest
         run: |
           pytest --benchmark-only --benchmark-json output.json tests/
