@@ -5,11 +5,10 @@ import pytest
 from lib_config.loader import direct_load_config
 from test.infrastructure.networking import get_free_port
 
+# from corerl.config import MainConfig
+from coreio.communication.opc_communication import OPC_Connection, OPCConnectionConfig
 from coreio.config import OPCSecurityPolicyBasic256SHA256Config
 from coreio.utils.config_schemas import MainConfigAdapter
-
-# from corerl.config import MainConfig
-from coreio.utils.opc_communication import OPC_Connection, OPCConnectionConfig
 from tests.infrastructure.mock_opc_certs import ServerClientKeyCerts
 from tests.infrastructure.mock_opc_server import FakeOpcServer
 

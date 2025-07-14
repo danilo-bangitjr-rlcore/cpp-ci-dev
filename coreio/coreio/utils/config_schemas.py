@@ -15,7 +15,7 @@ class TagDBConfigAdapter:
 class AsyncEnvConfigAdapter:
     db: TagDBConfigAdapter = Field(default_factory=TagDBConfigAdapter)
 
-@config(allow_extra=True, frozen=True)
+@config(allow_extra=True)
 class DBConfigAdapter:
     drivername: str = 'postgresql+psycopg2'
     username: str = 'postgres'

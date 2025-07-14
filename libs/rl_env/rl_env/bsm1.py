@@ -2,11 +2,12 @@ from dataclasses import dataclass
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class BSM1Config(EnvConfig):
     name: str = 'BSM1-v0'
 

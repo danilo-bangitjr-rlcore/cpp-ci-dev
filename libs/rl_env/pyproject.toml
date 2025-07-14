@@ -11,6 +11,7 @@ dependencies = [
     "numpy~=2.0",
     "scipy~=1.13",
     "sympy~=1.13",
+    "lib-config",
 ]
 readme = "README.md"
 
@@ -50,3 +51,6 @@ version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
+
+[tool.uv.sources]
+lib-config = { path = "../lib_config" }

@@ -4,11 +4,12 @@ from typing import Any
 import gymnasium as gym
 import matplotlib.pyplot as plt
 import numpy as np
+from lib_config.config import config
 
 from rl_env.factory import EnvConfig, env_group
 
 
-@dataclass
+@config()
 class ThreeTankConfig(EnvConfig):
     name : str = 'ThreeTanks-v1'
     steps_between_target_updates: int | None = 30  # Number of steps between target updates
