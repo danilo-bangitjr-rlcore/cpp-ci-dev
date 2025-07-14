@@ -59,7 +59,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
         sql_communication = SQL_Manager(
             cfg.infra,
             table_name=cfg.env.db.table_name,
-            nodes_to_persist=all_registered_nodes
+            nodes_to_persist=all_registered_nodes,
         )
         print(sql_communication)
 

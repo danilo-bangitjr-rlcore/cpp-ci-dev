@@ -118,31 +118,6 @@ def get_column_type(engine: Engine, table_name: str, column_name: str,  schema: 
     return column["type"]
 
 
-def are_types_compatible(existing_type: TypeEngine, expected_type: TypeEngine):
-    if type(existing_type) is type(expected_type):
-        return True
-
-    existing_class = type(existing_type)
-    expected_class = type(expected_type)
-
-    safe_conversions = {
-
-        # Numeric widening (safe)
-        SmallInteger: (Integer, BigInteger, Float, Double, Numeric),
-        Integer: (BigInteger, Float, Double, Numeric),
-        BigInteger: (Float, Numeric, Double),
-        Float: (Numeric, Double),
-        Double: (Numeric,),
-
-        # String widening (safe)
-        String: (Text,),  # VARCHAR to TEXT
-        CHAR: (String, Text),
-
-        # Add more as needed ...
-    }
-
-    # Check if conversion is explicitly safe
-    if existing_class in safe_conversions:
-        return expected_class in safe_conversions[existing_class]
-
-    return False
+def get_all_columns(engine: Engine, table_name: str, schema: str = "public"):
+    iengine = inspect(engine)
+    return iengine.get_columns(table_name, schema=schema)

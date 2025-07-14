@@ -51,3 +51,12 @@ def create_tsdb_table_query(
             timescaledb.compress_segmentby='{partition_column if partition_column is not None else ""}'
         );
     """)
+
+def add_column_to_table_query(
+    schema: str,
+    table: str,
+    column: SQLColumn,
+):
+    return text(f"""ALTER TABLE {schema}.{table}
+         ADD COLUMN {column.name} {column.type}
+         {"NOT NULL" if not column.nullable else ""};""")
