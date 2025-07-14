@@ -9,22 +9,17 @@ from sqlalchemy import (
     CHAR,
     URL,
     BigInteger,
-    Column,
-    DateTime,
     Double,
     Engine,
     Float,
     Integer,
-    MetaData,
     Numeric,
     SmallInteger,
     String,
-    Table,
     Text,
     inspect,
 )
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.sql import func
 from sqlalchemy.types import TypeEngine
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
@@ -99,62 +94,6 @@ def maybe_create_database(conn_url: URL, backoff_seconds: int = 5, max_tries: in
             logger.error(e, exc_info=True)
             time.sleep(backoff_seconds)
         tries += 1
-
-
-def create_column(name: str, dtype: str, primary_key: bool = False) -> Column:
-    # TODO: support onupdate
-    if dtype == "DateTime":
-        col = Column(
-            name,
-            DateTime(timezone=True),
-            server_default=func.now(),
-            primary_key=primary_key,
-        )
-    else:
-        dtype_obj = getattr(sqlalchemy, dtype)
-        col = Column(name, dtype_obj, nullable=False, primary_key=primary_key)
-
-    return col
-
-
-def create_table(metadata: MetaData, schema: dict) -> Table:
-    """
-    schema like:
-
-        name: critic_weights
-        columns:
-            id: Integer
-            ts: DateTime
-            network: BLOB
-        primary_keys: [id]
-        autoincrement: True
-
-    """
-    # TODO: test support compount primary keys
-
-    cols = []
-    for key in schema["columns"]:
-        if key in schema["primary_keys"]:
-            primary_key = True
-        else:
-            primary_key = False
-
-        col = create_column(
-            name=key, dtype=schema["columns"][key], primary_key=primary_key,
-        )
-        cols.append(col)
-
-    return Table(schema["name"], metadata, *cols)
-
-
-
-def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
-    for table_name, values in schemas.items():
-        create_table(
-            metadata=metadata, schema={"name": table_name, **values},
-        )
-
-    metadata.create_all(engine, checkfirst=True)
 
 def table_exists(engine: Engine, table_name: str, schema: str = 'public') -> bool:
     iengine = inspect(engine)
