@@ -22,7 +22,7 @@ infra:
 env:
   name: dep_async_env
   db:
-    table_name: main
+    table_name: coreio_test
 
 pipeline:
   tags:

@@ -43,7 +43,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
         async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg.pipeline.tags)
+            await opc_conn.register_cfg_nodes(cfg.pipeline.tags, ai_setpoint_only = True)
 
         # Register heartbeat_id separately
         if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
