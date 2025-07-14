@@ -1,7 +1,12 @@
 env:
   name: sim_async_env
   gym:
-    gym_name : DelayedSaturation-v0
+    env_config:
+      name: Saturation-v0
+      decay: 0.75
+      effect: null
+      effect_period: 500
+      trace_val: 0.9
 
 interaction:
   name: sim_interaction

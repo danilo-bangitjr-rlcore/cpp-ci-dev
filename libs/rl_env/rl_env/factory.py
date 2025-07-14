@@ -1,43 +1,47 @@
 import logging
-import warnings
+from typing import Annotated
 
+from pydantic import Field
+
+from rl_env.bsm1 import BSM1Config
+from rl_env.calibration import CalibrationConfig
+from rl_env.distraction_world import DistractionWorldConfig
+from rl_env.four_rooms import FourRoomsConfig
 from rl_env.group_util import env_group
+from rl_env.mountain_car import MountainCarContinuousConfig
+from rl_env.multi_action_saturation import MultiActionSaturationConfig
 from rl_env.pertube_env import ObservationPerturbationWrapper, PerturbationConfig
+from rl_env.pvs import PVSConfig
+from rl_env.saturation import SaturationConfig
+from rl_env.saturation_goals import SaturationGoalsConfig
+from rl_env.stand_still_mc import StandStillMCConfig
+from rl_env.t_maze import TMazeConfig
+from rl_env.three_tanks import ThreeTanksConfig
+from rl_env.windy_room import WindyRoomConfig
+
+EnvConfig = Annotated[
+    BSM1Config |
+    CalibrationConfig |
+    DistractionWorldConfig |
+    FourRoomsConfig |
+    MultiActionSaturationConfig |
+    PVSConfig |
+    SaturationConfig |
+    SaturationGoalsConfig |
+    StandStillMCConfig |
+    TMazeConfig |
+    ThreeTanksConfig |
+    WindyRoomConfig |
+    MountainCarContinuousConfig,
+    Field(discriminator="name"),
+]
 
 logger = logging.getLogger(__name__)
 
-def init_env(name: str, overrides: dict | None = None, perturbation_config: dict | None = None):
-    # register environments
-    import rl_env.bsm1
-    import rl_env.calibration
-    import rl_env.distraction_world
-    import rl_env.four_rooms
-    import rl_env.multi_action_saturation
-    import rl_env.pvs
-    import rl_env.saturation
-    import rl_env.saturation_goals
-    import rl_env.stand_still_mc
-    import rl_env.t_maze
-    import rl_env.three_tanks
-    import rl_env.windy_room  # noqa: F401
+def init_env(cfg: EnvConfig, perturbation_config: dict | None = None):
+    logger.info(f"instantiating {cfg.name} with config {cfg}")
 
-    logger.info(f"instantiating {name} with overrides {overrides}")
-
-    if name == 'DelayedSaturation-v0':
-        warnings.warn(
-            "Delayed-Saturation-v0 is deprecated. Use Saturation-v0 instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        name = 'Saturation-v0'
-        overrides = {
-            'decay': 0.75,
-            'effect': None,
-            'effect_period': 500,
-            'trace_val': 0.9,
-        }
-
-    env = env_group.dispatch(name, overrides)
+    env = env_group.dispatch(cfg.name, cfg_obj=cfg)
     if perturbation_config:
         perturb_cfg = PerturbationConfig(**perturbation_config)
         env = ObservationPerturbationWrapper(env, perturb_cfg)

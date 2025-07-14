@@ -1,7 +1,8 @@
 env:
   name: sim_async_env
   gym:
-    gym_name : DistractionWorld-v0
+    env_config:
+      name: DistractionWorld-v0
 
 interaction:
   name: sim_interaction

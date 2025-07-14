@@ -1,5 +1,6 @@
 gym:
-  gym_name: MountainCarContinuous-v0
+  env_config:
+    name: MountainCarContinuous-v0
   init_type: "gym.make"
   seed: 1
 
