@@ -58,19 +58,19 @@ class SQL_Manager:
     def _check_column_type(self,  node: NodeData):
         expected_type = self._get_sqlalchemy_type(node)
         existing_type = get_column_type(self.engine, self.table_name, node.name, self.schema)
-        if type(existing_type) is type(expected_type):
-            logger.info(f"  Column {node.name} found in db")
-
-        elif are_types_compatible(existing_type, expected_type):
-            logger.warning(f"  Column {node.name} in table {self.schema}.{self.table_name} "
 
         tsdb_expected_type = self._sqlalchemy_to_tsdb_type(expected_type)
         tsdb_existing_type = self._sqlalchemy_to_tsdb_type(existing_type)
 
         if tsdb_expected_type == tsdb_existing_type:
+            logger.info(f"  Column {node.name} found in db")
+
+        elif expected_type._type_affinity == existing_type._type_affinity:
+            logger.warning(f"  Column {node.name} in table {self.schema}.{self.table_name} "
+                f"has expected type {type(expected_type)} but is of type {type(existing_type)}. "
                 "Type mismatch but compatible")
         else:
-        elif expected_type._type_affinity == existing_type._type_affinity:
+            error_msg = (f"  Column {node.name} in table {self.schema}.{self.table_name} "
                 f"has expected type {type(expected_type)} but was of type {type(existing_type)}. "
                 "Incompatible types!")
 
