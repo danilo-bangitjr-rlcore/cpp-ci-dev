@@ -39,10 +39,15 @@ class SQL_Manager:
             self._check_for_extra_columns()
 
     def _node_names_to_lower(self):
+        """Convert all node names in nodes_to_persist to lowercase,
+           since postgres automatically converts column names to lowercase too.
+        """
         for node in  self.nodes_to_persist.values():
             node.name = node.name.lower()
 
     def _ensure_db_schema(self):
+        """Ensure database table exists with required columns, create table/columns if necessary."""
+
         if table_exists(self.engine, self.table_name, schema=self.schema):
             logger.info(f"Table {self.schema}.{self.table_name} already exists!")
             logger.info("Validating table columns...")
@@ -55,12 +60,16 @@ class SQL_Manager:
                 connection.commit()
 
     def _ensure_column_exists(self, node: NodeData):
+        """Ensure column exists with expected (or compatible) type, create if necessary."""
+
         if column_exists(self.engine, table_name=self.table_name, column_name=node.name, schema=self.schema):
             self._check_column_type(node)
         else:
             self._create_column_from_node(node)
 
     def _check_column_type(self,  node: NodeData):
+        """Check expected vs existing column type. Raise error if incompatible."""
+
         expected_type = self._get_sqlalchemy_type(node)
         existing_type = get_column_type(self.engine, self.table_name, node.name, self.schema)
 
@@ -83,6 +92,8 @@ class SQL_Manager:
             raise TypeError(error_msg)
 
     def _create_column_from_node(self, node: NodeData):
+        """Adds column to tsdb table based on NodeData"""
+
         logger.info(f"Column {node.name} not found. Creating...")
         with TryConnectContextManager(self.engine) as connection:
             tsdb_type = self._get_tsdb_type(node)
@@ -91,6 +102,8 @@ class SQL_Manager:
             connection.commit()
 
     def _create_table_sql(self):
+        """Sets up query to create tsdb hypertable"""
+
         columns: list[SQLColumn] = [SQLColumn(name="time", type="TIMESTAMP WITH TIME ZONE", nullable=False)]
         for node in self.nodes_to_persist.values():
             tsdb_type = self._get_tsdb_type(node)
@@ -107,6 +120,8 @@ class SQL_Manager:
         )
 
     def _check_for_extra_columns(self):
+        """Check for database columns not present in the current tag configuration."""
+
         existing_col_names = [col["name"] for col in get_all_columns(self.engine, self.table_name, schema=self.schema)]
         expected_col_names = [node.name for node in self.nodes_to_persist.values()] + [self.time_column_name]
 

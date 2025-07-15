@@ -95,6 +95,7 @@ def test_schema_creation(
         opc_sample_nodes: dict[str, NodeData],
         caplog: LogCaptureFixture,
 ):
+    """CoreIO creates new database table from NodeData."""
 
     with caplog.at_level(logging.INFO):
         _ = SQL_Manager(mock_infra_cfg, TABLE_NAME, opc_sample_nodes)
@@ -116,6 +117,8 @@ def test_existing_schema(
         opc_sample_nodes: dict[str, NodeData],
         caplog: LogCaptureFixture,
 ):
+    """CoreIO detects existing table and columns."""
+
     with caplog.at_level(logging.INFO):
         _ = SQL_Manager(mock_infra_cfg, TABLE_NAME, opc_sample_nodes)
 
@@ -127,9 +130,11 @@ def test_incompatible_types(
         mock_infra_cfg: Mock,
         caplog: LogCaptureFixture,
 ):
+    """CoreIO raises an error when incompatible type is found in existing table"""
+
     node = Mock(spec=Node)
     opc_sample_nodes = {
-        "ns=2;i=1": NodeData(node=node, name="sensor1", var_type=VariantType.Int32), # This one is int now
+        "ns=2;i=1": NodeData(node=node, name="sensor1", var_type=VariantType.Int32), # Changed to incompatible type
         "ns=2;i=2": NodeData(node=node, name="sensor2", var_type=VariantType.Int32),
     }
 
@@ -144,6 +149,8 @@ def test_add_column(
         mock_infra_cfg: Mock,
         caplog: LogCaptureFixture,
 ):
+    """CoreIO adds a column to existing table when there is a new node."""
+
     node = Mock(spec=Node)
     opc_sample_nodes = {
         "ns=2;i=3": NodeData(node=node, name="sensor3", var_type=VariantType.Int32),
