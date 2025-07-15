@@ -5,7 +5,7 @@ import numpy as np
 from gymnasium import spaces
 from lib_config.config import config
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
 @config()
