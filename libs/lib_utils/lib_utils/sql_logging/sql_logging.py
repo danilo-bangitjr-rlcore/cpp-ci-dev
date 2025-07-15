@@ -6,21 +6,11 @@ from typing import Protocol
 
 import sqlalchemy
 from sqlalchemy import (
-    CHAR,
     URL,
-    BigInteger,
-    Double,
     Engine,
-    Float,
-    Integer,
-    Numeric,
-    SmallInteger,
-    String,
-    Text,
     inspect,
 )
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.types import TypeEngine
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from lib_utils.list import find
