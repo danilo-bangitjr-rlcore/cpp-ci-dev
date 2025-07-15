@@ -14,8 +14,8 @@ max_steps: 1000
 env:
   name: sim_async_env
   gym:
-    gym_name: TMaze-v0
     env_config:
+      name: TMaze-v0
       corridor_length: 1.0
 
 pipeline:

@@ -15,8 +15,9 @@ interaction:
 env:
   name: sim_async_env
   gym:
-    gym_name: MountainCarContinuous-v0
-    init_type : gym.make
+    init_type: gym.make
+    env_config:
+      name: MountainCarContinuous-v0
     wrapper:
       name: sticky_mcar
       kwargs:

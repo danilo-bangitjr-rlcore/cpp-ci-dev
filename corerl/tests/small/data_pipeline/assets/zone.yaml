@@ -1,11 +1,6 @@
 feature_flags:
   autoencoder_imputer: False
 
-env:
-  name: sim_async_env
-  gym:
-    gym_name : Saturation-v0
-
 interaction:
   name: sim_interaction
   obs_period: 00:00:01

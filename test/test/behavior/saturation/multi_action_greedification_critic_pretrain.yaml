@@ -1,8 +1,8 @@
 env:
   name: sim_async_env
   gym:
-    gym_name : MultiActionSaturation-v0
     env_config:
+      name: MultiActionSaturation-v0
       setpoints: [0.8, 0.2, 0.8]
 
 interaction:

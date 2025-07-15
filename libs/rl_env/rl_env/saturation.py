@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
@@ -9,9 +9,9 @@ from pydantic import Field
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
+@config(frozen=True)
 class SaturationConfig(EnvConfig):
-    name: str = 'Saturation-v0'
+    name: Literal['Saturation-v0'] = 'Saturation-v0'
     effect_period: float = 100
     decay_period: float = 100
     # None signifies following a cosine wave

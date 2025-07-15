@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import pandas as pd
 from lib_config.config import MISSING, computed, config
 from pydantic import Field
+from rl_env.factory import EnvConfig
 
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 
@@ -41,17 +42,12 @@ class WrapperConfig:
 
 @config()
 class GymEnvConfig:
-    gym_name: str = MISSING
     init_type: Literal["gym.make", "custom", "model"] | None = "custom"
     wrapper: WrapperConfig = Field(default_factory=WrapperConfig)
     seed: int = MISSING
 
-    # gym environment init args and kwargs, ignored for deployment_async_env
-    args: list[Any] = Field(default_factory=list)
-    kwargs: dict[str, Any] = Field(default_factory=dict)
-
     # env config for custom gym environments
-    env_config: Any | None = None
+    env_config: EnvConfig = MISSING
 
     # perturb config for perturbation resilience tests
     perturb_config: Any | None = None

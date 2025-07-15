@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import matplotlib.pyplot as plt
@@ -9,9 +9,9 @@ from lib_config.config import config
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
-class ThreeTankConfig(EnvConfig):
-    name : str = 'ThreeTanks-v1'
+@config(frozen=True)
+class ThreeTanksConfig(EnvConfig):
+    name: Literal['ThreeTanks-v1'] = 'ThreeTanks-v1'
     steps_between_target_updates: int | None = 30  # Number of steps between target updates
                                                     #   None: no updates
                                                     #   <=1: updates every step
@@ -71,9 +71,9 @@ class ThreeTankEnv(gym.Env):
     States: [H_1, H_2, H_3, H1_SP, H3_SP] (Tank heights and setpoint heights)
     Actions: [p_1, p_2] (Pump flowrates)
     """
-    def __init__(self, cfg: ThreeTankConfig ):
+    def __init__(self, cfg: ThreeTanksConfig ):
         if  cfg is None:
-            cfg = ThreeTankConfig()
+            cfg = ThreeTanksConfig()
 
         super().__init__()
         self.cfg = cfg
@@ -210,4 +210,4 @@ class ThreeTankEnv(gym.Env):
         plt.tight_layout()
         plt.savefig(filename)
 
-env_group.dispatcher(ThreeTankConfig(), ThreeTankEnv)
+env_group.dispatcher(ThreeTanksConfig(), ThreeTankEnv)

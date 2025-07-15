@@ -14,8 +14,8 @@ max_steps: 999
 env:
   name: sim_async_env
   gym:
-    gym_name: Calibration-v0
     env_config:
+      name: Calibration-v0
       calibration_period: 500
       instant: False
 

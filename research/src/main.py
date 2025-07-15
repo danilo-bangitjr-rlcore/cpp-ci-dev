@@ -6,9 +6,11 @@ from typing import Any
 import jax.numpy as jnp
 import numpy as np
 from lib_agent.actor.percentile_actor import State
+from lib_config.errors import ConfigValidationErrors
+from lib_config.loader import config_from_dict
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
-from rl_env.factory import init_env
+from rl_env.factory import EnvConfig, init_env
 from tqdm import tqdm
 
 import utils.gym as gym_u
@@ -103,16 +105,15 @@ def main():
     )
 
     if cfg.env['name'] == 'WindyRoom-v0':
-        env_args = {'no_zones': False}
-    else:
-        env_args = {}
+        cfg.env['no_zones'] = False
 
+    trace_values = (0., 0.75, 0.9, 0.95)
     if cfg.env['name'] == 'DistractionWorld-v0':
         trace_values = (0.,)
-    else:
-        trace_values = (0., 0.75, 0.9, 0.95)
 
-    env = init_env(cfg.env['name'], env_args)
+    env_cfg = config_from_dict(EnvConfig, cfg.env) # type: ignore
+    assert not isinstance(env_cfg, ConfigValidationErrors)
+    env = init_env(env_cfg)
 
     obs_bounds = gym_u.space_bounds(env.observation_space)
     act_bounds = gym_u.space_bounds(env.action_space)

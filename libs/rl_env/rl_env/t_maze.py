@@ -1,5 +1,5 @@
 import random
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
@@ -8,9 +8,9 @@ from lib_config.config import config
 from rl_env.group_util import EnvConfig, env_group
 
 
-@config()
+@config(frozen=True)
 class TMazeConfig(EnvConfig):
-    name: str = 'TMaze-v0'
+    name: Literal['TMaze-v0'] = 'TMaze-v0'
     corridor_length: float = 1.0
     end_zone_size: float = 0.1
 
