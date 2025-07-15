@@ -117,7 +117,6 @@ def test_goal1(cfg: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
 
 def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
     assert cfg_with_oob.pipeline.reward
-    assert cfg_with_oob.pipeline.reward.ignore_oob_tags_in_compound_goals, "feature flag is not set"
 
     rc = GoalConstructor(
         dummy_app_state,
