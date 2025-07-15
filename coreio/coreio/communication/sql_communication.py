@@ -1,6 +1,6 @@
 import logging
-from os import name
 
+from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import (
     column_exists,
     get_all_columns,
@@ -32,12 +32,17 @@ class SQL_Manager:
         self.table_name = table_name
         self.time_column_name = "time"
         self.nodes_to_persist = nodes_to_persist
+        self._node_names_to_lower()
 
         self._ensure_db_schema()
         if warn_extra_cols:
             self._check_for_extra_columns()
 
-    def ensure_db_schema(self, nodes_to_persist: dict[str, NodeData]):
+    def _node_names_to_lower(self):
+        for node in  self.nodes_to_persist.values():
+            node.name = node.name.lower()
+
+    def _ensure_db_schema(self):
         if table_exists(self.engine, self.table_name, schema=self.schema):
             logger.info(f"Table {self.schema}.{self.table_name} already exists!")
             logger.info("Validating table columns...")
@@ -109,15 +114,14 @@ class SQL_Manager:
             if existing_col not in expected_col_names:
                 logger.warning(f"Column {existing_col} found in database, not in tag config.")
 
-
     def _get_sqlalchemy_type(self, node: NodeData):
         return OPC_TO_SQLALCHEMY_TYPE_MAP[node.var_type]
 
-    def _get_tsdb_type(self, node: NodeData):
-        sqlalchemy_type = self._get_sqlalchemy_type(node)
+    def _sqlalchemy_to_tsdb_type(self, sqlalchemy_type: TypeEngine):
         dialect = postgresql.dialect()
         return sqlalchemy_type.compile(dialect=dialect)
 
     def _get_tsdb_type(self, node: NodeData):
         sqlalchemy_type = self._get_sqlalchemy_type(node)
         return self._sqlalchemy_to_tsdb_type(sqlalchemy_type)
+
