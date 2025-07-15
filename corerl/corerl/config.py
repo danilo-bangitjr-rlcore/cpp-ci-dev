@@ -96,7 +96,7 @@ class FeatureFlags:
     higher_critic_lr: bool = True
 
     # 2025-06-27
-    ensemble_2: bool = False
+    ensemble_2: bool = True
 
     # 2025-06-27
     mu_sigma_multipliers: bool = False
