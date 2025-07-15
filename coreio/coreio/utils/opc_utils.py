@@ -76,17 +76,3 @@ OPC_TO_SQLALCHEMY_TYPE_MAP = {
     VariantType.Variant: JSON(),
     VariantType.DiagnosticInfo: JSON(),
 }
-
-# Reverse mapping for looking up OPC types from SQLAlchemy types
-SQLALCHEMY_TO_OPC_TYPE_MAP = {
-    Boolean: VariantType.Boolean,
-    SmallInteger: VariantType.Int16,
-    Integer: VariantType.Int32,
-    BigInteger: VariantType.Int64,
-    Float: VariantType.Float,
-    Double: VariantType.Double,
-    Text: VariantType.String,
-    DateTime: VariantType.DateTime,
-    LargeBinary: VariantType.ByteString,
-    JSON: VariantType.ExtensionObject,
-}

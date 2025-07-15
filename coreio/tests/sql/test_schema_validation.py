@@ -48,7 +48,6 @@ def timescaledb_container(tsdb_port: int):
         command="postgres -c shared_preload_libraries=timescaledb",
     )
 
-    # Wait for DB to be ready
     _wait_for_db_ready(tsdb_port)
 
     yield container
