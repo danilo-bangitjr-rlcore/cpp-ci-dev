@@ -15,7 +15,6 @@ interaction:
 env:
   name: sim_async_env
   gym:
-    init_type: gym.make
     env_config:
       name: MountainCarContinuous-v0
     wrapper:
