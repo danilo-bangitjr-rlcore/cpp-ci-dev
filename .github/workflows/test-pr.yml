@@ -67,7 +67,7 @@ jobs:
 
       - name: Build docker compose opc-sim
         run: |
-          docker compose build opc-sim 
+          docker compose build opc-sim
 
       - name: Build docker compose opc-server
         run: |
