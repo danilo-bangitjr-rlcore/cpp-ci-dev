@@ -59,5 +59,4 @@ pipeline:
     operating_range: [0, 5]
 
 feature_flags:
-  prod_265_ignore_oob_tags_in_compound_goals: true
   autoencoder_imputer: false

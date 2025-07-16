@@ -71,26 +71,8 @@ class FeatureFlags:
     # 2025-02-01
     ensemble: int = 1
 
-    # 2025-03-01
-    zone_violations: bool = True
-
-    # 2025-03-13
-    action_embedding: bool = True
-
-    # 2025-03-24
-    wide_nets: bool = True
-
-    # 2025-04-14
-    action_bounds: bool = True
-
-    # 2025-04-25
-    use_residual: bool = True
-
     # 2025-04-29
     recency_bias_buffer: bool = False
-
-    # 2025-04-28
-    prod_265_ignore_oob_tags_in_compound_goals: bool = False
 
     # 2025-05-04
     interaction_action_variance: bool = False
@@ -114,7 +96,7 @@ class FeatureFlags:
     higher_critic_lr: bool = True
 
     # 2025-06-27
-    ensemble_2: bool = False
+    ensemble_2: bool = True
 
     # 2025-06-27
     mu_sigma_multipliers: bool = False
