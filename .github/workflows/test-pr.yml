@@ -6,7 +6,7 @@ on:
     paths:
       - "test/**"
       - "libs/**"
-      - "configs/**"
+      - "config/**"
 
 concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}
@@ -50,3 +50,43 @@ jobs:
         with:
           pylance-version: latest-release
           working-directory: test
+
+  docker-build-n-run-opc-sim:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Set up SSH Agent
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
+
+      - name: Build docker compose opc-sim
+        run: |
+          docker compose build opc-sim 
+
+      - name: Build docker compose opc-server
+        run: |
+          docker compose build opc-server
+
+      - name: Run docker compose opc-sim
+        run: |
+          docker compose up -d opc-sim
+
+      - name: Verify opc_sim is running
+        run: |
+          container_id=$(docker compose ps -q opc-sim)
+          if [ -z "$container_id" ]; then
+            echo "Service not running"
+            exit 1
+          fi
+          echo "Service is running"
+    
+      - name: Cleanup
+        if: always()
+        run: |
+          docker compose down opc-sim
