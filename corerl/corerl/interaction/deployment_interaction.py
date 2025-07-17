@@ -20,6 +20,7 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.eval.hindsight_return import HindsightReturnEval
+from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.eval.representation import RepresentationEval
 from corerl.interaction.configs import InteractionConfig
 from corerl.messages.events import Event, EventType
@@ -73,6 +74,12 @@ class DeploymentInteraction:
 
         self._representation_metrics = RepresentationEval(
             app_state,
+        )
+
+        self._mc_eval = MonteCarloEvaluator(
+            app_state.cfg.eval_cfgs.monte_carlo,
+            app_state,
+            agent,
         )
 
         ### Heartbeat (to be replaced by coreio)###
@@ -166,6 +173,10 @@ class DeploymentInteraction:
         self._write_to_metrics(rewards) # no prefix required
 
         # perform evaluations
+        self._mc_eval.execute(
+            self._last_state,
+            datetime.now(UTC),
+            rewards.to_numpy()[-1].item())
         self._hs_return_eval.execute(pipe_return.rewards)
 
         tags = self._column_desc.state_cols
