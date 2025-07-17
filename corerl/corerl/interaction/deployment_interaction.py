@@ -176,7 +176,7 @@ class DeploymentInteraction:
         self._mc_eval.execute(
             self._last_state,
             datetime.now(UTC),
-            rewards.to_numpy()[-1].item(),
+            rewards['reward'].to_numpy()[-1].item(),
         )
         self._hs_return_eval.execute(pipe_return.rewards)
 

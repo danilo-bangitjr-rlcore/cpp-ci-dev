@@ -135,9 +135,10 @@ class MonteCarloEvaluator:
             return
 
         # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
-        prev_state_valid = not jnp.isnan(self.prev_state.features).any()
-        action_valid = not jnp.isnan(curr_state.last_a).any()
-        if prev_state_valid and action_valid:
+        prev_state_invalid = jnp.isnan(self.prev_state.features).any()
+        action_invalid = jnp.isnan(curr_state.last_a).any()
+        reward_invalid = np.isnan(reward)
+        if prev_state_invalid or action_invalid or reward_invalid:
             self._step_queue.clear()
             self.prev_state = curr_state
             return
