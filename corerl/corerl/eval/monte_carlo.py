@@ -66,7 +66,6 @@ class MonteCarloEvaluator:
         self.critic_samples = cfg.critic_samples
 
         self.prev_state: State | None = None  # to deal with one step offset between states and actions
-        self.agent_step = 0
         self.app_state = app_state
         self.agent = agent
 
