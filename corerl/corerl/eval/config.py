@@ -11,6 +11,7 @@ from corerl.eval.agent import (
     QPDFPlotsConfig,
 )
 from corerl.eval.hindsight_return import HindsightReturnConfig
+from corerl.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.eval.raw_data import RawDataEvalConfig, raw_data_eval
 from corerl.state import AppState
 
@@ -23,6 +24,7 @@ class EvalConfig:
     greed_dist_online: GreedDistConfig = Field(default_factory=GreedDistConfig)
     q_pdf_plots: QPDFPlotsConfig = Field(default_factory=QPDFPlotsConfig)
     avg_reward: HindsightReturnConfig = Field(default_factory=HindsightReturnConfig)
+    monte_carlo: MonteCarloEvalConfig = Field(default_factory=MonteCarloEvalConfig)
 
 def register_pipeline_evals(cfg: EvalConfig, agent: BaseAgent, pipeline: Pipeline, app_state: AppState):
     pipeline.register_hook(
