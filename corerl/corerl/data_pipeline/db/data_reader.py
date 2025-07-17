@@ -6,13 +6,13 @@ from math import floor
 from typing import Any, assert_never
 
 import pandas as pd
+from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
 
 import corerl.utils.pandas as pd_util
 from corerl.data_pipeline.db.data_writer import TagDBConfig
-from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.sql_logging.sql_logging import get_sql_engine
 from corerl.tags.components.opc import Agg
 
