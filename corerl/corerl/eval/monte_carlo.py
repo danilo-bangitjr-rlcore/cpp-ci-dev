@@ -73,12 +73,6 @@ class MonteCarloEvaluator:
         self.agent = agent
 
     def _get_state_value(self, state: State):
-        """
-        Estimates the given state's value under the agent's current policy
-        by evaluating the agent's Q function at the given state
-        under a few actions sampled from the agent's policy and averaging them.
-        Returns a given state's value when the partial return horizon has elapsed.
-        """
         sampled_actions = self.agent.get_actions(state, n=self.critic_samples)
 
         # Get reduced Q-values and average them across sampled actions
@@ -90,11 +84,6 @@ class MonteCarloEvaluator:
 
 
     def _get_partial_return(self):
-        """
-        Iteratively computes the partial returns of sequential states over a horizon of self.return_steps
-        one reward at a time.
-        Returns a computed partial return once the horizon of self.return_steps has elapsed.
-        """
         if len(self._step_queue) < self.return_steps:
             return None
 
