@@ -31,19 +31,20 @@ class SQL_Manager:
         self.schema = cfg.db.schema
         self.table_name = table_name
         self.time_column_name = "time"
-        self.nodes_to_persist = nodes_to_persist
-        self._node_names_to_lower()
+        self.nodes_to_persist = self._node_names_to_lower(nodes_to_persist)
 
         self._ensure_db_schema()
         if warn_extra_cols:
             self._check_for_extra_columns()
 
-    def _node_names_to_lower(self):
+    def _node_names_to_lower(self, nodes_to_persist: dict[str, NodeData]):
         """Convert all node names in nodes_to_persist to lowercase,
            since postgres automatically converts column names to lowercase too.
         """
-        for node in  self.nodes_to_persist.values():
-            node.name = node.name.lower()
+        return {
+            key: node.model_copy(update={"name": node.name.lower()})
+            for key, node in nodes_to_persist.items()
+        }
 
     def _ensure_db_schema(self):
         """Ensure database table exists with required columns, create table/columns if necessary."""
@@ -65,6 +66,7 @@ class SQL_Manager:
         if column_exists(self.engine, table_name=self.table_name, column_name=node.name, schema=self.schema):
             self._check_column_type(node)
         else:
+            logger.info(f"Column {node.name} not found. Creating...")
             self._create_column_from_node(node)
 
     def _check_column_type(self,  node: NodeData):
@@ -94,7 +96,6 @@ class SQL_Manager:
     def _create_column_from_node(self, node: NodeData):
         """Adds column to tsdb table based on NodeData"""
 
-        logger.info(f"Column {node.name} not found. Creating...")
         with TryConnectContextManager(self.engine) as connection:
             tsdb_type = self._get_tsdb_type(node)
             column = SQLColumn(name=node.name, type=tsdb_type, nullable=True)
