@@ -2,11 +2,13 @@ import logging
 import math
 from collections import deque
 from dataclasses import dataclass
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+from lib_agent.buffer.buffer import State
 from lib_config.config import MISSING, computed, config
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -65,7 +67,7 @@ class MonteCarloEvaluator:
         self._step_queue = deque[_MonteCarloPoint](maxlen=self.return_steps)
         self.critic_samples = cfg.critic_samples
 
-        self.prev_state: jax.Array | None = None  # to deal with one step offset between states and actions
+        self.prev_state: State | None = None  # to deal with one step offset between states and actions
         self.agent_step = 0
         self.app_state = app_state
         self.agent = agent
@@ -161,49 +163,43 @@ class MonteCarloEvaluator:
     def execute_offline(self, iter_num: int, pipe_return: PipelineReturn):
         self.execute(pipe_return, str(iter_num))
 
-    def execute(self, pipe_return: PipelineReturn, label: str = ''):
+    def execute(
+            self,
+            curr_state: State,
+            curr_time: datetime,
+            reward: float,
+            label: str = ''):
+
         if not self.enabled:
             return
 
-        states = pipe_return.states
-        actions = pipe_return.actions
-        action_lo = pipe_return.action_lo
-        action_hi = pipe_return.action_hi
-        rewards = pipe_return.rewards['reward'].to_numpy()
-        for i in range(len(states)):
-            curr_state = jnp.asarray(states.iloc[i].to_numpy())
-            if self.prev_state is not None:
-                action_np = actions.iloc[i].to_numpy()
-                action = jnp.asarray(action_np)
-                reward = float(rewards[i])
-                action_lo_i = jnp.asarray(action_lo.iloc[i].to_numpy())
-                action_hi_i = jnp.asarray(action_hi.iloc[i].to_numpy())
-
-                # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
-                if jnp.isnan(self.prev_state).any() or jnp.isnan(action).any() or np.isnan(reward):
-                    self._step_queue.clear()
-                    self.agent_step += 1
-                    self.prev_state = curr_state
-                    continue
-
-                curr_time = actions.index[i].isoformat()
-                state_v = self._get_state_value(self.prev_state, action_lo_i, action_hi_i)
-                observed_a_q = self._get_observed_a_q(self.prev_state, action)
-
-                self._step_queue.appendleft(_MonteCarloPoint(
-                    timestamp=curr_time,
-                    agent_step=self.agent_step,
-                    state_v=state_v,
-                    observed_a_q=observed_a_q,
-                    reward=reward,
-                ))
-
-                partial_return = self._get_partial_return()
-
-                if partial_return is not None:
-                    step = self._step_queue.pop()
-                    self._write_metrics(step, partial_return, label)
-
-                self.agent_step += 1
-
+        if self.prev_state is None:
             self.prev_state = curr_state
+            return
+
+        # Can't compute partial returns or evaluate critic if there are nans in the state, action, or reward
+        if (jnp.isnan(self.prev_state.features).any()
+            or jnp.isnan(curr_state.last_a).any()):
+            self._step_queue.clear()
+            self.prev_state = curr_state
+            return
+
+        state_v = self._get_state_value(self.prev_state)
+        observed_a_q = (self.agent.get_values(self.prev_state.features, curr_state.last_a)
+                        .reduced_value.item())
+
+        self._step_queue.appendleft(_MonteCarloPoint(
+            timestamp=curr_time.isoformat(),
+            agent_step=self.app_state.agent_step,
+            state_v=state_v,
+            observed_a_q=observed_a_q,
+            reward=reward,
+        ))
+
+        partial_return = self._get_partial_return()
+
+        if partial_return is not None:
+            step = self._step_queue.pop()
+            self._write_metrics(step, partial_return, label)
+
+        self.prev_state = curr_state
