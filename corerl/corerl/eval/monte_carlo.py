@@ -72,7 +72,7 @@ class MonteCarloEvaluator:
         self.app_state = app_state
         self.agent = agent
 
-    def _get_state_value(self, state: State) -> float:
+    def _get_state_value(self, state: State):
         """
         Estimates the given state's value under the agent's current policy
         by evaluating the agent's Q function at the given state
@@ -89,7 +89,7 @@ class MonteCarloEvaluator:
         return float(sampled_a_qs.mean())
 
 
-    def _get_partial_return(self) -> float | None:
+    def _get_partial_return(self):
         """
         Iteratively computes the partial returns of sequential states over a horizon of self.return_steps
         one reward at a time.
