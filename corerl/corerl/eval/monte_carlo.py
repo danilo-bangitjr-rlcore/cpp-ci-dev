@@ -102,18 +102,6 @@ class MonteCarloEvaluator:
         ).reduced_value
         return float(sampled_a_qs.mean())
 
-    def _get_observed_a_q(self, state: jax.Array, observed_a: jax.Array) -> float:
-        """
-        Returns the agent's action-value estimate for the given state-action pair
-        under the agent's current policy.
-        Returns a given state's value when the partial return horizon has elapsed.
-        """
-        observed_a_q = self.agent.get_values(
-            jnp.expand_dims(state, [0, 1]),  # add (ensemble, batch) dimensions
-            jnp.expand_dims(observed_a, [0, 1]),  # add (ensemble, batch) dimensions
-        )
-        return float(observed_a_q.reduced_value.squeeze())
-
     def _get_partial_return(self) -> float | None:
         """
         Iteratively computes the partial returns of sequential states over a horizon of self.return_steps
@@ -158,10 +146,6 @@ class MonteCarloEvaluator:
             timestamp=step.timestamp,
             agent_step=step.agent_step,
         )
-
-
-    def execute_offline(self, iter_num: int, pipe_return: PipelineReturn):
-        self.execute(pipe_return, str(iter_num))
 
     def execute(
             self,
