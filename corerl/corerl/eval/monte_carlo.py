@@ -72,35 +72,22 @@ class MonteCarloEvaluator:
         self.app_state = app_state
         self.agent = agent
 
-    def _get_state_value(self, state: jax.Array, action_lo: jax.Array, action_hi: jax.Array) -> float:
+    def _get_state_value(self, state: State) -> float:
         """
         Estimates the given state's value under the agent's current policy
         by evaluating the agent's Q function at the given state
         under a few actions sampled from the agent's policy and averaging them.
         Returns a given state's value when the partial return horizon has elapsed.
         """
-        # add batch dimension to everything
-        state = jnp.expand_dims(state, 0)
-        action_lo = jnp.expand_dims(action_lo, 0)
-        action_hi = jnp.expand_dims(action_hi, 0)
+        sampled_actions = self.agent.get_actions(state, n=self.critic_samples)
 
-        # Sample actions from the agent's policy
-        rng = jax.random.PRNGKey(self.agent_step)
-        dist = self.agent.get_dist(state.squeeze(0))
-        sampled_actions = dist.sample(
-            seed=rng,
-            sample_shape=(self.critic_samples,),
-        )
-
-        # Repeat state for each sampled action
-        repeat_state = jnp.repeat(state, self.critic_samples, axis=0)
-
-        # Get Q-values and average them
+        # Get reduced Q-values and average them across sampled actions
         sampled_a_qs = self.agent.get_values(
-            jnp.expand_dims(repeat_state, 0),  # add ensemble dimension
-            jnp.expand_dims(sampled_actions, 0),  # add ensemble dimension
+            state.features,
+            sampled_actions,
         ).reduced_value
         return float(sampled_a_qs.mean())
+
 
     def _get_partial_return(self) -> float | None:
         """
