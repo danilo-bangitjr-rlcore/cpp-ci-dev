@@ -317,7 +317,7 @@ class GreedyAC(BaseAgent):
             ensemble_variance=qs.var(axis=0),
         )
 
-    def get_actions(self, state: State, n: int =1):
+    def get_actions(self, state: State, n: int=1):
         actions, _ = self._actor.get_actions(self._actor_state.actor.params, state, n=n)
 
         return actions
