@@ -92,34 +92,6 @@ class MonteCarloEvaluator:
 
         return partial_return
 
-
-    def _write_metrics(
-        self,
-        step: _MonteCarloPoint,
-        partial_return: float,
-        label: str = '',
-    ):
-        if label:
-            label = f"_{label}"
-        self.app_state.metrics.write(
-            metric=f"state_v{label}",
-            value=step.state_v,
-            timestamp=step.timestamp,
-            agent_step=step.agent_step,
-        )
-        self.app_state.metrics.write(
-            metric=f"observed_a_q{label}",
-            value=step.observed_a_q,
-            timestamp=step.timestamp,
-            agent_step=step.agent_step,
-        )
-        self.app_state.metrics.write(
-            metric=f"partial_return{label}",
-            value=partial_return,
-            timestamp=step.timestamp,
-            agent_step=step.agent_step,
-        )
-
     def execute(
             self,
             curr_state: State,
@@ -147,6 +119,22 @@ class MonteCarloEvaluator:
         observed_a_q = (self.agent.get_values(self.prev_state.features, curr_state.last_a)
                         .reduced_value.item())
 
+        # log predicted values immediately
+        self.app_state.metrics.write(
+            metric=f"state_v{label}",
+            value=state_v,
+            timestamp=curr_time.isoformat(),
+            agent_step=self.app_state.agent_step,
+        )
+
+        self.app_state.metrics.write(
+            metric=f"observed_a_q{label}",
+            value=observed_a_q,
+            timestamp=curr_time.isoformat(),
+            agent_step=self.app_state.agent_step,
+        )
+
+        # cache and compure partial returns once we have enough rewards
         self._step_queue.appendleft(_MonteCarloPoint(
             timestamp=curr_time.isoformat(),
             agent_step=self.app_state.agent_step,
@@ -156,9 +144,13 @@ class MonteCarloEvaluator:
         ))
 
         partial_return = self._get_partial_return()
-
         if partial_return is not None:
             step = self._step_queue.pop()
-            self._write_metrics(step, partial_return, label)
+            self.app_state.metrics.write(
+                metric=f"partial_return{label}",
+                value=partial_return,
+                timestamp=step.timestamp,
+                agent_step=step.agent_step,
+            )
 
         self.prev_state = curr_state
