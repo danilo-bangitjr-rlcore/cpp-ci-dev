@@ -100,7 +100,7 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
-        eval_states, eval_dates = get_eval_states(self.pipeline_out, self.start_time, self.end_time)
+        eval_states, eval_dates = get_one_day_per_month(self.pipeline_out, self.start_time, self.end_time)
 
         agent.update_buffer(self.pipeline_out)
         for buffer_name, size in agent.get_buffer_sizes().items():
@@ -133,13 +133,13 @@ def get_data_start_end_times(
 
     return start_time, end_time
 
-def get_eval_states(
+def get_one_day_per_month(
     pr: PipelineReturn,
     start: dt.datetime,
     end: dt.datetime,
 ) -> tuple[list[jax.Array], list[dt.datetime]]:
     """
-    Picks one day each month in the historical dataset and makes each state observed on the hour mark an eval state
+    Picks one day each month in the historical dataset and returns each state, datetime observed on the hour mark
     """
     eval_states = []
     eval_dates = []
@@ -149,9 +149,11 @@ def get_eval_states(
     while curr_time < end:
         day_states = []
         hour = 0
+        # Day in month determined once it's confirmed that there's a state for each hour within the given day
         while len(day_states) < 24:
             curr_time = curr_time.replace(hour=hour)
             curr_state = jnp.asarray(pr.states.loc[str(curr_time)].to_numpy())
+            # If there's a NaN within a state, we move on to the next day
             if jnp.isnan(curr_state).any():
                 day_states = []
                 hour = 0
