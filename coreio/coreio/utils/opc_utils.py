@@ -15,7 +15,7 @@ from sqlalchemy import (
     Text,
 )
 
-from coreio.communication.opc_communication import NodeData, OPC_Connection
+from coreio.communication.opc_communication import NodeMap, NodeRegistry, OPC_Connection
 
 logger = logging.getLogger()
 
@@ -23,9 +23,10 @@ def concat_opc_nodes(
         opc_connections: dict[str, OPC_Connection],
         skip_heartbeat: bool = False,
         heartbeat_name: str = "heartbeat",
-) -> dict[str, NodeData]:
-    all_registered_nodes = {}
+) -> NodeRegistry:
+    all_registered_nodes: NodeRegistry = {}
     for connection_id, opc_conn in opc_connections.items():
+        all_registered_nodes[connection_id] = {}
         for node_id, node in opc_conn.registered_nodes.items():
             if node_id in all_registered_nodes:
                 logger.warning(
@@ -34,8 +35,11 @@ def concat_opc_nodes(
                 )
             if skip_heartbeat and node.name == heartbeat_name:
                 continue
-            all_registered_nodes[node_id] = node
+            all_registered_nodes[connection_id][node_id] = node
     return all_registered_nodes
+
+def flatten_node_registry(node_registry: NodeRegistry) -> NodeMap:
+    ...
 
 OPC_TO_SQLALCHEMY_TYPE_MAP = {
     # Null and Basic Types

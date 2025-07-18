@@ -53,6 +53,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
                 async with opc_conn:
                     await opc_conn.register_node(heartbeat_id, "heartbeat")
 
+    all_registered_nodes = None
     if cfg.coreio.data_ingress.enabled:
         logger.info("Starting SQL communication")
         all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
@@ -86,6 +87,21 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
                         async with opc_conn:
                             await opc_conn.write_opcua_nodes(payload)
+
+                case IOEventType.read_opcua_nodes:
+                    logger.info(f"Received reading event {event}")
+                    assert all_registered_nodes is not None
+                    # Try naive minimal approach
+                    for opc_conn in opc_connections.values():
+                        nodes_for_conn = {}
+                        for node_id, node_data in all_registered_nodes.items():
+                            if node_id in opc_conn.registered_nodes.keys():
+                                nodes_for_conn[node_id] = node_data
+
+                        async with opc_conn:
+                            read_result = await opc_conn.read_opcua_nodes(nodes_for_conn)
+
+                        print(read_result)
 
                 case IOEventType.exit_io:
                     logger.info("Received exit event, shutting down CoreIO...")
