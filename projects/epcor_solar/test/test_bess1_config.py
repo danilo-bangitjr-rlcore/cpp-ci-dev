@@ -47,7 +47,6 @@ def tag_names(cfg: MainConfig):
 @pytest.fixture
 def df(cfg: MainConfig, tag_names: list[str]):
     # Assuming obs_period = 5 minutes and action_period = 5 minutes
-    print("Create DF")
     obs_period = cfg.interaction.obs_period
     action_period = cfg.interaction.action_period
     obs_steps = int(action_period / obs_period) + 1
@@ -60,10 +59,8 @@ def df(cfg: MainConfig, tag_names: list[str]):
 
     for tag_cfg in cfg.pipeline.tags:
         if tag_cfg.name in tag_names:
-            print(f"Tag: {tag_cfg.name}")
             for i in range(obs_steps):
                 tag_bounds = get_tag_bounds(tag_cfg, data.iloc[[i]])
-                print(f"[{tag_bounds[0].unwrap()}, {tag_bounds[1].unwrap()}]")
                 if tag_cfg.type == TagType.delta:
                     data.loc[dates[i], tag_cfg.name] += i * tag_bounds[1].unwrap()
                 else:
@@ -272,10 +269,6 @@ def test_PROFIT(cfg: MainConfig, tag_names: list[str]):
 
 def test_no_violations(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     obs_steps = int(cfg.interaction.action_period / cfg.interaction.obs_period) + 1
-    print("Input DF:")
-    for col in df.columns:
-        print(f"{col}:")
-        print(df[col].to_string())
 
     pipeline = Pipeline(app_state, cfg.pipeline)
 
