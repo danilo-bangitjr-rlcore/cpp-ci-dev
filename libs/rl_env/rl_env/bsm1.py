@@ -1,14 +1,16 @@
 from dataclasses import dataclass
+from typing import Literal
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
-@dataclass
+@config(frozen=True)
 class BSM1Config(EnvConfig):
-    name: str = 'BSM1-v0'
+    name: Literal['BSM1-v0'] = 'BSM1-v0'
 
 class BSM1Env(gym.Env):
     """

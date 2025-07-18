@@ -1,9 +1,9 @@
 env:
   name: sim_async_env
-
   gym:
-    init_type : custom
-    gym_name : BSM1-v0
+    env_config:
+      name: BSM1-v0
+    init_type: custom
 
 interaction:
   name: sim_interaction

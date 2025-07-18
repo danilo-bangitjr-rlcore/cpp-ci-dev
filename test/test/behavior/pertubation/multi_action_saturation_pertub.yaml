@@ -1,7 +1,8 @@
 env:
   name: sim_async_env
   gym:
-    gym_name : MultiActionSaturation-v0
+    env_config:
+      name: MultiActionSaturation-v0
     perturb_config:
       frequency: 0.05
       magnitude: 5.0

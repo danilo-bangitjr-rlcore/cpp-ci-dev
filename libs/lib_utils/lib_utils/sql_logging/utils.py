@@ -14,7 +14,7 @@ def create_tsdb_table_query(
     schema: str,
     table: str,
     columns: list[SQLColumn],
-    partition_column: str,
+    partition_column: str | None,
     index_columns: list[str],
     time_column: str = 'time',
     chunk_time_interval: str = '1d',
@@ -48,6 +48,15 @@ def create_tsdb_table_query(
         {idxs}
         ALTER TABLE {schema_table} SET (
             timescaledb.compress,
-            timescaledb.compress_segmentby='{partition_column}'
+            timescaledb.compress_segmentby='{partition_column if partition_column is not None else ""}'
         );
     """)
+
+def add_column_to_table_query(
+    schema: str,
+    table: str,
+    column: SQLColumn,
+):
+    return text(f"""ALTER TABLE {schema}.{table}
+         ADD COLUMN {column.name} {column.type}
+         {"NOT NULL" if not column.nullable else ""};""")

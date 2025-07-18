@@ -5,9 +5,15 @@ import time
 from typing import Protocol
 
 import sqlalchemy
-from sqlalchemy import URL, Column, DateTime, Engine, MetaData, Table, inspect
-from sqlalchemy.sql import func
+from sqlalchemy import (
+    URL,
+    Engine,
+    inspect,
+)
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy_utils import create_database, database_exists, drop_database
+
+from lib_utils.list import find
 
 logger = logging.getLogger(__name__)
 
@@ -79,64 +85,29 @@ def maybe_create_database(conn_url: URL, backoff_seconds: int = 5, max_tries: in
             time.sleep(backoff_seconds)
         tries += 1
 
-
-def create_column(name: str, dtype: str, primary_key: bool = False) -> Column:
-    # TODO: support onupdate
-    if dtype == "DateTime":
-        col = Column(
-            name,
-            DateTime(timezone=True),
-            server_default=func.now(),
-            primary_key=primary_key,
-        )
-    else:
-        dtype_obj = getattr(sqlalchemy, dtype)
-        col = Column(name, dtype_obj, nullable=False, primary_key=primary_key)
-
-    return col
-
-
-def create_table(metadata: MetaData, schema: dict) -> Table:
-    """
-    schema like:
-
-        name: critic_weights
-        columns:
-            id: Integer
-            ts: DateTime
-            network: BLOB
-        primary_keys: [id]
-        autoincrement: True
-
-    """
-    # TODO: test support compount primary keys
-
-    cols = []
-    for key in schema["columns"]:
-        if key in schema["primary_keys"]:
-            primary_key = True
-        else:
-            primary_key = False
-
-        col = create_column(
-            name=key, dtype=schema["columns"][key], primary_key=primary_key,
-        )
-        cols.append(col)
-
-    return Table(schema["name"], metadata, *cols)
-
-
-
-def create_tables(metadata: MetaData, engine: Engine, schemas: dict) -> None:
-    for table_name, values in schemas.items():
-        create_table(
-            metadata=metadata, schema={"name": table_name, **values},
-        )
-
-    metadata.create_all(engine, checkfirst=True)
-
 def table_exists(engine: Engine, table_name: str, schema: str = 'public') -> bool:
     iengine = inspect(engine)
     existing_tables = iengine.get_table_names(schema)
 
     return table_name in existing_tables
+
+def column_exists(engine: Engine, table_name: str, column_name: str,  schema: str = 'public') -> bool:
+    try:
+        iengine = inspect(engine)
+        columns = iengine.get_columns(table_name, schema=schema)
+        return any(col['name'] == column_name for col in columns)
+    except SQLAlchemyError:
+        return False
+
+def get_column_type(engine: Engine, table_name: str, column_name: str,  schema: str = 'public'):
+    assert column_exists(engine, table_name, column_name, schema), "SQL Error, column not found"
+    iengine = inspect(engine)
+    columns = iengine.get_columns(table_name, schema=schema)
+    column = find(lambda col: col["name"] == column_name, columns)
+    assert column is not None # Check for pyright, since we already checked that column exists
+    return column["type"]
+
+
+def get_all_columns(engine: Engine, table_name: str, schema: str = "public"):
+    iengine = inspect(engine)
+    return iengine.get_columns(table_name, schema=schema)

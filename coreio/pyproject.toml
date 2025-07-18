@@ -10,10 +10,14 @@ dependencies = [
     "colorlog>=6.9.0",
     "lib-config",
     "lib-defs",
+    "lib-utils",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
 ]
 
 [dependency-groups]
 dev = [
+    "docker>=7.1.0",
     "pylint>=3.3.7",
     "pyright>=1.1.401",
     "pytest-asyncio>=1.0.0",
@@ -34,6 +38,7 @@ packages = ["coreio"]
 test = { path = "../test", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-defs = { path = "../libs/lib_defs", editable = true }
+lib-utils = { path = "../libs/lib_utils", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'

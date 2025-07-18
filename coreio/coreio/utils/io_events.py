@@ -1,7 +1,8 @@
 import uuid
-from enum import StrEnum, auto
+from enum import auto
 from typing import Any
 
+from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 from lib_utils.time import now_iso
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -10,7 +11,7 @@ class OPCUANodeWriteValue(BaseModel):
     node_id: str
     value: Any
 
-class IOEventType(StrEnum):
+class IOEventType(BaseEventType):
     # ------------
     # -- CoreIO --
     # ------------
@@ -18,11 +19,11 @@ class IOEventType(StrEnum):
     read_opcua_nodes = auto()
     exit_io = auto()
 
-class IOEventTopic(StrEnum):
+class IOEventTopic(BaseEventTopic):
     # Topic filtering occurs using subscriber-side prefixing
     coreio = auto()
 
-class IOEvent(BaseModel):
+class IOEvent(BaseEvent[IOEventType]):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
     type: IOEventType

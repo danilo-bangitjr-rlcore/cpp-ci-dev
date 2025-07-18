@@ -31,9 +31,9 @@ class OPCSimConfig:
 
 def initialize_opc_folder(client: Client, cfg_env: GymEnvConfig):
     # create folder containing environment variables
-    folder_node_id = make_opc_node_id(cfg_env.gym_name)
+    folder_node_id = make_opc_node_id(cfg_env.env_config.name)
     try:
-        folder = client.nodes.objects.add_folder(folder_node_id, cfg_env.gym_name)
+        folder = client.nodes.objects.add_folder(folder_node_id, cfg_env.env_config.name)
     except BadNodeIdExists:
         # folder already exists
         folder = client.get_node(folder_node_id)

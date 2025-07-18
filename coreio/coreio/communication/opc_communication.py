@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 class NodeData(BaseModel):
     node: Node
     var_type: ua.VariantType
+    name: str
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
@@ -46,6 +47,10 @@ class OPC_Connection:
         self.registered_nodes: dict[str, NodeData] = {}
         self._context_active = False
 
+    # -------------------- #
+    # --- Init methods --- #
+    # -------------------- #
+
     async def init(self, cfg: OPCConnectionConfig):
         self.connection_id = cfg.connection_id
         self.opc_client = Client(cfg.opc_conn_url)
@@ -60,35 +65,6 @@ class OPC_Connection:
         await self.ensure_connected()
 
         return self
-
-    @staticmethod
-    def requires_context(func: Callable[..., Any]):
-        """Decorator that ensures method is called within active context"""
-        async def wrapper(self: OPC_Connection, *args: Any, **kwargs: Any):
-            if not self._context_active:
-                raise RuntimeError(f"Function {func.__name__} must be called within the OPC context manager")
-            return await func(self, *args, **kwargs)
-        return wrapper
-
-    @backoff.on_exception(backoff.expo, Exception, max_value=30, on_backoff=log_backoff)
-    async def ensure_connected(self):
-        assert self.opc_client is not None, 'OPC client is not initialized'
-
-        if self._connected is False:
-            await self.opc_client.connect()
-            self._connected = True
-
-        try:
-            await self.opc_client.check_connection()
-
-        except Exception:
-            await self.opc_client.connect()
-            await self.opc_client.check_connection()
-            self._connected = True
-            logger.error(f"Problem connecting to OPC server in {self.connection_id}")
-
-        return self.opc_client
-
 
     async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
         assert self.opc_client is not None
@@ -128,39 +104,30 @@ class OPC_Connection:
             case _:
                 assert_never(auth_mode)
 
-    @requires_context
-    async def register_node(self, node_id: str):
-        assert self.opc_client is not None, 'OPC client is not initialized'
-        if not node_id.startswith("ns="):
-            raise ValueError(f"Problem encountered in tag config for {node_id} " +
-                "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
 
-        node = self.opc_client.get_node(node_id)
-        var_type = await node.read_data_type_as_variant_type()
-        logger.info(f"Registering OPC node with id '{node_id}'")
-
-        self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
-
-    @requires_context
-    async def register_action_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
-        assert self.opc_client is not None, 'OPC client is not initialized'
-        """
-        Register nodes that:
-        1. Have the relevant connection_id
-        2. Are ai_setpoints
-        """
-        for tag_cfg in tag_configs:
-            if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
-                continue
-
-            if tag_cfg.node_identifier is None:
-                raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
-                    "For ai_setpoint tags, node_identifier must be defined")
-
-            await self.register_node(tag_cfg.node_identifier)
-
+    # -------------------------- #
+    # --- Manage Connections --- #
+    # -------------------------- #
 
     @backoff.on_exception(backoff.expo, Exception, max_value=30, on_backoff=log_backoff)
+    async def ensure_connected(self):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+
+        if self._connected is False:
+            await self.opc_client.connect()
+            self._connected = True
+
+        try:
+            await self.opc_client.check_connection()
+
+        except Exception:
+            await self.opc_client.connect()
+            await self.opc_client.check_connection()
+            self._connected = True
+            logger.error(f"Problem connecting to OPC server in {self.connection_id}")
+
+        return self.opc_client
+
     async def start(self):
         await self.ensure_connected()
         return self
@@ -187,9 +154,48 @@ class OPC_Connection:
         self._context_active = False
         await self.cleanup()
 
-    @backoff.on_exception(backoff.expo, (ua.UaError, ConnectionError), max_value=30, on_backoff=log_backoff)
+    @staticmethod
+    def requires_context(func: Callable[..., Any]):
+        """Decorator that ensures method is called within active context"""
+        async def wrapper(self: OPC_Connection, *args: Any, **kwargs: Any):
+            if not self._context_active:
+                raise RuntimeError(f"Function {func.__name__} must be called within the OPC context manager")
+            return await func(self, *args, **kwargs)
+        return wrapper
+
+    # ------------------ #
+    # --- IO Methods --- #
+    # ------------------ #
+    # All of these use @requires_context
+
     @requires_context
-    async def write_opcua_nodes(self, nodes_to_write: list[OPCUANodeWriteValue]):
+    async def register_node(self, node_id: str, name: str):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+        if not node_id.startswith("ns="):
+            raise ValueError(f"Problem encountered in tag config for {node_id} " +
+                "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
+
+        node = self.opc_client.get_node(node_id)
+        var_type = await node.read_data_type_as_variant_type()
+        logger.info(f"Registering OPC node with id '{node_id}'")
+
+        self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type, name=name)
+
+    @requires_context
+    async def register_cfg_nodes(self, tag_configs: Sequence[TagConfigAdapter], ai_setpoint_only: bool = False):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+        for tag_cfg in tag_configs:
+            if tag_cfg.connection_id != self.connection_id or tag_cfg.node_identifier is None:
+                continue
+
+            if ai_setpoint_only and tag_cfg.type != TagType.ai_setpoint:
+                continue
+
+            await self.register_node(tag_cfg.node_identifier, tag_cfg.name)
+
+
+    @requires_context
+    async def write_opcua_nodes(self, nodes_to_write: Sequence[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         nodes = []
         data_values = []

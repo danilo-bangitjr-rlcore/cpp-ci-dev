@@ -10,6 +10,8 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import JaxTransition
+from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.qrc_critic import (
     QRCConfig,
     QRCCritic,
@@ -22,14 +24,8 @@ from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.component.buffer import (
-    BufferConfig,
-    JaxTransition,
-    MixedHistoryBufferConfig,
-    RecencyBiasBufferConfig,
-    buffer_group,
-)
-from corerl.data_pipeline.datatypes import AbsTransition
+from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
+from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import EventType
 from corerl.state import AppState
@@ -39,6 +35,8 @@ if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
+
+BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
 @config()
 class CriticNetworkConfig:
@@ -79,7 +77,6 @@ class PercentileActorConfig:
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
 
-    # components
     buffer: BufferConfig = MISSING
 
     @computed('buffer')
@@ -217,8 +214,8 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        self._actor_buffer = buffer_group.dispatch(cfg.policy.buffer, app_state)
-        self.critic_buffer = buffer_group.dispatch(cfg.critic.buffer, app_state)
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
+        self.critic_buffer = build_buffer(cfg.critic.buffer.to_lib_config(), JaxTransition)
 
         self.ensemble = self.cfg.critic.buffer.ensemble
 
@@ -352,12 +349,15 @@ class GreedyAC(BaseAgent):
             return
 
         self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
-        self.critic_buffer.feed(pr.transitions, pr.data_mode)
-        recent_actor_idxs = self._actor_buffer.feed(pr.transitions, pr.data_mode)
+
+        jax_transitions = [convert_corerl_transition_to_jax_transition(t) for t in pr.transitions]
+
+        self.critic_buffer.feed(jax_transitions, pr.data_mode)
+        recent_actor_idxs = self._actor_buffer.feed(jax_transitions, pr.data_mode)
 
         # ---------------------------------- ingress actor loss metic --------------------------------- #
         if len(recent_actor_idxs) > 0:
-            recent_actor_batch = self._actor_buffer.get_batch(recent_actor_idxs)
+            recent_actor_batch: JaxTransition = self._actor_buffer.get_batch(recent_actor_idxs)
 
             state = State(
                 features=recent_actor_batch.state,
@@ -371,9 +371,9 @@ class GreedyAC(BaseAgent):
             log_probs = jax_u.vmap_except(self._actor.get_log_probs, exclude=["params"])(
                 self._actor_state.actor.params,
                 state,
-                jnp.expand_dims(recent_actor_batch.action, axis=1), # one action per state
+                jnp.expand_dims(recent_actor_batch.action, axis=1),
             )
-            actor_loss = -log_probs.mean() # avg over batch
+            actor_loss = -log_probs.mean()
 
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
@@ -397,7 +397,7 @@ class GreedyAC(BaseAgent):
         if not self.critic_buffer.is_sampleable:
             return [0 for _ in range(self.ensemble)]
 
-        batches = self.critic_buffer.sample()
+        batches: JaxTransition = self.critic_buffer.sample()
         critic_batch = abs_transition_from_batch(batches)
         next_actions, _ = self._actor.get_actions(
             self._actor_state.actor.params,
@@ -450,7 +450,7 @@ class GreedyAC(BaseAgent):
         if not self._actor_buffer.is_sampleable:
             return 0.
 
-        batch = self._actor_buffer.sample()
+        batch: JaxTransition = self._actor_buffer.sample()
         actor_batch = abs_transition_from_batch(batch)
         self._actor_state, metrics = self._actor.update(
             self._actor_state,
@@ -548,7 +548,6 @@ class GreedyAC(BaseAgent):
         actor_buffer_path = path / "actor_buffer.pkl"
         with open(actor_buffer_path, "rb") as f:
             self._actor_buffer = pkl.load(f)
-        self._actor_buffer.app_state = self._app_state
 
         critic_path = path / "critic.pkl"
         with open(critic_path, "rb") as f:
@@ -557,12 +556,11 @@ class GreedyAC(BaseAgent):
         critic_buffer_path = path / "critic_buffer.pkl"
         with open(critic_buffer_path, "rb") as f:
             self.critic_buffer = pkl.load(f)
-        self.critic_buffer.app_state = self._app_state
 
     def get_buffer_sizes(self) -> dict[str, list[int]]:
         return {
-            "critic": self.critic_buffer.size,
-            "policy": self._actor_buffer.size,
+            "critic": [self.critic_buffer.size],
+            "policy": [self._actor_buffer.size],
         }
 
 

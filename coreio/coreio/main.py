@@ -7,10 +7,12 @@ import logging
 import colorlog
 from lib_config.loader import load_config
 
+from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.sql_communication import SQL_Manager
+from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEventType
-from coreio.utils.opc_communication import OPC_Connection
-from coreio.utils.zmq_communication import ZMQ_Communication
+from coreio.utils.opc_utils import concat_opc_nodes
 
 colorlog.basicConfig(
     level=logging.DEBUG,
@@ -41,7 +43,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
         async with opc_conn:
-            await opc_conn.register_action_nodes(cfg.pipeline.tags)
+            await opc_conn.register_cfg_nodes(cfg.pipeline.tags, ai_setpoint_only = True)
 
         # Register heartbeat_id separately
         if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
@@ -49,7 +51,16 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
             if heartbeat_id is not None:
                 async with opc_conn:
-                    await opc_conn.register_node(heartbeat_id)
+                    await opc_conn.register_node(heartbeat_id, "heartbeat")
+
+    if cfg.coreio.data_ingress.enabled:
+        logger.info("Starting SQL communication")
+        all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
+        sql_communication = SQL_Manager( # noqa: F841
+            cfg.infra,
+            table_name=cfg.env.db.table_name,
+            nodes_to_persist=all_registered_nodes,
+        )
 
     logger.info("Starting ZMQ communication")
     zmq_communication = ZMQ_Communication(cfg.coreio)
@@ -57,32 +68,37 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     logger.info("CoreIO is ready")
 
-    while True:
-        event = zmq_communication.recv_event()
-        if event is None:
-            continue
 
-        match event.type:
-            case IOEventType.write_opcua_nodes:
-                logger.info(f"Received writing event {event}")
-                for connection_id, payload in event.data.items():
-                    opc_conn = opc_connections.get(connection_id)
-                    if opc_conn is None:
-                        logger.warning(f"Connection Id {connection_id} is unkown.")
-                        continue
+    try:
+        while True:
+            event = zmq_communication.recv_event()
+            if event is None:
+                continue
 
-                    async with opc_conn:
-                        await opc_conn.write_opcua_nodes(payload)
+            match event.type:
+                case IOEventType.write_opcua_nodes:
+                    logger.info(f"Received writing event {event}")
+                    for connection_id, payload in event.data.items():
+                        opc_conn = opc_connections.get(connection_id)
+                        if opc_conn is None:
+                            logger.warning(f"Connection Id {connection_id} is unkown.")
+                            continue
 
-            case IOEventType.exit_io:
-                logger.info("Received exit event, shutting down CoreIO...")
-                break
+                        async with opc_conn:
+                            await opc_conn.write_opcua_nodes(payload)
 
-    zmq_communication.cleanup()
-    logger.info("CoreIO finished cleanup")
+                case IOEventType.exit_io:
+                    logger.info("Received exit event, shutting down CoreIO...")
+                    break
+    except Exception:
+        logger.exception("CoreIO error occurred")
+    finally:
+        zmq_communication.cleanup()
+        logger.info("CoreIO finished cleanup")
 
 def main():
     asyncio.run(coreio_loop())
 
 if __name__ == "__main__":
     main()
+

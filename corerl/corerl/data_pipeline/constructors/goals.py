@@ -27,7 +27,6 @@ class GoalConstructor:
         self._cfg = reward_cfg
         self._tag_cfgs = tag_cfgs
         self._prep_stage = prep_stage
-        self.ignore_oob_tags_in_compound_goals = reward_cfg.ignore_oob_tags_in_compound_goals
 
     def _compute_priority_violations(self, row: pd.DataFrame):
         priority_violations = []
@@ -190,11 +189,7 @@ class GoalConstructor:
             ]
 
             for idx, (goal, _) in enumerate(violation_percents):
-                if (
-                    self.ignore_oob_tags_in_compound_goals
-                    and isinstance(goal, Goal)
-                    and self._row_is_out_of_operating_range(goal, row)
-                ):
+                if isinstance(goal, Goal) and self._row_is_out_of_operating_range(goal, row):
                     if priority.op == 'and':
                         # drop the tag from the AND
                         violation_percents[idx] = (goal, 0)

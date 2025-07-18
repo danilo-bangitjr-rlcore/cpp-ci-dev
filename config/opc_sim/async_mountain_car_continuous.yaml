@@ -1,6 +1,7 @@
 gym:
-  gym_name: MountainCarContinuous-v0
-  init_type: "gym.make"
+  env_config:
+    name: MountainCarContinuous-v0
+  init_type: "custom"
   seed: 1
 
 sim_timestep_period: 00:00:00.1 # 10 steps per second

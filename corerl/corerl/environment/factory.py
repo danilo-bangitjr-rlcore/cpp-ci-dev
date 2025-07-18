@@ -8,7 +8,7 @@ try:
     from rl_env.factory import init_env
 except ImportError:
 
-    def init_env(name: str, overrides: Any = None, perturbation_config: Any | None = None) -> Any:
+    def init_env(cfg: Any, perturbation_config: dict | None = None) -> Any:
         """
         Placeholder function for initializing a custom environment.
         This should be replaced with the actual implementation.
@@ -24,20 +24,9 @@ log = logging.getLogger(__name__)
 def init_environment(cfg: GymEnvConfig):
     from corerl.environment.wrapper.wrappers import wrappers
 
-    args = cfg.args
-    kwargs = cfg.kwargs
-
     match cfg.init_type:
-        case "gym.make":
-            if gym is None:
-                raise ImportError("Gymnasium is not installed. Please install it to use this functionality.")
-
-            if cfg.env_config is not None:
-                kwargs = dict(kwargs)
-                kwargs["cfg"] = cfg.env_config
-            env = gym.make(cfg.gym_name, *args, **kwargs)
         case "custom":
-            env = init_env(cfg.gym_name, overrides=cfg.env_config, perturbation_config=cfg.perturb_config)
+            env = init_env(cfg.env_config, perturbation_config=cfg.perturb_config)
         case _:
             raise NotImplementedError
 

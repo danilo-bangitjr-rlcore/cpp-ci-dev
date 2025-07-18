@@ -1,15 +1,15 @@
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
-@dataclass
+@config(frozen=True)
 class WindyRoomConfig(EnvConfig):
-    name: str = 'WindyRoom-v0'
+    name: Literal['WindyRoom-v0'] = 'WindyRoom-v0'
     initial_zone_low: float = 0.45
     initial_zone_high: float = 0.55
     room_size: float = 1.0

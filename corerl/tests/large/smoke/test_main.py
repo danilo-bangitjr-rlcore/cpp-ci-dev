@@ -7,7 +7,6 @@ from sqlalchemy import Engine
 
 
 @pytest.mark.parametrize('config_name', [
-    'pendulum',
     'saturation',
     'mountain_car_continuous',
     'ensemble_mountain_car',

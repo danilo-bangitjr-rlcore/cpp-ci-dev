@@ -68,14 +68,14 @@ class GreedyAC:
 
         # Replay Buffers
         self.policy_buffer = EnsembleReplayBuffer[Batch](
-            n_ensemble=1,
-            ensemble_prob=1.0,
+            ensemble=1,
+            ensemble_probability=1.0,
             batch_size=cfg.batch_size,
         )
 
         self.critic_buffer = EnsembleReplayBuffer[Batch](
-            n_ensemble=cfg.critic['ensemble'],
-            ensemble_prob=cfg.critic['ensemble_prob'],
+            ensemble=cfg.critic['ensemble'],
+            ensemble_probability=cfg.critic['ensemble_prob'],
             batch_size=cfg.batch_size,
         )
 

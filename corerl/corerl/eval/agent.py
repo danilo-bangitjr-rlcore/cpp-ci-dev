@@ -6,12 +6,12 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
+from lib_agent.buffer.datatypes import JaxTransition
 from lib_config.config import config
 from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.component.buffer import JaxTransition
 from corerl.state import AppState
 
 # --------------------------------- Utilities --------------------------------- #

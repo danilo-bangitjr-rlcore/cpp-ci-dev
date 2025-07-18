@@ -6,6 +6,7 @@ requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "annotated-types>=0.7.0",
+    "lib-utils",
     "pydantic>=2.11.5",
 ]
 readme = "README.md"
@@ -46,3 +47,6 @@ version_scheme = "pep440"
 version_provider = "pep621"
 update_changelog_on_bump = true
 major_version_zero = true
+
+[tool.uv.sources]
+lib-utils = { path = "../lib_utils", editable = true }

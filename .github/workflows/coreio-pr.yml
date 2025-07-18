@@ -6,7 +6,7 @@ on:
     paths:
       - "coreio/**"
       - "libs/**"
-      - "configs/**"
+      - "config/**"
 
 concurrency:
   group: coreio-${{ github.workflow }}-${{ github.ref }}

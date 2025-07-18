@@ -1,17 +1,17 @@
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
-@dataclass
+@config(frozen=True)
 class DistractionWorldConfig(EnvConfig):
-    name: str = 'DistractionWorld-v0'
-    num_distractors : int = 100
-    num_actions : int = 1
+    name: Literal['DistractionWorld-v0'] = 'DistractionWorld-v0'
+    num_distractors: int = 100
+    num_actions: int = 1
 
 class DistractionWorld(gym.Env):
     """

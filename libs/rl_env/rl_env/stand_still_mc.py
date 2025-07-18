@@ -1,15 +1,15 @@
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
-@dataclass
+@config(frozen=True)
 class StandStillMCConfig(EnvConfig):
-    name: str = 'StandStillMC-v0'
+    name: Literal['StandStillMC-v0'] = 'StandStillMC-v0'
 
 class StandStillMC(gym.Env):
     def __init__(self, cfg: StandStillMCConfig):

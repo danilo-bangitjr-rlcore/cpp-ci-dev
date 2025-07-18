@@ -1,15 +1,15 @@
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
-@dataclass
+@config(frozen=True)
 class CalibrationConfig(EnvConfig):
-    name: str = 'Calibration-v0'
+    name: Literal['Calibration-v0'] = 'Calibration-v0'
     seed: int = 0
     calibration_period: int = 500
     instant: bool = True
