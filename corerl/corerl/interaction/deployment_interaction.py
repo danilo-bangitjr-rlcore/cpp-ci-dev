@@ -197,7 +197,7 @@ class DeploymentInteraction:
         # eval
         agent_eval.q_online(self._app_state, self._agent, state.features, jnp.asarray(next_a))
         agent_eval.greed_dist_online(self._app_state, self._agent, state.features, state.a_lo, state.a_hi)
-        agent_eval.q_values_and_act_prob(self._app_state, self._agent, state.features, state.a_lo, state.a_hi)
+        agent_eval.online_q_values_and_act_prob(self._app_state, self._agent, state.features)
 
 
 

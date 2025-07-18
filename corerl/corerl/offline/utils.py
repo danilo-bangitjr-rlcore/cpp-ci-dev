@@ -11,7 +11,7 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import ColumnDescriptions, Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.agent import offline_q_values_and_act_probs
+from corerl.eval.agent import offline_q_values_and_act_prob
 from corerl.eval.plotting.report import make_actor_critic_plots
 from corerl.state import AppState
 from corerl.tags.tag_config import get_scada_tags
@@ -110,7 +110,7 @@ class OfflineTraining:
         for i in range(self.offline_steps):
             if i in self.offline_eval_iters:
                 for j, eval_state in enumerate(eval_states):
-                    x_axis_actions, probs, qs = offline_q_values_and_act_probs(app_state, agent, eval_state)
+                    x_axis_actions, probs, qs = offline_q_values_and_act_prob(app_state, agent, eval_state)
                     curr_date = eval_dates[int(j / 24)]
                     curr_date_hour = curr_date.replace(hour=j%24)
                     make_actor_critic_plots(str(curr_date_hour), x_axis_actions, probs, qs, i, j, self.cfg.save_path)

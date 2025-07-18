@@ -213,17 +213,14 @@ class QPDFPlotsConfig:
     # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
     other_action_samples: int = 10
 
-
-def q_values_and_act_prob(
+def online_q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
     state: jax.Array,
-    action_lo: jax.Array,
-    action_hi: jax.Array,
 ):
     """
     Logs the probability density function of the policy and the Q values.
-    This entries are of the form (metric, x, y) where
+    The entries are of the form (metric, x, y) where
     * metric tells us the action being varied (think x-axis)
     * x is a direct action
     * y is the probability or Q value, averaged over samples where the action in metric is set to x
@@ -233,58 +230,46 @@ def q_values_and_act_prob(
     if not cfg.enabled:
         return
 
-    chex.assert_rank((state, action_lo, action_hi), 1)
-
-    rng = jax.random.PRNGKey(app_state.agent_step)
-    dist = agent.get_dist(state)
-
-    on_policy_actions: jax.Array = dist.sample(
-        seed=rng,
-        sample_shape=(cfg.primary_action_samples, cfg.other_action_samples),
-    )
-    chex.assert_shape(on_policy_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
-
-    x_axis_actions = jnp.linspace(0, 1, cfg.primary_action_samples)
+    x_axis_actions, probs, qs = q_values_and_act_prob(app_state, agent, state)
 
     for a_dim_idx in range(agent.action_dim):
-        query_actions = on_policy_actions.at[:, :, a_dim_idx].set(jnp.expand_dims(x_axis_actions, 1))
-        probs = dist.prob(query_actions)
-        chex.assert_shape(probs, (cfg.primary_action_samples, cfg.other_action_samples))
-
-        measure = XYEval(data=[
+        # Write probability densities to evals table
+        probs_measure = XYEval(data=[
             XY(x=float(x), y=float(y))
-            for x, y in zip(x_axis_actions, probs.mean(axis=1), strict=True)
+            for x, y in zip(x_axis_actions, probs[a_dim_idx], strict=True)
         ])
         app_state.evals.write(
             agent_step=app_state.agent_step,
             evaluator=f"pdf_plot_action_{a_dim_idx}",
-            value=measure.model_dump_json(),
+            value=probs_measure.model_dump_json(),
         )
 
-        # Next, plot q values for the entire range of direct actions
-        # need to loop over the "other_action" dimension
-        chex.assert_shape(query_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
-        other_action_get_vals = jax_u.vmap(agent.get_values, in_axes=(None, 1), out_axes=-2)
-        out = other_action_get_vals(state, query_actions)
-        chex.assert_shape(out.reduced_value, (cfg.primary_action_samples, cfg.other_action_samples, 1))
-        # remove the trailing value dim and avg over other_action dim
-        qs = out.reduced_value.squeeze(-1).mean(axis=-1)
-
-        measure = XYEval(data=[
+        # Write q values to evals table
+        qs_measure = XYEval(data=[
             XY(x=float(x), y=float(y))
             for x, y in zip(x_axis_actions, qs, strict=True)
         ])
         app_state.evals.write(
             agent_step=app_state.agent_step,
             evaluator=f"qs_plot_action_{a_dim_idx}",
-            value=measure.model_dump_json(),
+            value=qs_measure.model_dump_json(),
         )
 
-def offline_q_values_and_act_probs(
+def offline_q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
     state: jax.Array,
-):
+) -> tuple[jax.Array, jax.Array, jax.Array]:
+    """
+    Returns the actor's probability density and the critic's Q values over each action dimension
+    """
+    return q_values_and_act_prob(app_state, agent, state)
+
+def q_values_and_act_prob(
+    app_state: AppState,
+    agent: GreedyAC,
+    state: jax.Array,
+) -> tuple[jax.Array, jax.Array, jax.Array]:
     cfg = app_state.cfg.eval_cfgs.q_pdf_plots
 
     chex.assert_rank(state, 1)
@@ -300,17 +285,17 @@ def offline_q_values_and_act_probs(
 
     x_axis_actions = jnp.linspace(0, 1, cfg.primary_action_samples)
 
-    qs = []
-    probs = []
+    qs: list[jax.Array] = []
+    probs: list[jax.Array] = []
     for a_dim_idx in range(agent.action_dim):
+        # Get actor probability densities over the current action dimension
         query_actions = on_policy_actions.at[:, :, a_dim_idx].set(jnp.expand_dims(x_axis_actions, 1))
         a_dim_probs = dist.prob(query_actions)
-        mean_a_dim_probs = a_dim_probs.mean(axis=1)
         chex.assert_shape(a_dim_probs, (cfg.primary_action_samples, cfg.other_action_samples))
+        mean_a_dim_probs = a_dim_probs.mean(axis=1)
         probs.append(mean_a_dim_probs)
 
-        # Next, plot q values for the entire range of direct actions
-        # need to loop over the "other_action" dimension
+        # Get critic q values as the current action dimension is varied
         chex.assert_shape(query_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
         other_action_get_vals = jax_u.vmap(agent.get_values, in_axes=(None, 1), out_axes=-2)
         out = other_action_get_vals(state, query_actions)
