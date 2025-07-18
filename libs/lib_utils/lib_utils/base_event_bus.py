@@ -46,18 +46,17 @@ class BaseEventBus(Generic[EventClass]): # noqa: UP046
     def start(self):
         self.consumer_thread.start()
 
-    def recv_event(self) -> None | EventClass:
+    def recv_event(self) -> EventClass | None:
         if self.stop_event.is_set():
             return None
-        event = None
+
         try:
-            event = self.queue.get(True, 0.5)
-            return event # noqa: RET504
+            event = self.queue.get(timeout=0.5)
         except Empty:
             return None
-        finally:
-            if event:
-                self.queue.task_done()
+
+        self.queue.task_done()
+        return event
 
     def cleanup(self):
         logger.info("Stopping event bus...")

@@ -10,9 +10,9 @@ from lib_utils.base_event_bus import BaseEventBus
 
 from coreio.communication.opc_communication import OPC_Connection
 from coreio.communication.sql_communication import SQL_Manager
-from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
+from coreio.utils.opc_utils import concat_opc_nodes
 
 colorlog.basicConfig(
     level=logging.DEBUG,

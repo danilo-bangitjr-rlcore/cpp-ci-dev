@@ -1,4 +1,3 @@
-import logging
 from collections import defaultdict, deque
 from collections.abc import Callable
 from typing import Any
@@ -7,8 +6,6 @@ from lib_utils.base_event_bus import BaseEventBus
 
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig
-
-_logger = logging.getLogger(__name__)
 
 Callback = Callable[[Event], Any]
 
@@ -58,20 +55,6 @@ class EventBus(BaseEventBus[Event]):
     def attach_callbacks(self, cbs: dict[EventType, Callback]):
         for event_type, cb in cbs.items():
             self.attach_callback(event_type, cb)
-
-
-    def cleanup(self):
-        self.stop_event.set()
-        self.queue.shutdown()
-
-        self.consumer_thread.join()
-
-        self.subscriber_socket.close()
-        self.publisher_socket.close()
-        self.zmq_context.term()
-
-        _logger.info("Cleaned up event bus")
-
 
 class DummyEventBus:
     def __init__(self, queue_size: int = 10):
