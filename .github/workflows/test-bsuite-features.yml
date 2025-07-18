@@ -7,7 +7,7 @@ on:
 
 jobs:
   behavior-test:
-    runs-on: self-hosted
+    runs-on: bsuite
     strategy:
       fail-fast: false
       matrix:
