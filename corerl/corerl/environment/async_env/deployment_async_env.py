@@ -51,16 +51,19 @@ class DeploymentAsyncEnv(AsyncEnv):
     # -- Initializers --
     # ------------------
     def _build_action_nodes(self, action_cfgs: dict[str, SetpointTagConfig]):
-        nodes: dict[str, ActionNodeData] = {}
-        for tag_cfg in sorted(action_cfgs.values(), key=lambda cfg: cfg.name):
-            tag_name = tag_cfg.name
+        def _build_action_node_entry(tag_cfg: SetpointTagConfig) -> ActionNodeData:
             assert tag_cfg.node_identifier is not None, "Tag Config action missing node_identifier"
-            node_id = tag_cfg.node_identifier
             assert tag_cfg.connection_id is not None, "Tag Config action missing connection_id"
-            connection_id = tag_cfg.connection_id
-            logger.info(f"Mapping ai_setpoint '{tag_name}' -> OPC node id '{node_id}' on conn '{connection_id}'")
-            nodes[tag_name] = ActionNodeData(connection_id=connection_id, node_id=node_id)
-        return nodes
+            logger.info(f"Mapping ai_setpoint '{tag_cfg.name}' -> OPC node id '{tag_cfg.node_identifier}' on conn '{tag_cfg.connection_id}'") # noqa: E501
+            return ActionNodeData(
+                connection_id=tag_cfg.connection_id, node_id=tag_cfg.node_identifier,
+            )
+
+        sorted_cfgs = sorted(action_cfgs.values(), key=lambda cfg: cfg.name)
+        return {
+            tag_cfg.name: _build_action_node_entry(tag_cfg)
+            for tag_cfg in sorted_cfgs
+        }
 
     def _init_thinclient(self):
         return CoreIOLink(self._cfg.coreio_origin)
