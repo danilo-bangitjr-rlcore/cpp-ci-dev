@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from functools import partial
 from typing import TypedDict
@@ -26,7 +26,7 @@ class ActionNodeData(TypedDict):
 
 
 class DeploymentAsyncEnv(AsyncEnv):
-    def __init__(self, cfg: AsyncEnvConfig, tag_configs: list[TagConfig]):
+    def __init__(self, cfg: AsyncEnvConfig, tag_configs: Sequence[TagConfig]):
         self._cfg = cfg
         self.coreio_client = self._init_thinclient()
 
