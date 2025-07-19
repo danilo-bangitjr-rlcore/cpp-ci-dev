@@ -26,10 +26,6 @@ class ActionNodeData(TypedDict):
 
 
 class DeploymentAsyncEnv(AsyncEnv):
-    """AsyncEnv which communicates actions through OPC and retrieves observations through TSDB.
-    Ensure that TimescaleDB, Telegraf, our OPC Server, and our simulated OPC environment is running prior to use.
-    """
-
     def __init__(self, cfg: AsyncEnvConfig, tag_configs: list[TagConfig]):
         self._cfg = cfg
         self.coreio_client = self._init_thinclient()
@@ -71,9 +67,6 @@ class DeploymentAsyncEnv(AsyncEnv):
                 connection_id=connection_id, node_id=node_id )
 
     def close(self):
-        """Closes the opc client and data reader
-        Can also use __exit__ or cleanup
-        """
         self.data_reader.close()
 
     def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
