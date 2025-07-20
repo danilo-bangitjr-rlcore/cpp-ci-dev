@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from coreio.utils.io_events import OPCUANodeWriteValue
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.iterable import partition
 from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.db.data_reader import DataReader
@@ -87,29 +88,28 @@ class DeploymentAsyncEnv(AsyncEnv):
             for line in action.to_string().splitlines():
                 logger.info(line)
 
-        # if action df got nuked in sanitizer, this for loop does nothing
-        write_payloads: dict[str, list[OPCUANodeWriteValue]] = {}
-        for action_name in action.columns:
-            connection_id = self.action_nodes[action_name].get("connection_id")
-            node_id = self.action_nodes[action_name].get("node_id")
+        def _build_payload(action_name: str) -> tuple[str, OPCUANodeWriteValue]:
+            conn_id = self.action_nodes[action_name]["connection_id"]
+            node_id = self.action_nodes[action_name]["node_id"]
             action_val = action[action_name].iloc[0].item()
+            return (conn_id, OPCUANodeWriteValue(node_id=node_id, value=action_val))
 
-
-            if connection_id not in write_payloads:
-                write_payloads[connection_id] = []
-
-            write_payloads[connection_id].append(OPCUANodeWriteValue(node_id=node_id, value=action_val))
+        write_payloads = partition(
+            _build_payload(action_name) for action_name in action.columns
+        )
 
         try:
             self.coreio_client.write_opcua_nodes(write_payloads)
         except Exception:
             logger.exception("emit_action failed to write to coreio")
 
+
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
         return self.data_reader.single_aggregated_read(
             names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs,
         )
+
 
     def get_cfg(self):
         return self._cfg
