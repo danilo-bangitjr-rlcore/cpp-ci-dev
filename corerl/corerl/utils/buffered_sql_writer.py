@@ -97,6 +97,15 @@ class BufferedWriter[T: NamedTuple](ABC):
         return len(self._buffer)
 
 
+    def is_soft_sync(self):
+        cond_results = [cond.is_soft_sync(self) for cond in self._sync_conds]
+        return any(cond_results)
+
+
+    def is_hard_sync(self):
+        cond_results = [cond.is_hard_sync(self) for cond in self._sync_conds]
+        return any(cond_results)
+
 
     @abstractmethod
     def _insert_sql(self) -> TextClause:
@@ -114,7 +123,7 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         self._buffer.append(data)
 
-        if len(self._buffer) > self._hi_wm:
+        if self.is_hard_sync():
             logger.warning('Buffer reached high watermark')
             # forcibly pause main thread until writer is finished
             assert self._write_future is not None
@@ -123,7 +132,7 @@ class BufferedWriter[T: NamedTuple](ABC):
             # kick off a new background sync, since buffer is full
             self.background_sync()
 
-        elif len(self._buffer) > self._low_wm:
+        elif self.is_soft_sync():
             self.background_sync()
 
 
