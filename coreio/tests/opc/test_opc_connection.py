@@ -83,9 +83,6 @@ async def test_connect1(server: FakeOpcServer, client: OPC_Connection, opc_port:
     await client.init(config)
     await client.start()
 
-    # Cleanup
-    await client.cleanup()
-
 async def test_connect2(client: OPC_Connection, opc_port: int):
     """
     Client should connect to a server that is started after the client.
@@ -100,10 +97,6 @@ async def test_connect2(client: OPC_Connection, opc_port: int):
     await asyncio.sleep(1)
     await asyncio.wait_for(connect_task, 30)
     await client.ensure_connected()
-
-    # Cleanup
-    await client.cleanup()
-    await server.close()
 
 async def test_disconnect1(server: FakeOpcServer, client: OPC_Connection, opc_port: int):
     """
