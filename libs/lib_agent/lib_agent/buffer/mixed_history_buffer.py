@@ -1,7 +1,7 @@
 from collections import deque
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, TypeVar
 
 import numpy as np
 from discrete_dists.mixture import MixtureDistribution, SubDistribution
@@ -9,6 +9,9 @@ from discrete_dists.proportional import Proportional
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
+
+# NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
+T = TypeVar('T', bound=NamedTuple)
 
 
 class MaskedABDistribution:
@@ -63,7 +66,7 @@ class MixedHistoryBufferConfig:
     id: str = ""
 
 
-class MixedHistoryBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
+class MixedHistoryBuffer(EnsembleReplayBuffer[T]):
     def __init__(
         self,
         ensemble: int = 2,
