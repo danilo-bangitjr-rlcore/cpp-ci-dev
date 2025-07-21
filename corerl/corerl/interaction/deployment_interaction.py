@@ -384,11 +384,14 @@ class DeploymentInteraction:
 
     def checkpoint(self):
         now = datetime.now(UTC)
-        self._last_checkpoint = checkpoint(
+        chk_time = checkpoint(
             now,
             self._cfg,
             self._last_checkpoint,
             self._checkpoint_cliff,
             self._checkpoint_freq,
             elements=(self._agent, self._app_state),
-        )
+        ).unwrap()
+
+        if chk_time is not None:
+            self._last_checkpoint = chk_time

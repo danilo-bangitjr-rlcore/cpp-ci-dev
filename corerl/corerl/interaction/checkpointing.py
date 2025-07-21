@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Protocol
 
+from lib_utils.errors import fail_gracefully
 from lib_utils.list import sort_by
 
 from corerl.interaction.configs import InteractionConfig
@@ -65,7 +66,7 @@ def prune_checkpoints(
             to_delete.append(chk)
     return to_delete
 
-
+@fail_gracefully()
 def checkpoint(
     now: datetime,
     cfg: InteractionConfig,
@@ -98,7 +99,7 @@ def checkpoint(
 
     return last_checkpoint
 
-
+@fail_gracefully()
 def restore_checkpoint(
     cfg: InteractionConfig,
     elements: Sequence[Checkpointable],

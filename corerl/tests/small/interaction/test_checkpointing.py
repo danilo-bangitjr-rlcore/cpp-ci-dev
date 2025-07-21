@@ -1,8 +1,6 @@
 from datetime import datetime, timedelta
 from pathlib import Path
 
-import pytest
-
 import corerl.interaction.checkpointing as chk
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.pipeline import Pipeline
@@ -61,7 +59,6 @@ def test_prune_checkpoints_basic():
     assert paths[-1] not in to_delete
 
 
-@pytest.mark.xfail(reason="Bug when pickling the replay buffer")
 def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
     """
     Test that checkpoint creates a directory and calls save, and restore_checkpoint loads the latest checkpoint
