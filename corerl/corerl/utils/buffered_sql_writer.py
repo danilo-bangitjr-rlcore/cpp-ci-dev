@@ -93,6 +93,11 @@ class BufferedWriter[T: NamedTuple](ABC):
                     connection.commit()
 
 
+    def __len__(self):
+        return len(self._buffer)
+
+
+
     @abstractmethod
     def _insert_sql(self) -> TextClause:
         ...
