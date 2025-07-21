@@ -71,13 +71,8 @@ class BufferedWriter[T: NamedTuple](ABC):
     def __init__(
         self,
         cfg: BufferedWriterConfig,
-        low_watermark: int = 1024,
-        high_watermark: int = 2048,
     ) -> None:
         self.cfg = cfg
-
-        self._low_wm = low_watermark
-        self._hi_wm = high_watermark
 
         self._buffer: list[T] = []
 

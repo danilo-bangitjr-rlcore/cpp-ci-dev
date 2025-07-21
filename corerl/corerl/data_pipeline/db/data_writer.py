@@ -32,10 +32,8 @@ class DataWriter(BufferedWriter[Point]):
     def __init__(
         self,
         cfg: TagDBConfig,
-        low_watermark: int = 1024,
-        high_watermark: int = 2048,
     ):
-        super().__init__(cfg, low_watermark, high_watermark)
+        super().__init__(cfg)
         self.cfg = cfg
         self.host = "localhost"
         self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)

@@ -33,9 +33,8 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
     def __init__(
         self,
         cfg: EvalDBConfig,
-        high_watermark: int = 256,
     ):
-        super().__init__(cfg, cfg.lo_wm, high_watermark)
+        super().__init__(cfg)
         self.cfg = cfg
 
     def _create_table_sql(self):
