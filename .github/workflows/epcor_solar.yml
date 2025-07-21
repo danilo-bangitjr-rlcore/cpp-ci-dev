@@ -5,6 +5,9 @@ on:
   pull_request:
     paths:
       - "projects/epcor_solar/**"
+  merge_group:
+    paths:
+      - "projects/epcor_solar/**"
 
 jobs:
   # -----------
