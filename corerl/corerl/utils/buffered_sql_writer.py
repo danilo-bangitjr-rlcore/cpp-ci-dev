@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
@@ -26,6 +26,27 @@ class SyncCond(Protocol):
         ...
     def is_hard_sync(self, writer: BufferedWriter)-> bool:
         ...
+
+
+@config()
+class WatermarkSyncConfig:
+    # name: Literal['watermark'] = 'watermark'
+    enabled: bool = False
+    lo_wm: int = 1024
+    hi_wm: int = 2048
+
+
+class WatermarkCond:
+    def __init__(self, cfg: WatermarkSyncConfig):
+        self.enabled = cfg.enabled
+        self._lo_wm = cfg.lo_wm
+        self._hi_wm = cfg.hi_wm
+
+    def is_soft_sync(self, writer: BufferedWriter):
+        return len(writer) > self._lo_wm
+
+    def is_hard_sync(self, writer: BufferedWriter):
+        return len(writer) > self._hi_wm
 
 
 @config()
