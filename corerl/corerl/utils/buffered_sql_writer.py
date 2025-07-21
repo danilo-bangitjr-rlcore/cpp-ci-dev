@@ -1,4 +1,5 @@
 import logging
+import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
 from typing import TYPE_CHECKING, NamedTuple, Protocol
@@ -76,9 +77,8 @@ class BufferedWriter[T: NamedTuple](ABC):
         self.engine: Engine | None = None
 
         self._sync_conds: list[SyncCond] = []
-
-        # Mapping of condition names to their corresponding classes and configs
-        # add new conditions here
+        self.last_sync_time = time.time()
+        # Mapping of condition names to their corresponding classes
         cond_mapping = {
             'watermark': (WatermarkCond, cfg.watermark_cfg),
         }
@@ -149,7 +149,13 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         data = self._buffer
         self._buffer = []
+        self._update_sync_state()
         self._write_future = self._exec.submit(self._deferred_write, data)
+
+
+    def _update_sync_state(self):
+        """"Update state used for when to sync upon successful sync."""
+        self.last_sync_time = time.time()
 
 
     def blocking_sync(self):
