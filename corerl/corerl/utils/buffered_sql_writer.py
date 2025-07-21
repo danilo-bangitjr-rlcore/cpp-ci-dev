@@ -19,23 +19,19 @@ logger = logging.getLogger(__name__)
 
 
 class SyncCond(Protocol):
-    enabled: bool
-
-    def is_soft_sync(self, writer: 'BufferedWriter')-> bool:
+    def is_soft_sync(self, writer: 'BufferedWriter') -> bool:
         ...
-    def is_hard_sync(self, writer: 'BufferedWriter')-> bool:
+    def is_hard_sync(self, writer: 'BufferedWriter') -> bool:
         ...
 
 
 @config()
 class WatermarkSyncConfig:
-    enabled: bool = False
     lo_wm: int = 1024
     hi_wm: int = 2048
 
 class WatermarkCond:
     def __init__(self, cfg: WatermarkSyncConfig):
-        self.enabled = cfg.enabled
         self._lo_wm = cfg.lo_wm
         self._hi_wm = cfg.hi_wm
 
@@ -45,7 +41,6 @@ class WatermarkCond:
     def is_hard_sync(self, writer: 'BufferedWriter'):
         return len(writer) > self._hi_wm
 
-
 @config()
 class BufferedWriterConfig(SQLEngineConfig):
     db_name: str = MISSING
@@ -54,7 +49,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     table_schema: str = MISSING
 
     # sync conditions
-    sync_conds: list[str] = Field(default_factory=lambda:['watermark'])
+    sync_conds: list[str] = Field(default_factory=lambda: ['watermark'])
     watermark_cfg: WatermarkSyncConfig = Field(default_factory=WatermarkSyncConfig)
 
     @computed('table_schema')
@@ -81,9 +76,18 @@ class BufferedWriter[T: NamedTuple](ABC):
         self.engine: Engine | None = None
 
         self._sync_conds: list[SyncCond] = []
-        self._sync_conds.append(WatermarkCond(cfg.watermark_cfg))
-        # prune out disabled conditions
-        self._sync_conds = [cond for cond in self._sync_conds if cond.enabled]
+
+        # Mapping of condition names to their corresponding classes and configs
+        # add new conditions here
+        cond_mapping = {
+            'watermark': (WatermarkCond, cfg.watermark_cfg),
+        }
+        # Instantiate conditions dynamically based on sync_conds list
+        for cond_name in cfg.sync_conds:
+            cond_data = cond_mapping.get(cond_name)
+            if cond_data:
+                cond_class, cond_config = cond_data
+                self._sync_conds.append(cond_class(cond_config))
 
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
