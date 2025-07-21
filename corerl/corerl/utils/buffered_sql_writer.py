@@ -43,10 +43,10 @@ class WatermarkCond:
         self._lo_wm = cfg.lo_wm
         self._hi_wm = cfg.hi_wm
 
-    def is_soft_sync(self, writer: BufferedWriter):
+    def is_soft_sync(self, writer: 'BufferedWriter'):
         return len(writer) > self._lo_wm
 
-    def is_hard_sync(self, writer: BufferedWriter):
+    def is_hard_sync(self, writer: 'BufferedWriter'):
         return len(writer) > self._hi_wm
 
 
@@ -64,12 +64,12 @@ class BufferedWriterConfig(SQLEngineConfig):
 
     @computed('table_schema')
     @classmethod
-    def _table_schema(cls, cfg: MainConfig):
+    def _table_schema(cls, cfg: 'MainConfig'):
         return cfg.infra.db.schema
 
     @computed('db_name')
     @classmethod
-    def _dbname(cls, cfg: MainConfig):
+    def _dbname(cls, cfg: 'MainConfig'):
         return cfg.infra.db.db_name
 
 
