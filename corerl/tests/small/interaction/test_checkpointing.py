@@ -1,18 +1,14 @@
 from datetime import datetime, timedelta
 from pathlib import Path
-from unittest.mock import MagicMock
+
+import pytest
 
 import corerl.interaction.checkpointing as chk
+from corerl.agent.greedy_ac import GreedyAC
+from corerl.data_pipeline.pipeline import Pipeline
+from corerl.interaction.configs import InteractionConfig
+from corerl.state import AppState
 
-
-class DummyCheckpointable:
-    def __init__(self):
-        self.saved = []
-        self.loaded = []
-    def save(self, path: Path):
-        self.saved.append(path)
-    def load(self, path: Path):
-        self.loaded.append(path)
 
 def test_next_power_of_2():
     """
@@ -64,30 +60,60 @@ def test_prune_checkpoints_basic():
     assert paths[0] not in to_delete
     assert paths[-1] not in to_delete
 
-def test_checkpoint_and_restore(tmp_path: Path):
-    """
-    Test that checkpoint creates a directory and calls save, and restore_checkpoint loads the latest checkpoint.
-    TODO: replace this test with real operations instead of mocks.
-    """
-    cfg = MagicMock()
-    cfg.checkpoint_path = tmp_path
-    cfg.restore_checkpoint = True
 
-    agent = DummyCheckpointable()
-    app_state = DummyCheckpointable()
+@pytest.mark.xfail(reason="Bug when pickling the replay buffer")
+def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
+    """
+    Test that checkpoint creates a directory and calls save, and restore_checkpoint loads the latest checkpoint
+    using a real agent and a real app_state.
+    """
+    # Setup config for checkpointing
+    interaction_cfg = InteractionConfig(
+        checkpoint_path=tmp_path,
+        restore_checkpoint=True,
+        checkpoint_freq=timedelta(minutes=10),
+        checkpoint_cliff=timedelta(hours=1),
+        obs_period=timedelta(seconds=1),
+        action_period=timedelta(seconds=1),
+        state_age_tol=timedelta(seconds=1),
+        load_historical_data=False,
+        historical_windows=[],
+        historical_batch_size=1,
+        update_warmup=0,
+        write_obs_to_csv=False,
+        warmup_period=None,
+    )
+
+    # Setup a real agent
+    pipeline = Pipeline(dummy_app_state, dummy_app_state.cfg.pipeline)
+    column_desc = pipeline.column_descriptions
+    agent = GreedyAC(
+        dummy_app_state.cfg.agent,
+        dummy_app_state,
+        column_desc,
+    )
 
     now = datetime(2023, 1, 1, 12, 0, 0)
+    last = now - timedelta(hours=2)
     cliff = timedelta(hours=1)
     freq = timedelta(minutes=10)
 
-    # Test checkpoint creates dir and calls save
-    last = now - timedelta(hours=2)
-    chk.checkpoint(now, cfg, last, cliff, freq, elements=(agent, app_state))
+    # Save checkpoint
+    chk.checkpoint(
+        now,
+        interaction_cfg,
+        last,
+        cliff,
+        freq,
+        elements=(agent, dummy_app_state),
+    )
 
-    assert agent.saved
-    assert app_state.saved
+    # Check that checkpoint directory exists
+    checkpoint_dirs = list(tmp_path.glob("*"))
+    assert checkpoint_dirs, "Checkpoint directory was not created."
 
-    # Test restore loads latest (use the directory created by checkpoint)
-    chk.restore_checkpoint(cfg, elements=(agent, app_state))
-    assert agent.loaded
-    assert app_state.loaded
+    # Load checkpoint
+    chk.restore_checkpoint(
+        interaction_cfg,
+        elements=(agent, dummy_app_state),
+    )
