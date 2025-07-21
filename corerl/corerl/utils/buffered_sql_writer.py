@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
+from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
@@ -23,19 +21,17 @@ logger = logging.getLogger(__name__)
 class SyncCond(Protocol):
     enabled: bool
 
-    def is_soft_sync(self, writer: BufferedWriter)-> bool:
+    def is_soft_sync(self, writer: 'BufferedWriter')-> bool:
         ...
-    def is_hard_sync(self, writer: BufferedWriter)-> bool:
+    def is_hard_sync(self, writer: 'BufferedWriter')-> bool:
         ...
 
 
 @config()
 class WatermarkSyncConfig:
-    # name: Literal['watermark'] = 'watermark'
     enabled: bool = False
     lo_wm: int = 1024
     hi_wm: int = 2048
-
 
 class WatermarkCond:
     def __init__(self, cfg: WatermarkSyncConfig):
@@ -61,7 +57,6 @@ class BufferedWriterConfig(SQLEngineConfig):
     sync_conds: list[str] = Field(default_factory=lambda:['watermark'])
     watermark_cfg: WatermarkSyncConfig = Field(default_factory=WatermarkSyncConfig)
 
-
     @computed('table_schema')
     @classmethod
     def _table_schema(cls, cfg: 'MainConfig'):
@@ -71,7 +66,6 @@ class BufferedWriterConfig(SQLEngineConfig):
     @classmethod
     def _dbname(cls, cfg: 'MainConfig'):
         return cfg.infra.db.db_name
-
 
 class BufferedWriter[T: NamedTuple](ABC):
     def __init__(
