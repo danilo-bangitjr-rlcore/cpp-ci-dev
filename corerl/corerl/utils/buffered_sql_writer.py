@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
 from lib_config.config import MISSING, computed, config
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
+from pydantic import Field
 from sqlalchemy import Engine, TextClause
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig
@@ -56,6 +57,11 @@ class BufferedWriterConfig(SQLEngineConfig):
     enabled: bool = True
     table_schema: str = MISSING
 
+    # sync conditions
+    sync_conds: list[str] = Field(default_factory=lambda:['watermark'])
+    watermark_cfg: WatermarkSyncConfig = Field(default_factory=WatermarkSyncConfig)
+
+
     @computed('table_schema')
     @classmethod
     def _table_schema(cls, cfg: MainConfig):
@@ -84,6 +90,11 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
         self.engine: Engine | None = None
+
+        self._sync_conds: list[SyncCond] = []
+        self._sync_conds.append(WatermarkCond(cfg.watermark_cfg))
+        # prune out disabled conditions
+        self._sync_conds = [cond for cond in self._sync_conds if cond.enabled]
 
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
