@@ -6,11 +6,13 @@ import logging
 
 import colorlog
 from lib_config.loader import load_config
+from lib_utils.base_event_bus import BaseEventBus
 
 from coreio.communication.opc_communication import OPC_Connection
-from coreio.communication.zmq_communication import ZMQ_Communication
+from coreio.communication.sql_communication import SQL_Manager
 from coreio.utils.config_schemas import MainConfigAdapter
-from coreio.utils.io_events import IOEventType
+from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
+from coreio.utils.opc_utils import concat_opc_nodes
 
 colorlog.basicConfig(
     level=logging.DEBUG,
@@ -41,7 +43,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
         async with opc_conn:
-            await opc_conn.register_action_nodes(cfg.pipeline.tags)
+            await opc_conn.register_cfg_nodes(cfg.pipeline.tags, ai_setpoint_only = True)
 
         # Register heartbeat_id separately
         if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
@@ -49,15 +51,24 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
             if heartbeat_id is not None:
                 async with opc_conn:
-                    await opc_conn.register_node(heartbeat_id)
+                    await opc_conn.register_node(heartbeat_id, "heartbeat")
 
-    # Future functionality
-    # if cfg.coreio.data_ingress.enabled:
-    #     logger.info("Starting SQL communication")
-    #     sql_communication = SQL_Manager(cfg.infra, table_name=cfg.env.db.table_name)
+    if cfg.coreio.data_ingress.enabled:
+        logger.info("Starting SQL communication")
+        all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
+        sql_communication = SQL_Manager( # noqa: F841
+            cfg.infra,
+            table_name=cfg.env.db.table_name,
+            nodes_to_persist=all_registered_nodes,
+        )
 
     logger.info("Starting ZMQ communication")
-    zmq_communication = ZMQ_Communication(cfg.coreio)
+    zmq_communication = BaseEventBus(
+        event_class=IOEvent,
+        topic=IOEventTopic.coreio,
+        consumer_name="coreio_consumer",
+        subscriber_sockets=[cfg.coreio.coreio_origin],
+    )
     zmq_communication.start()
 
     logger.info("CoreIO is ready")

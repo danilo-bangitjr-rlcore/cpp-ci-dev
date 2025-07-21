@@ -5,6 +5,9 @@ on:
   pull_request:
     paths:
       - "libs/lib_agent/**"
+  merge_group:
+    paths:
+      - "libs/lib_agent/**"
 
 jobs:
   # -----------

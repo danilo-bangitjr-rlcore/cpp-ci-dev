@@ -7,6 +7,11 @@ on:
       - "test/**"
       - "libs/**"
       - "config/**"
+  merge_group:
+    paths:
+      - "test/**"
+      - "libs/**"
+      - "config/**"
 
 concurrency:
   group: test-${{ github.workflow }}-${{ github.ref }}

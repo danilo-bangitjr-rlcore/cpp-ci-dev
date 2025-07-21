@@ -31,6 +31,7 @@ logger = logging.getLogger(__name__)
 class NodeData(BaseModel):
     node: Node
     var_type: ua.VariantType
+    name: str
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
@@ -168,7 +169,7 @@ class OPC_Connection:
     # All of these use @requires_context
 
     @requires_context
-    async def register_node(self, node_id: str):
+    async def register_node(self, node_id: str, name: str):
         assert self.opc_client is not None, 'OPC client is not initialized'
         if not node_id.startswith("ns="):
             raise ValueError(f"Problem encountered in tag config for {node_id} " +
@@ -178,25 +179,19 @@ class OPC_Connection:
         var_type = await node.read_data_type_as_variant_type()
         logger.info(f"Registering OPC node with id '{node_id}'")
 
-        self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type)
+        self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type, name=name)
 
     @requires_context
-    async def register_action_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
+    async def register_cfg_nodes(self, tag_configs: Sequence[TagConfigAdapter], ai_setpoint_only: bool = False):
         assert self.opc_client is not None, 'OPC client is not initialized'
-        """
-        Register nodes that:
-        1. Have the relevant connection_id
-        2. Are ai_setpoints
-        """
         for tag_cfg in tag_configs:
-            if tag_cfg.connection_id != self.connection_id or tag_cfg.type != TagType.ai_setpoint:
+            if tag_cfg.connection_id != self.connection_id or tag_cfg.node_identifier is None:
                 continue
 
-            if tag_cfg.node_identifier is None:
-                raise ValueError(f"Problem encountered in tag config for {tag_cfg.name}: " +
-                    "For ai_setpoint tags, node_identifier must be defined")
+            if ai_setpoint_only and tag_cfg.type != TagType.ai_setpoint:
+                continue
 
-            await self.register_node(tag_cfg.node_identifier)
+            await self.register_node(tag_cfg.node_identifier, tag_cfg.name)
 
 
     @requires_context

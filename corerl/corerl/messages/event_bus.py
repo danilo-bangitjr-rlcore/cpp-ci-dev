@@ -1,59 +1,32 @@
-import logging
-import threading
 from collections import defaultdict, deque
 from collections.abc import Callable
-from queue import Empty, Queue
 from typing import Any
 
-import zmq
-from lib_utils.consumer_task import consumer_task
+from lib_utils.base_event_bus import BaseEventBus
 
-from corerl.environment.async_env.factory import AsyncEnvConfig
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig
-
-_logger = logging.getLogger(__name__)
 
 Callback = Callable[[Event], Any]
 
 
-class EventBus:
+class EventBus(BaseEventBus[Event]):
     """EventBus enables asynchronous communication through a ZMQ pub-sub messaging pattern.
     Spins up the scheduler thread, the consumer thread, and the FIFO subscriber queue.
     """
-    def __init__(self, cfg_event_bus: EventBusConfig, cfg_env: AsyncEnvConfig):
+    def __init__(self, cfg_event_bus: EventBusConfig):
         self.cfg_event_bus = cfg_event_bus
-        self.cfg_env = cfg_env
-
-        self.queue = Queue()
-        self.zmq_context = zmq.Context()
-        self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
-        self.publisher_socket = self.zmq_context.socket(zmq.PUB)
-
-        self.event_bus_stop_event = threading.Event()
-        self.consumer_thread = threading.Thread(
-            target=consumer_task,
-            args=(
-                self.subscriber_socket,
-                self.queue,
-                self.event_bus_stop_event),
-            kwargs={
-                    "event_class": Event,
-                    "topic": EventTopic.corerl,
-                },
-            daemon=True,
-            name="corerl_event_bus_consumer",
+        super().__init__(
+            event_class=Event,
+            topic=EventTopic.corerl,
+            consumer_name="corerl_event_bus_consumer",
+            subscriber_sockets=[
+                cfg_event_bus.app_connection,
+                cfg_event_bus.cli_connection,
+            ],
         )
-
-        self.subscriber_socket.bind(self.cfg_event_bus.app_connection)
-        self.subscriber_socket.bind(self.cfg_event_bus.cli_connection)
         self.publisher_socket.connect(self.cfg_event_bus.app_connection)
-
         self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
-
-
-    def start(self):
-        self.consumer_thread.start()
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
         if isinstance(event, EventType):
@@ -62,23 +35,10 @@ class EventBus:
         message_data = event.model_dump_json()
         self.publisher_socket.send_string(f"{topic} {message_data}")
 
-    def recv_event(self) -> None | Event:
-        if self.event_bus_stop_event.is_set():
-            return None
-
-        event = None
-        try:
-            return self.queue.get(True, 0.5)
-        except Empty:
-            return None
-        finally:
-            if event:
-                self.queue.task_done()
-
 
     def listen_forever(self):
         while True:
-            event = self.recv_event()
+            event: Event | None = self.recv_event()
             if event is None:
                 continue
 
@@ -95,20 +55,6 @@ class EventBus:
     def attach_callbacks(self, cbs: dict[EventType, Callback]):
         for event_type, cb in cbs.items():
             self.attach_callback(event_type, cb)
-
-
-    def cleanup(self):
-        self.event_bus_stop_event.set()
-        self.queue.shutdown()
-
-        self.consumer_thread.join()
-
-        self.subscriber_socket.close()
-        self.publisher_socket.close()
-        self.zmq_context.term()
-
-        _logger.info("Cleaned up event bus")
-
 
 class DummyEventBus:
     def __init__(self, queue_size: int = 10):

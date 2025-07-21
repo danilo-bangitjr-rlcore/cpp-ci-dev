@@ -6,6 +6,10 @@ on:
     paths:
       - "research/**"
       - "libs/**"
+  merge_group:
+    paths:
+      - "research/**"
+      - "libs/**"
 
 concurrency:
   group: research-${{ github.workflow }}-${{ github.ref }}

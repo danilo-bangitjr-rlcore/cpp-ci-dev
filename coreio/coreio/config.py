@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Literal
 
 from lib_config.config import MISSING, config, list_
+from pydantic import Field
 
 
 class OPCSecurityPolicy(StrEnum):
@@ -54,6 +55,11 @@ class OPCConnectionConfig:
     authentication_mode: OPCAuthModeConfig = MISSING
 
 @config(frozen=True)
+class DataIngressConfig:
+    enabled: bool = False
+
+@config(frozen=True)
 class CoreIOConfig:
+    data_ingress: DataIngressConfig = Field(default_factory=DataIngressConfig)
     coreio_origin: str = "tcp://localhost:5557"
     opc_connections: list[OPCConnectionConfig] = list_()

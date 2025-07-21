@@ -57,7 +57,7 @@ def retryable_main(cfg: MainConfig):
 
     # build global objects
     event_bus = (
-        EventBus(cfg.event_bus, cfg.env)
+        EventBus(cfg.event_bus)
         if not cfg.is_simulation else
         DummyEventBus()
     )

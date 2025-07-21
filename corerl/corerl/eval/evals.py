@@ -5,11 +5,11 @@ from typing import NamedTuple
 
 import pandas as pd
 from lib_config.config import config
+from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from lib_utils.time import now_iso
 from sqlalchemy import text
 
-from corerl.data_pipeline.db.utils import TryConnectContextManager
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 
 log = logging.getLogger(__name__)
