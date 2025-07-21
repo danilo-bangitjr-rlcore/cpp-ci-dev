@@ -5,9 +5,9 @@ import pytest
 from test.infrastructure.networking import get_free_port
 
 from coreio.communication.opc_communication import OPC_Connection
+from tests.infrastructure.load_config import load_config
 from tests.infrastructure.mock_opc_certs import ServerClientKeyCerts
 from tests.infrastructure.mock_opc_server import FakeOpcServer
-from tests.infrastructure.load_config import load_config
 
 
 @pytest.fixture
@@ -70,10 +70,6 @@ async def test_disconnect1(server: FakeOpcServer, client: OPC_Connection, opc_po
     await asyncio.sleep(0.1)
     await server.start()
     await client.ensure_connected()
-
-    # Cleanup
-    await server.close()
-    await client.cleanup()
 
 async def test_connect_encrypt(
         server_key_cert: FakeOpcServer, client: OPC_Connection,

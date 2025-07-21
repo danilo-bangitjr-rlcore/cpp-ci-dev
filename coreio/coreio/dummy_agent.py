@@ -47,15 +47,16 @@ def main(cfg: MainConfigAdapter):
         logger.info(payload)
         socket.send_string(payload)
 
-        # Send read from opc event
-        messagedata = IOEvent(
-            type = IOEventType.read_opcua_nodes,
-            data={},
-        ).model_dump_json()
+        if cfg.coreio.data_ingress.enabled:
+            # Send read from opc event
+            messagedata = IOEvent(
+                type = IOEventType.read_opcua_nodes,
+                data={},
+            ).model_dump_json()
 
-        payload = f"{topic} {messagedata}"
-        logger.info(payload)
-        socket.send_string(payload)
+            payload = f"{topic} {messagedata}"
+            logger.info(payload)
+            socket.send_string(payload)
 
         time.sleep(action_period)
 

@@ -7,6 +7,7 @@ from coreio.config import OPCSecurityPolicyBasic256SHA256Config
 from coreio.utils.config_schemas import MainConfigAdapter
 from tests.infrastructure.mock_opc_certs import ServerClientKeyCerts
 
+
 def load_config(
         cfg_name: Path, opc_port: int, server_client_key_certs: ServerClientKeyCerts | None = None,
     ) -> OPCConnectionConfig:

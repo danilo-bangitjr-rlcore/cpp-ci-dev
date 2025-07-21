@@ -248,7 +248,7 @@ class OPC_Connection:
         return await self.opc_client.read_values(opc_nodes_to_read)
 
     async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]):
-        read_values = await self._read_opcua_nodes(self, nodes_to_read)
+        read_values = await self._read_opcua_nodes(nodes_to_read)
 
         nodes_name_val = {}
         for node, read_value in zip(nodes_to_read.values(), read_values, strict=True):
