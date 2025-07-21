@@ -3,8 +3,10 @@ permissions: write-all # Needed to comment coverage% on PR
 
 on:
   pull_request:
-    paths:
+    paths: &shared_paths
       - "libs/**"
+  merge_group:
+    paths: *shared_paths
 
 jobs:
   # -----------
