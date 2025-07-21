@@ -148,6 +148,7 @@ pipeline:
       connection_id: solar_matrikon
       # node_identifier:
       operating_range: [20.0, 80.0]
+      nominal_setpoint: 50.0
       guardrail_schedule: # Disable during offline training
         starting_range: [45.0, 55.0] # Hitachi recommends a nominal setpoint of 50.0%
         duration: 7 days
@@ -171,6 +172,7 @@ pipeline:
       connection_id: solar_matrikon
       # node_identifier:
       operating_range: [0.0, 2000.0]
+      nominal_setpoint: 200.0
       guardrail_schedule: # Disable during offline training
         starting_range: [ 150.0, 250.0 ] # Nominal setpoint is 200.0
         duration: 7 days
@@ -195,6 +197,7 @@ pipeline:
       connection_id: solar_matrikon
       # node_identifier:
       operating_range: [20.0, 80.0]
+      nominal_setpoint: 50.0
       guardrail_schedule: # Disable during offline training
         starting_range: [ 45.0, 55.0 ] # Hitachi recommends a nominal setpoint of 50.0%
         duration: 7 days
@@ -218,6 +221,7 @@ pipeline:
       connection_id: solar_matrikon
       # node_identifier:
       operating_range: [ 0.0, 2000.0 ]
+      nominal_setpoint: 200.0
       guardrail_schedule: # Disable during offline training
         starting_range: [ 150.0, 250.0 ] # Nominal setpoint is 200.0
         duration: 7 days
