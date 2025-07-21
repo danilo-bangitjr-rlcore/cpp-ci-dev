@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable, Sequence
 from datetime import UTC
 from types import TracebackType
-from typing import Any, assert_never, TypeAlias
+from typing import Any, assert_never
 
 import backoff
 from asyncua import Client, Node, ua
@@ -33,9 +33,6 @@ class NodeData(BaseModel):
     var_type: ua.VariantType
     name: str
     model_config = ConfigDict(arbitrary_types_allowed=True)
-
-NodeMap: TypeAlias = dict[str, NodeData] # node_id -> NodeData
-NodeRegistry: TypeAlias = dict[str, NodeMap ] # connection_id -> NodeMap
 
 def log_backoff(details: Any):
     wait = details["wait"]
@@ -245,10 +242,16 @@ class OPC_Connection:
             await self.opc_client.write_values(nodes, data_values)
 
     @requires_context
-    async def read_opcua_nodes(self, nodes_to_read: NodeMap):
+    async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not intiialized'
-        # This might break
-        opc_nodes_to_read = [node.node for node in nodes_to_read.values()] 
-        result = await self.opc_client.read_values(opc_nodes_to_read)
-        return result
+        opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
+        return await self.opc_client.read_values(opc_nodes_to_read)
 
+    async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]):
+        read_values = await self._read_opcua_nodes(self, nodes_to_read)
+
+        nodes_name_val = {}
+        for node, read_value in zip(nodes_to_read.values(), read_values, strict=True):
+            nodes_name_val[node.name] = read_value
+
+        return nodes_name_val
