@@ -1,3 +1,12 @@
+# Action not used for now
+# Call with this:
+  # docker-build-test:
+  #   needs: [corerl-style-n-test]
+  #   uses: ./.github/workflows/reusable-build-docker-image.yml
+  #   secrets: inherit
+  #   with:
+  #     push_to_registry: false
+
 name: Run Docker Build Image
 
 on:

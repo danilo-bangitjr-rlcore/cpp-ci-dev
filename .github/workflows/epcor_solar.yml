@@ -3,8 +3,10 @@ permissions: write-all
 
 on:
   pull_request:
-    paths:
+    paths: &shared_paths
       - "projects/epcor_solar/**"
+  merge_group:
+    paths: *shared_paths
 
 jobs:
   # -----------

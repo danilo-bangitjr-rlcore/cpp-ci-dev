@@ -13,7 +13,7 @@ concurrency:
 
 jobs:
   behavior-test:
-    runs-on: self-hosted
+    runs-on: bsuite
     steps:
       - uses: actions/checkout@v4
       - name: Setup
