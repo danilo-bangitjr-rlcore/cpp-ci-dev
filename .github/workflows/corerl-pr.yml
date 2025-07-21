@@ -3,13 +3,17 @@ permissions: write-all # Needed to comment coverage% on PR
 
 on:
   pull_request:
-    paths: &shared_paths
+    paths: 
       - "coreio/**"
       - "corerl/**"
       - "libs/**"
       - "config/**"
   merge_group:
-    paths: *shared_paths
+    paths:
+      - "coreio/**"
+      - "corerl/**"
+      - "libs/**"
+      - "config/**"
 
 concurrency:
   group: corerl-${{ github.workflow }}-${{ github.ref }}
