@@ -71,7 +71,6 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     logger.info("CoreIO is ready")
 
-
     try:
         while True:
             event = zmq_communication.recv_event()
@@ -107,6 +106,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
                 case IOEventType.exit_io:
                     logger.info("Received exit event, shutting down CoreIO...")
                     break
+
     except Exception:
         logger.exception("CoreIO error occurred")
     finally:

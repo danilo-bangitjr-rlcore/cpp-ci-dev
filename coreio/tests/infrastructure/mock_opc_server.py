@@ -83,8 +83,8 @@ class FakeOpcServer:
 
         virtual_plc = await self._s.nodes.objects.add_object(idx, 'vPLC1')
         self._sensors = {
-            'temp': await virtual_plc.add_variable(idx, 'temp', 0.),
-            'pressure': await virtual_plc.add_variable(idx, 'pressure', 0.),
+            'temp': await virtual_plc.add_variable(idx, 'temp', 0.12),
+            'pressure': await virtual_plc.add_variable(idx, 'pressure', 0.34),
         }
 
         await self._s.start()
