@@ -43,6 +43,29 @@ class WatermarkCond:
         return len(writer) > self._hi_wm
 
 @config()
+class TimeSyncConfig:
+    enabled: bool = False
+    soft_sync_seconds: int = 5
+    hard_sync_seconds: int = 10
+
+
+class TimeSyncCond:
+    def __init__(self, cfg: TimeSyncConfig):
+        self.enabled = cfg.enabled
+        self._soft_sync_seconds = cfg.soft_sync_seconds
+        self._hard_sync_seconds = cfg.hard_sync_seconds
+
+    def is_soft_sync(self, writer: 'BufferedWriter'):
+        current_time = time.time()
+        time_elapsed = current_time - writer.last_sync_time
+        return time_elapsed >= self._soft_sync_seconds
+
+    def is_hard_sync(self, writer: 'BufferedWriter'):
+        current_time = time.time()
+        time_elapsed = current_time - writer.last_sync_time
+        return time_elapsed >= self._hard_sync_seconds
+
+@config()
 class BufferedWriterConfig(SQLEngineConfig):
     db_name: str = MISSING
     table_name: str = MISSING
