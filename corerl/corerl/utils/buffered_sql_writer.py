@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
@@ -17,6 +17,15 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
+
+
+class SyncCond(Protocol):
+    enabled: bool
+
+    def is_soft_sync(self, writer: BufferedWriter)-> bool:
+        ...
+    def is_hard_sync(self, writer: BufferedWriter)-> bool:
+        ...
 
 
 @config()
