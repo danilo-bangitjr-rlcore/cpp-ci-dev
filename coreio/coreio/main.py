@@ -92,7 +92,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
                 case IOEventType.read_opcua_nodes:
                     logger.info(f"Received reading event {event}")
 
-                    if sql_communication is not None:
+                    if sql_communication is None:
                         logger.error("SQL Communication must be enabled to handle read events")
                         continue
 
@@ -101,7 +101,8 @@ async def coreio_loop(cfg: MainConfigAdapter):
                     for opc_conn in opc_connections.values():
                         async with opc_conn:
                             nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
-                    print(nodes_name_val)
+
+                    logger.info(f"Read nodes value: {nodes_name_val}")
 
                 case IOEventType.exit_io:
                     logger.info("Received exit event, shutting down CoreIO...")

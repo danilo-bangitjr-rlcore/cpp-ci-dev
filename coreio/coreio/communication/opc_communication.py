@@ -243,10 +243,11 @@ class OPC_Connection:
 
     @requires_context
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
-        assert self.opc_client is not None, 'OPC client is not intiialized'
+        assert self.opc_client is not None, 'OPC client is not initialized'
         opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
         return await self.opc_client.read_values(opc_nodes_to_read)
 
+    @requires_context
     async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]):
         read_values = await self._read_opcua_nodes(nodes_to_read)
 
