@@ -1,6 +1,7 @@
 import logging
 import math
 import shutil
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Protocol
@@ -68,19 +69,20 @@ def prune_checkpoints(
 def checkpoint(
     now: datetime,
     cfg: InteractionConfig,
-    agent: Checkpointable,
-    app_state: Checkpointable,
     last_checkpoint: datetime,
     checkpoint_cliff: timedelta,
     checkpoint_freq: timedelta,
+    elements: Sequence[Checkpointable],
 ):
     """
     Checkpoints and removes old checkpoints to maintain a set of checkpoints that get increasingly sparse with age.
     """
     path = cfg.checkpoint_path / f'{str(now).replace(":","_")}'
     path.mkdir(exist_ok=True, parents=True)
-    agent.save(path)
-    app_state.save(path)
+
+    for element in elements:
+        element.save(path)
+
     last_checkpoint = now
 
     chkpoints = list(cfg.checkpoint_path.glob('*'))
@@ -96,10 +98,10 @@ def checkpoint(
 
     return last_checkpoint
 
+
 def restore_checkpoint(
     cfg: InteractionConfig,
-    agent: Checkpointable,
-    app_state: Checkpointable,
+    elements: Sequence[Checkpointable],
 ):
     if not cfg.restore_checkpoint:
         return
@@ -111,5 +113,6 @@ def restore_checkpoint(
     # get latest checkpoint
     checkpoint = sorted(chkpoints)[-1]
     logger.info(f"Loading agent weights from checkpoint {checkpoint}")
-    agent.load(checkpoint)
-    app_state.load(checkpoint)
+
+    for element in elements:
+        element.load(checkpoint)

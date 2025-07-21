@@ -82,12 +82,12 @@ def test_checkpoint_and_restore(tmp_path: Path):
 
     # Test checkpoint creates dir and calls save
     last = now - timedelta(hours=2)
-    chk.checkpoint(now, cfg, agent, app_state, last, cliff, freq)
+    chk.checkpoint(now, cfg, last, cliff, freq, elements=(agent, app_state))
 
     assert agent.saved
     assert app_state.saved
 
     # Test restore loads latest (use the directory created by checkpoint)
-    chk.restore_checkpoint(cfg, agent, app_state)
+    chk.restore_checkpoint(cfg, elements=(agent, app_state))
     assert agent.loaded
     assert app_state.loaded

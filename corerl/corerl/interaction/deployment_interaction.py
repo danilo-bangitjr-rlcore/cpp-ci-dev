@@ -88,8 +88,7 @@ class DeploymentInteraction:
         if cfg.restore_checkpoint:
             restore_checkpoint(
                 cfg=cfg,
-                agent=self._agent,
-                app_state=self._app_state,
+                elements=(self._agent, self._app_state),
             )
 
         ### Warmup Pipeline ###
@@ -388,9 +387,8 @@ class DeploymentInteraction:
         self._last_checkpoint = checkpoint(
             now,
             self._cfg,
-            self._agent,
-            self._app_state,
             self._last_checkpoint,
             self._checkpoint_cliff,
             self._checkpoint_freq,
+            elements=(self._agent, self._app_state),
         )
