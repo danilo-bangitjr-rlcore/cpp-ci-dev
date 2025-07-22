@@ -5,7 +5,6 @@ from typing import NamedTuple
 
 from lib_config.config import config
 from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
-from sqlalchemy import text
 
 from corerl.sql_logging.sql_logging import get_sql_engine
 from corerl.tags.components.opc import Agg
