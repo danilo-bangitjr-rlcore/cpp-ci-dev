@@ -34,7 +34,6 @@ class NodeData(BaseModel):
     name: str
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
-
 def log_backoff(details: Any):
     wait = details["wait"]
     tries = details["tries"]
@@ -241,3 +240,19 @@ class OPC_Connection:
 
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)
+
+    @requires_context
+    async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
+        assert self.opc_client is not None, 'OPC client is not initialized'
+        opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
+        return await self.opc_client.read_values(opc_nodes_to_read)
+
+    @requires_context
+    async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]):
+        read_values = await self._read_opcua_nodes(nodes_to_read)
+
+        nodes_name_val = {}
+        for node, read_value in zip(nodes_to_read.values(), read_values, strict=True):
+            nodes_name_val[node.name] = read_value
+
+        return nodes_name_val

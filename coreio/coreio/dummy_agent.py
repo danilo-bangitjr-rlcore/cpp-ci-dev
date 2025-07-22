@@ -37,6 +37,7 @@ def main(cfg: MainConfigAdapter):
         if i % 3 == 2:
             x = np.nan
 
+        # Send write opc event
         messagedata = IOEvent(
             type=IOEventType.write_opcua_nodes,
             data={"asdxf": [OPCUANodeWriteValue(node_id=node_id, value= x)]},
@@ -45,6 +46,18 @@ def main(cfg: MainConfigAdapter):
         payload = f"{topic} {messagedata}"
         logger.info(payload)
         socket.send_string(payload)
+
+        if cfg.coreio.data_ingress.enabled:
+            # Send read from opc event
+            messagedata = IOEvent(
+                type = IOEventType.read_opcua_nodes,
+                data={},
+            ).model_dump_json()
+
+            payload = f"{topic} {messagedata}"
+            logger.info(payload)
+            socket.send_string(payload)
+
         time.sleep(action_period)
 
     # Exit message

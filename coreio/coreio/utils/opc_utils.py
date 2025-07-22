@@ -24,16 +24,13 @@ def concat_opc_nodes(
         skip_heartbeat: bool = False,
         heartbeat_name: str = "heartbeat",
 ) -> dict[str, NodeData]:
-    all_registered_nodes = {}
+    all_registered_nodes: dict[str, NodeData] = {}
     for connection_id, opc_conn in opc_connections.items():
         for node_id, node in opc_conn.registered_nodes.items():
-            if node_id in all_registered_nodes:
-                logger.warning(
-                    f"Node id {node_id} in OPC connection {connection_id} is not unique. "
-                    "Details will be overwritten.",
-                )
             if skip_heartbeat and node.name == heartbeat_name:
                 continue
+            if node_id in all_registered_nodes:
+                logger.warning(f"Found repeat node_id of {node_id}, overwriting with {connection_id} {node_id}")
             all_registered_nodes[node_id] = node
     return all_registered_nodes
 

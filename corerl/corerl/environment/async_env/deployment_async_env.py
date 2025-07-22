@@ -1,16 +1,16 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from functools import partial
-from typing import TypedDict
+from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
 from coreio.utils.io_events import OPCUANodeWriteValue
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.iterable import partition
 from lib_utils.maybe import Maybe
 
-# Data Pipline
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
 from corerl.tags.setpoint import SetpointTagConfig, eval_bound
@@ -20,37 +20,51 @@ from corerl.utils.coreio import CoreIOLink
 logger = logging.getLogger(__name__)
 
 
-class ActionNodeData(TypedDict):
+class ActionNodeData(NamedTuple):
     connection_id: str
     node_id: str
 
 
 class DeploymentAsyncEnv(AsyncEnv):
-    """AsyncEnv which communicates actions through OPC and retrieves observations through TSDB.
-    Ensure that TimescaleDB, Telegraf, our OPC Server, and our simulated OPC environment is running prior to use.
-    """
-
-    def __init__(self, cfg: AsyncEnvConfig, tag_configs: list[TagConfig]):
+    def __init__(self, cfg: AsyncEnvConfig, tag_configs: Sequence[TagConfig]):
         self._cfg = cfg
-        self.coreio_client = self._init_thinclient()
-
         self.tag_configs = tag_configs
-
-        self.tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(tag_configs)]
-        self.tag_aggs = {tag_cfg.name: tag_cfg.agg for tag_cfg in get_scada_tags(tag_configs)}
-
-        self.data_reader = self._init_datareader()
         self.obs_period = cfg.obs_period
+        self.tag_names = [
+            tag_cfg.name
+            for tag_cfg in get_scada_tags(tag_configs)
+        ]
+        self.tag_aggs = {
+            tag_cfg.name: tag_cfg.agg
+            for tag_cfg in get_scada_tags(tag_configs)
+        }
+        self._action_cfgs = {
+            tag_cfg.name: tag_cfg
+            for tag_cfg in tag_configs
+            if tag_cfg.type == TagType.ai_setpoint
+        }
 
-        # create dict of action tags
-        action_cfgs = [tag for tag in tag_configs if tag.type == TagType.ai_setpoint]
-        self._action_cfgs: dict[str, SetpointTagConfig] = {}
-        for tag_cfg in action_cfgs:
-            self._action_cfgs[tag_cfg.name] = tag_cfg
+        self.action_nodes = self._build_action_nodes(self._action_cfgs)
+        self.coreio_client = self._init_thinclient()
+        self.data_reader = self._init_datareader()
 
-        # define opc action nodes
-        self.action_nodes: dict[str, ActionNodeData] = {}
-        self._register_action_nodes()
+    # ------------------
+    # -- Initializers --
+    # ------------------
+    def _build_action_nodes(self, action_cfgs: dict[str, SetpointTagConfig]):
+        def _build_action_node_entry(tag_cfg: SetpointTagConfig) -> ActionNodeData:
+            assert tag_cfg.node_identifier is not None, "Tag Config action missing node_identifier"
+            assert tag_cfg.connection_id is not None, "Tag Config action missing connection_id"
+            logger.info(f"Mapping ai_setpoint '{tag_cfg.name}' -> OPC node id '{tag_cfg.node_identifier}' on conn '{tag_cfg.connection_id}'") # noqa: E501
+            return ActionNodeData(
+                connection_id=tag_cfg.connection_id, node_id=tag_cfg.node_identifier,
+            )
+
+        sorted_cfgs = sorted(action_cfgs.values(), key=lambda cfg: cfg.name)
+        return {
+            tag_cfg.name: _build_action_node_entry(tag_cfg)
+            for tag_cfg in sorted_cfgs
+        }
 
     def _init_thinclient(self):
         return CoreIOLink(self._cfg.coreio_origin)
@@ -58,22 +72,11 @@ class DeploymentAsyncEnv(AsyncEnv):
     def _init_datareader(self):
         return DataReader(db_cfg=self._cfg.db)
 
-    def _register_action_nodes(self):
-        for tag_cfg in sorted(self._action_cfgs.values(), key=lambda cfg: cfg.name):
-            tag_name = tag_cfg.name
-            assert tag_cfg.node_identifier is not None, "Tag Config action missing node_identifier"
-            node_id = tag_cfg.node_identifier
-            assert tag_cfg.connection_id is not None, "Tag Config action missing connection_id"
-            connection_id = tag_cfg.connection_id
 
-            logger.info(f"Mapping ai_setpoint '{tag_name}' -> OPC node id '{node_id}' on conn '{connection_id}'")
-            self.action_nodes[tag_name] = ActionNodeData(
-                connection_id=connection_id, node_id=node_id )
-
+    # ----------------
+    # -- Public API --
+    # ----------------
     def close(self):
-        """Closes the opc client and data reader
-        Can also use __exit__ or cleanup
-        """
         self.data_reader.close()
 
     def emit_action(self, action: pd.DataFrame, log_action: bool = False) -> None:
@@ -85,23 +88,21 @@ class DeploymentAsyncEnv(AsyncEnv):
             for line in action.to_string().splitlines():
                 logger.info(line)
 
-        # if action df got nuked in sanitizer, this for loop does nothing
-        write_payloads: dict[str, list[OPCUANodeWriteValue]] = {}
-        for action_name in action.columns:
-            connection_id = self.action_nodes[action_name].get("connection_id")
-            node_id = self.action_nodes[action_name].get("node_id")
+        def _build_payload(action_name: str) -> tuple[str, OPCUANodeWriteValue]:
+            conn_id = self.action_nodes[action_name].connection_id
+            node_id = self.action_nodes[action_name].node_id
             action_val = action[action_name].iloc[0].item()
+            return (conn_id, OPCUANodeWriteValue(node_id=node_id, value=action_val))
 
-
-            if connection_id not in write_payloads:
-                write_payloads[connection_id] = []
-
-            write_payloads[connection_id].append(OPCUANodeWriteValue(node_id=node_id, value=action_val))
+        write_payloads = partition(
+            _build_payload(action_name) for action_name in action.columns
+        )
 
         try:
             self.coreio_client.write_opcua_nodes(write_payloads)
         except Exception:
             logger.exception("emit_action failed to write to coreio")
+
 
     def get_latest_obs(self) -> pd.DataFrame:
         now = datetime.now(UTC)
@@ -109,10 +110,14 @@ class DeploymentAsyncEnv(AsyncEnv):
             names=self.tag_names, start_time=now - self.obs_period, end_time=now, tag_aggregations=self.tag_aggs,
         )
 
+
     def get_cfg(self):
         return self._cfg
 
 
+# ---------------
+# -- Utilities --
+# ---------------
 def sanitize_actions(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfig], rtol: float = 0.001) -> None:
     if len(action) < 1:
         logger.error("Action df empty")

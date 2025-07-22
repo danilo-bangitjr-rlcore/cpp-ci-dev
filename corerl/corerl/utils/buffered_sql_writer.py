@@ -137,13 +137,10 @@ class BufferedWriter[T: NamedTuple](ABC):
 
 
     def is_soft_sync(self):
-        cond_results = [cond.is_soft_sync(self) for cond in self._sync_conds]
-        return any(cond_results)
-
+        return any(cond.is_soft_sync(self) for cond in self._sync_conds)
 
     def is_hard_sync(self):
-        cond_results = [cond.is_hard_sync(self) for cond in self._sync_conds]
-        return any(cond_results)
+        return any(cond.is_hard_sync(self) for cond in self._sync_conds)
 
 
     @abstractmethod
@@ -163,7 +160,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._buffer.append(data)
 
         if self.is_hard_sync():
-            logger.warning('Buffer reached high watermark')
+            logger.warning('Hard sync condition reached')
             # forcibly pause main thread until writer is finished
             assert self._write_future is not None
             self._write_future.result()

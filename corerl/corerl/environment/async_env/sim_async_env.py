@@ -11,6 +11,7 @@ from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.factory import init_environment
+from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import TagConfig
 from corerl.utils.coreio import CoreIOLink
 from corerl.utils.gym import space_bounds, space_shape
@@ -65,8 +66,8 @@ class SimAsyncEnv(DeploymentAsyncEnv):
     def _init_thinclient(self):
         return DummyCoreIOLink(self._cfg.coreio_origin)
 
-    def _register_action_nodes(self):
-        ...
+    def _build_action_nodes(self, action_cfgs: dict[str, SetpointTagConfig]):
+        return {}
 
     # ------------------
     # -- AsyncEnv API --

@@ -3,11 +3,13 @@ permissions: write-all # Needed to comment coverage% on PR
 
 on:
   pull_request:
-    paths: &shared_paths
+    paths:
       - "research/**"
       - "libs/**"
   merge_group:
-    paths: *shared_paths
+    paths:
+      - "research/**"
+      - "libs/**"
 
 concurrency:
   group: research-${{ github.workflow }}-${{ github.ref }}
