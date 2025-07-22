@@ -128,7 +128,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._buffer.append(data)
 
         if self.is_hard_sync():
-            logger.warning('Buffer reached high watermark')
+            logger.warning('Hard sync condition reached')
             # forcibly pause main thread until writer is finished
             assert self._write_future is not None
             self._write_future.result()
