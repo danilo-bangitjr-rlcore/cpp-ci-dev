@@ -53,10 +53,13 @@ async def coreio_loop(cfg: MainConfigAdapter):
                 async with opc_conn:
                     await opc_conn.register_node(heartbeat_id, "heartbeat")
 
+    all_registered_nodes = None
+    sql_communication = None
+
     if cfg.coreio.data_ingress.enabled:
         logger.info("Starting SQL communication")
         all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
-        sql_communication = SQL_Manager( # noqa: F841
+        sql_communication = SQL_Manager(
             cfg.infra,
             table_name=cfg.env.db.table_name,
             nodes_to_persist=all_registered_nodes,
@@ -72,7 +75,6 @@ async def coreio_loop(cfg: MainConfigAdapter):
     zmq_communication.start()
 
     logger.info("CoreIO is ready")
-
 
     try:
         while True:
@@ -92,9 +94,25 @@ async def coreio_loop(cfg: MainConfigAdapter):
                         async with opc_conn:
                             await opc_conn.write_opcua_nodes(payload)
 
+                case IOEventType.read_opcua_nodes:
+                    logger.info(f"Received reading event {event}")
+
+                    if sql_communication is None:
+                        logger.error("SQL Communication must be enabled to handle read events")
+                        continue
+
+                    nodes_name_val = {}
+
+                    for opc_conn in opc_connections.values():
+                        async with opc_conn:
+                            nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
+
+                    logger.info(f"Read nodes value: {nodes_name_val}")
+
                 case IOEventType.exit_io:
                     logger.info("Received exit event, shutting down CoreIO...")
                     break
+
     except Exception:
         logger.exception("CoreIO error occurred")
     finally:

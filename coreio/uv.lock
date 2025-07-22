@@ -260,6 +260,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
+    { name = "docker" },
     { name = "pylint" },
     { name = "pyright" },
     { name = "pytest-asyncio" },
@@ -283,6 +284,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "docker", specifier = ">=7.1.0" },
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.401" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
@@ -930,6 +932,7 @@ dependencies = [
     { name = "dm-haiku" },
     { name = "flax" },
     { name = "jax" },
+    { name = "lib-config" },
     { name = "lib-utils", extra = ["jax"] },
     { name = "optax" },
 ]
@@ -942,6 +945,7 @@ requires-dist = [
     { name = "dm-haiku", specifier = ">=0.0.14" },
     { name = "flax", specifier = ">=0.10.6" },
     { name = "jax", specifier = ">=0.6.1" },
+    { name = "lib-config", editable = "../libs/lib_config" },
     { name = "lib-utils", extras = ["jax"], editable = "../libs/lib_utils" },
     { name = "optax", specifier = ">=0.2.4" },
 ]
