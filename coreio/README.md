@@ -10,7 +10,6 @@ The e2e test for integration with `core-rl` is here:
 pytest test/large/smoke/test_dep_mountain_car_continuous.py 
 ```
 
-
 ### Manual e2e test:
 For this you will need 4 terminals:
 

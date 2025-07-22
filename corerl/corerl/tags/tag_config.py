@@ -79,7 +79,7 @@ class BasicTagConfig(
 TagConfig = BasicTagConfig | MetaTagConfig | SeasonalTagConfig | SetpointTagConfig | DeltaTagConfig
 
 
-def get_scada_tags(cfgs: list[TagConfig]):
+def get_scada_tags(cfgs: Sequence[TagConfig]):
     return [
         tag_cfg
         for tag_cfg in cfgs

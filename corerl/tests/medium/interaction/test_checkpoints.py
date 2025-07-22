@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from math import log2
 from pathlib import Path
 
-from corerl.interaction.deployment_interaction import prune_checkpoints
+from corerl.interaction.checkpointing import prune_checkpoints
 
 
 def is_power_of_two(n: int):
