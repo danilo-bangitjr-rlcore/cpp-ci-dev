@@ -4,6 +4,7 @@ version="0.0.0"
 requires-python = ">=3.13"
 dependencies = [
     "corerl",
+    "rl_env",
     "pytest>=8.3.5",
 ]
 
@@ -25,3 +26,4 @@ packages = ["epcor_solar"]
 
 [tool.uv.sources]
 corerl = { path = "../corerl", editable = true }
+rl_env = { path = "../libs/rl_env", editable = true }
