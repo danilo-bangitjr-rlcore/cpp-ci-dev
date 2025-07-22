@@ -2,9 +2,10 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
+from lib_config.group import Group
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
 from pydantic import Field
@@ -18,7 +19,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
 class SyncCond(Protocol):
     def is_soft_sync(self, writer: 'BufferedWriter') -> bool:
         ...
@@ -28,6 +28,7 @@ class SyncCond(Protocol):
 
 @config()
 class WatermarkSyncConfig:
+    name: Literal['watermark'] = 'watermark'
     lo_wm: int = 1024
     hi_wm: int = 2048
 
@@ -42,12 +43,12 @@ class WatermarkCond:
     def is_hard_sync(self, writer: 'BufferedWriter'):
         return len(writer) > self._hi_wm
 
+
 @config()
 class TimeSyncConfig:
-    enabled: bool = False
+    name: Literal['time'] = 'time'
     soft_sync_seconds: int = 5
     hard_sync_seconds: int = 10
-
 
 class TimeSyncCond:
     def __init__(self, cfg: TimeSyncConfig):
@@ -64,6 +65,14 @@ class TimeSyncCond:
         current_time = time.time()
         time_elapsed = current_time - writer.last_sync_time
         return time_elapsed >= self._hard_sync_seconds
+
+
+sync_group = Group[
+    [], SyncCond,
+]()
+sync_group.dispatcher(WatermarkCond)
+sync_group.dispatcher(TimeSyncCond)
+
 
 @config()
 class BufferedWriterConfig(SQLEngineConfig):
