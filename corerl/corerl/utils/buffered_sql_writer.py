@@ -261,6 +261,26 @@ class BufferedWriter[T: NamedTuple](ABC):
             self._known_columns.add(column)
 
 
+    def _sanitize_keys(self, dict_points: list[dict]):
+        def _sanitize_key(name: str):
+            # remove non alpha-numeric characters and spaces
+            sanitized = re.sub(r'[^a-zA-Z0-9]', '_', name)
+            # Replace multiple consecutive underscores with single underscore
+            return re.sub(r'_+', '_', sanitized)
+
+        def _sanitize_dict_keys(d: dict[str, Any]):
+            keys = list(d.keys())
+            for key in keys:
+                sanitized_key = _sanitize_key(key)
+                if sanitized_key != key:
+                    d[sanitized_key] = d.pop(key)
+
+        # Sanitize the dictionary keys
+        for point in dict_points:
+            _sanitize_dict_keys(point)
+
+        return dict_points
+
 
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
@@ -275,6 +295,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._ensure_known_columns_initialized()
 
         dict_points = [point._asdict() for point in points]
+        dict_points = self._sanitize_keys(dict_points)
         points_columns = self._get_columns(dict_points)
         self._add_columns(points_columns)
 
