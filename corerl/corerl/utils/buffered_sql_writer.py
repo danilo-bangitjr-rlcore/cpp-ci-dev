@@ -52,7 +52,6 @@ class TimeSyncConfig:
 
 class TimeSyncCond:
     def __init__(self, cfg: TimeSyncConfig):
-        self.enabled = cfg.enabled
         self._soft_sync_seconds = cfg.soft_sync_seconds
         self._hard_sync_seconds = cfg.hard_sync_seconds
 
