@@ -29,7 +29,7 @@ class MetricsDBConfig(BufferedWriterConfig):
     table_name: str = 'metrics'
     enabled: bool = False
     watermark_cfg: WatermarkSyncConfig = Field(
-        default_factory=lambda: WatermarkSyncConfig(1, 256),
+        default_factory=lambda: WatermarkSyncConfig('watermark', 1, 256),
     )
 
 class MetricsTable(BufferedWriter[_MetricPoint]):
