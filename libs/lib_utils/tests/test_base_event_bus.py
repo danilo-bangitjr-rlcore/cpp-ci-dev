@@ -2,7 +2,7 @@
 from queue import Queue
 from unittest.mock import Mock
 
-from lib_utils.base_event_bus import BaseEventBus
+from lib_utils.messages.base_event_bus import BaseEventBus
 
 
 def test_base_event_bus_init(mocker: Mock):

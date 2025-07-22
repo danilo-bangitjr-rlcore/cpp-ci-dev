@@ -5,7 +5,7 @@ from queue import Empty, Queue
 from typing import Any
 
 import zmq
-from lib_utils.consumer_task import consumer_task
+from lib_utils.messages.consumer_task import consumer_task
 from pydantic import ValidationError
 
 from coreio.config import CoreIOConfig

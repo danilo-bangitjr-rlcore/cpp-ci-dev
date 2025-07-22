@@ -2,7 +2,7 @@ from collections import defaultdict, deque
 from collections.abc import Callable
 from typing import Any
 
-from lib_utils.base_event_bus import BaseEventBus
+from lib_utils.messages.base_event_bus import BaseEventBus
 
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig

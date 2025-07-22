@@ -6,7 +6,7 @@ from typing import Generic, TypeVar
 import zmq
 from lib_defs.type_defs.base_events import BaseEvent
 
-from lib_utils.consumer_task import consumer_task
+from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 

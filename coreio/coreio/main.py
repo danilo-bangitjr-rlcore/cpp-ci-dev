@@ -6,7 +6,7 @@ import logging
 
 import colorlog
 from lib_config.loader import load_config
-from lib_utils.base_event_bus import BaseEventBus
+from lib_utils.messages.base_event_bus import BaseEventBus
 
 from coreio.communication.opc_communication import OPC_Connection
 from coreio.communication.sql_communication import SQL_Manager

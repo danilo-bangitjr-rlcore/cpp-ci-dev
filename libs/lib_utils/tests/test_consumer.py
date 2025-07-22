@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import zmq
 
-from lib_utils.consumer_task import consumer_task
+from lib_utils.messages.consumer_task import consumer_task
 
 
 def test_consumer_task_receives_message(mocker: Mock):
