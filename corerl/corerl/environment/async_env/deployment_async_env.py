@@ -2,7 +2,7 @@ import logging
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from functools import partial
-from typing import TypedDict
+from typing import NamedTuple
 
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ from corerl.utils.coreio import CoreIOLink
 logger = logging.getLogger(__name__)
 
 
-class ActionNodeData(TypedDict):
+class ActionNodeData(NamedTuple):
     connection_id: str
     node_id: str
 
@@ -89,8 +89,8 @@ class DeploymentAsyncEnv(AsyncEnv):
                 logger.info(line)
 
         def _build_payload(action_name: str) -> tuple[str, OPCUANodeWriteValue]:
-            conn_id = self.action_nodes[action_name]["connection_id"]
-            node_id = self.action_nodes[action_name]["node_id"]
+            conn_id = self.action_nodes[action_name].connection_id
+            node_id = self.action_nodes[action_name].node_id
             action_val = action[action_name].iloc[0].item()
             return (conn_id, OPCUANodeWriteValue(node_id=node_id, value=action_val))
 
