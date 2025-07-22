@@ -131,9 +131,7 @@ class BufferedWriter[T: NamedTuple](ABC):
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
 
     def _ensure_table_exists(self):
-        if self.engine is None:
-            return
-
+        assert self.engine is not None
         if not table_exists(self.engine, table_name=self.cfg.table_name, schema=self.cfg.table_schema):
             with TryConnectContextManager(self.engine) as connection:
                 # Create new table
