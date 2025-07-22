@@ -1,8 +1,9 @@
 import logging
+import re
 import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_config.group import Group
@@ -177,6 +178,12 @@ class BufferedWriter[T: NamedTuple](ABC):
                 AND table_name = '{self.cfg.table_name}'
             """)
 
+    def _add_column_sql(self, col_name: str):
+        return text(f"""
+            ALTER TABLE {self.cfg.table_schema}.{self.cfg.table_name}
+            ADD COLUMN IF NOT EXISTS "{col_name}" FLOAT
+        """)
+
     def _write(self, data: T) -> None:
         if not self.cfg.enabled:
             return
@@ -231,6 +238,30 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._exec.shutdown()
 
 
+    def _get_columns(self, dict_points: list[dict]):
+        points_columns = set()
+        for point in dict_points:
+            points_columns.update(k for k, _ in point.items())
+        return sorted(points_columns)
+
+
+    def _add_columns(self, points_columns: list):
+        if not points_columns:
+            return
+
+        new_columns = [col for col in points_columns
+                       if col not in self._known_columns]
+
+        assert self.engine is not None
+
+        for column in new_columns:
+            with TryConnectContextManager(self.engine) as connection:
+                connection.execute(self._add_column_sql(column))
+                connection.commit()
+            self._known_columns.add(column)
+
+
+
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
             return
@@ -243,9 +274,13 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._ensure_table_exists()
         self._ensure_known_columns_initialized()
 
+        dict_points = [point._asdict() for point in points]
+        points_columns = self._get_columns(dict_points)
+        self._add_columns(points_columns)
+
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(
                 self._insert_sql(),
-                [point._asdict() for point in points],
+                dict_points,
             )
             connection.commit()
