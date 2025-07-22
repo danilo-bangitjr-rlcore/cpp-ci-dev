@@ -28,7 +28,6 @@ def db_evals_table(
         port=port,
         db_name=tsdb_tmp_db_name,
         table_schema='public',
-        lo_wm=1,
     )
 
     evals_table = EvalsTable(evals_db_cfg)

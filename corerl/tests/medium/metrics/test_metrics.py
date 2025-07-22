@@ -26,7 +26,6 @@ def db_metrics_table(
         port=port,
         db_name=tsdb_tmp_db_name,
         table_schema='public',
-        lo_wm=1,
     )
 
     metrics_table = MetricsTable(metrics_db_cfg)
