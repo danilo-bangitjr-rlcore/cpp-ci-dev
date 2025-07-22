@@ -54,15 +54,6 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
             index_columns=['evaluator'],
         )
 
-
-    def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, agent_step, evaluator, value)
-            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :agent_step, :evaluator, :value)
-        """)
-
-
     def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
         if not self.cfg.enabled:
             return

@@ -54,15 +54,6 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             index_columns=['metric'],
         )
 
-
-    def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, agent_step, metric, value)
-            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :agent_step, :metric, :value)
-        """)
-
-
     def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
         if agent_step is None:
             return

@@ -10,7 +10,7 @@ from lib_config.group import Group
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
 from pydantic import Field
-from sqlalchemy import Engine, TextClause
+from sqlalchemy import Engine, TextClause, text
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig
 
@@ -160,12 +160,6 @@ class BufferedWriter[T: NamedTuple](ABC):
     def is_hard_sync(self):
         return any(cond.is_hard_sync(self) for cond in self._sync_conds)
 
-
-    @abstractmethod
-    def _insert_sql(self) -> TextClause:
-        ...
-
-
     @abstractmethod
     def _create_table_sql(self) -> TextClause:
         ...
@@ -281,6 +275,17 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         return dict_points
 
+    def _insert_sql(self, columns: list):
+        # Create dynamic INSERT statement with only columns that have data, will default to null
+        columns_list = ", ".join(f'"{col}"' for col in sorted(columns))
+        placeholders = ", ".join(f":{col}" for col in sorted(columns))
+
+        sql = f"""
+            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
+            ({columns_list})
+            VALUES ({placeholders})
+        """
+        return text(sql)
 
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
@@ -301,7 +306,7 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(
-                self._insert_sql(),
+                self._insert_sql(points_columns),
                 dict_points,
             )
             connection.commit()

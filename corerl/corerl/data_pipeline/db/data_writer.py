@@ -59,13 +59,6 @@ class DataWriter(BufferedWriter[Point]):
         )
         self._write(point)
 
-    def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, host, id, name, fields)
-            VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
-        """)
-
     def _create_table_sql(self):
         return create_tsdb_table_query(
             schema=self.cfg.table_schema,
