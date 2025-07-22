@@ -110,6 +110,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._write_future: Future | None = None
         self.engine: Engine | None = None
         self._columns_initialized = False
+        self._table_created = False
         self._known_columns: set[str] = set()
 
         self._sync_conds: list[SyncCond] = []
