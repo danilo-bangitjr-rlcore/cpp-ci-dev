@@ -1,13 +1,12 @@
-from __future__ import annotations
-
 import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
+from pydantic import Field
 from sqlalchemy import Engine, TextClause
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig
@@ -19,6 +18,29 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+class SyncCond(Protocol):
+    def is_soft_sync(self, writer: 'BufferedWriter') -> bool:
+        ...
+    def is_hard_sync(self, writer: 'BufferedWriter') -> bool:
+        ...
+
+
+@config()
+class WatermarkSyncConfig:
+    lo_wm: int = 1024
+    hi_wm: int = 2048
+
+class WatermarkCond:
+    def __init__(self, cfg: WatermarkSyncConfig):
+        self._lo_wm = cfg.lo_wm
+        self._hi_wm = cfg.hi_wm
+
+    def is_soft_sync(self, writer: 'BufferedWriter'):
+        return len(writer) > self._lo_wm
+
+    def is_hard_sync(self, writer: 'BufferedWriter'):
+        return len(writer) > self._hi_wm
+
 @config()
 class BufferedWriterConfig(SQLEngineConfig):
     db_name: str = MISSING
@@ -26,28 +48,26 @@ class BufferedWriterConfig(SQLEngineConfig):
     enabled: bool = True
     table_schema: str = MISSING
 
+    # sync conditions
+    sync_conds: list[str] = Field(default_factory=lambda: ['watermark'])
+    watermark_cfg: WatermarkSyncConfig = Field(default_factory=WatermarkSyncConfig)
+
     @computed('table_schema')
     @classmethod
-    def _table_schema(cls, cfg: MainConfig):
+    def _table_schema(cls, cfg: 'MainConfig'):
         return cfg.infra.db.schema
 
     @computed('db_name')
     @classmethod
-    def _dbname(cls, cfg: MainConfig):
+    def _dbname(cls, cfg: 'MainConfig'):
         return cfg.infra.db.db_name
-
 
 class BufferedWriter[T: NamedTuple](ABC):
     def __init__(
         self,
         cfg: BufferedWriterConfig,
-        low_watermark: int = 1024,
-        high_watermark: int = 2048,
     ) -> None:
         self.cfg = cfg
-
-        self._low_wm = low_watermark
-        self._hi_wm = high_watermark
 
         self._buffer: list[T] = []
 
@@ -55,12 +75,37 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._write_future: Future | None = None
         self.engine: Engine | None = None
 
+        self._sync_conds: list[SyncCond] = []
+
+        # Mapping of condition names to their corresponding classes and configs
+        # add new conditions here
+        cond_mapping = {
+            'watermark': (WatermarkCond, cfg.watermark_cfg),
+        }
+        # Instantiate conditions dynamically based on sync_conds list
+        for cond_name in cfg.sync_conds:
+            cond_data = cond_mapping.get(cond_name)
+            if cond_data:
+                cond_class, cond_config = cond_data
+                self._sync_conds.append(cond_class(cond_config))
+
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
             if not table_exists(self.engine, table_name=cfg.table_name, schema=cfg.table_schema):
                 with TryConnectContextManager(self.engine) as connection:
                     connection.execute(self._create_table_sql())
                     connection.commit()
+
+
+    def __len__(self):
+        return len(self._buffer)
+
+
+    def is_soft_sync(self):
+        return any(cond.is_soft_sync(self) for cond in self._sync_conds)
+
+    def is_hard_sync(self):
+        return any(cond.is_hard_sync(self) for cond in self._sync_conds)
 
 
     @abstractmethod
@@ -79,8 +124,8 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         self._buffer.append(data)
 
-        if len(self._buffer) > self._hi_wm:
-            logger.warning('Buffer reached high watermark')
+        if self.is_hard_sync():
+            logger.warning('Hard sync condition reached')
             # forcibly pause main thread until writer is finished
             assert self._write_future is not None
             self._write_future.result()
@@ -88,7 +133,7 @@ class BufferedWriter[T: NamedTuple](ABC):
             # kick off a new background sync, since buffer is full
             self.background_sync()
 
-        elif len(self._buffer) > self._low_wm:
+        elif self.is_soft_sync():
             self.background_sync()
 
 
