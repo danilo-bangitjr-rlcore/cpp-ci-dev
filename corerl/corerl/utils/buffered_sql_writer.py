@@ -2,7 +2,7 @@ import logging
 import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_config.group import Group
