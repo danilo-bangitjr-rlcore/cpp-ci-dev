@@ -1,14 +1,15 @@
-from typing import NamedTuple
+from typing import NamedTuple, TypeVar
 
 from lib_agent.buffer.mixed_history_buffer import MixedHistoryBuffer, MixedHistoryBufferConfig
 from lib_agent.buffer.recency_bias_buffer import RecencyBiasBuffer, RecencyBiasBufferConfig
 
 BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
+# NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
+T = TypeVar('T', bound=NamedTuple)
 
-def build_buffer[
-    T: NamedTuple
-](
+
+def build_buffer( # noqa: UP047
     cfg: BufferConfig,
     transition_type: type[T],
 ) -> MixedHistoryBuffer[T] | RecencyBiasBuffer[T]:

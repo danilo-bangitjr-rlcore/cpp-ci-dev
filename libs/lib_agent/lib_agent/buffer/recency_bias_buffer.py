@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Literal, NamedTuple
+from typing import Literal, NamedTuple, TypeVar
 
 import numpy as np
 from discrete_dists.distribution import Support
@@ -10,6 +10,9 @@ from discrete_dists.utils.SumTree import SumTree
 
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.buffer.datatypes import DataMode
+
+# NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
+T = TypeVar('T', bound=NamedTuple)
 
 
 @dataclass
@@ -28,7 +31,7 @@ class RecencyBiasBufferConfig:
     id: str = ""
 
 
-class RecencyBiasBuffer[T: NamedTuple](EnsembleReplayBuffer[T]):
+class RecencyBiasBuffer(EnsembleReplayBuffer[T]):
     def __init__(
         self,
         obs_period: int,
@@ -230,4 +233,3 @@ def create_recency_bias_buffer_from_config(cfg: RecencyBiasBufferConfig) -> Rece
         n_most_recent=cfg.n_most_recent,
         id=cfg.id,
     )
-
