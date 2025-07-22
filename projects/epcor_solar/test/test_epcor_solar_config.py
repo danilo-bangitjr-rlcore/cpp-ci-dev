@@ -8,7 +8,8 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.data_pipeline.tag_config import get_tag_bounds
+from corerl.tags.components.bounds import get_tag_bounds
+from corerl.tags.tag_config import get_scada_tags
 from corerl.data_pipeline.virtual_tags import VirtualTagComputer
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
@@ -40,12 +41,8 @@ def app_state(cfg: MainConfig):
 
 @pytest.fixture
 def tag_names(cfg: MainConfig):
-    return [
-        tag_cfg.name
-        for tag_cfg in cfg.pipeline.tags
-        if tag_cfg.type not in [TagType.day_of_week, TagType.day_of_year, TagType.time_of_day] and
-           not tag_cfg.is_computed
-    ]
+    opc_tags = get_scada_tags(cfg.pipeline.tags)
+    return [tag.name for tag in opc_tags]
 
 @pytest.fixture
 def df(cfg: MainConfig, tag_names: list[str]):
@@ -82,6 +79,8 @@ def df(cfg: MainConfig, tag_names: list[str]):
     data["SCADA1.ELS_SLR_ELSP72_KW.F_CV"] = 4000
     data["SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV"] = 100
     data["SCADA1.ELS_SLR_ELSP72_MAJORITY_LGC.F_CV"] = 100
+    data["SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV"] *= 0.0
+    data["SCADA1.ELS_SLR_ELSP72_ENG_IN_TOT.F_CV"] *= 0.0
     for step in range(obs_steps):
         data.loc[dates[step], "SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV"] += 0.2 * step
         data.loc[dates[step], "SCADA1.ELS_SLR_ELSP72_ENG_IN_TOT.F_CV"] += 0.2 * step
@@ -385,19 +384,23 @@ def test_no_violations(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     # Expected
     # BESS_DEGRADATION_COST = 5 * (0.1667 + 0.1667) = 1.667
     # ENERGY_COST = 47.42 * (0.2 + 0.2) = 18.968
-    # ENERGY_SOLD = (111.11 - 0.375) * (0.404167 + 0.404167) = 89.51
-    # PROFIT = 89.51 - 18.968 - 1.667 = 68.875
-    # Normalized PROFIT = 0.230655
-    # Scaled to [-1, 0]: -0.769344
-    # With Return Normalization: -0.00769344
-    # n-step reward: -0.00769344
+    # ENERGY_SOLD = (111.11 - 0.375) * (0.5 + 0.5) = 110.735
+    # PROFIT = 110.735 - 18.968 - 1.667 = 90.1
+    # Normalized PROFIT = 0.237586
+    # Scaled to [-1, 0]: -0.762414
+    # With Return Normalization: -0.00762414
+    # n-step reward: -0.00762414
     # n-step gamma: 0.99
 
     assert len(got.transitions) == 1
     assert len(got.transitions[0].steps) == obs_steps
-    assert np.isclose(got.transitions[0].steps[1].reward, -0.00769344, atol=1e-4) # return normalization
-    assert np.isclose(got.transitions[0].n_step_reward, -0.00769344, atol=1e-4) # return normalization
     assert np.isclose(got.transitions[0].n_step_gamma, 0.99, atol=1e-4)
+    if cfg.feature_flags.normalize_return:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.00762414, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.00762414, atol=1e-4)
+    else:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.762414, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.762414, atol=1e-4)
 
 def test_curtailment_violation(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     obs_steps = int(cfg.interaction.action_period / cfg.interaction.obs_period) + 1
@@ -415,22 +418,26 @@ def test_curtailment_violation(cfg: MainConfig, app_state: AppState, df: pd.Data
     # Expected
     # BESS_DEGRADATION_COST = 5 * (0.1667 + 0.1667) = 1.667
     # ENERGY_COST = 47.42 * (0.2 + 0.2) = 18.968
-    # ENERGY_SOLD = (111.11 - 0.375) * (0.404167 + 0.404167) = 89.51
-    # PROFIT = 89.51 - 18.968 - 1.667 = 68.875
-    # Normalized PROFIT = 0.230655
-    # Scaled to [-1, 0]: -0.769344
-    # SCADA1.ELS_SLR_ELSP12_KW.F_CV = 4750 represents 33.33% yellow zone violation
-    # Penalty = -2 * (0.3333 ** 2) = -0.22222
-    # Unnormalized Reward: -0.769344 + -0.22222 = -0.991564
-    # With Return Normalization: -0.00991564
-    # n-step reward: -0.00991564
+    # ENERGY_SOLD = (111.11 - 0.375) * (0.5 + 0.5) = 110.735
+    # PROFIT = 110.735 - 18.968 - 1.667 = 90.1
+    # Normalized PROFIT = 0.237586
+    # Scaled to [-1, 0]: -0.762414
+    # SCADA1.ELS_SLR_ELSP12_KW.F_CV = 4750 represents 16.66% yellow zone violation
+    # Penalty = -2 * (0.1666 ** 2) = -0.05551112
+    # Unnormalized Reward: -0.762414 + -0.05551112 = -0.81792512
+    # With Return Normalization: -0.0081792512
+    # n-step reward: -0.0081792512
     # n-step gamma: 0.99
 
     assert len(got.transitions) == 1
     assert len(got.transitions[0].steps) == obs_steps
-    assert np.isclose(got.transitions[0].steps[1].reward, -0.00991564, atol=1e-4) # return normalization
-    assert np.isclose(got.transitions[0].n_step_reward, -0.00991564, atol=1e-4) # return normalization
     assert np.isclose(got.transitions[0].n_step_gamma, 0.99, atol=1e-4)
+    if cfg.feature_flags.normalize_return:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.0081792512, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.0081792512, atol=1e-4)
+    else:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.81792512, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.81792512, atol=1e-4)
 
 def test_power_peak_yellow_zone_violation(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     obs_steps = int(cfg.interaction.action_period / cfg.interaction.obs_period) + 1
@@ -453,22 +460,26 @@ def test_power_peak_yellow_zone_violation(cfg: MainConfig, app_state: AppState, 
     # Expected
     # BESS_DEGRADATION_COST = 5 * (0.1667 + 0.1667) = 1.667
     # ENERGY_COST = 47.42 * (0.35 + 0.2) = 26.081
-    # ENERGY_SOLD = (111.11 - 0.375) * (0.404167 + 0.404167) = 89.51
-    # PROFIT = 89.51 - 26.081 - 1.667 = 61.762
-    # Normalized PROFIT = 0.228333
-    # Scaled to [-1, 0]: -0.771667
+    # ENERGY_SOLD = (111.11 - 0.375) * (0.5 + 0.5) = 110.735
+    # PROFIT = 110.735 - 26.081 - 1.667 = 82.987
+    # Normalized PROFIT = 0.2352636
+    # Scaled to [-1, 0]: -0.7647364
     # SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV = 0.35 represents 9.0909% yellow zone violation
     # Penalty = -2 * (0.090909 ** 2) = -0.01652889
-    # Unnormalized Reward: -0.771667 + -0.01652889 = -0.78819589
-    # With Return Normalization: -0.0078819589
-    # n-step reward: -0.0078819589
+    # Unnormalized Reward: -0.7647364 + -0.01652889 = -0.78126529
+    # With Return Normalization: -0.0078126529
+    # n-step reward: -0.0078126529
     # n-step gamma: 0.99
 
     assert len(got.transitions) == 1
     assert len(got.transitions[0].steps) == obs_steps
-    assert np.isclose(got.transitions[0].steps[1].reward, -0.0078819589, atol=1e-4) # return normalization
-    assert np.isclose(got.transitions[0].n_step_reward, -0.0078819589, atol=1e-4) # return normalization
     assert np.isclose(got.transitions[0].n_step_gamma, 0.99, atol=1e-4)
+    if cfg.feature_flags.normalize_return:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.0078126529, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.0078126529, atol=1e-4)
+    else:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.78126529, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.78126529, atol=1e-4)
 
 def test_power_peak_red_zone_violation(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     obs_steps = int(cfg.interaction.action_period / cfg.interaction.obs_period) + 1
@@ -490,16 +501,20 @@ def test_power_peak_red_zone_violation(cfg: MainConfig, app_state: AppState, df:
 
     # Expected
     # SCADA1.ELS_SLR_ELSP12_ENG_IN_TOT.F_CV = 0.4 represents 5.2631% red zone violation
-    # Unnormalized Reward = -4 - (4 * 0.0454545) = -4.210526
-    # With Return Normalization: -0.04210526
-    # n-step reward: -0.04210526
+    # Unnormalized Reward = -4 - (4 * 0.052626) = -4.210504
+    # With Return Normalization: -0.04210504
+    # n-step reward: -0.04210504
     # n-step gamma: 0.99
 
     assert len(got.transitions) == 1
     assert len(got.transitions[0].steps) == obs_steps
-    assert np.isclose(got.transitions[0].steps[1].reward, -0.04210526, atol=1e-4) # return normalization
-    assert np.isclose(got.transitions[0].n_step_reward, -0.04210526, atol=1e-4) # return normalization
     assert np.isclose(got.transitions[0].n_step_gamma, 0.99, atol=1e-4)
+    if cfg.feature_flags.normalize_return:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.04210504, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.04210504, atol=1e-4)
+    else:
+        assert np.isclose(got.transitions[0].steps[1].reward, -4.210504, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -4.210504, atol=1e-4)
 
 def test_on_site_consumption_yellow_zone_violation(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     pipeline = Pipeline(app_state, cfg.pipeline)
@@ -523,25 +538,29 @@ def test_on_site_consumption_yellow_zone_violation(cfg: MainConfig, app_state: A
     # Expected
     # BESS_DEGRADATION_COST = 5 * (0.1667 + 0.1667) = 1.667
     # ENERGY_COST = 47.42 * (0.2 + 0.2) = 18.968
-    # ENERGY_SOLD = (111.11 - 0.375) * (0.404167 + 0.404167) = 89.51
-    # PROFIT = 89.51 - 18.968 - 1.667 = 68.875
-    # Normalized PROFIT = 0.230655
-    # Scaled to [-1, 0]: -0.769344
+    # ENERGY_SOLD = (111.11 - 0.375) * (0.5 + 0.5) = 110.735
+    # PROFIT = 110.735 - 18.968 - 1.667 = 90.1
+    # Normalized PROFIT = 0.237586
+    # Scaled to [-1, 0]: -0.762414
     # P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT:
     # '(100 - {SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV}) * (1 / (1 + 2.71828**(-1*(({day_of_year} - 250) / 20))))'
     # (100 - 50) * (1 / (1 + 2.71828**(-1*((356 - 250) / 20)))) = 49.751659
     # Represents 97.31438% yellow zone violation
     # Penalty = -2 * (0.97314 ** 2) = -1.894
-    # Unnormalized Reward: -0.769344 + -1.894 = -2.663344
-    # With Return Normalization: -0.02663344
-    # n-step reward: -0.02663344
+    # Unnormalized Reward: -0.762414 + -1.894 = -2.656414
+    # With Return Normalization: -0.02656414
+    # n-step reward: -0.02656414
     # n-step gamma: 0.99
 
     assert len(got.transitions) == 1
     assert len(got.transitions[0].steps) == obs_steps
-    assert np.isclose(got.transitions[0].steps[1].reward, -0.02663344, atol=1e-4) # return normalization
-    assert np.isclose(got.transitions[0].n_step_reward, -0.02663344, atol=1e-4) # return normalization
     assert np.isclose(got.transitions[0].n_step_gamma, 0.99, atol=1e-4)
+    if cfg.feature_flags.normalize_return:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.02656414, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.02656414, atol=1e-4)
+    else:
+        assert np.isclose(got.transitions[0].steps[1].reward, -2.656414, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -2.656414, atol=1e-4)
 
 def test_on_site_consumption_red_zone_violation(cfg: MainConfig, app_state: AppState, df: pd.DataFrame):
     pipeline = Pipeline(app_state, cfg.pipeline)
@@ -574,6 +593,10 @@ def test_on_site_consumption_red_zone_violation(cfg: MainConfig, app_state: AppS
 
     assert len(got.transitions) == 1
     assert len(got.transitions[0].steps) == obs_steps
-    assert np.isclose(got.transitions[0].steps[1].reward, -0.041547188, atol=1e-4) # return normalization
-    assert np.isclose(got.transitions[0].n_step_reward, -0.041547188, atol=1e-4) # return normalization
     assert np.isclose(got.transitions[0].n_step_gamma, 0.99, atol=1e-4)
+    if cfg.feature_flags.normalize_return:
+        assert np.isclose(got.transitions[0].steps[1].reward, -0.041547188, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -0.041547188, atol=1e-4)
+    else:
+        assert np.isclose(got.transitions[0].steps[1].reward, -4.1547188, atol=1e-4)
+        assert np.isclose(got.transitions[0].n_step_reward, -4.1547188, atol=1e-4)

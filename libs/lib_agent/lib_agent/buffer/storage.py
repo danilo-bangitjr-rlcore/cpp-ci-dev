@@ -1,10 +1,13 @@
-from typing import Any, NamedTuple
+from typing import Any, Generic, NamedTuple, TypeVar
 
 import jax.numpy as jnp
 import numpy as np
 
+# NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
+T = TypeVar('T', bound=NamedTuple)
 
-class ReplayStorage[T: NamedTuple]:
+
+class ReplayStorage(Generic[T]): # noqa: UP046
     def __init__(self, capacity: int):
         self._capacity = capacity
 

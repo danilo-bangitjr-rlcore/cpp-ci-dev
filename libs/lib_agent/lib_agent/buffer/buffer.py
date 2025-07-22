@@ -1,9 +1,12 @@
-from typing import NamedTuple, Protocol
+from typing import Generic, NamedTuple, Protocol, TypeVar
 
 import jax
 import numpy as np
 
 from lib_agent.buffer.storage import ReplayStorage
+
+# NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
+T = TypeVar('T', bound=NamedTuple)
 
 
 class Transition(Protocol):
@@ -56,7 +59,7 @@ class State(NamedTuple):
     dp: jax.Array
     last_a: jax.Array
 
-class EnsembleReplayBuffer[T: NamedTuple]:
+class EnsembleReplayBuffer(Generic[T]): # noqa: UP046
     def __init__(
         self,
         ensemble: int = 1,
