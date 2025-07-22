@@ -108,6 +108,8 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
         self.engine: Engine | None = None
+        self._columns_initialized = False
+        self._known_columns: set[str] = set()
 
         self._sync_conds: list[SyncCond] = []
         self.last_sync_time = time.time()
@@ -138,6 +140,15 @@ class BufferedWriter[T: NamedTuple](ABC):
                 connection.commit()
             self._table_created = True
 
+
+    def _ensure_known_columns_initialized(self):
+        if not self._columns_initialized and self.engine is not None:
+            with TryConnectContextManager(self.engine) as connection:
+                result = connection.execute(self._get_columns_sql())
+                self._known_columns = {row[0].strip('"') for row in result}
+            self._columns_initialized = True
+
+
     def __len__(self):
         return len(self._buffer)
 
@@ -158,6 +169,13 @@ class BufferedWriter[T: NamedTuple](ABC):
     def _create_table_sql(self) -> TextClause:
         ...
 
+    def _get_columns_sql(self) -> TextClause:
+        return text(f"""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = '{self.cfg.table_schema}'
+                AND table_name = '{self.cfg.table_name}'
+            """)
 
     def _write(self, data: T) -> None:
         if not self.cfg.enabled:
@@ -223,6 +241,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         assert self.engine is not None
 
         self._ensure_table_exists()
+        self._ensure_known_columns_initialized()
 
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(
