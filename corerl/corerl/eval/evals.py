@@ -8,9 +8,10 @@ from lib_config.config import config
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from lib_utils.time import now_iso
+from pydantic import Field
 from sqlalchemy import text
 
-from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
+from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig, WatermarkSyncConfig
 
 log = logging.getLogger(__name__)
 
@@ -25,8 +26,10 @@ class _EvalPoint(NamedTuple):
 @config()
 class EvalDBConfig(BufferedWriterConfig):
     table_name: str = 'evals'
-    lo_wm: int = 1
     enabled: bool = False
+    watermark_cfg: WatermarkSyncConfig = Field(
+        default_factory=lambda: WatermarkSyncConfig(1, 256),
+    )
 
 
 class EvalsTable(BufferedWriter[_EvalPoint]):
