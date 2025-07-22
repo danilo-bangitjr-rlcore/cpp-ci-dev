@@ -102,13 +102,10 @@ class BufferedWriter[T: NamedTuple](ABC):
 
 
     def is_soft_sync(self):
-        cond_results = [cond.is_soft_sync(self) for cond in self._sync_conds]
-        return any(cond_results)
-
+        return any(cond.is_soft_sync(self) for cond in self._sync_conds)
 
     def is_hard_sync(self):
-        cond_results = [cond.is_hard_sync(self) for cond in self._sync_conds]
-        return any(cond_results)
+        return any(cond.is_hard_sync(self) for cond in self._sync_conds)
 
 
     @abstractmethod
