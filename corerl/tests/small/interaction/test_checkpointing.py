@@ -44,20 +44,19 @@ def test_prune_checkpoints_basic():
     Test that prune_checkpoints returns the correct checkpoints to delete, keeping first, last, and recent ones.
     """
     now = datetime(2023, 1, 1, 12, 0, 0)
-    cliff = now - timedelta(hours=1)
+    cliff = now - timedelta(minutes=20)
     freq = timedelta(minutes=10)
 
-    # 5 checkpoints, 10min apart
-    times = [now - timedelta(minutes=10*i) for i in range(5)][::-1]
-    paths = [Path(f"chk_{i}") for i in range(5)]
+    # 8 checkpoints, 10min apart
+    times = [now - freq * i for i in range(8)][::-1]
+    paths = [Path(f"chk_{i}") for i in range(8)]
 
     # Should keep first and last, and those after cliff
     to_delete = chk.prune_checkpoints(paths, times, cliff, freq)
 
-    assert all(isinstance(p, Path) for p in to_delete)
     assert paths[0] not in to_delete
     assert paths[-1] not in to_delete
-
+    assert to_delete == [Path('chk_2')]
 
 def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
     """
