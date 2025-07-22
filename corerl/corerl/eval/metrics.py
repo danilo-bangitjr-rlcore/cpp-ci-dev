@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 class _MetricPoint(NamedTuple):
-    timestamp: str
+    time: str
     agent_step : int
     metric: str
     value: float
@@ -62,7 +62,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             return
 
         point = _MetricPoint(
-            timestamp=timestamp or now_iso(),
+            time=timestamp or now_iso(),
             agent_step=agent_step,
             metric=metric,
             value=float(value),
