@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class _EvalPoint(NamedTuple):
-    timestamp: str
+    time: str
     agent_step: int
     evaluator: str
     value: object # jsonb
@@ -60,7 +60,7 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
 
         value = value if isinstance(value, str) else json.dumps(value)
         point = _EvalPoint(
-            timestamp=timestamp or now_iso(),
+            time=timestamp or now_iso(),
             agent_step=agent_step,
             evaluator=evaluator,
             value=value,
