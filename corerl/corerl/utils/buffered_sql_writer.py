@@ -181,14 +181,8 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         data = self._buffer
         self._buffer = []
-        self._update_sync_state()
-        self._write_future = self._exec.submit(self._deferred_write, data)
-
-
-    def _update_sync_state(self):
-        """"Update state used for when to sync upon successful sync."""
         self.last_sync_time = time.time()
-
+        self._write_future = self._exec.submit(self._deferred_write, data)
 
     def blocking_sync(self):
         if not self.cfg.enabled:
