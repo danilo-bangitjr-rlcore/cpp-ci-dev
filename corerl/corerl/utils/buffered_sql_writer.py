@@ -84,6 +84,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     # sync conditions
     sync_conds: list[str] = Field(default_factory=lambda: ['watermark'])
     watermark_cfg: WatermarkSyncConfig = Field(default_factory=WatermarkSyncConfig)
+    timesync_cfg: TimeSyncConfig = Field(default_factory=TimeSyncConfig)
 
     @computed('table_schema')
     @classmethod
@@ -94,6 +95,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     @classmethod
     def _dbname(cls, cfg: 'MainConfig'):
         return cfg.infra.db.db_name
+
 
 class BufferedWriter[T: NamedTuple](ABC):
     def __init__(
@@ -110,16 +112,18 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         self._sync_conds: list[SyncCond] = []
         self.last_sync_time = time.time()
-        # Mapping of condition names to their corresponding classes
-        cond_mapping = {
-            'watermark': (WatermarkCond, cfg.watermark_cfg),
+
+        # Mapping of condition names to their condfigs
+        cond_cfg_map = {
+            'watermark': cfg.watermark_cfg,
+            'time': cfg.timesync_cfg,
         }
-        # Instantiate conditions dynamically based on sync_conds list
+
         for cond_name in cfg.sync_conds:
-            cond_data = cond_mapping.get(cond_name)
-            if cond_data:
-                cond_class, cond_config = cond_data
-                self._sync_conds.append(cond_class(cond_config))
+            cond_cfg = cond_cfg_map.get(cond_name)
+            assert cond_cfg is not None, "Invalid sync condition specified."
+            sync_cond = sync_group.dispatch(cond_cfg)
+            self._sync_conds.append(sync_cond)
 
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
