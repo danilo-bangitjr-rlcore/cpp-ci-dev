@@ -243,8 +243,10 @@ class BufferedWriter[T: NamedTuple](ABC):
         if not points_columns:
             return
 
-        new_columns = [col for col in points_columns
-                       if col not in self._known_columns]
+        new_columns = [
+            col for col in points_columns
+            if col not in self._known_columns
+        ]
 
         if self.cfg.static_columns and new_columns:
             logger.warning(
