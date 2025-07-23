@@ -28,6 +28,7 @@ class _MetricPoint(NamedTuple):
 class MetricsDBConfig(BufferedWriterConfig):
     table_name: str = 'metrics'
     enabled: bool = False
+    narrow_format: bool = True
     watermark_cfg: WatermarkSyncConfig = Field(
         default_factory=lambda: WatermarkSyncConfig('watermark', 1, 256),
     )
@@ -41,17 +42,28 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         self.cfg = cfg
 
     def _create_table_sql(self):
+        if self.cfg.narrow_format:
+            return create_tsdb_table_query(
+                schema=self.cfg.table_schema,
+                table=self.cfg.table_name,
+                columns=[
+                    SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                    SQLColumn(name='agent_step', type='INTEGER', nullable=False),
+                    SQLColumn(name='metric', type='TEXT', nullable=False),
+                    SQLColumn(name='value', type='FLOAT', nullable=False),
+                ],
+                partition_column='metric',
+                index_columns=['metric'],
+            )
         return create_tsdb_table_query(
             schema=self.cfg.table_schema,
             table=self.cfg.table_name,
-            columns=[
+            columns = [
                 SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
                 SQLColumn(name='agent_step', type='INTEGER', nullable=False),
-                SQLColumn(name='metric', type='TEXT', nullable=False),
-                SQLColumn(name='value', type='FLOAT', nullable=False),
             ],
-            partition_column='metric',
-            index_columns=['metric'],
+            partition_column=None,
+            index_columns=['time'],
         )
 
     def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
