@@ -76,7 +76,8 @@ class PercentileActorConfig:
     sampler_stepsize: float = 0.0001
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
-
+    ensemble_aggregation: Literal["mean", "percentile"] = "mean"
+    ensemble_percentile: float = 0.5
     buffer: BufferConfig = MISSING
 
     @computed('buffer')
@@ -435,6 +436,14 @@ class GreedyAC(BaseAgent):
 
         return [loss.mean() for loss in metrics.loss]
 
+    @jax_u.method_jit
+    def _aggregate_ensemble_values(self, ensemble_values: jax.Array) -> jax.Array:
+        if self.cfg.policy.ensemble_aggregation == "mean":
+            return ensemble_values.mean(axis=0)
+        if self.cfg.policy.ensemble_aggregation == "percentile":
+            return jnp.percentile(ensemble_values, self.cfg.policy.ensemble_percentile * 100, axis=0)
+        raise ValueError(f"Unknown ensemble aggregation method: {self.cfg.policy.ensemble_aggregation}")
+
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         """
         returns reduced state-action value estimate from ensemble of critics for:
@@ -443,7 +452,9 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        return self._get_values(params, rng, x, a).reduced_value.squeeze(-1)
+        ensemble_return = self._get_values(params, rng, x, a)
+        aggregated_values = self._aggregate_ensemble_values(ensemble_return.ensemble_values)
+        return aggregated_values.squeeze(-1)
 
     def update_actor(self):
         if not self._actor_buffer.is_sampleable:
