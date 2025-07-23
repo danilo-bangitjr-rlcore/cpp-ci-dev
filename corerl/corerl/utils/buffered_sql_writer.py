@@ -80,6 +80,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     table_name: str = MISSING
     enabled: bool = True
     table_schema: str = MISSING
+    static_columns: bool = True
 
     # sync conditions
     sync_conds: list[str] = Field(default_factory=lambda: ['watermark'])
@@ -245,6 +246,13 @@ class BufferedWriter[T: NamedTuple](ABC):
         new_columns = [col for col in points_columns
                        if col not in self._known_columns]
 
+        if self.cfg.static_columns and new_columns:
+            logger.warning(
+                f"Attempting to add new columns {new_columns} but static_columns is enabled. "
+                f"These columns will be ignored.",
+            )
+            return
+
         assert self.engine is not None
 
         for column in new_columns:
@@ -274,6 +282,19 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         return dict_points
 
+
+    def _maybe_filter_for_static_mode(self, dict_points: list[dict]) -> list[dict]:
+        """Filter dict_points to only include known columns if static_columns is True."""
+        if not self.cfg.static_columns:
+            return dict_points
+
+        filtered_dict_points = []
+        for point in dict_points:
+            filtered_point = {k: v for k, v in point.items() if k in self._known_columns}
+            filtered_dict_points.append(filtered_point)
+        return filtered_dict_points
+
+
     def _insert_sql(self, columns: list):
         # Create dynamic INSERT statement with only columns that have data, will default to null
         columns_list = ", ".join(f'"{col}"' for col in sorted(columns))
@@ -300,8 +321,12 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         dict_points = [point._asdict() for point in points]
         dict_points = self._sanitize_keys(dict_points)
+        dict_points = self._maybe_filter_for_static_mode(dict_points)
         points_columns = self._get_columns(dict_points)
+
         self._add_columns(points_columns)
+
+        points_columns = self._get_columns(dict_points)
 
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(
