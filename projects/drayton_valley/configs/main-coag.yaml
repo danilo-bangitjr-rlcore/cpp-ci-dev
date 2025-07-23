@@ -2,7 +2,6 @@ log_path: outputs/main/coag
 
 feature_flags:
   nominal_setpoint_bias: true
-  normalize_return: true
 
 infra:
   db:
@@ -117,8 +116,6 @@ pipeline:
     - 6.0
     action_bounds:
     - '{Dose_AL_SP_F_SP}-{COAG_AI_DOSE_EXCD_ALM_SP}+0.01'
-        #- '{Dose_AL_SP_F_SP}'
-        #- '{Dose_AL_SP_F_SP}+7*{COAG_AI_DOSE_EXCD_ALM_SP}/8'
     - '{Dose_AL_SP_F_SP}+{COAG_AI_DOSE_EXCD_ALM_SP}-0.01'
     cascade:
       mode: COAG_AI_CTRL_EN
