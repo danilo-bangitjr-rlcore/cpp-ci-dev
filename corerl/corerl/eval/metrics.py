@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, NamedTuple, SupportsFloat
@@ -256,3 +257,25 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
                 metric=key,
                 value=value,
             )
+
+
+    def _transform(self, points: list[_MetricPoint]):
+        if self.cfg.narrow_format:
+            return [point._asdict() for point in points]
+
+        # Return wide format: aggregate by time/agent_step with metrics as columns
+        grouped: dict[str, list] = defaultdict(list)
+
+        for point in points:
+            grouped['time'].append(point.time)
+            grouped['agent_step'].append(point.agent_step)
+            grouped[point.metric].append(point.value)
+
+        aggregated = {}
+        aggregated['time'] = sorted(grouped['time'])[-1]
+        aggregated['agent_step'] = sorted(grouped['agent_step'])[-1]
+        for colname, coldata in grouped.items():
+            if colname not in ['time', 'agent_step']:
+                aggregated[colname] = sum(coldata) / len(coldata)
+
+        return [aggregated]
