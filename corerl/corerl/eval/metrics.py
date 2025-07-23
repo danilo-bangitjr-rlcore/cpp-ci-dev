@@ -95,22 +95,37 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
 
     def _read_by_metric(self, metric: str) -> pd.DataFrame:
+        if self.cfg.narrow_format:
+            stmt = f"""
+                SELECT
+                    time,
+                    agent_step,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric='{metric}';
+            """
+            df = self._execute_read(stmt)
+            df["time"] = pd.to_datetime(df["time"])
+            df["agent_step"] = df["agent_step"].astype(int)
+            df["value"] = df["value"].astype(float)
+            return df
+
+        # wide format
         stmt = f"""
             SELECT
                 time,
                 agent_step,
-                value
+                {metric}
             FROM {self.cfg.table_name}
-            WHERE
-                metric='{metric}';
         """
-
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
         df["agent_step"] = df["agent_step"].astype(int)
-        df["value"] = df["value"].astype(float)
+        df[metric] = df[metric].astype(float)
 
         return df
+
 
     def _read_by_step(
         self,
@@ -118,15 +133,27 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         step_start: int | None,
         step_end: int | None,
     ) -> pd.DataFrame:
-        stmt = f"""
+
+        if self.cfg.narrow_format:
+            stmt = f"""
             SELECT
                 agent_step,
                 value
             FROM {self.cfg.table_name}
             WHERE
                 metric='{metric}'
-        """
+            """
 
+        else:
+            stmt = f"""
+                SELECT
+                    agent_step,
+                    {metric}
+                FROM {self.cfg.table_name}
+                WHERE 1=1
+            """
+
+        # step filtering logic the same whether narrow or wide
         if step_start is not None:
             stmt += f" AND agent_step>='{step_start}'"
 
@@ -137,9 +164,15 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
-        df["value"] = df["value"].astype(float)
 
+        if self.cfg.narrow_format:
+            df["value"] = df["value"].astype(float)
+            return df
+
+        # wide format
+        df[metric] = df[metric].astype(float)
         return df
+
 
     def _read_by_time(
         self,
@@ -147,15 +180,25 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         start_time: datetime | None,
         end_time: datetime | None,
     ) -> pd.DataFrame:
-        stmt = f"""
-            SELECT
-                time,
-                value
-            FROM {self.cfg.table_name}
-            WHERE
-                metric='{metric}'
-        """
+        if self.cfg.narrow_format:
+            stmt = f"""
+                SELECT
+                    time,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric='{metric}'
+            """
+        else:
+            stmt = f"""
+                SELECT
+                    time,
+                    {metric}
+                FROM {self.cfg.table_name}
+                WHERE 1=1
+            """
 
+        # time filtering logic the same whether narrow or wide
         if start_time is not None:
             if start_time.tzinfo is None:
                 start_tz = start_time.astimezone().tzinfo
@@ -174,9 +217,14 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
-        df["value"] = df["value"].astype(float)
+
+        if self.cfg.narrow_format:
+            df["value"] = df["value"].astype(float)
+        else:
+            df[metric] = df[metric].astype(float)
 
         return df
+
 
     def read(
         self,
