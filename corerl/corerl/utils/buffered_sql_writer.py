@@ -132,7 +132,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
 
-    def _ensure_table_exists(self):
+    def ensure_table_exists(self):
         assert self.engine is not None
         if not table_exists(self.engine, table_name=self.cfg.table_name, schema=self.cfg.table_schema):
             with TryConnectContextManager(self.engine) as connection:
@@ -142,7 +142,7 @@ class BufferedWriter[T: NamedTuple](ABC):
             self._table_created = True
 
 
-    def _ensure_known_columns_initialized(self):
+    def ensure_known_columns_initialized(self):
         if not self._columns_initialized and self.engine is not None:
             with TryConnectContextManager(self.engine) as connection:
                 result = connection.execute(self._get_columns_sql())
@@ -239,7 +239,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         return sorted(points_columns)
 
 
-    def _add_columns(self, points_columns: list):
+    def add_columns(self, points_columns: list):
         if not points_columns:
             return
 
@@ -316,15 +316,15 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         assert self.engine is not None
 
-        self._ensure_table_exists()
-        self._ensure_known_columns_initialized()
+        self.ensure_table_exists()
+        self.ensure_known_columns_initialized()
 
         dict_points = [point._asdict() for point in points]
         dict_points = self._sanitize_keys(dict_points)
         dict_points = self._maybe_filter_for_static_mode(dict_points)
         points_columns = self._get_columns(dict_points)
 
-        self._add_columns(points_columns)
+        self.add_columns(points_columns)
 
         points_columns = self._get_columns(dict_points)
 
