@@ -41,6 +41,9 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         super().__init__(cfg)
         self.cfg = cfg
 
+        if not cfg.narrow_format:
+            self.cfg.static_columns = False
+
     def _create_table_sql(self):
         if self.cfg.narrow_format:
             return create_tsdb_table_query(
