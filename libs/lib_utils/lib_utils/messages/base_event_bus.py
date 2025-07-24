@@ -4,21 +4,21 @@ from queue import Empty, Queue
 from typing import Generic
 
 import zmq
-from lib_defs.type_defs.base_events import EventClass
+from lib_defs.type_defs.base_events import EventClass, EventTopicClass
 
 from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
 
-class BaseEventBus(Generic[EventClass]): # noqa: UP046
+class BaseEventBus(Generic[EventClass, EventTopicClass]): # noqa: UP046
     """
     Generic ZMQ event bus for consuming pub-sub events.
     """
     def __init__(
         self,
         event_class: type[EventClass],
-        topic: str,
+        topic: EventTopicClass,
         consumer_name: str = "event_bus_consumer",
         subscriber_sockets: list[str] | None = None,
         publisher_socket: str | None = None,

@@ -10,7 +10,7 @@ from corerl.messages.factory import EventBusConfig
 Callback = Callable[[Event], Any]
 
 
-class EventBus(BaseEventBus[Event]):
+class EventBus(BaseEventBus[Event, EventTopic]):
     """EventBus enables asynchronous communication through a ZMQ pub-sub messaging pattern.
     Spins up the scheduler thread, the consumer thread, and the FIFO subscriber queue.
     """
