@@ -94,6 +94,11 @@ def retryable_main(cfg: MainConfig):
     except Exception as e:
         log.exception(e)
 
+        # if we are in a simulation, then we want to forward
+        # exceptions to fail the process
+        if cfg.is_simulation:
+            raise e
+
     finally:
         app_state.stop_event.set()
         app_state.metrics.close()
