@@ -82,6 +82,10 @@ class DataReader:
         Please see the tests in the TestDataReaderLogic class in test/medium/data_loaders/test_data_reader.py
         for concrete examples of input and expected output.
         """
+        assert (
+            start_time < end_time
+        ), "The start_time passed to DataReader.batch_aggregated_read must come before the passed end_time."
+
         if start_time.tzinfo is None:
             start_tz = start_time.astimezone().tzinfo
             logger.warning(f"naive start_time passed, assuming {start_tz} and converting to UTC")
