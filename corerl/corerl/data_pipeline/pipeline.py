@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, Self
 
+import numpy as np
 import pandas as pd
 from lib_agent.buffer.datatypes import DataMode
 from pandas import DataFrame
@@ -245,6 +246,7 @@ class Pipeline:
                 action_hi=data,
                 transitions=[],
             )
+        data = data.astype(dtype=np.float32)
 
         # construct the internal carry object that is mutated
         # by each stage of the pipeline
