@@ -233,6 +233,8 @@ def online_q_values_and_act_prob(
         return
 
     x_axis_actions, probs, qs = q_values_and_act_prob(app_state, agent, state)
+    chex.assert_rank(x_axis_actions, 1)
+    chex.assert_shape([probs, qs], (agent.action_dim, len(x_axis_actions)))
 
     for a_dim_idx in range(agent.action_dim):
         # Write probability densities to evals table
@@ -249,7 +251,7 @@ def online_q_values_and_act_prob(
         # Write q values to evals table
         qs_measure = XYEval(data=[
             XY(x=float(x), y=float(y))
-            for x, y in zip(x_axis_actions, qs, strict=True)
+            for x, y in zip(x_axis_actions, qs[a_dim_idx], strict=True)
         ])
         app_state.evals.write(
             agent_step=app_state.agent_step,
