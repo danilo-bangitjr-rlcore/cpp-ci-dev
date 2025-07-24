@@ -86,6 +86,21 @@ class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa
     # ------------------------
     # --- Producer Methods ---
     # ------------------------
+    def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
+        if not isinstance(event, self._event_class):
+            # Then event is instance of EventTypeClass
+            event = self._event_class(type=event)
+
+        message_data = event.model_dump_json()
+        self.publisher_socket.send_string(f"{topic} {message_data}")
+
+    def attach_callback(self, event_type: EventTypeClass, cb: Callback):
+        self._callbacks[event_type].append(cb)
+
+
+    def attach_callbacks(self, cbs: dict[EventTypeClass, Callback]):
+        for event_type, cb in cbs.items():
+            self.attach_callback(event_type, cb)
 
 
     # ----------------------

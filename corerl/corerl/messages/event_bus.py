@@ -23,20 +23,10 @@ class EventBus(BaseEventBus[Event, EventTopic, EventType]):
             publisher_socket=cfg_event_bus.app_connection,
         )
 
+    # Overriding to have the default EventTopic
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
-        if isinstance(event, EventType):
-            event = Event(type=event)
+        return super().emit_event(event, topic)
 
-        message_data = event.model_dump_json()
-        self.publisher_socket.send_string(f"{topic} {message_data}")
-
-    def attach_callback(self, event_type: EventType, cb: Callback):
-        self._callbacks[event_type].append(cb)
-
-
-    def attach_callbacks(self, cbs: dict[EventType, Callback]):
-        for event_type, cb in cbs.items():
-            self.attach_callback(event_type, cb)
 
 class DummyEventBus:
     def __init__(self, queue_size: int = 10):
