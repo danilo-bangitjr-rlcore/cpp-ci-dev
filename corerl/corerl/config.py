@@ -258,5 +258,4 @@ class MainConfig:
         if not self.feature_flags.normalize_return:
             return
 
-        self.agent.critic.action_regularization = 5e-4
         self.agent.loss_threshold = 1e-8
