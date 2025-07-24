@@ -1,17 +1,21 @@
 import logging
 import threading
+from collections import defaultdict
+from collections.abc import Callable
 from queue import Empty, Queue
-from typing import Generic
+from typing import Any, Generic
 
 import zmq
-from lib_defs.type_defs.base_events import EventClass, EventTopicClass
+from lib_defs.type_defs.base_events import EventClass, EventTopicClass, EventTypeClass
 
 from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
 
-class BaseEventBus(Generic[EventClass, EventTopicClass]): # noqa: UP046
+Callback = Callable[[EventClass], Any]
+
+class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa: UP046
     """
     Generic ZMQ event bus for consuming pub-sub events.
     """
@@ -23,6 +27,7 @@ class BaseEventBus(Generic[EventClass, EventTopicClass]): # noqa: UP046
         subscriber_sockets: list[str] | None = None,
         publisher_socket: str | None = None,
     ):
+        self._event_class = event_class
         self.queue: Queue[EventClass] = Queue()
         self.zmq_context = zmq.Context()
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
@@ -46,6 +51,11 @@ class BaseEventBus(Generic[EventClass, EventTopicClass]): # noqa: UP046
             for sub_socket in subscriber_sockets:
                 self.subscriber_socket.bind(sub_socket)
 
+        self._callbacks: dict[EventTypeClass, list[Callback]] = defaultdict(list)
+
+    # ------------------------
+    # --- Consumer Methods ---
+    # ------------------------
     def start(self):
         self.consumer_thread.start()
 
@@ -61,6 +71,25 @@ class BaseEventBus(Generic[EventClass, EventTopicClass]): # noqa: UP046
         self.queue.task_done()
         return event
 
+    def listen_forever(self):
+        while True:
+            event: EventClass | None = self.recv_event()
+            if event is None:
+                continue
+
+            for cb in self._callbacks[event.type]:
+                cb(event)
+
+            yield event
+
+    # ------------------------
+    # --- Producer Methods ---
+    # ------------------------
+
+
+    # ----------------------
+    # --- Common Methods ---
+    # ----------------------
     def cleanup(self):
         logger.info("Stopping event bus...")
         self.stop_event.set()

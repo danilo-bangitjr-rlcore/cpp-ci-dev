@@ -1,16 +1,12 @@
-from collections import defaultdict, deque
-from collections.abc import Callable
-from typing import Any
+from collections import deque
 
-from lib_utils.messages.base_event_bus import BaseEventBus
+from lib_utils.messages.base_event_bus import BaseEventBus, Callback
 
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.messages.factory import EventBusConfig
 
-Callback = Callable[[Event], Any]
 
-
-class EventBus(BaseEventBus[Event, EventTopic]):
+class EventBus(BaseEventBus[Event, EventTopic, EventType]):
     """EventBus enables asynchronous communication through a ZMQ pub-sub messaging pattern.
     Spins up the scheduler thread, the consumer thread, and the FIFO subscriber queue.
     """
@@ -26,7 +22,6 @@ class EventBus(BaseEventBus[Event, EventTopic]):
             ],
             publisher_socket=cfg_event_bus.app_connection,
         )
-        self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
         if isinstance(event, EventType):
@@ -34,19 +29,6 @@ class EventBus(BaseEventBus[Event, EventTopic]):
 
         message_data = event.model_dump_json()
         self.publisher_socket.send_string(f"{topic} {message_data}")
-
-
-    def listen_forever(self):
-        while True:
-            event: Event | None = self.recv_event()
-            if event is None:
-                continue
-
-            for cb in self._callbacks[event.type]:
-                cb(event)
-
-            yield event
-
 
     def attach_callback(self, event_type: EventType, cb: Callback):
         self._callbacks[event_type].append(cb)
