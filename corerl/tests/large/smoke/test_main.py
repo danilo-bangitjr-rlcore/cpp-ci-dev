@@ -29,7 +29,7 @@ def test_main_configs(
 
     proc = subprocess.run([
         'uv', 'run', 'python', 'corerl/main.py',
-        '--config-name', f'../config/{config_name}', 'max_steps=5',
+        '--config-name', f'../config/{config_name}', 'max_steps=50',
         f'infra.db.port={port}', 'metrics.enabled=True',
         f'infra.db.db_name={tsdb_tmp_db_name}',
     ], check=False)
