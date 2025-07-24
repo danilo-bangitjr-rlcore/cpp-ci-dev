@@ -12,9 +12,12 @@ class BaseEventType(StrEnum):
 class BaseEventTopic(StrEnum):
     ...
 
-EventTypeVar = TypeVar('EventTypeVar', bound=BaseEventType)
+EventTypeClass = TypeVar('EventTypeClass', bound=BaseEventType)
+EventTopicClass = TypeVar('EventTopicClass', bound=BaseEventTopic)
 
-class BaseEvent(BaseModel, Generic[EventTypeVar]): # noqa: UP046
+class BaseEvent(BaseModel, Generic[EventTypeClass]): # noqa: UP046
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
-    type: EventTypeVar
+    type: EventTypeClass
+
+EventClass = TypeVar("EventClass", bound=BaseEvent)

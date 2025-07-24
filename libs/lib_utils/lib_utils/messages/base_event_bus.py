@@ -1,16 +1,15 @@
 import logging
 import threading
 from queue import Empty, Queue
-from typing import Generic, TypeVar
+from typing import Generic
 
 import zmq
-from lib_defs.type_defs.base_events import BaseEvent
+from lib_defs.type_defs.base_events import EventClass
 
 from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
-EventClass = TypeVar('EventClass', bound=BaseEvent)
 
 class BaseEventBus(Generic[EventClass]): # noqa: UP046
     """
