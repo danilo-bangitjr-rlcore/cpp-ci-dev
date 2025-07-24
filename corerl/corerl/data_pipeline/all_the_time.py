@@ -100,15 +100,15 @@ class AllTheTimeTC:
         Constructs steps from pipeframe elements
         """
 
-        states = jnp.asarray(pf.states.to_numpy())
-        actions = jnp.asarray(pf.actions.to_numpy())
-        rewards = pf.rewards['reward'].to_numpy()
+        states = jnp.asarray(pf.states.to_numpy(dtype=np.float32))
+        actions = jnp.asarray(pf.actions.to_numpy(dtype=np.float32))
+        rewards = pf.rewards['reward'].to_numpy(dtype=np.float32)
         if self.cfg.normalize_return:
             rewards *= (1 - self.gamma)
 
         # dynamic action bounds
-        action_lo = jnp.asarray(pf.action_lo.to_numpy())
-        action_hi = jnp.asarray(pf.action_hi.to_numpy())
+        action_lo = jnp.asarray(pf.action_lo.to_numpy(dtype=np.float32))
+        action_hi = jnp.asarray(pf.action_hi.to_numpy(dtype=np.float32))
 
         dps = pf.decision_points
         acs = pf.action_change
