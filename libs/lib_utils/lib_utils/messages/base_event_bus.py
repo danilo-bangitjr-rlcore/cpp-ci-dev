@@ -10,7 +10,7 @@ from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
-EventClass = TypeVar('EventClass', bound='BaseEvent')
+EventClass = TypeVar('EventClass', bound=BaseEvent)
 
 class BaseEventBus(Generic[EventClass]): # noqa: UP046
     """
@@ -39,7 +39,7 @@ class BaseEventBus(Generic[EventClass]): # noqa: UP046
             name=consumer_name,
         )
 
-        if isinstance(subscriber_sockets, list):
+        if subscriber_sockets is not None:
             for sub_socket in subscriber_sockets:
                 self.subscriber_socket.bind(sub_socket)
 
