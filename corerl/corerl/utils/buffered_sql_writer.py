@@ -1,9 +1,11 @@
 import logging
+import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
+from lib_config.group import Group
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
 from pydantic import Field
@@ -17,7 +19,6 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-
 class SyncCond(Protocol):
     def is_soft_sync(self, writer: 'BufferedWriter') -> bool:
         ...
@@ -27,6 +28,7 @@ class SyncCond(Protocol):
 
 @config()
 class WatermarkSyncConfig:
+    name: Literal['watermark'] = 'watermark'
     lo_wm: int = 1024
     hi_wm: int = 2048
 
@@ -41,6 +43,36 @@ class WatermarkCond:
     def is_hard_sync(self, writer: 'BufferedWriter'):
         return len(writer) > self._hi_wm
 
+
+@config()
+class TimeSyncConfig:
+    name: Literal['time'] = 'time'
+    soft_sync_seconds: int = 5
+    hard_sync_seconds: int = 10
+
+class TimeSyncCond:
+    def __init__(self, cfg: TimeSyncConfig):
+        self._soft_sync_seconds = cfg.soft_sync_seconds
+        self._hard_sync_seconds = cfg.hard_sync_seconds
+
+    def is_soft_sync(self, writer: 'BufferedWriter'):
+        current_time = time.time()
+        time_elapsed = current_time - writer.last_sync_time
+        return time_elapsed >= self._soft_sync_seconds
+
+    def is_hard_sync(self, writer: 'BufferedWriter'):
+        current_time = time.time()
+        time_elapsed = current_time - writer.last_sync_time
+        return time_elapsed >= self._hard_sync_seconds
+
+
+sync_group = Group[
+    [], SyncCond,
+]()
+sync_group.dispatcher(WatermarkCond)
+sync_group.dispatcher(TimeSyncCond)
+
+
 @config()
 class BufferedWriterConfig(SQLEngineConfig):
     db_name: str = MISSING
@@ -51,6 +83,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     # sync conditions
     sync_conds: list[str] = Field(default_factory=lambda: ['watermark'])
     watermark_cfg: WatermarkSyncConfig = Field(default_factory=WatermarkSyncConfig)
+    timesync_cfg: TimeSyncConfig = Field(default_factory=TimeSyncConfig)
 
     @computed('table_schema')
     @classmethod
@@ -61,6 +94,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     @classmethod
     def _dbname(cls, cfg: 'MainConfig'):
         return cfg.infra.db.db_name
+
 
 class BufferedWriter[T: NamedTuple](ABC):
     def __init__(
@@ -76,18 +110,19 @@ class BufferedWriter[T: NamedTuple](ABC):
         self.engine: Engine | None = None
 
         self._sync_conds: list[SyncCond] = []
+        self.last_sync_time = time.time()
 
-        # Mapping of condition names to their corresponding classes and configs
-        # add new conditions here
-        cond_mapping = {
-            'watermark': (WatermarkCond, cfg.watermark_cfg),
+        # Mapping of condition names to their condfigs
+        cond_cfg_map = {
+            'watermark': cfg.watermark_cfg,
+            'time': cfg.timesync_cfg,
         }
-        # Instantiate conditions dynamically based on sync_conds list
+
         for cond_name in cfg.sync_conds:
-            cond_data = cond_mapping.get(cond_name)
-            if cond_data:
-                cond_class, cond_config = cond_data
-                self._sync_conds.append(cond_class(cond_config))
+            cond_cfg = cond_cfg_map.get(cond_name)
+            assert cond_cfg is not None, "Invalid sync condition specified."
+            sync_cond = sync_group.dispatch(cond_cfg)
+            self._sync_conds.append(sync_cond)
 
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
@@ -146,8 +181,8 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         data = self._buffer
         self._buffer = []
+        self.last_sync_time = time.time()
         self._write_future = self._exec.submit(self._deferred_write, data)
-
 
     def blocking_sync(self):
         if not self.cfg.enabled:
