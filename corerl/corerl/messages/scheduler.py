@@ -22,6 +22,11 @@ def start_scheduler_thread(app_state: AppState):
     scheduler_thread.start()
     return scheduler_thread
 
+def create_scheduler_clock(event_type: EventType, period: timedelta, offset: timedelta = timedelta(seconds=0)):
+    """
+    Simple factory function, as all the Clocks here use Event and EventTopic.corerl_scheduler
+    """
+    return Clock(Event, EventTopic.corerl_scheduler, event_type, period, offset)
 
 def scheduler_task(app_state: AppState):
     """
@@ -29,18 +34,18 @@ def scheduler_task(app_state: AppState):
     Responsible for emitting the step events based on configured observation windows.
     """
     cfg = app_state.cfg.interaction
-    action_clock = Clock(Event, EventTopic.corerl_scheduler, EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
+    action_clock = create_scheduler_clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
     clocks = [
         action_clock,
-        Clock(Event, EventTopic.corerl_scheduler, EventType.step_get_obs, cfg.obs_period),
-        Clock(Event, EventTopic.corerl_scheduler, EventType.step_agent_update, cfg.update_period),
-        Clock(Event, EventTopic.corerl_scheduler, EventType.agent_step, cfg.obs_period),
-        Clock(Event, EventTopic.corerl_scheduler, EventType.flush_buffers, timedelta(seconds=30)),
+        create_scheduler_clock(EventType.step_get_obs, cfg.obs_period),
+        create_scheduler_clock(EventType.step_agent_update, cfg.update_period),
+        create_scheduler_clock(EventType.agent_step, cfg.obs_period),
+        create_scheduler_clock(EventType.flush_buffers, timedelta(seconds=30)),
     ]
 
     if cfg.setpoint_ping_period is not None:
         clocks += [
-            Clock(Event, EventTopic.corerl_scheduler, EventType.ping_setpoints, cfg.setpoint_ping_period, offset=cfg.setpoint_ping_period),
+            create_scheduler_clock(EventType.ping_setpoints, cfg.setpoint_ping_period, offset=cfg.setpoint_ping_period),
         ]
 
     app_state.event_bus.attach_callback(
