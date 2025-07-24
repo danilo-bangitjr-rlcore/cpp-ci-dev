@@ -44,12 +44,13 @@ class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa
             name=consumer_name,
         )
 
-        if publisher_socket is not None:
-            self.publisher_socket.connect(publisher_socket)
-
         if subscriber_sockets is not None:
             for sub_socket in subscriber_sockets:
                 self.subscriber_socket.bind(sub_socket)
+
+        if publisher_socket is not None:
+            self.publisher_socket.connect(publisher_socket)
+
 
         self._callbacks: dict[EventTypeClass, list[Callback]] = defaultdict(list)
 
