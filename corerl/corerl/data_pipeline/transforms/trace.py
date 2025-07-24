@@ -36,7 +36,7 @@ class TraceConstructor:
     def __init__(self, cfg: TraceConfig):
         self._cfg = cfg
         self._trace_params = TraceParams(
-            decays=np.array(cfg.trace_values),
+            decays=np.array(cfg.trace_values, dtype=np.float32),
             missing_tol=cfg.missing_tol,
         )
 
@@ -47,9 +47,9 @@ class TraceConstructor:
 
         cols = set(carry.transform_data.columns)
         for col in cols:
-            obs = carry.transform_data[col].to_numpy()
-            prev_trace = Maybe(trace.get(col)).or_else(np.ones_like(self._trace_params.decays, dtype=np.float64)*np.nan)
-            prev_quality = Maybe(quality.get(col)).or_else(np.zeros_like(self._trace_params.decays, dtype=np.float64))
+            obs = carry.transform_data[col].to_numpy(dtype=np.float32)
+            prev_trace = Maybe(trace.get(col)).or_else(np.ones_like(self._trace_params.decays, dtype=np.float32)*np.nan)
+            prev_quality = Maybe(quality.get(col)).or_else(np.zeros_like(self._trace_params.decays, dtype=np.float32))
             assert obs.ndim == 1, f"shape of column {col}: {obs.shape}, transform_data: {carry.transform_data}"
 
             trace_data = TraceData(
@@ -63,7 +63,7 @@ class TraceConstructor:
             quality[col] = new_trace_data.quality
             carry.transform_data.drop(col, axis=1, inplace=True)
 
-            for i, decay in enumerate(self._trace_params.decays):
+            for i, decay in enumerate(self._cfg.trace_values):
                 new_name = f'{col}_trace-{decay}'
                 carry.transform_data[new_name] = out[:, i]
 
@@ -80,7 +80,7 @@ transform_group.dispatcher(TraceConstructor)
 def compute_trace_with_nan(trace_params: TraceParams, trace_data: TraceData):
     n_samples = len(trace_data.obs)
     n_traces = len(trace_params.decays)
-    out = np.zeros((n_samples, n_traces), dtype=np.float64)
+    out = np.zeros((n_samples, n_traces), dtype=np.float32)
 
     decays = trace_params.decays
     trace = trace_data.trace
