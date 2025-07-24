@@ -15,6 +15,7 @@ services:
     restart: unless-stopped
     volumes:
       - timescale-storage:/var/lib/postgresql/data
+      # - ./.cache/timescaledb:/var/lib/postgresql/data
 
   opc-server:
     build: ./test/test/e2e/opc_server
@@ -44,11 +45,13 @@ services:
         condition: service_healthy
     volumes:
       - ./test/test/e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
+      # - ./test/test/e2e/tep/telegraf/tennessee_telegraf.conf:/etc/telegraf/telegraf.conf:ro
     restart: unless-stopped
     develop:
       watch:
         - action: sync+restart
           path: ./test/test/e2e/telegraf/generated_telegraf.conf
+          # path: ./test/test/e2e/tep/telegraf/tennessee_telegraf.conf
           target: /etc/telegraf/telegraf.conf
 
   corerl:
