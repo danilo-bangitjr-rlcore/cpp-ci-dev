@@ -8,6 +8,7 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_config.config import config
+from lib_utils.errors import fail_gracefully
 from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
@@ -213,6 +214,7 @@ class QPDFPlotsConfig:
     # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
     other_action_samples: int = 10
 
+@fail_gracefully()
 def online_q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
