@@ -134,12 +134,15 @@ class BufferedWriter[T: NamedTuple](ABC):
 
     def ensure_table_exists(self):
         assert self.engine is not None
+        if self._table_created:
+            return
+
         if not table_exists(self.engine, table_name=self.cfg.table_name, schema=self.cfg.table_schema):
             with TryConnectContextManager(self.engine) as connection:
                 # Create new table
                 connection.execute(self._create_table_sql())
                 connection.commit()
-            self._table_created = True
+        self._table_created = True
 
 
     def ensure_known_columns_initialized(self):
