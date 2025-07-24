@@ -4,9 +4,10 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import zmq
+from lib_utils.messages.clock import Clock
 
 from corerl.messages.events import Event, EventTopic, EventType
-from corerl.state import AppState, IEventBus
+from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
 
@@ -28,18 +29,18 @@ def scheduler_task(app_state: AppState):
     Responsible for emitting the step events based on configured observation windows.
     """
     cfg = app_state.cfg.interaction
-    action_clock = Clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
+    action_clock = Clock(Event, EventTopic.corerl_scheduler, EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
     clocks = [
         action_clock,
-        Clock(EventType.step_get_obs, cfg.obs_period),
-        Clock(EventType.step_agent_update, cfg.update_period),
-        Clock(EventType.agent_step, cfg.obs_period),
-        Clock(EventType.flush_buffers, timedelta(seconds=30)),
+        Clock(Event, EventTopic.corerl_scheduler, EventType.step_get_obs, cfg.obs_period),
+        Clock(Event, EventTopic.corerl_scheduler, EventType.step_agent_update, cfg.update_period),
+        Clock(Event, EventTopic.corerl_scheduler, EventType.agent_step, cfg.obs_period),
+        Clock(Event, EventTopic.corerl_scheduler, EventType.flush_buffers, timedelta(seconds=30)),
     ]
 
     if cfg.setpoint_ping_period is not None:
         clocks += [
-            Clock(EventType.ping_setpoints, cfg.setpoint_ping_period, offset=cfg.setpoint_ping_period),
+            Clock(Event, EventTopic.corerl_scheduler, EventType.ping_setpoints, cfg.setpoint_ping_period, offset=cfg.setpoint_ping_period),
         ]
 
     app_state.event_bus.attach_callback(
@@ -51,7 +52,7 @@ def scheduler_task(app_state: AppState):
         try:
             now = datetime.now(UTC)
             for clock in clocks:
-                clock.maybe_emit(app_state.event_bus, now)
+                clock.maybe_emit(app_state.event_bus, now) # This gives us an error, but will fix in a later commit
 
             shortest_duration = min(clock.get_next_ts() for clock in clocks) - datetime.now(UTC)
             shortest_duration = max(shortest_duration.total_seconds(), 0)
@@ -63,35 +64,3 @@ def scheduler_task(app_state: AppState):
                 break
             raise
 
-
-class Clock:
-    def __init__(self, event_type: EventType, period: timedelta, offset: timedelta = timedelta(seconds=0)):
-        self._event_type = event_type
-        self._period = period
-
-        self._next_ts = datetime.now(UTC) + offset
-
-    def emit(self, event_bus: IEventBus, now: datetime):
-        event = Event(type=self._event_type)
-        try:
-            event_bus.emit_event(event, topic=EventTopic.corerl_scheduler)
-        except zmq.ZMQError as e:
-            if isinstance(e, zmq.error.Again):
-                # temporarily unavailable, retry
-                return
-            raise
-
-        self.reset(now)
-
-    def should_emit(self, now: datetime):
-        return now > self._next_ts
-
-    def maybe_emit(self, event_bus: IEventBus, now: datetime):
-        if self.should_emit(now):
-            self.emit(event_bus, now)
-
-    def get_next_ts(self):
-        return self._next_ts
-
-    def reset(self, now: datetime):
-        self._next_ts = now + self._period
