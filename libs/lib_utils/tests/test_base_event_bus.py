@@ -9,7 +9,7 @@ from lib_utils.messages.base_event_bus import BaseEventBus
 
 
 class SampleTopics(BaseEventTopic):
-        test_topic = auto()
+    test_topic = auto()
 
 def test_base_event_bus_init(mocker: Mock):
     # Mock ZMQ components

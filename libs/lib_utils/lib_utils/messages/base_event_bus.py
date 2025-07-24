@@ -87,6 +87,7 @@ class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa
     # --- Producer Methods ---
     # ------------------------
     def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
+        assert self.publisher_socket is not None, "publisher socket must be initialized to emit event"
         if not isinstance(event, self._event_class):
             # Then event is instance of EventTypeClass
             event = self._event_class(type=event)
