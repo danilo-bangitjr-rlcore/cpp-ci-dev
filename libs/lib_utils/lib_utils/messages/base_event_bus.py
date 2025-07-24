@@ -21,6 +21,7 @@ class BaseEventBus(Generic[EventClass]): # noqa: UP046
         topic: str,
         consumer_name: str = "event_bus_consumer",
         subscriber_sockets: list[str] | None = None,
+        publisher_socket: str | None = None,
     ):
         self.queue: Queue[EventClass] = Queue()
         self.zmq_context = zmq.Context()
@@ -37,6 +38,9 @@ class BaseEventBus(Generic[EventClass]): # noqa: UP046
             daemon=True,
             name=consumer_name,
         )
+
+        if publisher_socket is not None:
+            self.publisher_socket.connect(publisher_socket)
 
         if subscriber_sockets is not None:
             for sub_socket in subscriber_sockets:

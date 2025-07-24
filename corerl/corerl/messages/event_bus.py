@@ -24,8 +24,8 @@ class EventBus(BaseEventBus[Event]):
                 cfg_event_bus.app_connection,
                 cfg_event_bus.cli_connection,
             ],
+            publisher_socket=cfg_event_bus.app_connection,
         )
-        self.publisher_socket.connect(self.cfg_event_bus.app_connection)
         self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
 
     def emit_event(self, event: Event | EventType, topic: EventTopic = EventTopic.debug_app):
