@@ -48,7 +48,8 @@ interaction:
 env:
   name: sim_async_env
   gym:
-    gym_name: Pipeline-v0
+    env_config:
+      name: Pipeline-v0
 
 metrics:
   enabled: True

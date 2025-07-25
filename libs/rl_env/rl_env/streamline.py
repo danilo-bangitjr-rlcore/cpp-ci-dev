@@ -3,9 +3,10 @@ from typing import Literal
 
 import gymnasium as gym
 import numpy as np
+from lib_config.config import config
 from scipy.optimize import linprog
 
-from rl_env.factory import EnvConfig, env_group
+from rl_env.group_util import EnvConfig, env_group
 
 
 @dataclass
@@ -85,9 +86,9 @@ class PipelineData:
     weights: Weights = field(default_factory=lambda: Weights(volumereward=100, tankpenalty=1000, deliveryreward=10))
 
 
-@dataclass
+@config(frozen=True)
 class PipelineConfig(EnvConfig):
-    name: str = 'Pipeline-v0'
+    name: Literal['Pipeline-v0'] = 'Pipeline-v0'
     pipeline_data: PipelineData = field(default_factory=PipelineData)
     control_strategy: Literal['agent', "mpc", "dagger"] = "dagger"
 
