@@ -173,7 +173,7 @@ class InteractionConfig:
     def _validate_obs_action_periods(self, cfg: MainConfig):
         assert (
             self.obs_period <= self.action_period
-        ), "The obs_period must be shorter or equal to the action period."
+        ), "The obs_period must be shorter or equal to the action_period."
 
         assert (
             self.action_period % self.obs_period == timedelta(0)
