@@ -1,0 +1,43 @@
+log_path: outputs/test
+agent_name: test
+seed: 1
+is_simulation: True
+
+env:
+  name: sim_async_env
+  db:
+    table_name: sensors
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:01:00
+  action_period: 00:05:00
+
+pipeline:
+  transition_creator:
+    name: all-the-time
+    min_n_step: 1
+    max_n_step: 1
+
+  transition_filter:
+    filters:
+      - "only_pre_dp_or_ac"
+      - "only_dp"
+      - "no_nan"
+      - "only_no_action_change"
+
+  reward:
+    priorities:
+      - tags: [tag-0]
+        directions: max
+        weights: [1.0]
+
+  tags:
+    # Actions
+    - name: action-0
+      type: ai_setpoint
+      operating_range: [0.0, 100.0]
+
+    # Observations
+    - name: tag-0
+      operating_range: [0.0, 100.0]
