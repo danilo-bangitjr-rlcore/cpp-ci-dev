@@ -167,10 +167,6 @@ class DeploymentInteraction:
 
         # log rewards
         rewards = pipe_return.rewards
-        if self._app_state.cfg.feature_flags.normalize_return:
-            gamma = self._app_state.cfg.agent.gamma
-            rewards = rewards / (1 - gamma)
-
         self._write_to_metrics(rewards) # no prefix required
 
         # perform evaluations
