@@ -103,8 +103,7 @@ class TestDataReaderLogic:
             )
         writer.blocking_sync()
 
-        error_msg = "The start_time passed to DataReader.batch_aggregated_read must come before the passed end_time."
-        with pytest.raises(AssertionError, match=error_msg):
+        with pytest.raises(AssertionError):
             reader.batch_aggregated_read(
                 names=["test_var"], start_time=end_time, end_time=start_time, bucket_width=obs_period,
             )

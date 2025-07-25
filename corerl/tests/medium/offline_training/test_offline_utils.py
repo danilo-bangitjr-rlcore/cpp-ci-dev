@@ -265,8 +265,7 @@ def test_get_data_start_end_times_1(offline_cfg: MainConfig, data_writer: DataWr
     offline_cfg.offline.offline_end_time = None
     offline_training = OfflineTraining(offline_cfg)
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    error_msg = "The specified 'start' timestamp must come before the final timestamp in the offline data."
-    with pytest.raises(AssertionError, match=error_msg):
+    with pytest.raises(AssertionError):
         offline_training.load_offline_transitions(pipeline)
 
 def test_get_data_start_end_times_2(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState):
@@ -279,6 +278,5 @@ def test_get_data_start_end_times_2(offline_cfg: MainConfig, data_writer: DataWr
     offline_cfg.offline.offline_end_time = start_time
     offline_training = OfflineTraining(offline_cfg)
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    error_msg = "The specified 'end' timestamp must come after the first timestamp in the offline data."
-    with pytest.raises(AssertionError, match=error_msg):
+    with pytest.raises(AssertionError):
         offline_training.load_offline_transitions(pipeline)

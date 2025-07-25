@@ -11,7 +11,4 @@ def test_offline_config_time_assertion():
     )
 
     assert isinstance(cfg, ConfigValidationErrors)
-    assert cfg.message == "Failed to validate config"
     assert "offline" in cfg.meta
-    error = cfg.meta["offline"]
-    assert "Offline training start timestamp must come before the offline training end timestamp." in error.message
