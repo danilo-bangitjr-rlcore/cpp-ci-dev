@@ -7,7 +7,7 @@ from lib_defs.type_defs.base_events import EventClass, EventTopicClass, EventTyp
 from lib_utils.messages.base_event_bus import BaseEventBus
 
 
-class Clock(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa UP046
+class Clock(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa: UP046
     def __init__(
             self,
             event_class: type[EventClass],
@@ -23,7 +23,7 @@ class Clock(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa UP046
 
         self._next_ts = datetime.now(UTC) + offset
 
-    def emit(self, event_bus: BaseEventBus, now: datetime):
+    def emit(self, event_bus: BaseEventBus[EventClass, EventTopicClass, EventTypeClass], now: datetime):
         event = self._event_class(type=self._event_type)
         try:
             event_bus.emit_event(event, topic=self._event_topic)
@@ -38,7 +38,7 @@ class Clock(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa UP046
     def should_emit(self, now: datetime):
         return now > self._next_ts
 
-    def maybe_emit(self, event_bus: BaseEventBus, now: datetime):
+    def maybe_emit(self, event_bus: BaseEventBus[EventClass, EventTopicClass, EventTypeClass], now: datetime):
         if self.should_emit(now):
             self.emit(event_bus, now)
 

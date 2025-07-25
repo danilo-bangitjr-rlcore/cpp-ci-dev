@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 import zmq
 from lib_utils.messages.clock import Clock
 
+from corerl.messages.event_bus import EventBus
 from corerl.messages.events import Event, EventTopic, EventType
 from corerl.state import AppState
 
@@ -22,13 +23,17 @@ def start_scheduler_thread(app_state: AppState):
     scheduler_thread.start()
     return scheduler_thread
 
-def create_scheduler_clock(event_type: EventType, period: timedelta, offset: timedelta = timedelta(seconds=0)):
+def create_scheduler_clock(
+        event_type: EventType,
+        period: timedelta,
+        offset: timedelta = timedelta(seconds=0),
+) -> Clock[Event, EventTopic, EventType]:
     """
     Simple factory function, as all the Clocks here use Event and EventTopic.corerl_scheduler
     """
     return Clock(Event, EventTopic.corerl_scheduler, event_type, period, offset)
 
-def scheduler_task(app_state: AppState):
+def scheduler_task(app_state: AppState[EventBus]):
     """
     Thread worker that emits ZMQ messages using our messages Event class.
     Responsible for emitting the step events based on configured observation windows.
@@ -57,7 +62,7 @@ def scheduler_task(app_state: AppState):
         try:
             now = datetime.now(UTC)
             for clock in clocks:
-                clock.maybe_emit(app_state.event_bus, now) # This gives us an error, but will fix in a later commit
+                clock.maybe_emit(app_state.event_bus, now)
 
             shortest_duration = min(clock.get_next_ts() for clock in clocks) - datetime.now(UTC)
             shortest_duration = max(shortest_duration.total_seconds(), 0)
