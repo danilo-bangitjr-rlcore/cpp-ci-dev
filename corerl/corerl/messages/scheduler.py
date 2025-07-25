@@ -29,7 +29,7 @@ def create_scheduler_clock(
         offset: timedelta = timedelta(seconds=0),
 ) -> Clock[Event, EventTopic, EventType]:
     """
-    Simple factory function, as all the Clocks here use Event and EventTopic.corerl_scheduler
+    Factory function to create clocks specifically for the CoreRL scheduler topic
     """
     return Clock(Event, EventTopic.corerl_scheduler, event_type, period, offset)
 
