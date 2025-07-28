@@ -36,6 +36,10 @@ def split_windows_into_chunks(windows: list[tuple[dt.datetime | None, dt.datetim
         yield from split_into_chunks(start, stop, width)
 
 def split_into_chunks(start: dt.datetime, end: dt.datetime, width: dt.timedelta):
+    assert (
+        start < end
+    ), "The start timestamp passed to split_into_chunks() must come before the passed end timestamp."
+
     s = start
     while s < end:
         e = s + width
