@@ -94,7 +94,7 @@ transform_group.dispatcher(Normalizer)
 @njit
 def _norm(x: np.ndarray, mi: float, ma: float):
     n = len(x)
-    out = np.zeros(n, dtype=np.float64)
+    out = np.zeros(n, dtype=np.float32)
 
     for i in range(n):
         if np.isnan(x[i]):
