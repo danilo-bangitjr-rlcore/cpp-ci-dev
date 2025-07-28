@@ -24,8 +24,8 @@ class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa
         event_class: type[EventClass],
         topic: EventTopicClass,
         consumer_name: str = "event_bus_consumer",
-        subscriber_sockets: list[str] | None = None,
-        publisher_socket: str | None = None,
+        subscriber_addrs: list[str] | None = None,
+        publisher_addr: str | None = None,
     ):
         self._event_class = event_class
         self.queue: Queue[EventClass] = Queue()
@@ -44,12 +44,12 @@ class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa
             name=consumer_name,
         )
 
-        if subscriber_sockets is not None:
-            for sub_socket in subscriber_sockets:
+        if subscriber_addrs is not None:
+            for sub_socket in subscriber_addrs:
                 self.subscriber_socket.bind(sub_socket)
 
-        if publisher_socket is not None:
-            self.publisher_socket.connect(publisher_socket)
+        if publisher_addr is not None:
+            self.publisher_socket.connect(publisher_addr)
 
 
         self._callbacks: dict[EventTypeClass, list[Callback]] = defaultdict(list)

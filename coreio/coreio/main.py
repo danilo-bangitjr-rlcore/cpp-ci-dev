@@ -70,7 +70,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
         event_class=IOEvent,
         topic=IOEventTopic.coreio,
         consumer_name="coreio_consumer",
-        subscriber_sockets=[cfg.coreio.coreio_origin],
+        subscriber_addrs=[cfg.coreio.coreio_origin],
     )
     zmq_communication.start()
 

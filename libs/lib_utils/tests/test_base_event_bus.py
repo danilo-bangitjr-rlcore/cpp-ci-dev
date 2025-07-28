@@ -30,7 +30,7 @@ def test_base_event_bus_init(mocker: Mock):
         event_class=mock_event_class,
         topic=SampleTopics.test_topic,
         consumer_name="test_consumer",
-        subscriber_sockets=["tcp://*:5555", "tcp://*:5556"],
+        subscriber_addrs=["tcp://*:5555", "tcp://*:5556"],
     )
 
     # Assert initialization

@@ -16,11 +16,11 @@ class EventBus(BaseEventBus[Event, EventTopic, EventType]):
             event_class=Event,
             topic=EventTopic.corerl,
             consumer_name="corerl_event_bus_consumer",
-            subscriber_sockets=[
+            subscriber_addrs=[
                 cfg_event_bus.app_connection,
                 cfg_event_bus.cli_connection,
             ],
-            publisher_socket=cfg_event_bus.app_connection,
+            publisher_addr=cfg_event_bus.app_connection,
         )
 
     # Overriding to have the default EventTopic
