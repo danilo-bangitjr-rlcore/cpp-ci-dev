@@ -6,7 +6,7 @@ import time
 
 import zmq
 
-from corerl.messages.events import Event, EventTopic, EventType
+from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
 from corerl.messages.factory import EventBusConfig
 
 _logger = logging.getLogger(__name__)
@@ -15,7 +15,7 @@ _logger = logging.getLogger(__name__)
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "-c", "--cmd", type=EventType, required=True,
+        "-c", "--cmd", type=RLEventType, required=True,
         help="See EventType for valid commnads",
     )
 
@@ -52,8 +52,8 @@ def main():
     # https://zguide.zeromq.org/docs/chapter5/#Representing-State-as-Key-Value-Pairs
     time.sleep(0.2)
 
-    topic = EventTopic.corerl_cli
-    messagedata = Event(type=args.cmd).model_dump_json()
+    topic = RLEventTopic.corerl_cli
+    messagedata = RLEvent(type=args.cmd).model_dump_json()
     payload = f"{topic} {messagedata}"
 
     socket.send_string(payload)
