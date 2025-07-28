@@ -4,11 +4,50 @@ from math import comb
 
 import numpy as np
 import pandas as pd
+from lib_config.errors import ConfigValidationErrors
+from lib_config.loader import direct_load_config
 
+from corerl.config import MainConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig, get_n_step_reward
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Transition
 from tests.small.data_pipeline.test_transition_filter import make_test_step
 
+
+def test_min_n_step_greater_than_0():
+    """
+    Testing min_n_step >= 1 assert
+    """
+    cfg = direct_load_config(
+        MainConfig,
+        config_name='tests/small/data_pipeline/assets/min_n_step_greater_than_0.yaml',
+    )
+
+    assert isinstance(cfg, ConfigValidationErrors)
+    assert "pipeline.transition_creator" in cfg.meta
+
+def test_max_n_step_greater_than_min_n_step():
+    """
+    Testing max_n_step >= min_n_step assert
+    """
+    cfg = direct_load_config(
+        MainConfig,
+        config_name='tests/small/data_pipeline/assets/max_n_step_greater_than_min_n_step.yaml',
+    )
+
+    assert isinstance(cfg, ConfigValidationErrors)
+    assert "pipeline.transition_creator" in cfg.meta
+
+def test_max_n_step_less_than_steps_per_decision():
+    """
+    Testing max_n_step <= (action_period / obs_period) assert
+    """
+    cfg = direct_load_config(
+        MainConfig,
+        config_name='tests/small/data_pipeline/assets/max_n_step_smaller_than_steps_per_decision.yaml',
+    )
+
+    assert isinstance(cfg, ConfigValidationErrors)
+    assert "pipeline.transition_creator" in cfg.meta
 
 def test_get_n_step_reward_1():
     q = deque(maxlen=3)
