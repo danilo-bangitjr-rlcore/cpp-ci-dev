@@ -21,7 +21,7 @@ from corerl.eval.metrics import MetricsTable
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
-from corerl.messages.events import EventType
+from corerl.messages.events import RLEventType
 from corerl.state import AppState
 
 log = logging.getLogger(__name__)
@@ -83,8 +83,8 @@ def retryable_main(cfg: MainConfig):
         column_desc,
     )
 
-    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.metrics.background_sync())
-    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
+    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.metrics.background_sync())
+    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
     register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
     interaction = init_interaction(
