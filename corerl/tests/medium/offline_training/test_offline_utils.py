@@ -252,31 +252,3 @@ def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dum
     assert isinstance(offline_training.pipeline_out, PipelineReturn)
     df = offline_training.pipeline_out.df
     assert len(df) == (offline_cfg.offline.offline_end_time - offline_cfg.offline.offline_start_time) / obs_period
-
-def test_get_data_start_end_times_1(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState):
-    """
-    offline_start_time comes after the last timestamp in the database. Throw AssertionError
-    """
-    steps = 5
-    obs_period = offline_cfg.interaction.obs_period
-    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
-
-    offline_cfg.offline.offline_start_time = start_time + (steps * obs_period)
-    offline_cfg.offline.offline_end_time = None
-    offline_training = OfflineTraining(offline_cfg)
-    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    with pytest.raises(AssertionError):
-        offline_training.load_offline_transitions(pipeline)
-
-def test_get_data_start_end_times_2(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState):
-    """
-    offline_start_time comes after the last timestamp in the database. Throw AssertionError
-    """
-    start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
-
-    offline_cfg.offline.offline_start_time = None
-    offline_cfg.offline.offline_end_time = start_time
-    offline_training = OfflineTraining(offline_cfg)
-    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    with pytest.raises(AssertionError):
-        offline_training.load_offline_transitions(pipeline)

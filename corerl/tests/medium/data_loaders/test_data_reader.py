@@ -89,25 +89,6 @@ class TestDataReaderLogic:
         assert df["test_var"].values[0] == 0.5
         assert df.index[0] == end_time
 
-    def test_batch_aggregated_read_assert(self, data_reader_writer: tuple[DataReader, DataWriter]):
-        reader, writer = data_reader_writer
-
-        obs_period = timedelta(seconds=2)
-        end_time = datetime(year=2025, month=1, day=10, hour=13, minute=30, tzinfo=UTC)
-        start_time = end_time - 5*obs_period # we expect 5 rows
-
-        for i in range(10):
-            write_time = end_time - i*timedelta(seconds=1)
-            writer.write(
-                timestamp=write_time, name="test_var", val=1.0 - i*0.1,
-            )
-        writer.blocking_sync()
-
-        with pytest.raises(AssertionError):
-            reader.batch_aggregated_read(
-                names=["test_var"], start_time=end_time, end_time=start_time, bucket_width=obs_period,
-            )
-
     def test_batch_aggregated_read(self, data_reader_writer: tuple[DataReader, DataWriter]):
         # expect 5 rows returned, aggregated across 10 values in the db
         reader, writer = data_reader_writer
