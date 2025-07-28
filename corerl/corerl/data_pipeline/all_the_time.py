@@ -57,8 +57,8 @@ class AllTheTimeTCConfig:
     def _validate_on_policy_transition_creation(self, cfg: MainConfig):
         assert (
             self.min_n_step >= 1
-        ), "n-step transitions must span at least one obs_period, therefore, \
-            AllTheTimeTCConfig.min_n_step must be greater or equal to 1."
+        ), "n-step transitions must span at least one obs_period. " \
+           "Therefore, AllTheTimeTCConfig.min_n_step must be greater or equal to 1."
 
         assert (
             self.max_n_step >= self.min_n_step
@@ -66,7 +66,7 @@ class AllTheTimeTCConfig:
 
         assert (
             self.max_n_step <= (cfg.interaction.action_period / cfg.interaction.obs_period)
-        ), "AllTheTimeTCConfig.max_n_step must span less than or equal to the number of obs_periods in"
+        ), "AllTheTimeTCConfig.max_n_step must span less than or equal to the number of obs_periods in action_period"
 
 
 type StepInfo = dict[int, deque[Step]]
