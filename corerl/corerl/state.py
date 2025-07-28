@@ -6,7 +6,7 @@ import threading
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING, Generic, TypeVar
+from typing import TYPE_CHECKING
 
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
@@ -17,10 +17,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-AppEventBus = TypeVar('AppEventBus', EventBus, DummyEventBus)
-
 @dataclass
-class AppState(Generic[AppEventBus]): # noqa: UP046
+class AppState[AppEventBus: (EventBus, DummyEventBus)]:
     cfg: MainConfig
     evals: EvalsTable
     metrics: MetricsTable

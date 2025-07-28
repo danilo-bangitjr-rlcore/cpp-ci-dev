@@ -1,13 +1,16 @@
 from datetime import UTC, datetime, timedelta
-from typing import Generic
 
 import zmq
-from lib_defs.type_defs.base_events import EventClass, EventTopicClass, EventTypeClass
+from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 
 from lib_utils.messages.base_event_bus import BaseEventBus
 
 
-class Clock(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa: UP046
+class Clock[
+    EventClass: BaseEvent,
+    EventTopicClass: BaseEventTopic,
+    EventTypeClass: BaseEventType,
+]:
     def __init__(
             self,
             event_class: type[EventClass],
