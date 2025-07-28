@@ -56,17 +56,23 @@ def retryable_main(cfg: MainConfig):
     random.seed(seed)
 
     # build global objects
-    event_bus = (
-        EventBus(cfg.event_bus)
-        if not cfg.is_simulation else
-        DummyEventBus()
-    )
-    app_state = AppState(
-        cfg=cfg,
-        metrics=MetricsTable(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
-        event_bus=event_bus,
-    )
+    if cfg.is_simulation:
+        event_bus = DummyEventBus()
+        app_state = AppState[DummyEventBus](
+            cfg=cfg,
+            metrics=MetricsTable(cfg.metrics),
+            evals=EvalsTable(cfg.evals),
+            event_bus=event_bus,
+        )
+    else:
+        event_bus = EventBus(cfg.event_bus)
+        app_state = AppState[EventBus](
+            cfg=cfg,
+            metrics=MetricsTable(cfg.metrics),
+            evals=EvalsTable(cfg.evals),
+            event_bus=event_bus,
+        )
+
     pipeline = Pipeline(app_state, cfg.pipeline)
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
