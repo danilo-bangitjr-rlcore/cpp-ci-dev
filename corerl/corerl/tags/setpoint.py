@@ -197,6 +197,14 @@ class SetpointTagConfig(
             for dep in dependent_tags:
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
 
+        if self.nominal_setpoint is not None:
+            assert self.operating_range[0] is not None
+            assert self.operating_range[1] is not None
+            assert (
+                self.operating_range[0] <= self.nominal_setpoint <= self.operating_range[1]
+            ), f"The nominal setpoint {self.nominal_setpoint} must be within the operating range:" \
+               f"[{self.operating_range[0]}, {self.operating_range[1]}]."
+
 
 def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float, float]:
     lo = (
