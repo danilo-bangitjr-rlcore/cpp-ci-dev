@@ -3,19 +3,22 @@ import threading
 from collections import defaultdict
 from collections.abc import Callable
 from queue import Empty, Queue
-from typing import Any, Generic
+from typing import Any
 
 import zmq
-from lib_defs.type_defs.base_events import EventClass, EventTopicClass, EventTypeClass
+from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 
 from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
+type Callback[EventClass: BaseEvent] = Callable[[EventClass], Any]
 
-Callback = Callable[[EventClass], Any]
-
-class BaseEventBus(Generic[EventClass, EventTopicClass, EventTypeClass]): # noqa: UP046
+class BaseEventBus[
+    EventClass: BaseEvent,
+    EventTopicClass: BaseEventTopic,
+    EventTypeClass: BaseEventType,
+]:
     """
     Generic ZMQ event bus for consuming pub-sub events.
     """
