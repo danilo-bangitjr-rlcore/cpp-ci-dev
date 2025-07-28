@@ -102,7 +102,7 @@ pipeline:
     gamma: ${experiment.gamma}
     # n_step should be 12, give some buffer
     min_n_step: 11
-    max_n_step: 13
+    max_n_step: 12
 
   transition_filter:
     filters:
