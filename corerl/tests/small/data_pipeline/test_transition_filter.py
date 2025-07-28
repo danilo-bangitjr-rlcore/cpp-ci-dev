@@ -4,7 +4,10 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
+from lib_config.errors import ConfigValidationErrors
+from lib_config.loader import direct_load_config
 
+from corerl.config import MainConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
@@ -18,6 +21,30 @@ from corerl.data_pipeline.transition_filter import (
 )
 from tests.small.data_pipeline.test_transition_pipeline import pf_from_actions
 
+
+def test_only_pre_dp_or_ac_and_only_dp_assert():
+    """
+    Testing 'only_pre_dp_or_ac' and 'only_dp' inconsistency assert
+    """
+    cfg = direct_load_config(
+        MainConfig,
+        config_name='tests/small/data_pipeline/assets/only_pre_dp_or_ac_and_only_dp_inconsistency.yaml',
+    )
+
+    assert isinstance(cfg, ConfigValidationErrors)
+    assert "pipeline.transition_filter" in cfg.meta
+
+def test_only_post_dp_and_only_dp_assert():
+    """
+    Testing 'only_post_dp' and 'only_dp' inconsistency assert
+    """
+    cfg = direct_load_config(
+        MainConfig,
+        config_name='tests/small/data_pipeline/assets/only_post_dp_and_only_dp_inconsistency.yaml',
+    )
+
+    assert isinstance(cfg, ConfigValidationErrors)
+    assert "pipeline.transition_filter" in cfg.meta
 
 def make_test_step(
     i: int,
