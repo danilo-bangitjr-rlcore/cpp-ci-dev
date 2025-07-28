@@ -22,7 +22,7 @@ from corerl.data_pipeline.transition_filter import (
 from tests.small.data_pipeline.test_transition_pipeline import pf_from_actions
 
 
-def test_transition_filter_config_1():
+def test_only_pre_dp_or_ac_and_only_dp_assert():
     """
     Testing 'only_pre_dp_or_ac' and 'only_dp' inconsistency assert
     """
@@ -34,7 +34,7 @@ def test_transition_filter_config_1():
     assert isinstance(cfg, ConfigValidationErrors)
     assert "pipeline.transition_filter" in cfg.meta
 
-def test_transition_filter_config_2():
+def test_only_post_dp_and_only_dp_assert():
     """
     Testing 'only_post_dp' and 'only_dp' inconsistency assert
     """
