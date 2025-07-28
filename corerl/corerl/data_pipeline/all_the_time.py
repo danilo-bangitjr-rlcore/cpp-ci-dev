@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_config.config import MISSING, computed, config
+from lib_config.config import MISSING, computed, config, post_processor
 from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
@@ -53,6 +53,21 @@ class AllTheTimeTCConfig:
     def _normalize_return(cls, cfg: MainConfig):
         return cfg.feature_flags.normalize_return
 
+    @post_processor
+    def _validate_on_policy_transition_creation(self, cfg: MainConfig):
+        assert (
+            self.min_n_step >= 1
+        ), "n-step transitions must span at least one obs_period, therefore, \
+            AllTheTimeTCConfig.min_n_step must be greater or equal to 1."
+
+        assert (
+            self.max_n_step >= self.min_n_step
+        ), "AllTheTimeTCConfig.max_n_step must be greater or equal to AllTheTimeTCConfig.min_n_step"
+
+        assert (
+            self.max_n_step <= (cfg.interaction.action_period / cfg.interaction.obs_period)
+        ), "AllTheTimeTCConfig.max_n_step must span less than or equal to the number of obs_periods in"
+
 
 type StepInfo = dict[int, deque[Step]]
 
@@ -92,8 +107,6 @@ class AllTheTimeTC:
         self.gamma = cfg.gamma
         self.min_n_step = cfg.min_n_step
         self.max_n_step = cfg.max_n_step
-        assert self.min_n_step > 0
-        assert self.max_n_step >= self.min_n_step
 
     def _make_steps(self, pf: PipelineFrame) -> tuple[PipelineFrame, list[Step]]:
         """
