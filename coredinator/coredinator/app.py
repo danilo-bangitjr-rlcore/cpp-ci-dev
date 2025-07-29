@@ -6,9 +6,6 @@ The default path is /app/coreio-data/sqlite.db which is the path to the sqlite d
 After installing corerl, you can start the web application by running the following command:
 
 ```sh
-start_web_app
-
-# or
 fastapi dev corerl/web/app.py
 ```
 """
