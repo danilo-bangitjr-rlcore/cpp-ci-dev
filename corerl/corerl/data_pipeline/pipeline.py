@@ -8,9 +8,11 @@ from dataclasses import dataclass
 from functools import cached_property, partial
 from typing import Any, Literal, Self
 
+import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.datatypes import DataMode
+from lib_utils.named_array import NamedArray
 from pandas import DataFrame
 
 from corerl.configs.data_pipeline.pipeline_config import PipelineConfig
@@ -45,7 +47,7 @@ register_dispatchers()
 class PipelineReturn:
     data_mode: DataMode
     df: DataFrame
-    states: DataFrame
+    states: NamedArray
     actions: DataFrame
     rewards: DataFrame
     action_lo: DataFrame
@@ -54,11 +56,11 @@ class PipelineReturn:
 
     def _add(
         self, other: Self,
-    ) -> tuple[DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+    ) -> tuple[DataFrame, NamedArray, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
-        states = pd.concat([self.states, other.states])
+        states = self.states.set(jnp.concat([self.states.array, other.states.array]))
         actions = pd.concat([self.actions, other.actions])
         rewards = pd.concat([self.rewards, other.rewards])
         action_lo = pd.concat([self.action_lo, other.action_lo])
@@ -240,7 +242,7 @@ class Pipeline:
             return PipelineReturn(
                 data_mode=data_mode,
                 df=data,
-                states=data,
+                states=NamedArray.from_pandas(data),
                 actions=data,
                 rewards=data,
                 action_lo=data,
@@ -270,7 +272,7 @@ class Pipeline:
         return PipelineReturn(
             data_mode=data_mode,
             df=pf.data,
-            states=pf.states,
+            states=NamedArray.from_pandas(pf.states),
             actions=pf.actions,
             rewards=pf.rewards,
             action_lo=pf.action_lo,

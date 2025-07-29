@@ -3,6 +3,7 @@ import jax
 import pandas as pd
 import pytest
 from lib_agent.buffer.buffer import State
+from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from corerl.agent.greedy_ac import GreedyAC, PipelineReturn
@@ -34,10 +35,10 @@ def dummy_agent(dummy_app_state: AppState, basic_config: MainConfig):
 
 def test_critic_value_query_benchmark(benchmark: BenchmarkFixture, dummy_agent: tuple[GreedyAC, int, int]):
     agent, state_dim, action_dim = dummy_agent
-    state = jax.numpy.zeros(state_dim)
+    state = NamedArray.unnamed(jax.numpy.zeros(state_dim))
     action = jax.numpy.zeros(action_dim)
 
-    def _inner(agent: GreedyAC, state: jax.Array, action: jax.Array):
+    def _inner(agent: GreedyAC, state: NamedArray, action: jax.Array):
         return agent.get_active_values(state, action)
 
     result = benchmark(_inner, agent, state, action)
@@ -47,7 +48,7 @@ def test_critic_value_query_benchmark(benchmark: BenchmarkFixture, dummy_agent: 
 def test_actor_query_benchmark(benchmark: BenchmarkFixture, dummy_agent: tuple[GreedyAC, int, int]):
     agent, state_dim, action_dim = dummy_agent
     state = State(
-        features=jax.numpy.zeros((1, state_dim)),
+        features=NamedArray.unnamed(jax.numpy.zeros((1, state_dim))),
         a_lo=jax.numpy.zeros((1, action_dim)),
         a_hi=jax.numpy.ones((1, action_dim)),
         dp=jax.numpy.ones((1, 1), dtype=bool),

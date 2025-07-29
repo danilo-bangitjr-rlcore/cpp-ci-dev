@@ -3,6 +3,7 @@ from typing import Any
 import jax
 import jax.numpy as jnp
 import numpy as np
+from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
@@ -46,7 +47,7 @@ def test_actor_log_probs(benchmark: BenchmarkFixture):
     actor_state = actor.init_state(init_rng, single_state)
 
     state = State(
-        features=jnp.array(rng.random((state_dim,))),
+        features=NamedArray.unnamed(rng.random((state_dim,))),
         a_lo=jnp.ones((action_dim,)) * -1.0,
         a_hi=jnp.ones((action_dim,)) * 1.0,
         dp=jnp.array([1.0]),

@@ -6,6 +6,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_utils.maybe import Maybe
+from lib_utils.named_array import NamedArray
 
 from corerl.configs.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
@@ -50,7 +51,7 @@ class AllTheTimeTC:
         Constructs steps from pipeframe elements
         """
 
-        states = jnp.asarray(pf.states.to_numpy(dtype=np.float32))
+        states = NamedArray.from_pandas(pf.states)
         actions = jnp.asarray(pf.actions.to_numpy(dtype=np.float32))
         rewards = pf.rewards['reward'].to_numpy(dtype=np.float32).copy()
         if self.cfg.normalize_return:

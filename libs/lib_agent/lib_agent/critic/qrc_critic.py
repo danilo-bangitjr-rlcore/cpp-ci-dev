@@ -360,12 +360,12 @@ class QRCCritic:
         q_rng, qp_rng, a_rng = jax.random.split(rng, 3)
         qp_rngs = jax.random.split(qp_rng, self._cfg.num_rand_actions)
 
-        out = self._forward(params, q_rng, state.features, action)
+        out = self._forward(params, q_rng, state.features.array, action)
         q = out.q
         h = out.h
 
         # q_prime takes expectation of state-action value over actions sampled from some dist
-        q_prime = self.get_values(params, qp_rngs, next_state.features, next_actions).q.mean()
+        q_prime = self.get_values(params, qp_rngs, next_state.features.array, next_actions).q.mean()
 
         target = reward + gamma * q_prime
 
@@ -385,7 +385,7 @@ class QRCCritic:
             minval=state.a_lo,
             maxval=state.a_hi,
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [1, 3])(params, qp_rngs, state.features, rand_actions)
+        out_rand = jax_u.vmap_only(self._net.apply, [1, 3])(params, qp_rngs, state.features.array, rand_actions)
         action_reg_loss = self._cfg.action_regularization * jnp.abs(out_rand.q).mean()
 
         loss = q_loss + h_loss + action_reg_loss

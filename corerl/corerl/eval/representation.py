@@ -2,6 +2,7 @@ import chex
 import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
+from lib_agent.buffer.datatypes import JaxTransition
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.state import AppState
@@ -235,7 +236,7 @@ class RepresentationEval:
         if not batches:
             return
 
-        batch = jax.tree.map(lambda x: x[0], batches)
+        batch: JaxTransition = jax.tree.map(lambda x: x[0], batches)
         states = batch.state
         next_states = batch.next_state
         action_lo = batch.action_lo
@@ -259,14 +260,14 @@ class RepresentationEval:
         ens_state_reps = get_ens_state_reps(
             agent._critic_state.params,
             q_rngs,
-            states,
+            states.array,
             sampled_actions,
         )
         chex.assert_shape(ens_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
         ens_next_state_reps = get_ens_state_reps(
             agent._critic_state.params,
             q_rngs,
-            next_states,
+            next_states.array,
             sampled_actions,
         )
         chex.assert_shape(ens_next_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
@@ -279,14 +280,14 @@ class RepresentationEval:
         qs = jax_u.vmap_only(agent.critic.get_values, ["params"])(
             agent._critic_state.params,
             q_rngs,
-            states,
+            states.array,
             sampled_actions,
         ).q
         chex.assert_shape(qs, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, 1))
         mean_qs = qs.mean(axis=(0, 2)).squeeze(-1) # avg over ensemble members and action samples
 
         complexity_reduction = self.get_complexity_reduction(
-            states,
+            states.array,
             mean_state_reps,
         )
 

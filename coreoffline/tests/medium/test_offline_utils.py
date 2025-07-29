@@ -15,6 +15,7 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_defs.config_defs.tag_config import TagType
 from lib_sql.inspection import table_exists
+from lib_utils.named_array import NamedArray
 from sqlalchemy import Engine
 
 from coreoffline.utils.config import OfflineMainConfig
@@ -34,7 +35,7 @@ def make_step(
         reward=reward,
         action=action,
         gamma=gamma,
-        state=state,
+        state=NamedArray.unnamed(state),
         action_lo=jnp.zeros_like(action),
         action_hi=jnp.ones_like(action),
         dp=dp,

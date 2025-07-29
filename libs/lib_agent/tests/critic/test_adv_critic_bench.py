@@ -5,6 +5,7 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
+from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.buffer.buffer import State
@@ -44,7 +45,7 @@ def _create_test_adv_critic(ensemble_size: int, state_dim: int, action_dim: int)
 def _create_fake_adv_state(rng: np.random.Generator, state_dim: int, action_dim: int):
     """Create a fake state for testing."""
     return State(
-        features=jnp.array(rng.random((state_dim,))),
+        features=NamedArray.unnamed(rng.random((state_dim,))),
         a_lo=jnp.array([-1.0] * action_dim),
         a_hi=jnp.array([1.0] * action_dim),
         dp=jnp.array([False]),
@@ -63,7 +64,7 @@ def test_adv_critic_forward_pass_single(benchmark: BenchmarkFixture):
     state = _create_fake_adv_state(rng, state_dim, action_dim)
     action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, state.features, action)
+    critic_state = critic.init_state(init_rng, state.features.array, action)
 
     def _inner(
         critic: AdvCritic,
@@ -99,7 +100,7 @@ def test_adv_critic_forward_pass_ensemble(benchmark: BenchmarkFixture):
     state = _create_fake_adv_state(rng, state_dim, action_dim)
     action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, state.features, action)
+    critic_state = critic.init_state(init_rng, state.features.array, action)
 
     def _inner(
         critic: AdvCritic,
@@ -135,7 +136,7 @@ def test_adv_critic_forward_pass_batch(benchmark: BenchmarkFixture):
     single_state = _create_fake_adv_state(rng, state_dim, action_dim)
     single_action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, single_state.features, single_action)
+    critic_state = critic.init_state(init_rng, single_state.features.array, single_action)
 
     # Create batched data
     batch_states = jnp.array(rng.random((batch_size, state_dim)))
@@ -172,7 +173,7 @@ def test_adv_critic_representations_forward(benchmark: BenchmarkFixture):
     single_state = _create_fake_adv_state(rng, state_dim, action_dim)
     single_action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, single_state.features, single_action)
+    critic_state = critic.init_state(init_rng, single_state.features.array, single_action)
 
     # Create batched data
     batch_states = jnp.array(rng.random((batch_size, state_dim)))
@@ -213,7 +214,7 @@ def test_adv_critic_ensemble_update_small(benchmark: BenchmarkFixture):
     single_state = _create_fake_adv_state(rng, state_dim, action_dim)
     single_action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, single_state.features, single_action)
+    critic_state = critic.init_state(init_rng, single_state.features.array, single_action)
 
     # Create batch of transitions
     states = jnp.array(rng.random((ensemble_size, batch_size, state_dim)))
@@ -224,7 +225,7 @@ def test_adv_critic_ensemble_update_small(benchmark: BenchmarkFixture):
 
     # Create state objects
     batch_state = State(
-        features=states,
+        features=NamedArray.unnamed(states),
         a_lo=jnp.tile(jnp.array([-1.0] * action_dim), (ensemble_size, batch_size, 1)),
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
@@ -232,7 +233,7 @@ def test_adv_critic_ensemble_update_small(benchmark: BenchmarkFixture):
     )
 
     next_batch_state = State(
-        features=next_states,
+        features=NamedArray.unnamed(next_states),
         a_lo=jnp.tile(jnp.array([-1.0] * action_dim), (ensemble_size, batch_size, 1)),
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
@@ -280,7 +281,7 @@ def test_adv_critic_ensemble_update_large(benchmark: BenchmarkFixture):
     single_state = _create_fake_adv_state(rng, state_dim, action_dim)
     single_action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, single_state.features, single_action)
+    critic_state = critic.init_state(init_rng, single_state.features.array, single_action)
 
     # Create batch of transitions
     states = jnp.array(rng.random((ensemble_size, batch_size, state_dim)))
@@ -291,7 +292,7 @@ def test_adv_critic_ensemble_update_large(benchmark: BenchmarkFixture):
 
     # Create state objects
     batch_state = State(
-        features=states,
+        features=NamedArray.unnamed(states),
         a_lo=jnp.tile(jnp.array([-1.0] * action_dim), (ensemble_size, batch_size, 1)),
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
@@ -299,7 +300,7 @@ def test_adv_critic_ensemble_update_large(benchmark: BenchmarkFixture):
     )
 
     next_batch_state = State(
-        features=next_states,
+        features=NamedArray.unnamed(next_states),
         a_lo=jnp.tile(jnp.array([-1.0] * action_dim), (ensemble_size, batch_size, 1)),
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
@@ -344,7 +345,7 @@ def test_adv_critic_value_only_forward(benchmark: BenchmarkFixture):
     single_state = _create_fake_adv_state(rng, state_dim, action_dim)
     single_action = jnp.array(rng.random((action_dim,)))
 
-    critic_state = critic.init_state(init_rng, single_state.features, single_action)
+    critic_state = critic.init_state(init_rng, single_state.features.array, single_action)
 
     # Create batched data
     batch_states = jnp.array(rng.random((batch_size, state_dim)))

@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
+from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
@@ -95,7 +96,7 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
 
     # Create state objects with ensemble dimension
     batch_state = State(
-        features=states,
+        features=NamedArray.unnamed(states),
         a_lo=jnp.tile(jnp.array([-1.0] * config.action_dim), (ensemble_size, config.batch_size, 1)),
         a_hi=jnp.tile(jnp.array([1.0] * config.action_dim), (ensemble_size, config.batch_size, 1)),
         dp=jnp.ones((ensemble_size, config.batch_size, 1)),
@@ -103,7 +104,7 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
     )
 
     next_batch_state = State(
-        features=next_states,
+        features=NamedArray.unnamed(next_states),
         a_lo=jnp.tile(jnp.array([-1.0] * config.action_dim), (ensemble_size, config.batch_size, 1)),
         a_hi=jnp.tile(jnp.array([1.0] * config.action_dim), (ensemble_size, config.batch_size, 1)),
         dp=jnp.ones((ensemble_size, config.batch_size, 1)),
