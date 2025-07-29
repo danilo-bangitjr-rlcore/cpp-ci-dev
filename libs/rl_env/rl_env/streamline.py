@@ -280,7 +280,8 @@ class PipelineEnv(gym.Env):
 
         return mpc_actions
 
-    def _lp_mats(self, A: np.ndarray, B: np.ndarray, C: np.ndarray, soft_bounds: np.ndarray, n_steps: int, x_0: np.ndarray):
+    def _lp_mats(self, A: np.ndarray, B: np.ndarray, C: np.ndarray, \
+                 soft_bounds: np.ndarray, n_steps: int, x_0: np.ndarray):
         n_states = len(A)
         n_actions = np.size(B,1)
 
