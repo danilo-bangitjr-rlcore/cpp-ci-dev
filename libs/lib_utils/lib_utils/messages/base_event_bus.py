@@ -34,7 +34,7 @@ class BaseEventBus[
         self.queue: Queue[EventClass] = Queue()
         self.zmq_context = zmq.Context()
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
-        self.publisher_socket = self.zmq_context.socket(zmq.PUB)
+        self.publisher_socket = None
         self.stop_event = threading.Event()
         self.consumer_thread = threading.Thread(
             target=consumer_task,
@@ -52,6 +52,7 @@ class BaseEventBus[
                 self.subscriber_socket.bind(sub_socket)
 
         if publisher_addr is not None:
+            self.publisher_socket = self.zmq_context.socket(zmq.PUB)
             self.publisher_socket.connect(publisher_addr)
 
 
@@ -90,7 +91,10 @@ class BaseEventBus[
     # --- Producer Methods ---
     # ------------------------
     def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
-        assert self.publisher_socket is not None, "publisher socket must be initialized to emit event"
+        if self.publisher_socket is None:
+            logger.error("Event Bus is trying to emit event without having publisher socket")
+            return
+
         if not isinstance(event, self._event_class):
             # Then event is instance of EventTypeClass
             event = self._event_class(type=event)
@@ -134,7 +138,8 @@ class BaseEventBus[
         self.subscriber_socket.close()
 
         logger.debug("Closing publisher socket...")
-        self.publisher_socket.close()
+        if self.publisher_socket is not None:
+            self.publisher_socket.close()
 
         logger.debug("Terminating ZMQ context...")
         self.zmq_context.term()
