@@ -225,10 +225,12 @@ class PipelineEnv(gym.Env):
         if np.mod(self.t,1) == 0:
             for d in self.deliveries:
                 # self.deliveries[d].value = np.random.random()*self.deliveries[d].max
-                self.deliveries[d].value = np.sum([self.receipts[r].true for r in self.receipts]) # Deliver the previous day's receipts to ensure overall volume constraint is met
+                # Deliver the previous day's receipts to ensure overall volume constraint is met
+                self.deliveries[d].value = np.sum([self.receipts[r].true for r in self.receipts])
             for r in self.receipts:
                 self.receipts[r].true = np.random.random()*self.receipts[r].max
-                self.receipts[r].forecast = np.clip(self.receipts[r].true + np.random.normal(0, self.forecast_noise*self.receipts[r].max), 0, self.receipts[r].max)
+                forecast_noise = np.random.normal(0, self.forecast_noise*self.receipts[r].max)
+                self.receipts[r].forecast = np.clip(self.receipts[r].true + forecast_noise, 0, self.receipts[r].max)
             # total_deliveries = np.sum([self.deliveries[d].value for d in self.deliveries])
             # total_receipts = np.sum([self.receipts[r].true for r in self.receipts])
             # for d in self.deliveries:
@@ -239,13 +241,13 @@ class PipelineEnv(gym.Env):
         self.mpc_action = self._solve_mpc(np.array([tank.level / tank.capacity for tank in self.tanks.values()]),
                                           np.array([recpt.forecast for recpt in self.receipts.values()]),
                                           np.array([deliv.value for deliv in self.deliveries.values()]))
-        
+
         observation = self._get_obs()
         reward = self.reward
         info = {"action_override": action, "segments": self.segments, "tanks": self.tanks}
         return observation, reward, terminated, truncated, info
 
-    def _solve_mpc(self, x_0, receipt_forecast, delivery):
+    def _solve_mpc(self, x_0: np.ndarray, receipt_forecast: np.ndarray, delivery: np.ndarray):
         # Variables: [x_1,...,x_N,u_0,...,u_N-1,lambda_0,lambda_1]
         n_steps = 10
         final_soft_bounds = np.array([[0.4,0.6]]*3)
@@ -266,7 +268,7 @@ class PipelineEnv(gym.Env):
 
         n_states = len(_A)
         n_actions = np.size(_B,1)
-        
+
         if sol.x is not None:
             x_out = sol.x
             n_states = len(_A)
@@ -278,7 +280,7 @@ class PipelineEnv(gym.Env):
 
         return mpc_actions
 
-    def _lp_mats(self, A, B, C, soft_bounds, n_steps, x_0):
+    def _lp_mats(self, A: np.ndarray, B: np.ndarray, C: np.ndarray, soft_bounds: np.ndarray, n_steps: int, x_0: np.ndarray):
         n_states = len(A)
         n_actions = np.size(B,1)
 

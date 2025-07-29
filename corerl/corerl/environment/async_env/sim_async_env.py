@@ -109,7 +109,7 @@ class SimAsyncEnv(DeploymentAsyncEnv):
     def _step(self, action: np.ndarray):
         observation, reward, terminated, truncated, _info = self._env.step(action)
         action[:] = _info.get('action_override', action)
-        
+
         self._last_step = StepData(
             observation=observation,
             reward=reward,
