@@ -64,4 +64,5 @@ class DataIngressConfig:
 class CoreIOConfig:
     data_ingress: DataIngressConfig = Field(default_factory=DataIngressConfig)
     coreio_origin: str = "tcp://localhost:5557"
+    coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()
