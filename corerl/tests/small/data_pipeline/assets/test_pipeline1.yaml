@@ -16,7 +16,7 @@ pipeline:
       normalize: False
 
   transition_creator:
-    max_n_step: 2
+    max_n_step: 1
     normalize_return: False
 
   transition_filter:
