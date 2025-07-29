@@ -39,11 +39,11 @@ def test_receive_event():
         assert event.type == IOEventType.read_opcua_nodes
         end_time = datetime.now(UTC)
         measured_period = end_time - start_time
+        start_time = datetime.now(UTC)
 
         # Skip first reading, then check the period of received messages
         if i > 0:
             assert isclose(measured_period.total_seconds(), ingress_period.total_seconds(), rel_tol=0.01)
-        start_time = datetime.now(UTC)
 
     ingress_stop_event.set()
     zmq_communication.cleanup()
