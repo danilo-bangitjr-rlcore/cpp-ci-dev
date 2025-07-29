@@ -31,6 +31,7 @@ def test_base_event_bus_init(mocker: Mock):
         topic=SampleTopics.test_topic,
         consumer_name="test_consumer",
         subscriber_addrs=["tcp://*:5555", "tcp://*:5556"],
+        publisher_addr="tcp://*:5555",
     )
 
     # Assert initialization
