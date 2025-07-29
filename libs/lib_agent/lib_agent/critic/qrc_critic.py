@@ -19,6 +19,7 @@ from lib_agent.critic.critic_utils import (
     l2_regularizer,
     uniform_except,
 )
+from lib_agent.critic.rolling_reset import RollingResetManager
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -41,6 +42,8 @@ class QRCCritic:
         self._cfg = cfg
         self._state_dim = state_dim
         self._action_dim = action_dim
+
+        self._reset_manager = RollingResetManager(cfg.rolling_reset_config, cfg.ensemble)
 
         interior_layer_cfg = (
             nets.NoisyLinearConfig
@@ -80,23 +83,55 @@ class QRCCritic:
     def init_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         ens_init = jax_u.vmap_only(self._init_member_state, ['rng'])
 
-        rngs = jax.random.split(rng, self._cfg.ensemble)
+        rngs = jax.random.split(rng, self._reset_manager.total_critics)
         return ens_init(rngs, x, a)
 
     def get_values(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
         return self._forward(params, rng, state, action).q
+
+    def get_active_indices(self):
+        indices = self._reset_manager.active_indices
+        return jnp.array(sorted(indices))
+
+    def get_active_values(
+        self,
+        params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        state: jax.Array,
+        action: jax.Array,
+        active_indices: jax.Array,
+    ):
+        ens_get_values = jax_u.vmap_only(self.get_values, ['params'])
+        all_values = ens_get_values(params, rng, state, action)
+
+        return all_values[active_indices]
 
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
         self._rng, rng = jax.random.split(self._rng)
+        self._reset_manager.increment_update_count()
+
         new_state, metrics = self._ensemble_update(
             critic_state,
             rng,
             transitions,
             next_actions,
         )
+
+        if hasattr(metrics, 'loss') and metrics.loss is not None:
+            self._reset_manager.update_critic_metadata(metrics.loss)
+
+        if self._reset_manager.should_reset():
+            new_state = self._reset_manager.reset(
+                new_state,
+                rng,
+                self._init_member_state,
+                self._state_dim,
+                self._action_dim,
+            )
+
         return new_state, metrics
 
     # -------------------------------
@@ -175,7 +210,7 @@ class QRCCritic:
         opt_state = critic_state.opt_state
         for _ in range(self._cfg.nominal_setpoint_updates):
             rng, sub = jax.random.split(rng)
-            ens_rng = jax.random.split(sub, self._cfg.ensemble)
+            ens_rng = jax.random.split(sub, self._reset_manager.total_critics)
             _, params, opt_state = update_params(params, opt_state, ens_rng)
 
         return critic_state._replace(
@@ -219,8 +254,8 @@ class QRCCritic:
         )
 
         return CriticState(
-            new_params,
-            new_opt_state,
+            params=new_params,
+            opt_state=new_opt_state,
         ), metrics
 
 
@@ -233,7 +268,7 @@ class QRCCritic:
     ):
         chex.assert_rank(transition.state.features, 3) # (ens, batch, state_dim)
         chex.assert_tree_shape_prefix(transition, transition.state.features.shape[:2])
-        rngs = jax.random.split(rng, self._cfg.ensemble)
+        rngs = jax.random.split(rng, self._reset_manager.total_critics)
         losses, metrics = jax_u.vmap(self._batch_loss)(
             params,
             rngs,

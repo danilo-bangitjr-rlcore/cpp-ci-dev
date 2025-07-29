@@ -296,10 +296,19 @@ class GreedyAC(BaseAgent):
         if action.ndim == 2:
             rng = jax.random.split(rng, action.shape[0])
 
-        return self._get_values(self._critic_state.params, rng, state, action)
+        active_indices = self.critic.get_active_indices()
+
+        return self._get_values(self._critic_state.params, rng, state, action, active_indices)
 
     @jax_u.method_jit
-    def _get_values(self, critic_params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
+    def _get_values(
+        self,
+        critic_params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        state: jax.Array,
+        action: jax.Array,
+        active_indices: jax.Array,
+    ):
         """
         jittable version of `self.get_values` that takes critic params as an argument
 
@@ -309,8 +318,9 @@ class GreedyAC(BaseAgent):
         """
         chex.assert_shape(state, (self.state_dim,))
         assert action.ndim in {state.ndim, state.ndim + 1}
-        ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
-        qs = ens_get_values(critic_params, rng, state, action)
+
+        # use active critic values for decision making
+        qs = self.critic.get_active_values(critic_params, rng, state, action, active_indices)
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -452,7 +462,8 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        ensemble_return = self._get_values(params, rng, x, a)
+        active_indices = self.critic.get_active_indices()
+        ensemble_return = self._get_values(params, rng, x, a, active_indices)
         aggregated_values = self._aggregate_ensemble_values(ensemble_return.ensemble_values)
         return aggregated_values.squeeze(-1)
 
