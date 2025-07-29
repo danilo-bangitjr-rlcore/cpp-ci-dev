@@ -36,7 +36,8 @@ class Receipt:
     max: float = 1000.
 
     # state variables
-    forecast: float = 0
+    forecast: float = 0 # Forecasted receipt value used as observation for agent and mpc
+    true: float = 0 # True receipt value used in simulation
 
 @dataclass
 class Delivery:
@@ -90,7 +91,8 @@ class PipelineData:
 class PipelineConfig(EnvConfig):
     name: Literal['Pipeline-v0'] = 'Pipeline-v0'
     pipeline_data: PipelineData = field(default_factory=PipelineData)
-    control_strategy: Literal['agent', "mpc", "dagger"] = "dagger"
+    control_strategy: Literal['agent', "mpc", "mpc_rec_to_agent","dagger"] = "mpc_rec_to_agent"
+    forecast_noise: float = 0.25  # Standard deviation of the noise added to the forecasted receipts
 
 class PipelineEnv(gym.Env):
     def __init__(self, cfg: PipelineConfig):
@@ -100,6 +102,8 @@ class PipelineEnv(gym.Env):
         self.deliveries = cfg.pipeline_data.deliveries
         self.junctions = cfg.pipeline_data.junctions
         self.weights = cfg.pipeline_data.weights
+        self.forecast_noise = cfg.forecast_noise
+        self.mpc_action = np.zeros(len(self.segments))  # Placeholder for MPC action
         self.nodes = (
             list(self.segments.keys())
             + list(self.tanks.keys())
@@ -141,7 +145,8 @@ class PipelineEnv(gym.Env):
              np.array([recpt.forecast / recpt.max for recpt in self.receipts.values()],dtype='float32'),
              np.array([deliv.value / deliv.max for deliv in self.deliveries.values()],dtype='float32'),
              np.array([seg.stop for seg in self.segments.values()],dtype='float32'),
-             np.array([seg.start for seg in self.segments.values()],dtype='float32')],
+             np.array([seg.start for seg in self.segments.values()],dtype='float32'),
+             np.array(self.mpc_action, dtype='float32')],
         )
 
     def step(self, action: np.ndarray):
@@ -151,13 +156,17 @@ class PipelineEnv(gym.Env):
 
         if self.control_strategy == 'mpc':
             use_mpc = True
+        elif self.control_strategy == 'mpc_rec_to_agent':
+            # Use MPC for the first 1000 steps, then switch to agent control
+            if self.t < 1000:
+                use_mpc = True
+            else:
+                use_mpc = False
         elif self.control_strategy == 'dagger':
             mpc_ratio = np.clip(1-0.003*self.t,0,1)
             use_mpc = np.random.rand() < mpc_ratio
         if use_mpc:
-            action = self._solve_mpc(np.array([tank.level / tank.capacity for tank in self.tanks.values()]),
-                                     np.array([recpt.forecast for recpt in self.receipts.values()]),
-                                     np.array([deliv.value for deliv in self.deliveries.values()]))
+            action = self.mpc_action
 
         for i, key in enumerate(self.segments):
             s = self.segments[key]
@@ -188,7 +197,7 @@ class PipelineEnv(gym.Env):
         for key in self.junctions:
             j = self.junctions[key]
             inflow = sum([s.flow for key, s in self.segments.items() if key in j.inputs])
-            inflow += sum([r.forecast for key, r in self.receipts.items() if key in j.inputs])
+            inflow += sum([r.true for key, r in self.receipts.items() if key in j.inputs])
             outflow = sum([s.flow for key, s in self.segments.items() if key in j.outputs])
             outflow += sum([r.value for key, r in self.deliveries.items() if key in j.outputs])
             j.flow = inflow + outflow
@@ -213,17 +222,24 @@ class PipelineEnv(gym.Env):
             self.reward += d.value*self.weights.deliveryreward
 
         # Update receipts and deliveries
-        if np.mod(self.t,10) == 0:
+        if np.mod(self.t,1) == 0:
             for d in self.deliveries:
-                self.deliveries[d].value = np.random.random()*self.deliveries[d].max
+                # self.deliveries[d].value = np.random.random()*self.deliveries[d].max
+                self.deliveries[d].value = np.sum([self.receipts[r].true for r in self.receipts]) # Deliver the previous day's receipts to ensure overall volume constraint is met
             for r in self.receipts:
-                self.receipts[r].forecast = np.random.random()*self.receipts[r].max
-            total_deliveries = np.sum([self.deliveries[d].value for d in self.deliveries])
-            total_receipts = np.sum([self.receipts[r].forecast for r in self.receipts])
-            for d in self.deliveries:
-                self.deliveries[d].value = self.deliveries[d].value*total_receipts/total_deliveries
+                self.receipts[r].true = np.random.random()*self.receipts[r].max
+                self.receipts[r].forecast = np.clip(self.receipts[r].true + np.random.normal(0, self.forecast_noise*self.receipts[r].max), 0, self.receipts[r].max)
+            # total_deliveries = np.sum([self.deliveries[d].value for d in self.deliveries])
+            # total_receipts = np.sum([self.receipts[r].true for r in self.receipts])
+            # for d in self.deliveries:
+            #     self.deliveries[d].value = self.deliveries[d].value*total_receipts/total_deliveries
 
         self.t +=1
+
+        self.mpc_action = self._solve_mpc(np.array([tank.level / tank.capacity for tank in self.tanks.values()]),
+                                          np.array([recpt.forecast for recpt in self.receipts.values()]),
+                                          np.array([deliv.value for deliv in self.deliveries.values()]))
+        
         observation = self._get_obs()
         reward = self.reward
         info = {"action_override": action, "segments": self.segments, "tanks": self.tanks}
@@ -248,6 +264,9 @@ class PipelineEnv(gym.Env):
 
         sol = linprog(c, A_ub=A_ub, b_ub=b_ub, A_eq=A_eq, b_eq=b_eq, bounds=bounds)
 
+        n_states = len(_A)
+        n_actions = np.size(_B,1)
+        
         if sol.x is not None:
             x_out = sol.x
             n_states = len(_A)

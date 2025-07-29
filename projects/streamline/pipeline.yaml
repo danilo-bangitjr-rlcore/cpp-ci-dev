@@ -58,10 +58,10 @@ evals:
   enabled: True
 
 pipeline:
-  # state_constructor:
-  #   defaults:
-  #     - name: multi_trace
-  #       trace_values: [0.] # half life 2 hours
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0., 0.5, 0.8 ] # half life 2 hours
 
   reward:
     priorities:
@@ -80,11 +80,12 @@ pipeline:
   - name: action-0
     type: ai_setpoint
     operating_range: [0.0, 1.0]
-    # action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
+    # action_bounds: ['{tag-10}-0.1', '{tag-10}+0.1']
 
   - name: action-1
     type: ai_setpoint
     operating_range: [0.0, 1.0]
+    # action_bounds: ['{tag-11}-0.1', '{tag-11}+0.1']
     # action_bounds: ['{action-1}-0.1', '{action-1}+0.1']
 
   # tank levels (3)
@@ -158,6 +159,13 @@ pipeline:
 
   - name: tag-9 # Start1
     operating_range: [0, 1]
+
+  # MPC actions (2)
+  # - name: tag-10 # MPC action 0
+  #   operating_range: [0, 1]
+
+  # - name: tag-11 # MPC action 1
+  #   operating_range: [0, 1]
 
   - name: L0_health
     operating_range: [0, 0.01]
