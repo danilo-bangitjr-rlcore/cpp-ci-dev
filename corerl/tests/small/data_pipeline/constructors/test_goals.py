@@ -1,6 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+import numpy as np
 import pandas as pd
 import pytest
 from lib_config.loader import direct_load_config
@@ -111,6 +112,7 @@ def test_goal1(cfg: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
             [-0.2],
             [-0.1],
         ],
+        dtype=np.float32,
     )
 
     pd.testing.assert_frame_equal(out.rewards, expected_rewards)
@@ -189,6 +191,7 @@ def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline, dumm
             [-0.2],
             [-0.1],
         ],
+        dtype=np.float32,
     )
 
     pd.testing.assert_frame_equal(out.rewards, expected_rewards)
@@ -258,6 +261,7 @@ def test_only_optimization(only_optimization_cfg: MainConfig, dummy_app_state: A
             [-0.4],
             [-0.2],
         ],
+        dtype=np.float32,
     )
 
     pd.testing.assert_frame_equal(out.rewards, expected_rewards)

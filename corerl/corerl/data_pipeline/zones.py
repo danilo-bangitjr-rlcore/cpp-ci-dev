@@ -9,7 +9,7 @@ from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.messages.events import Event, EventType
+from corerl.messages.events import RLEvent, RLEventType
 from corerl.state import AppState
 from corerl.tags.components.bounds import SafetyZonedTag, ViolationDirection
 from corerl.tags.setpoint import eval_bound
@@ -276,7 +276,7 @@ class ZoneDiscourager:
                 pf.action_hi.loc[violation.row_idx, f'{reflex_cfg.tag}-hi'] = hi
 
 
-class ZoneViolationEvent(Event):
+class ZoneViolationEvent(RLEvent):
     tag: str
     percent: float
     direction: ViolationDirection
@@ -284,7 +284,7 @@ class ZoneViolationEvent(Event):
     @staticmethod
     def from_violation(violation: ZoneViolation):
         return ZoneViolationEvent(
-            type=EventType.red_zone_violation if violation.kind == 'red' else EventType.yellow_zone_violation,
+            type=RLEventType.red_zone_violation if violation.kind == 'red' else RLEventType.yellow_zone_violation,
             tag=violation.tag.name,
             percent=violation.percent,
             direction=violation.direction,

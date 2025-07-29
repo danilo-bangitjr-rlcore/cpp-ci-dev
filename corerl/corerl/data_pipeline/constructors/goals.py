@@ -87,7 +87,7 @@ class GoalConstructor:
 
         pf.rewards = pd.DataFrame({
             'reward': rewards,
-        }, index=pf.data.index)
+        }, index=pf.data.index, dtype=np.float32)
 
         return pf
 

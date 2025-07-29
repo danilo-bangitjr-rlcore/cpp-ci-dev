@@ -11,7 +11,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import EventBus
-from corerl.messages.events import EventType
+from corerl.messages.events import RLEventType
 from corerl.state import AppState
 
 
@@ -102,6 +102,6 @@ def test_trigger(
 
     event = event_bus.recv_event()
     assert event is not None
-    assert event.type == EventType.action_period_reset
+    assert event.type == RLEventType.action_period_reset
 
     event_bus.cleanup()
