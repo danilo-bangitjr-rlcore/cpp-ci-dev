@@ -89,17 +89,18 @@ class BoundedTag(GlobalTagAttributes):
 
     @post_processor
     def _validate_bounds(self, cfg: 'MainConfig'):
-        if self.operating_range[0] is not None and self.expected_range[0] is not None:
-            assert (
-                self.expected_range[0] >= self.operating_range[0]
-            ), f"{self.name}'s lower bound of the expected range {self.expected_range[0]} " \
-               f"must be greater or equal to the lower bound of the operating range {self.operating_range[0]}"
+        if self.operating_range is not None and self.expected_range is not None:
+            if self.operating_range[0] is not None and self.expected_range[0] is not None:
+                assert (
+                    self.expected_range[0] >= self.operating_range[0]
+                ), f"{self.name}'s lower bound of the expected range {self.expected_range[0]} " \
+                   f"must be greater or equal to the lower bound of the operating range {self.operating_range[0]}"
 
-        if self.operating_range[1] is not None and self.expected_range[1] is not None:
-            assert (
-                self.expected_range[1] <= self.operating_range[1]
-            ), f"{self.name}'s upper bound of the expected range {self.expected_range[1]} " \
-               f"must be smaller or equal to the upper bound of the operating range {self.operating_range[1]}"
+            if self.operating_range[1] is not None and self.expected_range[1] is not None:
+                assert (
+                    self.expected_range[1] <= self.operating_range[1]
+                ), f"{self.name}'s upper bound of the expected range {self.expected_range[1]} " \
+                   f"must be smaller or equal to the upper bound of the operating range {self.operating_range[1]}"
 
     # -----------------------
     # -- Utility Functions --
