@@ -6,7 +6,7 @@ import numpy as np
 
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.messages.events import EventTopic
+from corerl.messages.events import RLEventTopic
 from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
 
@@ -56,7 +56,7 @@ class TagTrigger(Constructor):
                 for event in events:
                     self._app_state.event_bus.emit_event(
                         event,
-                        topic=EventTopic.corerl,
+                        topic=RLEventTopic.corerl,
                     )
 
         return pf

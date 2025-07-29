@@ -60,15 +60,6 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
         table_schema='public',
     )
 
-
-@pytest.fixture()
-def data_writer(test_db_config: TagDBConfig):
-    data_writer = DataWriter(cfg=test_db_config)
-
-    yield data_writer
-
-    data_writer.close()
-
 @pytest.fixture(scope="function")
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     cfg = direct_load_config(
@@ -96,11 +87,10 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     return cfg
 
-@pytest.fixture
-def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState) -> OfflineTraining:
-    """
-    Generate offline data for tests and return the OfflineTraining object
-    """
+@pytest.fixture()
+def data_writer(offline_cfg: MainConfig, test_db_config: TagDBConfig):
+    data_writer = DataWriter(cfg=test_db_config)
+
     steps = 5
     obs_period = offline_cfg.interaction.obs_period
 
@@ -132,6 +122,15 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
 
     data_writer.blocking_sync()
 
+    yield data_writer
+
+    data_writer.close()
+
+@pytest.fixture
+def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState) -> OfflineTraining:
+    """
+    Generate offline data for tests and return the OfflineTraining object
+    """
     # Produce offline transitions
     offline_training = OfflineTraining(offline_cfg)
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
@@ -235,35 +234,11 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_s
     assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])
 
 def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState):
-    steps = 5
     obs_period = offline_cfg.interaction.obs_period
-
-    # Generate timestamps
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
-
-    step_timestamps = [
-        first_step + obs_period * i
-        for i in range(steps)
-    ]
-
-    # Generate tag data and write to tsdb
-    steps_per_decision = int(
-        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds(),
-    )
-    for i in range(steps):
-        for tag_cfg in offline_cfg.pipeline.tags:
-            tag = tag_cfg.name
-            if tag_cfg.type == TagType.ai_setpoint:
-                val = int(i / steps_per_decision) % 2
-            else:
-                val = i
-
-            data_writer.write(timestamp=step_timestamps[i], name=tag, val=val)
-
-    data_writer.blocking_sync()
 
     # Produce offline transitions
     offline_cfg.offline.offline_start_time = first_step

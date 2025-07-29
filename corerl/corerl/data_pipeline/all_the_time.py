@@ -102,7 +102,7 @@ class AllTheTimeTC:
 
         states = jnp.asarray(pf.states.to_numpy(dtype=np.float32))
         actions = jnp.asarray(pf.actions.to_numpy(dtype=np.float32))
-        rewards = pf.rewards['reward'].to_numpy(dtype=np.float32)
+        rewards = pf.rewards['reward'].to_numpy(dtype=np.float32).copy()
         if self.cfg.normalize_return:
             rewards *= (1 - self.gamma)
 

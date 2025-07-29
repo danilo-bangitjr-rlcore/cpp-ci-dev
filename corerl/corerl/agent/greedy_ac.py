@@ -27,7 +27,7 @@ from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
 from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
-from corerl.messages.events import EventType
+from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
 
@@ -327,7 +327,7 @@ class GreedyAC(BaseAgent):
         """
         Samples a single action during interaction.
         """
-        self._app_state.event_bus.emit_event(EventType.agent_get_action)
+        self._app_state.event_bus.emit_event(RLEventType.agent_get_action)
 
         jaxtion, metrics = self._actor.get_actions(
             self._actor_state.actor.params,
@@ -348,7 +348,7 @@ class GreedyAC(BaseAgent):
         if pr.transitions is None:
             return
 
-        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+        self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
 
         jax_transitions = [convert_corerl_transition_to_jax_transition(t) for t in pr.transitions]
 
@@ -531,7 +531,7 @@ class GreedyAC(BaseAgent):
     # ---------------------------- saving and loading ---------------------------- #
 
     def save(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_save)
+        self._app_state.event_bus.emit_event(RLEventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
 
@@ -549,7 +549,7 @@ class GreedyAC(BaseAgent):
 
 
     def load(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_load)
+        self._app_state.event_bus.emit_event(RLEventType.agent_load)
 
         actor_path = path / "actor.pkl"
         with open(actor_path, "rb") as f:

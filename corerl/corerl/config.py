@@ -110,6 +110,13 @@ class OfflineConfig:
     offline_end_time: datetime | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
 
+    @post_processor
+    def _validate(self, cfg: 'MainConfig'):
+        if isinstance(self.offline_start_time, datetime) and isinstance(self.offline_end_time, datetime):
+            assert (
+                self.offline_start_time < self.offline_end_time
+            ), "Offline training start timestamp must come before the offline training end timestamp."
+
 
 @config()
 class MainConfig:

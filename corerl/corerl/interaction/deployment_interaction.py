@@ -21,7 +21,7 @@ from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.eval.representation import RepresentationEval
 from corerl.interaction.checkpointing import checkpoint, restore_checkpoint
 from corerl.interaction.configs import InteractionConfig
-from corerl.messages.events import Event, EventType
+from corerl.messages.events import RLEvent, RLEventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
@@ -104,10 +104,10 @@ class DeploymentInteraction:
         ### Lifecycle methods ###
         self._scheduler: threading.Thread | None = None
         self._app_state.event_bus.attach_callbacks({
-            EventType.step_emit_action:     self._handle_event(self._on_emit_action),
-            EventType.step_get_obs:         self._handle_event(self._on_get_obs),
-            EventType.step_agent_update:    self._handle_event(self._on_update),
-            EventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
+            RLEventType.step_emit_action:     self._handle_event(self._on_emit_action),
+            RLEventType.step_get_obs:         self._handle_event(self._on_get_obs),
+            RLEventType.step_agent_update:    self._handle_event(self._on_update),
+            RLEventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
         })
 
     def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any] | None:
@@ -168,10 +168,6 @@ class DeploymentInteraction:
 
         # log rewards
         rewards = pipe_return.rewards
-        if self._app_state.cfg.feature_flags.normalize_return:
-            gamma = self._app_state.cfg.agent.gamma
-            rewards = rewards / (1 - gamma)
-
         self._write_to_metrics(rewards) # no prefix required
 
         # perform evaluations
@@ -244,7 +240,7 @@ class DeploymentInteraction:
     # ---------------
     def _handle_event(self, f: Callable[[], None]):
         @functools.wraps(f)
-        def _inner(event: Event):
+        def _inner(event: RLEvent):
             logger.debug(f"Interaction received Event: {event}")
             self._heartbeat.healthcheck()
             return f()
@@ -266,7 +262,7 @@ class DeploymentInteraction:
             logger.info("Querying agent policy for new action")
             return self._agent.get_action_interaction(state)
 
-        self._app_state.event_bus.emit_event(EventType.action_period_reset)
+        self._app_state.event_bus.emit_event(RLEventType.action_period_reset)
         logger.warning(f'Tried to take action, however was unable: {state}')
         return None
 

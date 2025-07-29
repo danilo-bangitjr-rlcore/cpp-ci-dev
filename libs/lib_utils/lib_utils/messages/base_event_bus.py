@@ -1,28 +1,36 @@
 import logging
 import threading
+from collections import defaultdict
+from collections.abc import Callable
 from queue import Empty, Queue
-from typing import Generic, TypeVar
+from typing import Any
 
 import zmq
-from lib_defs.type_defs.base_events import BaseEvent
+from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 
-from lib_utils.consumer_task import consumer_task
+from lib_utils.messages.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
-EventClass = TypeVar('EventClass', bound='BaseEvent')
+type Callback[EventClass: BaseEvent] = Callable[[EventClass], Any]
 
-class BaseEventBus(Generic[EventClass]): # noqa: UP046
+class BaseEventBus[
+    EventClass: BaseEvent,
+    EventTopicClass: BaseEventTopic,
+    EventTypeClass: BaseEventType,
+]:
     """
     Generic ZMQ event bus for consuming pub-sub events.
     """
     def __init__(
         self,
         event_class: type[EventClass],
-        topic: str,
+        topic: EventTopicClass,
         consumer_name: str = "event_bus_consumer",
-        subscriber_sockets: list[str] | None = None,
+        subscriber_addrs: list[str] | None = None,
+        publisher_addr: str | None = None,
     ):
+        self._event_class = event_class
         self.queue: Queue[EventClass] = Queue()
         self.zmq_context = zmq.Context()
         self.subscriber_socket = self.zmq_context.socket(zmq.SUB)
@@ -39,10 +47,19 @@ class BaseEventBus(Generic[EventClass]): # noqa: UP046
             name=consumer_name,
         )
 
-        if isinstance(subscriber_sockets, list):
-            for sub_socket in subscriber_sockets:
+        if subscriber_addrs is not None:
+            for sub_socket in subscriber_addrs:
                 self.subscriber_socket.bind(sub_socket)
 
+        if publisher_addr is not None:
+            self.publisher_socket.connect(publisher_addr)
+
+
+        self._callbacks: dict[EventTypeClass, list[Callback]] = defaultdict(list)
+
+    # ------------------------
+    # --- Consumer Methods ---
+    # ------------------------
     def start(self):
         self.consumer_thread.start()
 
@@ -58,6 +75,41 @@ class BaseEventBus(Generic[EventClass]): # noqa: UP046
         self.queue.task_done()
         return event
 
+    def listen_forever(self):
+        while True:
+            event: EventClass | None = self.recv_event()
+            if event is None:
+                continue
+
+            for cb in self._callbacks[event.type]:
+                cb(event)
+
+            yield event
+
+    # ------------------------
+    # --- Producer Methods ---
+    # ------------------------
+    def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
+        assert self.publisher_socket is not None, "publisher socket must be initialized to emit event"
+        if not isinstance(event, self._event_class):
+            # Then event is instance of EventTypeClass
+            event = self._event_class(type=event)
+
+        message_data = event.model_dump_json()
+        self.publisher_socket.send_string(f"{topic} {message_data}")
+
+    def attach_callback(self, event_type: EventTypeClass, cb: Callback):
+        self._callbacks[event_type].append(cb)
+
+
+    def attach_callbacks(self, cbs: dict[EventTypeClass, Callback]):
+        for event_type, cb in cbs.items():
+            self.attach_callback(event_type, cb)
+
+
+    # ----------------------
+    # --- Common Methods ---
+    # ----------------------
     def cleanup(self):
         logger.info("Stopping event bus...")
         self.stop_event.set()
