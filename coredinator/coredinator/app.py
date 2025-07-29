@@ -33,10 +33,12 @@ from lib_utils.sql_logging.sql_logging import table_exists
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
-from corerl.config import DBConfig, MainConfig
-from corerl.web import get_coreio_sqlite_path
-from corerl.web.agent_manager import router as agent_manager
-from corerl.web.agent_manager import shutdown_agents
+# from corerl.config import DBConfig, MainConfig
+from coredinator.utils.config_adapter import DBConfigAdapter as DBConfig  # TEMPORARY FIX!
+from coredinator.utils.config_adapter import MainConfigAdapter as MainConfig  # TEMPORARY FIX!
+from coredinator.web import get_coreio_sqlite_path
+from coredinator.web.agent_manager import router as agent_manager
+from coredinator.web.agent_manager import shutdown_agents
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")

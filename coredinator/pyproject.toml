@@ -1,41 +1,20 @@
 [project]
-name = "corerl"
+name = "coredinator"
 version = "0.142.0"
 description = ""
 requires-python = "==3.13.0"
 authors = []
 dependencies = [
-    "discrete-dists~=1.0",
-    "numba~=0.60",
-    "numpy~=2.0",
-    "pandas~=2.2",
-    "pandas-stubs~=2.2",
-    "pydantic~=2.9",
-    "pyyaml~=6.0",
-    "scipy~=1.13",
+    "fastapi[standard]~=0.115.6",
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
-    "tabulate~=0.9.0",
-    "scikit-learn~=1.5",
-    "psycopg2-binary~=2.9",
-    "pyzmq~=26.4.0",
-    "coreio",
-    "sympy~=1.14",
-    "lib-agent",
     "lib-config",
-    "lib-utils[jax]",
-    "lib-defs",
+    "lib-utils",
 ]
 readme = "README.md"
 
 [dependency-groups]
 dev = [
-    "rl_env",
-    "boto3~=1.35",
-    "cloudpathlib[s3]~=0.20",
-    "docker>=7.1.0",
-    "gymnasium~=1.0",
-    "matplotlib~=3.8",
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
     "pyright>=1.1.401",
@@ -44,15 +23,8 @@ dev = [
     "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.7.0",
     "ruff>=0.11.11",
-    "test",
     "uv>=0.7.8",
-    "pytest-benchmark>=5.1.0",
 ]
-
-[project.scripts]
-corerl_main = "corerl.main:main"
-corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
-corerl_agent_step = "corerl.bin.corerl_step_cli:main"
 
 [build-system]
 requires = ["hatchling"]
@@ -60,16 +32,11 @@ build-backend = "hatchling.build"
 
 [tool]
 [tool.hatch.build.targets.wheel]
-packages = ["corerl"]
+packages = ["coredinator"]
 
 [tool.uv.sources]
-test = { path = "../test", editable = true }
-coreio = { path = "../coreio", editable = true }
-rl_env = { path = "../libs/rl_env", editable = true }
-lib-agent = { path = "../libs/lib_agent", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
-lib-defs = { path = "../libs/lib_defs", editable = true }
 
 # ----------
 # -- Ruff --
