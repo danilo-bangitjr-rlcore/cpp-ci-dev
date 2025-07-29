@@ -116,6 +116,15 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
                     logger.info(f"Read nodes value: {nodes_name_val}")
 
+                    if not nodes_name_val:
+                        logger.warning("No node values read; skipping SQL write.")
+                        continue
+
+                    try:
+                        sql_communication.write_nodes(nodes_name_val, event.time)
+                    except Exception as exc:
+                        logger.error(f"Failed to write nodes to SQL: {exc}")
+
                 case IOEventType.exit_io:
                     logger.info("Received exit event, shutting down CoreIO...")
                     break

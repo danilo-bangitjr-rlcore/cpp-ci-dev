@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import (
@@ -9,6 +10,8 @@ from lib_utils.sql_logging.sql_logging import (
     table_exists,
 )
 from lib_utils.sql_logging.utils import SQLColumn, add_column_to_table_query, create_tsdb_table_query
+from lib_utils.time import now_iso
+from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.types import TypeEngine
 
@@ -141,3 +144,45 @@ class SQL_Manager:
         sqlalchemy_type = self._get_sqlalchemy_type(node)
         return self._sqlalchemy_to_tsdb_type(sqlalchemy_type)
 
+    def _insert_sql(self):
+        """Generates SQL query for inserting data into the tsdb table."""
+
+        columns = ', '.join([f"{col.name}" for col in self.nodes_to_persist.values()])
+        placeholders = ', '.join([f":{col.name}" for col in self.nodes_to_persist.values()])
+        return text(f"""
+            INSERT INTO {self.schema}.{self.table_name}
+            (time, {columns})
+            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, {placeholders});
+        """)
+
+    # Write data to the tsdb table with the given timestamp.
+    # This method expects data to be a dictionary where keys are node names
+    # and values are their corresponding values.
+    def write_nodes(self, data: dict[str, Any], timestamp: str | None):
+        """Write data to the tsdb table with the given timestamp."""
+
+        if not self.engine:
+            logger.error("SQL engine is not initialized")
+            return
+
+        if not data:
+            logger.warning("No data provided to write_nodes")
+            return
+
+        # Ensure all keys are lowercase and only expected columns are present
+        valid_columns = {node.name for node in self.nodes_to_persist.values()}
+        filtered_data = {key.lower(): value for key, value in data.items() if key.lower() in valid_columns}
+
+        if not filtered_data:
+            logger.warning("No valid columns found in provided data")
+            return
+
+        filtered_data['timestamp'] = timestamp or now_iso()
+
+        try:
+            with TryConnectContextManager(self.engine) as connection:
+                sql = self._insert_sql()
+                connection.execute(sql, filtered_data)
+                connection.commit()
+        except Exception as exc:
+            logger.error(f"Failed to write nodes: {exc}")
