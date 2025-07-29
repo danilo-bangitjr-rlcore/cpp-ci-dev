@@ -16,9 +16,9 @@ def test_receive_event():
     """
     coreio_app_addr = "inproc://test_coreio_app"
     zmq_communication = BaseEventBus(
-        event_class = IOEvent,
-        topic = IOEventTopic.coreio,
-        consumer_name = "test_coreio_consumer",
+        event_class=IOEvent,
+        topic=IOEventTopic.coreio,
+        consumer_name="test_coreio_consumer",
         subscriber_addrs=[coreio_app_addr],
         publisher_addr=coreio_app_addr,
     )
@@ -27,7 +27,7 @@ def test_receive_event():
 
     # Start scheduler with read event sent every 200 ms
     ingress_period = timedelta(seconds=0.2)
-    data_ingress_cfg =  DataIngressConfig(enabled=True, ingress_period=ingress_period)
+    data_ingress_cfg = DataIngressConfig(enabled=True, ingress_period=ingress_period)
     start_scheduler_io_thread(data_ingress_cfg, ingress_stop_event, zmq_communication)
 
     start_time = datetime.now(UTC)

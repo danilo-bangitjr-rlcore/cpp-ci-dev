@@ -39,7 +39,7 @@ def scheduler_io_task(cfg: DataIngressConfig, stop_event: threading.Event, Event
             data_ingress_clock.maybe_emit(EventBus, now)
             time_sleep = (data_ingress_clock.get_next_ts() - datetime.now(UTC)).total_seconds()
             time_sleep = max(time_sleep, 0)
-            time.sleep(time_sleep) # Maybe async
+            time.sleep(time_sleep)
         except zmq.ZMQError as e:
             if e.errno == zmq.ETERM:
                 # exit, break from loop
