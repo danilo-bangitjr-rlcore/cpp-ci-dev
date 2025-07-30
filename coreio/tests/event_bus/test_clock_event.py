@@ -36,7 +36,7 @@ def test_receive_event():
         if event is None:
             continue
 
-        assert event.type == IOEventType.read_opcua_nodes
+        assert event.type == IOEventType.read_from_opc
         end_time = datetime.now(UTC)
         measured_period = end_time - start_time
         start_time = datetime.now(UTC)

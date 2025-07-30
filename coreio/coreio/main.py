@@ -62,7 +62,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     # Callbacks have to be async
     zmq_communication.attach_callback(
-        event_type=IOEventType.write_opcua_nodes,
+        event_type=IOEventType.write_to_opc,
         cb=lambda event: handle_write_event(event, opc_connections),
     )
 
@@ -81,7 +81,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
         # Callbacks have to be async
         zmq_communication.attach_callback(
-            event_type=IOEventType.read_opcua_nodes,
+            event_type=IOEventType.read_from_opc,
             cb=lambda event: handle_read_event(event, opc_connections, sql_communication),
         )
 
