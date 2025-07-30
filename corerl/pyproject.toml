@@ -1,6 +1,6 @@
 [project]
 name = "corerl"
-version = "0.142.0"
+version = "0.143.0"
 description = ""
 requires-python = "==3.13.0"
 authors = []
