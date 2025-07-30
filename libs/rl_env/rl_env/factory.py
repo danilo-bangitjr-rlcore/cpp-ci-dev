@@ -10,6 +10,7 @@ from rl_env.four_rooms import FourRoomsConfig
 from rl_env.group_util import env_group
 from rl_env.mountain_car import MountainCarContinuousConfig
 from rl_env.multi_action_saturation import MultiActionSaturationConfig
+from rl_env.nonstationary_world import NonstationaryWorldConfig
 from rl_env.pertube_env import ObservationPerturbationWrapper, PerturbationConfig
 from rl_env.pvs import PVSConfig
 from rl_env.saturation import SaturationConfig
@@ -26,6 +27,7 @@ EnvConfig = Annotated[
     DistractionWorldConfig |
     FourRoomsConfig |
     MultiActionSaturationConfig |
+    NonstationaryWorldConfig |
     PVSConfig |
     SaturationConfig |
     SaturationGoalsConfig |
