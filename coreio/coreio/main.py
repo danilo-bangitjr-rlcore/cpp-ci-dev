@@ -14,7 +14,7 @@ from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
-from coreio.utils.opc_utils import concat_opc_nodes
+from coreio.utils.opc_utils import concat_opc_nodes, initialize_opc_connections
 
 colorlog.basicConfig(
     level=logging.DEBUG,
@@ -38,22 +38,12 @@ logging.getLogger("asyncuagds").setLevel(logging.WARNING)
 
 @load_config(MainConfigAdapter)
 async def coreio_loop(cfg: MainConfigAdapter):
-    opc_connections: dict[str, OPC_Connection] = {}
-    for opc_conn_cfg in cfg.coreio.opc_connections:
-        logger.info(f"Connecting to OPC Connection {opc_conn_cfg.connection_id} at {opc_conn_cfg.opc_conn_url}")
-        opc_conn = await OPC_Connection().init(opc_conn_cfg)
-        opc_connections[opc_conn_cfg.connection_id] = opc_conn
-
-        async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg.pipeline.tags, ai_setpoint_only = True)
-
-        # Register heartbeat_id separately
-        if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
-            heartbeat_id = cfg.interaction.heartbeat.heartbeat_node_id
-
-            if heartbeat_id is not None:
-                async with opc_conn:
-                    await opc_conn.register_node(heartbeat_id, "heartbeat")
+    logger.info("Starting OPC Connections")
+    opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+        cfg.coreio.opc_connections,
+        cfg.pipeline.tags,
+        cfg.interaction.heartbeat,
+    )
 
     all_registered_nodes = None
     sql_communication = None
