@@ -26,8 +26,9 @@ from lib_config.loader import config_from_dict, config_to_json
 from lib_utils.time import now_iso
 from pydantic import BaseModel, Field
 
-from corerl.config import MainConfig
-from corerl.web import get_coreio_sqlite_path
+# from corerl.config import MainConfig
+from coredinator.utils.config_adapter import MainConfigAdapter as MainConfig  # TEMPORARY FIX!
+from coredinator.web import get_coreio_sqlite_path
 
 logger = logging.getLogger("uvicorn")
 
