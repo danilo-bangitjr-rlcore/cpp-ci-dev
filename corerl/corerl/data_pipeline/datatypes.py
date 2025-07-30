@@ -241,6 +241,4 @@ def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -
         next_dp=jnp.asarray(corerl_transition.post.dp),
         n_step_reward=jnp.asarray(corerl_transition.n_step_reward),
         n_step_gamma=jnp.asarray(corerl_transition.n_step_gamma),
-        state_dim=corerl_transition.state_dim,
-        action_dim=corerl_transition.action_dim,
     )

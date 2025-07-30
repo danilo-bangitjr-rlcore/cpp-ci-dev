@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import NamedTuple
 
 import jax
@@ -33,6 +34,33 @@ def test_storage_add_mixed():
 
     assert storage.last_idx() == 9
 
+def test_pytree_storage_and_batch():
+    class MySubtree(NamedTuple):
+        a: float = 0.5
+        b: int = 2
+        c: jax.Array = jnp.zeros(3)
+        d: Sequence[jax.Array] = [jnp.zeros(2), jnp.ones(4)]
+
+    class MyPytree(NamedTuple):
+        e: MySubtree
+        f: Sequence[MySubtree]
+        g: float
+
+    storage = ReplayStorage(10)
+
+    for i in range(10):
+        pytree = MyPytree(
+            e=MySubtree(),
+            f=[MySubtree(), MySubtree()],
+            g=3.14,
+        )
+        idx = storage.add(pytree)
+        assert idx == i
+
+    batch: MyPytree = storage.get_batch(np.array([1,3]))
+    assert batch.f[0].d[-1].shape == (2, 4) # (batch size, 4)
+
+    assert storage.last_idx() == 9
 
 def test_storage_get():
     class Step(NamedTuple):

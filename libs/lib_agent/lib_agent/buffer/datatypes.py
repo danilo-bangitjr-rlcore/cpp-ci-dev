@@ -39,5 +39,10 @@ class JaxTransition(NamedTuple):
     n_step_reward: jax.Array
     n_step_gamma: jax.Array
 
-    state_dim: int
-    action_dim: int
+    @property
+    def state_dim(self):
+        return self.state.shape[-1]
+
+    @property
+    def action_dim(self):
+        return self.action.shape[-1]
