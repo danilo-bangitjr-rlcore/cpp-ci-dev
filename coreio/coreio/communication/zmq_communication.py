@@ -1,5 +1,4 @@
 from lib_utils.messages.base_event_bus import BaseEventBus
-import asyncio
 
 
 class ZMQ_Communication(BaseEventBus):
@@ -8,11 +7,8 @@ class ZMQ_Communication(BaseEventBus):
             event = self.recv_event()
             if event is None:
                 continue
-            
+
             for cb in self._callbacks[event.type]:
-                if asyncio.iscoroutinefunction(cb):
-                    await cb(event)
-                else:
-                    cb(event)
-            
+                await cb(event)
+
             yield event
