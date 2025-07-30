@@ -64,7 +64,7 @@ def test_emit_action_emits_correct_event(mock_socket: MagicMock, deployment_env:
     actual_event = IOEvent.model_validate_json(json_str)
 
     expected_event = IOEvent(
-        type=IOEventType.write_opcua_nodes,
+        type=IOEventType.write_to_opc,
         data={
             "conn-1": [
                 OPCUANodeWriteValue(node_id="ns=2;i=1", value=5.0),
@@ -115,7 +115,7 @@ def test_emit_action_multiple_actions(mock_socket: MagicMock, multi_deployment_e
     topic, json_str = sent.split(' ', 1)
     actual_event = IOEvent.model_validate_json(json_str)
     expected_event = IOEvent(
-        type=IOEventType.write_opcua_nodes,
+        type=IOEventType.write_to_opc,
         data={
             "conn-1": [OPCUANodeWriteValue(node_id="ns=2;i=1", value=3.0)],
             "conn-2": [OPCUANodeWriteValue(node_id="ns=2;i=2", value=7.0)],
