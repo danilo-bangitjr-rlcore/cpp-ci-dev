@@ -5,7 +5,6 @@ import asyncio
 import logging
 import threading
 
-import colorlog
 from lib_config.loader import load_config
 
 from coreio.communication.opc_communication import OPC_Connection
@@ -15,27 +14,10 @@ from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.event_handlers import handle_read_event, handle_write_event
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
+from coreio.utils.logging_setup import setup_logging
 from coreio.utils.opc_utils import concat_opc_nodes, initialize_opc_connections
 
-colorlog.basicConfig(
-    level=logging.INFO, # Can change this manually
-    format='%(log_color)s%(levelname)s%(reset)s: %(asctime)s %(message)s',
-    datefmt= '%Y-%m-%d %H:%M:%S',
-    reset=True,
-    log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
-    },
-)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-logging.getLogger("asyncua").setLevel(logging.WARNING)
-logging.getLogger("asyncuagds").setLevel(logging.WARNING)
+logger = setup_logging(logging.INFO)
 
 @load_config(MainConfigAdapter)
 async def coreio_loop(cfg: MainConfigAdapter):
