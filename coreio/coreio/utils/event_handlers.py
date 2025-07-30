@@ -11,7 +11,7 @@ async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Conn
     for connection_id, payload in event.data.items():
         opc_conn = opc_connections.get(connection_id)
         if opc_conn is None:
-            logger.warning(f"Connection Id {connection_id} is unkown.")
+            logger.warning(f"Connection Id {connection_id} is unknown.")
             continue
 
         async with opc_conn:
