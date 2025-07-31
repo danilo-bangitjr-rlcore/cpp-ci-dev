@@ -302,7 +302,7 @@ class BufferedWriter[T: NamedTuple](ABC):
         self.ensure_table_exists()
         self.ensure_known_columns_initialized()
 
-        dict_points = [point._asdict() for point in points]
+        dict_points = self._transform(points)
         dict_points = sanitize_keys(dict_points)
         dict_points = self._maybe_filter_for_static_mode(dict_points)
         points_columns = self._get_columns(dict_points)
@@ -317,6 +317,10 @@ class BufferedWriter[T: NamedTuple](ABC):
                 dict_points,
             )
             connection.commit()
+
+
+    def _transform(self, points: list[T]):
+        return [point._asdict() for point in points]
 
 
 def sanitize_keys(dict_points: list[dict]):
