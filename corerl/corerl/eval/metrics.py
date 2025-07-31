@@ -272,7 +272,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             grouped[point.metric].append(point.value)
 
         aggregated: dict[str, object] = {}
-        aggregated['time'] = sorted(grouped['time'])[-1]
+        aggregated['time'] = max(grouped['time'])
         aggregated['agent_step'] = sorted(grouped['agent_step'])[-1]
         for colname, coldata in grouped.items():
             if colname not in ['time', 'agent_step']:
