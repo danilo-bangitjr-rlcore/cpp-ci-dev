@@ -127,9 +127,9 @@ class PipelineEnv(gym.Env):
             self.tanks[k].level = self.np_random.random() * self.tanks[k].capacity
 
         for s in self.segments.values():
-            s.flowing = 0
-            s.start = 0
-            s.stop = 0
+            s.flowing = False
+            s.start = False
+            s.stop = False
         for r in self.receipts.values():
             r.forecast = r.nom
         self.reward = 0
@@ -183,7 +183,7 @@ class PipelineEnv(gym.Env):
             minflow = flow > s.min_flow
 
             if flowing and not s.flowing:
-                s.start = 1
+                s.start = True
                 self.reward -= s.start_cost
             else:
                 s.start = False
