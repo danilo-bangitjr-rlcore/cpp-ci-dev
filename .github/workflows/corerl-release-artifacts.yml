@@ -9,9 +9,8 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-and-push-executables:
+  build-linux-executables:
     runs-on: ubuntu-latest
-
     steps:
       - name: Generate a token
         id: generate-token
@@ -34,13 +33,43 @@ jobs:
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
 
-      - name: Build Executables
-        run: |
-          ./build_executables.sh
+      - name: Build Linux Executables
+        run: ./.github/workflows/scripts/build_linux_executables.sh
 
-      - name: Upload executables as artifacts
+      - name: Upload Linux executables
         uses: actions/upload-artifact@v4
         with:
-          name: corerl-executables
+          name: corerl-linux-executables
+          path: ./dist/
+          retention-days: 30
+
+  build-windows-executables:
+    runs-on: windows-latest
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.13.0
+
+      - name: Build Windows Executables
+        run: .\.github\workflows\scripts\build_windows_executables.bat
+
+      - name: Upload Windows executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: corerl-windows-executables
           path: ./dist/
           retention-days: 30
