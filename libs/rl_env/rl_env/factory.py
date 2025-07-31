@@ -15,6 +15,7 @@ from rl_env.pvs import PVSConfig
 from rl_env.saturation import SaturationConfig
 from rl_env.saturation_goals import SaturationGoalsConfig
 from rl_env.stand_still_mc import StandStillMCConfig
+from rl_env.streamline import PipelineEnvConfig
 from rl_env.t_maze import TMazeConfig
 from rl_env.three_tanks import ThreeTanksConfig
 from rl_env.windy_room import WindyRoomConfig
@@ -29,6 +30,7 @@ EnvConfig = Annotated[
     SaturationConfig |
     SaturationGoalsConfig |
     StandStillMCConfig |
+    PipelineEnvConfig |
     TMazeConfig |
     ThreeTanksConfig |
     WindyRoomConfig |
