@@ -16,10 +16,10 @@ class Segment:
     start_cost: int
 
     # state variables
-    flowing: int = 0  # 1 if the segment is flowing, 0 otherwise
+    flowing: bool = False  # True if the segment is flowing, False otherwise
     flow: float = 0  # current flow rate
-    start: int = 0  # 1 if the segment was started this step, 0 otherwise
-    stop: int = 0  # 1 if the segment was stopped
+    start: bool = False  # True if the segment was started this step, False otherwise
+    stop: bool = False  # True if the segment was stopped
 
 @dataclass
 class Tank:
@@ -59,7 +59,7 @@ class Weights:
     deliveryreward: int
 
 @dataclass
-class PipelineData:
+class PipelineEnvData:
     segments: dict[str, Segment] = field(default_factory=lambda: {
         't1_t2': Segment(max_flow=2000, min_flow=100, start_cost=100),
         't2_t3': Segment(max_flow=2000, min_flow=100, start_cost=100),
@@ -88,14 +88,14 @@ class PipelineData:
 
 
 @config(frozen=True)
-class PipelineConfig(EnvConfig):
+class PipelineEnvConfig(EnvConfig):
     name: Literal['Pipeline-v0'] = 'Pipeline-v0'
-    pipeline_data: PipelineData = field(default_factory=PipelineData)
+    pipeline_data: PipelineEnvData = field(default_factory=PipelineEnvData)
     control_strategy: Literal['agent', "mpc", "mpc_rec_to_agent","dagger"] = "mpc_rec_to_agent"
     forecast_noise: float = 0.25  # Standard deviation of the noise added to the forecasted receipts
 
 class PipelineEnv(gym.Env):
-    def __init__(self, cfg: PipelineConfig):
+    def __init__(self, cfg: PipelineEnvConfig):
         self.segments = cfg.pipeline_data.segments
         self.tanks = cfg.pipeline_data.tanks
         self.receipts = cfg.pipeline_data.receipts
@@ -186,11 +186,11 @@ class PipelineEnv(gym.Env):
                 s.start = 1
                 self.reward -= s.start_cost
             else:
-                s.start = 0
+                s.start = False
             if not minflow:
-                s.stop = 1
+                s.stop = True
             else:
-                s.stop = 0
+                s.stop = False
             s.flowing = minflow
             s.flow = flow
 
@@ -224,17 +224,12 @@ class PipelineEnv(gym.Env):
         # Update receipts and deliveries
         if np.mod(self.t,1) == 0:
             for d in self.deliveries:
-                # self.deliveries[d].value = np.random.random()*self.deliveries[d].max
                 # Deliver the previous day's receipts to ensure overall volume constraint is met
                 self.deliveries[d].value = np.sum([self.receipts[r].true for r in self.receipts])
             for r in self.receipts:
                 self.receipts[r].true = np.random.random()*self.receipts[r].max
                 forecast_noise = np.random.normal(0, self.forecast_noise*self.receipts[r].max)
                 self.receipts[r].forecast = np.clip(self.receipts[r].true + forecast_noise, 0, self.receipts[r].max)
-            # total_deliveries = np.sum([self.deliveries[d].value for d in self.deliveries])
-            # total_receipts = np.sum([self.receipts[r].true for r in self.receipts])
-            # for d in self.deliveries:
-            #     self.deliveries[d].value = self.deliveries[d].value*total_receipts/total_deliveries
 
         self.t +=1
 
@@ -316,4 +311,4 @@ class PipelineEnv(gym.Env):
         return A_eq, b_eq, A_ub, b_ub, c
 
 
-env_group.dispatcher(PipelineConfig(), PipelineEnv)
+env_group.dispatcher(PipelineEnvConfig(), PipelineEnv)
