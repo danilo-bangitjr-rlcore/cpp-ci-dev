@@ -1,3 +1,4 @@
+from datetime import timedelta
 from enum import StrEnum, auto
 from pathlib import Path
 from typing import Literal
@@ -57,9 +58,11 @@ class OPCConnectionConfig:
 @config(frozen=True)
 class DataIngressConfig:
     enabled: bool = False
+    ingress_period: timedelta = timedelta(seconds=1)
 
 @config(frozen=True)
 class CoreIOConfig:
     data_ingress: DataIngressConfig = Field(default_factory=DataIngressConfig)
     coreio_origin: str = "tcp://localhost:5557"
+    coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()

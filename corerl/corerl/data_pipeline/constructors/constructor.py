@@ -3,6 +3,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from functools import cached_property
 
+import numpy as np
 import pandas as pd
 from lib_defs.config_defs.tag_config import TagType
 
@@ -65,7 +66,7 @@ class Constructor(ABC):
         fake_data = pd.DataFrame({
             tag_name: [1., 0.]
             for tag_name in tag_names
-        })
+        }, dtype=np.float32)
         fake_indices = pd.DatetimeIndex(["7/13/2023 10:00", "7/13/2023 11:00"])
         fake_data.index = fake_indices
 
@@ -80,13 +81,13 @@ class Constructor(ABC):
         action_los = pd.DataFrame({
             f"{action_tag.name}-lo": [0., 0.]
             for action_tag in action_tags
-        })
+        }, dtype=np.float32)
         action_los.index = fake_indices
 
         action_his = pd.DataFrame({
             f"{action_tag.name}-hi": [1., 1.]
             for action_tag in action_tags
-        })
+        }, dtype=np.float32)
         action_his.index = fake_indices
 
         pf.action_lo = action_los

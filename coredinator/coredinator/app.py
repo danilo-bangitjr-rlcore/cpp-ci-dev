@@ -6,9 +6,6 @@ The default path is /app/coreio-data/sqlite.db which is the path to the sqlite d
 After installing corerl, you can start the web application by running the following command:
 
 ```sh
-start_web_app
-
-# or
 fastapi dev corerl/web/app.py
 ```
 """
@@ -33,10 +30,12 @@ from lib_utils.sql_logging.sql_logging import table_exists
 from pydantic import BaseModel
 from sqlalchemy.exc import SQLAlchemyError
 
-from corerl.config import DBConfig, MainConfig
-from corerl.web import get_coreio_sqlite_path
-from corerl.web.agent_manager import router as agent_manager
-from corerl.web.agent_manager import shutdown_agents
+# from corerl.config import DBConfig, MainConfig
+from coredinator.utils.config_adapter import DBConfigAdapter as DBConfig  # TEMPORARY FIX!
+from coredinator.utils.config_adapter import MainConfigAdapter as MainConfig  # TEMPORARY FIX!
+from coredinator.web import get_coreio_sqlite_path
+from coredinator.web.agent_manager import router as agent_manager
+from coredinator.web.agent_manager import shutdown_agents
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")

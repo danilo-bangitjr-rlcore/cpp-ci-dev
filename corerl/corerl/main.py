@@ -21,7 +21,7 @@ from corerl.eval.metrics import MetricsTable
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
-from corerl.messages.events import EventType
+from corerl.messages.events import RLEventType
 from corerl.state import AppState
 
 log = logging.getLogger(__name__)
@@ -56,17 +56,23 @@ def retryable_main(cfg: MainConfig):
     random.seed(seed)
 
     # build global objects
-    event_bus = (
-        EventBus(cfg.event_bus)
-        if not cfg.is_simulation else
-        DummyEventBus()
-    )
-    app_state = AppState(
-        cfg=cfg,
-        metrics=MetricsTable(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
-        event_bus=event_bus,
-    )
+    if cfg.is_simulation:
+        event_bus = DummyEventBus()
+        app_state = AppState[DummyEventBus](
+            cfg=cfg,
+            metrics=MetricsTable(cfg.metrics),
+            evals=EvalsTable(cfg.evals),
+            event_bus=event_bus,
+        )
+    else:
+        event_bus = EventBus(cfg.event_bus)
+        app_state = AppState[EventBus](
+            cfg=cfg,
+            metrics=MetricsTable(cfg.metrics),
+            evals=EvalsTable(cfg.evals),
+            event_bus=event_bus,
+        )
+
     pipeline = Pipeline(app_state, cfg.pipeline)
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
@@ -77,8 +83,8 @@ def retryable_main(cfg: MainConfig):
         column_desc,
     )
 
-    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.metrics.background_sync())
-    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
+    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.metrics.background_sync())
+    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
     register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
     interaction = init_interaction(
@@ -93,6 +99,11 @@ def retryable_main(cfg: MainConfig):
 
     except Exception as e:
         log.exception(e)
+
+        # if we are in a simulation, then we want to forward
+        # exceptions to fail the process
+        if cfg.is_simulation:
+            raise e
 
     finally:
         app_state.stop_event.set()

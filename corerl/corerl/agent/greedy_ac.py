@@ -27,7 +27,7 @@ from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
 from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
-from corerl.messages.events import EventType
+from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
 
@@ -76,7 +76,8 @@ class PercentileActorConfig:
     sampler_stepsize: float = 0.0001
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
-
+    ensemble_aggregation: Literal["mean", "percentile"] = "mean"
+    ensemble_percentile: float = 0.5
     buffer: BufferConfig = MISSING
 
     @computed('buffer')
@@ -326,7 +327,7 @@ class GreedyAC(BaseAgent):
         """
         Samples a single action during interaction.
         """
-        self._app_state.event_bus.emit_event(EventType.agent_get_action)
+        self._app_state.event_bus.emit_event(RLEventType.agent_get_action)
 
         jaxtion, metrics = self._actor.get_actions(
             self._actor_state.actor.params,
@@ -347,7 +348,7 @@ class GreedyAC(BaseAgent):
         if pr.transitions is None:
             return
 
-        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+        self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
 
         jax_transitions = [convert_corerl_transition_to_jax_transition(t) for t in pr.transitions]
 
@@ -435,6 +436,14 @@ class GreedyAC(BaseAgent):
 
         return [loss.mean() for loss in metrics.loss]
 
+    @jax_u.method_jit
+    def _aggregate_ensemble_values(self, ensemble_values: jax.Array) -> jax.Array:
+        if self.cfg.policy.ensemble_aggregation == "mean":
+            return ensemble_values.mean(axis=0)
+        if self.cfg.policy.ensemble_aggregation == "percentile":
+            return jnp.percentile(ensemble_values, self.cfg.policy.ensemble_percentile * 100, axis=0)
+        raise ValueError(f"Unknown ensemble aggregation method: {self.cfg.policy.ensemble_aggregation}")
+
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         """
         returns reduced state-action value estimate from ensemble of critics for:
@@ -443,7 +452,9 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        return self._get_values(params, rng, x, a).reduced_value.squeeze(-1)
+        ensemble_return = self._get_values(params, rng, x, a)
+        aggregated_values = self._aggregate_ensemble_values(ensemble_return.ensemble_values)
+        return aggregated_values.squeeze(-1)
 
     def update_actor(self):
         if not self._actor_buffer.is_sampleable:
@@ -520,7 +531,7 @@ class GreedyAC(BaseAgent):
     # ---------------------------- saving and loading ---------------------------- #
 
     def save(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_save)
+        self._app_state.event_bus.emit_event(RLEventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
 
@@ -538,7 +549,7 @@ class GreedyAC(BaseAgent):
 
 
     def load(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_load)
+        self._app_state.event_bus.emit_event(RLEventType.agent_load)
 
         actor_path = path / "actor.pkl"
         with open(actor_path, "rb") as f:

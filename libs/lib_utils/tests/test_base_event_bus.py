@@ -1,9 +1,15 @@
 
+from enum import auto
 from queue import Queue
 from unittest.mock import Mock
 
-from lib_utils.base_event_bus import BaseEventBus
+from lib_defs.type_defs.base_events import BaseEventTopic
 
+from lib_utils.messages.base_event_bus import BaseEventBus
+
+
+class SampleTopics(BaseEventTopic):
+    test_topic = auto()
 
 def test_base_event_bus_init(mocker: Mock):
     # Mock ZMQ components
@@ -18,12 +24,14 @@ def test_base_event_bus_init(mocker: Mock):
     # Mock event class
     mock_event_class = mocker.MagicMock()
 
+
     # Create event bus
     event_bus = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
         consumer_name="test_consumer",
-        subscriber_sockets=["tcp://*:5555", "tcp://*:5556"],
+        subscriber_addrs=["tcp://*:5555", "tcp://*:5556"],
+        publisher_addr="tcp://*:5555",
     )
 
     # Assert initialization
@@ -60,7 +68,7 @@ def test_base_event_bus_init_no_subscriber_sockets(mocker: Mock):
     # Create event bus without subscriber sockets
     _ = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
     )
 
     # Assert no socket bindings
@@ -79,7 +87,7 @@ def test_base_event_bus_start(mocker: Mock):
     # Create and start event bus
     event_bus = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
     )
     event_bus.start()
 
@@ -99,7 +107,7 @@ def test_recv_event_with_event(mocker: Mock):
     # Create event bus
     event_bus = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
     )
 
     # Put event in queue
@@ -123,7 +131,7 @@ def test_recv_event_empty_queue(mocker: Mock):
     # Create event bus
     event_bus = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
     )
 
     # Receive from empty queue
@@ -144,7 +152,7 @@ def test_recv_event_stop_event_set(mocker: Mock):
     # Create event bus
     event_bus = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
     )
 
     # Set stop event
@@ -174,7 +182,7 @@ def test_cleanup(mocker: Mock):
     # Create event bus
     event_bus = BaseEventBus(
         event_class=mock_event_class,
-        topic="test_topic",
+        topic=SampleTopics.test_topic,
     )
 
     # Put some events in queue

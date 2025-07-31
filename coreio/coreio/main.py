@@ -3,12 +3,14 @@
 
 import asyncio
 import logging
+import threading
 
 import colorlog
 from lib_config.loader import load_config
-from lib_utils.base_event_bus import BaseEventBus
+from lib_utils.messages.base_event_bus import BaseEventBus
 
 from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
@@ -56,6 +58,17 @@ async def coreio_loop(cfg: MainConfigAdapter):
     all_registered_nodes = None
     sql_communication = None
 
+    logger.info("Starting ZMQ communication")
+    zmq_communication = BaseEventBus(
+        event_class=IOEvent,
+        topic=IOEventTopic.coreio,
+        consumer_name="coreio_consumer",
+        subscriber_addrs=[cfg.coreio.coreio_origin, cfg.coreio.coreio_app],
+        publisher_addr=cfg.coreio.coreio_app,
+    )
+    zmq_communication.start()
+
+    ingress_stop_event = None
     if cfg.coreio.data_ingress.enabled:
         logger.info("Starting SQL communication")
         all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
@@ -65,14 +78,8 @@ async def coreio_loop(cfg: MainConfigAdapter):
             nodes_to_persist=all_registered_nodes,
         )
 
-    logger.info("Starting ZMQ communication")
-    zmq_communication = BaseEventBus(
-        event_class=IOEvent,
-        topic=IOEventTopic.coreio,
-        consumer_name="coreio_consumer",
-        subscriber_sockets=[cfg.coreio.coreio_origin],
-    )
-    zmq_communication.start()
+        ingress_stop_event = threading.Event()
+        start_scheduler_io_thread(cfg.coreio.data_ingress, ingress_stop_event, zmq_communication)
 
     logger.info("CoreIO is ready")
 
@@ -109,6 +116,15 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
                     logger.info(f"Read nodes value: {nodes_name_val}")
 
+                    if not nodes_name_val:
+                        logger.warning("No node values read; skipping SQL write.")
+                        continue
+
+                    try:
+                        sql_communication.write_nodes(nodes_name_val, event.time)
+                    except Exception as exc:
+                        logger.error(f"Failed to write nodes to SQL: {exc}")
+
                 case IOEventType.exit_io:
                     logger.info("Received exit event, shutting down CoreIO...")
                     break
@@ -117,6 +133,9 @@ async def coreio_loop(cfg: MainConfigAdapter):
         logger.exception("CoreIO error occurred")
     finally:
         zmq_communication.cleanup()
+        if ingress_stop_event:
+            ingress_stop_event.set()
+
         logger.info("CoreIO finished cleanup")
 
 def main():

@@ -2,6 +2,7 @@ from collections.abc import Iterable, Sequence
 from functools import cached_property
 
 import lib_utils.list as list_u
+import numpy as np
 import pandas as pd
 from lib_config.config import config, list_
 from lib_defs.config_defs.tag_config import TagType
@@ -51,7 +52,7 @@ class StateConstructor(Constructor):
         transformed_parts, tag_names = self._transform_tags(pf, StageCode.SC)
 
         # put resultant data on PipeFrame
-        df = pf.data.drop(tag_names, axis=1, inplace=False)
+        df = pf.data.drop(tag_names, axis=1, inplace=False).astype(np.float32)
         pf.data = pd.concat([df, pf.action_lo, pf.action_hi, *transformed_parts], axis=1, copy=False)
 
         # guarantee an ordering over columns
