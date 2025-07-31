@@ -62,7 +62,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         return create_tsdb_table_query(
             schema=self.cfg.table_schema,
             table=self.cfg.table_name,
-            columns = [
+            columns=[
                 SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
                 SQLColumn(name='agent_step', type='INTEGER', nullable=False),
             ],
@@ -264,14 +264,14 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             return [point._asdict() for point in points]
 
         # Return wide format: aggregate by time/agent_step with metrics as columns
-        grouped: dict[str, list] = defaultdict(list)
+        grouped: dict[str, list[Any]] = defaultdict(list)
 
         for point in points:
             grouped['time'].append(point.time)
             grouped['agent_step'].append(point.agent_step)
             grouped[point.metric].append(point.value)
 
-        aggregated = {}
+        aggregated: dict[str, object] = {}
         aggregated['time'] = sorted(grouped['time'])[-1]
         aggregated['agent_step'] = sorted(grouped['agent_step'])[-1]
         for colname, coldata in grouped.items():
