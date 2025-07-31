@@ -1,15 +1,16 @@
 import logging
+import re
 import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_config.group import Group
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
 from pydantic import Field
-from sqlalchemy import Engine, TextClause
+from sqlalchemy import Engine, TextClause, text
 
 from corerl.sql_logging.sql_logging import SQLEngineConfig
 
@@ -79,6 +80,7 @@ class BufferedWriterConfig(SQLEngineConfig):
     table_name: str = MISSING
     enabled: bool = True
     table_schema: str = MISSING
+    static_columns: bool = True
 
     # sync conditions
     sync_conds: list[str] = Field(default_factory=lambda: ['watermark'])
@@ -108,6 +110,9 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._exec = ThreadPoolExecutor(max_workers=1)
         self._write_future: Future | None = None
         self.engine: Engine | None = None
+        self._columns_initialized = False
+        self._table_created = False
+        self._known_columns: set[str] = set()
 
         self._sync_conds: list[SyncCond] = []
         self.last_sync_time = time.time()
@@ -126,10 +131,26 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         if self.cfg.enabled:
             self.engine = get_sql_engine(db_data=self.cfg, db_name=self.cfg.db_name)
-            if not table_exists(self.engine, table_name=cfg.table_name, schema=cfg.table_schema):
-                with TryConnectContextManager(self.engine) as connection:
-                    connection.execute(self._create_table_sql())
-                    connection.commit()
+
+    def ensure_table_exists(self):
+        assert self.engine is not None
+        if self._table_created:
+            return
+
+        if not table_exists(self.engine, table_name=self.cfg.table_name, schema=self.cfg.table_schema):
+            with TryConnectContextManager(self.engine) as connection:
+                # Create new table
+                connection.execute(self._create_table_sql())
+                connection.commit()
+        self._table_created = True
+
+
+    def ensure_known_columns_initialized(self):
+        if not self._columns_initialized and self.engine is not None:
+            with TryConnectContextManager(self.engine) as connection:
+                result = connection.execute(self._get_columns_sql())
+                self._known_columns = {row[0].strip('"') for row in result}
+            self._columns_initialized = True
 
 
     def __len__(self):
@@ -142,16 +163,23 @@ class BufferedWriter[T: NamedTuple](ABC):
     def is_hard_sync(self):
         return any(cond.is_hard_sync(self) for cond in self._sync_conds)
 
-
-    @abstractmethod
-    def _insert_sql(self) -> TextClause:
-        ...
-
-
     @abstractmethod
     def _create_table_sql(self) -> TextClause:
         ...
 
+    def _get_columns_sql(self) -> TextClause:
+        return text(f"""
+                SELECT column_name
+                FROM information_schema.columns
+                WHERE table_schema = '{self.cfg.table_schema}'
+                AND table_name = '{self.cfg.table_name}'
+            """)
+
+    def _add_column_sql(self, col_name: str):
+        return text(f"""
+            ALTER TABLE {self.cfg.table_schema}.{self.cfg.table_name}
+            ADD COLUMN IF NOT EXISTS "{col_name}" FLOAT
+        """)
 
     def _write(self, data: T) -> None:
         if not self.cfg.enabled:
@@ -207,6 +235,61 @@ class BufferedWriter[T: NamedTuple](ABC):
         self._exec.shutdown()
 
 
+    def _get_columns(self, dict_points: list[dict]):
+        points_columns = set()
+        for point in dict_points:
+            points_columns.update(k for k, _ in point.items())
+        return sorted(points_columns)
+
+
+    def add_columns(self, points_columns: list):
+        if not points_columns:
+            return
+
+        new_columns = [
+            col for col in points_columns
+            if col not in self._known_columns
+        ]
+
+        if self.cfg.static_columns and new_columns:
+            logger.warning(
+                f"Attempting to add new columns {new_columns} but static_columns is enabled. "
+                f"These columns will be ignored.",
+            )
+            return
+
+        assert self.engine is not None
+
+        for column in new_columns:
+            with TryConnectContextManager(self.engine) as connection:
+                connection.execute(self._add_column_sql(column))
+                connection.commit()
+            self._known_columns.add(column)
+
+    def _maybe_filter_for_static_mode(self, dict_points: list[dict]) -> list[dict]:
+        """Filter dict_points to only include known columns if static_columns is True."""
+        if not self.cfg.static_columns:
+            return dict_points
+
+        filtered_dict_points = []
+        for point in dict_points:
+            filtered_point = {k: v for k, v in point.items() if k in self._known_columns}
+            filtered_dict_points.append(filtered_point)
+        return filtered_dict_points
+
+
+    def _insert_sql(self, columns: list):
+        # Create dynamic INSERT statement with only columns that have data, will default to null
+        columns_list = ", ".join(f'"{col}"' for col in sorted(columns))
+        placeholders = ", ".join(f":{col}" for col in sorted(columns))
+
+        sql = f"""
+            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
+            ({columns_list})
+            VALUES ({placeholders})
+        """
+        return text(sql)
+
     def _deferred_write(self, points: list[T]):
         if len(points) == 0:
             return
@@ -216,9 +299,42 @@ class BufferedWriter[T: NamedTuple](ABC):
 
         assert self.engine is not None
 
+        self.ensure_table_exists()
+        self.ensure_known_columns_initialized()
+
+        dict_points = [point._asdict() for point in points]
+        dict_points = sanitize_keys(dict_points)
+        dict_points = self._maybe_filter_for_static_mode(dict_points)
+        points_columns = self._get_columns(dict_points)
+
+        self.add_columns(points_columns)
+
+        points_columns = self._get_columns(dict_points)
+
         with TryConnectContextManager(self.engine) as connection:
             connection.execute(
-                self._insert_sql(),
-                [point._asdict() for point in points],
+                self._insert_sql(points_columns),
+                dict_points,
             )
             connection.commit()
+
+
+def sanitize_keys(dict_points: list[dict]):
+    def _sanitize_key(name: str):
+        # remove non alpha-numeric characters and spaces
+        sanitized = re.sub(r'[^a-zA-Z0-9]', '_', name)
+        # Replace multiple consecutive underscores with single underscore
+        return re.sub(r'_+', '_', sanitized)
+
+    def _sanitize_dict_keys(d: dict[str, Any]):
+        keys = list(d.keys())
+        for key in keys:
+            sanitized_key = _sanitize_key(key)
+            if sanitized_key != key:
+                d[sanitized_key] = d.pop(key)
+
+    # Sanitize the dictionary keys
+    for point in dict_points:
+        _sanitize_dict_keys(point)
+
+    return dict_points
