@@ -31,7 +31,7 @@ def create_scheduler_io_clock(
     return  Clock(IOEvent, IOEventTopic.coreio, event_type, period, offset)
 
 def scheduler_io_task(cfg: DataIngressConfig, stop_event: threading.Event, EventBus: BaseEventBus):
-    data_ingress_clock = create_scheduler_io_clock(IOEventType.read_opcua_nodes, cfg.ingress_period)
+    data_ingress_clock = create_scheduler_io_clock(IOEventType.read_from_opc, cfg.ingress_period)
 
     while not stop_event.is_set():
         try:

@@ -39,7 +39,7 @@ def main(cfg: MainConfigAdapter):
 
         # Send write opc event
         messagedata = IOEvent(
-            type=IOEventType.write_opcua_nodes,
+            type=IOEventType.write_to_opc,
             data={"asdxf": [OPCUANodeWriteValue(node_id=node_id, value= x)]},
         ).model_dump_json()
 
@@ -50,7 +50,7 @@ def main(cfg: MainConfigAdapter):
         if cfg.coreio.data_ingress.enabled:
             # Send read from opc event
             messagedata = IOEvent(
-                type = IOEventType.read_opcua_nodes,
+                type = IOEventType.read_from_opc,
                 data={},
             ).model_dump_json()
 
