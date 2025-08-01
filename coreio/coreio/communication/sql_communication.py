@@ -144,11 +144,11 @@ class SQL_Manager:
         sqlalchemy_type = self._get_sqlalchemy_type(node)
         return self._sqlalchemy_to_tsdb_type(sqlalchemy_type)
 
-    def _insert_sql(self):
+    def _insert_sql(self, col_names_to_write: list[str]):
         """Generates SQL query for inserting data into the tsdb table."""
 
-        columns = ', '.join([f"{col.name}" for col in self.nodes_to_persist.values()])
-        placeholders = ', '.join([f":{col.name}" for col in self.nodes_to_persist.values()])
+        columns = ', '.join([f"{col}" for col in col_names_to_write])
+        placeholders = ', '.join([f":{col}" for col in col_names_to_write])
         return text(f"""
             INSERT INTO {self.schema}.{self.table_name}
             (time, {columns})
@@ -181,7 +181,8 @@ class SQL_Manager:
 
         try:
             with TryConnectContextManager(self.engine) as connection:
-                sql = self._insert_sql()
+                col_names_to_write = [col for col in filtered_data.keys() if col != "timestamp"]
+                sql = self._insert_sql(col_names_to_write)
                 connection.execute(sql, filtered_data)
                 connection.commit()
         except Exception as exc:
