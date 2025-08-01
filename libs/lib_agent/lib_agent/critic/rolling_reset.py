@@ -21,14 +21,12 @@ class RollingResetManagerStatus:
     active_indices: list[int]
     background_indices: list[int]
     metadata: dict[int, CriticInfo]
-    next_reset_idx: int
 
 class RollingResetManager:
     def __init__(self, config: RollingResetConfig, ensemble_size: int):
         self._config = config
         self._ensemble_size = ensemble_size
         self._update_count = 0
-        self._next_reset_idx = 0
 
         self._critic_info = [CriticInfo() for _ in range(ensemble_size + config.num_background_critics)]
         self._total_critics = ensemble_size + config.num_background_critics
@@ -43,7 +41,7 @@ class RollingResetManager:
         return self._active_indices.copy()
 
     def should_reset(self) -> bool:
-        if self._config.num_background_critics == 0:
+        if self._config.num_background_critics != 0:
             return self._update_count % self._config.reset_period == 0
         return False
 
@@ -62,8 +60,8 @@ class RollingResetManager:
         if self._config.num_background_critics == 0:
             return None
 
-        active_critics_list = sorted(self._active_indices)
-        return active_critics_list[self._next_reset_idx % len(active_critics_list)]
+        active_critics_list = list(self._active_indices)
+        return min(active_critics_list, key=lambda x: self._critic_info[x].birthdate)
 
     def _select_background_critic(self) -> int | None:
         ready_background_critics = [
@@ -107,10 +105,6 @@ class RollingResetManager:
         self._critic_info[critic_to_reset].birthdate = self._update_count
         self._critic_info[critic_to_reset].recent_loss = float('inf')
 
-        self._critic_info[selected_background_critic].birthdate = self._update_count
-
-        self._next_reset_idx += 1
-
         rng, init_rng = jax.random.split(rng)
         x_dummy = jnp.zeros(state_dim)
         a_dummy = jnp.zeros(action_dim)
@@ -147,5 +141,4 @@ class RollingResetManager:
             active_indices=sorted(self._active_indices),
             background_indices=self.background_indices,
             metadata={k: self._critic_info[k] for k in range(self._total_critics)},
-            next_reset_idx=self._next_reset_idx,
         )

@@ -120,8 +120,7 @@ class QRCCritic:
             next_actions,
         )
 
-        if hasattr(metrics, 'loss') and metrics.loss is not None:
-            self._reset_manager.update_critic_metadata(metrics.loss)
+        self._reset_manager.update_critic_metadata(metrics.loss)
 
         if self._reset_manager.should_reset():
             new_state = self._reset_manager.reset(

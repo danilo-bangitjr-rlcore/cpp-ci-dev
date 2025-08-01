@@ -19,6 +19,7 @@ from lib_agent.critic.critic_utils import (
     get_stable_rank,
 )
 from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.critic.rolling_reset import RollingResetConfig
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
@@ -40,7 +41,12 @@ BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
 @config()
 class CriticNetworkConfig:
-    ensemble: int = 1
+    ensemble: int = MISSING
+
+    @computed('ensemble')
+    @classmethod
+    def _ensemble(cls, cfg: 'MainConfig'):
+        return cfg.feature_flags.ensemble
 
 @config()
 class GTDCriticConfig:
@@ -49,6 +55,7 @@ class GTDCriticConfig:
     buffer: BufferConfig = MISSING
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
+    rolling_reset_config: RollingResetConfig = Field(default_factory=RollingResetConfig)
 
     @computed('buffer')
     @classmethod
@@ -206,6 +213,7 @@ class GreedyAC(BaseAgent):
             action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
             use_noisy_nets=app_state.cfg.feature_flags.noisy_networks,
+            rolling_reset_config=cfg.critic.rolling_reset_config,
         )
 
         self.critic = QRCCritic(

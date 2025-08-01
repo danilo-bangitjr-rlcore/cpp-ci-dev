@@ -215,8 +215,11 @@ def test_rolling_reset(rolling_critic: QRCCritic):
 
     critic_state = rolling_critic.init_state(rng, state, action)
 
-    rolling_critic._reset_manager._critic_info[3].training_steps = 60
+    rolling_critic._reset_manager._critic_info[3].training_steps = 40
     rolling_critic._reset_manager._critic_info[4].training_steps = 70
+
+    rolling_critic._reset_manager._critic_info[3].birthdate = 10
+    rolling_critic._reset_manager._critic_info[4].birthdate = 20
 
     rolling_critic._reset_manager.reset(
         critic_state,
@@ -229,10 +232,12 @@ def test_rolling_reset(rolling_critic: QRCCritic):
     current_active = rolling_critic._reset_manager.active_indices
 
     assert 0 not in current_active
-    assert 3 in current_active
+    # not 3 because it hasn't been trained long enough
+    assert 4 in current_active
 
     status = rolling_critic._reset_manager.get_status()
-    assert status.next_reset_idx == 1
+    assert status.active_critics == 3
+    assert status.background_critics == 2
 
 
 def test_get_active_values_with_background_critics(rolling_critic: QRCCritic):
