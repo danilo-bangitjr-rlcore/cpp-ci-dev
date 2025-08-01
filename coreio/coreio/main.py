@@ -67,11 +67,10 @@ async def coreio_loop(cfg: MainConfigAdapter):
             cb=lambda event: handle_read_event(event, opc_connections, sql_communication),
         )
 
-    event_stream = zmq_communication.async_listen_forever()
     logger.info("CoreIO is ready")
 
     try:
-        async for event in event_stream:
+        async for event in zmq_communication.async_listen_forever():
             if event.type == IOEventType.exit_io:
                 logger.info("Received exit event, shutting down CoreIO...")
                 break
