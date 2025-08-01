@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 
 class _MetricPoint(NamedTuple):
-    timestamp: str
+    time: str
     agent_step : int
     metric: str
     value: float
@@ -54,15 +54,6 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             index_columns=['metric'],
         )
 
-
-    def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, agent_step, metric, value)
-            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :agent_step, :metric, :value)
-        """)
-
-
     def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
         if agent_step is None:
             return
@@ -71,7 +62,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             return
 
         point = _MetricPoint(
-            timestamp=timestamp or now_iso(),
+            time=timestamp or now_iso(),
             agent_step=agent_step,
             metric=metric,
             value=float(value),
