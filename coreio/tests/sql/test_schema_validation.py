@@ -40,10 +40,10 @@ def sample_db_config(tsdb_engine: Engine):
     )
 
 def test_schema_creation(
-        tsdb_engine: Engine,
-        sample_db_config: InfraConfigAdapter,
-        opc_sample_nodes: dict[str, NodeData],
-        caplog: LogCaptureFixture,
+    tsdb_engine: Engine,
+    sample_db_config: InfraConfigAdapter,
+    opc_sample_nodes: dict[str, NodeData],
+    caplog: LogCaptureFixture,
 ):
     """CoreIO creates new database table from NodeData."""
     with caplog.at_level(logging.INFO):
@@ -60,10 +60,10 @@ def test_schema_creation(
             schema=sample_db_config.db.schema)
 
 def test_existing_schema(
-        tsdb_engine: Engine,
-        sample_db_config: InfraConfigAdapter,
-        opc_sample_nodes: dict[str, NodeData],
-        caplog: LogCaptureFixture,
+    tsdb_engine: Engine,
+    sample_db_config: InfraConfigAdapter,
+    opc_sample_nodes: dict[str, NodeData],
+    caplog: LogCaptureFixture,
 ):
     """CoreIO detects existing table and columns."""
 
@@ -93,9 +93,9 @@ def test_incompatible_types(
     print(caplog.text)
 
 def test_add_column(
-        tsdb_engine: Engine,
-        sample_db_config: InfraConfigAdapter,
-        caplog: LogCaptureFixture,
+    tsdb_engine: Engine,
+    sample_db_config: InfraConfigAdapter,
+    caplog: LogCaptureFixture,
 ):
     """CoreIO adds a column to existing table when there is a new node."""
 
