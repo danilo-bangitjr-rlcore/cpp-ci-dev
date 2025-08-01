@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from coreio.communication.opc_communication import OPC_Connection
 from coreio.communication.sql_communication import SQL_Manager
@@ -20,7 +21,7 @@ async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Conn
 async def handle_read_event(event: IOEvent, opc_connections: dict[str, OPC_Connection], sql_communication: SQL_Manager):
     logger.info(f"Received reading event {event}")
 
-    nodes_name_val = {}
+    nodes_name_val: dict[str, Any] = {}
 
     for opc_conn in opc_connections.values():
         async with opc_conn:
