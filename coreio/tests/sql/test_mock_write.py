@@ -144,6 +144,6 @@ class TestWriteNodes:
             VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :sensor1, :sensor2);
         """)
 
-        actual_sql = sql_manager._insert_sql()
+        actual_sql = sql_manager._insert_sql([node.name for node in sql_manager.nodes_to_persist.values()])
 
         assert str(actual_sql).strip() == str(expected_sql).strip()
