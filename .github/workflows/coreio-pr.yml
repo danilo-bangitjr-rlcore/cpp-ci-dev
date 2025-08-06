@@ -58,4 +58,23 @@ jobs:
 
       - name: Run Pytest
         run: |
-          pytest -n auto --dist loadscope tests/
+          pytest -n auto --dist loadscope --cov=coreio --cov-report=html --asyncio-mode=auto tests/
+
+      - uses: actions/upload-artifact@v4
+        id: htmlcov-upload-step
+        with:
+          name: htmlcov
+          path: corerl/htmlcov/
+          overwrite: true
+
+      - run: |
+          echo "🏁 Test ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 Test ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
+          comment-tag: execution
