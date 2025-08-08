@@ -8,28 +8,23 @@ from sqlalchemy import Engine
 
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
 from corerl.utils.buffered_sql_writer import WatermarkSyncConfig
+from tests.infrastructure.config import load_config
 
 
 @pytest.fixture()
 def metrics_table(
     tsdb_engine: Engine,
     tsdb_tmp_db_name: str,
+    basic_config_path: str,
 ):
     port = tsdb_engine.url.port
     assert port is not None
 
-    metrics_db_cfg = MetricsDBConfig(
-        enabled=True,
-        drivername='postgresql+psycopg2',
-        username='postgres',
-        password='password',
-        ip='localhost',
-        port=port,
-        db_name=tsdb_tmp_db_name,
-        table_schema='public',
-    )
-
-    metrics_table = MetricsTable(metrics_db_cfg)
+    basic_config = load_config(basic_config_path, overrides={
+        'metrics.db_name': tsdb_tmp_db_name,
+        'metrics.port': port,
+    })
+    metrics_table = MetricsTable(basic_config.metrics)
 
     yield metrics_table
 
