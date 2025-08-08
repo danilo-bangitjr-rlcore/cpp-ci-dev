@@ -1,4 +1,8 @@
 pytest_plugins = (
+    # local infra
+    'tests.infrastructure.config',
+
+    # `test/` sub-repo
     "test.infrastructure.app_state",
     "test.infrastructure.networking",
     "test.infrastructure.utils.docker",
