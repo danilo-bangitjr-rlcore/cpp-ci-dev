@@ -2,39 +2,13 @@ import datetime as dt
 from copy import deepcopy
 
 import pandas as pd
-import pytest
 import pytz
 from lib_utils.sql_logging.sql_logging import table_exists
 from lib_utils.time import now_iso
 from sqlalchemy import Engine
 
-from corerl.eval.evals import EvalDBConfig, EvalsTable
+from corerl.eval.evals import EvalsTable
 
-
-@pytest.fixture()
-def evals_table(
-    tsdb_engine: Engine,
-    tsdb_tmp_db_name: str,
-):
-    port = tsdb_engine.url.port
-    assert port is not None
-
-    evals_db_cfg = EvalDBConfig(
-        enabled=True,
-        drivername='postgresql+psycopg2',
-        username='postgres',
-        password='password',
-        ip='localhost',
-        port=port,
-        db_name=tsdb_tmp_db_name,
-        table_schema='public',
-    )
-
-    evals_table = EvalsTable(evals_db_cfg)
-
-    yield evals_table
-
-    evals_table.close()
 
 def test_db_eval_writer(tsdb_engine: Engine, evals_table: EvalsTable):
     eval_out = {"Q": [1, 2, 3]}
