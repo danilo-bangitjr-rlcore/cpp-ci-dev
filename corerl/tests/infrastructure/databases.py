@@ -1,9 +1,31 @@
 import pytest
 from sqlalchemy import Engine
 
+from corerl.data_pipeline.db.data_reader import DataReader
+from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from tests.infrastructure.config import load_config
+
+
+@pytest.fixture()
+def data_reader_writer(
+    tsdb_engine: Engine,
+    tsdb_tmp_db_name: str,
+    basic_config_path: str,
+):
+    port = tsdb_engine.url.port
+    assert port is not None
+
+    basic_config = load_config(basic_config_path, overrides={
+        'infra.db.db_name': tsdb_tmp_db_name,
+        'infra.db.port': port,
+    })
+    db = basic_config.env.db
+    reader = DataReader(db_cfg=db)
+    writer = DataWriter(cfg=db)
+    yield (reader, writer)
+    reader.close()
 
 
 @pytest.fixture()
