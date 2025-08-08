@@ -1,12 +1,3 @@
-# Action not used for now
-# Call with this:
-  # docker-build-test:
-  #   needs: [corerl-style-n-test]
-  #   uses: ./.github/workflows/reusable-build-docker-image.yml
-  #   secrets: inherit
-  #   with:
-  #     push_to_registry: false
-
 name: Run Docker Build Image
 
 on:
@@ -16,6 +7,24 @@ on:
         description: "If true, push the built docker image to registry"
         type: boolean
         default: false
+      image_name:
+        description: "Name of the Docker image to build"
+        type: string
+        required: true
+      image_tags:
+        description: "Tags for the Docker image"
+        type: string
+        required: true
+      build_target:
+        description: "Docker build target (stage)"
+        type: string
+        required: false
+        default: corerl
+      build_args:
+        description: "Build arguments for Docker build"
+        type: string
+        required: false
+        default: ""
 
 env:
   REGISTRY: ghcr.io
@@ -37,14 +46,8 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          # specify the base image name but explicitly disable so we don't push to docker registry
-          images: |
-            name=${{ github.repository }},enable=false
-            name=${{ env.REGISTRY }}/${{ github.repository }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=sha
+          images: ${{inputs.image_name}}
+          tags: ${{ inputs.image_tags }}
           labels: |
             org.opencontainers.image.vendor=RL Core Technologies
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
@@ -54,10 +57,8 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ${{ env.REGISTRY }}
-          # username: ${{ github.actor }}
-          # password: ${{ github.token }}
-          username: ${{ vars.TEMP_JAVIER_GHCR_USERNAME }}
-          password: ${{ secrets.TEMP_JAVIER_GHCR_PAT }}
+          username: ${{ vars.TEMP_JASMINE_GHCR_USERNAME }}
+          password: ${{ secrets.TEMP_JASMINE_GHCR_PAT }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -79,7 +80,9 @@ jobs:
           ssh: default=${{ env.SSH_AUTH_SOCK }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          target: corerl
+          target: ${{ inputs.build_target }}
+          build-args: |
+            ${{ inputs.build_args }}
 
       - name: Generate artifact attestation
         if: ${{ inputs.push_to_registry }}

@@ -10,13 +10,48 @@ if [ ! -f ".release-please-manifest.json" ]; then
     exit 1
 fi
 
+# Defaults
+DEV_BUILD=false
+BUILD_NUMBER=""
+
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --dev)
+            DEV_BUILD=true
+            shift
+            ;;
+        --build-number)
+            BUILD_NUMBER="$2"
+            shift 2
+            ;;
+        *)
+            log "Unknown argument: $1"
+            exit 1
+            ;;
+    esac
+done
+
 CORERL_VERSION=$(jq -r '.corerl' .release-please-manifest.json)
 COREIO_VERSION=$(jq -r '.coreio' .release-please-manifest.json)
 CORERL_ARTIFACT_NAME="linux-corerl"
 COREIO_ARTIFACT_NAME="linux-coreio"
 
+if $DEV_BUILD; then
+    if [[ -z "$BUILD_NUMBER" ]]; then
+        log "Error: --build-number required with --dev"
+        exit 1
+    fi
+    CORERL_ARTIFACT_NAME="${CORERL_ARTIFACT_NAME}-dev${BUILD_NUMBER}"
+    COREIO_ARTIFACT_NAME="${COREIO_ARTIFACT_NAME}-dev${BUILD_NUMBER}"
+fi
+
 log "CoreRL version: $CORERL_VERSION"
 log "CoreIO version: $COREIO_VERSION"
+log "Dev build: $DEV_BUILD"
+if $DEV_BUILD; then
+    log "Build number: $BUILD_NUMBER"
+fi
 
 rm -rf dist build corerl/.venv coreio/.venv
 
@@ -62,6 +97,10 @@ else
     log "Error: coreio/dist/${COREIO_ARTIFACT_NAME} not found"
     exit 1
 fi
+
+# Log the artifacts
+echo "CORERL_ARTIFACT=${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}" >> dist/artifacts.env
+echo "COREIO_ARTIFACT=${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}" >> dist/artifacts.env
 
 log "Build completed successfully!"
 log "Executables:"
