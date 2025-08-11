@@ -1,9 +1,9 @@
 import logging
-from collections import defaultdict
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, NamedTuple, SupportsFloat
 
+import lib_utils.iterable as itr_utils
 import pandas as pd
 from lib_config.config import config
 from lib_utils.dict import flatten_tree
@@ -263,13 +263,14 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         if self.cfg.narrow_format:
             return [point._asdict() for point in points]
 
-        # Return wide format: aggregate by time/agent_step with metrics as columns
-        grouped: dict[str, list[Any]] = defaultdict(list)
+        dict_points = [point._asdict() for point in points]
 
-        for point in points:
-            grouped['time'].append(point.time)
-            grouped['agent_step'].append(point.agent_step)
-            grouped[point.metric].append(point.value)
+        time_as = itr_utils.keep_iterable(dict_points, keys=['time', 'agent_step'])
+        time_as = itr_utils.group_by(time_as)
+        metric_value =  itr_utils.keep_iterable(dict_points, keys=['metric', 'value'])
+        metric_value = itr_utils.group_by_key(metric_value, 'metric', 'value')
+
+        grouped = {**time_as, **metric_value}
 
         aggregated: dict[str, object] = {}
         aggregated['time'] = max(grouped['time'])
@@ -279,3 +280,4 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
                 aggregated[colname] = sum(coldata) / len(coldata)
 
         return [aggregated]
+
