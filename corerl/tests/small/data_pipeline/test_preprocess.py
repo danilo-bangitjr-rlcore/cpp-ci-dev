@@ -42,12 +42,12 @@ def test_tag_names_same_prefix_preprocess():
     )
     preprocessor = Preprocessor([tag_cfg1, tag_cfg2])
 
-    df = pd.DataFrame({"tag_1": [1, 5], "tag_2": [1, 5]})
+    df = pd.DataFrame({"tag_1": [1, 5], "tag_1_sp": [1, 5]})
     pf = PipelineFrame(df, DataMode.ONLINE)
 
     pf = preprocessor(pf)
     out = pf.data
 
-    expected = pd.DataFrame({"tag_1": [0.1, 0.5], "tag_2": [1, 5]})
+    expected = pd.DataFrame({"tag_1": [0.1, 0.5], "tag_1_sp": [1, 5]})
 
     assert dfs_close(out, expected)
