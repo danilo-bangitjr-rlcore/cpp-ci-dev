@@ -29,9 +29,10 @@ class Preprocessor(Constructor):
 
         # put resultant data on PipeFrame
         df = pf.data.drop(tag_names, axis=1, inplace=False)
+        unchanged_cols = df.columns
         pf.data = pd.concat([df, *transformed_parts], axis=1, copy=False)
 
-        pf.data.rename(columns=lambda col: maybe_get_prefix(col, tag_names), inplace=True)
+        pf.data.rename(columns=lambda col: maybe_get_prefix(col, tag_names, unchanged_cols), inplace=True)
         return pf
 
     def inverse(self, df: pd.DataFrame):
@@ -69,7 +70,10 @@ class Preprocessor(Constructor):
         return list(pf.data.columns)
 
 
-def maybe_get_prefix(col: str, prefixes: Iterable[str]) -> str:
+def maybe_get_prefix(col: str, prefixes: Iterable[str], unchanged_cols: Iterable[str]) -> str:
+    if col in unchanged_cols:
+        return col
+
     prefix = None
     maximal_len = 0
     # search for maximal prefix
