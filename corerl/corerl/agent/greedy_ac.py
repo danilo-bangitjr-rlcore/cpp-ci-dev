@@ -12,13 +12,13 @@ from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
-from lib_agent.critic.qrc_critic import (
+from lib_agent.critic.critic_utils import (
     QRCConfig,
-    QRCCritic,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,
 )
+from lib_agent.critic.qrc_critic import QRCCritic
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter

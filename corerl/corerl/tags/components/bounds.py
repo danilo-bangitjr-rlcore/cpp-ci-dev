@@ -228,6 +228,7 @@ class SafetyZonedTag(BoundedTag):
             return (
                 Maybe(self.expected_range and self.expected_range[idx])
                 .otherwise(lambda: self.red_bounds and self.red_bounds[idx])
+                .is_instance(float)
                 .otherwise(lambda: self.operating_range and self.operating_range[idx])
                 .otherwise(lambda: self.yellow_bounds and self.yellow_bounds[idx])
                 .is_instance(float)

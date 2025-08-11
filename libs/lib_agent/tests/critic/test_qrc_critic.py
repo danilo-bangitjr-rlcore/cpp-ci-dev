@@ -6,7 +6,8 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import pytest
 
-from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
+from lib_agent.critic.critic_utils import QRCConfig
+from lib_agent.critic.qrc_critic import QRCCritic
 
 
 @dataclass
