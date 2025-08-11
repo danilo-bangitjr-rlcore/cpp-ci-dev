@@ -67,7 +67,7 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
                 SQLColumn(name='agent_step', type='INTEGER', nullable=False),
             ],
             partition_column=None,
-            index_columns=['time'],
+            index_columns=[],
         )
 
     def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
