@@ -102,7 +102,7 @@
             ],
             "limit": 50
           },
-          "table": "solar.bess1_metrics"
+          "table": "solar.bess2_metrics"
         }
       ],
       "title": "BESS 2 Profit",
@@ -189,7 +189,7 @@
             ],
             "limit": 50
           },
-          "table": "solar.bess1_metrics"
+          "table": "solar.bess2_metrics"
         }
       ],
       "title": "Overall WTP 2/BESS 2/P12 Profit",
@@ -2698,5 +2698,5 @@
   "timezone": "browser",
   "title": "BESS 2 Objectives",
   "uid": "ee9wfo0vhboxsk",
-  "version": 2
+  "version": 4
 }
