@@ -9,11 +9,11 @@ import jax
 import jax.numpy as jnp
 import lib_agent.network.networks as nets
 import lib_utils.dict as dict_u
+import lib_utils.jax as jax_u
 import numpy as np
 import optax
 import pandas as pd
 from lib_agent.buffer.storage import ReplayStorage
-from lib_agent.critic.qrc_critic import jax_u
 from lib_config.config import config, list_
 from lib_defs.config_defs.tag_config import TagType
 
