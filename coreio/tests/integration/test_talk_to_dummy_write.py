@@ -3,7 +3,6 @@ import asyncio
 from typing import Any
 
 import pytest
-from sqlalchemy import Engine
 from test.infrastructure.networking import get_free_port
 
 from tests.infrastructure.mock_opc_server import FakeOpcServer
@@ -42,7 +41,7 @@ async def run_subprocess_with_streaming(name: str, *args: str) -> dict[str, Any]
     }
 
 @pytest.mark.timeout(60)
-async def test_communication(tsdb_engine: Engine, tsdb_tmp_db_name: str, opc_port: int):
+async def test_communication(opc_port: int):
     server = FakeOpcServer(opc_port)
     await server.start()
     await asyncio.sleep(0.1)
@@ -60,10 +59,6 @@ async def test_communication(tsdb_engine: Engine, tsdb_tmp_db_name: str, opc_por
             "../config/coreio_test_config.yaml",
             f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
             f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
-            "coreio.data_ingress.enabled=True",
-            "coreio.data_ingress.ingress_period=00:00:00.02",
-            f"infra.db.port={tsdb_engine.url.port}",
-            f"infra.db.db_name={tsdb_tmp_db_name}",
         ))
 
         await asyncio.sleep(1)  # Wait for coreio startup

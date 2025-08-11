@@ -29,7 +29,7 @@ def main(cfg: MainConfigAdapter):
     action_period = cfg.interaction.action_period.total_seconds()
     assert node_id is not None, "No tags in config.yaml"
 
-    for i in range(10):
+    for i in range(30):
         # Make message
         x = np.random.rand()
         if i % 3 == 1:
