@@ -117,14 +117,12 @@ class GreedyAC:
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         self.rng, c_rng = jax.random.split(self.rng)
-        # use get_active_values instead of get_values
-        active_indices = self._critic.get_active_indices()
-        return self._critic.get_active_values(
+        # use get_active_values instead of vmapping over all critics
+        return self._critic.get_values(
             self.agent_state.critic.params,
             c_rng,
             state=state.features,
             action=jnp.asarray(actions),
-            active_indices=active_indices,
         )
 
     def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):

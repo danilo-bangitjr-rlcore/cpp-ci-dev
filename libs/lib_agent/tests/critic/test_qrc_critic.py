@@ -8,6 +8,7 @@ import pytest
 
 from lib_agent.critic.critic_utils import QRCConfig, RollingResetConfig
 from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.critic.rolling_reset import RollingResetConfig
 
 
 @dataclass
@@ -218,8 +219,8 @@ def test_rolling_reset(rolling_critic: QRCCritic):
     rolling_critic._reset_manager._critic_info[3].training_steps = 40
     rolling_critic._reset_manager._critic_info[4].training_steps = 70
 
-    rolling_critic._reset_manager._critic_info[3].birthdate = 10
-    rolling_critic._reset_manager._critic_info[4].birthdate = 20
+    rolling_critic._reset_manager._critic_info[3].age = 10
+    rolling_critic._reset_manager._critic_info[4].age = 20
 
     rolling_critic._reset_manager.reset(
         critic_state,

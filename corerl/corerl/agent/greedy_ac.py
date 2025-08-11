@@ -14,6 +14,7 @@ from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     QRCConfig,
+    RollingResetConfig,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,

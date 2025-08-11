@@ -9,7 +9,7 @@ from lib_agent.critic.critic_utils import CriticState, RollingResetConfig
 
 @dataclass
 class CriticInfo:
-    birthdate: int = 0
+    age: int = 0
     training_steps: int = 0
     recent_loss: float = float('inf')
 
@@ -61,7 +61,7 @@ class RollingResetManager:
             return None
 
         active_critics_list = list(self._active_indices)
-        return min(active_critics_list, key=lambda x: self._critic_info[x].birthdate)
+        return min(active_critics_list, key=lambda x: self._critic_info[x].age)
 
     def _select_background_critic(self) -> int | None:
         ready_background_critics = [
@@ -74,11 +74,11 @@ class RollingResetManager:
             return None
 
         # sort by birthdate
-        sorted_birthdates = sorted(
+        sorted_ages = sorted(
             ready_background_critics,
-            key=lambda x: self._critic_info[x].birthdate,
+            key=lambda x: self._critic_info[x].age,
         )
-        return sorted_birthdates[0]
+        return sorted_ages[0]
 
     def reset(
         self,
@@ -102,7 +102,7 @@ class RollingResetManager:
         self._active_indices.add(selected_background_critic)
 
         self._critic_info[critic_to_reset].training_steps = 0
-        self._critic_info[critic_to_reset].birthdate = self._update_count
+        self._critic_info[critic_to_reset].age = self._update_count
         self._critic_info[critic_to_reset].recent_loss = float('inf')
 
         rng, init_rng = jax.random.split(rng)
