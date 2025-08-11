@@ -1,4 +1,3 @@
-# test_zmq_communication.py
 import asyncio
 from typing import Any
 
