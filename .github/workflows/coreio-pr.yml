@@ -69,7 +69,7 @@ jobs:
         id: htmlcov-upload-step
         with:
           name: htmlcov
-          path: corerl/htmlcov/
+          path: coreio/htmlcov/
           overwrite: true
 
       - run: |
