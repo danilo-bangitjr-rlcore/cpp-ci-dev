@@ -158,7 +158,7 @@ class SQL_Manager:
     # Write data to the tsdb table with the given timestamp.
     # This method expects data to be a dictionary where keys are node names
     # and values are their corresponding values.
-    def write_nodes(self, data: dict[str, Any], timestamp: str | None):
+    def write_to_sql(self, data: dict[str, Any], timestamp: str | None):
         """Write data to the tsdb table with the given timestamp."""
 
         if not self.engine:

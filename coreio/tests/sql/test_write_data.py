@@ -50,7 +50,7 @@ def test_write_once(
     sql_communication = SQL_Manager(sample_db_config, TABLE_NAME, opc_sample_nodes)
     time = now_iso()
     nodes_name_val = {"sensor1": 0.123, "sensor2": 42}
-    sql_communication.write_nodes(nodes_name_val, time)
+    sql_communication.write_to_sql(nodes_name_val, time)
 
     engine = get_sql_engine(db_data=sample_db_config.db, db_name=sample_db_config.db.db_name)
     query = f"SELECT * FROM {sample_db_config.db.schema}.{TABLE_NAME}"
@@ -72,7 +72,7 @@ def test_second_write(
     sql_communication = SQL_Manager(sample_db_config, TABLE_NAME, opc_sample_nodes)
     time = now_iso()
     nodes_name_val = {"sensor1": 0.123, "sensor2": 42}
-    sql_communication.write_nodes(nodes_name_val, time)
+    sql_communication.write_to_sql(nodes_name_val, time)
 
     engine = get_sql_engine(db_data=sample_db_config.db, db_name=sample_db_config.db.db_name)
     query = f"SELECT * FROM {sample_db_config.db.schema}.{TABLE_NAME}"
@@ -94,7 +94,7 @@ def test_partial_write(
     sql_communication = SQL_Manager(sample_db_config, TABLE_NAME, opc_sample_nodes)
     time = now_iso()
     nodes_name_val = {"sensor2": 42}
-    sql_communication.write_nodes(nodes_name_val, time)
+    sql_communication.write_to_sql(nodes_name_val, time)
 
     # Get most recent row
     engine = get_sql_engine(db_data=sample_db_config.db, db_name=sample_db_config.db.db_name)
