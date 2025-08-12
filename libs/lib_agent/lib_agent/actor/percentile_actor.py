@@ -192,6 +192,7 @@ class PercentileActor:
             BATCH = 32
 
             states = jax.random.uniform(rng, shape=(BATCH, state_dim))
+            states = (states * 2.0) - 1.0
             dist_params = jax_u.vmap_only(self.actor.apply, ['x'])(
                 params,
                 states,

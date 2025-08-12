@@ -202,6 +202,7 @@ class QRCCritic:
             s_rng, a_rng, q_rng = jax.random.split(rng, 3)
             q_rngs = jax.random.split(q_rng, (BATCH, ACTION_SAMPLES))
             states = jax.random.uniform(s_rng, shape=(BATCH, self._state_dim))
+            states = (states * 2.0) - 1.0
             actions = jax.random.uniform(a_rng, shape=(BATCH, ACTION_SAMPLES, self._action_dim))
             q = self._forward(params, q_rngs, states, actions).q.squeeze()
             chex.assert_shape(q, (BATCH, ACTION_SAMPLES))
