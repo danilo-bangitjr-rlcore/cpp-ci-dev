@@ -39,18 +39,27 @@ class GoalConstructor:
                 # log violation satisfaction
                 self._app_state.metrics.write(
                     self._app_state.agent_step,
-                    f'priority_{priority}_satisfaction',
-                    1-violation_percent,
+                    f'priority_{priority_idx}_satisfaction',
+                    1-max(violation_percent, 0),
                 )
-            else:
-                opt_violation = self._avg_optimization_violation(priority, row)
-                priority_violations.append(opt_violation)
 
-                # log optimization satisfaction
                 self._app_state.metrics.write(
                     self._app_state.agent_step,
-                    'optimization_satisfaction',
-                    1+opt_violation,
+                    f'priority_{priority_idx}_met',
+                    1 if violation_percent <= 0 else 0,
+                )
+
+            else:
+                opt_violation = self._avg_optimization_violation(priority, row)
+                opt_active =  all(p<=0 for p in priority_violations)
+
+                priority_violations.append(opt_violation)
+
+                # log optimization performance
+                self._app_state.metrics.write(
+                    self._app_state.agent_step,
+                    'optimization_performance',
+                    1+opt_violation if opt_active else 0,
                 )
 
         return priority_violations
