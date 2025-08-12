@@ -1,14 +1,14 @@
 import logging
-import re
 import time
 from abc import ABC, abstractmethod
 from concurrent.futures import Future, ThreadPoolExecutor
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple, Protocol
+from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_config.group import Group
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
+from lib_utils.sql_logging.utils import sanitize_keys
 from pydantic import Field
 from sqlalchemy import Engine, TextClause, text
 
@@ -322,23 +322,3 @@ class BufferedWriter[T: NamedTuple](ABC):
     def _transform(self, points: list[T]):
         return [point._asdict() for point in points]
 
-
-def sanitize_keys(dict_points: list[dict]):
-    def _sanitize_key(name: str):
-        # remove non alpha-numeric characters and spaces
-        sanitized = re.sub(r'[^a-zA-Z0-9]', '_', name)
-        # Replace multiple consecutive underscores with single underscore
-        return re.sub(r'_+', '_', sanitized)
-
-    def _sanitize_dict_keys(d: dict[str, Any]):
-        keys = list(d.keys())
-        for key in keys:
-            sanitized_key = _sanitize_key(key)
-            if sanitized_key != key:
-                d[sanitized_key] = d.pop(key)
-
-    # Sanitize the dictionary keys
-    for point in dict_points:
-        _sanitize_dict_keys(point)
-
-    return dict_points
