@@ -251,15 +251,7 @@ class GoalConstructor:
             .map(partial(get_tag_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {goal.tag}')
         )
-
         x: float = row[goal.tag].to_numpy()[0]
-        if goal.op == 'down_to':
-            hi = bounds[1].expect(f'Was unable to find an upper bound for tag: {goal.tag}')
-            delta = x - thresh
-            return delta / (hi - thresh)
-
-        lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {goal.tag}')
-        delta = thresh - x
 
         # log the tags value as well as the threshold
         self._app_state.metrics.write(
@@ -273,6 +265,14 @@ class GoalConstructor:
             f'priority_{active_idx}_{goal.tag}_{goal.op}_thresh',
             thresh,
         )
+
+        if goal.op == 'down_to':
+            hi = bounds[1].expect(f'Was unable to find an upper bound for tag: {goal.tag}')
+            delta = x - thresh
+            return delta / (hi - thresh)
+
+        lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {goal.tag}')
+        delta = thresh - x
 
         return delta / (thresh - lo)
 
