@@ -8,7 +8,6 @@ import pytest
 
 from lib_agent.critic.critic_utils import QRCConfig, RollingResetConfig
 from lib_agent.critic.qrc_critic import QRCCritic
-from lib_agent.critic.rolling_reset import RollingResetConfig
 
 
 @dataclass
