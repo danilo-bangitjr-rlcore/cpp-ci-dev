@@ -105,10 +105,9 @@ class RollingResetManager:
         self._critic_info[critic_to_reset].age = self._update_count
         self._critic_info[critic_to_reset].recent_loss = float('inf')
 
-        rng, init_rng = jax.random.split(rng)
         x_dummy = jnp.zeros(state_dim)
         a_dummy = jnp.zeros(action_dim)
-        new_member_state = init_member_fn(init_rng, x_dummy, a_dummy)
+        new_member_state = init_member_fn(rng, x_dummy, a_dummy)
 
         return self._apply_reset_to_state(critic_state, critic_to_reset, new_member_state)
 
