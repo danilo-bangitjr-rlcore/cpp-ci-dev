@@ -264,13 +264,13 @@ class GoalConstructor:
         # log the tags value as well as the threshold
         self._app_state.metrics.write(
             self._app_state.agent_step,
-            f'priority_{active_idx}_{goal.tag}',
+            f'priority_{active_idx}_{goal.tag}_{goal.op}',
             x,
         )
 
         self._app_state.metrics.write(
             self._app_state.agent_step,
-            f'priority_{active_idx}_{goal.tag}_thresh',
+            f'priority_{active_idx}_{goal.tag}_{goal.op}_thresh',
             thresh,
         )
 
