@@ -6,7 +6,7 @@ from typing import Any, NamedTuple, SupportsFloat
 import lib_utils.iterable as itr_utils
 import pandas as pd
 from lib_config.config import config
-from lib_utils.dict import flatten_tree
+from lib_utils.dict import flatten_tree, map_keys
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from lib_utils.time import now_iso
@@ -272,12 +272,11 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         grouped = {**time_as, **metric_value}
 
-        aggregated: dict[str, object] = {}
-        aggregated['time'] = max(grouped['time'])
-        aggregated['agent_step'] = max(grouped['agent_step'])
-        for colname, coldata in grouped.items():
-            if colname not in ['time', 'agent_step']:
-                aggregated[colname] = sum(coldata) / len(coldata)
-
+        max_cols = { 'time', 'agent_step' }
+        other_cols = set(grouped.keys()) - max_cols
+        aggregated = (
+            map_keys(grouped, max_cols, max)
+            | map_keys(grouped, other_cols, lambda data: sum(data) / len(data))
+        )
         return [aggregated]
 
