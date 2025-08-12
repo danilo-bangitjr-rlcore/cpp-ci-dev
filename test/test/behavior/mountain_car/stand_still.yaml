@@ -23,7 +23,7 @@ pipeline:
     type: ai_setpoint
     operating_range: [-1.5, 1.5]
     action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
-    nominal_setpoint: 0.9
+    nominal_setpoint: 1.2
     reward_constructor:
     - name: power
       pow: 2
