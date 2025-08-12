@@ -20,7 +20,6 @@ from lib_agent.critic.critic_utils import (
     get_stable_rank,
 )
 from lib_agent.critic.qrc_critic import QRCCritic
-from lib_agent.critic.rolling_reset import RollingResetConfig
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
@@ -301,35 +300,14 @@ class GreedyAC(BaseAgent):
             1 state, and
             1 action OR a batch of actions
         """
+        chex.assert_shape(state, (self.state_dim,))
         self._jax_rng, rng = jax.random.split(self._jax_rng)
+        assert action.ndim in {1, 2}
         if action.ndim == 2:
             rng = jax.random.split(rng, action.shape[0])
 
-        active_indices = self.critic.get_active_indices()
-
-        return self._get_values(self._critic_state.params, rng, state, action, active_indices)
-
-    @jax_u.method_jit
-    def _get_values(
-        self,
-        critic_params: chex.ArrayTree,
-        rng: chex.PRNGKey,
-        state: jax.Array,
-        action: jax.Array,
-        active_indices: jax.Array,
-    ):
-        """
-        jittable version of `self.get_values` that takes critic params as an argument
-
-        returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
-            1 state, and
-            1 action OR a batch of actions
-        """
-        chex.assert_shape(state, (self.state_dim,))
-        assert action.ndim in {state.ndim, state.ndim + 1}
-
         # use active critic values for decision making
-        qs = self.critic.get_active_values(critic_params, rng, state, action, active_indices)
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action)
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -471,9 +449,8 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        active_indices = self.critic.get_active_indices()
-        ensemble_return = self._get_values(params, rng, x, a, active_indices)
-        aggregated_values = self._aggregate_ensemble_values(ensemble_return.ensemble_values)
+        qs = self.critic.get_active_values(params, rng, x, a)
+        aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
     def update_actor(self):

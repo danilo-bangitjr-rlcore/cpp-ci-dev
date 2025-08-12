@@ -99,12 +99,22 @@ class QRCCritic:
         rng: chex.PRNGKey,
         state: jax.Array,
         action: jax.Array,
+    ):
+        active_indices = self.get_active_indices()
+        return self._get_active_values(params, rng, state, action, active_indices)
+
+    @jax_u.method_jit
+    def _get_active_values(
+        self,
+        params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        state: jax.Array,
+        action: jax.Array,
         active_indices: jax.Array,
     ):
         ens_get_values = jax_u.vmap_only(self.get_values, ['params'])
-        all_values = ens_get_values(params, rng, state, action)
-
-        return all_values[active_indices]
+        active_params = jax.tree.map(lambda x: x[active_indices], params)
+        return ens_get_values(active_params, rng, state, action)
 
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi

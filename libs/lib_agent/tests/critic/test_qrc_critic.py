@@ -251,6 +251,5 @@ def test_get_active_values_with_background_critics(rolling_critic: QRCCritic):
 
     rng_apply = jax.random.PRNGKey(456)
     # Get active values (should return 3 values - only active critics)
-    active_indices = rolling_critic.get_active_indices()
-    active_values = rolling_critic.get_active_values(critic_state.params, rng_apply, state, action, active_indices)
+    active_values = rolling_critic.get_active_values(critic_state.params, rng_apply, state, action)
     assert active_values.shape == (len(rolling_critic._reset_manager.active_indices), 1)  # (3, 1)
