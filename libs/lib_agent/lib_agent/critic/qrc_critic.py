@@ -120,12 +120,12 @@ class QRCCritic:
         return self._forward(params, rng, x, a).phi
 
     def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
-        self._rng, rng = jax.random.split(self._rng)
+        self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 
         new_state, metrics = self._ensemble_update(
             critic_state,
-            rng,
+            update_rng,
             transitions,
             next_actions,
         )
@@ -135,7 +135,7 @@ class QRCCritic:
         if self._reset_manager.should_reset():
             new_state = self._reset_manager.reset(
                 new_state,
-                rng,
+                reset_rng,
                 self._init_member_state,
                 self._state_dim,
                 self._action_dim,
