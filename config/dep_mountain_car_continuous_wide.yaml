@@ -26,7 +26,7 @@ coreio:
       authentication_mode: anonymous
   data_ingress:
     enabled: True
-    ingress_period: 00:00:01
+    ingress_period: 00:00:00.5
 
 env:
   name: dep_async_env
