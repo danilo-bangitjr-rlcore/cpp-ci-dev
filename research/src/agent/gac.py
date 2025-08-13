@@ -118,7 +118,7 @@ class GreedyAC:
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         self.rng, c_rng = jax.random.split(self.rng)
         # use get_active_values instead of vmapping over all critics
-        return self._critic.get_values(
+        return self._critic.get_active_values(
             self.agent_state.critic.params,
             c_rng,
             state=state.features,
