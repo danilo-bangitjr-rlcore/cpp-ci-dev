@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.144.0](https://github.com/rlcoretech/core-rl/compare/v0.143.0...v0.144.0) (2025-08-13)
+
+
+### Features
+
+* **PROD-720:** obs_period +  action_period alignment ([6d0d305](https://github.com/rlcoretech/core-rl/commit/6d0d30559f330bd8f5e66d3180c85fa9c202cdde))
+* **PROD-726:** check expected_range within operating_range ([e1da182](https://github.com/rlcoretech/core-rl/commit/e1da182cb944be4946df50a8f8b84057db70c7b0))
+* **PROD-783:** define operating/expected ranges for cascade tags ([bbf5b3a](https://github.com/rlcoretech/core-rl/commit/bbf5b3a03c76c016d4f6482c1f50f6da22810287))
+* **PROD-783:** define operating/expected ranges for cascade tags ([eb33795](https://github.com/rlcoretech/core-rl/commit/eb337953a901880f2fc8e69b75d2638e4c3d8f36))
+* **PROD-784:** CoreIO data ingress tests and code coverage ([c4f42c4](https://github.com/rlcoretech/core-rl/commit/c4f42c4a1f2369392ca7a95b8a0847ef55f66460))
+
+
+### Bug Fixes
+
+* **Coreio:** Coreio's event bus uses callbacks ([9964c06](https://github.com/rlcoretech/core-rl/commit/9964c063bac20a3e1e510763f1bfd3865a62bb8b))
+* **corerl:** using the new IO events ([9b3d712](https://github.com/rlcoretech/core-rl/commit/9b3d7124edfc17cbe8a70a5b9ac2ca1b350d57b8))
+* correctly name columns throughout test ([5fd3a2c](https://github.com/rlcoretech/core-rl/commit/5fd3a2c1ecb38ceb338f8a6771e76196dcfe34f1))
+* **PROD-781:** only use red zone bounds for normalization when they are floats ([eda68be](https://github.com/rlcoretech/core-rl/commit/eda68bef564948c02e0d42bab916848c5d8110c8))
+* **PROD-781:** only use red zone bounds for normalization when they are floats ([d22b776](https://github.com/rlcoretech/core-rl/commit/d22b7760be1f6fe293e9a03993890c76f8473c23))
+* **PROD-782:** make sure columns that aren't preprocessed don't have column names changed ([8d55476](https://github.com/rlcoretech/core-rl/commit/8d554762cd51e8b8aa82ff1b88fe345a630133e7))
+* **PROD-782:** Make Sure Tags That Aren't Preprocessed Don't Have Column Name Changed ([03458c7](https://github.com/rlcoretech/core-rl/commit/03458c79571e5236a73bb33d6f3b1c82a0edfa96))
+* updating coverage comment text and uv lock ([d9172ec](https://github.com/rlcoretech/core-rl/commit/d9172ece643441327face048631cf5be40a9d5c4))
+
 ## [0.143.0](https://github.com/rlcoretech/core-rl/compare/v0.142.0...v0.143.0) (2025-07-30)
 
 
