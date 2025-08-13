@@ -7,6 +7,7 @@ from typing import Any, assert_never
 
 import pandas as pd
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
+from lib_utils.sql_logging.utils import ColumnMapper, SanitizedName
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
@@ -98,13 +99,19 @@ class DataReader:
         if self.wide_format:
             if tag_aggregations is None:
                 raise ValueError("tag_aggregations is required for wide format")
-            return self._batch_aggregated_read_wide(
-                names,
+
+            column_mapper = ColumnMapper(names)
+            sanitized_names = [column_mapper.name_to_pg[name] for name in names]
+            sanitized_tag_aggregations = {column_mapper.name_to_pg[k]: v for k, v in tag_aggregations.items()}
+            df_read = self._batch_aggregated_read_wide(
+                sanitized_names,
                 start_time,
                 end_time,
                 bucket_width,
-                tag_aggregations,
+                sanitized_tag_aggregations,
             )
+            return df_read.rename(columns = column_mapper.pg_to_name)
+
         return self._batch_aggregated_read_narrow(
             names,
             start_time,
@@ -116,11 +123,11 @@ class DataReader:
 
     def _batch_aggregated_read_wide(
         self,
-        names: list[str],
+        names: list[SanitizedName],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        tag_aggregations: dict[str, Agg],
+        tag_aggregations: dict[SanitizedName, Agg],
     ) -> pd.DataFrame:
         bucket_width_str = f"{bucket_width.total_seconds()} seconds"
 
