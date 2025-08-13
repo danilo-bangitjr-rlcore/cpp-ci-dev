@@ -175,11 +175,6 @@ class MainConfig:
     @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble
-        self.agent.critic.critic_network.ensemble = ensemble_size
-        self.agent.critic.buffer.ensemble = (
-            ensemble_size +
-            self.agent.critic.rolling_reset_config.num_background_critics
-        )
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
 
