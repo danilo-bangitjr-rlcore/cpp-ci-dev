@@ -21,8 +21,12 @@ def assign_default[K, V](d: dict[K, V], key: K, default: Callable[[], V]) -> V:
 
 def drop(d: MutableMapping, to_drop: Sequence[str]) -> dict:
     to_keep = set(d.keys()) - set(to_drop)
+    return keep(d, list(to_keep))
+
+
+def keep(d: MutableMapping, to_keep: Sequence[str]) -> dict:
     return {
-        k: d[k] for k in to_keep
+        k: d[k] for k in set(to_keep)
      }
 
 
