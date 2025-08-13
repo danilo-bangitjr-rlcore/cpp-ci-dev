@@ -9,7 +9,14 @@ from lib_utils.sql_logging.sql_logging import (
     get_sql_engine,
     table_exists,
 )
-from lib_utils.sql_logging.utils import SQLColumn, add_column_to_table_query, create_tsdb_table_query
+from lib_utils.sql_logging.utils import (
+    ColumnMapper,
+    SanitizedName,
+    SQLColumn,
+    add_column_to_table_query,
+    create_tsdb_table_query,
+    sanitize_key,
+)
 from lib_utils.time import now_iso
 from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
@@ -34,20 +41,18 @@ class SQL_Manager:
         self.schema = cfg.db.schema
         self.table_name = table_name
         self.time_column_name = "time"
-        self.nodes_to_persist = self._node_names_to_lower(nodes_to_persist)
+
+        column_names = [node.name.lower() for node in nodes_to_persist.values()]
+        self.column_mapper = ColumnMapper(column_names)
+        self.nodes_to_persist = {
+            key: node.model_copy(update={"name": self.column_mapper.name_to_pg[node.name]})
+            for key, node in nodes_to_persist.items()
+        }
 
         self._ensure_db_schema()
         if warn_extra_cols:
             self._check_for_extra_columns()
 
-    def _node_names_to_lower(self, nodes_to_persist: dict[str, NodeData]):
-        """Convert all node names in nodes_to_persist to lowercase,
-           since postgres automatically converts column names to lowercase too.
-        """
-        return {
-            key: node.model_copy(update={"name": node.name.lower()})
-            for key, node in nodes_to_persist.items()
-        }
 
     def _ensure_db_schema(self):
         """Ensure database table exists with required columns, create table/columns if necessary."""
@@ -144,7 +149,7 @@ class SQL_Manager:
         sqlalchemy_type = self._get_sqlalchemy_type(node)
         return self._sqlalchemy_to_tsdb_type(sqlalchemy_type)
 
-    def _insert_sql(self, col_names_to_write: list[str]):
+    def _insert_sql(self, col_names_to_write: list[SanitizedName]):
         """Generates SQL query for inserting data into the tsdb table."""
 
         columns = ', '.join([f"{col}" for col in col_names_to_write])
@@ -166,24 +171,29 @@ class SQL_Manager:
             return
 
         if not data:
-            logger.warning("No data provided to write_nodes")
+            logger.warning("No data provided to write_to_sql")
             return
 
-        # Ensure all keys are lowercase and only expected columns are present
+        # Ensure all keys in input data are sanitized
+        sanitized_data = {sanitize_key(k): v for k, v in data.items()}
+
+        # Ensure all keys in input data are only expected columns
         valid_columns = {node.name for node in self.nodes_to_persist.values()}
-        filtered_data = {key.lower(): value for key, value in data.items() if key.lower() in valid_columns}
+        filtered_data = {k: v for k, v in sanitized_data.items() if k in valid_columns}
 
         if not filtered_data:
             logger.warning("No valid columns found in provided data")
             return
 
-        filtered_data['timestamp'] = timestamp or now_iso()
+        filtered_data[SanitizedName('timestamp')] = timestamp or now_iso()
 
         try:
             with TryConnectContextManager(self.engine) as connection:
                 col_names_to_write = [col for col in filtered_data.keys() if col != "timestamp"]
                 sql = self._insert_sql(col_names_to_write)
-                connection.execute(sql, filtered_data)
+
+                # Cast SanitizedName to str just for connection.execute
+                connection.execute(sql, {str(k): v for k, v in filtered_data.items()})
                 connection.commit()
         except Exception as exc:
             logger.error(f"Failed to write nodes: {exc}")
