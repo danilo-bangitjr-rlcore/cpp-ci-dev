@@ -279,4 +279,3 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             | map_keys(grouped, other_cols, lambda data: sum(data) / len(data))
         )
         return [aggregated]
-

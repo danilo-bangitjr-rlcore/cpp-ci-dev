@@ -1,4 +1,4 @@
-from lib_utils.iterable import keep_iterable, group_by, group_by_key, partition
+from lib_utils.iterable import group_by, group_by_key, keep_iterable, partition
 
 
 def test_partition_basic():
