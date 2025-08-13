@@ -51,7 +51,7 @@ class GoalConstructor:
 
             else:
                 opt_violation = self._avg_optimization_violation(priority, row)
-                opt_active =  all(p<=0 for p in priority_violations)
+                opt_active = all(p<=0 for p in priority_violations)
 
                 priority_violations.append(opt_violation)
 
