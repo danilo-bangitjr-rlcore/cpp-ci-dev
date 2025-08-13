@@ -294,7 +294,7 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_values(self, state: jax.Array, action: jax.Array):
+    def get_active_values(self, state: jax.Array, action: jax.Array):
         """
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
             1 state, and

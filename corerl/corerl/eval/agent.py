@@ -97,7 +97,7 @@ def _q_online(
     """
     assert state.ndim == 1
     assert action.ndim == 1
-    out = agent.get_values(state, action)
+    out = agent.get_active_values(state, action)
 
     return out.reduced_value, out.ensemble_values, out.ensemble_variance
 
@@ -154,7 +154,7 @@ def _greed_dist(
         ),
     )
 
-    q_values = agent.get_values(state, uniform_actions)
+    q_values = agent.get_active_values(state, uniform_actions)
 
     q = q_values.reduced_value
     chex.assert_shape(q, (cfg.n_samples, 1))
@@ -301,7 +301,7 @@ def q_values_and_act_prob(
 
         # Get critic q values as the current action dimension is varied
         chex.assert_shape(query_actions, (cfg.primary_action_samples, cfg.other_action_samples, agent.action_dim))
-        other_action_get_vals = jax_u.vmap(agent.get_values, in_axes=(None, 1), out_axes=-2)
+        other_action_get_vals = jax_u.vmap(agent.get_active_values, in_axes=(None, 1), out_axes=-2)
         out = other_action_get_vals(state, query_actions)
         chex.assert_shape(out.reduced_value, (cfg.primary_action_samples, cfg.other_action_samples, 1))
         # remove the trailing value dim and avg over other_action dim
