@@ -73,7 +73,7 @@ class MonteCarloEvaluator:
         sampled_actions = self.agent.get_actions(state, n=self.critic_samples)
 
         # Get reduced Q-values and average them across sampled actions
-        sampled_a_qs = self.agent.get_values(
+        sampled_a_qs = self.agent.get_active_values(
             state.features,
             sampled_actions,
         ).reduced_value
@@ -116,7 +116,7 @@ class MonteCarloEvaluator:
             return
 
         state_v = self._get_state_value(self.prev_state)
-        observed_a_q = (self.agent.get_values(self.prev_state.features, curr_state.last_a)
+        observed_a_q = (self.agent.get_active_values(self.prev_state.features, curr_state.last_a)
                         .reduced_value.item())
 
         # log predicted values immediately

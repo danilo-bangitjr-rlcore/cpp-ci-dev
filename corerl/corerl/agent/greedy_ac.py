@@ -14,6 +14,7 @@ from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     QRCConfig,
+    RollingResetConfig,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,
@@ -40,7 +41,12 @@ BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
 @config()
 class CriticNetworkConfig:
-    ensemble: int = 1
+    ensemble: int = MISSING
+
+    @computed('ensemble')
+    @classmethod
+    def _ensemble(cls, cfg: 'MainConfig'):
+        return cfg.feature_flags.ensemble
 
 @config()
 class GTDCriticConfig:
@@ -49,6 +55,7 @@ class GTDCriticConfig:
     buffer: BufferConfig = MISSING
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
+    rolling_reset_config: RollingResetConfig = Field(default_factory=RollingResetConfig)
 
     @computed('buffer')
     @classmethod
@@ -206,6 +213,7 @@ class GreedyAC(BaseAgent):
             action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
             use_noisy_nets=app_state.cfg.feature_flags.noisy_networks,
+            rolling_reset_config=cfg.critic.rolling_reset_config,
         )
 
         self.critic = QRCCritic(
@@ -286,31 +294,20 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_values(self, state: jax.Array, action: jax.Array):
+    def get_active_values(self, state: jax.Array, action: jax.Array):
         """
-        returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
-            1 state, and
-            1 action OR a batch of actions
-        """
-        self._jax_rng, rng = jax.random.split(self._jax_rng)
-        if action.ndim == 2:
-            rng = jax.random.split(rng, action.shape[0])
-
-        return self._get_values(self._critic_state.params, rng, state, action)
-
-    @jax_u.method_jit
-    def _get_values(self, critic_params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
-        """
-        jittable version of `self.get_values` that takes critic params as an argument
-
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
             1 state, and
             1 action OR a batch of actions
         """
         chex.assert_shape(state, (self.state_dim,))
-        assert action.ndim in {state.ndim, state.ndim + 1}
-        ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
-        qs = ens_get_values(critic_params, rng, state, action)
+        self._jax_rng, rng = jax.random.split(self._jax_rng)
+        assert action.ndim in {1, 2}
+        if action.ndim == 2:
+            rng = jax.random.split(rng, action.shape[0])
+
+        # use active critic values for decision making
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action)
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -452,8 +449,8 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        ensemble_return = self._get_values(params, rng, x, a)
-        aggregated_values = self._aggregate_ensemble_values(ensemble_return.ensemble_values)
+        qs = self.critic.get_active_values(params, rng, x, a)
+        aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
     def update_actor(self):
