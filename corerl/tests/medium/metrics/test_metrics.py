@@ -9,6 +9,9 @@ import pytz
 from sqlalchemy import Engine
 
 from corerl.eval.metrics import MetricsTable
+from tests.infrastructure.utils import get_fixture
+
+MetricsTableFixture = tuple[MetricsTable, dt.datetime, dt.timedelta]
 
 
 @pytest.fixture()
@@ -46,7 +49,7 @@ def test_metrics_read_by_time(
     fixture_name: str,
     expected_len: int,
 ):
-    metrics_table, start_time, delta = request.getfixturevalue(fixture_name)
+    metrics_table, start_time, delta = get_fixture(request, fixture_name, MetricsTableFixture)
 
     with tsdb_engine.connect() as conn:
         metrics_df = pd.read_sql_table('metrics', con=conn)
@@ -103,7 +106,7 @@ class MetricsReadByStepCase(NamedTuple):
     ],
 )
 def test_metrics_read_by_step(request: pytest.FixtureRequest, case: MetricsReadByStepCase):
-    metrics_table, *_ = request.getfixturevalue(case.fixture_name)
+    metrics_table, *_ = get_fixture(request, case.fixture_name, MetricsTableFixture)
 
     rewards_df = metrics_table.read("reward", step_start=case.start_step, step_end=case.end_step)
     q_df = metrics_table.read("q", step_start=case.start_step, step_end=case.end_step)
@@ -162,7 +165,7 @@ class MetricsReadByMetricCase(NamedTuple):
     ],
 )
 def test_metrics_read_by_metric(request: pytest.FixtureRequest, case: MetricsReadByMetricCase):
-    metrics_table, *_ = request.getfixturevalue(case.fixture_name)
+    metrics_table, *_ = get_fixture(request, case.fixture_name, MetricsTableFixture)
 
     rewards_df = metrics_table.read("reward")
     q_df = metrics_table.read("q")
@@ -284,7 +287,7 @@ def populated_metrics_table_wide(wide_metrics_table: MetricsTable):
 
 def test_db_metrics_write_wide(
     tsdb_engine: Engine,
-    populated_metrics_table_wide: tuple[MetricsTable, dt.datetime, dt.timedelta],
+    populated_metrics_table_wide: MetricsTableFixture,
 ):
     _, start_time, delta = populated_metrics_table_wide
 
