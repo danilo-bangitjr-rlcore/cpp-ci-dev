@@ -42,7 +42,7 @@ class SQL_Manager:
         self.table_name = table_name
         self.time_column_name = "time"
 
-        column_names = [node.name.lower() for node in nodes_to_persist.values()]
+        column_names = [node.name for node in nodes_to_persist.values()]
         self.column_mapper = ColumnMapper(column_names)
         self.nodes_to_persist = {
             key: node.model_copy(update={"name": self.column_mapper.name_to_pg[node.name]})
