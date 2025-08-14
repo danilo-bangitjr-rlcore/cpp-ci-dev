@@ -6,8 +6,7 @@ import pytest
 import pytz
 from sqlalchemy import Engine
 
-from corerl.eval.metrics import MetricsDBConfig, MetricsTable
-from corerl.utils.buffered_sql_writer import WatermarkSyncConfig
+from corerl.eval.metrics import MetricsTable
 
 
 @pytest.fixture()
@@ -128,70 +127,49 @@ def test_disconnect_between_writes(tsdb_engine: Engine, metrics_table: MetricsTa
 # ---------------------------------------------------------------------------- #
 
 @pytest.fixture()
-def db_metrics_table_wide(
-    tsdb_engine: Engine,
-    tsdb_tmp_db_name: str,
-):
-    port = tsdb_engine.url.port
-    assert port is not None
-
-    metrics_db_cfg = MetricsDBConfig(
-        enabled=True,
-        narrow_format=False,  # Use wide format
-        table_name='metrics_wide',
-        drivername='postgresql+psycopg2',
-        username='postgres',
-        password='password',
-        ip='localhost',
-        port=port,
-        db_name=tsdb_tmp_db_name,
-        table_schema='public',
-        watermark_cfg=WatermarkSyncConfig('watermark', 1, 10),
-    )
-
-    metrics_table = MetricsTable(metrics_db_cfg)
+def wide_metrics_table(metrics_table: MetricsTable):
+    metrics_table.cfg.narrow_format = False
+    metrics_table.cfg.static_columns = False
 
     yield metrics_table
 
-    metrics_table.close()
-
 @pytest.fixture()
-def populated_metrics_table_wide(db_metrics_table_wide: MetricsTable):
+def populated_metrics_table_wide(wide_metrics_table: MetricsTable):
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
     for i in range(5):
-        db_metrics_table_wide.write(
+        wide_metrics_table.write(
             agent_step=i,
             metric="q",
             value=i,
             timestamp=curr_time.isoformat(),
         )
-        db_metrics_table_wide.write(
+        wide_metrics_table.write(
             agent_step=i,
             metric="reward",
             value=2*i,
             timestamp=curr_time.isoformat(),
         )
         curr_time += delta
-        db_metrics_table_wide.blocking_sync()
+        wide_metrics_table.blocking_sync()
 
     # add two reward values without associated q
-    db_metrics_table_wide.write(
+    wide_metrics_table.write(
         agent_step=5,
         metric="reward",
         value=2*5,
         timestamp=curr_time.isoformat(),
     )
-    db_metrics_table_wide.write(
+    wide_metrics_table.write(
         agent_step=6,
         metric="reward",
         value=2*6,
         timestamp=curr_time.isoformat(),
     )
 
-    db_metrics_table_wide.blocking_sync()
-    return db_metrics_table_wide, start_time, delta
+    wide_metrics_table.blocking_sync()
+    return wide_metrics_table, start_time, delta
 
 
 def test_db_metrics_write_wide(
@@ -201,7 +179,7 @@ def test_db_metrics_write_wide(
     _, start_time, delta = populated_metrics_table_wide
 
     with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics_wide', con=conn)
+        metrics_df = pd.read_sql_table('metrics', con=conn)
 
     assert len(metrics_df) == 6
 
@@ -237,7 +215,7 @@ def test_db_metrics_read_by_time_wide(
     db_metrics_table, start_time, delta = populated_metrics_table_wide
 
     with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics_wide', con=conn)
+        metrics_df = pd.read_sql_table('metrics', con=conn)
 
     # Check that all rows were written (6 rows total)
     assert len(metrics_df) == 6
@@ -327,24 +305,24 @@ def test_db_metrics_read_by_metric_wide(
     pd.testing.assert_frame_equal(rewards_df, expected_reward_df)
     pd.testing.assert_frame_equal(q_df, expected_q_df)
 
-def test_disconnect_between_writes_wide(tsdb_engine: Engine, db_metrics_table_wide: MetricsTable):
+def test_disconnect_between_writes_wide(tsdb_engine: Engine, wide_metrics_table: MetricsTable):
     # 1. Start the database and connect (handled by fixture)
     # 2. Write a few metrics
-    db_metrics_table_wide.write(agent_step=0, metric="q", value=1.0, timestamp="2023-07-13T06:00:00+00:00")
-    db_metrics_table_wide.write(agent_step=0, metric="reward", value=2.0, timestamp="2023-07-13T06:00:00+00:00")
-    db_metrics_table_wide.blocking_sync()
+    wide_metrics_table.write(agent_step=0, metric="q", value=1.0, timestamp="2023-07-13T06:00:00+00:00")
+    wide_metrics_table.write(agent_step=0, metric="reward", value=2.0, timestamp="2023-07-13T06:00:00+00:00")
+    wide_metrics_table.blocking_sync()
 
     # 3. Simulate an accidental disconnect
     tsdb_engine.dispose()
 
     # 4. Attempt to write more metrics (should be buffered, not written immediately)
-    db_metrics_table_wide.write(agent_step=1, metric="q", value=3.0, timestamp="2023-07-13T07:00:00+00:00")
-    db_metrics_table_wide.write(agent_step=1, metric="reward", value=4.0, timestamp="2023-07-13T07:00:00+00:00")
+    wide_metrics_table.write(agent_step=1, metric="q", value=3.0, timestamp="2023-07-13T07:00:00+00:00")
+    wide_metrics_table.write(agent_step=1, metric="reward", value=4.0, timestamp="2023-07-13T07:00:00+00:00")
 
     # 5. Sync and verify all metrics are accessible
-    db_metrics_table_wide.blocking_sync()
+    wide_metrics_table.blocking_sync()
     with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics_wide', con=conn)
+        metrics_df = pd.read_sql_table('metrics', con=conn)
 
     # Expected data: 2 rows (one per agent_step) with aggregated values
     expected_df = pd.DataFrame({
