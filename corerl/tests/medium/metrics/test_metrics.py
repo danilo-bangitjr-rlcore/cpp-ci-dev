@@ -51,13 +51,21 @@ def test_db_metrics_read_by_time(
     rewards_df = metrics_table.read("reward", start_time=query_start, end_time=query_end)
     q_df = metrics_table.read("q", start_time=query_start, end_time=query_end)
 
-    assert len(rewards_df) == end_ind - start_ind + 1
-    assert len(q_df) == end_ind - start_ind + 1
-    for i in range(start_ind, end_ind + 1):
-        assert rewards_df.iloc[i - start_ind]["time"] == pd.Timestamp(start_time + (i * delta))
-        assert rewards_df.iloc[i - start_ind]["value"] == 2 * i
-        assert q_df.iloc[i - start_ind]["time"] == pd.Timestamp(start_time + (i * delta))
-        assert q_df.iloc[i - start_ind]["value"] == i
+    expected_times = [
+        pd.Timestamp(start_time + delta),
+        pd.Timestamp(start_time + (2 * delta)),
+        pd.Timestamp(start_time + (3 * delta)),
+    ]
+    expected_reward_df = pd.DataFrame({
+        'time': expected_times,
+        'reward': [2.0, 4.0, 6.0],
+    })
+    expected_q_df = pd.DataFrame({
+        'time': expected_times,
+        'q': [1.0, 2.0, 3.0],
+    })
+    pd.testing.assert_frame_equal(rewards_df.reset_index(drop=True), expected_reward_df)
+    pd.testing.assert_frame_equal(q_df.reset_index(drop=True), expected_q_df)
 
 def test_db_metrics_read_by_step(
     populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
