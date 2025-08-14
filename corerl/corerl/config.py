@@ -69,7 +69,7 @@ class FeatureFlags:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.4238yb3saoju
     """
     # 2025-02-01
-    ensemble: int = 1
+    ensemble: int = 2
 
     # 2025-04-29
     recency_bias_buffer: bool = False
@@ -94,9 +94,6 @@ class FeatureFlags:
 
     # 2025-06-27
     higher_critic_lr: bool = True
-
-    # 2025-06-27
-    ensemble_2: bool = True
 
     # 2025-06-27
     mu_sigma_multipliers: bool = False
@@ -178,17 +175,8 @@ class MainConfig:
     @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble
-        self.agent.critic.critic_network.ensemble = ensemble_size
-        self.agent.critic.buffer.ensemble = ensemble_size
-
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
-
-    @post_processor
-    def _enable_ensemble_2(self, cfg: 'MainConfig'):
-        if self.feature_flags.ensemble_2:
-            self.agent.critic.critic_network.ensemble = 2
-            self.agent.critic.buffer.ensemble = 2
 
     @post_processor
     def _enable_higher_critic_lr(self, cfg: 'MainConfig'):

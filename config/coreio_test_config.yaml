@@ -39,3 +39,6 @@ interaction:
   name: dep_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
+  heartbeat:
+    connection_id: asdxf
+    heartbeat_node_id: "ns=2;i=3"

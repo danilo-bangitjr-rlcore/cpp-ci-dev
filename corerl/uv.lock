@@ -272,7 +272,7 @@ wheels = [
 
 [[package]]
 name = "coreio"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "../coreio" }
 dependencies = [
     { name = "asyncua" },
@@ -303,6 +303,7 @@ dev = [
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.401" },
     { name = "pytest-asyncio", specifier = ">=1.0.0" },
+    { name = "pytest-coverage", specifier = ">=0.0" },
     { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
@@ -311,7 +312,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.143.0"
+version = "0.144.0"
 source = { editable = "." }
 dependencies = [
     { name = "coreio" },
@@ -399,7 +400,7 @@ dev = [
     { name = "rl-env", editable = "../libs/rl_env" },
     { name = "ruff", specifier = ">=0.11.11" },
     { name = "test", editable = "../test" },
-    { name = "uv", specifier = ">=0.7.8" },
+    { name = "uv", specifier = "~=0.7" },
 ]
 
 [[package]]

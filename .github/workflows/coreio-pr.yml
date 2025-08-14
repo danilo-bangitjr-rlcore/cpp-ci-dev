@@ -58,4 +58,28 @@ jobs:
 
       - name: Run Pytest
         run: |
-          pytest -n auto --dist loadscope tests/
+          pytest --cov=coreio --cov-report=html --asyncio-mode=auto tests/
+
+      - name: Combine coverage
+        run: |
+          uv run coverage html
+          echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        id: htmlcov-upload-step
+        with:
+          name: htmlcov
+          path: coreio/htmlcov/
+          overwrite: true
+
+      - run: |
+          echo "🏁 CoreIO tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreIO tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
+          comment-tag: execution-coreio

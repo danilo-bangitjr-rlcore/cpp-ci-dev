@@ -1,8 +1,8 @@
-# test_zmq_communication.py
 import asyncio
 from typing import Any
 
 import pytest
+from sqlalchemy import Engine
 from test.infrastructure.networking import get_free_port
 
 from tests.infrastructure.mock_opc_server import FakeOpcServer
@@ -41,7 +41,11 @@ async def run_subprocess_with_streaming(name: str, *args: str) -> dict[str, Any]
     }
 
 @pytest.mark.timeout(60)
-async def test_communication(opc_port: int):
+async def test_communication_write_only(opc_port: int):
+    """
+    CoreIO talks to dummy agent, only write to opc is enabled.
+    """
+
     server = FakeOpcServer(opc_port)
     await server.start()
     await asyncio.sleep(0.1)
@@ -59,6 +63,69 @@ async def test_communication(opc_port: int):
             "../config/coreio_test_config.yaml",
             f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
             f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
+            "coreio.data_ingress.enabled=", # The only way to set False in our config loader
+        ))
+
+        await asyncio.sleep(1)  # Wait for coreio startup
+
+        task_dummy_agent = asyncio.create_task(run_subprocess_with_streaming(
+            "dummy_agent",
+            "python",
+            "coreio/dummy_agent.py",
+            "--config-name",
+            "../config/coreio_test_config.yaml",
+            "interaction.action_period=00:00:00.02",
+            f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
+            "coreio.data_ingress.enabled=", # The only way to set False in our config loader
+        ))
+
+        try:
+            dummy_result = await asyncio.wait_for(task_dummy_agent, timeout=30)
+            coreio_result = await asyncio.wait_for(task_coreio, timeout=30)
+        except TimeoutError as e:
+            task_dummy_agent.cancel()
+            task_coreio.cancel()
+            raise AssertionError("Test timed out waiting for processes to complete") from e
+
+        assert dummy_result["returncode"] == 0, (
+            f"dummy_agent failed (exit code: {dummy_result['returncode']})\n"
+            f"Output: {dummy_result['stdout']}"
+        )
+        assert coreio_result["returncode"] == 0, (
+            f"CoreIO failed (exit code: {coreio_result['returncode']})\n"
+            f"Output: {coreio_result['stdout']}"
+        )
+
+    finally:
+        await server.close()
+
+@pytest.mark.timeout(60)
+async def test_communication(tsdb_engine: Engine, tsdb_tmp_db_name: str, opc_port: int):
+    """
+    CoreRL talks to dummy agent, both read and write to opc is enabled.
+    """
+
+    server = FakeOpcServer(opc_port)
+    await server.start()
+    await asyncio.sleep(0.1)
+
+    zmq_port = get_free_port('localhost')
+
+    try:
+        await asyncio.sleep(0.1)
+
+        task_coreio = asyncio.create_task(run_subprocess_with_streaming(
+            "coreio",
+            "python",
+            "coreio/main.py",
+            "--config-name",
+            "../config/coreio_test_config.yaml",
+            f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
+            f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
+            "coreio.data_ingress.enabled=True",
+            "coreio.data_ingress.ingress_period=00:00:00.02",
+            f"infra.db.port={tsdb_engine.url.port}",
+            f"infra.db.db_name={tsdb_tmp_db_name}",
         ))
 
         await asyncio.sleep(1)  # Wait for coreio startup
