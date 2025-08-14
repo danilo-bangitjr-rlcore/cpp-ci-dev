@@ -223,10 +223,12 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
-        self.critic_buffer = build_buffer(cfg.critic.buffer.to_lib_config(), JaxTransition)
+        critic_buffer_config = cfg.critic.buffer.to_lib_config()
+        critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
+        self._actor_buffer = build_buffer(critic_buffer_config, JaxTransition)
+        self.critic_buffer = build_buffer(critic_buffer_config, JaxTransition)
 
-        self.ensemble = self.cfg.critic.buffer.ensemble
+        self.ensemble = len(self.critic._reset_manager.active_indices)
 
         # for early stopping
         self._last_critic_loss = 0.
@@ -392,7 +394,7 @@ class GreedyAC(BaseAgent):
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
-            return [0 for _ in range(self.ensemble)]
+            return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 
         batches: JaxTransition = self.critic_buffer.sample()
         critic_batch = abs_transition_from_batch(batches)
@@ -431,7 +433,13 @@ class GreedyAC(BaseAgent):
             agent_step=self._app_state.agent_step,
         )
 
-        return [loss.mean() for loss in metrics.loss]
+        rolling_reset_metrics = self.critic.get_rolling_reset_metrics()
+        self._app_state.metrics.write_dict(
+            rolling_reset_metrics,
+            agent_step=self._app_state.agent_step,
+        )
+
+        return [metrics.loss[i].mean().item() for i in self.critic._reset_manager.active_indices]
 
     @jax_u.method_jit
     def _aggregate_ensemble_values(self, ensemble_values: jax.Array) -> jax.Array:

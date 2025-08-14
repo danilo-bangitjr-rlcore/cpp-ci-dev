@@ -32,8 +32,7 @@ def critic_config() -> QRCConfig:
         use_noisy_nets=False,
         rolling_reset_config=RollingResetConfig(
             reset_period=100,
-            num_background_critics=0,
-            background_training_steps=50,
+            warm_up_steps=50,
         ),
     )
 
@@ -180,8 +179,7 @@ def rolling_reset_config() -> QRCConfig:
         l2_regularization=0.0,
         rolling_reset_config=RollingResetConfig(
             reset_period=100,
-            num_background_critics=2,
-            background_training_steps=50,
+            warm_up_steps=50,
         ),
     )
 
@@ -195,17 +193,14 @@ def rolling_critic(rolling_reset_config: QRCConfig) -> QRCCritic:
 
 
 def test_rolling_reset_initialization(rolling_critic: QRCCritic):
-    assert rolling_critic._reset_manager.total_critics == 5
+    assert rolling_critic._reset_manager.total_critics == 3
     assert len(rolling_critic._reset_manager.active_indices) == 3
     assert rolling_critic._reset_manager.active_indices == {0, 1, 2}
 
     status = rolling_critic._reset_manager.get_status()
-    assert status.total_critics == 5
+    assert status.total_critics == 3
     assert status.active_critics == 3
-    assert status.background_critics == 2
     assert status.active_indices == [0, 1, 2]
-    assert status.background_indices == [3, 4]
-
 
 
 def test_rolling_reset(rolling_critic: QRCCritic):
@@ -215,12 +210,25 @@ def test_rolling_reset(rolling_critic: QRCCritic):
 
     critic_state = rolling_critic.init_state(rng, state, action)
 
-    rolling_critic._reset_manager._critic_info[3].training_steps = 40
-    rolling_critic._reset_manager._critic_info[4].training_steps = 70
+    # critic 0: oldest, warmed up (should be reset)
+    rolling_critic._reset_manager._critic_info[0].training_steps = 60
+    rolling_critic._reset_manager._critic_info[0].birthdate = 30
+    rolling_critic._reset_manager._critic_info[0].is_warmed_up = True
+    rolling_critic._reset_manager._critic_info[0].is_active = True
 
-    rolling_critic._reset_manager._critic_info[3].age = 10
-    rolling_critic._reset_manager._critic_info[4].age = 20
+    # critic 1: younger, warmed up
+    rolling_critic._reset_manager._critic_info[1].training_steps = 60
+    rolling_critic._reset_manager._critic_info[1].birthdate = 20
+    rolling_critic._reset_manager._critic_info[1].is_warmed_up = True
+    rolling_critic._reset_manager._critic_info[1].is_active = True
 
+    # critic 2: not warmed up yet
+    rolling_critic._reset_manager._critic_info[2].training_steps = 30
+    rolling_critic._reset_manager._critic_info[2].birthdate = 10
+    rolling_critic._reset_manager._critic_info[2].is_warmed_up = False
+    rolling_critic._reset_manager._critic_info[2].is_active = True
+
+    # simulate reset
     rolling_critic._reset_manager.reset(
         critic_state,
         rng,
@@ -229,26 +237,23 @@ def test_rolling_reset(rolling_critic: QRCCritic):
         rolling_critic._action_dim,
     )
 
+    # Critic 0 should be removed from active set (reset)
     current_active = rolling_critic._reset_manager.active_indices
-
     assert 0 not in current_active
-    # not 3 because it hasn't been trained long enough
-    assert 4 in current_active
+    assert 1 in current_active
+    assert 2 in current_active
 
     status = rolling_critic._reset_manager.get_status()
-    assert status.active_critics == 3
-    assert status.background_critics == 2
+    assert status.active_critics == 2
 
 
-def test_get_active_values_with_background_critics(rolling_critic: QRCCritic):
+def test_get_active_values(rolling_critic: QRCCritic):
     state = jnp.array([1.0, 2.0, 3.0, 4.0])
     action = jnp.array([0.5, -0.5])
     rng = jax.random.PRNGKey(123)
 
-    # Initialize critic state (total_critics=5, active=3, background=2)
     critic_state = rolling_critic.init_state(rng, state, action)
 
     rng_apply = jax.random.PRNGKey(456)
-    # Get active values (should return 3 values - only active critics)
     active_values = rolling_critic.get_active_values(critic_state.params, rng_apply, state, action)
     assert active_values.shape == (len(rolling_critic._reset_manager.active_indices), 1)  # (3, 1)

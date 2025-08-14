@@ -93,6 +93,13 @@ class QRCCritic:
         indices = self._reset_manager.active_indices
         return jnp.array(sorted(indices))
 
+    def get_rolling_reset_metrics(self, prefix: str = "") -> dict[str, float]:
+        metrics = {}
+        for i in range(self._reset_manager.total_critics):
+            critic_metrics = self._reset_manager.get_critic_metrics(i, prefix)
+            metrics.update(critic_metrics)
+        return metrics
+
     def get_active_values(
         self,
         params: chex.ArrayTree,
