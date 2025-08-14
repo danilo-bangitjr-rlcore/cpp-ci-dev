@@ -43,12 +43,6 @@ class GoalConstructor:
                     1-max(violation_percent, 0),
                 )
 
-                self._app_state.metrics.write(
-                    self._app_state.agent_step,
-                    f'priority_{priority_idx}_met',
-                    1 if violation_percent <= 0 else 0,
-                )
-
             else:
                 opt_violation = self._avg_optimization_violation(priority, row)
                 opt_active = all(p<=0 for p in priority_violations)
