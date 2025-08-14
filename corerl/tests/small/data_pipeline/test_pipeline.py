@@ -1,5 +1,4 @@
 import datetime
-from typing import Any
 
 import jax.numpy as jnp
 import numpy as np
@@ -209,18 +208,3 @@ def test_duplicate_tag_names_raises():
     # However, we don't want to tightly couple this test to the exact error message.
     # In the future, we will have dedicated error types for different validation issues.
     assert "duplicate" in cfg_or_err.meta['pipeline'].message.lower()
-
-
-def test_pipeline_benchmark(
-    benchmark: Any,
-    dummy_app_state: AppState,
-    basic_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
-):
-    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
-    df, _ = fake_pipeline1_data
-
-    def _inner(pipeline: Pipeline, df: pd.DataFrame):
-        pipeline(df)
-
-    benchmark(_inner, pipeline, df)
