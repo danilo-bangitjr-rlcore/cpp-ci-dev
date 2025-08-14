@@ -1,0 +1,92 @@
+# This variant of mountain_car_continuous requires that the OPC server and client be running.
+# All interactions to the mountain car continuous environment is performed through OPC, all state observations are read
+# through TSDB.
+
+
+# --------------------
+# -- Infrastructure --
+# --------------------
+log_path: "outputs/e2e_smoke"
+
+seed: 1
+is_simulation: False
+
+agent:
+  gamma: 0.99
+
+coreio:
+  coreio_origin: "tcp://localhost:5558"
+  opc_connections:
+    - connection_id: mountain_car_opc_connection
+      opc_conn_url: opc.tcp://admin@localhost:4840
+      application_uri: "client"
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+  data_ingress:
+    enabled: True
+    ingress_period: 00:00:00.5
+
+env:
+  name: dep_async_env
+
+  db:
+    table_name: sensors_wide
+    wide_format: True
+
+event_bus:
+  enabled: True
+
+metrics:
+  enabled: True
+
+# -----------
+# -- Agent --
+# -----------
+
+interaction:
+  name: dep_interaction
+  restore_checkpoint: false
+  historical_batch_size: 100
+  setpoint_ping_period: 00:00:10
+  obs_period: 00:00:01
+  action_period: 00:00:03
+  update_period: 00:00:01
+  state_age_tol: 00:00:02
+  heartbeat:
+    connection_id: mountain_car_opc_connection
+    heartbeat_node_id: "ns=2;s=heartbeat"
+    heartbeat_period: 00:00:01
+    max_counter: 10
+
+pipeline:
+  tags:
+  - name: action-0
+    type: ai_setpoint
+    # UUID determined from coreio config
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=action-0"
+    agg: last
+    operating_range: [-1.5, 1.5]
+    guardrail_schedule:
+      starting_range: [-0.1, 0.1]
+      duration: 00:02:00
+    reward_constructor:
+    - name: power
+      pow: 2
+    - name: scale
+      factor: -0.1
+
+  - name: tag-0
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=tag-0"
+    operating_range: [-1.2, 0.6]
+    red_bounds: [-1.0, null]
+    yellow_bounds: [-0.8, null]
+
+  - name: tag-1
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=tag-1"
+    operating_range: [-0.07, 0.07]
+    red_bounds: [-0.06, 0.06]

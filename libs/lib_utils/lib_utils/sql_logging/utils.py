@@ -1,4 +1,6 @@
+import re
 from dataclasses import dataclass
+from typing import Any, NewType
 
 from sqlalchemy.sql import text
 
@@ -60,3 +62,40 @@ def add_column_to_table_query(
     return text(f"""ALTER TABLE {schema}.{table}
          ADD COLUMN {column.name} {column.type}
          {"NOT NULL" if not column.nullable else ""};""")
+
+
+#######################
+### Name sanitation ###
+#######################
+
+SanitizedName = NewType("SanitizedName", str)
+
+class ColumnMapper:
+    def __init__(self, columns: list[str]):
+        self.name_to_pg: dict[str, SanitizedName] = {name: sanitize_key(name) for name in columns}
+        self.pg_to_name: dict[SanitizedName, str] = {v: k  for k, v in self.name_to_pg.items()}
+
+def sanitize_key(name: str):
+    # remove non alpha-numeric characters and spaces
+    sanitized = re.sub(r'[^a-zA-Z0-9]', '_', name)
+    # Replace multiple consecutive underscores with single underscores
+    sanitized = re.sub(r'_+', '_', sanitized)
+    # lowercase
+    sanitized = sanitized.lower()
+
+    return SanitizedName(sanitized)
+
+def sanitize_keys(dict_points: list[dict]):
+
+    def _sanitize_dict_keys(d: dict[str, Any]):
+        keys = list(d.keys())
+        for key in keys:
+            sanitized_key = sanitize_key(key)
+            if sanitized_key != key:
+                d[sanitized_key] = d.pop(key)
+
+    # Sanitize the dictionary keys
+    for point in dict_points:
+        _sanitize_dict_keys(point)
+
+    return dict_points

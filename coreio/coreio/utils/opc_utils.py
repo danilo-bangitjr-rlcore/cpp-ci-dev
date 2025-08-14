@@ -36,7 +36,7 @@ async def initialize_opc_connections(
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
         async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg_tags, ai_setpoint_only = True)
+            await opc_conn.register_cfg_nodes(cfg_tags, ai_setpoint_only = False)
 
         # Register heartbeat_id separately
         if cfg_heartbeat.connection_id == opc_conn_cfg.connection_id:

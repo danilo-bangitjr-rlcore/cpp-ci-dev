@@ -8,7 +8,7 @@ coreio:
         mode: none
       authentication_mode: anonymous
   data_ingress:
-    enabled: False
+    enabled: True
     ingress_period: 00:00:01
 
 infra:
