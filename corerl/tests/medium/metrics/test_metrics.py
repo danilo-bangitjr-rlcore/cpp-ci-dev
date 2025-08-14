@@ -31,19 +31,25 @@ def populated_metrics_table(metrics_table: MetricsTable):
     metrics_table.blocking_sync()
     return metrics_table, start_time, delta
 
-def test_db_metrics_read_by_time(
+@pytest.mark.parametrize(
+    "fixture_name, expected_len",
+    [
+        ("populated_metrics_table", 10),
+        ("populated_metrics_table_wide", 6),
+    ],
+)
+def test_metrics_read_by_time(
     tsdb_engine: Engine,
-    populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
+    request: pytest.FixtureRequest,
+    fixture_name: str,
+    expected_len: int,
 ):
-    metrics_table, start_time, delta = populated_metrics_table
+    metrics_table, start_time, delta = request.getfixturevalue(fixture_name)
 
     with tsdb_engine.connect() as conn:
         metrics_df = pd.read_sql_table('metrics', con=conn)
+    assert len(metrics_df) == expected_len
 
-    # Check that all rows were written
-    assert len(metrics_df) == 10  # 5 'q' + 5 'reward'
-
-    # Read metrics table by timestamp
     start_ind = 1
     end_ind = 3
     query_start = start_time + (start_ind * delta)
@@ -51,21 +57,18 @@ def test_db_metrics_read_by_time(
     rewards_df = metrics_table.read("reward", start_time=query_start, end_time=query_end)
     q_df = metrics_table.read("q", start_time=query_start, end_time=query_end)
 
-    expected_times = [
-        pd.Timestamp(start_time + delta),
-        pd.Timestamp(start_time + (2 * delta)),
-        pd.Timestamp(start_time + (3 * delta)),
-    ]
-    expected_reward_df = pd.DataFrame({
-        'time': expected_times,
-        'reward': [2.0, 4.0, 6.0],
+    expected_times = [pd.Timestamp(start_time + (i * delta)) for i in range(start_ind, end_ind + 1)]
+    expected_rewards_df = pd.DataFrame({
+        "time": expected_times,
+        "reward": [float(2 * i) for i in range(start_ind, end_ind + 1)],
     })
     expected_q_df = pd.DataFrame({
-        'time': expected_times,
-        'q': [1.0, 2.0, 3.0],
+        "time": expected_times,
+        "q": [float(i) for i in range(start_ind, end_ind + 1)],
     })
-    pd.testing.assert_frame_equal(rewards_df.reset_index(drop=True), expected_reward_df)
+    pd.testing.assert_frame_equal(rewards_df.reset_index(drop=True), expected_rewards_df)
     pd.testing.assert_frame_equal(q_df.reset_index(drop=True), expected_q_df)
+
 
 def test_db_metrics_read_by_step(
     populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
@@ -215,46 +218,6 @@ def test_db_metrics_write_wide(
         expected_df,
     )
 
-
-def test_db_metrics_read_by_time_wide(
-    tsdb_engine: Engine,
-    populated_metrics_table_wide: tuple[MetricsTable, dt.datetime, dt.timedelta],
-):
-    db_metrics_table, start_time, delta = populated_metrics_table_wide
-
-    with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics', con=conn)
-
-    # Check that all rows were written (6 rows total)
-    assert len(metrics_df) == 6
-
-    # Read metrics table by timestamp - should return wide format
-    start_ind = 1
-    end_ind = 3
-    query_start = start_time + (start_ind * delta)
-    query_end = start_time + (end_ind * delta)
-
-    # In wide format, we read by metric but get time-filtered results
-    rewards_df = db_metrics_table.read("reward", start_time=query_start, end_time=query_end)
-    q_df = db_metrics_table.read("q", start_time=query_start, end_time=query_end)
-
-    # Expected data for time range (agent_steps 1, 2, 3)
-    expected_times = [
-        pd.Timestamp(start_time + delta),
-        pd.Timestamp(start_time + (2 * delta)),
-        pd.Timestamp(start_time + (3 * delta)),
-    ]
-    expected_reward_df = pd.DataFrame({
-        'time': expected_times,
-        'reward': [2.0, 4.0, 6.0],
-    })
-    expected_q_df = pd.DataFrame({
-        'time': expected_times,
-        'q': [1.0, 2.0, 3.0],
-    })
-
-    pd.testing.assert_frame_equal(rewards_df, expected_reward_df)
-    pd.testing.assert_frame_equal(q_df, expected_q_df)
 
 def test_db_metrics_read_by_step_wide(
     populated_metrics_table_wide: tuple[MetricsTable, dt.datetime, dt.timedelta],
