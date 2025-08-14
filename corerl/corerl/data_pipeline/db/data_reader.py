@@ -212,7 +212,7 @@ class DataReader:
                     sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
                 for col in sensor_data.columns:
-                    col_agg = tag_aggregations.get(col)
+                    col_agg = tag_aggregations.get(SanitizedName(col)) # Cast str to SanitizedName
                     col_type = column_types.get(col, "unknown")
 
                     if col_type == "boolean" or col_agg == Agg.bool_or:
