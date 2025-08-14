@@ -110,7 +110,7 @@ class DataReader:
                 bucket_width,
                 sanitized_tag_aggregations,
             )
-            return df_read.rename(columns = column_mapper.pg_to_name)
+            return df_read.rename(columns=column_mapper.pg_to_name)
 
         return self._batch_aggregated_read_narrow(
             names,
