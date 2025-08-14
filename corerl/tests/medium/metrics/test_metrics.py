@@ -72,24 +72,53 @@ def test_metrics_read_by_time(
     pd.testing.assert_frame_equal(q_df.reset_index(drop=True), expected_q_df)
 
 
-def test_db_metrics_read_by_step(
-    populated_metrics_table: tuple[MetricsTable, dt.datetime, dt.timedelta],
-):
-    metrics_table, _, _ = populated_metrics_table
 
-    # Read metrics table by agent_step
-    start_step = None
-    end_step = 3
-    rewards_df = metrics_table.read("reward", step_start=start_step, step_end=end_step)
-    q_df = metrics_table.read("q", step_start=start_step, step_end=end_step)
+class MetricsReadByStepCase(NamedTuple):
+    fixture_name: str
+    start_step: int | None
+    end_step: int
+    agent_step: list[int]
+    reward: list[float]
+    q: list[float]
 
-    assert len(rewards_df) == end_step + 1
-    assert len(q_df) == end_step + 1
-    for i in range(end_step + 1):
-        assert rewards_df.iloc[i]["agent_step"] == i
-        assert rewards_df.iloc[i]["value"] == 2 * i
-        assert q_df.iloc[i]["agent_step"] == i
-        assert q_df.iloc[i]["value"] == i
+@pytest.mark.parametrize(
+    "case",
+    [
+        MetricsReadByStepCase(
+            fixture_name="populated_metrics_table",
+            start_step=None,
+            end_step=3,
+            agent_step=[0, 1, 2, 3],
+            reward=[0.0, 2.0, 4.0, 6.0],
+            q=[0.0, 1.0, 2.0, 3.0],
+        ),
+        MetricsReadByStepCase(
+            fixture_name="populated_metrics_table_wide",
+            start_step=None,
+            end_step=3,
+            agent_step=[0, 1, 2, 3],
+            reward=[0.0, 2.0, 4.0, 6.0],
+            q=[0.0, 1.0, 2.0, 3.0],
+        ),
+    ],
+)
+def test_metrics_read_by_step(request: pytest.FixtureRequest, case: MetricsReadByStepCase):
+    metrics_table, *_ = request.getfixturevalue(case.fixture_name)
+
+    rewards_df = metrics_table.read("reward", step_start=case.start_step, step_end=case.end_step)
+    q_df = metrics_table.read("q", step_start=case.start_step, step_end=case.end_step)
+
+    expected_reward_df = pd.DataFrame({
+        "agent_step": case.agent_step,
+        "reward": case.reward,
+    })
+    expected_q_df = pd.DataFrame({
+        "agent_step": case.agent_step,
+        "q": case.q,
+    })
+
+    pd.testing.assert_frame_equal(rewards_df.reset_index(drop=True), expected_reward_df)
+    pd.testing.assert_frame_equal(q_df.reset_index(drop=True), expected_q_df)
 
 
 
@@ -263,31 +292,6 @@ def test_db_metrics_write_wide(
         metrics_df,
         expected_df,
     )
-
-
-def test_db_metrics_read_by_step_wide(
-    populated_metrics_table_wide: tuple[MetricsTable, dt.datetime, dt.timedelta],
-):
-    db_metrics_table, _, _ = populated_metrics_table_wide
-
-    # Read metrics table by agent_step - wide format returns metric columns
-    start_step = None
-    end_step = 3
-    rewards_df = db_metrics_table.read("reward", step_start=start_step, step_end=end_step)
-    q_df = db_metrics_table.read("q", step_start=start_step, step_end=end_step)
-
-    # Expected data for agent_steps 0, 1, 2, 3
-    expected_reward_df = pd.DataFrame({
-        'agent_step': [0, 1, 2, 3],
-        'reward': [0.0, 2.0, 4.0, 6.0],
-    })
-    expected_q_df = pd.DataFrame({
-        'agent_step': [0, 1, 2, 3],
-        'q': [0.0, 1.0, 2.0, 3.0],
-    })
-
-    pd.testing.assert_frame_equal(rewards_df, expected_reward_df)
-    pd.testing.assert_frame_equal(q_df, expected_q_df)
 
 
 def test_disconnect_between_writes_wide(tsdb_engine: Engine, wide_metrics_table: MetricsTable):
