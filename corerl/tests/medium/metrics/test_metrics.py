@@ -182,30 +182,54 @@ def test_metrics_read_by_metric(request: pytest.FixtureRequest, case: MetricsRea
     pd.testing.assert_frame_equal(q_df.reset_index(drop=True), expected_q_df)
 
 
-def test_disconnect_between_writes(tsdb_engine: Engine, metrics_table: MetricsTable):
-    # 1. Start the database and connect (handled by fixture)
-    # 2. Write a few metrics
+@pytest.mark.parametrize(
+    "fixture_name",
+    [ "metrics_table", "wide_metrics_table"],
+)
+def test_disconnect_between_writes(
+    request: pytest.FixtureRequest,
+    tsdb_engine: Engine,
+    fixture_name: str,
+):
+    metrics_table: MetricsTable = request.getfixturevalue(fixture_name)
+
+    # Write first batch of metrics
     metrics_table.write(agent_step=0, metric="q", value=1.0, timestamp="2023-07-13T06:00:00+00:00")
     metrics_table.write(agent_step=0, metric="reward", value=2.0, timestamp="2023-07-13T06:00:00+00:00")
     metrics_table.blocking_sync()
 
-    # 3. Simulate an accidental disconnect
+    # Simulate disconnect
     tsdb_engine.dispose()
 
-    # 4. Attempt to write more metrics (should be buffered, not written immediately)
-    metrics_table.write(agent_step=1, metric="q", value=2.0, timestamp="2023-07-13T07:00:00+00:00")
+    # Write second batch of metrics
+    metrics_table.write(agent_step=1, metric="q", value=3.0, timestamp="2023-07-13T07:00:00+00:00")
     metrics_table.write(agent_step=1, metric="reward", value=4.0, timestamp="2023-07-13T07:00:00+00:00")
 
-    # 5. Sync and verify all metrics are accessible
     metrics_table.blocking_sync()
-    with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics', con=conn)
 
-    assert len(metrics_df) >= 4
-    assert ((metrics_df['agent_step'] == 0) & (metrics_df['metric'] == 'q')).any()
-    assert ((metrics_df['agent_step'] == 0) & (metrics_df['metric'] == 'reward')).any()
-    assert ((metrics_df['agent_step'] == 1) & (metrics_df['metric'] == 'q')).any()
-    assert ((metrics_df['agent_step'] == 1) & (metrics_df['metric'] == 'reward')).any()
+    rewards_df = metrics_table.read("reward")
+    q_df = metrics_table.read("q")
+
+    expected_rewards_df = pd.DataFrame({
+        "time": [
+            pd.Timestamp("2023-07-13T06:00:00+00:00"),
+            pd.Timestamp("2023-07-13T07:00:00+00:00"),
+        ],
+        "agent_step": [0, 1],
+        "reward": [2.0, 4.0],
+    })
+
+    expected_q_df = pd.DataFrame({
+        "time": [
+            pd.Timestamp("2023-07-13T06:00:00+00:00"),
+            pd.Timestamp("2023-07-13T07:00:00+00:00"),
+        ],
+        "agent_step": [0, 1],
+        "q": [1.0, 3.0],
+    })
+
+    pd.testing.assert_frame_equal(rewards_df.reset_index(drop=True), expected_rewards_df)
+    pd.testing.assert_frame_equal(q_df.reset_index(drop=True), expected_q_df)
 
 
 # ---------------------------------------------------------------------------- #
@@ -292,36 +316,3 @@ def test_db_metrics_write_wide(
         metrics_df,
         expected_df,
     )
-
-
-def test_disconnect_between_writes_wide(tsdb_engine: Engine, wide_metrics_table: MetricsTable):
-    # 1. Start the database and connect (handled by fixture)
-    # 2. Write a few metrics
-    wide_metrics_table.write(agent_step=0, metric="q", value=1.0, timestamp="2023-07-13T06:00:00+00:00")
-    wide_metrics_table.write(agent_step=0, metric="reward", value=2.0, timestamp="2023-07-13T06:00:00+00:00")
-    wide_metrics_table.blocking_sync()
-
-    # 3. Simulate an accidental disconnect
-    tsdb_engine.dispose()
-
-    # 4. Attempt to write more metrics (should be buffered, not written immediately)
-    wide_metrics_table.write(agent_step=1, metric="q", value=3.0, timestamp="2023-07-13T07:00:00+00:00")
-    wide_metrics_table.write(agent_step=1, metric="reward", value=4.0, timestamp="2023-07-13T07:00:00+00:00")
-
-    # 5. Sync and verify all metrics are accessible
-    wide_metrics_table.blocking_sync()
-    with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics', con=conn)
-
-    # Expected data: 2 rows (one per agent_step) with aggregated values
-    expected_df = pd.DataFrame({
-        'time': [
-            pd.Timestamp("2023-07-13T06:00:00+00:00"),
-            pd.Timestamp("2023-07-13T07:00:00+00:00"),
-        ],
-        'agent_step': [0, 1],
-        'q': [1.0, 3.0],
-        'reward': [2.0, 4.0],
-    })
-
-    pd.testing.assert_frame_equal(metrics_df, expected_df)
