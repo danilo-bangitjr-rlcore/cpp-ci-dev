@@ -51,12 +51,17 @@ class QRCCritic:
             else nets.LinearConfig
         )
 
-        state_stream = []
-        if cfg.use_state_layer_norm:
-            state_stream.append(nets.LayerNormConfig(name='state_layer_norm'))
-        state_stream.extend([
+        state_stream = [
             interior_layer_cfg(size=128, activation='relu'),
+        ]
+        if cfg.use_state_layer_norm:
+            state_stream.append(nets.LayerNormConfig(name='state_layer_norm_1'))
+        state_stream.extend([
             interior_layer_cfg(size=64, activation='relu'),
+        ])
+        if cfg.use_state_layer_norm:
+            state_stream.append(nets.LayerNormConfig(name='state_layer_norm_2'))
+        state_stream.extend([
             interior_layer_cfg(size=32, activation='crelu'),
         ])
 
