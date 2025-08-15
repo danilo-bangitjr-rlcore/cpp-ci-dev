@@ -1,8 +1,7 @@
 import numpy as np
 
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
-from corerl.data_pipeline.utils import update_missing_info
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.tags.components.bounds import FloatBounds
 
 
@@ -27,9 +26,6 @@ def bound_checker(pf: PipelineFrame, tag: str, bounds: FloatBounds, prep: Prepro
 
     # Set OOB to NaN
     data.loc[oob_mask, tag] = np.nan
-
-    # Update pf.missing_info
-    update_missing_info(pf.missing_info, tag, oob_mask, MissingType.BOUNDS)
 
     return pf
 
