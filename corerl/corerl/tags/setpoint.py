@@ -10,11 +10,10 @@ from lib_utils.maybe import Maybe
 from corerl.tags.components.bounds import (
     Bounds,
     BoundsInfo,
-    BoundsElem,
-    BoundsTags,
     BoundType,
     FloatBounds,
     SafetyZonedTag,
+    eval_bound,
     init_bounds_info,
 )
 from corerl.tags.components.computed import ComputedTag
@@ -226,25 +225,3 @@ def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float,
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
     return lo, hi
-
-def eval_bound(
-    data: pd.DataFrame,
-    side: Literal["lo", "hi"],
-    bounds_func: BoundsFunction | None,
-    bounds_tags: BoundsTags | None,
-    bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
-) -> float | None:
-    index = {"lo": 0, "hi": 1}[side]
-
-    if isinstance(bound, str):
-        assert bounds_func and bounds_tags  # Assertion for pyright
-        res_func, res_tags = bounds_func[index], bounds_tags[index]
-        assert res_func and res_tags  # Assertion for pyright
-
-        values = [data[res_tag].item() for res_tag in res_tags]
-        bound = res_func(*values)
-
-    if bound is not None:
-        bound = float(bound)
-
-    return bound

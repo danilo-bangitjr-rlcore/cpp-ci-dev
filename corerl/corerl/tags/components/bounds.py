@@ -324,26 +324,29 @@ def parse_string_bounds(
 
 
 def eval_bound(
-    data: pd.DataFrame,
-    side: Literal["lo", "hi"],
-    bounds_func: BoundsFunctions | None,
-    bounds_tags: BoundsTags | None,
-    bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
-) -> float | None:
-    index = {"lo": 0, "hi": 1}[side]
+    data: pd.DataFrame | None,
+    bound_info: BoundInfo,  # This is the last argument for cleaner mapping in Maybe with functools partial
+) -> BoundInfo | None:
+    if bound_info.float_bound is not None:
+        return bound_info
 
+    bound = bound_info.bound_elem
     if isinstance(bound, str):
-        assert bounds_func and bounds_tags  # Assertion for pyright
-        res_func, res_tags = bounds_func[index], bounds_tags[index]
-        assert res_func and res_tags  # Assertion for pyright
+        if data is not None:
+            assert bound_info.bound_func and bound_info.bound_tags  # Assertion for pyright
+            res_func, res_tags = bound_info.bound_func, bound_info.bound_tags
+            assert res_func and res_tags  # Assertion for pyright
 
-        values = [data[res_tag].item() for res_tag in res_tags]
-        bound = res_func(*values)
+            values = [data[res_tag].item() for res_tag in res_tags]
+            bound = res_func(*values)
+        else:
+            return None
 
     if bound is not None:
-        bound = float(bound)
+        bound_info.float_bound = float(bound)
+        return bound_info
 
-    return bound
+    return None
 
 
 def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
