@@ -353,3 +353,30 @@ def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tuple[Maybe[float]
     )
 
     return lo, hi
+
+def init_bounds_info(
+    cfg: GlobalTagAttributes,
+    bounds: Bounds,
+    bound_type: BoundType,
+    known_tags: set[str],
+) -> BoundsInfo:
+    bounds_funcs, bounds_tags = parse_string_bounds(cfg, bounds, known_tags, allow_circular=True)
+
+    return BoundsInfo(
+        lower=BoundInfo(
+            tag=cfg.name,
+            type=bound_type,
+            direction=Direction.Lower,
+            bound_elem=bounds[0],
+            bound_func=bounds_funcs[0],
+            bound_tags=bounds_tags[0],
+        ),
+        upper=BoundInfo(
+            tag=cfg.name,
+            type=bound_type,
+            direction=Direction.Upper,
+            bound_elem=bounds[1],
+            bound_func=bounds_funcs[1],
+            bound_tags=bounds_tags[1],
+        ),
+    )
