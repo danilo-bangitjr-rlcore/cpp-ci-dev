@@ -2,7 +2,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Literal
+from typing import TYPE_CHECKING
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
@@ -299,6 +299,20 @@ class SafetyZonedTag(BoundedTag):
         )
 
         return lo, hi
+
+    @post_processor
+    def _update_normalization_bounds(self, _: object):
+        lo, hi = self.get_normalization_bounds()
+
+        norm_cfg = find_instance(NormalizerConfig, self.preprocess)
+        if norm_cfg is None:
+            return
+
+        norm_cfg.min = Maybe(norm_cfg.min).otherwise(lambda: lo).unwrap()
+        norm_cfg.max = Maybe(norm_cfg.max).otherwise(lambda: hi).unwrap()
+
+        if norm_cfg.min is None or norm_cfg.max is None:
+            norm_cfg.from_data = True
 
 
 def parse_string_bounds(
