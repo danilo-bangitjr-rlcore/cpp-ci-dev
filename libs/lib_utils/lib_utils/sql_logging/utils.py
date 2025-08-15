@@ -1,5 +1,6 @@
 import hashlib
 import re
+from collections import defaultdict
 from dataclasses import dataclass
 from typing import Any, NewType
 
@@ -82,12 +83,9 @@ def _clean_names_with_hash_disambiguation(names: list[str]):
     cleaned_names = [_sanitize_key(name) for name in names]
 
     # Find duplicates
-    seen = {}
+    seen = defaultdict(list)
     for i, cleaned in enumerate(cleaned_names):
-        if cleaned in seen:
-            seen[cleaned].append(i)
-        else:
-            seen[cleaned] = [i]
+        seen[cleaned].append(i)
 
     result = cleaned_names.copy()
 
