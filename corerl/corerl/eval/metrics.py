@@ -3,9 +3,10 @@ from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any, NamedTuple, SupportsFloat
 
+import lib_utils.iterable as itr_utils
 import pandas as pd
 from lib_config.config import config
-from lib_utils.dict import flatten_tree
+from lib_utils.dict import flatten_tree, map_keys
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
 from lib_utils.time import now_iso
@@ -28,6 +29,7 @@ class _MetricPoint(NamedTuple):
 class MetricsDBConfig(BufferedWriterConfig):
     table_name: str = 'metrics'
     enabled: bool = False
+    narrow_format: bool = True
     watermark_cfg: WatermarkSyncConfig = Field(
         default_factory=lambda: WatermarkSyncConfig('watermark', 1, 256),
     )
@@ -40,18 +42,32 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         super().__init__(cfg)
         self.cfg = cfg
 
+        if not cfg.narrow_format:
+            self.cfg.static_columns = False
+
     def _create_table_sql(self):
+        if self.cfg.narrow_format:
+            return create_tsdb_table_query(
+                schema=self.cfg.table_schema,
+                table=self.cfg.table_name,
+                columns=[
+                    SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
+                    SQLColumn(name='agent_step', type='INTEGER', nullable=False),
+                    SQLColumn(name='metric', type='TEXT', nullable=False),
+                    SQLColumn(name='value', type='FLOAT', nullable=False),
+                ],
+                partition_column='metric',
+                index_columns=['metric'],
+            )
         return create_tsdb_table_query(
             schema=self.cfg.table_schema,
             table=self.cfg.table_name,
             columns=[
                 SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
                 SQLColumn(name='agent_step', type='INTEGER', nullable=False),
-                SQLColumn(name='metric', type='TEXT', nullable=False),
-                SQLColumn(name='value', type='FLOAT', nullable=False),
             ],
-            partition_column='metric',
-            index_columns=['metric'],
+            partition_column=None,
+            index_columns=[],
         )
 
     def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None):
@@ -80,22 +96,37 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
 
     def _read_by_metric(self, metric: str) -> pd.DataFrame:
+        if self.cfg.narrow_format:
+            stmt = f"""
+                SELECT
+                    time,
+                    agent_step,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric='{metric}';
+            """
+            df = self._execute_read(stmt)
+            df["time"] = pd.to_datetime(df["time"])
+            df["agent_step"] = df["agent_step"].astype(int)
+            df["value"] = df["value"].astype(float)
+            return df
+
+        # wide format
         stmt = f"""
             SELECT
                 time,
                 agent_step,
-                value
+                {metric}
             FROM {self.cfg.table_name}
-            WHERE
-                metric='{metric}';
         """
-
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
         df["agent_step"] = df["agent_step"].astype(int)
-        df["value"] = df["value"].astype(float)
+        df[metric] = df[metric].astype(float)
 
         return df
+
 
     def _read_by_step(
         self,
@@ -103,15 +134,27 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         step_start: int | None,
         step_end: int | None,
     ) -> pd.DataFrame:
-        stmt = f"""
+
+        if self.cfg.narrow_format:
+            stmt = f"""
             SELECT
                 agent_step,
                 value
             FROM {self.cfg.table_name}
             WHERE
                 metric='{metric}'
-        """
+            """
 
+        else:
+            stmt = f"""
+                SELECT
+                    agent_step,
+                    {metric}
+                FROM {self.cfg.table_name}
+                WHERE 1=1
+            """
+
+        # step filtering logic the same whether narrow or wide
         if step_start is not None:
             stmt += f" AND agent_step>='{step_start}'"
 
@@ -122,9 +165,15 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
-        df["value"] = df["value"].astype(float)
 
+        if self.cfg.narrow_format:
+            df["value"] = df["value"].astype(float)
+            return df
+
+        # wide format
+        df[metric] = df[metric].astype(float)
         return df
+
 
     def _read_by_time(
         self,
@@ -132,15 +181,25 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         start_time: datetime | None,
         end_time: datetime | None,
     ) -> pd.DataFrame:
-        stmt = f"""
-            SELECT
-                time,
-                value
-            FROM {self.cfg.table_name}
-            WHERE
-                metric='{metric}'
-        """
+        if self.cfg.narrow_format:
+            stmt = f"""
+                SELECT
+                    time,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric='{metric}'
+            """
+        else:
+            stmt = f"""
+                SELECT
+                    time,
+                    {metric}
+                FROM {self.cfg.table_name}
+                WHERE 1=1
+            """
 
+        # time filtering logic the same whether narrow or wide
         if start_time is not None:
             if start_time.tzinfo is None:
                 start_tz = start_time.astimezone().tzinfo
@@ -159,9 +218,14 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
 
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
-        df["value"] = df["value"].astype(float)
+
+        if self.cfg.narrow_format:
+            df["value"] = df["value"].astype(float)
+        else:
+            df[metric] = df[metric].astype(float)
 
         return df
+
 
     def read(
         self,
@@ -193,3 +257,25 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
                 metric=key,
                 value=value,
             )
+
+
+    def _transform(self, points: list[_MetricPoint]):
+        if self.cfg.narrow_format:
+            return [point._asdict() for point in points]
+
+        dict_points = [point._asdict() for point in points]
+
+        time_as = itr_utils.keep_iterable(dict_points, keys=['time', 'agent_step'])
+        time_as = itr_utils.group_by(time_as)
+        metric_value =  itr_utils.keep_iterable(dict_points, keys=['metric', 'value'])
+        metric_value = itr_utils.group_by_key(metric_value, 'metric', 'value')
+
+        grouped = {**time_as, **metric_value}
+
+        max_cols = { 'time', 'agent_step' }
+        other_cols = set(grouped.keys()) - max_cols
+        aggregated = (
+            map_keys(grouped, max_cols, max)
+            | map_keys(grouped, other_cols, lambda data: sum(data) / len(data))
+        )
+        return [aggregated]

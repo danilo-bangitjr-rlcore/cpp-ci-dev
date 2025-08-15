@@ -9,21 +9,13 @@ interaction:
 agent:
   gamma: 0.9
 
+metrics:
+  enabled: true
+
+evals:
+  enabled: true
+
 pipeline:
-  state_constructor:
-    countdown:
-      kind: int
-      normalize: False
-
-  transition_creator:
-    max_n_step: 1
-    normalize_return: False
-
-  transition_filter:
-    filters:
-      - 'only_no_action_change'
-      - 'no_nan'
-
   tags:
   # meta tags
   - name: reward
@@ -48,14 +40,7 @@ pipeline:
   - name: tag-2
     is_endogenous: True
     operating_range: [ null, 10 ]
-    red_bounds: [-1, null]
-    imputer:
-      name: linear
-      max_gap: 2
-    preprocess:
-      - name: normalize
-        min: 0
-        max: 10
+    red_bounds: [0, null]
     state_constructor:
       - name: multi_trace
         trace_values: [ 0.1 ]

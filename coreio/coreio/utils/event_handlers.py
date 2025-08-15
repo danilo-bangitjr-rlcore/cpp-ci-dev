@@ -34,6 +34,6 @@ async def handle_read_event(event: IOEvent, opc_connections: dict[str, OPC_Conne
         return
 
     try:
-        sql_communication.write_nodes(nodes_name_val, event.time)
+        sql_communication.write_to_sql(nodes_name_val, event.time)
     except Exception as exc:
         logger.error(f"Failed to write nodes to SQL: {exc}")

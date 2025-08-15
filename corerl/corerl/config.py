@@ -98,6 +98,9 @@ class FeatureFlags:
     # 2025-06-27
     mu_sigma_multipliers: bool = False
 
+    # 2025-07-24
+    wide_metrics: bool = False
+
 
 @config()
 class OfflineConfig:
@@ -254,3 +257,12 @@ class MainConfig:
             return
 
         self.agent.loss_threshold = 1e-8
+
+
+    @post_processor
+    def _enable_wide_metrics(self, cfg: 'MainConfig'):
+        if not self.feature_flags.wide_metrics:
+            return
+
+        self.metrics.narrow_format = False
+        self.metrics.table_name = self.metrics.table_name + '_wide'
