@@ -21,8 +21,10 @@ BoundsElem = float | str | None
 Bounds = tuple[BoundsElem, BoundsElem]
 FloatBounds = tuple[float | None, float | None]
 
-BoundsFunction = tuple[Callable[..., float] | None, Callable[..., float] | None]
-BoundsTags = tuple[list[str] | None, list[str] | None]
+BoundFunction = Callable[..., float]
+BoundsFunctions = tuple[BoundFunction | None, BoundFunction | None]
+BoundTags = list[str] | None
+BoundsTags = tuple[BoundTags, BoundTags]
 
 
 class ViolationDirection(StrEnum):
@@ -154,7 +156,7 @@ class SafetyZonedTag(BoundedTag):
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
     """
 
-    red_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
+    red_bounds_func: Annotated[BoundsFunctions | None, Field(exclude=True)] = None
     red_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
     """
     Kind: computed internal
@@ -182,7 +184,7 @@ class SafetyZonedTag(BoundedTag):
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
     """
 
-    yellow_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
+    yellow_bounds_func: Annotated[BoundsFunctions | None, Field(exclude=True)] = None
     yellow_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
     """
     Kind: computed internal
@@ -246,7 +248,7 @@ def parse_string_bounds(
     input_bounds: Bounds,
     known_tags: set[str],
     allow_circular: bool = False,
-) -> tuple[BoundsFunction, BoundsTags]:
+) -> tuple[BoundsFunctions, BoundsTags]:
     def get_expr(bound: str):
         expression, func, tags = to_sympy(bound)
 
@@ -273,7 +275,7 @@ def parse_string_bounds(
             .or_else((None, None))
     )
 
-    bounds_func: BoundsFunction = (lo_func, hi_func)
+    bounds_func: BoundsFunctions = (lo_func, hi_func)
     bounds_tags: BoundsTags = (lo_tags, hi_tags)
 
     return bounds_func, bounds_tags
@@ -282,7 +284,7 @@ def parse_string_bounds(
 def eval_bound(
     data: pd.DataFrame,
     side: Literal["lo", "hi"],
-    bounds_func: BoundsFunction | None,
+    bounds_func: BoundsFunctions | None,
     bounds_tags: BoundsTags | None,
     bound: BoundsElem,  # This is the last argument for cleaner mapping in Maybe with functools partial
 ) -> float | None:
