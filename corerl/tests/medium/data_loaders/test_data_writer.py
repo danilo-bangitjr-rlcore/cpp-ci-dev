@@ -1,43 +1,19 @@
-from collections.abc import Generator
 from datetime import UTC, datetime, timedelta
 from random import random
 
-import pytest
-from sqlalchemy import Engine
-
-from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.utils import nullable
-
-
-@pytest.fixture()
-def data_writer(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> Generator[DataWriter]:
-    assert tsdb_engine.url.port is not None
-    db_cfg = TagDBConfig(
-        drivername="postgresql+psycopg2",
-        username="postgres",
-        password="password",
-        ip="localhost",
-        port=tsdb_engine.url.port,
-        db_name=tsdb_tmp_db_name,
-        table_name="sensors",
-        table_schema="public",
-    )
-
-    data_writer = DataWriter(cfg=db_cfg)
-
-    yield data_writer
-
-    data_writer.close()
 
 
 def write_n_random_vals(
     n: int,
     name: str,
-    data_writer: DataWriter,
+    data_reader_writer: tuple[DataReader, DataWriter],
     end_time: datetime | None = None,
     interval: timedelta = timedelta(seconds=5),
 ):
+    _, data_writer = data_reader_writer
     end_time = nullable.default(end_time, lambda: datetime.now(UTC))
     for i in range(n, 0, -1):
         ts = end_time - i * interval
@@ -46,15 +22,18 @@ def write_n_random_vals(
         data_writer.blocking_sync()
 
 
-def test_writing_datapt(data_writer: DataWriter):
+def test_writing_datapt(data_reader_writer: tuple[DataReader, DataWriter]):
     ts = datetime.now(tz=UTC)
     sensor_name = "orp"
     sensor_val = 780.0
 
+    _, data_writer = data_reader_writer
     data_writer.write(timestamp=ts, name=sensor_name, val=sensor_val)
 
 
-def test_batch_write(data_writer: DataWriter):
+def test_batch_write(data_reader_writer: tuple[DataReader, DataWriter]):
+    _, data_writer = data_reader_writer
+
     ts = datetime.now(tz=UTC)
     sensor_name = "orp"
     sensor_val = 780.0
