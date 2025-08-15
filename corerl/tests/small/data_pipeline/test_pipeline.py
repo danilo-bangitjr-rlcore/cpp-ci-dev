@@ -1,10 +1,8 @@
-import datetime
 
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
-import pytest
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 
@@ -12,32 +10,6 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
-
-
-def make_time_index(start: datetime.datetime, steps: int, delta: datetime.timedelta):
-    return pd.DatetimeIndex([start + i * delta for i in range(steps)])
-
-
-@pytest.fixture
-def fake_pipeline1_data():
-    start = datetime.datetime.now(datetime.UTC)
-    Δ = datetime.timedelta(minutes=5)
-    idx = make_time_index(start, 7, Δ)
-    cols = ['tag-1', 'tag-2', 'reward', 'action-1']
-    df = pd.DataFrame(
-        data=[
-            [np.nan, 0,        0,    0],
-            [0,      2,        3,    1],
-            [1,      4,        0,    0],
-            [2,      6,        0,    1],
-            [np.nan, np.nan,   0,    0],
-            [4,      10,       1,    1],
-            [5,      12,       0,    0],
-        ],
-        columns=cols,
-        index=idx,
-    )
-    return df, idx
 
 
 def test_construct_pipeline(
@@ -48,13 +20,11 @@ def test_construct_pipeline(
 
 
 def test_passing_data_to_pipeline(
-    dummy_app_state: AppState,
-    basic_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+    fake_pipeline_data: pd.DataFrame,
+    dummy_pipeline: Pipeline,
 ):
-    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
-    df, _ = fake_pipeline1_data
-    _ = pipeline(df, data_mode=DataMode.OFFLINE)
+    df = fake_pipeline_data
+    _ = dummy_pipeline(df, data_mode=DataMode.OFFLINE)
 
 
 def test_state_action_dim(
@@ -70,9 +40,10 @@ def test_state_action_dim(
 def test_pipeline1(
     dummy_app_state: AppState,
     basic_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+    fake_pipeline_data: pd.DataFrame,
 ):
-    df, idx = fake_pipeline1_data
+    df = fake_pipeline_data
+    idx = df.index
     pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
@@ -166,10 +137,11 @@ def test_pipeline1(
 def test_pipeline_overlapping_time(
     dummy_app_state: AppState,
     basic_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+    fake_pipeline_data: pd.DataFrame,
 ):
     pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
-    df, idx = fake_pipeline1_data
+    df = fake_pipeline_data
+    idx = df.index
     pipeline(df)
 
     # Overlap time by two time steps
