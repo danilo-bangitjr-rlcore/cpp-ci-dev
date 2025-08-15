@@ -2,13 +2,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
 from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
-from pydantic import Field
 
 from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.tags.base import GlobalTagAttributes
@@ -209,14 +208,13 @@ class SafetyZonedTag(BoundedTag):
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
     """
 
-    red_bounds_func: Annotated[BoundsFunctions | None, Field(exclude=True)] = None
-    red_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    red_bounds_info: BoundsInfo | None = None
     """
     Kind: computed internal
 
-    In case that the red_bounds are specified as strings representing sympy functions,
-    the red_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the red_bounds_tags will hold the lists of tags that those functions depend on.
+    If red_bounds is specified, red_bounds_info will store a BoundsInfo object containing information about the lower
+    and upper bounds, including the functions and tags for computing the lower and/or upper ranges
+    if the bounds are specified as strings representing sympy functions.
     """
 
     yellow_bounds: Bounds | None = None
@@ -237,14 +235,13 @@ class SafetyZonedTag(BoundedTag):
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.c8rez4g44ssc#heading=h.qru0qq73sjyw
     """
 
-    yellow_bounds_func: Annotated[BoundsFunctions | None, Field(exclude=True)] = None
-    yellow_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    yellow_bounds_info: BoundsInfo | None = None
     """
     Kind: computed internal
 
-    In case that the yellow_bounds are specified as strings representing sympy functions,
-    the yellow_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the yellow_bounds_tags will hold the lists of tags that those functions depend on.
+    If yellow_bounds is specified, yellow_bounds_info will store a BoundsInfo object containing information about the
+    lower and upper bounds, including the functions and tags for computing the lower and/or upper ranges
+    if the bounds are specified as strings representing sympy functions.
     """
 
     red_zone_reaction: list[RedZoneReflexConfig] | None = None
@@ -262,18 +259,10 @@ class SafetyZonedTag(BoundedTag):
         tags = {tag.name for tag in cfg.pipeline.tags}
 
         if self.red_bounds is not None:
-            self.red_bounds_func, self.red_bounds_tags = (
-                Maybe(self.red_bounds)
-                .map(lambda bounds: parse_string_bounds(self, bounds, tags, allow_circular=True))
-                .or_else((None, None))
-            )
+            self.red_bounds_info = init_bounds_info(self, self.red_bounds, BoundType.red_zone, tags)
 
         if self.yellow_bounds is not None:
-            self.yellow_bounds_func, self.yellow_bounds_tags = (
-                Maybe(self.yellow_bounds)
-                .map(lambda bounds: parse_string_bounds(self, bounds, tags, allow_circular=True))
-                .or_else((None, None))
-            )
+            self.yellow_bounds_info = init_bounds_info(self, self.yellow_bounds, BoundType.yellow_zone, tags)
 
     # -----------------------
     # -- Utility Functions --
