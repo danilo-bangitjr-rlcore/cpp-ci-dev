@@ -164,7 +164,7 @@ class DeploymentInteraction:
 
         # log states
         self._write_to_metrics(pipe_return.states, prefix='STATE-')
-        self._write_to_metrics(pipe_return.actions, prefix='ACTION_OBS-')
+        self._write_to_metrics(self._pipeline.preprocessor.inverse(pipe_return.actions), prefix='ACTION_OBS-')
 
         # log rewards
         rewards = pipe_return.rewards
