@@ -100,12 +100,28 @@ class BoundedTag(GlobalTagAttributes):
     can select.
     """
 
+    operating_bounds_info: BoundsInfo | None = None
+    """
+    Kind: computed internal
+
+    If the operating_range is specified, operating_bounds_info will store a BoundsInfo object
+    containing information about the lower and upper bounds.
+    """
+
     expected_range: FloatBounds | None = None
     """
     Kind: optional external
 
     The range of values that the tag is expected to take. If specified, this range controls
     the min/max for normalization and reward scaling.
+    """
+
+    expected_bounds_info: BoundsInfo | None = None
+    """
+    Kind: computed internal
+
+    If the expected_range is specified, expected_bounds_info will store a BoundsInfo object
+    containing information about the lower and upper bounds.
     """
 
     operating_range_tol: float = 1e-10
@@ -115,6 +131,16 @@ class BoundedTag(GlobalTagAttributes):
     The bound checker sets tag readings outside of the optionally defined operating_range to NaNs.
     BoundCheckerConfig enables you to customize the tolerance of the bounds on a per-tag basis.
     """
+
+    @post_processor
+    def _set_bounds_info(self, cfg: 'MainConfig'):
+        tags = {tag.name for tag in cfg.pipeline.tags}
+
+        if self.operating_range is not None:
+            self.operating_bounds_info = init_bounds_info(self, self.operating_range, BoundType.operating_range, tags)
+
+        if self.expected_range is not None:
+            self.expected_bounds_info = init_bounds_info(self, self.expected_range, BoundType.expected_range, tags)
 
     @post_processor
     def _validate_bounds(self, cfg: 'MainConfig'):
