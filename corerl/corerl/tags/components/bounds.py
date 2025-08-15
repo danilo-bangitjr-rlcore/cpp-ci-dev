@@ -160,15 +160,21 @@ class BoundedTag(GlobalTagAttributes):
     # -- Utility Functions --
     # -----------------------
     def get_normalization_bounds(self) -> FloatBounds:
-        def _get_bound(idx: int):
-            return (
-                Maybe[float](self.expected_range and self.expected_range[idx])
-                .otherwise(lambda: self.operating_range and self.operating_range[idx])
-                .unwrap()
-            )
+        lo = (
+            Maybe[BoundInfo](self.expected_bounds_info and self.expected_bounds_info.lower)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.operating_bounds_info and self.operating_bounds_info.lower)
+            .map(partial(eval_bound, None)).map(lambda x: x.float_bound).is_instance(float)
+            .unwrap()
+        )
 
-        lo = _get_bound(0)
-        hi = _get_bound(1)
+        hi = (
+            Maybe[BoundInfo](self.expected_bounds_info and self.expected_bounds_info.upper)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.operating_bounds_info and self.operating_bounds_info.upper)
+            .map(partial(eval_bound, None)).map(lambda x: x.float_bound).is_instance(float)
+            .unwrap()
+        )
 
         return lo, hi
 
@@ -268,19 +274,29 @@ class SafetyZonedTag(BoundedTag):
     # -- Utility Functions --
     # -----------------------
     def get_normalization_bounds(self) -> FloatBounds:
-        def _get_bound(idx: int):
-            return (
-                Maybe(self.expected_range and self.expected_range[idx])
-                .otherwise(lambda: self.red_bounds and self.red_bounds[idx])
-                .is_instance(float)
-                .otherwise(lambda: self.operating_range and self.operating_range[idx])
-                .otherwise(lambda: self.yellow_bounds and self.yellow_bounds[idx])
-                .is_instance(float)
-                .unwrap()
-            )
+        lo = (
+            Maybe[BoundInfo](self.expected_bounds_info and self.expected_bounds_info.lower)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.red_bounds_info and self.red_bounds_info.lower)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.operating_bounds_info and self.operating_bounds_info.lower)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.yellow_bounds_info and self.yellow_bounds_info.lower)
+            .map(partial(eval_bound, None)).map(lambda x: x.float_bound).is_instance(float)
+            .unwrap()
+        )
 
-        lo = _get_bound(0)
-        hi = _get_bound(1)
+        hi = (
+            Maybe[BoundInfo](self.expected_bounds_info and self.expected_bounds_info.upper)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.red_bounds_info and self.red_bounds_info.upper)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.operating_bounds_info and self.operating_bounds_info.upper)
+            .map(partial(eval_bound, None))
+            .otherwise(lambda: self.yellow_bounds_info and self.yellow_bounds_info.upper)
+            .map(partial(eval_bound, None)).map(lambda x: x.float_bound).is_instance(float)
+            .unwrap()
+        )
 
         return lo, hi
 
@@ -349,25 +365,29 @@ def eval_bound(
     return None
 
 
-def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
+def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame | None) -> tuple[Maybe[float], Maybe[float]]:
     # each bound type is fully optional
     # prefer to use expected range, fallback to red zone, then operating range, then yellow
     lo = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[0])
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[0])
-        .map(partial(eval_bound, row, "lo", cfg.red_bounds_func, cfg.red_bounds_tags))
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[0])
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[0])
-        .map(partial(eval_bound, row, "lo", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
+        Maybe[BoundInfo](cfg.expected_bounds_info and cfg.expected_bounds_info.lower)
+        .map(partial(eval_bound, row))
+        .otherwise(lambda: cfg.red_bounds_info and cfg.red_bounds_info.lower)
+        .map(partial(eval_bound, row))
+        .otherwise(lambda: cfg.operating_bounds_info and cfg.operating_bounds_info.lower)
+        .map(partial(eval_bound, row))
+        .otherwise(lambda: cfg.yellow_bounds_info and cfg.yellow_bounds_info.lower)
+        .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
     )
 
     hi = (
-        Maybe[float](cfg.expected_range and cfg.expected_range[1])
-        .otherwise(lambda: cfg.red_bounds and cfg.red_bounds[1])
-        .map(partial(eval_bound, row, "hi", cfg.red_bounds_func, cfg.red_bounds_tags))
-        .otherwise(lambda: cfg.operating_range and cfg.operating_range[1])
-        .otherwise(lambda: cfg.yellow_bounds and cfg.yellow_bounds[1])
-        .map(partial(eval_bound, row, "hi", cfg.yellow_bounds_func, cfg.yellow_bounds_tags))
+        Maybe[BoundInfo](cfg.expected_bounds_info and cfg.expected_bounds_info.upper)
+        .map(partial(eval_bound, row))
+        .otherwise(lambda: cfg.red_bounds_info and cfg.red_bounds_info.upper)
+        .map(partial(eval_bound, row))
+        .otherwise(lambda: cfg.operating_bounds_info and cfg.operating_bounds_info.upper)
+        .map(partial(eval_bound, row))
+        .otherwise(lambda: cfg.yellow_bounds_info and cfg.yellow_bounds_info.upper)
+        .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
     )
 
     return lo, hi

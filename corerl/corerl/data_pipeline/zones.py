@@ -11,7 +11,7 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.messages.events import RLEvent, RLEventType
 from corerl.state import AppState
-from corerl.tags.components.bounds import SafetyZonedTag, ViolationDirection
+from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, ViolationDirection
 from corerl.tags.setpoint import eval_bound
 from corerl.tags.tag_config import TagConfig
 
@@ -159,26 +159,25 @@ class ZoneDiscourager:
         x: float = row[tag.name].to_numpy()[0]
 
         yellow_lo = (
-            Maybe(tag.yellow_bounds)
-            .map(lambda bounds: bounds[0])
-            .map(partial(eval_bound, row, "lo", tag.yellow_bounds_func, tag.yellow_bounds_tags))
+            Maybe[BoundInfo](tag.yellow_bounds_info and tag.yellow_bounds_info.lower)
+            .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
             .unwrap()
         )
         yellow_hi = (
-            Maybe(tag.yellow_bounds)
-            .map(lambda bounds: bounds[1])
-            .map(partial(eval_bound, row, "hi", tag.yellow_bounds_func, tag.yellow_bounds_tags))
+            Maybe[BoundInfo](tag.yellow_bounds_info and tag.yellow_bounds_info.upper)
+            .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
             .unwrap()
         )
 
         if yellow_lo is not None and x < yellow_lo:
             next_lo = (
                 # the next lowest bound is either the red zone if one exists
-                Maybe(tag.red_bounds and tag.red_bounds[0])
-                .map(partial(eval_bound, row, "lo", tag.red_bounds_func, tag.red_bounds_tags))
+                Maybe[BoundInfo](tag.red_bounds_info and tag.red_bounds_info.lower)
+                .map(partial(eval_bound, row))
 
                 # or the operating bound if one exists
-                .otherwise(lambda: tag.operating_range and tag.operating_range[0])
+                .otherwise(lambda: tag.operating_bounds_info and tag.operating_bounds_info.lower)
+                .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
 
                 # and if neither exists, we're in trouble
                 .expect(f'Yellow zone specified for tag {tag.name}, but no lower bound found')
@@ -194,11 +193,12 @@ class ZoneDiscourager:
         if yellow_hi is not None and x > yellow_hi:
             next_hi = (
                 # the next highest bound is either the red zone if one exists
-                Maybe(tag.red_bounds and tag.red_bounds[1])
-                .map(partial(eval_bound, row, "hi", tag.red_bounds_func, tag.red_bounds_tags))
+                Maybe[BoundInfo](tag.red_bounds_info and tag.red_bounds_info.upper)
+                .map(partial(eval_bound, row))
 
                 # or the operating bound if one exists
-                .otherwise(lambda: tag.operating_range and tag.operating_range[1])
+                .otherwise(lambda: tag.operating_bounds_info and tag.operating_bounds_info.upper)
+                .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
 
                 # and if neither exists, we're in trouble
                 .expect(f'Yellow zone specified for tag {tag.name}, but no upper bound found')
@@ -217,22 +217,20 @@ class ZoneDiscourager:
         x: float = row[tag.name].to_numpy()[0]
 
         red_lo = (
-            Maybe(tag.red_bounds)
-            .map(lambda bounds: bounds[0])
-            .map(partial(eval_bound, row, "lo", tag.red_bounds_func, tag.red_bounds_tags))
+            Maybe[BoundInfo](tag.red_bounds_info and tag.red_bounds_info.lower)
+            .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
             .unwrap()
         )
         red_hi = (
-            Maybe(tag.red_bounds)
-            .map(lambda bounds: bounds[1])
-            .map(partial(eval_bound, row, "hi", tag.red_bounds_func, tag.red_bounds_tags))
+            Maybe[BoundInfo](tag.red_bounds_info and tag.red_bounds_info.upper)
+            .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
             .unwrap()
         )
 
         if red_lo is not None and x < red_lo:
             op_lo = (
-                Maybe(tag.operating_range)
-                .map(lambda rng: rng[0])
+                Maybe[BoundInfo](tag.operating_bounds_info and tag.operating_bounds_info.lower)
+                .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
                 .expect(f'Red zone specified for tag {tag.name}, but no lower bound found')
             )
             return ZoneViolation(
@@ -245,8 +243,8 @@ class ZoneDiscourager:
 
         if red_hi is not None and x > red_hi:
             op_hi = (
-                Maybe(tag.operating_range)
-                .map(lambda rng: rng[1])
+                Maybe[BoundInfo](tag.operating_bounds_info and tag.operating_bounds_info.upper)
+                .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
                 .expect(f'Red zone specified for tag {tag.name}, but no upper bound found')
             )
             return ZoneViolation(

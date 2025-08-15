@@ -13,6 +13,7 @@ from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
+from corerl.tags.components.bounds import BoundInfo
 from corerl.tags.setpoint import SetpointTagConfig, eval_bound
 from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
@@ -145,14 +146,16 @@ def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfi
 def get_clip_bounds(action_cfg: SetpointTagConfig, action: pd.DataFrame):
     # prefer to use red zones, otherwise use operating range
     lo = (
-        Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])
-        .map(partial(eval_bound, action, "lo", action_cfg.red_bounds_func, action_cfg.red_bounds_tags))
-        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[0])
+        Maybe[BoundInfo](action_cfg.red_bounds_info and action_cfg.red_bounds_info.lower)
+        .map(partial(eval_bound, action))
+        .otherwise(lambda: action_cfg.operating_bounds_info and action_cfg.operating_bounds_info.lower)
+        .map(partial(eval_bound, action)).map(lambda x: x.float_bound).is_instance(float)
     ).expect()
 
     hi = (
-        Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[1])
-        .map(partial(eval_bound, action, "hi", action_cfg.red_bounds_func, action_cfg.red_bounds_tags))
-        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[1])
+        Maybe[BoundInfo](action_cfg.red_bounds_info and action_cfg.red_bounds_info.upper)
+        .map(partial(eval_bound, action))
+        .otherwise(lambda: action_cfg.operating_bounds_info and action_cfg.operating_bounds_info.upper)
+        .map(partial(eval_bound, action)).map(lambda x: x.float_bound).is_instance(float)
     ).expect()
     return lo, hi
