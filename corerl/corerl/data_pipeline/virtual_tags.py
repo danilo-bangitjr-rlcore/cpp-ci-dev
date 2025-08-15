@@ -26,12 +26,13 @@ class VirtualTagComputer:
 
             pf.data[tag] = lmda(*dep_values)
 
-            val = float(pf.data[tag].values[0])
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric="VIRTUAL-" + tag,
-                value=val,
-            )
+            if len(pf.data[tag]) > 0:
+                val = float(pf.data[tag].values[0])
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric="VIRTUAL-" + tag,
+                    value=val,
+                )
 
             # missingness checks come after this stage,
             # so we can prefill the missing_info with NULL here
