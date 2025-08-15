@@ -74,14 +74,14 @@ SanitizedName = NewType("SanitizedName", str)
 class ColumnMapper:
     def __init__(self, columns: list[str]):
         clean_names = _clean_names_with_hash_disambiguation(columns)
-        self.name_to_pg: dict[str, SanitizedName] = dict(zip(columns, clean_names, strict = True))
+        self.name_to_pg: dict[str, SanitizedName] = dict(zip(columns, clean_names, strict=True))
         self.pg_to_name: dict[SanitizedName, str] = {v: k  for k, v in self.name_to_pg.items()}
 
 def _clean_names_with_hash_disambiguation(names: list[str]):
     # Sanitize all names
     cleaned_names = [_sanitize_key(name) for name in names]
 
-    # Find dublicates
+    # Find duplicates
     seen = {}
     for i, cleaned in enumerate(cleaned_names):
         if cleaned in seen:
@@ -103,7 +103,7 @@ def _clean_names_with_hash_disambiguation(names: list[str]):
     return [SanitizedName(res) for res in result]
 
 
-def _get_short_hash(text: str, length: int=4):
+def _get_short_hash(text: str, length: int = 4):
     """Generate a short _deterministic_ hash from text"""
     return hashlib.md5(text.encode('utf-8')).hexdigest()[:length]
 
