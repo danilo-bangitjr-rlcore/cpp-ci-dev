@@ -31,6 +31,14 @@ class NoisyLinearConfig:
     with_bias: bool = True
 
 @dataclass
+class LayerNormConfig:
+    name: str | None = None
+    axis: int | tuple[int, ...] = -1
+    create_scale: bool = True
+    create_offset: bool = True
+    eps: float = 1e-5
+
+@dataclass
 class ResidualConfig:
     size: int
     name: str | None = None
@@ -38,10 +46,10 @@ class ResidualConfig:
 
 @dataclass
 class LateFusionConfig:
-    streams: list[list[LinearConfig | ResidualConfig | NoisyLinearConfig]]
+    streams: list[list[LinearConfig | ResidualConfig | NoisyLinearConfig | LayerNormConfig]]
     name: str | None = None
 
-type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig | NoisyLinearConfig
+type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig | NoisyLinearConfig | LayerNormConfig
 
 @dataclass
 class TorsoConfig:
@@ -63,6 +71,21 @@ class Linear(hk.Module):
         act = get_activation(self.cfg.activation)
         z = self._linear(x)
         return act(z)
+
+
+class LayerNorm(hk.Module):
+    def __init__(self, cfg: LayerNormConfig):
+        super().__init__(name=cfg.name)
+        self.cfg = cfg
+
+    def __call__(self, x: jax.Array):
+        return hk.LayerNorm(
+            axis=self.cfg.axis,
+            create_scale=self.cfg.create_scale,
+            create_offset=self.cfg.create_offset,
+            eps=self.cfg.eps,
+        )(x)
+
 
 class FusionNet(hk.Module):
     def __init__(self, cfg: LateFusionConfig):
@@ -169,6 +192,8 @@ def layer_factory(cfg: LayerConfig):
         return ResidualBlock(cfg)
     if isinstance(cfg, NoisyLinearConfig):
         return noisy_linear(cfg)
+    if isinstance(cfg, LayerNormConfig):
+        return LayerNorm(cfg)
 
     return FusionNet(cfg)
 

@@ -101,6 +101,9 @@ class FeatureFlags:
     # 2025-07-24
     wide_metrics: bool = False
 
+    # 2025-08-15
+    state_layer_norm: bool = False
+
 
 @config()
 class OfflineConfig:
