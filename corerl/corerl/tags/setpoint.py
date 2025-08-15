@@ -1,21 +1,21 @@
 from datetime import timedelta
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Literal
+from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
-from pydantic import Field
 
 from corerl.tags.components.bounds import (
     Bounds,
+    BoundsInfo,
     BoundsElem,
-    BoundsFunction,
     BoundsTags,
+    BoundType,
     FloatBounds,
     SafetyZonedTag,
-    parse_string_bounds,
+    init_bounds_info,
 )
 from corerl.tags.components.computed import ComputedTag
 from corerl.tags.components.opc import Agg, OPCTag
@@ -92,14 +92,13 @@ class SetpointTagConfig(
     may be a subset of the operating range.
     """
 
-    action_bounds_func: Annotated[BoundsFunction | None, Field(exclude=True)] = None
-    action_bounds_tags: Annotated[BoundsTags | None, Field(exclude=True)] = None
+    action_bounds_info: BoundsInfo | None = None
     """
     Kind: computed internal
 
-    In case that the action_bounds are specified as strings representing sympy functions,
-    the action_bounds_function will hold the functions for computing the lower and/or upper ranges,
-    and the action_bounds_tags will hold the lists of tags that those functions depend on.
+    If action_bounds is specified, action_bounds_info will store a BoundsInfo object containing information about the
+    lower and upper bounds, including the functions and tags for computing the lower and/or upper ranges
+    if the bounds are specified as strings representing sympy functions.
     """
 
     guardrail_schedule: GuardrailScheduleConfig | None = None
@@ -151,11 +150,8 @@ class SetpointTagConfig(
     def _set_action_bounds(self, cfg: 'MainConfig'):
         tags = {tag.name for tag in cfg.pipeline.tags}
 
-        self.action_bounds_func, self.action_bounds_tags = (
-            Maybe(self.action_bounds)
-                .map(lambda bounds: parse_string_bounds(self, bounds, tags, allow_circular=True))
-                .or_else((None, None))
-        )
+        if self.action_bounds is not None:
+            self.action_bounds_info = init_bounds_info(self, self.action_bounds, BoundType.action_bound, tags)
 
 
     # -----------------
