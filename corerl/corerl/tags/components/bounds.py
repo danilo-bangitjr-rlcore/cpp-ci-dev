@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from dataclasses import dataclass
 from enum import StrEnum, auto
 from functools import partial
 from typing import TYPE_CHECKING, Annotated, Literal
@@ -26,6 +27,32 @@ BoundsFunctions = tuple[BoundFunction | None, BoundFunction | None]
 BoundTags = list[str] | None
 BoundsTags = tuple[BoundTags, BoundTags]
 
+
+class BoundType(StrEnum):
+    operating_range = auto()
+    expected_range = auto()
+    red_zone = auto()
+    yellow_zone = auto()
+    action_bound = auto()
+
+class Direction(StrEnum):
+    Lower = auto()
+    Upper = auto()
+
+@dataclass()
+class BoundInfo:
+    tag: str
+    type: BoundType
+    direction: Direction
+    bound_elem: BoundsElem
+    bound_func: BoundFunction | None = None
+    bound_tags: BoundTags | None = None
+    float_bound: float | None = None
+
+@dataclass()
+class BoundsInfo:
+    lower: BoundInfo
+    upper: BoundInfo
 
 class ViolationDirection(StrEnum):
     upper_violation = auto()
