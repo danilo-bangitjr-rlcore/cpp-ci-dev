@@ -192,8 +192,7 @@ class BoundedTag(GlobalTagAttributes):
         norm_cfg.min = Maybe(norm_cfg.min).otherwise(lambda: lo).unwrap()
         norm_cfg.max = Maybe(norm_cfg.max).otherwise(lambda: hi).unwrap()
 
-        if norm_cfg.min is None or norm_cfg.max is None:
-            norm_cfg.from_data = True
+        norm_cfg.from_data = norm_cfg.min is None or norm_cfg.max is None
 
 
 
@@ -311,8 +310,7 @@ class SafetyZonedTag(BoundedTag):
         norm_cfg.min = Maybe(norm_cfg.min).otherwise(lambda: lo).unwrap()
         norm_cfg.max = Maybe(norm_cfg.max).otherwise(lambda: hi).unwrap()
 
-        if norm_cfg.min is None or norm_cfg.max is None:
-            norm_cfg.from_data = True
+        norm_cfg.from_data = norm_cfg.min is None or norm_cfg.max is None
 
 
 def parse_string_bounds(
