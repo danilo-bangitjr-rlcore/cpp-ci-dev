@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, cast
+from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
 
-from lib_config.config import MISSING, config, list_
+from lib_config.config import MISSING, config, list_, post_processor
 from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
 
@@ -21,12 +21,16 @@ from corerl.data_pipeline.transforms.nuke import NukeConfig
 from corerl.data_pipeline.transforms.power import PowerConfig
 from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
+from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 
 """
 To avoid circular imports and partially defined types
-that result in partially defined schemas, these two
-configs are defined in the same place as the union
-type TransformConfig.
+that result in partially defined schemas, these configs
+are defined in the same place as the union type TransformConfig.
 """
 @config()
 class BinaryConfig(BaseTransformConfig):
@@ -37,7 +41,6 @@ class BinaryConfig(BaseTransformConfig):
     other_xform: list[TransformConfig] = list_([IdentityConfig])
 
 
-
 @config()
 class SplitConfig(BaseTransformConfig):
     name: Literal['split'] = 'split'
@@ -45,6 +48,22 @@ class SplitConfig(BaseTransformConfig):
     left: list[TransformConfig] = list_([IdentityConfig])
     right: list[TransformConfig] = list_([IdentityConfig])
     passthrough: bool | None = None
+
+
+@config()
+class SympyConfig(BaseTransformConfig):
+    name: Literal["sympy"] = "sympy"
+    expression: str = MISSING
+
+    @post_processor
+    def _validate_expression(self, cfg: MainConfig):
+        # Validate sympy expression format and supported operations
+        if not is_expression(self.expression):
+            raise ValueError(f"Invalid sympy expression format: {self.expression}")
+
+        expr, _, _ = to_sympy(self.expression)
+        if not is_valid_expression(expr):
+            raise ValueError(f"Expression contains unsupported operations: {self.expression}")
 
 
 TransformConfig = Annotated[
@@ -62,6 +81,7 @@ TransformConfig = Annotated[
     | BinaryConfig
     | ScaleConfig
     | SplitConfig
+    | SympyConfig
     | TraceConfig
     | ComparatorConfig
 , Field(discriminator='name')]
@@ -70,12 +90,15 @@ TransformConfig = Annotated[
 def register_dispatchers():
     from corerl.data_pipeline.transforms.binary import BinaryTransform
     from corerl.data_pipeline.transforms.split import SplitTransform
+    from corerl.data_pipeline.transforms.sympy import SympyTransform
 
     transform_group.dispatcher(BinaryTransform)
     transform_group.dispatcher(SplitTransform)
+    transform_group.dispatcher(SympyTransform)
 
     # Because TransformConfig was only partially known when
     # pydantic first parsed these schemas, rebuild them
     # now that they are completely known.
     rebuild_dataclass(cast(Any, BinaryConfig))
     rebuild_dataclass(cast(Any, SplitConfig))
+    rebuild_dataclass(cast(Any, SympyConfig))
