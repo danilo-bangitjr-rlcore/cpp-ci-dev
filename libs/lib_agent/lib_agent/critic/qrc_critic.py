@@ -51,7 +51,7 @@ class QRCCritic:
             else nets.LinearConfig
         )
 
-        state_stream = [
+        state_stream: list[nets.LinearConfig | nets.NoisyLinearConfig | nets.LayerNormConfig | nets.ResidualConfig] = [
             interior_layer_cfg(size=128, activation='relu'),
         ]
         if cfg.use_state_layer_norm:
