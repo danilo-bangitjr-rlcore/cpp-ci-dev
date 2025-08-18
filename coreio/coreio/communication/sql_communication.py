@@ -15,7 +15,6 @@ from lib_utils.sql_logging.utils import (
     SQLColumn,
     add_column_to_table_query,
     create_tsdb_table_query,
-    sanitize_key,
 )
 from lib_utils.time import now_iso
 from sqlalchemy import text
@@ -175,7 +174,8 @@ class SQL_Manager:
             return
 
         # Ensure all keys in input data are sanitized
-        sanitized_data = {sanitize_key(k): v for k, v in data.items()}
+        column_mapper = ColumnMapper(list(data.keys()))
+        sanitized_data = {column_mapper.name_to_pg[k]: v for k, v in data.items()}
 
         # Ensure all keys in input data are only expected columns
         valid_columns = {node.name for node in self.nodes_to_persist.values()}

@@ -109,7 +109,8 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
             df = self._execute_read(stmt)
             df["time"] = pd.to_datetime(df["time"])
             df["agent_step"] = df["agent_step"].astype(int)
-            df["value"] = df["value"].astype(float)
+            df[metric] = df["value"].astype(float)
+            df.drop(columns=['value'], inplace=True)
             return df
 
         # wide format
@@ -167,7 +168,8 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         df["agent_step"] = df["agent_step"].astype(int)
 
         if self.cfg.narrow_format:
-            df["value"] = df["value"].astype(float)
+            df[metric] = df["value"].astype(float)
+            df.drop(columns=['value'], inplace=True)
             return df
 
         # wide format
@@ -220,7 +222,8 @@ class MetricsTable(BufferedWriter[_MetricPoint]):
         df["time"] = pd.to_datetime(df["time"])
 
         if self.cfg.narrow_format:
-            df["value"] = df["value"].astype(float)
+            df[metric] = df["value"].astype(float)
+            df.drop(columns=['value'], inplace=True)
         else:
             df[metric] = df[metric].astype(float)
 

@@ -2,6 +2,7 @@ pytest_plugins = (
     # local infra
     'tests.infrastructure.config',
     'tests.infrastructure.databases',
+    'tests.infrastructure.pipeline',
 
     # `test/` sub-repo
     "test.infrastructure.app_state",
