@@ -27,8 +27,6 @@ class UpdateActions(NamedTuple):
 class PolicyState(NamedTuple):
     params: chex.ArrayTree
     opt_state: chex.ArrayTree | None = None
-    mu_opt_state: chex.ArrayTree | None = None
-    sigma_opt_state: chex.ArrayTree | None = None
     group_opt_states: dict[str, chex.ArrayTree] | None = None
 
 class PAState(NamedTuple):
@@ -160,8 +158,6 @@ class PercentileActor:
         actor_state = PolicyState(
             params=actor_params,
             opt_state=None,
-            mu_opt_state=actor_group_opt_states.get('mu'),
-            sigma_opt_state=actor_group_opt_states.get('sigma'),
             group_opt_states=actor_group_opt_states,
         )
         proposal_params = self.proposal.init(rng=rng_2, x=x)
@@ -169,8 +165,6 @@ class PercentileActor:
         proposal_state = PolicyState(
             params=proposal_params,
             opt_state=None,
-            mu_opt_state=proposal_group_opt_states.get('mu'),
-            sigma_opt_state=proposal_group_opt_states.get('sigma'),
             group_opt_states=proposal_group_opt_states,
         )
         return PAState(actor_state, proposal_state)
@@ -389,8 +383,6 @@ class PercentileActor:
             return PolicyState(
                 new_params,
                 None,
-                new_opt_states.get('mu'),
-                new_opt_states.get('sigma'),
                 new_opt_states,
             ), PercentileActorUpdateMetrics(
                 actor_loss=loss,
