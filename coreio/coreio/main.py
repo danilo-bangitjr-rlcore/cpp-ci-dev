@@ -64,7 +64,12 @@ async def coreio_loop(cfg: MainConfigAdapter):
         # Callbacks have to be async
         zmq_communication.attach_callback(
             event_type=IOEventType.read_from_opc,
-            cb=lambda event: handle_read_event(event, opc_connections, sql_communication),
+            cb=lambda event: handle_read_event(
+                event,
+                opc_connections,
+                sql_communication,
+                read_period= cfg.coreio.data_ingress.ingress_period,
+            ),
         )
 
     logger.info("CoreIO is ready")
