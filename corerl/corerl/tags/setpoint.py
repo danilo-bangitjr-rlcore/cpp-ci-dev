@@ -1,5 +1,5 @@
+from collections.abc import Callable
 from datetime import timedelta
-from functools import partial
 from typing import TYPE_CHECKING, Literal
 
 import pandas as pd
@@ -14,7 +14,8 @@ from corerl.tags.components.bounds import (
     BoundType,
     FloatBounds,
     SafetyZonedTag,
-    eval_bound,
+    get_float_bound,
+    get_maybe_bound_info,
     init_bounds_info,
 )
 from corerl.tags.components.computed import ComputedTag
@@ -203,28 +204,20 @@ class SetpointTagConfig(
 
 
 def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float, float]:
+    def _get_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+        return (
+            get_maybe_bound_info(cfg.action_bounds_info, lens)
+            .flat_otherwise(lambda: get_maybe_bound_info(cfg.red_bounds_info, lens))
+            .flat_otherwise(lambda: get_maybe_bound_info(cfg.operating_bounds_info, lens))
+        )
+
     lo = (
-        Maybe[BoundInfo](cfg.action_bounds_info and cfg.action_bounds_info.lower)
-        .map(partial(eval_bound, row))
-        # the next lowest bound is either the red zone if one exists
-        .otherwise(lambda: cfg.red_bounds_info and cfg.red_bounds_info.lower)
-        .map(partial(eval_bound, row))
-        # or the operating bound if one exists
-        .otherwise(lambda: cfg.operating_bounds_info and cfg.operating_bounds_info.lower)
-        .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
-        # and if neither exists, we're in trouble
+        get_float_bound(_get_bound_info(lambda b: Maybe(b.lower)), row)
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
     hi = (
-        Maybe[BoundInfo](cfg.action_bounds_info and cfg.action_bounds_info.upper)
-        .map(partial(eval_bound, row))
-        # the next lowest bound is either the red zone if one exists
-        .otherwise(lambda: cfg.red_bounds_info and cfg.red_bounds_info.upper)
-        .map(partial(eval_bound, row))
-        # or the operating bound if one exists
-        .otherwise(lambda: cfg.operating_bounds_info and cfg.operating_bounds_info.upper)
-        .map(partial(eval_bound, row)).map(lambda x: x.float_bound).is_instance(float)
-        # and if neither exists, we're in trouble
+        get_float_bound(_get_bound_info(lambda b: Maybe(b.upper)), row)
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
+
     return lo, hi
