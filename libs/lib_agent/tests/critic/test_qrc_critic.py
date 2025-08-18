@@ -29,7 +29,6 @@ def critic_config() -> QRCConfig:
         action_regularization_epsilon=0.1,
         l2_regularization=1.0,
         nominal_setpoint_updates=10,
-        use_noisy_nets=False,
         rolling_reset_config=RollingResetConfig(
             reset_period=100,
             warm_up_steps=50,

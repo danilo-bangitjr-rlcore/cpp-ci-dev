@@ -16,6 +16,11 @@ class CallableModule(hk.Module):
 
 
 @dataclass
+class IdentityConfig:
+    ...
+
+
+@dataclass
 class LinearConfig:
     size: int
     name: str | None = None
@@ -46,10 +51,17 @@ class ResidualConfig:
 
 @dataclass
 class LateFusionConfig:
-    streams: list[list[LinearConfig | ResidualConfig | NoisyLinearConfig | LayerNormConfig]]
+    streams: list[list[LinearConfig | ResidualConfig | NoisyLinearConfig | LayerNormConfig | IdentityConfig]]
     name: str | None = None
 
-type LayerConfig = LinearConfig | LateFusionConfig | ResidualConfig | NoisyLinearConfig | LayerNormConfig
+type LayerConfig = (
+    LinearConfig
+    | LateFusionConfig
+    | ResidualConfig
+    | NoisyLinearConfig
+    | LayerNormConfig
+    | IdentityConfig
+)
 
 @dataclass
 class TorsoConfig:
@@ -194,6 +206,8 @@ def layer_factory(cfg: LayerConfig):
         return noisy_linear(cfg)
     if isinstance(cfg, LayerNormConfig):
         return LayerNorm(cfg)
+    if isinstance(cfg, IdentityConfig):
+        return lambda x: x
 
     return FusionNet(cfg)
 

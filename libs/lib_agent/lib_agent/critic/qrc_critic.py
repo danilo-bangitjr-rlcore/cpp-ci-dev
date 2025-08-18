@@ -45,41 +45,34 @@ class QRCCritic:
 
         self._reset_manager = RollingResetManager(cfg.rolling_reset_config, cfg.ensemble)
 
-        interior_layer_cfg = (
-            nets.NoisyLinearConfig
-            if cfg.use_noisy_nets
-            else nets.LinearConfig
+        layer_norm_cfg = (
+            nets.LayerNormConfig
+            if cfg.use_state_layer_norm
+            else nets.IdentityConfig
         )
-
-        state_stream: list[nets.LinearConfig | nets.NoisyLinearConfig | nets.LayerNormConfig | nets.ResidualConfig] = [
-            interior_layer_cfg(size=128, activation='relu'),
-        ]
-        if cfg.use_state_layer_norm:
-            state_stream.append(nets.LayerNormConfig(name='state_layer_norm_1'))
-        state_stream.extend([
-            interior_layer_cfg(size=64, activation='relu'),
-        ])
-        if cfg.use_state_layer_norm:
-            state_stream.append(nets.LayerNormConfig(name='state_layer_norm_2'))
-        state_stream.extend([
-            interior_layer_cfg(size=32, activation='crelu'),
-        ])
 
         torso_cfg = nets.TorsoConfig(
             layers=[
                 nets.LateFusionConfig(
                     streams=[
                         # states
-                        state_stream,
+                        [
+                            nets.LinearConfig(size=128, activation='relu'),
+                            layer_norm_cfg(),
+                            nets.LinearConfig(size=64, activation='relu'),
+                            layer_norm_cfg(),
+                            nets.LinearConfig(size=32, activation='crelu'),
+                            layer_norm_cfg(),
+                        ],
                         # actions
                         [
-                            interior_layer_cfg(size=32, activation='relu'),
-                            interior_layer_cfg(size=32, activation='crelu'),
+                            nets.LinearConfig(size=32, activation='relu'),
+                            nets.LinearConfig(size=32, activation='crelu'),
                         ],
                     ],
                 ),
-                interior_layer_cfg(size=64, activation='relu'),
-                interior_layer_cfg(size=64, activation='relu'),
+                nets.LinearConfig(size=64, activation='relu'),
+                nets.LinearConfig(size=64, activation='relu'),
             ],
             skip=False,
         )
