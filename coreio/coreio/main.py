@@ -68,7 +68,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
                 event,
                 opc_connections,
                 sql_communication,
-                read_period= cfg.coreio.data_ingress.ingress_period,
+                read_period=cfg.coreio.data_ingress.ingress_period,
             ),
         )
 

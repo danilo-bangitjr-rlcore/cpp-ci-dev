@@ -8,6 +8,7 @@ from coreio.utils.io_events import IOEvent
 
 logger = logging.getLogger()
 
+STALE_EVENT_THRESHOLD_MULTIPLIER = 3
 
 def is_stale_event(event: IOEvent, max_stale: timedelta = timedelta(seconds=5)):
     event_time = datetime.fromisoformat(event.time)
@@ -34,7 +35,7 @@ async def handle_read_event(
         read_period: timedelta,
 ):
     logger.info(f"Received reading event {event}")
-    if is_stale_event(event, read_period * 3): # sane default for stale period
+    if is_stale_event(event, read_period * STALE_EVENT_THRESHOLD_MULTIPLIER):
         logger.warning(f"Dropping {event} because it is stale")
         return
 
