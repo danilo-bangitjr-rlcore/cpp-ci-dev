@@ -198,6 +198,9 @@ class OPC_Connection:
     @requires_context
     async def write_opcua_nodes(self, nodes_to_write: Sequence[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
+        assert (
+            {node.node_id for node in nodes_to_write} <= self.registered_nodes.keys()
+        ), "Not all nodes_to_write are in our registered_nodes"
         nodes = []
         data_values = []
 
