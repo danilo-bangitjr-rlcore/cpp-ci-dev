@@ -51,16 +51,26 @@ class QRCCritic:
             else nets.LinearConfig
         )
 
+        state_stream: list[nets.LinearConfig | nets.NoisyLinearConfig | nets.LayerNormConfig | nets.ResidualConfig] = [
+            interior_layer_cfg(size=128, activation='relu'),
+        ]
+        if cfg.use_state_layer_norm:
+            state_stream.append(nets.LayerNormConfig(name='state_layer_norm_1'))
+        state_stream.extend([
+            interior_layer_cfg(size=64, activation='relu'),
+        ])
+        if cfg.use_state_layer_norm:
+            state_stream.append(nets.LayerNormConfig(name='state_layer_norm_2'))
+        state_stream.extend([
+            interior_layer_cfg(size=32, activation='crelu'),
+        ])
+
         torso_cfg = nets.TorsoConfig(
             layers=[
                 nets.LateFusionConfig(
                     streams=[
                         # states
-                        [
-                            interior_layer_cfg(size=128, activation='relu'),
-                            interior_layer_cfg(size=64, activation='relu'),
-                            interior_layer_cfg(size=32, activation='crelu'),
-                        ],
+                        state_stream,
                         # actions
                         [
                             interior_layer_cfg(size=32, activation='relu'),
