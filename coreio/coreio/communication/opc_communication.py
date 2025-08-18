@@ -9,6 +9,7 @@ from typing import Any, assert_never
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from asyncua.ua.uaerrors import BadNodeIdUnknown
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
@@ -38,7 +39,7 @@ def log_backoff(details: Any):
     wait = details["wait"]
     tries = details["tries"]
     func = details["target"].__name__
-    logger.warning(f"Backing off {wait:.1f} seconds after {tries} tries calling {func}")
+    logger.error(f"Backing off {wait:.1f} seconds after {tries} tries calling {func}")
 
 class OPC_Connection:
     def __init__(self):
@@ -168,6 +169,7 @@ class OPC_Connection:
     # All of these use @requires_context
 
     @requires_context
+    @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=30, on_backoff=log_backoff)
     async def register_node(self, node_id: str, name: str):
         assert self.opc_client is not None, 'OPC client is not initialized'
         if not node_id.startswith("ns="):
@@ -244,6 +246,8 @@ class OPC_Connection:
     @requires_context
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not initialized'
+        # issubset check
+        assert nodes_to_read.keys() <= self.registered_nodes.keys(), "Not all nodes_to_read are in our registered_nodes"
         opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
         return await self.opc_client.read_values(opc_nodes_to_read)
 
