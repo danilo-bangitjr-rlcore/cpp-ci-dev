@@ -212,7 +212,7 @@ def test_rolling_reset(rolling_critic: QRCCritic):
 
     # critic 0: oldest, warmed up (should be reset)
     rolling_critic._reset_manager._critic_info[0].training_steps = 60
-    rolling_critic._reset_manager._critic_info[0].birthdate = 30
+    rolling_critic._reset_manager._critic_info[0].birthdate = 0
     rolling_critic._reset_manager._critic_info[0].is_warmed_up = True
     rolling_critic._reset_manager._critic_info[0].is_active = True
 

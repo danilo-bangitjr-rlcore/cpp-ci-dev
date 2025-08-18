@@ -223,9 +223,9 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
         critic_buffer_config = cfg.critic.buffer.to_lib_config()
         critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
-        self._actor_buffer = build_buffer(critic_buffer_config, JaxTransition)
         self.critic_buffer = build_buffer(critic_buffer_config, JaxTransition)
 
         self.ensemble = len(self.critic._reset_manager.active_indices)

@@ -92,7 +92,7 @@ class RollingResetManager:
         if not warmed_up_critics:
             return None
 
-        return max(warmed_up_critics, key=self._get_critic_score)
+        return min(warmed_up_critics, key=self._get_critic_score)
 
 
     def _select_background_critic(self) -> int | None:
