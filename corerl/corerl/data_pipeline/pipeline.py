@@ -120,7 +120,7 @@ class Pipeline:
         self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
         self.seasonal_tags = SeasonalTagIncluder(self.tags)
         self.delta_tags = DeltaizeTags(self.tags, cfg.delta)
-        self.virtual_tags = VirtualTagComputer(self.tags)
+        self.virtual_tags = VirtualTagComputer(self.tags, app_state)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
             tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.operating_range_tol)

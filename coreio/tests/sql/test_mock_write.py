@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from asyncua import Node
 from asyncua.ua import VariantType
-from lib_utils.sql_logging.utils import sanitize_key
+from lib_utils.sql_logging.utils import ColumnMapper
 from sqlalchemy import text
 
 from coreio.communication.opc_communication import NodeData
@@ -145,8 +145,9 @@ class TestWriteNodes:
             VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :sensor1, :sensor2);
         """)
 
+        column_mapper = ColumnMapper([node.name for node in sql_manager.nodes_to_persist.values()])
         actual_sql = sql_manager._insert_sql([
-            sanitize_key(node.name)
+            column_mapper.name_to_pg[node.name]
             for node in sql_manager.nodes_to_persist.values()
         ])
 
