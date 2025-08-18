@@ -28,7 +28,7 @@ class RecencyBiasBufferConfig:
     @computed('ensemble')
     @classmethod
     def _ensemble(cls, cfg: "MainConfig"):
-        return cfg.feature_flags.ensemble + cfg.agent.critic.rolling_reset_config.num_background_critics
+        return cfg.feature_flags.ensemble
 
     @computed('gamma')
     @classmethod
@@ -72,7 +72,7 @@ class MixedHistoryBufferConfig:
     @computed('ensemble')
     @classmethod
     def _ensemble(cls, cfg: "MainConfig"):
-        return cfg.feature_flags.ensemble + cfg.agent.critic.rolling_reset_config.num_background_critics
+        return cfg.feature_flags.ensemble
 
     def to_lib_config(self) -> LibMixedHistoryBufferConfig:
         return LibMixedHistoryBufferConfig(
