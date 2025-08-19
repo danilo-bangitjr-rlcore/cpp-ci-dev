@@ -1,15 +1,3 @@
-"""
-This module contains the FastAPI application for CoreRL.
-An optional environment variable COREIO_SQLITE_DB_PATH can be set to the path to the sqlite database from coreio.
-The default path is /app/coreio-data/sqlite.db which is the path to the sqlite database in the compose.yml bound volume.
-
-After installing corerl, you can start the web application by running the following command:
-
-```sh
-fastapi dev corerl/web/app.py
-```
-"""
-
 import importlib.metadata
 import json
 import logging
