@@ -130,13 +130,6 @@ class RollingResetManager:
         # remove from active set
         self._active_indices.discard(critic_to_reset)
 
-        selected_background_critic = self._select_background_critic()
-        if selected_background_critic is None:
-            return critic_state
-
-        self._active_indices.remove(critic_to_reset)
-        self._active_indices.add(selected_background_critic)
-
         # initialize new member state
         x_dummy = jnp.zeros(state_dim)
         a_dummy = jnp.zeros(action_dim)
