@@ -17,50 +17,7 @@ struct Args {
     output_file: String,
 }
 
-// const COL_NAMES: [&str; 38] = [
-
 fn main() {
-
-    let _old_col_names: Vec<&str > = vec![
-        "ai0879a",
-        "ai0879b",
-        "ai0879c",
-        "ai0897b",
-        "aic3730_mode",
-        "aic3730_out",
-        "aic3730_pv",
-        "aic3730_sp",
-        "aic3730_sprl",
-        "aic3731_mode",
-        "aic3731_out",
-        "aic3731_pv",
-        "aic3731_sp",
-        "aic3731_sprl",
-        "arc0879c_out",
-        "fi_0871",
-        "fi0872",
-        "fic3734_mode",
-        "fic3734_out",
-        "fic3734_pv",
-        "fic3734_sp",
-        "fic3734_sprl",
-        "fv3735_pv",
-        "li3734",
-        "m3730a_pv",
-        "m3730b_pv",
-        "m3731a_pv",
-        "m3731b_pv",
-        "m3739_pv",
-        "pdic3738_mode",
-        "pdic3738_out",
-        "pdic3738_pv",
-        "pdic3738_sp",
-        "pdic3738_sprl",
-        "pi0169",
-        "rlcore_opcua_wd",
-        "ti0880",
-        "watchdog",
-    ];
     let args = Args::parse();
     println!("Input: {}", args.input_file);
     println!("Output: {}", args.output_file);
