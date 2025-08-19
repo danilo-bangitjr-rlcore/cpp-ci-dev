@@ -6,7 +6,6 @@ from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.per_tag.copy import CopyImputer, CopyImputerConfig, CopyImputerTemporalState
-from corerl.data_pipeline.missing_data_checker import missing_data_checker
 
 
 def test_no_imputation():
@@ -28,9 +27,6 @@ def test_no_imputation():
     pf = PipelineFrame(data, DataMode.ONLINE)
 
     # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
@@ -56,9 +52,6 @@ def test_all_nan_imputation():
     data = data.set_index(indices)
 
     pf = PipelineFrame(data, DataMode.ONLINE)
-
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
 
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
@@ -93,9 +86,6 @@ def test_all_nan_imputation_ts():
     }
 
     # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
@@ -143,9 +133,6 @@ def test_backtrack_imputation():
 
     pf = PipelineFrame(data, DataMode.ONLINE)
 
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 
@@ -183,9 +170,6 @@ def test_backtrack_imputation_ts():
     }
 
     # Start data pipeline
-    pf = missing_data_checker(pf, 'tag_1')
-    pf = missing_data_checker(pf, 'tag_2')
-
     pf = tag_1_imputer(pf, 'tag_1')
     pf = tag_2_imputer(pf, 'tag_2')
 

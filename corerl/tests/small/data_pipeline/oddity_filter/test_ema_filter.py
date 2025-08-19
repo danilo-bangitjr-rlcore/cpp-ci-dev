@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilter, EMAFilterConfig
 from corerl.state import AppState
 
@@ -74,11 +74,6 @@ def test_leading_nan_data(dummy_app_state: AppState):
     assert not np.isnan(filtered_data[name].iloc[1:10]).all()
     assert np.isnan(filtered_data[name].iloc[-1])  # filter outlier
 
-    missing_info = pf.missing_info
-    # should not mark existing nan as oddity
-    assert missing_info["sensor_x"].iloc[0] == MissingType.NULL
-    assert missing_info["sensor_x"].iloc[-1] == MissingType.OUTLIER
-
 
 def test_trailing_nan_data(dummy_app_state: AppState):
     cfg = EMAFilterConfig(alpha=0.99)
@@ -95,11 +90,6 @@ def test_trailing_nan_data(dummy_app_state: AppState):
     assert not np.isnan(filtered_data[name].iloc[:10]).all()
     assert np.isnan(filtered_data[name].iloc[-2])  # filter outlier
     assert np.isnan(filtered_data[name].iloc[-1])  # trailing nan remains nan
-
-    missing_info = pf.missing_info
-    # should not mark existing nan as oddity
-    assert missing_info["sensor_x"].iloc[-1] == MissingType.NULL
-    assert missing_info["sensor_x"].iloc[-2] == MissingType.OUTLIER
 
 
 def test_full_nan_data(dummy_app_state: AppState):
@@ -144,11 +134,6 @@ def test_interspersed_nan_data(dummy_app_state: AppState):
     filtered_data = pf.data[name].to_numpy()
     assert np.allclose(filtered_data, expected, equal_nan=True)
 
-    missing_info = pf.missing_info
-    # should not mark existing nan as oddity
-    assert missing_info["sensor_x"].iloc[0] == MissingType.NULL
-    assert missing_info["sensor_x"].iloc[-2] == MissingType.OUTLIER
-
 
 def test_streamed_nans(dummy_app_state: AppState):
     cfg = EMAFilterConfig(alpha=0.99, warmup=5)
@@ -157,11 +142,9 @@ def test_streamed_nans(dummy_app_state: AppState):
 
     values = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, 5, np.nan])
     expected = np.array([np.nan, 1, 1, np.nan, 1, np.nan, np.nan, 1, 1, 1, 1, 1, 1, 1, np.nan, np.nan])
-    expected_missing_types = np.array([MissingType.NULL] * len(values))
-    expected_missing_types[-2] = MissingType.OUTLIER
 
     ts = None
-    for in_val, expected_val, expected_missing_type in zip(values, expected, expected_missing_types, strict=True):
+    for in_val, expected_val in zip(values, expected, strict=True):
         data = pd.DataFrame({name: [in_val]})
         pf = PipelineFrame(data, DataMode.ONLINE)
 
@@ -169,9 +152,6 @@ def test_streamed_nans(dummy_app_state: AppState):
         pf, ts = outlier_detector(pf, name, ts)
         out_val = pf.data[name].to_numpy()[0]
         assert np.isclose(out_val, expected_val, equal_nan=True)
-
-        missing_info = pf.missing_info
-        assert missing_info[name].iloc[0] == expected_missing_type
 
 
 def test_obvious_outlier_in_first_batch(dummy_app_state: AppState):
@@ -324,68 +304,6 @@ def test_detector_does_not_change_indices(dummy_app_state: AppState):
     assert ts == outlier_ts
 
 
-def test_outlier_gets_correct_missingtype(dummy_app_state: AppState):
-    # initialize outlier detector
-    cfg = EMAFilterConfig(alpha=0.99)
-
-    # prepare some data to warm up the stats
-    outlier_detector = EMAFilter(cfg, dummy_app_state)
-    values = [1.0] * 10
-    name = "sensor_x"
-
-    data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, DataMode.ONLINE)
-    _, ts = outlier_detector(pf, name, None)  # <- stats get initialized here
-
-    # create a batch with an outlier
-    values2 = [1.0] * 10
-    values2[-1] = 100.0  # <- this is the outlier
-
-    data = pd.DataFrame({name: values2})
-    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
-
-    # filter the outlier
-    filtered_pf, _ = outlier_detector(pf, name, ts)
-
-    # check that the outlier has the correct missing type
-    missing_info = filtered_pf.missing_info
-    assert missing_info["sensor_x"].iloc[-1] == MissingType.OUTLIER
-
-
-def test_outlier_missing_type_is_added_to_existing_missing(dummy_app_state: AppState):
-    # initialize outlier detector
-    cfg = EMAFilterConfig(alpha=0.99)
-
-    # prepare some data to warm up the stats
-    outlier_detector = EMAFilter(cfg, dummy_app_state)
-    values = [1.0] * 10
-    name = "sensor_x"
-
-    data = pd.DataFrame({name: values})
-    pf = PipelineFrame(data, DataMode.ONLINE)
-    _, ts = outlier_detector(pf, name, None)  # <- stats get initialized here
-
-    # create a batch with an outlier
-    values2 = [1.0] * 10
-    values2[-1] = 100.0  # <- this is the outlier
-
-    data = pd.DataFrame({name: values2})
-    pf = PipelineFrame(data=data, data_mode=DataMode.ONLINE, temporal_state=pf.temporal_state)
-
-    # add an initial missing type to the outlier
-    pf.missing_info.loc[9, "sensor_x"] = MissingType.BOUNDS
-
-    # filter the outlier
-    filtered_pf, _ = outlier_detector(pf, name, ts)
-
-    # check that the outlier has both missing types
-    missing_info = filtered_pf.missing_info
-    bitmap = MissingType(missing_info["sensor_x"].iloc[-1])
-
-    assert bitmap == MissingType.BOUNDS | MissingType.OUTLIER
-    assert MissingType.BOUNDS in bitmap
-    assert MissingType.OUTLIER in bitmap
-
 def test_filter_warmup_with_nans(dummy_app_state: AppState):
     name = "sensor_x"
     cfg = EMAFilterConfig(alpha=0.99, warmup=3)
@@ -408,6 +326,7 @@ def test_filter_warmup_with_nans(dummy_app_state: AppState):
     filtered_data2 = pf2.data[name].to_numpy()
     expected2 = np.array([1, np.nan, np.nan, np.nan])  # Both 5s should be replaced with NaN
     assert np.allclose(filtered_data2, expected2, equal_nan=True)
+
 
 def test_warmup_same_val_no_outliers(dummy_app_state: AppState):
     name = "sensor_x"

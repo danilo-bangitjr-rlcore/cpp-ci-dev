@@ -1,4 +1,4 @@
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
 from corerl.tags.components.computed import ComputedTag
 from corerl.tags.tag_config import TagConfig
@@ -33,11 +33,5 @@ class VirtualTagComputer:
                     metric="VIRTUAL-" + tag,
                     value=val,
                 )
-
-            # missingness checks come after this stage,
-            # so we can prefill the missing_info with NULL here
-            # and depend on the "missingness_checker" to do the
-            # work for us.
-            pf.missing_info[tag] = [MissingType.NULL] * len(pf.data)
 
         return pf
