@@ -409,6 +409,7 @@ class GreedyAC(BaseAgent):
             transitions=critic_batch,
             next_actions=next_actions,
         )
+        rolling_reset_metrics = self.critic.get_rolling_reset_metrics()
 
         metrics_dict = create_ensemble_dict(
             metrics,
@@ -420,6 +421,10 @@ class GreedyAC(BaseAgent):
         )
         self._app_state.metrics.write_dict(
             metrics_dict,
+            agent_step=self._app_state.agent_step,
+        )
+        self._app_state.metrics.write_dict(
+            rolling_reset_metrics,
             agent_step=self._app_state.agent_step,
         )
 
