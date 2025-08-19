@@ -42,7 +42,7 @@ class CriticBatch(Protocol):
 
 @dataclass
 class RollingResetConfig:
-    reset_period: int = 10000
+    reset_period: int = 2**31 - 1
     warm_up_steps: int = 1000
 
 
