@@ -94,19 +94,6 @@ class RollingResetManager:
 
         return min(warmed_up_critics, key=self._get_critic_score)
 
-
-    def _select_background_critic(self) -> int | None:
-        ready_background_critics = [
-            i for i in range(self._total_critics)
-            if (i not in self._active_indices and
-                self._critic_info[i].training_steps >= self._config.warm_up_steps)
-        ]
-
-        if not ready_background_critics:
-            return None
-
-        return min(ready_background_critics, key=lambda x: self._critic_info[x].birthdate)
-
     def reset(
         self,
         critic_state: CriticState,
