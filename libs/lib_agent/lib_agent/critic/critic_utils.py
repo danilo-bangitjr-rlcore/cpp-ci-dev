@@ -57,7 +57,6 @@ class QRCConfig:
     action_regularization_epsilon: float
     l2_regularization: float
     nominal_setpoint_updates: int = 1000
-    use_noisy_nets: bool = False
     use_state_layer_norm: bool = False
     rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
 

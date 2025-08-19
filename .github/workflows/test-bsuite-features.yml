@@ -14,9 +14,7 @@ jobs:
       matrix:
         feature_flag: [
             recency_bias_buffer,
-            regenerative_optimism,
             normalize_return,
-            noisy_networks,
             mu_sigma_multipliers,
         ]
     steps:
