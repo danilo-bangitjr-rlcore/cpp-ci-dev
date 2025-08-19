@@ -1,8 +1,7 @@
 from collections.abc import Callable
-from dataclasses import dataclass
 from enum import StrEnum, auto
 from functools import partial
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import pandas as pd
 from lib_config.config import MISSING, config, post_processor
@@ -38,17 +37,15 @@ class Direction(StrEnum):
     Lower = auto()
     Upper = auto()
 
-@dataclass()
-class BoundInfo:
+class BoundInfo(NamedTuple):
     tag: str
     type: BoundType
     direction: Direction
     bound_elem: BoundsElem
-    bound_func: BoundFunction | None = None
-    bound_tags: BoundTags | None = None
+    bound_func: BoundFunction | None
+    bound_tags: BoundTags | None
 
-@dataclass()
-class BoundsInfo:
+class BoundsInfo(NamedTuple):
     lower: BoundInfo | None
     upper: BoundInfo | None
 
