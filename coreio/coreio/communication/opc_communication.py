@@ -197,6 +197,7 @@ class OPC_Connection:
 
 
     @requires_context
+    @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def write_opcua_nodes(self, nodes_to_write: Sequence[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         assert (
@@ -248,6 +249,7 @@ class OPC_Connection:
             await self.opc_client.write_values(nodes, data_values)
 
     @requires_context
+    @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         assert nodes_to_read.keys() <= self.registered_nodes.keys(), "Not all nodes_to_read are in our registered_nodes"

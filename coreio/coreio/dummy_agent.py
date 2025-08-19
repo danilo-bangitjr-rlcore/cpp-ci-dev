@@ -22,6 +22,7 @@ def main(cfg: MainConfigAdapter):
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     socket.connect(cfg.coreio.coreio_origin)
+    connection_id = cfg.coreio.opc_connections[0].connection_id
     time.sleep(0.001)
 
     topic = IOEventTopic.coreio
@@ -40,7 +41,7 @@ def main(cfg: MainConfigAdapter):
         # Send write opc event
         messagedata = IOEvent(
             type=IOEventType.write_to_opc,
-            data={"asdxf": [OPCUANodeWriteValue(node_id=node_id, value= x)]},
+            data={connection_id: [OPCUANodeWriteValue(node_id=node_id, value= x)]},
         ).model_dump_json()
 
         payload = f"{topic} {messagedata}"
