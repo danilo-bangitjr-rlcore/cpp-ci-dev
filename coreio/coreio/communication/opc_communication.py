@@ -9,6 +9,7 @@ from typing import Any, assert_never
 import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
+from asyncua.ua.uaerrors import BadNodeIdUnknown
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
@@ -27,6 +28,7 @@ from coreio.utils.io_events import OPCUANodeWriteValue
 
 logger = logging.getLogger(__name__)
 
+MAX_BACKOFF_SECONDS = 30
 
 class NodeData(BaseModel):
     node: Node
@@ -38,7 +40,7 @@ def log_backoff(details: Any):
     wait = details["wait"]
     tries = details["tries"]
     func = details["target"].__name__
-    logger.warning(f"Backing off {wait:.1f} seconds after {tries} tries calling {func}")
+    logger.error(f"Backing off {wait:.1f} seconds after {tries} tries calling {func}")
 
 class OPC_Connection:
     def __init__(self):
@@ -108,7 +110,7 @@ class OPC_Connection:
     # --- Manage Connections --- #
     # -------------------------- #
 
-    @backoff.on_exception(backoff.expo, Exception, max_value=30, on_backoff=log_backoff)
+    @backoff.on_exception(backoff.expo, Exception, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def ensure_connected(self):
         assert self.opc_client is not None, 'OPC client is not initialized'
 
@@ -168,6 +170,7 @@ class OPC_Connection:
     # All of these use @requires_context
 
     @requires_context
+    @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def register_node(self, node_id: str, name: str):
         assert self.opc_client is not None, 'OPC client is not initialized'
         if not node_id.startswith("ns="):
@@ -196,6 +199,9 @@ class OPC_Connection:
     @requires_context
     async def write_opcua_nodes(self, nodes_to_write: Sequence[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
+        assert (
+            {node.node_id for node in nodes_to_write} <= self.registered_nodes.keys()
+        ), "Not all nodes_to_write are in our registered_nodes"
         nodes = []
         data_values = []
 
@@ -244,6 +250,7 @@ class OPC_Connection:
     @requires_context
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not initialized'
+        assert nodes_to_read.keys() <= self.registered_nodes.keys(), "Not all nodes_to_read are in our registered_nodes"
         opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
         return await self.opc_client.read_values(opc_nodes_to_read)
 
