@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tanstack Router
+# Ignore the generated router files
+*.gen.ts
