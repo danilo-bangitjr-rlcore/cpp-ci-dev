@@ -42,7 +42,7 @@ class BoundInfo(NamedTuple):
     tag: str
     type: BoundType
     direction: Direction
-    bound_elem: BoundsElem
+    bound_elem: float | str
     bound_func: BoundFunction | None
     bound_tags: BoundTags | None
 
@@ -157,15 +157,15 @@ class BoundedTag(GlobalTagAttributes):
     # -- Utility Functions --
     # -----------------------
     def get_normalization_bounds(self) -> FloatBounds:
-        def _get_bound(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> float | None:
+        def _get_bound(lens: Callable[[BoundsInfo], BoundInfo | None]) -> float | None:
             return (
                 get_maybe_float_bound_elem(self.expected_bounds_info, lens)
                 .flat_otherwise(lambda: get_maybe_float_bound_elem(self.operating_bounds_info, lens))
                 .unwrap()
             )
 
-        lo = _get_bound(lambda b: Maybe(b.lower))
-        hi = _get_bound(lambda b: Maybe(b.upper))
+        lo = _get_bound(lambda b: b.lower)
+        hi = _get_bound(lambda b: b.upper)
 
         return lo, hi
 
@@ -264,7 +264,7 @@ class SafetyZonedTag(BoundedTag):
     # -- Utility Functions --
     # -----------------------
     def get_normalization_bounds(self) -> FloatBounds:
-        def _get_bound(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> float | None:
+        def _get_bound(lens: Callable[[BoundsInfo], BoundInfo | None]) -> float | None:
             return (
                 get_maybe_float_bound_elem(self.expected_bounds_info, lens)
                 .flat_otherwise(lambda: get_maybe_float_bound_elem(self.red_bounds_info, lens))
@@ -273,8 +273,8 @@ class SafetyZonedTag(BoundedTag):
                 .unwrap()
             )
 
-        lo = _get_bound(lambda b: Maybe(b.lower))
-        hi = _get_bound(lambda b: Maybe(b.upper))
+        lo = _get_bound(lambda b: b.lower)
+        hi = _get_bound(lambda b: b.upper)
 
         return lo, hi
 
@@ -351,14 +351,14 @@ def eval_bound(
 
     bound = bound_info.bound_elem
 
-    return (
-        Maybe(bound).is_instance(str).map(lambda _: _inner())
-        .otherwise(lambda: bound).is_instance(float)
-    )
+    if isinstance(bound, str):
+        return Maybe(_inner())
+
+    return Maybe(bound)
 
 
 def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
-    def _get_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+    def _get_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
         return (
             get_maybe_bound_info(cfg.expected_bounds_info, lens)
             .flat_otherwise(lambda: get_maybe_bound_info(cfg.red_bounds_info, lens))
@@ -366,8 +366,8 @@ def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tuple[Maybe[float]
             .flat_otherwise(lambda: get_maybe_bound_info(cfg.yellow_bounds_info, lens))
         )
 
-    lo = get_float_bound(_get_bound_info(lambda b: Maybe(b.lower)), row)
-    hi = get_float_bound(_get_bound_info(lambda b: Maybe(b.upper)), row)
+    lo = get_float_bound(_get_bound_info(lambda b: b.lower), row)
+    hi = get_float_bound(_get_bound_info(lambda b: b.upper), row)
 
     return lo, hi
 
@@ -413,15 +413,15 @@ def get_float_bound(bound_info: Maybe[BoundInfo], row: pd.DataFrame) -> Maybe[fl
         .is_instance(float)
     )
 
-def get_maybe_bound_info(bounds_info: BoundsInfo | None, get_bound_info: Callable[[BoundsInfo], Maybe[BoundInfo]]):
+def get_maybe_bound_info(bounds_info: BoundsInfo | None, get_bound_info: Callable[[BoundsInfo], BoundInfo | None]):
     return (
         Maybe(bounds_info)
-        .flat_map(get_bound_info)
+        .map(get_bound_info)
     )
 
 def get_maybe_float_bound_elem(
     bounds_info: BoundsInfo | None,
-    get_bound_info: Callable[[BoundsInfo], Maybe[BoundInfo]],
+    get_bound_info: Callable[[BoundsInfo], BoundInfo | None],
 ):
     return (
         get_maybe_bound_info(bounds_info, get_bound_info)

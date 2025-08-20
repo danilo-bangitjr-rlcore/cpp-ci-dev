@@ -204,7 +204,7 @@ class SetpointTagConfig(
 
 
 def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float, float]:
-    def _get_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+    def _get_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
         return (
             get_maybe_bound_info(cfg.action_bounds_info, lens)
             .flat_otherwise(lambda: get_maybe_bound_info(cfg.red_bounds_info, lens))
@@ -212,11 +212,11 @@ def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float,
         )
 
     lo = (
-        get_float_bound(_get_bound_info(lambda b: Maybe(b.lower)), row)
+        get_float_bound(_get_bound_info(lambda b: b.lower), row)
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
     hi = (
-        get_float_bound(_get_bound_info(lambda b: Maybe(b.upper)), row)
+        get_float_bound(_get_bound_info(lambda b: b.upper), row)
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
 

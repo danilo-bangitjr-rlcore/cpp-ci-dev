@@ -162,10 +162,10 @@ class ZoneDiscourager:
 
 
     def _detect_yellow_violation(self, row: pd.DataFrame, row_idx: int, tag: SafetyZonedTag):
-        def _get_yellow_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+        def _get_yellow_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
             return get_maybe_bound_info(tag.yellow_bounds_info, lens)
 
-        def _get_next_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+        def _get_next_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
             return (
                 # the next lowest bound is either the red zone if one exists
                 get_maybe_bound_info(tag.red_bounds_info, lens)
@@ -177,17 +177,17 @@ class ZoneDiscourager:
         x: float = row[tag.name].to_numpy()[0]
 
         yellow_lo = (
-            get_float_bound(_get_yellow_bound_info(lambda b: Maybe(b.lower)), row)
+            get_float_bound(_get_yellow_bound_info(lambda b: b.lower), row)
             .unwrap()
         )
         yellow_hi = (
-            get_float_bound(_get_yellow_bound_info(lambda b: Maybe(b.upper)), row)
+            get_float_bound(_get_yellow_bound_info(lambda b: b.upper), row)
             .unwrap()
         )
 
         if yellow_lo is not None and x < yellow_lo:
             next_lo = (
-                get_float_bound(_get_next_bound_info(lambda b: Maybe(b.lower)), row)
+                get_float_bound(_get_next_bound_info(lambda b: b.lower), row)
                 .expect(f'Yellow zone specified for tag {tag.name}, but no lower bound found')
             )
             return ZoneViolation(
@@ -200,7 +200,7 @@ class ZoneDiscourager:
 
         if yellow_hi is not None and x > yellow_hi:
             next_hi = (
-                get_float_bound(_get_next_bound_info(lambda b: Maybe(b.upper)), row)
+                get_float_bound(_get_next_bound_info(lambda b: b.upper), row)
                 .expect(f'Yellow zone specified for tag {tag.name}, but no upper bound found')
             )
             return ZoneViolation(
@@ -214,26 +214,26 @@ class ZoneDiscourager:
         return None
 
     def _detect_red_violation(self, row: pd.DataFrame, row_idx: Any, tag: SafetyZonedTag):
-        def _get_red_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+        def _get_red_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
             return get_maybe_bound_info(tag.red_bounds_info, lens)
 
-        def _get_next_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+        def _get_next_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
             return get_maybe_bound_info(tag.operating_bounds_info, lens)
 
         x: float = row[tag.name].to_numpy()[0]
 
         red_lo = (
-            get_float_bound(_get_red_bound_info(lambda b: Maybe(b.lower)), row)
+            get_float_bound(_get_red_bound_info(lambda b: b.lower), row)
             .unwrap()
         )
         red_hi = (
-            get_float_bound(_get_red_bound_info(lambda b: Maybe(b.upper)), row)
+            get_float_bound(_get_red_bound_info(lambda b: b.upper), row)
             .unwrap()
         )
 
         if red_lo is not None and x < red_lo:
             op_lo = (
-                get_float_bound(_get_next_bound_info(lambda b: Maybe(b.lower)), row)
+                get_float_bound(_get_next_bound_info(lambda b: b.lower), row)
                 .expect(f'Red zone specified for tag {tag.name}, but no lower bound found')
             )
             return ZoneViolation(
@@ -246,7 +246,7 @@ class ZoneDiscourager:
 
         if red_hi is not None and x > red_hi:
             op_hi = (
-                get_float_bound(_get_next_bound_info(lambda b: Maybe(b.upper)), row)
+                get_float_bound(_get_next_bound_info(lambda b: b.upper), row)
                 .expect(f'Red zone specified for tag {tag.name}, but no upper bound found')
             )
             return ZoneViolation(

@@ -143,14 +143,14 @@ def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfi
         action[action_name] = np.clip(action_val, lo + atol, hi - atol)
 
 def get_clip_bounds(action_cfg: SetpointTagConfig, action: pd.DataFrame):
-    def _get_bound_info(lens: Callable[[BoundsInfo], Maybe[BoundInfo]]) -> Maybe[BoundInfo]:
+    def _get_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
         # prefer to use red zones, otherwise use operating range
         return (
             get_maybe_bound_info(action_cfg.red_bounds_info, lens)
             .flat_otherwise(lambda: get_maybe_bound_info(action_cfg.operating_bounds_info, lens))
         )
 
-    lo = get_float_bound(_get_bound_info(lambda b: Maybe(b.lower)), action).expect()
-    hi = get_float_bound(_get_bound_info(lambda b: Maybe(b.upper)), action).expect()
+    lo = get_float_bound(_get_bound_info(lambda b: b.lower), action).expect()
+    hi = get_float_bound(_get_bound_info(lambda b: b.upper), action).expect()
 
     return lo, hi
