@@ -48,11 +48,11 @@ class RollingResetManager:
     def get_critic_metrics(self, critic_idx: int, prefix: str = "") -> dict[str, float]:
         info = self._critic_info[critic_idx]
         metrics = {
-            f"critic_{critic_idx}_is_active": float(info.is_active),
-            f"critic_{critic_idx}_is_warmed_up": float(info.is_warmed_up),
-            f"critic_{critic_idx}_birthdate": info.birthdate,
-            f"critic_{critic_idx}_training_steps": info.training_steps,
-            f"critic_{critic_idx}_recent_loss": info.recent_loss,
+            f"CRITIC{critic_idx}_is_active": float(info.is_active),
+            f"CRITIC{critic_idx}_is_warmed_up": float(info.is_warmed_up),
+            f"CRITIC{critic_idx}_birthdate": info.birthdate,
+            f"CRITIC{critic_idx}_training_steps": info.training_steps,
+            f"CRITIC{critic_idx}_recent_loss": info.recent_loss,
         }
 
         if prefix:
@@ -94,19 +94,6 @@ class RollingResetManager:
 
         return min(warmed_up_critics, key=self._get_critic_score)
 
-
-    def _select_background_critic(self) -> int | None:
-        ready_background_critics = [
-            i for i in range(self._total_critics)
-            if (i not in self._active_indices and
-                self._critic_info[i].training_steps >= self._config.warm_up_steps)
-        ]
-
-        if not ready_background_critics:
-            return None
-
-        return min(ready_background_critics, key=lambda x: self._critic_info[x].birthdate)
-
     def reset(
         self,
         critic_state: CriticState,
@@ -129,13 +116,6 @@ class RollingResetManager:
 
         # remove from active set
         self._active_indices.discard(critic_to_reset)
-
-        selected_background_critic = self._select_background_critic()
-        if selected_background_critic is None:
-            return critic_state
-
-        self._active_indices.remove(critic_to_reset)
-        self._active_indices.add(selected_background_critic)
 
         # initialize new member state
         x_dummy = jnp.zeros(state_dim)
