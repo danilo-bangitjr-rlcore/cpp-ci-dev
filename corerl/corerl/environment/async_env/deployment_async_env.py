@@ -1,7 +1,6 @@
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
-from functools import partial
 from typing import NamedTuple
 
 import numpy as np
@@ -13,7 +12,8 @@ from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.tags.setpoint import SetpointTagConfig, eval_bound
+from corerl.tags.components.bounds import BoundInfo, BoundsInfo, get_float_bound, get_maybe_bound_info
+from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
 
@@ -143,16 +143,14 @@ def clip_action(action: pd.DataFrame, action_cfgs: Mapping[str, SetpointTagConfi
         action[action_name] = np.clip(action_val, lo + atol, hi - atol)
 
 def get_clip_bounds(action_cfg: SetpointTagConfig, action: pd.DataFrame):
-    # prefer to use red zones, otherwise use operating range
-    lo = (
-        Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[0])
-        .map(partial(eval_bound, action, "lo", action_cfg.red_bounds_func, action_cfg.red_bounds_tags))
-        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[0])
-    ).expect()
+    def _get_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
+        # prefer to use red zones, otherwise use operating range
+        return (
+            get_maybe_bound_info(action_cfg.red_bounds_info, lens)
+            .flat_otherwise(lambda: get_maybe_bound_info(action_cfg.operating_bounds_info, lens))
+        )
 
-    hi = (
-        Maybe[float | str](action_cfg.red_bounds and action_cfg.red_bounds[1])
-        .map(partial(eval_bound, action, "hi", action_cfg.red_bounds_func, action_cfg.red_bounds_tags))
-        .otherwise(lambda: action_cfg.operating_range and action_cfg.operating_range[1])
-    ).expect()
+    lo = get_float_bound(_get_bound_info(lambda b: b.lower), action).expect()
+    hi = get_float_bound(_get_bound_info(lambda b: b.upper), action).expect()
+
     return lo, hi

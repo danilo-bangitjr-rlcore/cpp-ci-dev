@@ -1,0 +1,15 @@
+interaction:
+  name: dep_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+coreio:
+  coreio_origin: "tcp://localhost:5555"
+
+pipeline:
+  tags:
+    - name: action-1
+      type: ai_setpoint
+      node_identifier: "ns=2;i=1"
+      connection_id: "conn-1"
+      operating_range: [0, 10]
