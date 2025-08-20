@@ -1,7 +1,5 @@
 import subprocess
 import shutil
-import sys
-import os
 import argparse
 from pathlib import Path
 from server.core_ui import CoreUI
@@ -11,7 +9,7 @@ ROOT = Path(__file__).parent.resolve()
 FRONTEND = ROOT / "client"
 BACKEND = ROOT / "server"
 SERVICE = ROOT / "win-service"
-DIST = ROOT / "dist"
+DIST = FRONTEND / "dist"
 SERVICE_SCRIPT = SERVICE / "windows-service.py"
 CORE_UI_SCRIPT = BACKEND / "core_ui.py"
 EXECUTABLE_NAME = "coreui-service"
@@ -25,11 +23,6 @@ def build_frontend():
     print("Building frontend...")
     run("npm install", cwd=FRONTEND)
     run("npm run build", cwd=FRONTEND)
-
-    # copy frontend dist/ to root dist/ for PyInstaller
-    if DIST.exists():
-        shutil.rmtree(DIST)
-    shutil.copytree(FRONTEND / "dist", DIST)
 
 def build_executable():
     print("Building Windows executable with PyInstaller...")
@@ -48,7 +41,6 @@ def build_executable():
 def clean():
     print("Cleaning old artifacts...")
     shutil.rmtree(ROOT / "build", ignore_errors=True)
-    shutil.rmtree(DIST, ignore_errors=True)
     shutil.rmtree(BACKEND / "__pycache__", ignore_errors=True)
     shutil.rmtree(BACKEND / "build", ignore_errors=True)
     shutil.rmtree(BACKEND / "dist", ignore_errors=True)

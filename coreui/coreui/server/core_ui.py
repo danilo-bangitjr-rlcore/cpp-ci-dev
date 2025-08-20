@@ -10,9 +10,8 @@ class CoreUI:
 
         # Default dist path (dev mode)
         if dist_path is None:
-            dist_path = os.path.abspath(
-                os.path.join(os.path.dirname(__file__), "..", "dist")
-            )
+            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            dist_path = os.path.join(base_dir, "client", "dist")
 
         # PyInstaller temp directory (frozen exe)
         if hasattr(sys, "_MEIPASS"):

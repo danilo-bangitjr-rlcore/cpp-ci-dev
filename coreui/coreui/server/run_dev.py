@@ -10,13 +10,14 @@ print(f"Current working directory: {os.getcwd()}")
 print(f"__file__: {__file__}")
 print(f"sys.path: {sys.path}")
 
+# ===== Check frontend folders =====
+base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+dist_path = os.path.join(base_dir, "client", "dist")
+assets_path = os.path.join(dist_path, "assets")
+
 # ===== CoreUI app =====
 core_ui_instance = CoreUI()
 app = core_ui_instance.get_app()  # live app object
-
-# ===== Check frontend folders =====
-dist_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "dist"))
-assets_path = os.path.join(dist_path, "assets")
 
 print(f"Resolved frontend dist folder: {dist_path}")
 print(f"Resolved assets folder: {assets_path}")
