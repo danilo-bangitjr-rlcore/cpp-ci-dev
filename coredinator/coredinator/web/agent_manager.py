@@ -1,9 +1,11 @@
 import logging
+from pathlib import Path
 
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from coredinator.agent.agent_manager import AgentManager
+from coredinator.agent.agent_process import AgentID
 
 logger = logging.getLogger("uvicorn")
 
@@ -11,22 +13,22 @@ router = APIRouter()
 agent_manager = AgentManager()
 
 class StartAgentRequestPayload(BaseModel):
-    ...
+    config_path: Path
 
 
-@router.post("/{config_id}/start")
-def agent_start(req_payload: StartAgentRequestPayload, config_id: str):
-    agent_manager.start_agent(config_id)
+@router.post("/{agent_id}/start")
+def agent_start(req_payload: StartAgentRequestPayload, agent_id: AgentID):
+    agent_manager.start_agent(req_payload.config_path)
 
 
-@router.post("/{config_id}/stop")
-def agent_stop(config_id: str):
-    agent_manager.stop_agent(config_id)
+@router.post("/{agent_id}/stop")
+def agent_stop(agent_id: AgentID):
+    agent_manager.stop_agent(agent_id)
 
 
-@router.get("/{config_id}/status")
-def agent_status(config_id: str):
-    return agent_manager.get_agent_status(config_id)
+@router.get("/{agent_id}/status")
+def agent_status(agent_id: AgentID):
+    return agent_manager.get_agent_status(agent_id)
 
 
 @router.get("/")

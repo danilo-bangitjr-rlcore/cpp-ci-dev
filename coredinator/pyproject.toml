@@ -10,6 +10,7 @@ dependencies = [
     "sqlalchemy-utils~=0.41",
     "lib-config",
     "lib-utils",
+    "backoff>=2.2.1",
 ]
 readme = "README.md"
 
