@@ -10,7 +10,6 @@ import backoff
 from asyncua import Client, Node, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from asyncua.ua.uaerrors import BadNodeIdUnknown
-from lib_defs.config_defs.tag_config import TagType
 from pydantic import BaseModel, ConfigDict
 
 from coreio.config import (
@@ -23,7 +22,7 @@ from coreio.config import (
     OPCSecurityPolicyConfig,
     OPCSecurityPolicyNoneConfig,
 )
-from coreio.utils.config_schemas import TagConfigAdapter
+from coreio.config import TagConfigAdapter
 from coreio.utils.io_events import OPCUANodeWriteValue
 
 logger = logging.getLogger(__name__)
@@ -188,9 +187,6 @@ class OPC_Connection:
         assert self.opc_client is not None, 'OPC client is not initialized'
         for tag_cfg in tag_configs:
             if tag_cfg.connection_id != self.connection_id or tag_cfg.node_identifier is None:
-                continue
-
-            if ai_setpoint_only and tag_cfg.type != TagType.ai_setpoint:
                 continue
 
             await self.register_node(tag_cfg.node_identifier, tag_cfg.name)

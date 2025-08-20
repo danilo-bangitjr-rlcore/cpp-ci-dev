@@ -26,7 +26,7 @@ def main(cfg: MainConfigAdapter):
     time.sleep(0.001)
 
     topic = IOEventTopic.coreio
-    node_id = cfg.pipeline.tags[0].node_identifier
+    node_id = cfg.coreio.tags[0].node_identifier
     action_period = cfg.interaction.action_period.total_seconds()
     assert node_id is not None, "No tags in config.yaml"
 

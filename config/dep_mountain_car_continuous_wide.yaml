@@ -27,6 +27,18 @@ coreio:
   data_ingress:
     enabled: True
     ingress_period: 00:00:00.5
+  tags:
+  - name: action-0
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=action-0"
+
+  - name: tag-0
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=tag-0"
+
+  - name: tag-1
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=tag-1"
 
 env:
   name: dep_async_env

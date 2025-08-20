@@ -24,7 +24,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
     logger.info("Starting OPC Connections")
     opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
         cfg.coreio.opc_connections,
-        cfg.pipeline.tags,
+        cfg.coreio.tags,
         cfg.interaction.heartbeat,
     )
 
