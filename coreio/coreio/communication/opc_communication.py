@@ -21,8 +21,8 @@ from coreio.config import (
     OPCSecurityPolicyBasic256SHA256Config,
     OPCSecurityPolicyConfig,
     OPCSecurityPolicyNoneConfig,
+    TagConfigAdapter,
 )
-from coreio.config import TagConfigAdapter
 from coreio.utils.io_events import OPCUANodeWriteValue
 
 logger = logging.getLogger(__name__)
