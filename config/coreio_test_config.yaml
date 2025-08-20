@@ -40,3 +40,12 @@ interaction:
   heartbeat:
     connection_id: asdxf
     heartbeat_node_id: "ns=2;i=3"
+
+pipeline:
+  tags:
+    - name: MyWriteableVariable
+      # connection_id just has to be consistent with the one 
+      # in coreio.opc_connections, it is not stored anywhere external
+      connection_id: asdxf 
+      node_identifier: "ns=2;i=2"
+      operating_range: [0, 10]
