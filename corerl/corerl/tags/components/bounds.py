@@ -1,3 +1,4 @@
+import warnings
 from collections.abc import Callable
 from enum import StrEnum, auto
 from functools import partial
@@ -333,10 +334,17 @@ def eval_bound(
     data: pd.DataFrame,
     bound_info: BoundInfo,  # This is the last argument for cleaner mapping in Maybe with functools partial
 ) -> Maybe[float]:
-    def _inner() -> float:
-        assert bound_info.bound_func and bound_info.bound_tags  # Assertion for pyright
+    def _inner() -> float | None:
         res_func, res_tags = bound_info.bound_func, bound_info.bound_tags
         assert res_func and res_tags  # Assertion for pyright
+
+        if not set(res_tags).issubset(set(data.columns)):
+            warnings.warn(
+                message=f"Not all of the tags in {bound_info.tag}'s {bound_info.type} {bound_info.direction} bound "
+                f"sympy function ({res_tags}) are in the dataframe passed to eval_bound()",
+                stacklevel=2,
+            )
+            return None
 
         values = [data[res_tag].item() for res_tag in res_tags]
         return float(res_func(*values))
