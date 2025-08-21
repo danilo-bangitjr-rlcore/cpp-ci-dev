@@ -1,0 +1,445 @@
+  tags:
+  - name: FIT302_PV
+    node_id: ns=1;s=[main-isl]COMM_IN_RAW[6]
+    connection_id: main_opc
+  - name: COL01_C4025_PV
+    node_id: ns=1;s=[main-isl]COL01_C4025.IN
+    connection_id: main_opc
+  - name: COL01_C4100_PV
+    node_id: ns=1;s=[main-isl]COL01_C4100.IN
+    connection_id: main_opc
+  - name: FLR01_CDOM_PV
+    node_id: ns=1;s=[main-isl]FLR01_CDOM.IN
+    connection_id: main_opc
+  - name: FLR01_TRYP_PV
+    node_id: ns=1;s=[main-isl]FLR01_TRYP.IN
+    connection_id: main_opc
+  - name: UV01_UV254_PV
+    node_id: ns=1;s=[main-isl]UV01_UV254.IN
+    connection_id: main_opc
+  - name: AIT310_PV
+    node_id: ns=1;s=[main-veolia]Program:UFX.G08_AI_310.OUT
+    connection_id: main_opc
+  - name: AE_5001_PV
+    node_id: ns=1;s=[main-isl]RAW_AE5001
+    connection_id: main_opc
+  - name: AIT_300_PV
+    node_id: ns=1;s=[main-isl]AIT300_GE
+    connection_id: main_opc
+  - name: LIT610_RAW
+    node_id: ns=1;s=[main-isl]LIT610_RAW
+    connection_id: main_opc
+  - name: LIT610_SCALED
+    node_id: ns=1;s=[main-isl]LIT610_SCALED
+    connection_id: main_opc
+  - name: LIT620_RAW
+    node_id: ns=1;s=[main-isl]LIT620_RAW
+    connection_id: main_opc
+  - name: LIT620_SCALED
+    node_id: ns=1;s=[main-isl]LIT620_SCALED
+    connection_id: main_opc
+  - name: FLR02_CDOM_PV
+    node_id: ns=1;s=[main-isl]FLR02_CDOM.IN
+    connection_id: main_opc
+  - name: FLR02_TRYP_PV
+    node_id: ns=1;s=[main-isl]FLR02_TRYP.IN
+    connection_id: main_opc
+  - name: UV02_UV254_PV
+    node_id: ns=1;s=[main-isl]UV02_UV254.IN
+    connection_id: main_opc
+  - name: LIT401_PV
+    node_id: ns=1;s=[main-veolia]Program:UFX.G08_LI_401.OUT
+    connection_id: main_opc
+  - name: Dose_AL_SP_F_SP
+    node_id: ns=1;s=[main-veolia]Dose_AL_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_OPER_CTRL_PB
+    node_id: ns=1;s=[main-veolia]OPER_DOSE_CTRL_PB
+    connection_id: main_opc
+  - name: COAG_OPER_CTRL_EN
+    node_id: ns=1;s=[main-veolia]OPER_DOSE_CTRL_EN
+    connection_id: main_opc
+  - name: COAG_AI_CTRL_PB
+    node_id: ns=1;s=[main-veolia]AI_DOSE_CTRL_PB
+    connection_id: main_opc
+  - name: COAG_AI_CTRL_EN
+    node_id: ns=1;s=[main-veolia]AI_DOSE_CTRL_EN
+    connection_id: main_opc
+  - name: COAG_AI_DOSE_SP
+    node_id: ns=1;s=[main-veolia]AI_DOSE_SP
+    connection_id: main_opc
+  - name: COAG_OPER_AI_DOSE_SP_DIFF
+    node_id: ns=1;s=[main-veolia]OPER_AI_DOSE_SP_DIFF
+    connection_id: main_opc
+  - name: COAG_AI_UVT_SP
+    node_id: ns=1;s=[main-veolia]UVT_TARGET_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_AI_DOSE_EXCD_ALM_SP
+    node_id: ns=1;s=[main-veolia]AI_DOSE_EXCD_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_AI_DOSE_EXCD_ALM
+    node_id: ns=1;s=[main-veolia]Program:UFX.AI_DOSE_EXCD_ALM.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_HH_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_HH_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_HH_TMR_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_HH_TMR_SP.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_HH_ALM
+    node_id: ns=1;s=[main-veolia]Program:UFX.UVT_DIFF_HH_ALM.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_H_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_H_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_H_TMR_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_H_TMR_SP.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_H_ALM
+    node_id: ns=1;s=[main-veolia]Program:UFX.UVT_DIFF_H_ALM.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_L_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_L_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_L_TMR_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_L_TMR_SP.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_L_ALM
+    node_id: ns=1;s=[main-veolia]Program:UFX.UVT_DIFF_L_ALM.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_LL_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_LL_SP_F.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_LL_TMR_SP
+    node_id: ns=1;s=[main-veolia]UVT_DIFF_LL_TMR_SP.OUT
+    connection_id: main_opc
+  - name: COAG_UVT_DIFF_LL_ALM
+    node_id: ns=1;s=[main-veolia]Program:UFX.UVT_DIFF_LL_ALM.OUT
+    connection_id: main_opc
+  - name: AIT320_PV
+    node_id: ns=1;s=[main-veolia]UF1_G20_AI_320.OUT
+    connection_id: main_opc
+  - name: UF1_FIT301_PV
+    node_id: ns=1;s=[main-veolia]UF1_G20_FI_301.OUT
+    connection_id: main_opc
+  - name: LIT201_OUT
+    node_id: ns=1;s=[main-veolia]UF1_G20_LI_201.OUT
+    connection_id: main_opc
+  - name: PIT301_PV
+    node_id: ns=1;s=[main-veolia]Program:UF1.G20_PI_301.OUT
+    connection_id: main_opc
+  - name: UF1_TMP_PV
+    node_id: ns=1;s=[main-veolia]Program:UF1.TMP_PV.OUT
+    connection_id: main_opc
+  - name: P301_OUT
+    node_id: ns=1;s=[main-veolia]UF1_G20_P_301.OUT
+    connection_id: main_opc
+  - name: P301_RUNST
+    node_id: ns=1;s=[main-veolia]UF1_G20_P_301.RUNST
+    connection_id: main_opc
+  - name: P301_INPUT
+    node_id: ns=1;s=[main-veolia]UF1_G20_P_301.INPUT
+    connection_id: main_opc
+  - name: P301_SI
+    node_id: ns=1;s=[main-veolia]UF1_G20_P_301.SI
+    connection_id: main_opc
+  - name: SEQ_MODE
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.MODE
+    connection_id: main_opc
+  - name: UF1_SEQ_STATE
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.STATE
+    connection_id: main_opc
+  - name: GROSS_PERM_CYCLE_TOTAL
+    node_id: ns=1;s=[main-veolia]UF1_GROSS_PERM_CYCLE.TOTAL
+    connection_id: main_opc
+  - name: GROSS_PERM_CYCLE_TODAY
+    node_id: ns=1;s=[main-veolia]UF1_GROSS_PERM_CYCLE.TODAY
+    connection_id: main_opc
+  - name: BP_CYCLE_TOTAL
+    node_id: ns=1;s=[main-veolia]Program:UF1.BP_CYCLE.TOTAL
+    connection_id: main_opc
+  - name: BP_CYCLE_TODAY
+    node_id: ns=1;s=[main-veolia]Program:UF1.BP_CYCLE.TODAY
+    connection_id: main_opc
+  - name: P301_PID_KP
+    node_id: ns=1;s=[main-veolia]UF1_G20_FIC_301.KP
+    connection_id: main_opc
+  - name: P301_PID_KI
+    node_id: ns=1;s=[main-veolia]UF1_G20_FIC_301.KI
+    connection_id: main_opc
+  - name: P301_PID_KD
+    node_id: ns=1;s=[main-veolia]UF1_G20_FIC_301.KD
+    connection_id: main_opc
+  - name: P301_PID_CV
+    node_id: ns=1;s=[main-veolia]UF1_G20_FIC_301.CV
+    connection_id: main_opc
+  - name: P301_PID_PV
+    node_id: ns=1;s=[main-veolia]UF1_G20_FIC_301.PV
+    connection_id: main_opc
+  - name: P301_PID_SP
+    node_id: ns=1;s=[main-veolia]UF1_G20_FIC_301.SP
+    connection_id: main_opc
+  - name: P301_PID_CVMAX
+    node_id: ns=1;s=[main-veolia]Program:UF1.G20_FIC_301.CVMAX
+    connection_id: main_opc
+  - name: P301_PID_CVMIN
+    node_id: ns=1;s=[main-veolia]Program:UF1.G20_FIC_301.CVMIN
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_0
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[0]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_1
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[1]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_2
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[2]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_3
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[3]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_4
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[4]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_5
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[5]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_REQUEST_6
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_REQUEST[6]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_0
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[0]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_1
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[1]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_2
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[2]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_3
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[3]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_4
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[4]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_5
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[5]
+    connection_id: main_opc
+  - name: SEQ_CLEAN_IN_PROGRESS_6
+    node_id: ns=1;s=[main-veolia]UF1_SEQ.CLEAN_IN_PROGRESS[6]
+    connection_id: main_opc
+  - name: AIT320_PV
+    node_id: ns=1;s=[main-veolia]UF2_G20_AI_320.OUT
+    connection_id: main_opc
+  - name: UF2_FIT301_PV
+    node_id: ns=1;s=[main-veolia]UF2_G20_FI_301.OUT
+    connection_id: main_opc
+  - name: LIT201_OUT
+    node_id: ns=1;s=[main-veolia]UF2_G20_LI_201.OUT
+    connection_id: main_opc
+  - name: PIT301_PV
+    node_id: ns=1;s=[main-veolia]Program:UF2.G20_PI_301.OUT
+    connection_id: main_opc
+  - name: UF2_TMP_PV
+    node_id: ns=1;s=[main-veolia]Program:UF2.TMP_PV.OUT
+    connection_id: main_opc
+  - name: P301_OUT
+    node_id: ns=1;s=[main-veolia]UF2_G20_P_301.OUT
+    connection_id: main_opc
+  - name: P301_RUNST
+    node_id: ns=1;s=[main-veolia]UF2_G20_P_301.RUNST
+    connection_id: main_opc
+  - name: P301_INPUT
+    node_id: ns=1;s=[main-veolia]UF2_G20_P_301.INPUT
+    connection_id: main_opc
+  - name: P301_SI
+    node_id: ns=1;s=[main-veolia]UF2_G20_P_301.SI
+    connection_id: main_opc
+  - name: SEQ_MODE
+    node_id: ns=1;s=[main-veolia]UF2_SEQ.MODE
+    connection_id: main_opc
+  - name: UF2_SEQ_STATE
+    node_id: ns=1;s=[main-veolia]UF2_SEQ.STATE
+    connection_id: main_opc
+  - name: GROSS_PERM_CYCLE_TOTAL
+    node_id: ns=1;s=[main-veolia]UF2_GROSS_PERM_CYCLE.TOTAL
+    connection_id: main_opc
+  - name: GROSS_PERM_CYCLE_TODAY
+    node_id: ns=1;s=[main-veolia]UF2_GROSS_PERM_CYCLE.TODAY
+    connection_id: main_opc
+  - name: BP_CYCLE_TOTAL
+    node_id: ns=1;s=[main-veolia]Program:UF2.BP_CYCLE.TOTAL
+    connection_id: main_opc
+  - name: BP_CYCLE_TODAY
+    node_id: ns=1;s=[main-veolia]Program:UF2.BP_CYCLE.TODAY
+    connection_id: main_opc
+  - name: P301_PID_KP
+    node_id: ns=1;s=[main-veolia]UF2_G20_FIC_301.KP
+    connection_id: main_opc
+  - name: P301_PID_KI
+    node_id: ns=1;s=[main-veolia]UF2_G20_FIC_301.KI
+    connection_id: main_opc
+  - name: P301_PID_KD
+    node_id: ns=1;s=[main-veolia]UF2_G20_FIC_301.KD
+    connection_id: main_opc
+  - name: P301_PID_CV
+    node_id: ns=1;s=[main-veolia]UF2_G20_FIC_301.CV
+    connection_id: main_opc
+  - name: P301_PID_PV
+    node_id: ns=1;s=[main-veolia]UF2_G20_FIC_301.PV
+    connection_id: main_opc
+  - name: P301_PID_SP
+    node_id: ns=1;s=[main-veolia]UF2_G20_FIC_301.SP
+    connection_id: main_opc
+  - name: P301_PID_CVMAX
+    node_id: ns=1;s=[main-veolia]Program:UF2.G20_FIC_301.CVMAX
+    connection_id: main_opc
+  - name: P301_PID_CVMIN
+    node_id: ns=1;s=[main-veolia]Program:UF2.G20_FIC_301.CVMIN
+    connection_id: main_opc
+  - name: FLR03_CDOM_PV
+    node_id: ns=1;s=[main-isl]FLR03_CDOM.IN
+    connection_id: main_opc
+  - name: FLR03_TRYP_PV
+    node_id: ns=1;s=[main-isl]FLR03_TRYP.IN
+    connection_id: main_opc
+  - name: UV03_UV254_PV
+    node_id: ns=1;s=[main-isl]UV03_UV254.IN
+    connection_id: main_opc
+  - name: TIT101_PV
+    node_id: ns=1;s=[main-veolia]UFX_G26_TI_101.OUT
+    connection_id: main_opc
+  - name: FLR04_CDOM_PV
+    node_id: ns=1;s=[main-isl]FLR04_CDOM.IN
+    connection_id: main_opc
+  - name: FLR04_TRYP_PV
+    node_id: ns=1;s=[main-isl]FLR04_TRYP.IN
+    connection_id: main_opc
+  - name: UV04_UV254_PV
+    node_id: ns=1;s=[main-isl]UV04_UV254.IN
+    connection_id: main_opc
+  - name: LIT601_PV
+    node_id: ns=1;s=[main-veolia]UFX_20_LI_601.OUT
+    connection_id: main_opc
+  - name: AIT_130_PV
+    node_id: ns=1;s=[main-isl]AIT130_SCALED
+    connection_id: main_opc
+  - name: LITRES2_PV
+    node_id: ns=1;s=[main-isl]COMM_IN_RES1[3]
+    connection_id: main_opc
+  - name: CLRWL_LVL_HI_SP
+    node_id: ns=1;s=[main-veolia]CLRWL_LVL_HI_SP.OUT
+    connection_id: main_opc
+  - name: CLRWL_LVL_LO_SP
+    node_id: ns=1;s=[main-veolia]CLRWL_LVL_LO_SP.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM_MAX_SP
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_MAX_SP.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM_START1
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_START1.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM_START2
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_START2.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM_STOP1
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_STOP1.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM_STOP2
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_STOP2.OUT
+    connection_id: main_opc
+  - name: PLANT_DEM_START1_SP
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_START1.SP
+    connection_id: main_opc
+  - name: PLANT_DEM_START2_SP
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_START2.SP
+    connection_id: main_opc
+  - name: PLANT_DEM_STOP1_SP
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_STOP1.SP
+    connection_id: main_opc
+  - name: PLANT_DEM_STOP2_SP
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_DEM_STOP2.SP
+    connection_id: main_opc
+  - name: REC_SP
+    node_id: ns=1;s=[main-veolia]REC_SP.OUT
+    connection_id: main_opc
+  - name: REC_SP1
+    node_id: ns=1;s=[main-veolia]Program:UFX.REC_SP1.OUT
+    connection_id: main_opc
+  - name: REC_SP2
+    node_id: ns=1;s=[main-veolia]Program:UFX.REC_SP2.OUT
+    connection_id: main_opc
+  - name: DRAIN_VOL_SP
+    node_id: ns=1;s=[main-veolia]DRAIN_VOL_SP.OUT
+    connection_id: main_opc
+  - name: PLANT_INST_BP_FLOW
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_INST_BP_FLOW
+    connection_id: main_opc
+  - name: PLANT_BP_CYCLE
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_BP_CYCLE.TOTAL
+    connection_id: main_opc
+  - name: PLANT_NET_WASTE_CYCLE
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_NET_WASTE_CYCLE
+    connection_id: main_opc
+  - name: PLANT_NET_PERM_SP
+    node_id: ns=1;s=[main-veolia]PLANT_NET_PERM_SP
+    connection_id: main_opc
+  - name: PLANT_INST_PERM_FLOW
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_INST_PERM_FLOW
+    connection_id: main_opc
+  - name: PLANT_GROSS_PERM_CYCLE
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_GROSS_PERM_CYCLE.TOTAL
+    connection_id: main_opc
+  - name: PLANT_NET_PERM_CYCLE
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_NET_PERM_CYCLE
+    connection_id: main_opc
+  - name: PLANT_REC_CYCLE
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_REC_CYCLE
+    connection_id: main_opc
+  - name: PERM_CYCLE_TIME
+    node_id: ns=1;s=[main-veolia]Program:UFX.PERM_CYCLE_TIME
+    connection_id: main_opc
+  - name: PLANT_NET_PERM_REMAIN
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_NET_PERM_REMAIN
+    connection_id: main_opc
+  - name: PERM_TIME_REMAIN
+    node_id: ns=1;s=[main-veolia]Program:UFX.PERM_TIME_REMAIN
+    connection_id: main_opc
+  - name: PLANT_BW_TRIG
+    node_id: ns=1;s=[main-veolia]Program:UFX.PLANT_BW_TRIG.OUT
+    connection_id: main_opc
+  - name: PRE_BP_AER_DUR
+    node_id: ns=1;s=[main-veolia]BW_ST2_DUR_SP.OUT
+    connection_id: main_opc
+  - name: EJECT_DUR_SP
+    node_id: ns=1;s=[main-veolia]EJECT.DUR_SP.OUT
+    connection_id: main_opc
+  - name: EJECT_FREQ_SP
+    node_id: ns=1;s=[main-veolia]EJECT.FREQ_SP.OUT
+    connection_id: main_opc
+  - name: UF1_PRIMING_DUR_SP
+    node_id: ns=1;s=[main-veolia]Program:UF1.PRIMING_DUR_SP.OUT
+    connection_id: main_opc
+  - name: UF2_PRIMING_DUR_SP
+    node_id: ns=1;s=[main-veolia]Program:UF2.PRIMING_DUR_SP.OUT
+    connection_id: main_opc
+  - name: OP_BP_DUR_SP
+    node_id: ns=1;s=[main-veolia]BW_ST3_DUR_SP.OUT
+    connection_id: main_opc
+  - name: OP_BP_FLOW_SP
+    node_id: ns=1;s=[main-veolia]BW_BP_FLOW_SP.OUT
+    connection_id: main_opc
+  - name: AI_BP_DUR_SP
+    node_id: ns=1;s=[main-veolia]AI_BP_DUR_SP
+    connection_id: main_opc
+  - name: AI_BP_FLOW_SP
+    node_id: ns=1;s=[main-veolia]AI_BP_FLOW_SP
+    connection_id: main_opc
+  - name: OP_BW_CTRL_EN
+    node_id: ns=1;s=[main-veolia]OPER_BW_CTRL_EN
+    connection_id: main_opc
+  - name: AI_BW_CTRL_EN
+    node_id: ns=1;s=[main-veolia]AI_BW_CTRL_EN
+    connection_id: main_opc
