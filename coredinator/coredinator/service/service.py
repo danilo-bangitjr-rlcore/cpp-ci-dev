@@ -82,35 +82,9 @@ class Service:
         if not self._process:
             return
 
-        proc = self._process
-        if proc.poll() is not None:
-            self._process = None
-            return
+        stop_process(self._process, grace_seconds)
+        self._process = None
 
-        try:
-            proc.send_signal(signal.SIGTERM)
-        except Exception:
-            # If sending SIGTERM fails (rare), fall back to kill
-            try:
-                proc.kill()
-            except Exception:
-                pass
-            self._process = None
-            return
-
-        # Wait up to grace period
-        deadline = time.monotonic() + grace_seconds
-        while time.monotonic() < deadline:
-            if proc.poll() is not None:
-                self._process = None
-                return
-            time.sleep(0.05)
-
-        # Escalate
-        try:
-            proc.kill()
-        finally:
-            self._process = None
 
     def restart(self):
         self.stop()
@@ -190,3 +164,31 @@ class Service:
         t = threading.Thread(target=monitor, daemon=True)
         t.start()
         self._keep_alive_thread = t
+
+
+def stop_process(proc: Popen, grace_seconds: float) -> None:
+    """
+    Attempt to gracefully stop a Popen process, escalating to kill if needed.
+    """
+    if proc.poll() is not None:
+        return
+
+    try:
+        proc.send_signal(signal.SIGTERM)
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return
+
+    deadline = time.monotonic() + grace_seconds
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            return
+        time.sleep(0.05)
+
+    try:
+        proc.kill()
+    finally:
+        pass
