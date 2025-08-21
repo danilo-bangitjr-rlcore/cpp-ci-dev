@@ -3,11 +3,16 @@ from __future__ import annotations
 import shutil
 import stat
 import time
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
 
 from coredinator.agent.agent_manager import AgentID, AgentManager
+from coredinator.service.protocols import ServiceID
+from coredinator.service.service import Service, ServiceConfig
+from coredinator.services.coreio import CoreIOService
+from coredinator.services.corerl import CoreRLService
 
 
 @pytest.fixture()
@@ -168,3 +173,30 @@ def test_agent_fails_when_child_service_fails(
 
     assert manager.get_agent_status(agent_id).state == "failed"
     manager.stop_agent(agent_id)
+
+
+@pytest.mark.timeout(5)
+@pytest.mark.parametrize("service_cls", [CoreIOService, CoreRLService])
+def test_degraded_state_triggers_restart(
+    service_cls: type[Service],
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
+    # Start unhealthy, then become healthy
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
+    config = ServiceConfig(heartbeat_interval=timedelta(milliseconds=100), degraded_wait=timedelta(milliseconds=300))
+    service = service_cls(ServiceID("svc"), config_file, dist_with_fake_executable, config)
+    service.start()
+
+    # Wait for degraded recovery logic to trigger
+    time.sleep(0.5)
+    assert service.status().state == "failed"
+
+    # Now simulate healthy agent
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    time.sleep(0.5)
+
+    status = service.status()
+    assert status.state == "running"
+    service.stop()
