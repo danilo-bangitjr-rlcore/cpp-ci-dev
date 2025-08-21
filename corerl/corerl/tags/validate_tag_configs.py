@@ -11,7 +11,7 @@ from corerl.tags.tag_config import TagConfig
 
 
 def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[Any,...]]:
-    tag_vals: list[np.ndarray] = [np.empty(1)] * len(tags)
+    tag_vals: list[np.ndarray] = [np.empty(1) for _ in range(len(tags))]
     for ind, tag_name in enumerate(tags):
         bounds = (
             Maybe.find(lambda tag_cfg, tag_name=tag_name: tag_cfg.name == tag_name, tag_cfgs)
