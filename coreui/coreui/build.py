@@ -50,33 +50,27 @@ def clean():
 def dev():
     """Run FastAPI (CoreUI) app + Vite in parallel for development"""
     print("Starting development servers... (Ctrl+C to stop)")
-    processes = []
-    try:
-        build_frontend()
+    
+    build_frontend()
         
-        print("Starting development servers... (Ctrl+C to stop)")
+    print("Starting development servers... (Ctrl+C to stop)")
 
-        # Start frontend vite
-        vite_proc = subprocess.Popen("npm run dev", cwd=FRONTEND, shell=True)
+    # Start frontend vite
+    vite_proc = subprocess.Popen("npm run dev", cwd=FRONTEND, shell=True)
 
-        # Start FastAPI dev
-        fastapi_proc = subprocess.Popen(
-            f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", cwd=BACKEND, shell=True
-        )
+    # Start FastAPI dev
+    fastapi_proc = subprocess.Popen(
+        f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", cwd=BACKEND, shell=True
+    )
 
-        try:
-            vite_proc.wait()
-            fastapi_proc.wait()
-        except KeyboardInterrupt:
-            print("Stopping dev servers...")
-            vite_proc.terminate()
-            fastapi_proc.terminate()
-
-
+    try:
+        vite_proc.wait()
+        fastapi_proc.wait()
     except KeyboardInterrupt:
         print("Stopping dev servers...")
-        for p in processes:
-            p.terminate()
+        vite_proc.terminate()
+        fastapi_proc.terminate()
+
 
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")

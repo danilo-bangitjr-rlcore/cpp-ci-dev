@@ -56,3 +56,7 @@ python build.py dev
 - API endpoints: `/api/`
 - Frontend (static): `/app/`
 
+# Developing Modules Independently
+
+Each module—frontend, backend, and Windows service—can also be run and developed independently without using `build.py`.  
+Refer to the instructions in the respective directories (`client/`, `server/`, `win-service/`) for standalone development and run commands.
