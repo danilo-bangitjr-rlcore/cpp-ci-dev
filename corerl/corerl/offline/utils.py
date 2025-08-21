@@ -96,8 +96,8 @@ class OfflineTraining:
         log.info("Starting offline agent training...")
 
         agent.update_buffer(self.pipeline_out)
-        for buffer_name, size in agent.get_buffer_sizes().items():
-            log.info(f"Agent {buffer_name} replay buffer size(s)", size)
+        for buffer_name, size_list in agent.get_buffer_sizes().items():
+            log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
 
         q_losses: list[float] = []
         for _ in range(self.offline_steps):
