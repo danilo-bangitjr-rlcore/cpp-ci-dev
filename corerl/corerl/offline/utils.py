@@ -112,7 +112,13 @@ class OfflineTraining:
 
         return q_losses
 
-def run_offline_evaluation_phase(cfg: MainConfig, app_state: AppState, agent: GreedyAC, pipeline: Pipeline):
+def run_offline_evaluation_phase(
+        cfg: MainConfig,
+        app_state: AppState,
+        agent: GreedyAC,
+        pipeline: Pipeline,
+        update_agent: bool = True,
+    ):
     """
     Runs the offline evaluation phase using the provided config, agent, and pipeline.
     Loads data in single obs_period chunks between offline_eval_start_time and offline_eval_end_time,
@@ -150,11 +156,12 @@ def run_offline_evaluation_phase(cfg: MainConfig, app_state: AppState, agent: Gr
             log.warning(f"No transitions found for eval chunk: {chunk_start} to {chunk_end}")
             continue
 
-        agent.update_buffer(chunk_pr)
-        loss = agent.update()
-        log.info(
-            f"Eval chunk {chunk_start} to {chunk_end}: transitions={len(chunk_pr.transitions)}, loss={loss}",
-        )
+        if update_agent:
+            agent.update_buffer(chunk_pr)
+            loss = agent.update()
+            log.info(
+                f"Eval chunk {chunk_start} to {chunk_end}: transitions={len(chunk_pr.transitions)}, loss={loss}",
+            )
 
         if len(chunk_pr.states) > 0 and len(chunk_pr.action_lo) > 0 and len(chunk_pr.action_hi) > 0:
             if state is not None:
