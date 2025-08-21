@@ -5,7 +5,7 @@ from typing import Any
 import numpy as np
 from lib_utils.maybe import Maybe
 
-from corerl.tags.components.bounds import SafetyZonedTag, get_tag_bounds
+from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_tag_bounds
 from corerl.tags.tag_config import TagConfig
 
 
@@ -23,3 +23,64 @@ def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> li
         tag_vals[ind] = np.linspace(start=lo, stop=hi, num=11, endpoint=True)
 
     return list(product(*tag_vals))
+
+def assert_bound_ordering(
+    lower: BoundInfo | None,
+    upper: BoundInfo | None,
+    tag_cfgs: list[TagConfig],
+    can_equal: bool = False,
+):
+    if lower is None or upper is None:
+        return
+
+    if isinstance(lower.bound_elem, float) and isinstance(upper.bound_elem, float):
+        assert (
+            lower.bound_elem <= upper.bound_elem if can_equal else lower.bound_elem < upper.bound_elem
+        ), f"{lower.tag}'s {lower.direction} bound of the {lower.type} ({lower.bound_elem}) " \
+           f"must be less than {upper.tag}'s {upper.direction} bound of the {upper.type} ({upper.bound_elem})"
+    elif isinstance(lower.bound_elem, float) and isinstance(upper.bound_elem, str):
+        assert upper.bound_func is not None
+        assert upper.bound_tags is not None
+        upper_tag_permutations = get_tag_value_permutations(upper.bound_tags, tag_cfgs)
+        for permutation in upper_tag_permutations:
+            upper_val = upper.bound_func(*permutation)
+            assert (
+                lower.bound_elem <= upper_val if can_equal else lower.bound_elem < upper_val
+            ), f"{lower.tag}'s {lower.direction} bound of the {lower.type} ({lower.bound_elem}) " \
+               f"must be less than {upper.tag}'s {upper.direction} bound of the {upper.type} ({upper_val}), " \
+               f"which was achieved with the following values {permutation} for the following tags {upper.bound_tags}" \
+               f" in the function {upper.bound_elem}"
+    elif isinstance(lower.bound_elem, str) and isinstance(upper.bound_elem, float):
+        assert lower.bound_func is not None
+        assert lower.bound_tags is not None
+        lower_tag_permutations = get_tag_value_permutations(lower.bound_tags, tag_cfgs)
+        for permutation in lower_tag_permutations:
+            lower_val = lower.bound_func(*permutation)
+            assert (
+                lower_val <= upper.bound_elem if can_equal else lower_val < upper.bound_elem
+            ), f"{upper.tag}'s {upper.direction} bound of the {upper.type} ({upper.bound_elem}) " \
+               f"must be greater than {lower.tag}'s {lower.direction} bound of the {lower.type} ({lower_val}), " \
+               f"which was achieved with the following values {permutation} for the following tags {lower.bound_tags}" \
+               f" in the function {lower.bound_elem}"
+    elif isinstance(lower.bound_elem, str) and isinstance(upper.bound_elem, str):
+        assert lower.bound_func is not None
+        assert lower.bound_tags is not None
+        assert upper.bound_func is not None
+        assert upper.bound_tags is not None
+        all_tags = list(set(lower.bound_tags + upper.bound_tags))
+        lower_tag_inds = [all_tags.index(tag_str) for tag_str in lower.bound_tags]
+        upper_tag_inds = [all_tags.index(tag_str) for tag_str in upper.bound_tags]
+        tag_permutations = get_tag_value_permutations(all_tags, tag_cfgs)
+        for permutation in tag_permutations:
+            lower_tag_vals = [permutation[ind] for ind in lower_tag_inds]
+            lower_val = lower.bound_func(*lower_tag_vals)
+            upper_tag_vals = [permutation[ind] for ind in upper_tag_inds]
+            upper_val = upper.bound_func(*upper_tag_vals)
+            assert (
+                lower_val <= upper_val if can_equal else lower_val < upper_val
+            ), f"{upper.tag}'s {upper.direction} bound of the {upper.type} ({upper_val}) must be greater than " \
+               f"{lower.tag}'s {lower.direction} bound of the {lower.type} ({lower_val}). {lower.tag}'s " \
+               f"{lower.direction} bound of the {lower.type} was achieved with the following values {lower_tag_vals} " \
+               f"for the following tags {lower.bound_tags} in the function {lower.bound_elem}. {upper.tag}'s " \
+               f"{upper.direction} bound of the {upper.type} was achieved with the following values {upper_tag_vals} " \
+               f"for the following tags {upper.bound_tags} in the function {upper.bound_elem}."
