@@ -108,7 +108,6 @@ class FeatureFlags:
 @config()
 class OfflineConfig:
     offline_steps: int = 0
-    offline_eval_iters: list[int] = list_()
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
