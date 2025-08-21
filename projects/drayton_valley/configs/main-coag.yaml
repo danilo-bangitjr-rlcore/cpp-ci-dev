@@ -97,7 +97,7 @@ pipeline:
     name: all-the-time
     # n_step should be 8, give some buffer
     min_n_step: 7
-    max_n_step: 9
+    max_n_step: 8
 
   transition_filter:
     filters:

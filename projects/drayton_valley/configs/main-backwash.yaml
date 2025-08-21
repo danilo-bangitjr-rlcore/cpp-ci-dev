@@ -84,7 +84,7 @@ pipeline:
     name: all-the-time
     # n_step should be 16, give some buffer
     min_n_step: 15
-    max_n_step: 17
+    max_n_step: 16
 
   transition_filter:
     filters:
@@ -192,7 +192,8 @@ pipeline:
     expected_range: [15, 40]
 
   - name: AIT310_PV # raw turbidity
-    operating_range: [0, 30]
+    expected_range: [0, 150]
+    operating_range: [0, null]
 
   - name: AIT320_PV # permeate turbidity
     operating_range: [0, 30]
