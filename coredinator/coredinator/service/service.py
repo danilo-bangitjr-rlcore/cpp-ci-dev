@@ -10,8 +10,6 @@ from enum import StrEnum
 from pathlib import Path
 from subprocess import DEVNULL, Popen
 
-import backoff
-
 from coredinator.service.protocols import ServiceID, ServiceState
 
 
@@ -54,12 +52,6 @@ class Service:
         return self._process is not None and self._process.poll() is None
 
 
-    @backoff.on_exception(
-        backoff.expo,
-        (FileNotFoundError, PermissionError, OSError),
-        max_time=10,
-        jitter=backoff.full_jitter,
-    )
     def start(self):
         self._mode = ServiceMode.STARTED
         if self.is_running():
@@ -74,12 +66,6 @@ class Service:
         self._keep_alive()
 
 
-    @backoff.on_exception(
-        backoff.expo,
-        Exception,
-        max_time=10,
-        jitter=backoff.full_jitter,
-    )
     def stop(self, grace_seconds: float = 5.0) -> None:
         self._mode = ServiceMode.STOPPED
         if not self._process:
@@ -119,7 +105,6 @@ class Service:
     # -----------------
     # -- Validations --
     # -----------------
-
     def _ensure_executable(self):
         if not self._exe_path.exists():
             raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
