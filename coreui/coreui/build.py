@@ -2,8 +2,6 @@ import subprocess
 import shutil
 import argparse
 from pathlib import Path
-from server.core_ui import CoreUI
-import uvicorn
 
 ROOT = Path(__file__).parent.resolve()
 FRONTEND = ROOT / "client"
@@ -12,6 +10,7 @@ SERVICE = ROOT / "win-service"
 DIST = FRONTEND / "dist"
 SERVICE_SCRIPT = SERVICE / "windows-service.py"
 CORE_UI_SCRIPT = BACKEND / "core_ui.py"
+FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 
 def run(cmd, cwd=None):
@@ -54,12 +53,26 @@ def dev():
     processes = []
     try:
         build_frontend()
-        # start vite dev server
-        processes.append(subprocess.Popen("npm run dev", cwd=FRONTEND, shell=True))
+        
+        print("Starting development servers... (Ctrl+C to stop)")
 
-        # run backend CoreUI app directly
-        app = CoreUI().get_app()
-        uvicorn.run(app, host="127.0.0.1", port=8000, reload=False)
+        # Start frontend vite
+        vite_proc = subprocess.Popen("npm run dev", cwd=FRONTEND, shell=True)
+
+        # Start FastAPI dev
+        fastapi_proc = subprocess.Popen(
+            f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", cwd=BACKEND, shell=True
+        )
+
+        try:
+            vite_proc.wait()
+            fastapi_proc.wait()
+        except KeyboardInterrupt:
+            print("Stopping dev servers...")
+            vite_proc.terminate()
+            fastapi_proc.terminate()
+
+
     except KeyboardInterrupt:
         print("Stopping dev servers...")
         for p in processes:
