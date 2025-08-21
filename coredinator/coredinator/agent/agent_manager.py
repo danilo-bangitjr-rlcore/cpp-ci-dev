@@ -4,13 +4,14 @@ from coredinator.agent.agent import Agent, AgentID, AgentStatus
 
 
 class AgentManager:
-    def __init__(self):
+    def __init__(self, base_path: Path):
         self._agents: dict[AgentID, Agent] = {}
+        self._base_path = base_path
 
     def start_agent(self, config_path: Path):
         agent_id = AgentID(config_path.stem)
         if agent_id not in self._agents:
-            self._agents[agent_id] = Agent(id=agent_id, config_path=config_path)
+            self._agents[agent_id] = Agent(id=agent_id, config_path=config_path, base_path=self._base_path)
 
         self._agents[agent_id].start()
         return agent_id

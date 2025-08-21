@@ -1,12 +1,15 @@
+import argparse
 import importlib.metadata
 import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
+from coredinator.agent.agent_manager import AgentManager
 from coredinator.web.agent_manager import router as agent_manager
 
 # For debugging while running the server
@@ -21,7 +24,17 @@ async def lifespan(app: FastAPI):
     yield
     logger.info("CoreRL server is shutting down.")
 
+
+def parse_base_path():
+    parser = argparse.ArgumentParser(description="Coredinator Service")
+    parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
+    args, _ = parser.parse_known_args()
+    return args.base_path
+
+
+base_path = parse_base_path()
 app = FastAPI(lifespan=lifespan)
+app.state.agent_manager = AgentManager(base_path=base_path)
 
 app.add_middleware(
     CORSMiddleware,

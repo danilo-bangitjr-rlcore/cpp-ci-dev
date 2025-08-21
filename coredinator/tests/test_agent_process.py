@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import shutil
 import stat
 import time
 from pathlib import Path
@@ -9,16 +10,6 @@ import pytest
 from coredinator.agent.agent_manager import AgentID, AgentManager
 
 
-@pytest.fixture(scope="session")
-def fake_agent_path() -> Path:
-    here = Path(__file__).parent
-    agent = here / "fixtures" / "fake_agent.py"
-    # Ensure executable bit for POSIX
-    mode = agent.stat().st_mode
-    agent.chmod(mode | stat.S_IXUSR)
-    return agent
-
-
 @pytest.fixture()
 def config_file(tmp_path: Path) -> Path:
     cfg = tmp_path / "example_config.yaml"
@@ -26,17 +17,28 @@ def config_file(tmp_path: Path) -> Path:
     return cfg
 
 
-@pytest.fixture(autouse=True)
-def patch_service_executables(monkeypatch: pytest.MonkeyPatch, fake_agent_path: Path):
-    monkeypatch.setattr("coredinator.services.corerl.CoreRLService.EXECUTABLE_PATH", fake_agent_path)
-    monkeypatch.setattr("coredinator.services.coreio.CoreIOService.EXECUTABLE_PATH", fake_agent_path)
+@pytest.fixture()
+def dist_with_fake_executable(tmp_path: Path) -> Path:
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    src = Path(__file__).parent / "fixtures" / "fake_agent.py"
+    dst_coreio = dist_dir / "coreio-1.0.0"
+    dst_corerl = dist_dir / "corerl-1.0.0"
+    for dst in [dst_coreio, dst_corerl]:
+        shutil.copy(src, dst)
+        # Make executable
+        mode = dst.stat().st_mode
+        dst.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return dist_dir
 
 
-def test_initial_status_stopped(config_file: Path):
+def test_initial_status_stopped(
+    dist_with_fake_executable: Path,
+):
     """
     Test that the initial status of an AgentProcess is stopped.
     """
-    manager = AgentManager()
+    manager = AgentManager(base_path=dist_with_fake_executable)
 
     agent_id = AgentID('agent')
     s = manager.get_agent_status(agent_id)
@@ -46,14 +48,18 @@ def test_initial_status_stopped(config_file: Path):
 
 
 @pytest.mark.timeout(5)
-def test_start_and_running_status(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_start_and_running_status(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that starting an AgentProcess transitions it to running status.
     """
     # Default behavior is long-running process. Ensure environment is set.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    manager = AgentManager()
+    manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     # Give a brief moment for process to boot
@@ -67,13 +73,17 @@ def test_start_and_running_status(monkeypatch: pytest.MonkeyPatch, config_file: 
 
 
 @pytest.mark.timeout(5)
-def test_stop_transitions_to_stopped(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_stop_transitions_to_stopped(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that stopping an AgentProcess transitions it to stopped status.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    manager = AgentManager()
+    manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
     time.sleep(0.2)
 
@@ -86,14 +96,18 @@ def test_stop_transitions_to_stopped(monkeypatch: pytest.MonkeyPatch, config_fil
 
 
 @pytest.mark.timeout(5)
-def test_failed_status_when_process_exits_nonzero(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_failed_status_when_process_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that an AgentProcess status is failed when the process exits with a non-zero code.
     """
     # Configure the fake agent to exit with failure immediately.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
 
-    manager = AgentManager()
+    manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     # Wait briefly to allow process to exit
@@ -103,12 +117,16 @@ def test_failed_status_when_process_exits_nonzero(monkeypatch: pytest.MonkeyPatc
 
 
 @pytest.mark.timeout(5)
-def test_start_is_idempotent(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_start_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that starting an AgentProcess is idempotent when already running.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager()
+    manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     time.sleep(0.2)
@@ -124,9 +142,16 @@ def test_start_is_idempotent(monkeypatch: pytest.MonkeyPatch, config_file: Path)
 
 
 @pytest.mark.timeout(5)
-def test_agent_fails_when_child_service_fails(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_agent_fails_when_child_service_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
+    """
+    Test that an AgentProcess status is failed if one of its child services fails.
+    """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager()
+    manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     time.sleep(0.2)

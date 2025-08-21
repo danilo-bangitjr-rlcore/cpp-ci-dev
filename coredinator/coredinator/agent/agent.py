@@ -18,16 +18,18 @@ class AgentStatus:
 
 
 class Agent(ServiceLike):
-    def __init__(self, id: AgentID, config_path: Path):
+    def __init__(self, id: AgentID, config_path: Path, base_path: Path):
         self._id = id
         self._config_path = config_path
         self._corerl_service = CoreRLService(
             id=ServiceID(f"{id}-corerl"),
             config_path=config_path,
+            base_path=base_path,
         )
         self._coreio_service = CoreIOService(
             id=ServiceID(f"{id}-coreio"),
             config_path=config_path,
+            base_path=base_path,
         )
 
     @property
