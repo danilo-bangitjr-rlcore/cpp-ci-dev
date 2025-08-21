@@ -84,3 +84,32 @@ def assert_bound_ordering(
                f"for the following tags {lower.bound_tags} in the function {lower.bound_elem}. {upper.tag}'s " \
                f"{upper.direction} bound of the {upper.type} was achieved with the following values {upper_tag_vals} " \
                f"for the following tags {upper.bound_tags} in the function {upper.bound_elem}."
+
+def operating_vs_expected_range_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
+    if tag_cfg.operating_bounds_info is not None and tag_cfg.expected_bounds_info is not None:
+        # Operating Range Lower Bound <= Expected Range Lower Bound
+        assert_bound_ordering(
+            lower=tag_cfg.operating_bounds_info.lower,
+            upper=tag_cfg.expected_bounds_info.lower,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+        # Expected Range Upper Bound <= Operating Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.expected_bounds_info.upper,
+            upper=tag_cfg.operating_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+        # Operating Range Lower Bound < Expected Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.operating_bounds_info.lower,
+            upper=tag_cfg.expected_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+        # Expected Range Lower Bound < Operating Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.expected_bounds_info.lower,
+            upper=tag_cfg.operating_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
