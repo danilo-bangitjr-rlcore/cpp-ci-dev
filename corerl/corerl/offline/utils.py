@@ -1,7 +1,10 @@
 import datetime as dt
 import logging
 
+import jax.numpy as jnp
+import numpy as np
 import pandas as pd
+from lib_agent.buffer.buffer import State
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -9,6 +12,8 @@ from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
+from corerl.eval import agent as agent_eval
+from corerl.state import AppState
 from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import split_into_chunks
 
@@ -107,7 +112,7 @@ class OfflineTraining:
 
         return q_losses
 
-def run_offline_evaluation_phase(cfg: MainConfig, agent: GreedyAC, pipeline: Pipeline):
+def run_offline_evaluation_phase(cfg: MainConfig, app_state: AppState, agent: GreedyAC, pipeline: Pipeline):
     """
     Runs the offline evaluation phase using the provided config, agent, and pipeline.
     Loads data in single obs_period chunks between offline_eval_start_time and offline_eval_end_time,
@@ -124,6 +129,7 @@ def run_offline_evaluation_phase(cfg: MainConfig, agent: GreedyAC, pipeline: Pip
     data_reader = DataReader(db_cfg=cfg.env.db)
     tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
 
+    state = None
     # Create 1 obs_period-wide chunks
     time_chunks = split_into_chunks(eval_start, eval_end, width=obs_period)
     for chunk_start, chunk_end in time_chunks:
@@ -149,6 +155,39 @@ def run_offline_evaluation_phase(cfg: MainConfig, agent: GreedyAC, pipeline: Pip
         log.info(
             f"Eval chunk {chunk_start} to {chunk_end}: transitions={len(chunk_pr.transitions)}, loss={loss}",
         )
+
+        if len(chunk_pr.states) > 0 and len(chunk_pr.action_lo) > 0 and len(chunk_pr.action_hi) > 0:
+            if state is not None:
+                recommended_action = agent.get_action_interaction(state)
+                norm_next_a_df = pipeline.action_constructor.get_action_df(recommended_action)
+                # clip to the normalized action bounds
+                norm_next_a_df = norm_next_a_df .clip(lower=np.asarray(state.a_lo), upper=np.asarray(state.a_hi))
+                _write_to_metrics(app_state, norm_next_a_df, prefix="ACTION-RECOMMEND")
+
+            _write_to_metrics(app_state, chunk_pr.states, prefix="STATE-")
+            _write_to_metrics(app_state, chunk_pr.rewards)
+            _write_to_metrics(app_state, chunk_pr.actions, prefix="ACTION-")
+            state = get_latest_state(chunk_pr)
+            agent_eval.q_values_and_act_prob(app_state, agent, state.features)
+
+
+def _write_to_metrics(app_state: AppState, df: pd.DataFrame, prefix: str = ""):
+    for feat_name in df.columns:
+        val = df[feat_name].values[0]
+        app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric=prefix + feat_name,
+            value=val,
+        )
+
+def get_latest_state(pipe_return: PipelineReturn):
+    return State(
+        features=jnp.asarray(pipe_return.states.iloc[-1]),
+        a_lo=jnp.asarray(pipe_return.action_lo.iloc[-1]),
+        a_hi=jnp.asarray(pipe_return.action_hi.iloc[-1]),
+        dp=jnp.ones((1,)),
+        last_a=jnp.asarray(pipe_return.actions.iloc[-1]),
+    )
 
 
 def get_data_start_end_times(

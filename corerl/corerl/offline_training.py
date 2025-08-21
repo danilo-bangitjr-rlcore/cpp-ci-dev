@@ -45,7 +45,7 @@ def main(cfg: MainConfig):
     offline_training = OfflineTraining(cfg)
     offline_training.load_offline_transitions(pipeline)
     offline_training.train(agent)
-    run_offline_evaluation_phase(cfg, agent, pipeline)
+    run_offline_evaluation_phase(cfg, app_state, agent, pipeline)
 
     app_state.metrics.close()
     app_state.evals.close()
