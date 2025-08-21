@@ -94,3 +94,51 @@ def test_agent_start_status_stop_e2e(app_client: TestClient, config_file: Path):
     status2 = app_client.get(f"/api/agents/{agent_id}/status")
     assert status2.status_code == 200
     assert status2.json()["state"] == "stopped"
+
+
+@pytest.mark.timeout(15)
+def test_two_agents_independent_lifecycle(app_client: TestClient, tmp_path: Path):
+    # Create two distinct config files
+    cfg1 = tmp_path / "agent_one.yaml"
+    cfg2 = tmp_path / "agent_two.yaml"
+    cfg1.write_text("dummy: 1\n")
+    cfg2.write_text("dummy: 2\n")
+
+    # Start both agents
+    r1 = app_client.post("/api/agents/start", json={"config_path": str(cfg1)})
+    r2 = app_client.post("/api/agents/start", json={"config_path": str(cfg2)})
+    assert r1.status_code == 200 and r2.status_code == 200
+    id1 = r1.json()
+    id2 = r2.json()
+    assert id1 == cfg1.stem and id2 == cfg2.stem and id1 != id2
+
+    time.sleep(0.25)
+
+    # Both should be running
+    s1 = app_client.get(f"/api/agents/{id1}/status")
+    s2 = app_client.get(f"/api/agents/{id2}/status")
+    assert s1.status_code == 200 and s2.status_code == 200
+    assert s1.json()["state"] == "running"
+    assert s2.json()["state"] == "running"
+
+    # Listing contains both
+    listing = app_client.get("/api/agents/")
+    assert listing.status_code == 200
+    agents = listing.json()
+    assert id1 in agents and id2 in agents
+
+    # Stop first agent; second remains running
+    stop1 = app_client.post(f"/api/agents/{id1}/stop")
+    assert stop1.status_code == 200
+    time.sleep(0.25)
+    s1_after = app_client.get(f"/api/agents/{id1}/status")
+    s2_after = app_client.get(f"/api/agents/{id2}/status")
+    assert s1_after.json()["state"] == "stopped"
+    assert s2_after.json()["state"] == "running"
+
+    # Stop second agent
+    stop2 = app_client.post(f"/api/agents/{id2}/stop")
+    assert stop2.status_code == 200
+    time.sleep(0.25)
+    s2_final = app_client.get(f"/api/agents/{id2}/status")
+    assert s2_final.json()["state"] == "stopped"
