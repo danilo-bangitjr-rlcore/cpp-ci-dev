@@ -85,7 +85,7 @@ class OfflineTraining:
             else:
                 self.pipeline_out = chunk_pr
 
-    def train(self, app_state: AppState, agent: GreedyAC, pipeline: Pipeline, column_desc: ColumnDescriptions):
+    def train(self, agent: GreedyAC):
         assert isinstance(self.start_time, dt.datetime)
         assert isinstance(self.end_time, dt.datetime)
         assert self.pipeline_out is not None

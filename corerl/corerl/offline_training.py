@@ -43,7 +43,7 @@ def main(cfg: MainConfig):
     assert cfg.offline.offline_steps > 0
     offline_training = OfflineTraining(cfg)
     offline_training.load_offline_transitions(pipeline)
-    offline_training.train(app_state, agent, pipeline, column_desc)
+    offline_training.train(agent)
 
     app_state.metrics.close()
     app_state.evals.close()
