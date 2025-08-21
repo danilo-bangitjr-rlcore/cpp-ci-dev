@@ -5,6 +5,7 @@ from typing import Any
 import numpy as np
 from lib_utils.maybe import Maybe
 
+from corerl.config import MainConfig
 from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_tag_bounds
 from corerl.tags.tag_config import TagConfig
 
@@ -156,3 +157,11 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
             upper=tag_cfg.red_bounds_info.upper,
             tag_cfgs=tag_cfgs,
         )
+
+def validate_tag_configs(cfg: MainConfig):
+    tag_cfgs = cfg.pipeline.tags
+    for tag_cfg in tag_cfgs:
+        if isinstance(tag_cfg, SafetyZonedTag):
+            operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
+            zone_bounds_vs_operating_range_checks(tag_cfg, tag_cfgs)
+            red_vs_yellow_zone_checks(tag_cfg, tag_cfgs)
