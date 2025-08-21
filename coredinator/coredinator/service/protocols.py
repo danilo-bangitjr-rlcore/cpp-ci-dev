@@ -1,25 +1,35 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal, Protocol
+from typing import Literal, NewType, Protocol
 
-from coredinator.agent.agent_process import AgentID as ServiceID
-
+ServiceID = NewType("ServiceID", str)
 ServiceState = Literal["starting", "running", "stopping", "stopped", "failed"]
 
 
 class StatusLike(Protocol):
     """Minimal status contract shared by services and service bundles."""
 
-    id: ServiceID
-    state: ServiceState
-    config_path: Path | None
+    @property
+    def id(self) -> ServiceID:
+        ...
+
+    @property
+    def state(self) -> ServiceState:
+        ...
+
+    @property
+    def config_path(self) -> Path | None:
+        ...
 
 
 class ServiceLike(Protocol):
     """Minimal lifecycle and inspection API for a managed service."""
 
-    id: ServiceID
+    @property
+    def id(self) -> ServiceID:
+        ...
 
     def start(self) -> None:
         ...
@@ -30,5 +40,12 @@ class ServiceLike(Protocol):
     def restart(self) -> None:
         ...
 
-    def status(self) -> StatusLike:
+    def status(self) -> object:
         ...
+
+
+@dataclass(frozen=True)
+class ServiceStatus:
+    id: ServiceID
+    state: ServiceState
+    config_path: Path | None

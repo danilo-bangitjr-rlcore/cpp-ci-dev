@@ -4,13 +4,13 @@ from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 
-from coredinator.agent.agent_manager import AgentManager
-from coredinator.agent.agent_process import AgentID
+from coredinator.agent.agent_manager import AgentID, AgentManager
 
 logger = logging.getLogger("uvicorn")
 
 router = APIRouter()
 agent_manager = AgentManager()
+
 
 class StartAgentRequestPayload(BaseModel):
     config_path: Path
