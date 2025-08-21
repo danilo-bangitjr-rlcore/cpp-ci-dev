@@ -44,50 +44,9 @@ class Service:
         self._keep_alive_thread: threading.Thread | None = None
 
 
-    def _keep_alive(self):
-        if self._keep_alive_thread is not None and self._keep_alive_thread.is_alive():
-            return
-
-        def monitor():
-            degraded_start: datetime | None = None
-            while True:
-                time.sleep(self.config.heartbeat_interval.total_seconds())
-
-                if self._mode == "stopped":
-                    self._keep_alive_thread = None
-                    return
-
-                if self._mode == "running" and self.is_running():
-                    degraded_start = None
-                    continue
-
-                if degraded_start is None:
-                    degraded_start = datetime.now()
-
-                if degraded_start is not None:
-                    elapsed = datetime.now() - degraded_start
-                    if elapsed >= self.config.degraded_wait:
-                        self.restart()
-                        degraded_start = None
-
-        t = threading.Thread(target=monitor, daemon=True)
-        t.start()
-        self._keep_alive_thread = t
-
-    def _ensure_executable(self):
-        if not self._exe_path.exists():
-            raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
-        if not os.access(self._exe_path, os.X_OK):
-            raise PermissionError(f"Service executable is not executable: {self._exe_path}")
-
-        return self._exe_path
-
-    def _ensure_config(self):
-        if not self._config_path.exists():
-            raise FileNotFoundError(f"Config file not found at {self._config_path}")
-
-        return self._config_path
-
+    # ------------
+    # -- Public --
+    # ------------
     def is_running(self):
         return self._process is not None and self._process.poll() is None
 
@@ -178,3 +137,56 @@ class Service:
             state=ServiceState.FAILED,
             config_path=self._config_path,
         )
+
+
+    # -----------------
+    # -- Validations --
+    # -----------------
+
+    def _ensure_executable(self):
+        if not self._exe_path.exists():
+            raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
+        if not os.access(self._exe_path, os.X_OK):
+            raise PermissionError(f"Service executable is not executable: {self._exe_path}")
+
+        return self._exe_path
+
+    def _ensure_config(self):
+        if not self._config_path.exists():
+            raise FileNotFoundError(f"Config file not found at {self._config_path}")
+
+        return self._config_path
+
+
+    # -------------
+    # -- Private --
+    # -------------
+    def _keep_alive(self):
+        if self._keep_alive_thread is not None and self._keep_alive_thread.is_alive():
+            return
+
+        def monitor():
+            degraded_start: datetime | None = None
+            while True:
+                time.sleep(self.config.heartbeat_interval.total_seconds())
+
+                if self._mode == "stopped":
+                    self._keep_alive_thread = None
+                    return
+
+                if self._mode == "running" and self.is_running():
+                    degraded_start = None
+                    continue
+
+                if degraded_start is None:
+                    degraded_start = datetime.now()
+
+                if degraded_start is not None:
+                    elapsed = datetime.now() - degraded_start
+                    if elapsed >= self.config.degraded_wait:
+                        self.restart()
+                        degraded_start = None
+
+        t = threading.Thread(target=monitor, daemon=True)
+        t.start()
+        self._keep_alive_thread = t
