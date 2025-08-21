@@ -1,109 +1,127 @@
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::{self, BufRead, Write};
-use std::path::Path;
 use std::usize;
 use clap::Parser;
+use postgres::{Client, NoTls};
+
+use serde::Deserialize;
+
+#[derive(Debug, Deserialize)]
+struct CoreIOConfig {
+    coreio: CoreIOTags
+}
+
+#[derive(Debug, Deserialize)]
+struct CoreIOTags {
+    tags: Vec<TagConfig>,
+}
+
+#[derive(Debug, Deserialize)]
+struct TagConfig {
+    name: String,
+    node_identifier: String,
+}
 
 #[derive(Parser)]
 struct Args {
     #[arg(short, long)]
-    input_file: String,
+    coreio_cfg: String,
 
     #[arg(short, long)]
-    col_names: String,
-    
+    start_time: String,
+
     #[arg(short, long)]
-    output_file: String,
+    end_time: String,
+
+    #[arg(short, long)]
+    source_table: String,
+
+    #[arg(short, long)]
+    target_table: String,
 }
 
 fn main() {
     let args = Args::parse();
-    println!("Input: {}", args.input_file);
-    println!("Output: {}", args.output_file);
-    println!("Col name: {}", args.col_names);
 
-    let col_names_path = Path::new(&args.col_names);
-    let col_names = get_column_names(col_names_path);
+    // Open the file.
+    let f = File::open(args.coreio_cfg).expect("could not find coreio config");
 
-    let col_idx = col_names
-        .clone()
-        .into_iter()
-        .enumerate()
-        .map(|(i, v)| (v, i))
-        .collect::<HashMap<String, usize>>();
+    // Deserialize the YAML file into the Config struct.
+    let config: CoreIOConfig = serde_yaml::from_reader(f).expect("serde yaml failed");
+    let id_mapping: HashMap<String, String> = config.coreio.tags.into_iter().map(|tag_cfg| (tag_cfg.node_identifier, tag_cfg.name)).collect();
+    let col_names: Vec<&str> = id_mapping.values().map(|c| c.as_str()).collect();
 
-    // let long_tsv = Path::new("/home/kerrick/epcor_scrubber/data_copy-07_21_2025.txt");
-    // let wide_tsv = Path::new("/home/kerrick/epcor_scrubber/data_copy-07_21_2025_wide.txt");
+    let source_table = args.source_table;
+    let target_table = args.target_table;
 
-    let long_tsv = Path::new(&args.input_file);
-    let wide_tsv = Path::new(&args.output_file);
+    let start_time = args.start_time;
+    let end_time = args.end_time;
 
-    let buf_reader = get_buffered_reader(long_tsv);
-    let mut buf_writer = get_buffered_writer(wide_tsv);
+    let mut read_client = Client::connect("host=localhost user=postgres password=password", NoTls).expect("failed to create client");
+    let mut write_client = Client::connect("host=localhost user=postgres password=password", NoTls).expect("failed to create client");
 
-    // Add column names to Rust
-    let header_line = String::from("time\t") + &col_names.join("\t") + "\n";
-    buf_writer.write(&header_line.as_bytes()).unwrap();
+    let copy_in_stmt = format!("COPY (SELECT time, id, fields->>'val' as val FROM {source_table} WHERE time > '{start_time}' AND time < '{end_time}' ORDER BY time ASC) TO STDOUT");
+    let instream = read_client.copy_out(&copy_in_stmt).expect("failed to open read stream");
+
+    let col_list = col_names.join(",");
+    let copy_out_stmt = format!("COPY {target_table} (time,{col_list}) FROM STDIN");
+    println!("{copy_out_stmt}");
+    let outstream = write_client.copy_in(&copy_out_stmt).expect("failed to open write stream");
+
+    const MEGABYTE: usize = 1024 * 1024;
+    const BUFFER_CAPACITY: usize = 16 * MEGABYTE; // 16 MB
+
+    let buf_reader = io::BufReader::with_capacity(BUFFER_CAPACITY, instream);
+    let mut buf_writer = io::BufWriter::with_capacity(BUFFER_CAPACITY, outstream);
 
     let mut last_timestamp = String::from("");
-    let mut line_data: Vec<String> = vec![String::from("\\N"); col_names.len()];
+    let mut row: HashMap<&str, String> = Default::default(); // store data from stream here until timestamp changes
 
-    for (i, line) in buf_reader.lines().map_while(Result::ok).enumerate() {
-        let mut vals = line.split("\t");
+    for (i, raw_row) in buf_reader.lines().map_while(Result::ok).enumerate() {
+        let mut row_elems = raw_row.split("\t");
+        let timestamp = row_elems.next().expect("failed to extract timestamp from {row}");
+        let id = row_elems.next().expect("failed to extract id from {row}");
+        let val = row_elems.next().expect("failed to extract val from {row}");
 
-        // Get timestamp and check if it is new
-        let timestamp = vals.next().unwrap();
         if i == 0 {
-            // i hope this check is compiled out
             last_timestamp = timestamp.to_string();
         }
         if timestamp != last_timestamp {
             // if current line has new timestamp,
             // write line data (built from previous lines) to file
-            let new_line = last_timestamp + "\t" + &line_data.join("\t") + "\n";
+            let ordered_vals: Vec<&str> = col_names.iter().map(
+                |col| row.get(*col)
+                .map(|v| v.as_str())
+                .unwrap_or("\\N")
+            ).collect();
+            let new_line = last_timestamp + "\t" + &ordered_vals.join("\t") + "\n";
             buf_writer.write(&new_line.as_bytes()).unwrap();
 
             // update last timestamp and reset line data
             last_timestamp = timestamp.to_string();
-            line_data = vec![String::from("\\N"); col_names.len()];
+            row.clear();
         }
-
-        // get columns we care about
-        let name = vals.next().unwrap(); // second col
-        let val = vals.next().unwrap(); // third col
-
-        // combine process and name into single col
-        let tag = name.to_lowercase();
-
-        // add data to line
-        let idx = col_idx[tag.as_str()];
-        line_data[idx] = val.to_string();
+        if let Some(name) = id_mapping.get(id) {
+            row.insert(name.as_str(), val.to_string());
+        } else {
+            println!("missing id {id}\n\trow: {raw_row}\n");
+        }
+        // log
+        if i % 1_000_000 == 0 {
+            println!("processing row {i}");
+        }
     }
     // write last line
-    let new_line = last_timestamp + "\t" + &line_data.join("\t") + "\n";
+    let ordered_vals: Vec<&str> = col_names.iter().map(
+        |col| row.get(*col)
+        .map(|v| v.as_str())
+        .unwrap_or("\\N")
+    ).collect();
+    let new_line = last_timestamp + "\t" + &ordered_vals.join("\t") + "\n";
     buf_writer.write(&new_line.as_bytes()).unwrap();
     buf_writer.flush().unwrap();
-}
-
-fn get_buffered_reader(filename: &Path) -> io::BufReader<File> {
-    let file = File::open(filename).expect("failed to open file");
-    io::BufReader::new(file)
-}
-fn get_buffered_writer(filename: &Path) -> io::BufWriter<File> {
-    //let file = File::open(filename).expect("failed to open file");
-    let file = File::create_new(filename).expect("failed to open file");
-    io::BufWriter::new(file)
-}
-fn get_column_names(filename: &Path) -> Vec<String> {
-    let file = File::open(filename).expect("falied to open column names file");
-    let reader = io::BufReader::new(file);
-
-    let mut lines: Vec<String> = Vec::new();
-
-    for line in reader.lines() {
-        lines.push(line.expect("failed to read line"));
-    }
-
-    lines
+    let outstream = buf_writer.into_inner().map_err(|e| e.into_error()).unwrap();
+    let rows_written = outstream.finish().unwrap();
+    println!("Successfully wrote {} rows.", rows_written);
 }
