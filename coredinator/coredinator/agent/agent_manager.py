@@ -13,6 +13,7 @@ class AgentManager:
             self.agents[agent_id] = AgentProcess(agent_id, config_path)
 
         self.agents[agent_id].start()
+        return agent_id
 
     def stop_agent(self, agent_id: AgentID):
         if agent_id in self.agents:

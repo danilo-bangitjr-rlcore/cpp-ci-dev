@@ -16,9 +16,9 @@ class StartAgentRequestPayload(BaseModel):
     config_path: Path
 
 
-@router.post("/{agent_id}/start")
-def agent_start(req_payload: StartAgentRequestPayload, agent_id: AgentID):
-    agent_manager.start_agent(req_payload.config_path)
+@router.post("/start")
+def agent_start(req_payload: StartAgentRequestPayload):
+    return agent_manager.start_agent(req_payload.config_path)
 
 
 @router.post("/{agent_id}/stop")
