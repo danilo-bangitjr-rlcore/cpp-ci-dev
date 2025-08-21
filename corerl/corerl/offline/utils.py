@@ -100,9 +100,10 @@ class OfflineTraining:
             log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
 
         q_losses: list[float] = []
-        for _ in range(self.offline_steps):
+        for step in range(self.offline_steps):
             critic_loss = agent.update()
             q_losses += critic_loss
+            log.info(f"Offline agent training step {step}/{self.offline_steps}")
 
         return q_losses
 
