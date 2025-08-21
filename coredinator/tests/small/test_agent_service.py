@@ -26,7 +26,7 @@ def config_file(tmp_path: Path) -> Path:
 def dist_with_fake_executable(tmp_path: Path) -> Path:
     dist_dir = tmp_path / "dist"
     dist_dir.mkdir()
-    src = Path(__file__).parent / "fixtures" / "fake_agent.py"
+    src = Path(__file__).parent.parent / "fixtures" / "fake_agent.py"
     dst_coreio = dist_dir / "coreio-1.0.0"
     dst_corerl = dist_dir / "corerl-1.0.0"
     for dst in [dst_coreio, dst_corerl]:
