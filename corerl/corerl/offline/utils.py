@@ -102,7 +102,8 @@ class OfflineTraining:
         for step in range(self.offline_steps):
             critic_loss = agent.update()
             q_losses += critic_loss
-            log.info(f"Offline agent training step {step}/{self.offline_steps}")
+            if step % 10 == 0 or step == self.offline_steps - 1:
+                log.info(f"Offline agent training step {step}/{self.offline_steps}")
 
         return q_losses
 
