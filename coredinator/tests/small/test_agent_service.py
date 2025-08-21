@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import shutil
-import stat
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -13,28 +11,6 @@ from coredinator.service.protocols import ServiceID
 from coredinator.service.service import Service, ServiceConfig
 from coredinator.services.coreio import CoreIOService
 from coredinator.services.corerl import CoreRLService
-
-
-@pytest.fixture()
-def config_file(tmp_path: Path) -> Path:
-    cfg = tmp_path / "example_config.yaml"
-    cfg.write_text("dummy: true\n")
-    return cfg
-
-
-@pytest.fixture()
-def dist_with_fake_executable(tmp_path: Path) -> Path:
-    dist_dir = tmp_path / "dist"
-    dist_dir.mkdir()
-    src = Path(__file__).parent.parent / "fixtures" / "fake_agent.py"
-    dst_coreio = dist_dir / "coreio-1.0.0"
-    dst_corerl = dist_dir / "corerl-1.0.0"
-    for dst in [dst_coreio, dst_corerl]:
-        shutil.copy(src, dst)
-        # Make executable
-        mode = dst.stat().st_mode
-        dst.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-    return dist_dir
 
 
 def test_initial_status_stopped(
