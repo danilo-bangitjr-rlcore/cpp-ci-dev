@@ -13,6 +13,7 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import OfflineTraining
 from corerl.state import AppState
 
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
