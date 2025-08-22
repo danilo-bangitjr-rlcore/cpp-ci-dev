@@ -18,12 +18,14 @@ class TestAgentManagerPersistenceEdgeCases:
                 CREATE TABLE agent_states (
                     agent_id TEXT PRIMARY KEY,
                     operating_mode TEXT NOT NULL CHECK (operating_mode IN ('running', 'stopped')),
-                    config_path TEXT NOT NULL
+                    config_path TEXT NOT NULL,
+                    corerl_process_id INTEGER,
+                    coreio_process_id INTEGER
                 )
             """)
             cursor.execute(
-                "INSERT INTO agent_states VALUES (?, ?, ?)",
-                ("test_agent", "running", str(tmp_path / "nonexistent.yaml")),
+                "INSERT INTO agent_states VALUES (?, ?, ?, ?, ?)",
+                ("test_agent", "running", str(tmp_path / "nonexistent.yaml"), None, None),
             )
             conn.commit()
 

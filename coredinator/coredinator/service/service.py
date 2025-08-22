@@ -49,7 +49,7 @@ class Service:
         self._exe_path: Path = executable_path
         self._config_path: Path = config_path
 
-        self._process: Popen | None = None
+        self._process: psutil.Process | None = None
         self._keep_alive_thread: threading.Thread | None = None
 
 
@@ -76,7 +76,14 @@ class Service:
         cfg_name = cfg.stem
 
         args = [str(exe), "--config-name", cfg_name]
-        self._process = Popen(args, stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
+        popen = Popen(
+            args,
+            stdin=DEVNULL,
+            stdout=DEVNULL,
+            stderr=DEVNULL,
+            start_new_session=True,  # Detach from parent process
+        )
+        self._process = psutil.Process(popen.pid)
         self._keep_alive()
 
 
@@ -86,8 +93,7 @@ class Service:
         if not self._process:
             return
 
-        proc = psutil.Process(self._process.pid)
-        stop_process(proc, grace_seconds)
+        stop_process(self._process, grace_seconds)
         self._process = None
 
 
@@ -104,16 +110,10 @@ class Service:
                 config_path=self._config_path,
             )
 
-        code = self._process.poll()
-        if code is not None:
-            # Process has exited - determine if it was a clean stop or failure
-            if code == 0 and self._mode == ServiceMode.STOPPED:
-                state = ServiceState.STOPPED
-            else:
-                state = ServiceState.FAILED
+        if not self._process.is_running() or self._process.status() == psutil.STATUS_ZOMBIE:
             return ServiceStatus(
                 id=self.id,
-                state=state,
+                state=ServiceState.FAILED,
                 config_path=self._config_path,
             )
 
@@ -123,6 +123,28 @@ class Service:
             state=state,
             config_path=self._config_path,
         )
+
+    def get_process_ids(self) -> list[int | None]:
+        """Get process ID of the main process for this service."""
+        if self._process is not None:
+            return [self._process.pid]
+
+        return [None]
+
+    def reattach_process(self, pid: int) -> bool:
+        """Reattach to an existing process if it exists and is running.
+
+        Returns True if successfully reattached, False otherwise.
+        """
+        try:
+            proc = psutil.Process(pid)
+            if proc.is_running() and proc.status() != psutil.STATUS_ZOMBIE:
+                self._process = proc
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+        return False
 
     # -----------------
     # -- Validations --
@@ -153,7 +175,10 @@ class Service:
             return False
 
     def _is_process_running(self) -> bool:
-        return self._process is not None and self._process.poll() is None
+        if self._process is None:
+            return False
+
+        return self._process.is_running() and self._process.status() != psutil.STATUS_ZOMBIE
 
 
     # -------------

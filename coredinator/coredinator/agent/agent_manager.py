@@ -43,8 +43,13 @@ class AgentManager:
 
         self._agents[agent_id].start()
 
-        # Update database to mark agent as running
-        self._update_agent_state(agent_id, "running", config_path)
+        # Wait a moment for processes to start, then get process IDs
+        time.sleep(0.1)
+        process_ids = self._agents[agent_id].get_process_ids()
+        # List has exactly 2 elements: [corerl_pid, coreio_pid] (each can be int or None)
+        corerl_process_id = process_ids[0]
+        coreio_process_id = process_ids[1]
+        self._update_agent_state(agent_id, "running", config_path, corerl_process_id, coreio_process_id)
 
         return agent_id
 
@@ -54,7 +59,7 @@ class AgentManager:
 
             # Update database to mark agent as stopped
             config_path = self._agents[agent_id]._config_path
-            self._update_agent_state(agent_id, "stopped", config_path)
+            self._update_agent_state(agent_id, "stopped", config_path, None, None)
 
     def get_agent_status(self, agent_id: AgentID):
         if agent_id in self._agents:
@@ -76,9 +81,12 @@ class AgentManager:
                     CREATE TABLE IF NOT EXISTS agent_states (
                         agent_id TEXT PRIMARY KEY,
                         operating_mode TEXT NOT NULL CHECK (operating_mode IN ('running', 'stopped')),
-                        config_path TEXT NOT NULL
+                        config_path TEXT NOT NULL,
+                        corerl_process_id INTEGER,
+                        coreio_process_id INTEGER
                     )
                 """)
+
                 conn.commit()
         except sqlite3.DatabaseError:
             if retries == 0:
@@ -92,9 +100,13 @@ class AgentManager:
     def _load_agents_from_database(self):
         with sqlite3.connect(self._db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT agent_id, operating_mode, config_path FROM agent_states")
+            cursor.execute(
+                "SELECT agent_id, operating_mode, config_path, corerl_process_id, coreio_process_id FROM agent_states",
+            )
 
-            for agent_id_str, operating_mode, config_path_str in cursor.fetchall():
+            for agent_id_str, operating_mode, config_path_str, corerl_process_id, coreio_process_id in (
+                cursor.fetchall()
+            ):
                 agent_id = AgentID(agent_id_str)
                 config_path = Path(config_path_str)
 
@@ -103,17 +115,36 @@ class AgentManager:
 
                 # Start agent if it was marked as running
                 if operating_mode == "running":
+                    # Try to reattach to existing processes first
+                    corerl_success, coreio_success = self._agents[agent_id].reattach_processes(
+                        corerl_process_id,
+                        coreio_process_id,
+                    )
+
+                    # If both processes were successfully reattached, no need to restart
+                    if corerl_success and coreio_success:
+                        continue
+
+                    # Otherwise, start the agent (which will start any missing services)
                     self._agents[agent_id].start()
 
     @db_recovery_decorator
-    def _update_agent_state(self, agent_id: AgentID, operating_mode: str, config_path: Path):
+    def _update_agent_state(
+        self,
+        agent_id: AgentID,
+        operating_mode: str,
+        config_path: Path,
+        corerl_process_id: int | None = None,
+        coreio_process_id: int | None = None,
+    ):
         with sqlite3.connect(self._db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                INSERT OR REPLACE INTO agent_states (agent_id, operating_mode, config_path)
-                VALUES (?, ?, ?)
+                INSERT OR REPLACE INTO agent_states
+                (agent_id, operating_mode, config_path, corerl_process_id, coreio_process_id)
+                VALUES (?, ?, ?, ?, ?)
             """,
-                (agent_id, operating_mode, str(config_path)),
+                (agent_id, operating_mode, str(config_path), corerl_process_id, coreio_process_id),
             )
             conn.commit()
