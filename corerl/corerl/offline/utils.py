@@ -109,7 +109,6 @@ def load_offline_transitions(
 
 
 def get_all_offline_recommendations(
-        cfg: MainConfig,
         app_state: AppState,
         agent: GreedyAC,
         pipeline: Pipeline,
@@ -118,23 +117,23 @@ def get_all_offline_recommendations(
     """
     Gives the data specfied in offline_cfg.eval_periods to the agent to get the agent's recommendations
     """
-    if cfg.offline.eval_periods is None:
+    if app_state.cfg.offline.eval_periods is None:
         log.info("No evaluation phase.")
         return
 
-    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(app_state.cfg.pipeline.tags)]
 
-    for eval_period in cfg.offline.eval_periods:
+    for eval_period in app_state.cfg.offline.eval_periods:
         start = eval_period[0]
         end = eval_period[1]
         log.info(f"Starting evaluation phase: {start} to {end}")
         params = OfflineRecParameters(
             start,
             end,
-            cfg.interaction.obs_period,
+            app_state.cfg.interaction.obs_period,
             tag_names=tag_names,
-            data_agg=cfg.env.db.data_agg,
-            update_agent=cfg.offline.update_agent_during_offline_recs,
+            data_agg=app_state.cfg.env.db.data_agg,
+            update_agent=app_state.cfg.offline.update_agent_during_offline_recs,
         )
         get_offline_recommendations(app_state, agent, pipeline, data_reader, params)
 
