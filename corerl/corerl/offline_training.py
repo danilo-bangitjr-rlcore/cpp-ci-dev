@@ -13,9 +13,9 @@ from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import (
+    get_all_offline_recommendations,
     load_offline_transitions,
     offline_rl_from_buffer,
-    run_offline_evaluation_phase,
 )
 from corerl.state import AppState
 
@@ -54,7 +54,8 @@ def main(cfg: MainConfig):
     pipeline_out = load_offline_transitions(app_state, pipeline, data_reader)
     agent.update_buffer(pipeline_out)
     offline_rl_from_buffer(agent, cfg.offline.offline_steps)
-    run_offline_evaluation_phase(cfg, app_state, agent, pipeline, data_reader)
+    # do_offline_rollouts(cfg, app_state, agent, pipeline, data_reader)
+    get_all_offline_recommendations(cfg, app_state, agent, pipeline, data_reader)
 
     app_state.metrics.close()
     app_state.evals.close()

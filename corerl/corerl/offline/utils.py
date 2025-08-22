@@ -108,7 +108,7 @@ def load_offline_transitions(
     return out
 
 
-def run_offline_evaluation_phase(
+def get_all_offline_recommendations(
         cfg: MainConfig,
         app_state: AppState,
         agent: GreedyAC,
@@ -116,9 +116,7 @@ def run_offline_evaluation_phase(
         data_reader: DataReader,
     ):
     """
-    Runs the offline evaluation phase using the provided config, agent, and pipeline.
-    Loads data in single obs_period chunks between offline_eval_start_time and offline_eval_end_time,
-    processes through the pipeline, and updates the agent.
+    Gives the data specfied in offline_cfg.eval_periods to the agent to get the agent's recommendations
     """
     if cfg.offline.eval_periods is None:
         log.info("No evaluation phase.")
