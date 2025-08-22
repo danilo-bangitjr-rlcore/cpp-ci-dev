@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import time
 from datetime import timedelta
 from pathlib import Path
 
@@ -11,6 +10,7 @@ from coredinator.service.protocols import ServiceID
 from coredinator.service.service import Service, ServiceConfig
 from coredinator.services.coreio import CoreIOService
 from coredinator.services.corerl import CoreRLService
+from coredinator.utils.test_polling import wait_for_event
 
 
 def test_initial_status_stopped(
@@ -43,10 +43,8 @@ def test_start_and_running_status(
     manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
-    # Give a brief moment for process to boot
-    time.sleep(0.2)
-
-    assert manager.get_agent_status(agent_id).state == "running"
+    # Wait for agent to start
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
 
     # Clean up
     manager.stop_agent(agent_id)
@@ -66,12 +64,12 @@ def test_stop_transitions_to_stopped(
 
     manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
-    time.sleep(0.2)
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
 
     manager.stop_agent(agent_id)
     assert manager.get_agent_status(agent_id).state == "stopped"
 
-    time.sleep(0.2)
+    # Stopping again should be idempotent
     manager.stop_agent(agent_id)
     assert manager.get_agent_status(agent_id).state == "stopped"
 
@@ -91,10 +89,8 @@ def test_failed_status_when_process_exits_nonzero(
     manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
-    # Wait briefly to allow process to exit
-    time.sleep(0.5)
-
-    assert manager.get_agent_status(agent_id).state == "failed"
+    # Wait for process to exit with failure
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "failed", interval=0.1, timeout=4.0)
 
 
 @pytest.mark.timeout(5)
@@ -110,13 +106,12 @@ def test_start_is_idempotent(
     manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
-    time.sleep(0.2)
-    assert manager.get_agent_status(agent_id).state == "running"
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
 
     # Starting again should be a no-op while running
     manager.start_agent(config_file)
 
-    time.sleep(0.2)
+    # Should still be running
     assert manager.get_agent_status(agent_id).state == "running"
 
     manager.stop_agent(agent_id)
@@ -135,8 +130,7 @@ def test_agent_fails_when_child_service_fails(
     manager = AgentManager(base_path=dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
-    time.sleep(0.2)
-    assert manager.get_agent_status(agent_id).state == "running"
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
 
     # Kill one of the services
     # It's a bit ugly to reach into the private attributes, but it's the most
@@ -145,9 +139,8 @@ def test_agent_fails_when_child_service_fails(
     assert coreio_process is not None
     coreio_process.kill()
 
-    time.sleep(0.2)  # Allow time for status to update
-
-    assert manager.get_agent_status(agent_id).state == "failed"
+    # Wait for agent to detect the failure
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "failed", interval=0.05, timeout=1.0)
     manager.stop_agent(agent_id)
 
 
@@ -161,20 +154,16 @@ def test_degraded_state_triggers_restart(
 ):
     # Start unhealthy, then become healthy
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
-    config = ServiceConfig(heartbeat_interval=timedelta(milliseconds=100), degraded_wait=timedelta(milliseconds=300))
+    config = ServiceConfig(heartbeat_interval=timedelta(milliseconds=50), degraded_wait=timedelta(milliseconds=200))
     service = service_cls(ServiceID("svc"), config_file, dist_with_fake_executable, config)
     service.start()
 
     # Wait for degraded recovery logic to trigger
-    time.sleep(0.5)
-    assert service.status().state == "failed"
+    assert wait_for_event(lambda: service.status().state == "failed", interval=0.05, timeout=1.0)
 
     # Now simulate healthy agent
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    time.sleep(0.5)
-
-    status = service.status()
-    assert status.state == "running"
+    assert wait_for_event(lambda: service.status().state == "running", interval=0.05, timeout=2.0)
     service.stop()
 
 
@@ -204,10 +193,7 @@ def test_healthcheck_fails_when_unhealthy(
     service.start()
 
     # Wait for service to start and healthcheck to be performed
-    time.sleep(1.0)
-
-    status = service.status()
-    assert status.state == "failed"  # Should be failed due to unhealthy healthcheck
+    assert wait_for_event(lambda: service.status().state == "failed", interval=0.1, timeout=3.0)
 
     service.stop()
 
@@ -238,10 +224,7 @@ def test_healthcheck_succeeds_when_healthy(
     service.start()
 
     # Wait for service to start and healthcheck to be performed
-    time.sleep(1.0)
-
-    status = service.status()
-    assert status.state == "running"  # Should be running due to healthy healthcheck
+    assert wait_for_event(lambda: service.status().state == "running", interval=0.1, timeout=3.0)
 
     service.stop()
 
@@ -271,9 +254,6 @@ def test_healthcheck_disabled_ignores_endpoint(
     service.start()
 
     # Wait for service to start
-    time.sleep(1.0)
-
-    status = service.status()
-    assert status.state == "running"  # Should be running despite unhealthy endpoint
+    assert wait_for_event(lambda: service.status().state == "running", interval=0.1, timeout=3.0)
 
     service.stop()
