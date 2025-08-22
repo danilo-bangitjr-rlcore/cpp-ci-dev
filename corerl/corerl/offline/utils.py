@@ -120,7 +120,6 @@ def run_offline_evaluation_phase(
         app_state: AppState,
         agent: GreedyAC,
         pipeline: Pipeline,
-        update_agent: bool = True,
     ):
     """
     Runs the offline evaluation phase using the provided config, agent, and pipeline.
@@ -144,7 +143,7 @@ def run_offline_evaluation_phase(
             cfg.interaction.obs_period,
             tag_names=tag_names,
             data_agg=cfg.env.db.data_agg,
-            update_agent=update_agent,
+            update_agent=cfg.offline.update_agent_during_rollouts,
         )
         do_offline_rollout(app_state, agent, pipeline, data_reader, rollout_params)
 
