@@ -6,7 +6,6 @@ requests to test end-to-end workflows.
 
 import sqlite3
 import subprocess
-import time
 from pathlib import Path
 
 import psutil
@@ -15,6 +14,7 @@ import requests
 
 from coredinator.test_utils import CoredinatorService, wait_for_service_healthy
 from coredinator.utils.process import terminate_process_tree, wait_for_termination
+from coredinator.utils.test_polling import wait_for_event
 
 
 def get_microservice_pids(base_path: Path, agent_id: str):
@@ -64,12 +64,15 @@ def test_microservice_failure_recovery(
     response = requests.post(f"{base_url}/api/agents/start", json={"config_path": str(config_file)})
     assert response.status_code == 200, f"Failed to start agent: {response.text}"
 
-    time.sleep(0.5)
+    # Wait for the microservice PIDs to be recorded in the database
+    def _coreio_pid_available():
+        pids = get_microservice_pids(dist_with_fake_executable, agent_id)
+        return pids["coreio"] is not None
 
-    # Get the microservice PIDs for this agent
+    assert wait_for_event(_coreio_pid_available, interval=0.1, timeout=2.0), "coreio PID should be present in DB"
+
     pids = get_microservice_pids(dist_with_fake_executable, agent_id)
     coreio_pid = pids["coreio"]
-    assert coreio_pid is not None, "coreio PID should be present in DB"
 
     # Simulate microservice failure
     proc = psutil.Process(coreio_pid)
@@ -92,7 +95,13 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
     response = requests.post(f"{coredinator_service.base_url}/api/agents/start", json={"config_path": str(config_file)})
     assert response.status_code == 200, f"Failed to start agent: {response.text}"
 
-    time.sleep(0.5)
+    # Wait for agent to be running before simulating coredinator failure
+    def _agent_running():
+        response = requests.get(f"{coredinator_service.base_url}/api/agents/{agent_id}/status")
+        return response.status_code == 200 and response.json().get("state") == "running"
+
+    assert wait_for_event(_agent_running, interval=0.1, timeout=2.0), \
+        "Agent should be running before coredinator failure test"
 
     # Kill coredinator process to simulate failure
     proc_obj = psutil.Process(coredinator_service.process_id)
