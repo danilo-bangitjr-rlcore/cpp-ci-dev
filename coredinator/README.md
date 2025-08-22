@@ -27,9 +27,17 @@ uv run python coredinator/app.py --base-path /path/to/executables
 
 The service will start on `http://localhost:8000` with interactive API documentation available at `/docs`.
 
+Optionally, you can specify a custom port:
+```bash
+uv run python coredinator/app.py --base-path /path/to/executables --port 9000
+```
+
 ### Configuration
 
-The service requires a `--base-path` argument pointing to the directory containing CoreIO and CoreRL executables. Agent configurations are provided as YAML files when starting agents.
+The service requires a `--base-path` argument pointing to the directory containing CoreIO and CoreRL executables. Additionally, you can specify the port using the `--port` argument (default: 8000). Agent configurations are provided as YAML files when starting agents.
+
+Optional configuration:
+- `--port`: Specify the port number (default: 8000)
 
 ## Architecture
 

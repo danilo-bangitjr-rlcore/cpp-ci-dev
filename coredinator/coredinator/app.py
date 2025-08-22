@@ -26,14 +26,16 @@ async def lifespan(app: FastAPI):
     logger.info("CoreRL server is shutting down.")
 
 
-def parse_base_path():
+def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
     parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
-    args, _ = parser.parse_known_args()
-    return args.base_path
+    parser.add_argument("--port", type=int, default=8000, help="Port to run the service on (default: 8000)")
+    args = parser.parse_args()
+
+    return args.base_path, args.port
 
 
-base_path = parse_base_path()
+base_path, main_port = parse_args()
 app = FastAPI(lifespan=lifespan)
 app.state.agent_manager = AgentManager(base_path=base_path)
 
@@ -69,4 +71,6 @@ app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
 
 
 if __name__ == "__main__":
-    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=8000, reload=True)
+    # Re-parse args for __main__ execution
+    _, main_port = parse_args()
+    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=main_port, reload=True)
