@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 from coreio.config import CoreIOConfig
-from lib_config.config import MISSING, computed, config, list_, post_processor
+from lib_config.config import MISSING, computed, config, post_processor
 from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
@@ -108,7 +108,6 @@ class FeatureFlags:
 @config()
 class OfflineConfig:
     offline_steps: int = 0
-    offline_eval_iters: list[int] = list_()
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)

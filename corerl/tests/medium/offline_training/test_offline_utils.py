@@ -187,7 +187,7 @@ def test_offline_training(
     agent = GreedyAC(offline_cfg.agent, app_state, col_desc)
 
     # Offline training
-    critic_losses = offline_trainer.train(app_state, agent, pipeline, col_desc)
+    critic_losses = offline_trainer.train(agent)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
