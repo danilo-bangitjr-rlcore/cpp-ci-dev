@@ -152,17 +152,6 @@ def run_offline_evaluation_phase(
             reset_temporal_state=False,
         )
 
-        if chunk_pr.transitions is None or len(chunk_pr.transitions) == 0:
-            log.warning(f"No transitions found for eval chunk: {chunk_start} to {chunk_end}")
-            continue
-
-        if update_agent:
-            agent.update_buffer(chunk_pr)
-            loss = agent.update()
-            log.info(
-                f"Eval chunk {chunk_start} to {chunk_end}: transitions={len(chunk_pr.transitions)}, loss={loss}",
-            )
-
         if len(chunk_pr.states) > 0 and len(chunk_pr.action_lo) > 0 and len(chunk_pr.action_hi) > 0:
             if state is not None:
                 recommended_action = agent.get_action_interaction(state)
@@ -177,6 +166,17 @@ def run_offline_evaluation_phase(
             state = get_latest_state(chunk_pr)
             agent_eval.q_values_and_act_prob(app_state, agent, state.features)
 
+        if chunk_pr.transitions is None or len(chunk_pr.transitions) == 0:
+            log.warning(f"No transitions found for eval chunk: {chunk_start} to {chunk_end}")
+            continue
+
+        if update_agent:
+            agent.update_buffer(chunk_pr)
+            loss = agent.update()
+            log.info(
+                f"Agent updating on {chunk_start} to {chunk_end}:",
+                f"num transitions={len(chunk_pr.transitions)},loss={loss}",
+            )
 
 def _write_to_metrics(app_state: AppState, df: pd.DataFrame, prefix: str = ""):
     for feat_name in df.columns:
