@@ -3,12 +3,13 @@ import shutil
 import socket
 import stat
 import subprocess
-import time
 from pathlib import Path
 
 import psutil
 import pytest
-import requests
+
+from coredinator.test_utils import CoredinatorService, wait_for_service_healthy
+from coredinator.utils.process import terminate_process_tree
 
 
 @pytest.fixture()
@@ -19,7 +20,7 @@ def free_localhost_port():
     # so we set that port as reuseable to allow another socket to bind to it
     # then we immediately close the socket and release our connection.
     sock = socket.socket()
-    sock.bind(('localhost', 0))
+    sock.bind(("localhost", 0))
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
     port: int = sock.getsockname()[1]
@@ -56,7 +57,7 @@ def dist_with_fake_executable(tmp_path: Path) -> Path:
 def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: int, monkeypatch: pytest.MonkeyPatch):
     """Fixture to start coredinator service as subprocess for e2e testing.
 
-    Returns the base URL where the service is running.
+    Returns information about the running service including process ID for advanced control.
     """
     # Ensure fake agents stay alive when started by coredinator
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
@@ -66,55 +67,45 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
 
     # Start coredinator using the documented approach from README with custom port
     cmd = [
-        "uv", "run", "python", "coredinator/app.py",
-        "--base-path", str(dist_with_fake_executable),
-        "--port", str(port),
+        "uv",
+        "run",
+        "python",
+        "coredinator/app.py",
+        "--base-path",
+        str(dist_with_fake_executable),
+        "--port",
+        str(port),
     ]
 
     # Set environment for subprocess
     env = dict(os.environ, FAKE_AGENT_BEHAVIOR="long")
+    cwd = Path(__file__).parent.parent  # Run from coredinator package root
 
     process = subprocess.Popen(
         cmd,
         env=env,
-        cwd=Path(__file__).parent.parent,  # Run from coredinator package root
+        cwd=cwd,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
 
     # Wait for service to start (try healthcheck)
-    max_attempts = 30
-    for _ in range(max_attempts):
-        time.sleep(0.1)
-        try:
-            response = requests.get(f"{base_url}/api/healthcheck", timeout=1)
-            if response.status_code == 200:
-                break
-        except requests.RequestException:
-            ...
+    wait_for_service_healthy(base_url, process=process)
 
-    else:
-        # Service didn't start - kill process and fail
-        process.terminate()
-        stdout, stderr = process.communicate(timeout=5)
-        error_msg = (
-            f"Coredinator service failed to start on {base_url}\n" +
-            f"stdout: {stdout.decode()}\n" +
-            f"stderr: {stderr.decode()}"
-        )
-        raise RuntimeError(error_msg)
+    service_info = CoredinatorService(
+        base_url=base_url,
+        process_id=process.pid,
+        command=cmd,
+        env=env,
+        cwd=cwd,
+    )
 
+    yield service_info
+
+    # Attempt clean shutdown - handle case where process was already terminated
     try:
-        yield base_url
-    finally:
-        # Attempt clean shutdown
         proc = psutil.Process(process.pid)
-        for child in proc.children(recursive=True):
-            child.terminate()
-
-        proc.terminate()
-
-        # Shutdown forcefully if needed
-        _, alive = psutil.wait_procs([proc, *proc.children(recursive=True)], timeout=5)
-        for p in alive:
-            p.kill()
+        terminate_process_tree(proc, timeout=5.0)
+    except psutil.NoSuchProcess:
+        # Process was already terminated (e.g., by test code)
+        pass
