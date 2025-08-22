@@ -6,11 +6,13 @@ from lib_config.loader import load_config
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
+from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
+from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import OfflineTraining, run_offline_evaluation_phase
+from corerl.offline.utils import OfflineTraining, load_offline_transitions, run_offline_evaluation_phase
 from corerl.state import AppState
 
 logging.basicConfig(level=logging.INFO)
@@ -37,13 +39,17 @@ def main(cfg: MainConfig):
     )
 
     pipeline = Pipeline(app_state, cfg.pipeline)
+    assert isinstance(cfg.env, AsyncEnvConfig)
+    data_reader = DataReader(db_cfg=cfg.env.db)
+
     column_desc = pipeline.column_descriptions
     agent = GreedyAC(cfg.agent, app_state, column_desc)
 
     # Offline training
     assert cfg.offline.offline_steps > 0
     offline_training = OfflineTraining(cfg)
-    offline_training.load_offline_transitions(pipeline)
+    pipeline_out = load_offline_transitions(app_state, pipeline, data_reader)
+    agent.update_buffer(pipeline_out)
     offline_training.train(agent)
     run_offline_evaluation_phase(cfg, app_state, agent, pipeline)
 

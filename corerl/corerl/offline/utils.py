@@ -59,43 +59,6 @@ class OfflineTraining:
         self.offline_steps = self.cfg.offline.offline_steps
         self.pipeline_out: PipelineReturn | None = None
 
-    def load_offline_transitions(self, pipeline: Pipeline):
-        # Configure DataReader
-        assert isinstance(self.cfg.env, AsyncEnvConfig)
-        data_reader = DataReader(db_cfg=self.cfg.env.db)
-
-        # Infer missing start or end time
-        self.start_time, self.end_time = get_data_start_end_times(data_reader, self.start_time, self.end_time)
-
-        # chunk offline reads
-        chunk_width = self.cfg.offline.pipeline_batch_duration
-        time_chunks = split_into_chunks(self.start_time, self.end_time, width=chunk_width)
-
-        # Filter out evaluation periods if configured
-        if self.cfg.offline.remove_eval_from_train and self.cfg.offline.eval_periods:
-            time_chunks = exclude_from_chunks(time_chunks, self.cfg.offline.eval_periods)
-
-        # Pass offline data through data pipeline chunk by chunk to produce transitions
-        tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(self.cfg.pipeline.tags)]
-        for chunk_start, chunk_end in time_chunks:
-            chunk_data = data_reader.batch_aggregated_read(
-                names=tag_names,
-                start_time=chunk_start,
-                end_time=chunk_end,
-                bucket_width=self.cfg.interaction.obs_period,
-                aggregation=self.cfg.env.db.data_agg,
-            )
-            chunk_pr = pipeline(
-                data=chunk_data,
-                data_mode=DataMode.OFFLINE,
-                reset_temporal_state=False,
-            )
-
-            if self.pipeline_out:
-                self.pipeline_out += chunk_pr
-            else:
-                self.pipeline_out = chunk_pr
-
     def train(self, agent: GreedyAC):
         assert isinstance(self.start_time, dt.datetime)
         assert isinstance(self.end_time, dt.datetime)
@@ -106,7 +69,6 @@ class OfflineTraining:
         )
         log.info("Starting offline agent training...")
 
-        agent.update_buffer(self.pipeline_out)
         for buffer_name, size_list in agent.get_buffer_sizes().items():
             log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
 
@@ -118,6 +80,52 @@ class OfflineTraining:
                 log.info(f"Offline agent training step {step}/{self.offline_steps}")
 
         return q_losses
+
+
+def load_offline_transitions(
+        app_state: AppState,
+        pipeline: Pipeline,
+        data_reader: DataReader,
+    ):
+
+    # Infer missing start or end time
+    offline_cfg = app_state.cfg.offline
+    start_time, end_time = get_data_start_end_times(
+        data_reader,
+        offline_cfg.offline_start_time,
+        offline_cfg.offline_end_time,
+    )
+
+    time_chunks = split_into_chunks(start_time, end_time, width=offline_cfg.pipeline_batch_duration)
+
+    # Filter out evaluation periods if configured
+    if offline_cfg.remove_eval_from_train and offline_cfg.eval_periods:
+        time_chunks = exclude_from_chunks(time_chunks, offline_cfg.eval_periods)
+
+    # Pass offline data through data pipeline chunk by chunk to produce transitions
+    out = None
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(app_state.cfg.pipeline.tags)]
+    for chunk_start, chunk_end in time_chunks:
+        chunk_data = data_reader.batch_aggregated_read(
+            names=tag_names,
+            start_time=chunk_start,
+            end_time=chunk_end,
+            bucket_width=app_state.cfg.interaction.obs_period,
+            aggregation=app_state.cfg.env.db.data_agg,
+        )
+        chunk_pr = pipeline(
+            data=chunk_data,
+            data_mode=DataMode.OFFLINE,
+            reset_temporal_state=False,
+        )
+
+        if out:
+            out += chunk_pr
+        else:
+           out = chunk_pr
+
+    return out
+
 
 def run_offline_evaluation_phase(
         cfg: MainConfig,
