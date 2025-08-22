@@ -113,6 +113,7 @@ def run_offline_evaluation_phase(
         app_state: AppState,
         agent: GreedyAC,
         pipeline: Pipeline,
+        data_reader: DataReader,
     ):
     """
     Runs the offline evaluation phase using the provided config, agent, and pipeline.
@@ -123,7 +124,6 @@ def run_offline_evaluation_phase(
         log.info("No evaluation phase.")
         return
 
-    data_reader = DataReader(db_cfg=cfg.env.db)
     tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
 
     for eval_period in cfg.offline.eval_periods:

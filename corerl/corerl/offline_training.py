@@ -54,7 +54,7 @@ def main(cfg: MainConfig):
     pipeline_out = load_offline_transitions(app_state, pipeline, data_reader)
     agent.update_buffer(pipeline_out)
     offline_rl_from_buffer(agent, cfg.offline.offline_steps)
-    run_offline_evaluation_phase(cfg, app_state, agent, pipeline)
+    run_offline_evaluation_phase(cfg, app_state, agent, pipeline, data_reader)
 
     app_state.metrics.close()
     app_state.evals.close()
