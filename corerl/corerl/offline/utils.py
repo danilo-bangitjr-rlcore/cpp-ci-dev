@@ -18,7 +18,7 @@ from corerl.eval import agent as agent_eval
 from corerl.state import AppState
 from corerl.tags.components.opc import Agg
 from corerl.tags.tag_config import get_scada_tags
-from corerl.utils.time import split_into_chunks
+from corerl.utils.time import exclude_from_chunks, split_into_chunks
 
 log = logging.getLogger(__name__)
 
@@ -70,6 +70,10 @@ class OfflineTraining:
         # chunk offline reads
         chunk_width = self.cfg.offline.pipeline_batch_duration
         time_chunks = split_into_chunks(self.start_time, self.end_time, width=chunk_width)
+
+        # Filter out evaluation periods if configured
+        if self.cfg.offline.remove_eval_from_train and self.cfg.offline.eval_periods:
+            time_chunks = exclude_from_chunks(time_chunks, self.cfg.offline.eval_periods)
 
         # Pass offline data through data pipeline chunk by chunk to produce transitions
         tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(self.cfg.pipeline.tags)]

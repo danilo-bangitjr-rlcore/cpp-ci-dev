@@ -113,6 +113,7 @@ class OfflineConfig:
     eval_periods: list[tuple[datetime, datetime]] | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
     update_agent_during_rollouts: bool = False
+    remove_eval_from_train: bool = True
 
     @post_processor
     def _validate(self, cfg: 'MainConfig'):
