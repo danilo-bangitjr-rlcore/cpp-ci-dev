@@ -81,6 +81,20 @@ class OfflineTraining:
 
         return q_losses
 
+def offline_rl_from_buffer(agent: GreedyAC, steps: int=100):
+    log.info("Starting offline agent training...")
+
+    for buffer_name, size_list in agent.get_buffer_sizes().items():
+        log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
+
+    q_losses: list[float] = []
+    for step in range(steps):
+        critic_loss = agent.update()
+        q_losses += critic_loss
+        if step % 10 == 0 or step == steps - 1:
+            log.info(f"Offline agent training step {step}/{steps}, last loss: {q_losses[-1]}")
+
+    return q_losses
 
 def load_offline_transitions(
         app_state: AppState,

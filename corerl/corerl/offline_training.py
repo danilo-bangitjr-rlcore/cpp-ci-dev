@@ -12,7 +12,12 @@ from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import OfflineTraining, load_offline_transitions, run_offline_evaluation_phase
+from corerl.offline.utils import (
+    OfflineTraining,
+    load_offline_transitions,
+    offline_rl_from_buffer,
+    run_offline_evaluation_phase,
+)
 from corerl.state import AppState
 
 logging.basicConfig(level=logging.INFO)
@@ -50,7 +55,7 @@ def main(cfg: MainConfig):
     offline_training = OfflineTraining(cfg)
     pipeline_out = load_offline_transitions(app_state, pipeline, data_reader)
     agent.update_buffer(pipeline_out)
-    offline_training.train(agent)
+    offline_rl_from_buffer(agent, cfg.offline.offline_steps)
     run_offline_evaluation_phase(cfg, app_state, agent, pipeline)
 
     app_state.metrics.close()
