@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import os
-import signal
 import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from subprocess import DEVNULL, Popen
+from subprocess import DEVNULL, Popen, TimeoutExpired
 from urllib.error import URLError
 from urllib.request import urlopen
+
+import psutil
+from lib_utils.errors import fail_gracefully
 
 from coredinator.service.protocols import ServiceID, ServiceState
 
@@ -63,6 +65,7 @@ class Service:
 
         return True
 
+    @fail_gracefully()
     def start(self):
         self._mode = ServiceMode.STARTED
         if self.is_running():
@@ -77,18 +80,21 @@ class Service:
         self._keep_alive()
 
 
+    @fail_gracefully()
     def stop(self, grace_seconds: float = 5.0) -> None:
         self._mode = ServiceMode.STOPPED
         if not self._process:
             return
 
-        stop_process(self._process, grace_seconds)
+        proc = psutil.Process(self._process.pid)
+        stop_process(proc, grace_seconds)
         self._process = None
 
 
     def restart(self):
         self.stop()
         self.start()
+
 
     def status(self):
         if self._process is None:
@@ -136,7 +142,6 @@ class Service:
         return self._config_path
 
     def _is_healthy(self) -> bool:
-        """Perform HTTP healthcheck on the service's /api/healthcheck endpoint."""
         if not self.config.healthcheck_enabled:
             return True
 
@@ -148,8 +153,8 @@ class Service:
             return False
 
     def _is_process_running(self) -> bool:
-        """Check if the service process is running without performing healthcheck."""
         return self._process is not None and self._process.poll() is None
+
 
     # -------------
     # -- Private --
@@ -185,29 +190,11 @@ class Service:
         self._keep_alive_thread = t
 
 
-def stop_process(proc: Popen, grace_seconds: float) -> None:
-    """
-    Attempt to gracefully stop a Popen process, escalating to kill if needed.
-    """
-    if proc.poll() is not None:
-        return
-
-    try:
-        proc.send_signal(signal.SIGTERM)
-    except Exception:
+@fail_gracefully()
+def stop_process(proc: psutil.Process, grace_seconds: float = 5.0) -> None:
+    for child in proc.children(recursive=True):
+        child.terminate()
         try:
-            proc.kill()
-        except Exception:
-            pass
-        return
-
-    deadline = time.monotonic() + grace_seconds
-    while time.monotonic() < deadline:
-        if proc.poll() is not None:
-            return
-        time.sleep(0.05)
-
-    try:
-        proc.kill()
-    finally:
-        pass
+            child.wait(timeout=grace_seconds)
+        except TimeoutExpired:
+            child.kill()
