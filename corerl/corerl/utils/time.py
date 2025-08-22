@@ -1,6 +1,6 @@
 import datetime as dt
 import logging
-from collections.abc import Generator
+from collections.abc import Generator, Iterable
 from datetime import UTC, datetime, timedelta
 from time import sleep
 
@@ -53,6 +53,60 @@ def percent_time_elapsed(start: dt.datetime, end: dt.datetime, cur: dt.datetime 
 
     prop = (cur - start).total_seconds() / (end - start).total_seconds()
     return np.clip(prop, 0, 1)
+
+def exclude_from_chunks(
+        time_chunks: Iterable[tuple[dt.datetime, dt.datetime]],
+        exclude_chunks: Iterable[tuple[dt.datetime, dt.datetime]],
+    ):
+    filtered_chunks = []
+    for time_chunk in time_chunks:
+        filtered_chunks.extend(exclude_from_chunk(time_chunk, exclude_chunks))
+
+    return filtered_chunks
+
+def exclude_from_chunk(
+        time_chunk: tuple[dt.datetime, dt.datetime],
+        exclude_chunks: Iterable[tuple[dt.datetime, dt.datetime]],
+    ):
+    current_chunks = [time_chunk]
+
+    for exclude_chunk in exclude_chunks:
+        new_chunks = []
+        for current_chunk in current_chunks:
+            excluded_chunks = exclude_from_chunk_single(current_chunk, exclude_chunk)
+            new_chunks.extend(excluded_chunks)
+        current_chunks = new_chunks
+
+    return current_chunks
+
+def exclude_from_chunk_single(
+        time_chunk: tuple[dt.datetime, dt.datetime],
+        exclude_chunk: tuple[dt.datetime, dt.datetime],
+    ):
+
+    return_chunks = []
+    curr_start, curr_end = time_chunk[0], time_chunk[1]
+    exclude_start, exclude_end = exclude_chunk[0], exclude_chunk[1]
+
+    if exclude_end <= curr_start or curr_end <= exclude_start:
+        # No overlap
+        return_chunks = [(curr_start, curr_end)]
+
+    elif curr_start < exclude_start and curr_end > exclude_end:
+        # Evaluation period is inside chunk - split into two
+        return_chunks.append((curr_start, exclude_start))
+        return_chunks.append((exclude_end, curr_end))
+
+    elif curr_start < exclude_start:
+        # Partial overlap at end
+        return_chunks.append((curr_start, exclude_start))
+
+    elif curr_end > exclude_end:
+        # Partial overlap at start
+        return_chunks.append((exclude_end, curr_end))
+
+    # else if chunk is completely inside eval period, don't add anything
+    return return_chunks
 
 
 # ----------------------
