@@ -9,16 +9,16 @@ from coredinator.service.protocols import ServiceState
 
 
 def db_recovery_decorator[**P, R](
-    method: Callable[Concatenate['AgentManager', P], R],
-) -> Callable[Concatenate['AgentManager', P], R]:
-    def wrapper(self: 'AgentManager', *args: P.args, **kwargs: P.kwargs) -> R:
+    method: Callable[Concatenate["AgentManager", P], R],
+) -> Callable[Concatenate["AgentManager", P], R]:
+    def wrapper(self: "AgentManager", *args: P.args, **kwargs: P.kwargs) -> R:
         try:
             return method(self, *args, **kwargs)
         except sqlite3.DatabaseError:
             self._init_database()
             return method(self, *args, **kwargs)
-    return cast(Any, wrapper)
 
+    return cast(Any, wrapper)
 
 
 class AgentManager:
