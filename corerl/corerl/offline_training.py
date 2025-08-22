@@ -13,7 +13,6 @@ from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import (
-    OfflineTraining,
     load_offline_transitions,
     offline_rl_from_buffer,
     run_offline_evaluation_phase,
@@ -52,7 +51,6 @@ def main(cfg: MainConfig):
 
     # Offline training
     assert cfg.offline.offline_steps > 0
-    offline_training = OfflineTraining(cfg)
     pipeline_out = load_offline_transitions(app_state, pipeline, data_reader)
     agent.update_buffer(pipeline_out)
     offline_rl_from_buffer(agent, cfg.offline.offline_steps)

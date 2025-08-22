@@ -48,39 +48,6 @@ def load_entire_dataset(
     )
 
 
-class OfflineTraining:
-    def __init__(
-        self,
-        cfg: MainConfig,
-    ):
-        self.cfg = cfg
-        self.start_time = cfg.offline.offline_start_time
-        self.end_time = cfg.offline.offline_end_time
-        self.offline_steps = self.cfg.offline.offline_steps
-        self.pipeline_out: PipelineReturn | None = None
-
-    def train(self, agent: GreedyAC):
-        assert isinstance(self.start_time, dt.datetime)
-        assert isinstance(self.end_time, dt.datetime)
-        assert self.pipeline_out is not None
-        assert self.pipeline_out.transitions is not None
-        assert len(self.pipeline_out.transitions) > 0, (
-            "You must first load offline transitions before you can perform offline training"
-        )
-        log.info("Starting offline agent training...")
-
-        for buffer_name, size_list in agent.get_buffer_sizes().items():
-            log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
-
-        q_losses: list[float] = []
-        for step in range(self.offline_steps):
-            critic_loss = agent.update()
-            q_losses += critic_loss
-            if step % 10 == 0 or step == self.offline_steps - 1:
-                log.info(f"Offline agent training step {step}/{self.offline_steps}")
-
-        return q_losses
-
 def offline_rl_from_buffer(agent: GreedyAC, steps: int=100):
     log.info("Starting offline agent training...")
 
