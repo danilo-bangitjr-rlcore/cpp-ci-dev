@@ -4,6 +4,7 @@ from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -65,3 +66,7 @@ async def health():
 
 
 app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
+
+
+if __name__ == "__main__":
+    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=8000, reload=True)
