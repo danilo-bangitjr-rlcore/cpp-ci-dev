@@ -1,5 +1,7 @@
 import datetime as dt
 import logging
+from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 import jax.numpy as jnp
 import numpy as np
@@ -14,6 +16,7 @@ from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval import agent as agent_eval
 from corerl.state import AppState
+from corerl.tags.components.opc import Agg
 from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import split_into_chunks
 
@@ -124,27 +127,59 @@ def run_offline_evaluation_phase(
     Loads data in single obs_period chunks between offline_eval_start_time and offline_eval_end_time,
     processes through the pipeline, and updates the agent.
     """
-    eval_start = cfg.offline.offline_eval_start_time
-    eval_end = cfg.offline.offline_eval_end_time
-    obs_period = cfg.interaction.obs_period
-    if eval_start is None or eval_end is None:
-        log.info("No evaluation phase: offline_eval_start_time or offline_eval_end_time not set.")
+    if cfg.offline.eval_periods is None:
+        log.info("No evaluation phase.")
         return
 
-    log.info(f"Starting evaluation phase: {eval_start} to {eval_end}")
     data_reader = DataReader(db_cfg=cfg.env.db)
     tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
 
+    for eval_period in cfg.offline.eval_periods:
+        start = eval_period[0]
+        end = eval_period[1]
+        log.info(f"Starting evaluation phase: {start} to {end}")
+        rollout_params = RolloutParameters(
+            start,
+            end,
+            cfg.interaction.obs_period,
+            tag_names=tag_names,
+            data_agg=cfg.env.db.data_agg,
+            update_agent=update_agent,
+        )
+        do_offline_rollout(app_state, agent, pipeline, data_reader, rollout_params)
+
+@dataclass
+class RolloutParameters:
+    eval_start: datetime
+    eval_end: datetime
+    obs_period: timedelta
+    tag_names: list[str]
+    data_agg: Agg
+    update_agent: bool = True
+
+def do_offline_rollout(
+    app_state: AppState,
+    agent: GreedyAC,
+    pipeline: Pipeline,
+    data_reader: DataReader,
+    params: RolloutParameters,
+    ):
+
     state = None
     # Create 1 obs_period-wide chunks
-    time_chunks = split_into_chunks(eval_start, eval_end, width=obs_period)
+    time_chunks = split_into_chunks(
+        params.eval_start,
+        params.eval_end,
+        width=params.obs_period,
+    )
     for chunk_start, chunk_end in time_chunks:
+        log.info(f"Rolling out on {chunk_start} to {chunk_end}.")
         chunk_data = data_reader.batch_aggregated_read(
-            names=tag_names,
+            names=params.tag_names,
             start_time=chunk_start,
             end_time=chunk_end,
-            bucket_width=obs_period,
-            aggregation=cfg.env.db.data_agg,
+            bucket_width=params.obs_period,
+            aggregation=params.data_agg,
         )
         chunk_pr = pipeline(
             data=chunk_data,
@@ -170,13 +205,11 @@ def run_offline_evaluation_phase(
             log.warning(f"No transitions found for eval chunk: {chunk_start} to {chunk_end}")
             continue
 
-        if update_agent:
+        if params.update_agent:
             agent.update_buffer(chunk_pr)
-            loss = agent.update()
-            log.info(
-                f"Agent updating on {chunk_start} to {chunk_end}:",
-                f"num transitions={len(chunk_pr.transitions)},loss={loss}",
-            )
+            losses = agent.update()
+            log.info(f"Agent updated with num transitions={len(chunk_pr.transitions)}, final q loss={losses[-1]}")
+
         app_state.agent_step += 1
 
 def _write_to_metrics(app_state: AppState, df: pd.DataFrame, prefix: str = ""):

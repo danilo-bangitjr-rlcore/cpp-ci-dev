@@ -110,8 +110,7 @@ class OfflineConfig:
     offline_steps: int = 0
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
-    offline_eval_start_time: datetime | None = None
-    offline_eval_end_time: datetime | None = None
+    eval_periods: list[tuple[datetime, datetime]] | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
 
     @post_processor
@@ -121,6 +120,14 @@ class OfflineConfig:
                 self.offline_start_time < self.offline_end_time
             ), "Offline training start timestamp must come before the offline training end timestamp."
 
+        if self.eval_periods is not None:
+            for i, eval_period in enumerate(self.eval_periods):
+                assert len(eval_period) == 2, "Eval periods must be defined as a list with length 2."
+                start = eval_period[0]
+                end = eval_period[1]
+                assert start < end, "Eval start must precede eval end."
+                self.eval_periods[i] = (start, end)
+            # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
 
 @config()
 class MainConfig:
