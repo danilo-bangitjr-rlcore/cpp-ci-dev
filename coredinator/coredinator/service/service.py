@@ -9,6 +9,8 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from subprocess import DEVNULL, Popen
+from urllib.error import URLError
+from urllib.request import urlopen
 
 from coredinator.service.protocols import ServiceID, ServiceState
 
@@ -30,6 +32,10 @@ class ServiceStatus:
 class ServiceConfig:
     heartbeat_interval: timedelta = timedelta(seconds=5)
     degraded_wait: timedelta = timedelta(seconds=30)
+    host: str = "127.0.0.1"
+    port: int = 8080
+    healthcheck_timeout: timedelta = timedelta(seconds=3)
+    healthcheck_enabled: bool = False
 
 
 class Service:
@@ -49,8 +55,13 @@ class Service:
     # -- Public --
     # ------------
     def is_running(self):
-        return self._process is not None and self._process.poll() is None
+        if not self._is_process_running():
+            return False
 
+        if self.config.healthcheck_enabled:
+            return self._is_healthy()
+
+        return True
 
     def start(self):
         self._mode = ServiceMode.STARTED
@@ -88,19 +99,24 @@ class Service:
             )
 
         code = self._process.poll()
-        if code is None:
+        if code is not None:
+            # Process has exited - determine if it was a clean stop or failure
+            if code == 0 and self._mode == ServiceMode.STOPPED:
+                state = ServiceState.STOPPED
+            else:
+                state = ServiceState.FAILED
             return ServiceStatus(
                 id=self.id,
-                state=ServiceState.RUNNING,
+                state=state,
                 config_path=self._config_path,
             )
 
+        state = ServiceState.RUNNING if self._is_healthy() else ServiceState.FAILED
         return ServiceStatus(
             id=self.id,
-            state=ServiceState.FAILED,
+            state=state,
             config_path=self._config_path,
         )
-
 
     # -----------------
     # -- Validations --
@@ -119,6 +135,21 @@ class Service:
 
         return self._config_path
 
+    def _is_healthy(self) -> bool:
+        """Perform HTTP healthcheck on the service's /api/healthcheck endpoint."""
+        if not self.config.healthcheck_enabled:
+            return True
+
+        try:
+            url = f"http://{self.config.host}:{self.config.port}/api/healthcheck"
+            with urlopen(url, timeout=self.config.healthcheck_timeout.total_seconds()) as response:
+                return response.status == 200
+        except (URLError, OSError):
+            return False
+
+    def _is_process_running(self) -> bool:
+        """Check if the service process is running without performing healthcheck."""
+        return self._process is not None and self._process.poll() is None
 
     # -------------
     # -- Private --

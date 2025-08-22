@@ -21,7 +21,7 @@ def test_initial_status_stopped(
     """
     manager = AgentManager(base_path=dist_with_fake_executable)
 
-    agent_id = AgentID('agent')
+    agent_id = AgentID("agent")
     s = manager.get_agent_status(agent_id)
 
     assert s.id == agent_id
@@ -92,7 +92,7 @@ def test_failed_status_when_process_exits_nonzero(
     agent_id = manager.start_agent(config_file)
 
     # Wait briefly to allow process to exit
-    time.sleep(0.2)
+    time.sleep(0.5)
 
     assert manager.get_agent_status(agent_id).state == "failed"
 
@@ -175,4 +175,105 @@ def test_degraded_state_triggers_restart(
 
     status = service.status()
     assert status.state == "running"
+    service.stop()
+
+
+@pytest.mark.timeout(10)
+def test_healthcheck_fails_when_unhealthy(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+    free_localhost_port: int,
+):
+    """Test that unhealthy healthcheck makes service state failed."""
+    # Configure agent to run but be unhealthy
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    monkeypatch.setenv("FAKE_AGENT_HEALTHCHECK", "unhealthy")
+
+    # Enable healthcheck with a dynamically allocated port
+    config = ServiceConfig(
+        healthcheck_enabled=True,
+        port=free_localhost_port,
+        healthcheck_timeout=timedelta(seconds=1),
+    )
+    service = CoreIOService(ServiceID("test-svc"), config_file, dist_with_fake_executable, config)
+
+    # Set the port for the fake agent
+    monkeypatch.setenv("FAKE_AGENT_PORT", str(free_localhost_port))
+
+    service.start()
+
+    # Wait for service to start and healthcheck to be performed
+    time.sleep(1.0)
+
+    status = service.status()
+    assert status.state == "failed"  # Should be failed due to unhealthy healthcheck
+
+    service.stop()
+
+
+@pytest.mark.timeout(10)
+def test_healthcheck_succeeds_when_healthy(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+    free_localhost_port: int,
+):
+    """Test that healthy healthcheck makes service state running."""
+    # Configure agent to run and be healthy
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    monkeypatch.setenv("FAKE_AGENT_HEALTHCHECK", "healthy")
+
+    # Enable healthcheck with a dynamically allocated port
+    config = ServiceConfig(
+        healthcheck_enabled=True,
+        port=free_localhost_port,
+        healthcheck_timeout=timedelta(seconds=1),
+    )
+    service = CoreIOService(ServiceID("test-svc"), config_file, dist_with_fake_executable, config)
+
+    # Set the port for the fake agent
+    monkeypatch.setenv("FAKE_AGENT_PORT", str(free_localhost_port))
+
+    service.start()
+
+    # Wait for service to start and healthcheck to be performed
+    time.sleep(1.0)
+
+    status = service.status()
+    assert status.state == "running"  # Should be running due to healthy healthcheck
+
+    service.stop()
+
+
+@pytest.mark.timeout(10)
+def test_healthcheck_disabled_ignores_endpoint(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+    free_localhost_port: int,
+):
+    """Test that disabled healthcheck ignores endpoint health."""
+    # Configure agent to run but be unhealthy
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    monkeypatch.setenv("FAKE_AGENT_HEALTHCHECK", "unhealthy")
+
+    # Disable healthcheck
+    config = ServiceConfig(
+        healthcheck_enabled=False,
+        port=free_localhost_port,
+    )
+    service = CoreIOService(ServiceID("test-svc"), config_file, dist_with_fake_executable, config)
+
+    # Set the port for the fake agent
+    monkeypatch.setenv("FAKE_AGENT_PORT", str(free_localhost_port))
+
+    service.start()
+
+    # Wait for service to start
+    time.sleep(1.0)
+
+    status = service.status()
+    assert status.state == "running"  # Should be running despite unhealthy endpoint
+
     service.stop()

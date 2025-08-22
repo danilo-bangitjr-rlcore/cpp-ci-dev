@@ -243,7 +243,7 @@ def test_failed_agent_status_when_child_exits_nonzero(
     assert start.status_code == 200
     agent_id = start.json()
 
-    time.sleep(0.25)
+    time.sleep(0.5)
     status = app_client.get(f"/api/agents/{agent_id}/status")
     assert status.status_code == 200
     assert status.json()["state"] == "failed"

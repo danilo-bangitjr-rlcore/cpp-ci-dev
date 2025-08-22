@@ -4,7 +4,11 @@ from __future__ import annotations
 import os
 import signal
 import sys
+import threading
 import time
+
+import uvicorn
+from fastapi import FastAPI
 
 
 def _parse_args(argv: list[str]) -> dict[str, str | None]:
@@ -26,6 +30,54 @@ def _install_sigterm_exit():
     signal.signal(signal.SIGTERM, handler)
 
 
+def _create_app():
+    """Create FastAPI app with healthcheck endpoint."""
+    app = FastAPI()
+
+    @app.get("/api/healthcheck")
+    async def _():
+        # Check if we should return unhealthy (check each time, not just at startup)
+        import os
+        if os.environ.get("FAKE_AGENT_HEALTHCHECK", "healthy") == "unhealthy":
+            from fastapi import HTTPException
+            raise HTTPException(status_code=500, detail="Service is unhealthy")
+        return {"status": "ok"}
+
+    return app
+
+
+def _run_server():
+    """Run FastAPI server in background thread."""
+    import socket
+
+    app = _create_app()
+    if app is None:
+        return
+
+    # Find an available port
+    port = int(os.environ.get("FAKE_AGENT_PORT", "0"))
+    if port == 0:
+        # Find a free port
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.bind(('127.0.0.1', 0))
+            port = s.getsockname()[1]
+
+    # Write the port to a file so tests can read it
+    port_file = os.environ.get("FAKE_AGENT_PORT_FILE")
+    if port_file:
+        with open(port_file, "w") as f:
+            f.write(str(port))
+
+    config = uvicorn.Config(
+        app,
+        host="127.0.0.1",
+        port=port,
+        log_level="critical",  # Suppress logs during tests
+    )
+    server = uvicorn.Server(config)
+    server.run()
+
+
 def main(argv: list[str]) -> int:
     _ = _parse_args(argv)
 
@@ -36,6 +88,11 @@ def main(argv: list[str]) -> int:
         return 1
 
     _install_sigterm_exit()
+
+    # Start FastAPI server in background thread (only for long-running mode)
+    server_thread = threading.Thread(target=_run_server, daemon=True)
+    server_thread.start()
+
     # Stay alive until killed; sleep in small increments to react to signals.
     try:
         while True:
