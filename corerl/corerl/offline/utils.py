@@ -177,6 +177,7 @@ def run_offline_evaluation_phase(
                 f"Agent updating on {chunk_start} to {chunk_end}:",
                 f"num transitions={len(chunk_pr.transitions)},loss={loss}",
             )
+        app_state.agent_step += 1
 
 def _write_to_metrics(app_state: AppState, df: pd.DataFrame, prefix: str = ""):
     for feat_name in df.columns:
