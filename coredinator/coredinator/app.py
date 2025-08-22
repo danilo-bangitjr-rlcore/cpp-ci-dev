@@ -1,5 +1,4 @@
 import argparse
-import importlib.metadata
 import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
@@ -17,6 +16,7 @@ _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.INFO)
 
 logger = logging.getLogger("uvicorn")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,11 +44,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-try:
-    version = importlib.metadata.version("corerl")
-except Exception:
-    logger.exception("Failed to determine corerl version")
-    version = "0.0.0"
+version = "0.0.0"
 
 
 @app.middleware("http")
