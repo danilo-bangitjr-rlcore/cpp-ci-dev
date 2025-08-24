@@ -122,8 +122,11 @@ class Maybe[T]:
     # ----------------
     # -- Unwrappers --
     # ----------------
-    def expect(self, msg: str = '') -> T:
+    def expect(self, msg: str | Exception = '') -> T:
         if self._v is None:
+            if isinstance(msg, Exception):
+                raise msg
+
             raise Exception(msg)
 
         return self._v
