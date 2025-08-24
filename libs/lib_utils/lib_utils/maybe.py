@@ -191,5 +191,17 @@ class Maybe[T]:
 
 
     @staticmethod
+    def flat_from_try[U](
+        f: Callable[[], Maybe[U]],
+        e: type[Exception] = Exception,
+    ) -> Maybe[U]:
+        try:
+            return f()
+        except e:
+            logging.exception('Maybe.flat_from_try caught an exception')
+            return Maybe(None)
+
+
+    @staticmethod
     def find[U](pred: Callable[[U], bool], li: Iterable[U]) -> Maybe[U]:
         return Maybe[U](find(pred, li))

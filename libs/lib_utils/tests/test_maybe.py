@@ -150,3 +150,29 @@ def test_expect_with_exception_instance():
 
     with pytest.raises(MyErr):
         m.expect(err)
+
+
+def test_flat_from_try_success():
+    def inner() -> Maybe[int]:
+        return Maybe(33)
+
+    got = Maybe.flat_from_try(inner).unwrap()
+    assert got == 33
+
+
+def test_flat_from_try_inner_none():
+    def inner() -> Maybe[int]:
+        return Maybe(None)
+
+    got = Maybe.flat_from_try(inner).unwrap()
+    assert got is None
+
+
+def test_flat_from_try_exception():
+    class MyErr(Exception):
+        pass
+
+    def inner() -> Maybe[int]:
+        raise MyErr('boom')
+    res = Maybe.flat_from_try(inner)
+    assert res.unwrap() is None
