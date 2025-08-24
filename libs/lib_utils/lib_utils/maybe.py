@@ -4,7 +4,7 @@ import logging
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any, overload
 
-from lib_utils.list import find
+from lib_utils.list import find, find_instance
 
 
 class Maybe[T]:
@@ -205,3 +205,8 @@ class Maybe[T]:
     @staticmethod
     def find[U](pred: Callable[[U], bool], li: Iterable[U]) -> Maybe[U]:
         return Maybe[U](find(pred, li))
+
+
+    @staticmethod
+    def find_instance[U](inst: type[U], li: Iterable[object]) -> Maybe[U]:
+        return Maybe[U](find_instance(inst, li))

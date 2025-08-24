@@ -176,3 +176,29 @@ def test_flat_from_try_exception():
         raise MyErr('boom')
     res = Maybe.flat_from_try(inner)
     assert res.unwrap() is None
+
+
+def test_find_instance_returns_some_for_matching_type():
+    class A:
+        pass
+
+    class B:
+        pass
+
+    items = [B(), A(), B()]
+
+    maybe_a = Maybe.find_instance(A, items)
+
+    assert maybe_a.is_some()
+    assert isinstance(maybe_a.unwrap(), A)
+
+
+def test_find_instance_returns_none_when_no_match():
+    class A:
+        pass
+
+    items = [1, 2, 3]
+
+    maybe_a = Maybe.find_instance(A, items)
+
+    assert maybe_a.is_none()
