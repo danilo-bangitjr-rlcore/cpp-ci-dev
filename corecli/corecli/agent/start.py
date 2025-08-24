@@ -12,7 +12,9 @@ def start(ctx: click.Context, config_path: str, name: str | None, follow_logs: b
     """
     # Implementation will be added later
     click.echo(f"🚧 Starting agent with config: {config_path}")
-    if name:
+
+    if name is not None:
         click.echo(f"🏷️  Agent name: {name}")
+
     if follow_logs:
         click.echo("📝 Will follow logs after start")
