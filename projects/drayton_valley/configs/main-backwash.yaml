@@ -84,7 +84,7 @@ pipeline:
     name: all-the-time
     # n_step should be 16, give some buffer
     min_n_step: 15
-    max_n_step: 17
+    max_n_step: 16
 
   transition_filter:
     filters:
@@ -179,7 +179,7 @@ pipeline:
 
   - name: FLR03_TRYP_PV # permeate tryptophan
     operating_range: [0, 10]
-    red_bounds: [null, 6]
+    expected_range: [2, 7]
 
   - name: FLR04_TRYP_PV # drain tryptophan
     operating_range: [0, 20]
@@ -189,10 +189,11 @@ pipeline:
 
   - name: FLR03_CDOM_PV # permeate cdom
     operating_range: [0, 100]
-    red_bounds: [null, 60]
+    expected_range: [15, 40]
 
   - name: AIT310_PV # raw turbidity
-    operating_range: [0, 30]
+    expected_range: [0, 150]
+    operating_range: [0, null]
 
   - name: AIT320_PV # permeate turbidity
     operating_range: [0, 30]
