@@ -1,9 +1,9 @@
 from datetime import timedelta
 
-from lib_config.config import MISSING, config
+from lib_config.config import MISSING, config, list_
 from pydantic import Field
 
-from coreio.config import CoreIOConfig
+from coreio.config import CoreIOConfig, TagConfigAdapter
 
 
 @config(allow_extra=True, frozen=True)
@@ -29,6 +29,10 @@ class InfraConfigAdapter:
     db: DBConfigAdapter = Field(default_factory=DBConfigAdapter)
 
 @config(allow_extra=True, frozen=True)
+class PipelineConfigAdapter:
+    tags: list[TagConfigAdapter] = list_()
+
+@config(allow_extra=True, frozen=True)
 class HeartbeatConfigAdapter:
     connection_id: str | None = ""
     heartbeat_node_id: str | None = ""
@@ -42,6 +46,7 @@ class InteractionConfigAdapter:
 @config(allow_extra=True, frozen=True)
 class MainConfigAdapter:
     coreio: CoreIOConfig = Field(default_factory=CoreIOConfig)
+    pipeline: PipelineConfigAdapter = Field(default_factory=PipelineConfigAdapter)
     interaction: InteractionConfigAdapter = Field(default_factory=InteractionConfigAdapter)
     env: AsyncEnvConfigAdapter = Field(default_factory=AsyncEnvConfigAdapter)
     infra: InfraConfigAdapter = Field(default_factory=InfraConfigAdapter)
