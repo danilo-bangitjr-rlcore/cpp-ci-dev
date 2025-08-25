@@ -55,7 +55,6 @@ def main(cfg: MainConfig):
     assert pipeline_out is not None
     agent.update_buffer(pipeline_out)
     offline_rl_from_buffer(agent, cfg.offline.offline_steps)
-    # do_offline_rollouts(cfg, app_state, agent, pipeline, data_reader)
     get_all_offline_recommendations(app_state, agent, pipeline, data_reader)
 
     app_state.metrics.close()
