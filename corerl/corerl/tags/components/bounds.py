@@ -319,9 +319,7 @@ def eval_bound(
     data: pd.DataFrame | None,
     bound_info: BoundInfo,  # This is the last argument for cleaner mapping in Maybe with functools partial
 ) -> Maybe[float]:
-    def _inner() -> float | None:
-        assert data is not None
-
+    def _inner(data: pd.DataFrame) -> float | None:
         res_func, res_tags = bound_info.bound_func, bound_info.bound_tags
         assert res_func and res_tags  # Assertion for pyright
 
@@ -339,10 +337,7 @@ def eval_bound(
     bound = bound_info.bound_elem
 
     if isinstance(bound, str):
-        if data is not None:
-            return Maybe(_inner())
-
-        return Maybe(None)
+        return Maybe(data).map(_inner)
 
     return Maybe(bound)
 
