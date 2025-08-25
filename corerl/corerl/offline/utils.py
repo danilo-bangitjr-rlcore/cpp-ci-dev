@@ -103,7 +103,7 @@ def load_offline_transitions(
         if out:
             out += chunk_pr
         else:
-           out = chunk_pr
+            out = chunk_pr
 
     return out
 
