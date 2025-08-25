@@ -123,12 +123,11 @@ class OfflineConfig:
             ), "Offline training start timestamp must come before the offline training end timestamp."
 
         if self.eval_periods is not None:
-            for i, eval_period in enumerate(self.eval_periods):
+            for eval_period in self.eval_periods:
                 assert len(eval_period) == 2, "Eval periods must be defined as a list with length 2."
                 start = eval_period[0]
                 end = eval_period[1]
                 assert start < end, "Eval start must precede eval end."
-                self.eval_periods[i] = (start, end)
             # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
 
 @config()
