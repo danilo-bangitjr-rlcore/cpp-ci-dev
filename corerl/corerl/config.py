@@ -112,7 +112,7 @@ class OfflineConfig:
     offline_end_time: datetime | None = None
     eval_periods: list[tuple[datetime, datetime]] | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
-    update_agent_during_rollouts: bool = False
+    update_agent_during_offline_recs: bool = False
     remove_eval_from_train: bool = True
 
     @post_processor

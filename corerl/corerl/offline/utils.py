@@ -141,18 +141,18 @@ def run_offline_evaluation_phase(
         start = eval_period[0]
         end = eval_period[1]
         log.info(f"Starting evaluation phase: {start} to {end}")
-        rollout_params = RolloutParameters(
+        params = OfflineRecParameters(
             start,
             end,
             cfg.interaction.obs_period,
             tag_names=tag_names,
             data_agg=cfg.env.db.data_agg,
-            update_agent=cfg.offline.update_agent_during_rollouts,
+            update_agent=cfg.offline.update_agent_during_offline_recs,
         )
-        do_offline_rollout(app_state, agent, pipeline, data_reader, rollout_params)
+        get_offline_recommendations(app_state, agent, pipeline, data_reader, params)
 
 @dataclass
-class RolloutParameters:
+class OfflineRecParameters:
     eval_start: datetime
     eval_end: datetime
     obs_period: timedelta
@@ -160,12 +160,12 @@ class RolloutParameters:
     data_agg: Agg
     update_agent: bool = True
 
-def do_offline_rollout(
+def get_offline_recommendations(
     app_state: AppState,
     agent: GreedyAC,
     pipeline: Pipeline,
     data_reader: DataReader,
-    params: RolloutParameters,
+    params: OfflineRecParameters,
     ):
 
     state = None
