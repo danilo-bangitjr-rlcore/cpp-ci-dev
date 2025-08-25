@@ -16,8 +16,8 @@ from sqlalchemy import (
 )
 
 from coreio.communication.opc_communication import NodeData, OPC_Connection
-from coreio.config import OPCConnectionConfig
-from coreio.utils.config_schemas import HeartbeatConfigAdapter, TagConfigAdapter
+from coreio.config import OPCConnectionConfig, TagConfigAdapter
+from coreio.utils.config_schemas import HeartbeatConfigAdapter
 
 logger = logging.getLogger()
 
