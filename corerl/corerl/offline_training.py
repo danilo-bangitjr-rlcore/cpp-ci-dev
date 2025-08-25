@@ -52,6 +52,7 @@ def main(cfg: MainConfig):
     # Offline training
     assert cfg.offline.offline_steps > 0
     pipeline_out = load_offline_transitions(app_state, pipeline, data_reader)
+    assert pipeline_out is not None
     agent.update_buffer(pipeline_out)
     offline_rl_from_buffer(agent, cfg.offline.offline_steps)
     # do_offline_rollouts(cfg, app_state, agent, pipeline, data_reader)
