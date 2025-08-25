@@ -1,3 +1,6 @@
+defaults:
+  - ./coreio_main_tags.yaml
+
 log_path: outputs/main/backwash
 agent_name: main_backwash
 seed: 1
@@ -40,9 +43,26 @@ event_bus:
 
 coreio:
   coreio_origin: "tcp://localhost:5560"
+  data_ingress:
+    enabled: True
+    ingress_period: 00:00:01
   opc_connections:
     - connection_id: main_opc
+      opc_conn_url: "opc.tcp://localhost:62541"
+      application_uri: main_bw
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+    - connection_id: backwash_wa
       opc_conn_url: "opc.tcp://localhost:50505"
+      application_uri: main_bw
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+    - connection_id: coag_wa
+      opc_conn_url: "opc.tcp://localhost:50506"
       application_uri: main_bw
       security_policy:
         policy: none
@@ -53,7 +73,7 @@ coreio:
 env:
   name: dep_async_env
   db:
-    table_name: "main"
+    table_name: "main_sensors"
 
 metrics:
   enabled: True
@@ -95,14 +115,14 @@ pipeline:
 
   tags:
   - name: DEP_BP_FLOW_SP_WA
-    connection_id: main_opc
+    connection_id: backwash_wa
     node_identifier: "ns=1;s=ai_flow_sp"
     operating_range: [120, 179]
     type: ai_setpoint
     agg: last
 
   - name: DEP_BP_DUR_SP_WA
-    connection_id: main_opc
+    connection_id: backwash_wa
     node_identifier: "ns=1;s=ai_dur_sp"
     operating_range: [10, 30]
     type: ai_setpoint
