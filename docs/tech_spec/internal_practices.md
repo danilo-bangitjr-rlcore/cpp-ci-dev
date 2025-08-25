@@ -1,13 +1,10 @@
 # Internal Development Practices (Confidential)
 
-**Note:** This document contains internal development tools, workflows, and practices. It is intended for internal use only and should not be shared externally.
-
 ## Code Quality Standards
 
 ### Formatting and Linting
-- **Primary Tool**: Ruff (replaces Black, isort, flake8)
+- **Primary Tool**: Ruff
 - **Line Length**: 120 characters
-- **Quote Style**: Double quotes
 - **Import Organization**: Standard, third-party, local
 
 ### Type Checking
@@ -34,26 +31,6 @@
 
 ## Configuration Management
 
-### Hierarchical Configuration
-```yaml
-# Base configuration
-experiment:
-  name: "default"
-  max_steps: 1000
-
-# Environment-specific overrides
-env:
-  db:
-    ip: "localhost"
-    port: 5432
-  
-# Customer-specific configurations
-customer:
-  constraints:
-    power_limit: 1000
-    efficiency_target: 0.85
-```
-
 ### Validation
 - **Schema Validation**: Pydantic models for type safety
 - **Runtime Validation**: Configuration health checks
@@ -62,25 +39,27 @@ customer:
 ## Development Workflow
 
 ### Feature Development
-1. **Branch Creation**: Feature branches from `main`
-2. **Development**: TDD approach with tests first
+1. **Branch Creation**: Feature branches from `master`
+2. **Development**: High test coverage and fast feedback loops
 3. **Code Review**: PR-based review process
 4. **Quality Gates**: Automated CI/CD checks
-5. **Deployment**: Automated deployment to staging
+5. **Staging**: Automated deployment to staging
 
 ### Commit Standards
 - **Format**: Conventional commits format
 - **Scope**: Clear scope indicators (feat, fix, docs, etc.)
+  - JIRA issue tags or service scopes e.g. `feat(corerl): msg` or `feat(JIRA-123): msg`.
 - **Description**: Imperative mood, clear action
 
 ## Documentation Standards
 
 ### Code Documentation
-- **Docstrings**: Google-style docstrings for all public APIs
-- **Type Hints**: Comprehensive type annotations
+- **Docstrings**: Generally only used when naming conventions are insufficient
+- **Type Hints**: Comprehensive type annotations on inputs, outputs left inferred
+  - Aim for no `Any` or `Unknown` in codebase.
 - **Comments**: Explain "why" not "what"
 
 ### Technical Documentation
 - **Architecture**: Mermaid diagrams for system design
-- **APIs**: OpenAPI/Swagger for REST endpoints
-- **Deployment**: Step-by-step deployment guides
+- **APIs**: OpenAPI specifications for REST endpoints
+- **Deployment**: Deployment guides are part of each service's technical specification, detailing management via `coredinator`.

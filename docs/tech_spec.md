@@ -40,45 +40,53 @@ The CoreRL system implements a distributed microservices architecture optimized 
 
 ```mermaid
 flowchart TD
+  subgraph "Public Zone"
     CoreUI[CoreUI]
-    CoreAuth["CoreAuth<br/> - user authentication<br/> - session management<br/> - access control<br/> - software license key<br/> - service endpoints"]
-    Coredinator["Coredinator<br/> - spin up services*<br/> - multi-agent orchestration*<br/> - installation<br/> - healthcheck*"]
-    CoreIO["CoreIO<br/> - data ingress<br/> - write setpoints to opc*<br/> - write alarms to opc<br/> - write heartbeat to opc*<br/> - high-freq events triggering<br/> - authenticated opc handshake*<br/> - encrypted comms*<br/> - outbound opc data validation"]
-    CoreRL["CoreRL<br/> - agent updating*<br/> - setpoint recommendations*<br/> - internal health metrics*<br/> - estimated value add*<br/> - predicted next setpoint*<br/> - goal satisfaction metrics*<br/> - constraint satisfaction metrics*<br/> - optimization metrics*<br/> - uncertainty estimation"]
-    SensorDB[(SensorDB*)]
-    DataPipeline["DataPipeline<br/> - virtual tags*<br/> - anomaly detection<br/> - missing data imputation*<br/> - event triggering*<br/> - data preprocessing*<br/> - constraints encoding*<br/> - goal specification*"]
+    CoreGateway["CoreGateway<br/>- API Gateway<br/>- Authentication<br/>- Rate Limiting<br/>- Routing"]
+  end
+
+  subgraph "Internal Services"
+    CoreAuth["CoreAuth<br/> - user authentication<br/> - session management<br/> - access control"]
+    Coredinator["Coredinator<br/> - multi-agent orchestration<br/> - service lifecycle"]
+    CoreIO["CoreIO<br/> - OPC UA comms<br/> - data ingress/egress"]
+    CoreRL["CoreRL<br/> - agent updating<br/> - setpoint recommendations"]
+    CoreConfig["CoreConfig<br/> - configuration management"]
+    CoreTelemetry["CoreTelemetry<br/> - metrics and logging"]
+  end
+
+  subgraph "Data & Persistence Layer"
+    SensorDB[(SensorDB)]
     Buffer[(Buffer)]
-    CoreTelemetry["CoreTelemetry<br/> - cpu / ram / disk monitoring<br/> - local metrics caching*<br/> - cloud if outbound internet<br/> - error logging and observability<br/> - server instrumentation"]
-    LocalCache[(LocalCache*)]
+    LocalCache[(LocalCache)]
     CloudMetrics[(CloudMetrics)]
-    CoreConfig["CoreConfig<br/> - validation*<br/> - live updating<br/> - config access control<br/> - audit logging"]
     ConfigDB[(ConfigDB)]
+    DataPipeline["DataPipeline<br/> - data processing"]
+  end
 
-    CoreUI --> CoreAuth
-    CoreAuth --> Coredinator
+  %% Connections
+  CoreUI --> CoreGateway
 
-    subgraph AuthenticatedUser
-        Coredinator --> CoreTelemetry
-        Coredinator --> CoreIO
-        Coredinator --> CoreRL
-        Coredinator <--> CoreConfig
+  CoreGateway --> CoreAuth
+  CoreGateway --> Coredinator
+  CoreGateway --> CoreIO
+  CoreGateway --> CoreRL
+  CoreGateway --> CoreConfig
+  CoreGateway --> CoreTelemetry
 
-        subgraph Comms
-            CoreTelemetry <--> LocalCache
-            CoreTelemetry <--> CloudMetrics
-            LocalCache -.-> CloudMetrics
-            CoreIO --> SensorDB
-        end
+  Coredinator --> CoreIO
+  Coredinator --> CoreRL
+  Coredinator --> CoreConfig
+  Coredinator --> CoreTelemetry
 
-        SensorDB --> DataPipeline
-        CoreConfig <--> ConfigDB
-        CoreConfig --> CoreRL
-
-        subgraph Agent
-            DataPipeline --> Buffer
-            Buffer --> CoreRL
-        end
-    end
+  CoreIO --> SensorDB
+  SensorDB --> DataPipeline
+  DataPipeline --> Buffer
+  Buffer --> CoreRL
+  CoreConfig <--> ConfigDB
+  CoreConfig --> CoreRL
+  CoreTelemetry -- "local" --> LocalCache
+  LocalCache -.-> CloudMetrics
+  CoreTelemetry -- "cloud" --> CloudMetrics
 ```
 
 ### Architecture Principles
@@ -121,6 +129,9 @@ flowchart TD
 
 ## Microservices Documentation
 
+### [CoreGateway Service](tech_spec/coregateway.md)
+Public-facing API Gateway for the CoreRL platform.
+
 ### [CoreRL Service](tech_spec/corerl.md)
 The main reinforcement learning engine providing AI-powered decision making capabilities.
 
@@ -138,36 +149,7 @@ Experimental environment for algorithm development and performance benchmarking.
 
 ---
 
-## Development Environment
-$1---
-
 ## Deployment and Operations
-
-### Containerization Strategy
-
-#### Docker Images
-- **Base Images**: Python 3.13 slim images
-- **Multi-stage Builds**: Separate build and runtime stages
-- **Layer Optimization**: Minimal layers for faster pulls
-- **Security**: Non-root users, minimal attack surface
-
-#### Service Configuration
-```yaml
-services:
-  corerl:
-    build:
-      context: .
-      dockerfile: ./corerl/Dockerfile
-    ports:
-      - "8000:8000"
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@timescale-db:5432/postgres
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/corerl/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-```
 
 ### Orchestration
 
@@ -177,16 +159,20 @@ services:
 - **Hot Reload**: Development volumes for code changes
 
 #### Production Environment
-- **Orchestrator**: Kubernetes (recommended) or Docker Swarm
-- **Scaling**: Horizontal pod autoscaling
-- **Load Balancing**: Ingress controllers with SSL termination
+- **Orchestrator**: `coredinator` manages the lifecycle of services and agents.
+- **Operating Systems**: Compatible with both Linux and Windows servers.
+  - **Linux**: `coredinator` is installed as a `systemd` service.
+  - **Windows**: `coredinator` is installed as a native Windows service.
+- **Deployment Model**: On-premise deployment, with a dedicated agent instance for each industrial process.
 
 ### Monitoring and Observability
 
 #### Metrics Collection
-- **Time-series Metrics**: Prometheus/Grafana stack
-- **Application Metrics**: Custom business metrics
-- **Infrastructure Metrics**: Node exporters, cAdvisor
+- **Process Data**: Collection and historization of industrial process data.
+- **Data Health**: Metrics monitoring the quality and integrity of incoming data.
+- **Agent Health**: Health indicators for each running RL agent.
+- **Agent Performance**: Key performance indicators for agent decision-making.
+- **Business Value**: Metrics tracking the economic and operational value generated.
 
 #### Logging
 - **Structured Logging**: JSON format with correlation IDs
@@ -194,9 +180,9 @@ services:
 - **Log Levels**: DEBUG, INFO, WARNING, ERROR, CRITICAL
 
 #### Health Monitoring
-- **Health Endpoints**: `/health` for each service
+- **Health Endpoints**: `/healthcheck` for each service
 - **Dependency Checks**: Database, external service connectivity
-- **Circuit Breakers**: Fail-fast patterns for resilience
+- **OPC-UA Watchdog**: A signal that constantly writes new values to an OPC tag to indicate the `corerl` service is still running.
 
 ### Backup and Recovery
 
@@ -206,17 +192,11 @@ services:
 - **Model Checkpoints**: Periodic RL model snapshots
 - **Offsite Backups**: When internet connectivity is available, historical data is backed up to an offsite cloud service provider (e.g., AWS).
 
-#### Disaster Recovery
-- **RTO**: Recovery Time Objective < 4 hours
-- **RPO**: Recovery Point Objective < 1 hour
-- **Testing**: Quarterly disaster recovery drills
-- **Continual Learning Resilience**: Because CoreRL (rltune) is a continual learning system, catastrophic data loss is less of a concern. In the event of complete data loss, the agent can be redeployed tabula rasa and will begin learning from scratch on the system. Guardrails and safety measures can be reapplied for the new agent to ensure safe operation.
-
 ## Deployment Strategy
 
-We use a blue/green deployment strategy for agent upgrades and releases. The `coredinator` service acts as the orchestrator for deployments, managing both blue and green environments. During an upgrade, the new agent version is deployed to the green environment while the blue environment continues serving production traffic. Once the green environment passes health checks and validation, traffic is switched over. If any issues are detected, `coredinator` can automatically rollback to the previous agent version.
+The system employs a blue/green deployment methodology for agent upgrades, orchestrated by the `coredinator` service. A new agent version is deployed to a staging (green) environment while the production (blue) environment remains active. Upon successful health and validation checks, traffic is switched to the green environment. The `coredinator` facilitates automated rollback to the previous version if issues are detected.
 
-In the event of data corruption, the system rolls back to the previous agent version and deletes all transient data, such as neural network weights. These weights and other ephemeral state are reconstructed live from the process data historian, ensuring system integrity and rapid recovery.
+For data integrity, the system reverts to the last known stable agent version in case of data corruption. Transient data, including neural network weights, is purged and reconstructed from the process data historian to ensure rapid system recovery.
 
 ---
 
@@ -242,9 +222,8 @@ In the event of data corruption, the system rolls back to the previous agent ver
 - **Key Management**: External key management service (KMS)
 
 #### Data Privacy
-- **PII Handling**: Minimal collection, secure storage
 - **Data Retention**: Automated purging based on retention policies
-- **Audit Logging**: All data access and modifications logged
+- **Audit Logging**: All manual data access and modifications logged
 
 ### Industrial Security
 
@@ -253,51 +232,23 @@ In the event of data corruption, the system rolls back to the previous agent ver
 - **Encryption**: OPC UA encryption for industrial communications
 - **Network Segmentation**: Isolated networks for industrial traffic
 
-#### Network Security
-- **Firewall Rules**: Strict ingress/egress rules
-- **VPN Access**: Secure remote access for maintenance
-- **Intrusion Detection**: Network monitoring and alerting
-
 ---
 
 ## Performance and Scalability
 
-### Performance Requirements
+As an on-premise, local-first application, our performance and scalability are focused on efficient use of local hardware resources.
 
-#### Response Time Targets
-- **Real-time Control**: < 100ms for critical control decisions
-- **API Responses**: < 500ms for 95th percentile
-- **Data Processing**: < 1s for batch processing jobs
+### Performance Targets
+- **Inference Time**: Agent decision-making (inference) must complete in < 1s.
+- **Background Learning**: The system supports up to 10 agents training concurrently on a modern 8-core server.
 
-#### Throughput Targets
-- **OPC UA Messages**: 1000+ messages/second
-- **API Requests**: 100+ requests/second per service
-- **ML Inference**: 10+ inferences/second per agent
+### Resource Requirements
+- **RAM**: Each agent requires a minimum of 8GB of dedicated RAM.
+- **Disk Space**: A minimum of 1TB of disk space is required for data historization. Increased disk space allows for longer data retention periods.
 
-### Scalability Architecture
-
-#### Horizontal Scaling
-- **Stateless Services**: All services designed to be stateless
-- **Load Balancing**: Round-robin and weighted load balancing
-- **Database Sharding**: TimescaleDB partitioning for large datasets
-
-#### Resource Optimization
-- **JAX JIT Compilation**: Just-in-time compilation for ML workloads
-- **Memory Management**: Efficient memory pooling and garbage collection
-- **CPU Optimization**: Multi-threading for I/O-bound operations
-
-### Performance Monitoring
-
-#### Key Performance Indicators (KPIs)
-- **Service Response Time**: P50, P95, P99 latencies
-- **Error Rates**: Error rate per service endpoint
-- **Resource Utilization**: CPU, memory, disk, network usage
-- **Business Metrics**: Control accuracy, optimization efficiency
-
-#### Performance Testing
-- **Load Testing**: Automated load tests in CI/CD pipeline
-- **Stress Testing**: Peak load capacity testing
-- **Endurance Testing**: Long-running stability tests
+### Performance Testing
+- **Benchmarks**: Regular performance benchmarks are conducted for the agent and data pipeline.
+- **Endurance Testing**: Long-running tests are performed to ensure system stability over extended periods.
 
 ---
 

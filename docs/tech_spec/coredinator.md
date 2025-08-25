@@ -11,7 +11,6 @@ Coredinator is the orchestration service responsible for managing the lifecycle 
 - **Multi-Agent Coordination**: Orchestrating interactions between multiple RL agents
 - **Health Monitoring**: Continuous health checks and service discovery
 - **Configuration Distribution**: Centralized configuration management
-- **Load Balancing**: Service request routing and load distribution
 
 ### FastAPI Web Service
 Coredinator is built as a FastAPI application providing REST APIs for service management:
@@ -43,15 +42,15 @@ class ServiceInfo:
     health_endpoint: str
     status: ServiceStatus
     last_health_check: datetime
-    
+
 class ServiceRegistry:
     def __init__(self):
         self.services: Dict[str, ServiceInfo] = {}
-    
+
     async def register_service(self, service: ServiceInfo):
         """Register a new service with the orchestrator."""
         self.services[service.name] = service
-        
+
     async def health_check_all(self):
         """Perform health checks on all registered services."""
         for service in self.services.values():
@@ -63,15 +62,15 @@ class ServiceRegistry:
 class AgentCoordinator:
     def __init__(self):
         self.agents: Dict[str, AgentProxy] = {}
-        
+
     async def coordinate_agents(self, coordination_request):
         """Coordinate actions between multiple agents."""
         # Collect agent states
         states = await self.gather_agent_states()
-        
+
         # Compute coordination plan
         plan = await self.compute_coordination_plan(states)
-        
+
         # Distribute actions to agents
         await self.distribute_actions(plan)
 ```
@@ -102,7 +101,7 @@ Returns comprehensive system health status:
       "response_time": "45ms"
     },
     "coreio": {
-      "status": "healthy", 
+      "status": "healthy",
       "last_check": "2025-08-22T10:30:00Z",
       "response_time": "23ms"
     }
@@ -135,25 +134,25 @@ GET /api/coredinator/database/status
 coredinator:
   host: "0.0.0.0"
   port: 8002
-  
+
   services:
     corerl:
       host: "localhost"
       port: 8000
       health_endpoint: "/api/corerl/health"
       restart_policy: "always"
-      
+
     coreio:
-      host: "localhost" 
+      host: "localhost"
       port: 8001
       health_endpoint: "/api/coreio/health"
       restart_policy: "on-failure"
-      
+
   health_check:
     interval: 30  # seconds
     timeout: 10   # seconds
     retries: 3
-    
+
   coordination:
     enabled: true
     sync_interval: 1.0  # seconds
@@ -175,16 +174,16 @@ class MultiAgentCoordinator:
         """Perform one coordination cycle."""
         # 1. Collect agent intentions
         intentions = await self.collect_agent_intentions()
-        
+
         # 2. Detect conflicts
         conflicts = self.detect_conflicts(intentions)
-        
+
         # 3. Resolve conflicts
         resolved_actions = await self.resolve_conflicts(conflicts)
-        
+
         # 4. Distribute final actions
         await self.distribute_actions(resolved_actions)
-        
+
     async def resolve_conflicts(self, conflicts):
         """Resolve conflicts between agents."""
         for conflict in conflicts:
@@ -203,61 +202,12 @@ class MultiAgentCoordinator:
 - **All Services**: Health monitoring and lifecycle management
 
 ### External Integrations
-- **Docker**: Container orchestration and management
-- **Kubernetes**: Pod lifecycle management (in K8s deployments)
-- **Load Balancers**: Traffic routing and service discovery
+- **Windows Services**: Manages services on Windows servers.
+- **Linux Systemd**: Manages services on Linux servers.
 
 ## Deployment
 
-### Docker Configuration
-```yaml
-# docker-compose.yml
-services:
-  coredinator:
-    build:
-      context: .
-      dockerfile: ./coredinator/Dockerfile
-    ports:
-      - "8002:8002"
-    environment:
-      - DATABASE_URL=postgresql://postgres:password@db:5432/postgres
-    depends_on:
-      - database
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8002/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-```
-
-### Kubernetes Deployment
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: coredinator
-spec:
-  replicas: 2  # High availability
-  selector:
-    matchLabels:
-      app: coredinator
-  template:
-    metadata:
-      labels:
-        app: coredinator
-    spec:
-      containers:
-      - name: coredinator
-        image: corerl/coredinator:latest
-        ports:
-        - containerPort: 8002
-        env:
-        - name: DATABASE_URL
-          valueFrom:
-            secretKeyRef:
-              name: db-secret
-              key: url
-```
+Coredinator is deployed as a bare-metal executable on both Windows and Linux servers. It is responsible for managing the lifecycle of other CoreRL services on the same machine. Configuration is managed via local YAML files.
 
 ## Monitoring and Alerting
 
@@ -274,12 +224,12 @@ alerts:
     condition: service_health == 0
     duration: 60s
     severity: critical
-    
+
   - name: HighResponseTime
     condition: avg_response_time > 1000ms
     duration: 300s
     severity: warning
-    
+
   - name: CoordinationFailure
     condition: coordination_success_rate < 0.95
     duration: 120s
@@ -289,13 +239,11 @@ alerts:
 ## Future Enhancements
 
 ### Planned Features
-- **Auto-scaling**: Automatic service scaling based on load
 - **Circuit Breakers**: Fail-fast patterns for resilience
-- **Blue-Green Deployments**: Zero-downtime service updates
+- **Blue-Green Deployments**: Zero-downtime service updates, orchestrated by Coredinator.
 - **Advanced Coordination**: Game-theoretic multi-agent coordination
 
 ### Integration Roadmap
-- **Service Mesh**: Istio integration for advanced traffic management
-- **Observability**: Distributed tracing with Jaeger/Zipkin
-- **Security**: mTLS for service-to-service communication
-- **Configuration**: GitOps-based configuration management
+- **Observability**: Deeper integration with CoreTelemetry for distributed tracing.
+- **Security**: Enhanced secret management for service configurations.
+- **Configuration**: GitOps-based configuration management for version-controlled service definitions.
