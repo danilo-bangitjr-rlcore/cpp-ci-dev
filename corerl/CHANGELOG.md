@@ -1,5 +1,79 @@
 # Changelog
 
+## [0.145.0](https://github.com/rlcoretech/core-rl/compare/v0.144.0...v0.145.0) (2025-08-26)
+
+
+### Features
+
+* add bsm1 environment ([36ed624](https://github.com/rlcoretech/core-rl/commit/36ed6249c98f00f021f2bd2c9a191a298018bd6d))
+* add bsm1 environment ([4b4ec7a](https://github.com/rlcoretech/core-rl/commit/4b4ec7a77828410627abd655703fcf9c2f244135))
+* **corerl:** log rolling reset metrics ([a023aa5](https://github.com/rlcoretech/core-rl/commit/a023aa55b67ad7b20b4569aacf3d0f4a55c3b582))
+* layer norm feature flag ([f7b325d](https://github.com/rlcoretech/core-rl/commit/f7b325dae1caae7c90e69dfece1f27be7d9a27e3))
+* new reset logic, metric logging and some other minor fixes ([fb6a40d](https://github.com/rlcoretech/core-rl/commit/fb6a40d3ae338d462102058e223464d1dbaa0852))
+* new reset logic, metric logging and some other minor fixes ([c905239](https://github.com/rlcoretech/core-rl/commit/c90523955107d2b01c5c615ab4baa6a3d17fa3e3))
+* **PROD-763:** rolling reset ([8ae7645](https://github.com/rlcoretech/core-rl/commit/8ae7645199e12085725291d5d9f003062e71dbe8))
+* **PROD-763:** rolling reset ([ecb7107](https://github.com/rlcoretech/core-rl/commit/ecb7107226aab29ab192acc2da76ef35155cd213))
+* **PROD-790:** Nominal Setpoints Specified As Raw Values ([97b92ad](https://github.com/rlcoretech/core-rl/commit/97b92ad63d951fefa5d7694cee0cce2b54f75bff))
+* **PROD-790:** normalize raw nominal setpoint ([5206ad3](https://github.com/rlcoretech/core-rl/commit/5206ad3f55675ee724ffc77fdb53821a42fb3832))
+* **PROD-803:** Bounds Refactor ([5535b2b](https://github.com/rlcoretech/core-rl/commit/5535b2b8799fb215496565093801e285aec747dd))
+* **PROD-803:** Create BoundFunction and BoundTags types ([42335e5](https://github.com/rlcoretech/core-rl/commit/42335e54ffdb5c477778d7543d883cd3877ea096))
+* **PROD-803:** Create BoundInfo class that stores info about individual bounds and BoundsInfo class that stores info about upper + lower bound pair ([70c043e](https://github.com/rlcoretech/core-rl/commit/70c043e8627d9241c9fdd45e215edcbe785ba4b6))
+* **PROD-805:** log unnormalized virtual sensor values to the metrics table ([de677fc](https://github.com/rlcoretech/core-rl/commit/de677fc5f8c571c2e638bd5a96d56174c7ca4f59))
+* **PROD-805:** log unnormalized virtual sensor values to the metrics table ([822f4ce](https://github.com/rlcoretech/core-rl/commit/822f4cef50f7974a143e952fedcce5d602f3da77))
+* **PROD-806:** layer norm feature flag ([5bd0aac](https://github.com/rlcoretech/core-rl/commit/5bd0aacff56c420093611bd3124815be11c8abf3))
+* **PROD-813:** add evaluation period to offline training script ([bcc11f5](https://github.com/rlcoretech/core-rl/commit/bcc11f5b62688868618a73a50ebe58f7770f5764))
+* **PROD-813:** add option to remove evaluation periods from training ([2623c91](https://github.com/rlcoretech/core-rl/commit/2623c916800b708d281b96c0517d19f33a151532))
+* **PROD-813:** add update_agent parameter to run_offline_evaluation_phase ([dc341f3](https://github.com/rlcoretech/core-rl/commit/dc341f31f53f9cc31d8cbb5a72940df83fb6adce))
+* **PROD-813:** configurable update agent during rollouts ([09ef87e](https://github.com/rlcoretech/core-rl/commit/09ef87e25a6f32d735ad85b8c64c6968a8b28673))
+* **PROD-813:** multiple offline rollouts ([c8f44df](https://github.com/rlcoretech/core-rl/commit/c8f44dfe203691fef8cefc01642236d74c6f1cb6))
+* **PROD-813:** offline eval logs to metrics ([68fcd5a](https://github.com/rlcoretech/core-rl/commit/68fcd5ad1d2d3e4f5d09c8e57f59aa0460708e97))
+
+
+### Bug Fixes
+
+* add assertion to check pipeline output in offline training ([fde89d1](https://github.com/rlcoretech/core-rl/commit/fde89d10ee32b31a6aac49aa145eaf6772555878))
+* add logging for offline agent training steps ([b449cfb](https://github.com/rlcoretech/core-rl/commit/b449cfb8cb9d3de1ea6a68dddedabb5a8cd1821a))
+* address comments and a divide by zero thing ([813ccb5](https://github.com/rlcoretech/core-rl/commit/813ccb51647d8fd0ec97fc7852e004886db16731))
+* address comments and shape mismatch problem ([69a3cbf](https://github.com/rlcoretech/core-rl/commit/69a3cbf0f1dc05d9b1453f617ea3a59eb1b3670d))
+* address some comments, and rebase of the critic utils ([23e9776](https://github.com/rlcoretech/core-rl/commit/23e9776e3640582ef6c0ebccf37dfb083f29f588))
+* bad indentation ([d1530dc](https://github.com/rlcoretech/core-rl/commit/d1530dc7d4846b9b9ea42a54ebf092b5c829792f))
+* **corerl/data_reader:** use sanitized name in final typecasting step ([748a92e](https://github.com/rlcoretech/core-rl/commit/748a92e11e68dafe0f94f8e8adcd97fa94095ad1))
+* **corerl:** linting -- copilot's comment ([ce69890](https://github.com/rlcoretech/core-rl/commit/ce698906871873a164eeb52393b1f3cab7fad4ce))
+* **corerl:** unify return of metrics read calls ([c8258ce](https://github.com/rlcoretech/core-rl/commit/c8258ce5817d2c3c872497705e5b5932231eb769))
+* **corerl:** uses sanitized column names ([2c44b75](https://github.com/rlcoretech/core-rl/commit/2c44b758de0a18e4d6797b0b0b6bcd6c84b82363))
+* ensure normalizer config's from_data is properly set after norm bounds are updated ([bc88f6d](https://github.com/rlcoretech/core-rl/commit/bc88f6d5b62d50e02287c4361d5bdaa9c1fd7535))
+* ensure there's data to write to metrics table ([e7279c6](https://github.com/rlcoretech/core-rl/commit/e7279c6d890684f2ac7f1c6da10cee71f5715471))
+* fix logging ([c905239](https://github.com/rlcoretech/core-rl/commit/c90523955107d2b01c5c615ab4baa6a3d17fa3e3))
+* fix priority satisfaction and optimization performance metrics ([c694f11](https://github.com/rlcoretech/core-rl/commit/c694f11bbcedebfb3f6fa8a2e8b1934517a3b00f))
+* improve logging format for agent replay buffer sizes ([a983d00](https://github.com/rlcoretech/core-rl/commit/a983d00ff4e3305d5e8b50aed9b1f5fcbc6f7724))
+* increment agent step ([e058b53](https://github.com/rlcoretech/core-rl/commit/e058b533e7713156bab694b4c1678a3b2129d37e))
+* **lib_agent:** simplify qrc get_active_values api ([eff9486](https://github.com/rlcoretech/core-rl/commit/eff948669e0de4231f90cbff2a9eb11faf621ba9))
+* move logging to before possible continue ([c8aee4a](https://github.com/rlcoretech/core-rl/commit/c8aee4a427adb7a60c34cbaa04814379f14ce8ea))
+* priority metrics name ([afbb06a](https://github.com/rlcoretech/core-rl/commit/afbb06a3aa8fc4824eea3d2a56c5d1505fee7418))
+* **PROD-789:** CoreRL/CoreIO sanitize wide format column names ([07f6f9c](https://github.com/rlcoretech/core-rl/commit/07f6f9cd7a87fde3e806b62d93ea7e0c701c698a))
+* remove broken offline eval ([a0365e2](https://github.com/rlcoretech/core-rl/commit/a0365e26ba1d27d2341cedacb867b2df523adfeb))
+* remove extra space ([a8b0298](https://github.com/rlcoretech/core-rl/commit/a8b029834d173f8abbb3eef3baac56ab391a84f0))
+* remove logging of rundundant priority met metrics ([eb6d3b8](https://github.com/rlcoretech/core-rl/commit/eb6d3b8b90536c9d82773ee4df21ba0627baa895))
+* remove unnecessary cast to tuple ([1c675ac](https://github.com/rlcoretech/core-rl/commit/1c675ac4a6b26cdf1a7b2ff65d560eddb6be577e))
+* remove unnecessary space in norm_next_a_df clipping operation ([31dec1f](https://github.com/rlcoretech/core-rl/commit/31dec1fe3a71438b5f1c857d6edd3633acb34e95))
+* rmove returns so logging down_to possible ([8ee1b75](https://github.com/rlcoretech/core-rl/commit/8ee1b75ae54ed198aa9d533c6be248f42fa1adbe))
+* set logging level for offline training ([c184bb1](https://github.com/rlcoretech/core-rl/commit/c184bb189b74f2f1859c20125595a263c9cf3e83))
+* styles ([c905239](https://github.com/rlcoretech/core-rl/commit/c90523955107d2b01c5c615ab4baa6a3d17fa3e3))
+* styles ([c905239](https://github.com/rlcoretech/core-rl/commit/c90523955107d2b01c5c615ab4baa6a3d17fa3e3))
+* styles ([c905239](https://github.com/rlcoretech/core-rl/commit/c90523955107d2b01c5c615ab4baa6a3d17fa3e3))
+* styles ([23e9776](https://github.com/rlcoretech/core-rl/commit/23e9776e3640582ef6c0ebccf37dfb083f29f588))
+* styles ([23e9776](https://github.com/rlcoretech/core-rl/commit/23e9776e3640582ef6c0ebccf37dfb083f29f588))
+
+
+### Performance Improvements
+
+* **corerl:** add a single row pipeline benchmark ([aa4b314](https://github.com/rlcoretech/core-rl/commit/aa4b314610cb011af7243bb33eda79ad949b2475))
+* **corerl:** measure performance of actor/critic components ([ac38082](https://github.com/rlcoretech/core-rl/commit/ac38082693ff4c1c26d66b36dee633ff04379d8a))
+* **corerl:** measure performance of critic queries ([5ec8bba](https://github.com/rlcoretech/core-rl/commit/5ec8bba1caf761ebc3fc84dac6be3fac4e9db89e))
+* **corerl:** measure performance of greedyac updates ([769482f](https://github.com/rlcoretech/core-rl/commit/769482f325314ff332dbef1395857882001cb27c))
+* **corerl:** remove missing_info from pipeline ([9bb2d9d](https://github.com/rlcoretech/core-rl/commit/9bb2d9d8568c32d395ba358b8a51575ed4f7daa1))
+* **corerl:** remove missing_info from pipeline ([96dd3ee](https://github.com/rlcoretech/core-rl/commit/96dd3ee2a014a22f556e979abd70317bd4906c1d))
+
 ## [0.144.0](https://github.com/rlcoretech/core-rl/compare/v0.143.0...v0.144.0) (2025-08-13)
 
 
