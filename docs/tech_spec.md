@@ -7,15 +7,16 @@
 ## Table of Contents
 
 1. [Executive Summary](#executive-summary)
-2. [System Architecture Overview](#system-architecture-overview)
-3. [Technology Stack](#technology-stack)
-4. [Microservices Documentation](#microservices-documentation)
-5. [Development Environment](#development-environment)
-6. [Internal Tools and Practices](#internal-tools-and-practices)
-7. [Deployment and Operations](#deployment-and-operations)
-8. [Security Considerations](#security-considerations)
-9. [Performance and Scalability](#performance-and-scalability)
-10. [Appendices](#appendices)
+2. [Design Principles](#design-principles)
+3. [System Architecture Overview](#system-architecture-overview)
+4. [Technology Stack](#technology-stack)
+5. [Microservices Documentation](#microservices-documentation)
+6. [Development Environment](#development-environment)
+7. [Internal Tools and Practices](#internal-tools-and-practices)
+8. [Deployment and Operations](#deployment-and-operations)
+9. [Security Considerations](#security-considerations)
+10. [Performance and Scalability](#performance-and-scalability)
+11. [Appendices](#appendices)
 
 ---
 
@@ -37,77 +38,89 @@ CoreRL is a reinforcement learning system engineered for industrial control and 
 
 ---
 
+## Design Principles
+
+1. **Local-First Operation**: Core control logic, online learning, and essential data storage must continue operating when the site is fully isolated from the internet. Cloud or remote services may enhance analytics, fleet management, or archival retention, but they are explicitly treated as optional amplifiers rather than safety or availability prerequisites. Design choices that would create a hard dependency on remote connectivity are rejected.
+2. **Single Ingress & Central Dispatch**: `CoreGateway` focuses on ingress concerns—authentication, basic request validation, rate limiting, and uniform logging—then forwards every internal call to `Coredinator`. `Coredinator` exclusively owns internal routing, `agent_id → instance` resolution, and dispatch policies.
+3. **Clear Service Boundaries**: Each service owns one cohesive responsibility (I/O, decision-making, configuration, telemetry) and publishes a narrowly scoped, versioned API. Any cross-cutting workflow is composed through those public contracts rather than by reaching into another service’s internals, reducing hidden coupling and making upgrades safer.
+4. **Deterministic & Observable Control**: Low-latency control paths remain non-blocking. Comprehensive instrumentation—metrics, structured logs with correlation IDs, traces where applicable, and explicit health endpoints—enables rapid fault isolation and regression detection during both development and incident response.
+5. **Security by Design, Iterative Hardening**: We begin with foundational controls: JWT authentication, least privilege authorization, encrypted transport, and auditable actions. Additional layers—message signing, mutual service authentication, network segmentation, secrets rotation automation—are added incrementally as risk, regulatory pressure, or system maturity dictates, avoiding premature complexity while preserving a clear roadmap to higher assurance.
+6. **Resilience & Fail-Fast**: The system assumes a single-instance deployment and prioritizes fast local recovery, graceful degradation, and protective mechanisms (circuit breakers, bounded retries with backoff, timeouts) over horizontal scaling concerns. Failures surface quickly and transparently so operators can intervene before cascading effects emerge, and fallback modes prefer partial functionality to total outage.
+7. **Typed & Versioned Config**: All configuration is defined by strongly typed schemas validated strictly at load time (rejecting ambiguous or partial input early). Versioned migrations (with forward + backward compatibility where feasible) ensure configuration evolution is deliberate, reviewable, and reproducible across environments and during incident rollbacks.
+8. **Lean Data & Retention**: We retain only the data that demonstrably contributes to model performance improvement, audit/auditability requirements, or compliance obligations. Explicit retention windows, lifecycle policies, and size guards prevent unbounded local growth; data that no longer yields marginal value is summarized or purged to keep storage predictable and recovery times short.
+9. **Modular & Evolvable Learning / Deployment**: Reinforcement learning components (policy networks, value estimators, replay buffers, feature pipelines) are pluggable behind stable interfaces, allowing experimentation without destabilizing production. Deployment artifacts remain backward-compatible to support blue/green swaps, controlled canaries, and rapid rollback with minimal orchestration changes.
+10. **Operational Transparency**: Every material decision path (state → action selection), model update event, and dispatch routing choice produces traceable signals—logs, metrics, or structured audit records. This provenance trail enables post-incident reconstruction, performance tuning, and defensibility for external stakeholders (e.g., safety or compliance reviewers).
+
 ## System Architecture Overview
 
 The CoreRL system uses a distributed microservices architecture for industrial environments, prioritizing reliability and real-time performance.
 
 ```mermaid
-graph TD
-    subgraph "Public Zone"
+flowchart TD
+    %% Architecture update: CoreGateway only proxies to Coredinator; Coredinator performs internal routing & agent instance mapping
+    subgraph Public[Public Zone]
         CoreUI[CoreUI]
-        CoreGateway["CoreGateway<br/>- API Gateway<br/>- Authentication<br/>- Rate Limiting<br/>- Routing"]
+        CoreGateway["CoreGateway"]
     end
 
-    subgraph "Internal Services"
-        CoreAuth["CoreAuth<br/> - user authentication<br/> - session management<br/> - access control"]
-        Coredinator["Coredinator<br/> - multi-agent orchestration<br/> - service lifecycle"]
-        CoreIO["CoreIO<br/> - OPC UA comms<br/> - data ingress/egress"]
-        CoreRL["CoreRL<br/> - agent updating<br/> - setpoint recommendations"]
-        CoreConfig["CoreConfig<br/> - configuration management"]
-        CoreTelemetry["CoreTelemetry<br/> - metrics and logging"]
+    subgraph Control[Control & Orchestration]
+        Coredinator["Coredinator"]
+        CoreTelemetry[CoreTelemetry]
+        TSDB[(Metrics DB)]
+        CoreTelemetry <--> TSDB
     end
 
-    subgraph "Data & Persistence Layer"
-        SensorDB[(SensorDB)]
-        Buffer[(Buffer)]
-        TSDB[(TimescaleDB)]
-        ConfigDB[(ConfigDB)]
-        DataPipeline["DataPipeline<br/> - data processing"]
+    subgraph IO[Industrial I/O]
+        CoreIO["CoreIO"]
+        SensorDB[(Sensor DB)]
+        CoreIO --> SensorDB
     end
 
-    subgraph "AWS Cloud"
-        ApiGateway[API Gateway]
-        Lambda[Lambda Function]
-        OpenSearch[Amazon OpenSearch]
-        Timestream[Amazon Timestream]
+    subgraph RL[Reinforcement Learning]
+        CoreRL["CoreRL"]
+        Buffer[(Experience Buffer)]
+        CoreRL --> Buffer
     end
 
-    %% Connections
-    CoreUI --> CoreGateway
+    subgraph Config[Configuration]
+        CoreConfig["CoreConfig"]
+        ConfigDB[(Config DB)]
+        CoreConfig <--> ConfigDB
+    end
 
-    CoreGateway --> CoreAuth
-    CoreGateway --> Coredinator
-    CoreGateway --> CoreIO
-    CoreGateway --> CoreRL
-    CoreGateway --> CoreConfig
-    CoreGateway --> CoreTelemetry
+    %% Ingress flow (single choke point)
+    CoreUI --> CoreGateway --> Coredinator
 
+    %% Internal dispatch (all via Coredinator)
     Coredinator --> CoreIO
     Coredinator --> CoreRL
     Coredinator --> CoreConfig
     Coredinator --> CoreTelemetry
 
-    CoreIO --> SensorDB
-    SensorDB --> DataPipeline
-    DataPipeline --> Buffer
-    Buffer --> CoreRL
-    CoreConfig <--> ConfigDB
+    CoreIO --> CoreRL
     CoreConfig --> CoreRL
-    CoreRL -- "performance metrics" --> TSDB
+    CoreRL -- metrics --> CoreTelemetry
 
-    CoreTelemetry -- "polls metrics" --> TSDB
-    CoreTelemetry -- "forwards data" --> ApiGateway
+    %% Optional Cloud Interfaces
+    subgraph Cloud[Optional Cloud Services]
+        ApiGateway[AWS API Gateway]
+        Lambda[Lambda]
+        OpenSearch[OpenSearch]
+        Timestream[Timestream]
+    end
+
+    CoreTelemetry --> ApiGateway
     ApiGateway --> Lambda
-    Lambda -- "logs" --> OpenSearch
-    Lambda -- "metrics" --> Timestream
+    Lambda --> OpenSearch
+    Lambda --> Timestream
+
+    classDef db fill:#fef6e4,stroke:#d4aa00,stroke-width:1px;
+    class SensorDB,Buffer,ConfigDB,TSDB db;
 ```
 
-### Architecture Principles
-1. **Separation of Concerns**: Each service has a single responsibility.
-2. **Async-First Design**: Services are designed for non-blocking, high-throughput operations.
-3. **Fault Tolerance**: Services handle failures gracefully.
-4. **Observability**: System includes logging, metrics, and health monitoring.
-5. **Security by Design**: Implements authentication, authorization, and encrypted communications.
+_Figure: Updated architecture — CoreGateway no longer calls backend services directly; all internal routing and agent_id -> instance resolution handled by Coredinator._
+
+### (Removed Redundant Architecture Principles)
 
 ---
 
@@ -226,7 +239,7 @@ In case of data corruption, the system reverts to the last stable agent version.
 - **Validation**: Signature verification and claims validation
 
 #### User Authentication
-- **Method**: OAuth 2.0 / OpenID Connect
+- **Method**: OAuth 2.0
 - **Session Management**: Secure session cookies with CSRF protection
 - **Role-Based Access**: Granular permissions per service endpoint
 
@@ -235,7 +248,6 @@ In case of data corruption, the system reverts to the last stable agent version.
 #### Encryption
 - **In Transit**: TLS 1.3 for all external communications
 - **At Rest**: Database-level encryption for sensitive data
-- **Key Management**: External key management service (KMS)
 
 #### Data Privacy
 - **Data Retention**: Automated purging based on retention policies
