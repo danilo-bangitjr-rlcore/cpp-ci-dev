@@ -1,7 +1,7 @@
 type ExampleComponentProps = {
-    title: string;
+  title: string;
 };
 
 export function ExampleComponent({ title }: ExampleComponentProps) {
-    return <div>{title}</div>;
+  return <div className="text-2xl">{title}</div>;
 }
