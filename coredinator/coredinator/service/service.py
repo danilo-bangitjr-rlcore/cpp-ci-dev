@@ -6,15 +6,18 @@ import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import StrEnum
 from pathlib import Path
 from subprocess import DEVNULL, Popen
-from typing import Literal
 
 import backoff
 
 from coredinator.service.protocols import ServiceID, ServiceState
 
-ServiceMode = Literal["started", "stopped"]
+
+class ServiceMode(StrEnum):
+    STARTED = "started"
+    STOPPED = "stopped"
 
 
 @dataclass(frozen=True, slots=True)
@@ -33,7 +36,7 @@ class ServiceConfig:
 
 class Service:
     def __init__(self, id: ServiceID, executable_path: Path, config_path: Path, config: ServiceConfig | None = None):
-        self._mode: ServiceMode = "stopped"
+        self._mode = ServiceMode.STOPPED
         self.config = config if config is not None else ServiceConfig()
 
         self.id = id
@@ -58,7 +61,7 @@ class Service:
         jitter=backoff.full_jitter,
     )
     def start(self):
-        self._mode = "started"
+        self._mode = ServiceMode.STARTED
         if self.is_running():
             return
 
@@ -78,7 +81,7 @@ class Service:
         jitter=backoff.full_jitter,
     )
     def stop(self, grace_seconds: float = 5.0) -> None:
-        self._mode = "stopped"
+        self._mode = ServiceMode.STOPPED
         if not self._process:
             return
 
@@ -144,11 +147,11 @@ class Service:
             while True:
                 time.sleep(self.config.heartbeat_interval.total_seconds())
 
-                if self._mode == "stopped":
+                if self._mode == ServiceMode.STOPPED:
                     self._keep_alive_thread = None
                     return
 
-                if self._mode == "running" and self.is_running():
+                if self._mode == ServiceMode.STARTED and self.is_running():
                     degraded_start = None
                     continue
 
