@@ -1,3 +1,4 @@
+import os
 import subprocess
 import shutil
 import argparse
@@ -6,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.resolve()
 FRONTEND = ROOT / "client"
 BACKEND = ROOT / "server"
-SERVICE = ROOT / "win-service"
+SERVICE = ROOT / BACKEND / "win-service"
 DIST = FRONTEND / "dist"
 SERVICE_SCRIPT = SERVICE / "windows-service.py"
 CORE_UI_SCRIPT = BACKEND / "core_ui.py"
@@ -25,6 +26,13 @@ def build_frontend():
 
 def build_executable():
     print("Building Windows executable with PyInstaller...")
+    
+    venv_path = SERVICE / ".venv"
+    venv_active = "VIRTUAL_ENV" in os.environ and Path(os.environ["VIRTUAL_ENV"]).resolve() == venv_path.resolve()
+    if not venv_active:
+        print("Please activate the .venv in win-service before running this command.")
+        exit(1)
+    
     cmd = (
         f"uv run pyinstaller --runtime-tmpdir=. --onefile {SERVICE_SCRIPT} "
         f"--name {EXECUTABLE_NAME} "
