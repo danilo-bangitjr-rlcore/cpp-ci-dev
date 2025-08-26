@@ -1,42 +1,47 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { useState } from 'react'
+import { createFileRoute } from '@tanstack/react-router';
+import { useState } from 'react';
 
 export const Route = createFileRoute('/opc-navigation')({
   component: RouteComponent,
-})
+});
 
 function RouteComponent() {
-  const [url, setUrl] = useState('')
-  const [status, setStatus] = useState('Disconnected')
-  const [isConnecting, setIsConnecting] = useState(false)
+  const [url, setUrl] = useState('');
+  const [status, setStatus] = useState('Disconnected');
+  const [isConnecting, setIsConnecting] = useState(false);
 
   const handleConnect = async () => {
     if (!url.trim()) {
-      setStatus('Please enter a valid URL')
-      return
+      setStatus('Please enter a valid URL');
+      return;
     }
 
-    setIsConnecting(true)
-    setStatus('Connecting...')
-    
+    setIsConnecting(true);
+    setStatus('Connecting...');
+
     // TODO: Implement actual OPC server connection
     // For now, simulate connection attempt
     setTimeout(() => {
-      setStatus('Connected successfully')
-      setIsConnecting(false)
-    }, 1500)
-  }
+      setStatus('Connected successfully');
+      setIsConnecting(false);
+    }, 1500);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900">
       <div className="max-w-6xl mx-auto p-4">
         <div className="bg-gray-800 rounded-lg shadow-md p-4">
-          <h1 className="text-xl font-bold text-white mb-2">OPC Server Connection</h1>
-          
+          <h1 className="text-xl font-bold text-white mb-2">
+            OPC Server Connection
+          </h1>
+
           <div className="flex items-end gap-4">
             {/* URL Input */}
             <div className="flex-1">
-              <label htmlFor="opc-url" className="block text-sm font-medium text-gray-300 mb-1">
+              <label
+                htmlFor="opc-url"
+                className="block text-sm font-medium text-gray-300 mb-1"
+              >
                 OPC Server URL
               </label>
               <input
@@ -66,24 +71,26 @@ function RouteComponent() {
 
             {/* Status */}
             <div className="min-w-[150px]">
-              <div className={`px-3 py-2 rounded-md text-sm font-medium text-center ${
-                status === 'Connected successfully'
-                  ? 'bg-green-900 text-green-200'
-                  : status === 'Connecting...'
-                  ? 'bg-yellow-900 text-yellow-200'
-                  : status.includes('Please enter')
-                  ? 'bg-red-900 text-red-200'
-                  : 'bg-gray-700 text-gray-300'
-              }`}>
+              <div
+                className={`px-3 py-2 rounded-md text-sm font-medium text-center ${
+                  status === 'Connected successfully'
+                    ? 'bg-green-900 text-green-200'
+                    : status === 'Connecting...'
+                      ? 'bg-yellow-900 text-yellow-200'
+                      : status.includes('Please enter')
+                        ? 'bg-red-900 text-red-200'
+                        : 'bg-gray-700 text-gray-300'
+                }`}
+              >
                 {status}
               </div>
             </div>
           </div>
         </div>
-        
+
         {/* Separator line */}
         <div className="border-b border-gray-600 mt-4"></div>
       </div>
     </div>
-  )
+  );
 }
