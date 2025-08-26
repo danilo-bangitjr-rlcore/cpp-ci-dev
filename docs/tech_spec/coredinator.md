@@ -2,7 +2,7 @@
 
 ## Overview
 
-Coredinator is the orchestration service responsible for managing the lifecycle of all CoreRL services, coordinating multi-agent interactions, and providing centralized service management capabilities.
+Coredinator is the orchestration service for managing the lifecycle of CoreRL services, coordinating multi-agent interactions, and providing centralized service management.
 
 ## Architecture
 
@@ -13,151 +13,34 @@ Coredinator is the orchestration service responsible for managing the lifecycle 
 - **Configuration Distribution**: Centralized configuration management
 
 ### FastAPI Web Service
-Coredinator is built as a FastAPI application providing REST APIs for service management:
-
-```python
-from fastapi import FastAPI
-from contextlib import asynccontextmanager
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Startup: Initialize service registry
-    await initialize_service_registry()
-    yield
-    # Shutdown: Cleanup resources
-    await cleanup_services()
-
-app = FastAPI(lifespan=lifespan)
-```
+Coredinator is a FastAPI application providing REST APIs for service management. It uses a lifespan manager to initialize a service registry on startup and clean up resources on shutdown.
 
 ## Key Components
 
 ### Service Registry
-```python
-@dataclass
-class ServiceInfo:
-    name: str
-    host: str
-    port: int
-    health_endpoint: str
-    status: ServiceStatus
-    last_health_check: datetime
-
-class ServiceRegistry:
-    def __init__(self):
-        self.services: Dict[str, ServiceInfo] = {}
-
-    async def register_service(self, service: ServiceInfo):
-        """Register a new service with the orchestrator."""
-        self.services[service.name] = service
-
-    async def health_check_all(self):
-        """Perform health checks on all registered services."""
-        for service in self.services.values():
-            await self.check_service_health(service)
-```
+The service registry maintains a dictionary of `ServiceInfo` objects, storing details for each service (name, location, health status). It provides methods to register services and perform health checks.
 
 ### Multi-Agent Coordination
-```python
-class AgentCoordinator:
-    def __init__(self):
-        self.agents: Dict[str, AgentProxy] = {}
-
-    async def coordinate_agents(self, coordination_request):
-        """Coordinate actions between multiple agents."""
-        # Collect agent states
-        states = await self.gather_agent_states()
-
-        # Compute coordination plan
-        plan = await self.compute_coordination_plan(states)
-
-        # Distribute actions to agents
-        await self.distribute_actions(plan)
-```
+The `AgentCoordinator` class manages multi-agent interactions. It gathers agent states, computes a coordination plan, and distributes actions.
 
 ## API Endpoints
 
 ### Service Management
-```http
-GET /api/coredinator/services
-POST /api/coredinator/services/register
-DELETE /api/coredinator/services/{service_id}
-GET /api/coredinator/services/{service_id}/health
-```
+The service management API includes endpoints for listing, registering, deleting, and checking the health of services.
 
 ### Health Monitoring
-```http
-GET /api/coredinator/health
-```
-Returns comprehensive system health status:
-
-```json
-{
-  "status": "healthy",
-  "services": {
-    "corerl": {
-      "status": "healthy",
-      "last_check": "2025-08-22T10:30:00Z",
-      "response_time": "45ms"
-    },
-    "coreio": {
-      "status": "healthy",
-      "last_check": "2025-08-22T10:30:00Z",
-      "response_time": "23ms"
-    }
-  },
-  "system_metrics": {
-    "cpu_usage": "25%",
-    "memory_usage": "45%",
-    "active_agents": 3
-  }
-}
-```
+The health monitoring API provides system health status, including individual service status and system-level metrics.
 
 ### Configuration Management
-```http
-GET /api/coredinator/config/generate
-POST /api/coredinator/config/validate
-PUT /api/coredinator/config/update
-```
+The configuration management API allows for generating, validating, and updating configurations.
 
 ### Database Operations
-```http
-POST /api/coredinator/database/verify
-GET /api/coredinator/database/status
-```
+The database operations API provides endpoints for verifying and checking database status.
 
 ## Configuration
 
 ### Service Configuration
-```yaml
-coredinator:
-  host: "0.0.0.0"
-  port: 8002
-
-  services:
-    corerl:
-      host: "localhost"
-      port: 8000
-      health_endpoint: "/api/corerl/health"
-      restart_policy: "always"
-
-    coreio:
-      host: "localhost"
-      port: 8001
-      health_endpoint: "/api/coreio/health"
-      restart_policy: "on-failure"
-
-  health_check:
-    interval: 30  # seconds
-    timeout: 10   # seconds
-    retries: 3
-
-  coordination:
-    enabled: true
-    sync_interval: 1.0  # seconds
-    conflict_resolution: "priority_based"
-```
+The service is configured via a YAML file specifying the host and port for coredinator, connection and health check details for other services, and multi-agent coordination settings.
 
 ## Multi-Agent Coordination
 
@@ -168,30 +51,7 @@ coredinator:
 - **Resource-Based**: Coordination based on available system resources
 
 ### Implementation Example
-```python
-class MultiAgentCoordinator:
-    async def coordinate_step(self):
-        """Perform one coordination cycle."""
-        # 1. Collect agent intentions
-        intentions = await self.collect_agent_intentions()
-
-        # 2. Detect conflicts
-        conflicts = self.detect_conflicts(intentions)
-
-        # 3. Resolve conflicts
-        resolved_actions = await self.resolve_conflicts(conflicts)
-
-        # 4. Distribute final actions
-        await self.distribute_actions(resolved_actions)
-
-    async def resolve_conflicts(self, conflicts):
-        """Resolve conflicts between agents."""
-        for conflict in conflicts:
-            if conflict.type == "resource_contention":
-                await self.resolve_resource_conflict(conflict)
-            elif conflict.type == "goal_interference":
-                await self.resolve_goal_conflict(conflict)
-```
+A `MultiAgentCoordinator` class can be implemented to perform coordination cycles by collecting agent intentions, detecting and resolving conflicts, and distributing final actions. Conflict resolution is based on conflict type, such as resource contention or goal interference.
 
 ## Integration Points
 
@@ -207,7 +67,7 @@ class MultiAgentCoordinator:
 
 ## Deployment
 
-Coredinator is deployed as a bare-metal executable on both Windows and Linux servers. It is responsible for managing the lifecycle of other CoreRL services on the same machine. Configuration is managed via local YAML files.
+Coredinator is deployed as a bare-metal executable on Windows and Linux and manages the lifecycle of other CoreRL services on the same machine. Configuration is managed via local YAML files.
 
 ## Monitoring and Alerting
 
@@ -218,23 +78,7 @@ Coredinator is deployed as a bare-metal executable on both Windows and Linux ser
 - **Coordination Efficiency**: Multi-agent coordination success rates
 
 ### Alerting Rules
-```yaml
-alerts:
-  - name: ServiceDown
-    condition: service_health == 0
-    duration: 60s
-    severity: critical
-
-  - name: HighResponseTime
-    condition: avg_response_time > 1000ms
-    duration: 300s
-    severity: warning
-
-  - name: CoordinationFailure
-    condition: coordination_success_rate < 0.95
-    duration: 120s
-    severity: warning
-```
+Alerting rules are defined in YAML to trigger alerts based on conditions like service downtime, high response times, or coordination failures, with specifiable severity.
 
 ## Future Enhancements
 
@@ -244,6 +88,6 @@ alerts:
 - **Advanced Coordination**: Game-theoretic multi-agent coordination
 
 ### Integration Roadmap
-- **Observability**: Deeper integration with CoreTelemetry for distributed tracing.
-- **Security**: Enhanced secret management for service configurations.
-- **Configuration**: GitOps-based configuration management for version-controlled service definitions.
+- **Observability**: Integration with CoreTelemetry for distributed tracing.
+- **Security**: Secret management for service configurations.
+- **Configuration**: GitOps-based configuration management.

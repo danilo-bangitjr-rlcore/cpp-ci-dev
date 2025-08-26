@@ -6,12 +6,12 @@
 
 ## Summary — Purpose • Scope • Key decisions
 
-- **Purpose**: Provide a single, secure, and stable public REST API entry point for the CoreRL platform. The gateway enforces authentication and rate-limits, routes/forwards requests to internal services, translates (where necessary) between HTTP and internal transports, and stabilizes the public contract while allowing internal services to evolve.
-- **Scope**: External-to-internal HTTP routing, authentication enforcement (via CoreAuth), rate limiting and debouncing, API versioning, request/response transformations, simple protocol translation for synchronous calls (HTTP -> HTTP or HTTP -> lightweight ZeroMQ request-reply gateway), health & metrics endpoints.
+- **Purpose**: Provides a single, secure, public REST API entry point for the CoreRL platform. The gateway enforces authentication and rate-limits, routes requests to internal services, translates between HTTP and internal transports where necessary, and stabilizes the public contract while allowing internal services to evolve.
+- **Scope**: External-to-internal HTTP routing, authentication enforcement (via CoreAuth), rate limiting, API versioning, request/response transformations, protocol translation for synchronous calls (HTTP -> HTTP or HTTP -> ZeroMQ request-reply), health & metrics endpoints.
 - Key decisions:
-  - `CoreGateway` delegates authentication validation to `CoreAuth`. The gateway enforces token validation and permission checks in middleware.
-  - Use Python-based routing configuration for deterministic routing and type safety.
-  - Prefer HTTP for internal synchronous request/response paths to reduce complexity; provide a thin ZeroMQ bridge adapter for specific internal services that require it (e.g., CoreRL / CoreIO).
+  - `CoreGateway` delegates authentication validation to `CoreAuth`, enforcing token validation and permission checks in middleware.
+  - Use Python-based routing configuration for deterministic routing.
+  - Prefer HTTP for internal synchronous request/response paths; provide a ZeroMQ bridge adapter for specific internal services (e.g., CoreRL / CoreIO).
   - Implement gateway as a stateless FastAPI service.
 
 ---
@@ -118,54 +118,7 @@ sequenceDiagram
 - Routes are defined as Python dataclasses and can be reloaded via an admin endpoint.
 - Example `routes.py`:
 
-```python
-from dataclasses import dataclass
-from enum import Enum
-from typing import Literal
-
-class Role(Enum):
-    ADMIN = "admin"
-    OPERATIONS = "operations"
-    SERVICE = "service"
-    EVERYONE = "everyone"
-
-@dataclass
-class RateLimit:
-    count: int
-    unit: Literal["second", "minute", "hour"]
-
-@dataclass
-class Route:
-    path_prefix: str
-    service: str
-    target: str
-    required_role: Role
-    rate_limit: RateLimit
-
-ROUTES = [
-    Route(
-        path_prefix="/api/v1/agent",
-        service="corerl",
-        target="http://corerl:8000/api/agent",
-        required_role=Role.OPERATIONS,
-        rate_limit=RateLimit(200, "minute"),
-    ),
-    Route(
-        path_prefix="/api/v1/config",
-        service="coreconfig",
-        target="http://coreconfig:8001/api/config",
-        required_role=Role.ADMIN,
-        rate_limit=RateLimit(60, "minute"),
-    ),
-    Route(
-        path_prefix="/auth",
-        service="coreauth",
-        target="http://coreauth:8002/auth",
-        required_role=Role.EVERYONE,
-        rate_limit=RateLimit(20, "minute"),
-    ),
-]
-```
+The routing configuration is defined in a Python file, for example `routes.py`. It uses dataclasses to define routes, including the path prefix, target service, required role for access, and rate limiting rules. This provides a structured and type-safe way to manage routing.
 
 Notes:
 - `target` should be a resolvable service URL.
@@ -239,9 +192,9 @@ Edge cases:
 
 ## Deployment & operations
 
-- **Orchestration**: The `CoreGateway` service is managed by the `coredinator` orchestration layer, which is responsible for its lifecycle (start, stop, restart).
-- **Installation**: The service is deployed as a bare-metal executable on both Windows and Linux servers.
-- **Health Checks**: `coredinator` monitors the health of the `CoreGateway` via a `/healthcheck` endpoint.
+- **Orchestration**: `CoreGateway` is managed by `coredinator`, which handles its lifecycle (start, stop, restart).
+- **Installation**: Deployed as a bare-metal executable on Windows and Linux.
+- **Health Checks**: `coredinator` monitors `CoreGateway` via a `/healthcheck` endpoint.
 - **Secrets Management**: JWT verification keys and other secrets are managed via encrypted configuration files.
 
 ---
@@ -269,36 +222,7 @@ Edge cases:
 
 Pseudocode:
 
-```python
-def handle_request(req):
-    route = route_table.find(req.path)
-    if not route:
-        return 404
-
-    token = extract_bearer(req.headers)
-    claims = validate_jwt(token) # returns None if invalid
-
-    # Everyone can access routes with required_role == Role.EVERYONE, even without a valid token
-    if route.required_role != Role.EVERYONE:
-        if not claims:
-            return 401 # Unauthorized
-
-        user_roles = claims.get("roles", [])
-        if route.required_role.value not in user_roles:
-            return 403 # Forbidden
-
-    if is_rate_limited(user_or_ip(req)):
-        return 429
-    # rewrite path and forward
-    internal_url = route.target + strip_prefix(req.path, route.path_prefix)
-    try:
-        resp = http_client.request(req.method, internal_url, headers=filtered_headers(req.headers), data=req.body, timeout=route.timeout)
-        return normalize_response(resp)
-    except TimeoutError:
-        return 504
-    except ConnectionError:
-        return 502
-```
+The gateway's request handling logic finds the appropriate route for a request, validates the user's JWT for authorization, checks for rate limiting, and then forwards the request to the target service. It handles various error conditions, such as timeouts and connection errors, by returning appropriate HTTP status codes.
 
 ---
 

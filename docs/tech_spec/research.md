@@ -2,35 +2,33 @@
 
 ## Overview
 
-The Research platform provides a comprehensive environment for reinforcement learning algorithm development, experimentation, and performance benchmarking. It serves as the testing ground for new algorithms before they are integrated into the production CoreRL system.
+The Research platform is an environment for RL algorithm development, experimentation, and benchmarking. It is used to test new algorithms and continual learning strategies before production integration.
 
 ## Architecture
 
 ### Purpose
-- **Algorithm Development**: Rapid prototyping of new RL algorithms
-- **Performance Benchmarking**: Systematic evaluation against standard benchmarks
-- **Hyperparameter Optimization**: Exhaustive hyperparameter search and tuning
-- **Ablation Studies**: Component-wise analysis of algorithm performance
+- **Algorithm Development**: Prototyping of RL algorithms.
+- **Performance Benchmarking**: Evaluation against standard benchmarks.
+- **Hyperparameter Optimization**: Hyperparameter search and tuning.
+- **Ablation Studies**: Component-wise analysis of algorithm performance.
 
 ## Experimental Framework
-The research platform provides a flexible and modular framework for implementing and testing new RL agents. The `Agent` interface ensures compatibility with the research environment, while the `EnvWrapper` class provides standardized interfaces and enhanced metrics collection. This modularity allows researchers to easily experiment with fine-grained components, such as different actor networks, critic architectures, or replay buffers.
+The research platform provides a modular framework for implementing and testing RL agents. The `Agent` interface ensures compatibility, while the `EnvWrapper` class provides standardized interfaces and metrics collection. This allows for experimentation with components like actor networks, critic architectures, or replay buffers.
 
 ## Benchmarking and Performance Metrics
-The platform uses a standardized benchmarking system to ensure fair and reproducible algorithm comparisons. Configurations specify the benchmark suite, environments, and key metrics, such as episode return, sample efficiency, and convergence stability. The evaluation process is comprehensive, collecting a wide range of metrics beyond simple returns, including action entropy and value function error. It aggregates results across numerous evaluation episodes and computes summary statistics to provide a detailed picture of agent performance.
+The platform uses a standardized benchmarking system for reproducible algorithm comparisons. Configurations specify the benchmark suite, environments, and metrics (e.g., episode return, sample efficiency, convergence stability). The evaluation process collects metrics like action entropy and value function error, aggregates results across evaluation episodes, and computes summary statistics.
 
 ## Algorithm Development Workflow
-The research workflow is a structured process that moves from hypothesis to analysis. It begins with a clear research question and a testable hypothesis, which inform a detailed experimental design. The experimental logic is then implemented in dedicated scripts. The final step is a rigorous statistical analysis of the results, which includes significance testing, effect size calculation, and, for a conservative view of reliability, the use of tolerance intervals and worst-case analysis. This ensures that conclusions are statistically sound and account for performance variability.
+The research workflow is a structured process from hypothesis to analysis. It begins with a research question and a testable hypothesis, which inform the experimental design. The experimental logic is implemented in scripts. The final step is a statistical analysis of the results, including significance testing, effect size calculation, tolerance intervals, and worst-case analysis.
 
 ## Integration with Production
-The pipeline for integrating new features from research into production follows a structured, multi-stage process to ensure stability and performance.
-
-The process is as follows:
-1.  **Research Implementation**: New algorithmic ideas and features are first implemented and validated within the `research` codebase. This allows for rapid prototyping and evaluation against standard benchmarks in a controlled environment.
-2.  **Production Migration & Feature Flagging**: Once a feature has been proven successful in research, it is carefully migrated to the production codebase and implemented behind a feature flag. This isolates the new functionality from the core, stable agent code.
-3.  **Behavioral Suite Testing**: The agent, with the new feature flag enabled, is rigorously tested against an ever-growing suite of behavior tests. This provides a rich, isolated analysis of the feature's impact on agent behavior.
-4.  **Long-Duration Soak Testing**: The agent runs in the behavioral test suite for several days to ensure stability and consistent performance over time.
-5.  **Pilot Plant Deployment**: After passing all tests, the feature flag is enabled on a small set of pilot plants. This deployment includes automated rollback plans to mitigate any unforeseen issues.
-6.  **Full Production Rollout**: Only after a successful pilot deployment is the feature flag enabled across all sites in a staged rollout, making the feature a permanent part of the production agent.
+The pipeline for integrating new features from research into production is a multi-stage process:
+1.  **Research Implementation**: New features are implemented and validated in the `research` codebase.
+2.  **Production Migration & Feature Flagging**: Successful features are migrated to the production codebase behind a feature flag.
+3.  **Behavioral Suite Testing**: The agent with the new feature is tested against a suite of behavior tests.
+4.  **Long-Duration Soak Testing**: The agent runs in the behavioral test suite for several days.
+5.  **Pilot Plant Deployment**: The feature flag is enabled on a small set of pilot plants with automated rollback plans.
+6.  **Full Production Rollout**: After a successful pilot, the feature is rolled out to all sites.
 
 
 ## Algorithm Development Workflow
@@ -38,10 +36,10 @@ The process is as follows:
 The research workflow follows a structured process from hypothesis to analysis.
 
 ### 1. Hypothesis Formation
-Research begins by defining a clear research question and a testable hypothesis. An experimental design is then formulated, specifying the ensemble sizes, environments, random seeds, and key metrics to be investigated. This structured approach ensures that experiments are well-defined and targeted.
+Research begins with a research question and a testable hypothesis. An experimental design is formulated, specifying ensemble sizes, environments, random seeds, and metrics.
 
 ### 2. Implementation
-The experimental logic is implemented in dedicated scripts. This involves creating the necessary agent configurations, running the evaluation loops, and storing the results for later analysis.
+The experimental logic is implemented in scripts, which create agent configurations, run evaluation loops, and store results.
 
 ### 3. Evaluation and Analysis
-The final step involves a rigorous statistical analysis of the experimental results. This includes performing significance testing (e.g., t-tests) to compare different conditions and calculating effect sizes to understand the magnitude of the observed differences. To provide a conservative view of reliability and consistency, the analysis also incorporates the use of tolerance intervals and worst-case analysis across multiple random seeds. This ensures that the conclusions drawn from the research are statistically sound and account for performance variability.
+The final step is a statistical analysis of the results, including significance testing (e.g., t-tests), effect size calculation, tolerance intervals, and worst-case analysis across multiple random seeds.
