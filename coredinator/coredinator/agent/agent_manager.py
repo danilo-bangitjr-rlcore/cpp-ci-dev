@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from coredinator.agent.agent import Agent, AgentID, AgentStatus
+from coredinator.service.protocols import ServiceState
 
 
 class AgentManager:
@@ -24,7 +25,7 @@ class AgentManager:
         if agent_id in self._agents:
             return self._agents[agent_id].status()
 
-        return AgentStatus(id=agent_id, state="stopped", config_path=None)
+        return AgentStatus(id=agent_id, state=ServiceState.STOPPED, config_path=None)
 
     def list_agents(self):
         return list(self._agents.keys())

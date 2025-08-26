@@ -54,15 +54,15 @@ class Agent(ServiceLike):
 
         statuses = [corerl_status, coreio_status]
 
-        if any(s.state == "failed" for s in statuses):
-            state = "failed"
-        elif all(s.state == "running" for s in statuses):
-            state = "running"
-        elif all(s.state == "stopped" for s in statuses):
-            state = "stopped"
+        if any(s.state == ServiceState.FAILED for s in statuses):
+            state = ServiceState.FAILED
+        elif all(s.state == ServiceState.RUNNING for s in statuses):
+            state = ServiceState.RUNNING
+        elif all(s.state == ServiceState.STOPPED for s in statuses):
+            state = ServiceState.STOPPED
         else:
             # This covers mixed states like starting/stopping
-            state = "starting"
+            state = ServiceState.STARTING
 
         return AgentStatus(
             id=self._id,

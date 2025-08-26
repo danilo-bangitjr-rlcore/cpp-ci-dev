@@ -6,13 +6,10 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from subprocess import DEVNULL, Popen
-from typing import Literal
 
 import backoff
 
-from coredinator.service.protocols import ServiceID
-
-ServiceState = Literal["starting", "running", "stopping", "stopped", "failed"]
+from coredinator.service.protocols import ServiceID, ServiceState
 
 
 @dataclass(frozen=True, slots=True)
@@ -111,7 +108,7 @@ class Service:
         if self._process is None:
             return ServiceStatus(
                 id=self.id,
-                state="stopped",
+                state=ServiceState.STOPPED,
                 config_path=self._config_path,
             )
 
@@ -119,12 +116,12 @@ class Service:
         if code is None:
             return ServiceStatus(
                 id=self.id,
-                state="running",
+                state=ServiceState.RUNNING,
                 config_path=self._config_path,
             )
 
         return ServiceStatus(
             id=self.id,
-            state="failed",
+            state=ServiceState.FAILED,
             config_path=self._config_path,
         )

@@ -1,11 +1,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from enum import StrEnum
 from pathlib import Path
-from typing import Literal, NewType, Protocol
+from typing import NewType, Protocol
 
 ServiceID = NewType("ServiceID", str)
-ServiceState = Literal["starting", "running", "stopping", "stopped", "failed"]
+
+
+class ServiceState(StrEnum):
+    STARTING = "starting"
+    RUNNING = "running"
+    STOPPING = "stopping"
+    STOPPED = "stopped"
+    FAILED = "failed"
 
 
 class StatusLike(Protocol):
