@@ -279,16 +279,13 @@ See [internal_practices.md](tech_spec/internal_practices.md) for internal tools,
 ### Appendix A: Configuration Schema Reference
 [Link to detailed configuration schemas](tech_spec/config_schemas.md)
 
-### Appendix B: API Documentation
+### Appendix B: API Documentation (TODO)
 [Link to OpenAPI specifications](tech_spec/api_docs.md)
 
-### Appendix C: Troubleshooting Guide
-[Link to common issues and solutions](tech_spec/troubleshooting.md)
-
-### Appendix D: Performance Benchmarks
+### Appendix C: Performance Benchmarks (TODO)
 [Link to performance test results](tech_spec/benchmarks.md)
 
-### Appendix E: Security Audit Reports
+### Appendix D: Security Audit Reports (TODO)
 [Link to security assessment results](tech_spec/security_audit.md)
 
 ---
