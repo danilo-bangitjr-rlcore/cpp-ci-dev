@@ -176,9 +176,9 @@ class OPC_Connection:
             raise ValueError(f"Problem encountered in tag config for {node_id} " +
                 "For ai_setpoint tags, node_identifier must be defined as the long-form OPC identifier")
 
+        logger.info(f"Registering OPC node with id '{node_id}'")
         node = self.opc_client.get_node(node_id)
         var_type = await node.read_data_type_as_variant_type()
-        logger.info(f"Registering OPC node with id '{node_id}'")
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type, name=name)
 
