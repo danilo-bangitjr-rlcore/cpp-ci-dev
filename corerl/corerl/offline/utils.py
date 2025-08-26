@@ -48,106 +48,92 @@ def load_entire_dataset(
     )
 
 
-class OfflineTraining:
-    def __init__(
-        self,
-        cfg: MainConfig,
+def offline_rl_from_buffer(agent: GreedyAC, steps: int=100):
+    log.info("Starting offline agent training...")
+
+    for buffer_name, size_list in agent.get_buffer_sizes().items():
+        log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
+
+    q_losses: list[float] = []
+    for step in range(steps):
+        critic_loss = agent.update()
+        q_losses += critic_loss
+        if step % 10 == 0 or step == steps - 1:
+            log.info(f"Offline agent training step {step}/{steps}, last loss: {q_losses[-1]}")
+
+    return q_losses
+
+def load_offline_transitions(
+        app_state: AppState,
+        pipeline: Pipeline,
+        data_reader: DataReader,
     ):
-        self.cfg = cfg
-        self.start_time = cfg.offline.offline_start_time
-        self.end_time = cfg.offline.offline_end_time
-        self.offline_steps = self.cfg.offline.offline_steps
-        self.pipeline_out: PipelineReturn | None = None
 
-    def load_offline_transitions(self, pipeline: Pipeline):
-        # Configure DataReader
-        assert isinstance(self.cfg.env, AsyncEnvConfig)
-        data_reader = DataReader(db_cfg=self.cfg.env.db)
+    # Infer missing start or end time
+    offline_cfg = app_state.cfg.offline
+    start_time, end_time = get_data_start_end_times(
+        data_reader,
+        offline_cfg.offline_start_time,
+        offline_cfg.offline_end_time,
+    )
 
-        # Infer missing start or end time
-        self.start_time, self.end_time = get_data_start_end_times(data_reader, self.start_time, self.end_time)
+    time_chunks = split_into_chunks(start_time, end_time, width=offline_cfg.pipeline_batch_duration)
 
-        # chunk offline reads
-        chunk_width = self.cfg.offline.pipeline_batch_duration
-        time_chunks = split_into_chunks(self.start_time, self.end_time, width=chunk_width)
+    # Filter out evaluation periods if configured
+    if offline_cfg.remove_eval_from_train and offline_cfg.eval_periods:
+        time_chunks = exclude_from_chunks(time_chunks, offline_cfg.eval_periods)
 
-        # Filter out evaluation periods if configured
-        if self.cfg.offline.remove_eval_from_train and self.cfg.offline.eval_periods:
-            time_chunks = exclude_from_chunks(time_chunks, self.cfg.offline.eval_periods)
-
-        # Pass offline data through data pipeline chunk by chunk to produce transitions
-        tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(self.cfg.pipeline.tags)]
-        for chunk_start, chunk_end in time_chunks:
-            chunk_data = data_reader.batch_aggregated_read(
-                names=tag_names,
-                start_time=chunk_start,
-                end_time=chunk_end,
-                bucket_width=self.cfg.interaction.obs_period,
-                aggregation=self.cfg.env.db.data_agg,
-            )
-            chunk_pr = pipeline(
-                data=chunk_data,
-                data_mode=DataMode.OFFLINE,
-                reset_temporal_state=False,
-            )
-
-            if self.pipeline_out:
-                self.pipeline_out += chunk_pr
-            else:
-                self.pipeline_out = chunk_pr
-
-    def train(self, agent: GreedyAC):
-        assert isinstance(self.start_time, dt.datetime)
-        assert isinstance(self.end_time, dt.datetime)
-        assert self.pipeline_out is not None
-        assert self.pipeline_out.transitions is not None
-        assert len(self.pipeline_out.transitions) > 0, (
-            "You must first load offline transitions before you can perform offline training"
+    # Pass offline data through data pipeline chunk by chunk to produce transitions
+    out = None
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(app_state.cfg.pipeline.tags)]
+    for chunk_start, chunk_end in time_chunks:
+        chunk_data = data_reader.batch_aggregated_read(
+            names=tag_names,
+            start_time=chunk_start,
+            end_time=chunk_end,
+            bucket_width=app_state.cfg.interaction.obs_period,
+            aggregation=app_state.cfg.env.db.data_agg,
         )
-        log.info("Starting offline agent training...")
+        chunk_pr = pipeline(
+            data=chunk_data,
+            data_mode=DataMode.OFFLINE,
+            reset_temporal_state=False,
+        )
 
-        agent.update_buffer(self.pipeline_out)
-        for buffer_name, size_list in agent.get_buffer_sizes().items():
-            log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
+        if out:
+            out += chunk_pr
+        else:
+            out = chunk_pr
 
-        q_losses: list[float] = []
-        for step in range(self.offline_steps):
-            critic_loss = agent.update()
-            q_losses += critic_loss
-            if step % 10 == 0 or step == self.offline_steps - 1:
-                log.info(f"Offline agent training step {step}/{self.offline_steps}")
+    return out
 
-        return q_losses
 
-def run_offline_evaluation_phase(
-        cfg: MainConfig,
+def get_all_offline_recommendations(
         app_state: AppState,
         agent: GreedyAC,
         pipeline: Pipeline,
+        data_reader: DataReader,
     ):
     """
-    Runs the offline evaluation phase using the provided config, agent, and pipeline.
-    Loads data in single obs_period chunks between offline_eval_start_time and offline_eval_end_time,
-    processes through the pipeline, and updates the agent.
+    Gives the data specfied in offline_cfg.eval_periods to the agent to get the agent's recommendations
     """
-    if cfg.offline.eval_periods is None:
+    if app_state.cfg.offline.eval_periods is None:
         log.info("No evaluation phase.")
         return
 
-    data_reader = DataReader(db_cfg=cfg.env.db)
-    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(app_state.cfg.pipeline.tags)]
 
-    for eval_period in cfg.offline.eval_periods:
+    for eval_period in app_state.cfg.offline.eval_periods:
         start = eval_period[0]
         end = eval_period[1]
         log.info(f"Starting evaluation phase: {start} to {end}")
         params = OfflineRecParameters(
             start,
             end,
-            cfg.interaction.obs_period,
+            app_state.cfg.interaction.obs_period,
             tag_names=tag_names,
-            data_agg=cfg.env.db.data_agg,
-            update_agent=cfg.offline.update_agent_during_offline_recs,
+            data_agg=app_state.cfg.env.db.data_agg,
+            update_agent=app_state.cfg.offline.update_agent_during_offline_recs,
         )
         get_offline_recommendations(app_state, agent, pipeline, data_reader, params)
 
@@ -195,7 +181,7 @@ def get_offline_recommendations(
                 recommended_action = agent.get_action_interaction(state)
                 norm_next_a_df = pipeline.action_constructor.get_action_df(recommended_action)
                 # clip to the normalized action bounds
-                norm_next_a_df = norm_next_a_df .clip(lower=np.asarray(state.a_lo), upper=np.asarray(state.a_hi))
+                norm_next_a_df = norm_next_a_df.clip(lower=np.asarray(state.a_lo), upper=np.asarray(state.a_hi))
                 _write_to_metrics(app_state, norm_next_a_df, prefix="ACTION-RECOMMEND")
 
             _write_to_metrics(app_state, chunk_pr.states, prefix="STATE-")
