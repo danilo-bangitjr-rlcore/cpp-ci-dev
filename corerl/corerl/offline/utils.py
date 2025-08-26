@@ -181,7 +181,7 @@ def get_offline_recommendations(
                 recommended_action = agent.get_action_interaction(state)
                 norm_next_a_df = pipeline.action_constructor.get_action_df(recommended_action)
                 # clip to the normalized action bounds
-                norm_next_a_df = norm_next_a_df .clip(lower=np.asarray(state.a_lo), upper=np.asarray(state.a_hi))
+                norm_next_a_df = norm_next_a_df.clip(lower=np.asarray(state.a_lo), upper=np.asarray(state.a_hi))
                 _write_to_metrics(app_state, norm_next_a_df, prefix="ACTION-RECOMMEND")
 
             _write_to_metrics(app_state, chunk_pr.states, prefix="STATE-")
