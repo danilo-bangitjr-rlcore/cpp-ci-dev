@@ -149,12 +149,10 @@ Responses:
 
 ## Authentication patterns
 
-The gateway uses Local JWT validation.
-- Gateway receives JWT, validates signature and claims with known public keys (or JWK URI).
-- Check expiry, issuer, audience, and roles/permissions in token claims as required.
-- This method is fast, with no network roundtrip per request.
-
-Recommendation: Use JWT signed by `CoreAuth` with a short-ish TTL (e.g., 15–60 minutes) and a revocation list or key-rotation strategy coordinated with `CoreAuth`.
+See Security Foundations (root technical specification). Gateway specifics:
+- Local JWT validation for low latency.
+- No internal service discovery: forwards to Coredinator post-auth.
+- Rate limiting enforced pre-dispatch to protect downstream services.
 
 ---
 
@@ -168,12 +166,14 @@ Recommendation: Use JWT signed by `CoreAuth` with a short-ish TTL (e.g., 15–60
 
 ## Observability & metrics
 
-**Metrics**: The gateway pushes key operational metrics to `CoreTelemetry` (either directly or via a lightweight collector). This includes:
-  - `request_total`, `request_duration_seconds` (histogram), `request_size_bytes`, `response_size_bytes`
-  - `auth_validation_total`, `auth_failures_total`
-  - `rate_limited_total`
-  - `proxied_5xx_total`
-- **Logging**: Structured JSON logs with correlation id, request path, method, response code, latency, and user id are emitted for centralized collection.
+Metrics SHOULD follow the Telemetry Taxonomy (see [CoreTelemetry](coretelemetry.md#telemetry-taxonomy)) and include:
+- `gateway_request_total`
+- `gateway_request_duration_seconds`
+- `gateway_auth_failures_total`
+- `gateway_rate_limited_total`
+- `gateway_upstream_error_total`
+
+Logging: Structured JSON (correlation id) forwarded unchanged to CoreTelemetry.
 
 ---
 
@@ -221,19 +221,19 @@ Simplified flow:
 ## Acceptance tests (minimal)
 
 1. Auth flow:
-  - POST /api/v1/auth/token -> gateway forwards (via Coredinator -> CoreAuth) and returns JWT.
-   - GET protected endpoint without token -> gateway returns 401.
-   - GET protected endpoint with valid token -> gateway proxies request to target and returns 200.
+    - POST /api/v1/auth/token -> gateway forwards (via Coredinator -> CoreAuth) and returns JWT.
+    - GET protected endpoint without token -> gateway returns 401.
+    - GET protected endpoint with valid token -> gateway proxies request to target and returns 200.
 
 2. Rate limiting:
-   - Send N requests over limit -> gateway returns 429 for the excess requests.
+    - Send N requests over limit -> gateway returns 429 for the excess requests.
 
 3. Forwarding:
-  - Request GET /api/v1/agent/{agent_id}/status -> gateway wraps request (including path param) and forwards to Coredinator; Coredinator selects appropriate CoreRL instance.
-  - Request GET /api/v1/agent/{agent_id}/config/current -> gateway forwards; Coredinator dispatches to CoreConfig scoped by agent_id.
+    - Request GET /api/v1/agent/{agent_id}/status -> gateway wraps request (including path param) and forwards to Coredinator; Coredinator selects appropriate CoreRL instance.
+    - Request GET /api/v1/agent/{agent_id}/config/current -> gateway forwards; Coredinator dispatches to CoreConfig scoped by agent_id.
 
 4. Error handling:
-   - Internal service 5xx -> gateway returns 502 and increments metric proxied_5xx_total.
+    - Internal service 5xx -> gateway returns 502 and increments metric proxied_5xx_total.
 
 ---
 

@@ -228,35 +228,15 @@ In case of data corruption, the system reverts to the last stable agent version.
 ---
 
 ## Security Considerations
+### Security Foundations
+The following controls are baseline and not redefined in individual service specs:
+- **Identity & Auth**: JWT (short TTL 15–60m) issued by CoreAuth; offline verification with rotating JWK set.
+- **Authorization**: Role / permission claims evaluated at ingress (CoreGateway) then propagated as immutable context.
+- **Transport Encryption**: TLS 1.3 for all external ingress; internal encryption optional per deployment risk profile.
+- **Auditability**: Structured logs containing principal, action, correlation id.
+- **Secrets Handling**: Local encrypted at rest + periodic key rotation schedule.
 
-### Authentication and Authorization
-
-#### Service-to-Service Authentication
-- **Method**: JWT tokens with service identity
-- **Rotation**: Automatic key rotation every 30 days
-- **Validation**: Signature verification and claims validation
-
-#### User Authentication
-- **Method**: OAuth 2.0
-- **Session Management**: Secure session cookies with CSRF protection
-- **Role-Based Access**: Granular permissions per service endpoint
-
-### Data Security
-
-#### Encryption
-- **In Transit**: TLS 1.3 for all external communications
-- **At Rest**: Database-level encryption for sensitive data
-
-#### Data Privacy
-- **Data Retention**: Automated purging based on retention policies
-- **Audit Logging**: All manual data access and modifications logged
-
-### Industrial Security
-
-#### OPC UA Security
-- **Authentication**: X.509 certificates for OPC UA connections
-- **Encryption**: OPC UA encryption for industrial communications
-- **Network Segmentation**: Isolated networks for industrial traffic
+Service documents reference this section and describe only deltas (e.g., OPC UA security specifics, internal dispatch signing roadmap).
 
 ---
 
@@ -268,9 +248,20 @@ As an on-premise, local-first application, RLTune performance and scalability ar
 - **Inference Time**: Agent decision-making completes in < 1s.
 - **Background Learning**: Supports up to 10 agents training concurrently on an 8-core server.
 
-### Resource Requirements
-- **RAM**: Each agent requires at least 8GB of dedicated RAM.
-- **Disk Space**: A minimum of 100GB of disk space is required for data historization. More disk space allows for longer data retention.
+### Resource Requirements (Baseline Sizing Matrix)
+
+Baseline targets consolidated here; individual service docs list only deviations.
+
+| Component | CPU (recommended) | Memory (recommended) | Notes |
+|-----------|-------------------|-----------------------|-------|
+| CoreRL (per active agent) | 4+ cores | 8GB | Background learning + inference; scale linearly with agents |
+| CoreIO | 2+ cores | <512MB | Low-latency OPC UA; network-bound |
+| CoreTelemetry | < 1 core | <512MB | Buffering + forwarding bursts |
+| Coredinator | < 1 core | <512MB | Control-plane; lightweight routing/state |
+| CoreGateway | < 1 core | <512MB | Auth + forwarding; minimal logic |
+| TimescaleDB (local) | 1 core | 4GB | Depends on retention horizon |
+
+Disk: Start with 100GB for historian + telemetry buffers (adjust per retention policy).
 
 ### Performance Testing
 - **Benchmarks**: Regular performance benchmarks are conducted for the agent and data pipeline.

@@ -15,6 +15,23 @@ Coredinator is the orchestration and internal routing service. It manages the li
 - **Agent Instance Mapping**: Maintains agent_id -> (CoreRL/CoreIO/etc.) instance mapping, enabling correct routing for per-agent operations.
  - **Protocol Translation & Transport Adaptation**: Converts incoming forwarded HTTP requests into the appropriate internal transport (e.g., ZeroMQ request/reply, future streaming or pub/sub) and normalizes responses back to HTTP for the gateway.
 
+## Service Deployment Model
+
+| Aspect | Model |
+|--------|-------|
+| Deployment Target | Single host (edge / plant server) running all core services side-by-side |
+| Packaging | Stand‑alone executables (per service) built for Linux & Windows |
+| Supervisor | `Coredinator` (starts, stops, restarts, health checks) |
+| Startup Order | Coredinator → CoreConfig → CoreIO / CoreTelemetry → CoreRL → CoreGateway |
+| Health Contract | `/healthcheck` (fast) per service; optional deep diagnostics service-specific |
+| Logging | Structured JSON forwarded to CoreTelemetry (buffer → optional cloud) |
+| Configuration Source | Local versioned YAML validated at load; distributed by Coredinator if hot-reload supported |
+| Blue/Green / Canary | Map `agent_id` to new CoreRL instance, run validation, then remap |
+| Rollback | Retain previous instance metadata; remap and retire failed instance |
+| OS Integration | systemd unit (Linux) / Windows Service wrapper managed indirectly via Coredinator |
+
+Other service documents should reference this section instead of redefining deployment details.
+
 ### FastAPI Web Service
 Coredinator is a FastAPI application providing REST APIs for service management. It uses a lifespan manager to initialize a service registry on startup and clean up resources on shutdown.
 
@@ -98,7 +115,7 @@ A `MultiAgentCoordinator` class can be implemented to perform coordination cycle
 
 ## Deployment
 
-Coredinator is deployed as a bare-metal executable on Windows and Linux and manages the lifecycle of other RLTune services on the same machine. Configuration is managed via local YAML files.
+See [Service Deployment Model](#service-deployment-model-authoritative). Coredinator must start first to provide supervision and consistent lifecycle control.
 
 ## Monitoring and Alerting
 

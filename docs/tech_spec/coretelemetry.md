@@ -136,3 +136,34 @@ The CoreTelemetry service exposes a simple, yet effective API for other services
 | **Local disk space exhaustion** | Medium | High | Implement a strict data retention policy (e.g., 30 days or 100GB). Monitor disk usage and generate alerts. |
 | **Data loss during service crash** | Low | High | Use file-based buffering, which is persistent across restarts. Ensure proper shutdown procedures are followed. |
 | **Mismatched data schemas** | Low | Medium | Use Pydantic models for strict schema validation at the API ingestion point. |
+
+---
+
+## Telemetry Taxonomy
+
+Canonical metric & log naming conventions to prevent drift across services.
+
+### Naming Principles
+1. Prefix by service when metric originates from a single service (e.g., `gateway_`, `coredinator_`).
+2. Shared cross-service labels: `service`, `agent_id`, `status_code`, `outcome`.
+3. Use `_total` for monotonic counters; `_seconds` for latency histograms / summaries.
+
+### Core Metric Families
+| Family | Description | Required Labels |
+|--------|-------------|-----------------|
+| `gateway_request_total` | Count of requests received at CoreGateway | method, path_template, status_code |
+| `gateway_request_duration_seconds` | Request latency histogram | method, path_template |
+| `gateway_upstream_error_total` | Upstream (post-dispatch) error responses | upstream_service |
+| `coredinator_dispatch_total` | Dispatch operations processed | target_service, outcome |
+| `coredinator_dispatch_duration_seconds` | Dispatch latency | target_service |
+| `corerl_inference_latency_seconds` | Action selection latency | agent_id |
+| `corerl_learning_step_duration_seconds` | Learning update duration | agent_id |
+| `coreio_opc_roundtrip_seconds` | OPC UA read/write round-trip | connection_id, op |
+| `coreio_opc_errors_total` | OPC UA operation errors | connection_id, error_type |
+| `coretelemetry_forward_queue_bytes` | Buffered telemetry backlog |  |
+| `coretelemetry_forward_failures_total` | Failed forward attempts | error_type |
+
+### Logging Fields (minimum set)
+`timestamp`, `service`, `level`, `message`, `correlation_id`, `agent_id?`, `exception?`
+
+Services SHOULD extend only with domain-specific fields; avoid redefining core field semantics.

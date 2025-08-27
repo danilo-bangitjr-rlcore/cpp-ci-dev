@@ -6,12 +6,12 @@ CoreRL is the reinforcement learning engine providing decision-making for indust
 
 ## Deployment Considerations
 
-### Resource Requirements
-- **CPU**: 4+ cores for JAX computations
-- **Memory**: 8GB+ for model and buffer storage
+Refer to the authoritative [Service Deployment Model](coredinator.md#service-deployment-model-authoritative). CoreRL-specific notes:
+- Prefers NUMA locality where available (pin worker threads if host is multi-socket).
 
-### Deployment
-The CoreRL service is deployed as a bare-metal executable on Windows or Linux. Its lifecycle is managed by `coredinator`. It includes features like graceful degradation to simpler control models and circuit breakers for critical failures.
+### Resource Requirements (See baseline sizing matrix in root tech spec)
+- Recommended: 4+ CPU cores for JAX computations (vectorized inference + background updates)
+- Recommended: 8GB+ memory per active agent (model + replay + feature cache)
 
 ## Architecture
 
@@ -57,7 +57,7 @@ The CoreRL service is deployed as a bare-metal executable on Windows or Linux. I
 ### Learning System Implementation
 
 - **Q-Learning with Regularized Corrections (QRC)**: The critic is a gradient-based TD learning algorithm (QRC), based on the generalized projected Bellman equation framework.
-- **Mixed History Replay Buffer**: The replay buffer combines recent and historical data, using ensemble masking and recency weighting to prioritize relevant data.
+- **Replay Buffer Strategy**: CoreRL composes buffer implementations from `lib_agent` (see [Shared Libraries](libraries.md)). (Mixed-history sampling, masking, recency weighting) are documented centrally there to avoid divergence.
 - **Rolling Ensemble Resets**: Individual members of the critic ensemble are periodically reset to a random state to encourage exploration.
 
 
@@ -101,20 +101,13 @@ The model management API provides endpoints for checkpointing, loading, and gett
 - **CoreTelemetry**: Metrics reporting and alerting
 - **Coredinator**: Service lifecycle management
 
-## Deployment Considerations
-
-### Resource Requirements
-- **CPU**: 4+ cores for JAX computations
-- **Memory**: 8GB+ for model and buffer storage
-
-
 ## Future Enhancements
 
 ### Planned Features
-- **Multi-Agent Coordination**: Distributed RL for multiple agents
 - **Hierarchical RL**: Temporal abstraction for complex tasks
 - **Meta-Learning**: Online hyperparameter tuning and architecture search.
 - **Explainable AI**: Interpretability tools.
+- **Coordination Interfaces**: CoreRL will continue to expose stable interfaces used by Coredinator for multi-agent coordination; coordination logic ownership remains in Coredinator (see its spec).
 
 ### Research Directions
 - **Safety-Critical RL**: Formal verification of RL policies

@@ -96,4 +96,7 @@ CoreIO implements OPC UA security features:
 - **Storage**: 100GB+ for plant data (increase for longer retention)
 
 ### Deployment
-The CoreIO service is deployed as a bare-metal executable on Windows or Linux. Its lifecycle is managed by the `coredinator` service. Configuration is handled via local YAML files, and data is persisted to survive restarts.
+Lifecycle and packaging follow the shared [Service Deployment Model](coredinator.md#service-deployment-model-authoritative). CoreIO specifics:
+- Low-latency network path to OPC UA servers strongly preferred.
+- Local configuration & certificate material persisted (rotation scheduled by Coredinator maintenance operations).
+- Historical write buffering should use SSD storage for deterministic latency.
