@@ -260,6 +260,22 @@ class SafetyZonedTag(BoundedTag):
         if self.yellow_bounds is not None:
             self.yellow_bounds_info = init_bounds_info(self, self.yellow_bounds, BoundType.yellow_zone, tags)
 
+    @post_processor
+    def _red_zone_reflex_check(self, cfg: 'MainConfig'):
+        if self.red_zone_reaction:
+            assert self.red_bounds, f"{self.name} defines a red zone reaction but has no defined red zone."
+            for reaction in self.red_zone_reaction:
+                if reaction.kind == ViolationDirection.lower_violation:
+                    assert self.red_bounds[0], (
+                        f"{self.name} defines a {ViolationDirection.lower_violation} red zone reaction "
+                        f"but has no defined lower red zone."
+                    )
+                if reaction.kind == ViolationDirection.upper_violation:
+                    assert self.red_bounds[1], (
+                        f"{self.name} defines a {ViolationDirection.upper_violation} red zone reaction "
+                        f"but has no defined upper red zone."
+                    )
+
     # -----------------------
     # -- Utility Functions --
     # -----------------------
