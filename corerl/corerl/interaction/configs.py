@@ -170,6 +170,23 @@ class InteractionConfig:
         return True
 
     @post_processor
+    def _validate_obs_period_alignment(self, cfg: MainConfig):
+        assert (
+            self.obs_period <= self.action_period
+        ), "The obs_period must be shorter or equal to the action period."
+
+        assert (
+            self.action_period % self.obs_period == timedelta(0)
+        ), "The action_period must be perfectly divisible by the obs_period."
+
+        assert (
+            self.state_age_tol >= self.obs_period
+        ), "States can only be stale after at least obs_period has elapsed. \
+            state_age_tol must be greater or equal to obs_period."
+
+
+
+    @post_processor
     def _validate_hist_windows(self, cfg: MainConfig):
         for i, (start, stop) in enumerate(self.historical_windows):
             start = Maybe(start).map(lambda ts: ts.astimezone(UTC))
