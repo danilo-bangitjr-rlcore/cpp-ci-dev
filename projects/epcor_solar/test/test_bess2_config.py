@@ -84,9 +84,13 @@ def df(cfg: MainConfig, tag_names: list[str]):
 
     return data
 
-def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_early_in_year(cfg: MainConfig, tag_names: list[str]):
+def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_early_in_year(
+    cfg: MainConfig,
+    app_state: AppState,
+    tag_names: list[str],
+):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     df = pd.DataFrame(data=np.zeros((1,len(tag_names))), columns=tag_names, index=pd.DatetimeIndex(["1/22/2025 10:00"]))
     pf = PipelineFrame(df, DataMode.ONLINE)
@@ -108,9 +112,13 @@ def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_early_in_year(cfg: MainConf
     # (100 - 0) * 0.000011 = 0.0011
     assert np.isclose(out.data["P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT"], 0.0011, atol=1e-4)
 
-def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_mid_year(cfg: MainConfig, tag_names: list[str]):
+def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_mid_year(
+    cfg: MainConfig,
+    app_state: AppState,
+    tag_names: list[str],
+):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     df = pd.DataFrame(data=np.ones((1,len(tag_names))), columns=tag_names, index=pd.DatetimeIndex(["7/13/2025 16:00"]))
     df["SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV"] = 30.0
@@ -133,9 +141,13 @@ def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_mid_year(cfg: MainConfig, t
     # (100 - 30) * 0.057324 = 4.01268
     assert np.isclose(out.data["P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT"], 4.01268, atol=1e-4)
 
-def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_end_of_year(cfg: MainConfig, tag_names: list[str]):
+def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_end_of_year(
+    cfg: MainConfig,
+    app_state: AppState,
+    tag_names: list[str],
+):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     df = pd.DataFrame(data=np.ones((1,len(tag_names))), columns=tag_names, index=pd.DatetimeIndex(["11/29/2025 12:00"]))
     df["SCADA1.ELS_SLR_ELSP12_MAJORITY_LGC.F_CV"] = 45.0
@@ -158,10 +170,10 @@ def test_P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT_end_of_year(cfg: MainConfig
     # (100 - 45) * 0.98448 = 54.1464
     assert np.isclose(out.data["P12_MAJORITY_ON_SITE_CONSUMPTION_CONSTRAINT"], 54.1464, atol=1e-4)
 
-def test_BESS_DEGRADATION_COST(cfg: MainConfig, tag_names: list[str]):
+def test_BESS_DEGRADATION_COST(cfg: MainConfig, app_state: AppState, tag_names: list[str]):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
     delta_tag_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     dates = pd.DatetimeIndex(["12/11/2025 6:00", "12/11/2025 6:05"])
     df = pd.DataFrame(data=np.ones((2, len(tag_names))), columns=tag_names, index=dates)
@@ -186,10 +198,10 @@ def test_BESS_DEGRADATION_COST(cfg: MainConfig, tag_names: list[str]):
     assert np.isnan(out.data["BESS_DEGRADATION_COST"].iloc[0])
     assert np.isclose(out.data["BESS_DEGRADATION_COST"].iloc[1], 30.0)
 
-def test_ENERGY_COST(cfg: MainConfig, tag_names: list[str]):
+def test_ENERGY_COST(cfg: MainConfig, app_state: AppState, tag_names: list[str]):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
     delta_tag_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     dates = pd.DatetimeIndex(["12/11/2025 6:00", "12/11/2025 6:05"])
     df = pd.DataFrame(data=np.ones((2, len(tag_names))), columns=tag_names, index=dates)
@@ -210,10 +222,10 @@ def test_ENERGY_COST(cfg: MainConfig, tag_names: list[str]):
     assert np.isnan(out.data["ENERGY_COST"].iloc[0])
     assert np.isclose(out.data["ENERGY_COST"].iloc[1], 237.1)
 
-def test_ENERGY_SOLD(cfg: MainConfig, tag_names: list[str]):
+def test_ENERGY_SOLD(cfg: MainConfig, app_state: AppState, tag_names: list[str]):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
     delta_tag_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     dates = pd.DatetimeIndex(["12/11/2025 6:00", "12/11/2025 6:05"])
     df = pd.DataFrame(data=np.ones((2, len(tag_names))), columns=tag_names, index=dates)
@@ -235,10 +247,10 @@ def test_ENERGY_SOLD(cfg: MainConfig, tag_names: list[str]):
     assert np.isnan(out.data["ENERGY_SOLD"].iloc[0])
     assert np.isclose(out.data["ENERGY_SOLD"].iloc[1], 553.675)
 
-def test_PROFIT(cfg: MainConfig, tag_names: list[str]):
+def test_PROFIT(cfg: MainConfig, app_state: AppState, tag_names: list[str]):
     seasonal_tag_stage = SeasonalTagIncluder(cfg.pipeline.tags)
     delta_tag_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
-    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags)
+    virtual_tag_stage = VirtualTagComputer(cfg.pipeline.tags, app_state)
 
     dates = pd.DatetimeIndex(["12/11/2025 6:00", "12/11/2025 6:05"])
     df = pd.DataFrame(data=np.ones((2, len(tag_names))), columns=tag_names, index=dates)
