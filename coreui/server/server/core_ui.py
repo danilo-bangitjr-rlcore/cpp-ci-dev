@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
+from server.config_api.config import get_config, get_tag, get_tags
 from server.opc_api.opc_routes import print_hello
 
 
@@ -33,6 +34,20 @@ class CoreUI:
         @self.app.get("/api/health")
         async def health_check():
             return {"status": "ok"}
+
+        # Config operations
+        @self.app.get("/api/configs/{config_name}")
+        async def get_config_endpoint(config_name: str):
+            return await get_config(config_name)
+
+        # Tag operations
+        @self.app.get("/api/configs/{config_name}/tags")
+        async def get_tags_endpoint(config_name: str):
+            return await get_tags(config_name)
+
+        @self.app.get("/api/configs/{config_name}/tags/{tag_name}")
+        async def get_tag_endpoint(config_name: str, tag_name: str):
+            return await get_tag(config_name, tag_name)
 
         # Serve SPA
         index_html = os.path.join(dist_path, "index.html")

@@ -12,7 +12,7 @@ You can develop and run the backend server independently from the frontend. The 
 To start the backend server directly:
 
 ```sh
-uv run python fastapi dev run_dev.py
+uv run fastapi dev run_dev.py
 ```
 
 - **API endpoints:** available under `/api/`
