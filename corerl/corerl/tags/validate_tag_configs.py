@@ -199,8 +199,11 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
 
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
+
+    def check_bounds(tag_cfg: SafetyZonedTag):
+        operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
+        zone_bounds_vs_operating_range_checks(tag_cfg, tag_cfgs)
+        red_vs_yellow_zone_checks(tag_cfg, tag_cfgs)
+
     for tag_cfg in tag_cfgs:
-        if isinstance(tag_cfg, SafetyZonedTag):
-            operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
-            zone_bounds_vs_operating_range_checks(tag_cfg, tag_cfgs)
-            red_vs_yellow_zone_checks(tag_cfg, tag_cfgs)
+        Maybe(tag_cfg).is_instance(SafetyZonedTag).tap(check_bounds)
