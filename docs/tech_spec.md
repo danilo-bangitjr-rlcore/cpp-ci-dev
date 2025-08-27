@@ -271,7 +271,7 @@ As an on-premise, local-first application, RLTune performance and scalability ar
 
 ### Resource Requirements
 - **RAM**: Each agent requires at least 8GB of dedicated RAM.
-- **Disk Space**: A minimum of 1TB of disk space is required for data historization. More disk space allows for longer data retention.
+- **Disk Space**: A minimum of 100GB of disk space is required for data historization. More disk space allows for longer data retention.
 
 ### Performance Testing
 - **Benchmarks**: Regular performance benchmarks are conducted for the agent and data pipeline.

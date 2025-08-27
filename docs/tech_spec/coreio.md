@@ -93,7 +93,7 @@ CoreIO implements OPC UA security features:
 - **CPU**: 2+ cores
 - **Memory**: 2GB
 - **Network**: Low-latency connection to OPC UA servers
-- **Storage**: 1TB+ for plant data
+- **Storage**: 100GB+ for plant data (increase for longer retention)
 
 ### Deployment
 The CoreIO service is deployed as a bare-metal executable on Windows or Linux. Its lifecycle is managed by the `coredinator` service. Configuration is handled via local YAML files, and data is persisted to survive restarts.
