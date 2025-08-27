@@ -58,7 +58,7 @@ jobs:
       run:
         working-directory: coreui/client
 
-    steps: 
+    steps:
       - uses: actions/checkout@v4
 
       - name: Set up client
