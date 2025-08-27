@@ -50,5 +50,5 @@ jobs:
 
       # App creation (no running)
       - name: Test server imports
-        run: uv run python coreui/server/run_dev.py
+        run: uv run python server/run_dev.py
 
