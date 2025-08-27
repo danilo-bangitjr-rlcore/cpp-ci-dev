@@ -40,11 +40,11 @@ jobs:
       # linting
       - uses: astral-sh/ruff-action@v1
         with:
-            src: server
+            src: coreui/server
 
       # type checking
       - uses: jakebailey/pyright-action@v2
         with:
           pylance-version: latest-release
-          working-directory: server
+          working-directory: coreui/server
 
