@@ -33,15 +33,6 @@ that result in partially defined schemas, these configs
 are defined in the same place as the union type TransformConfig.
 """
 @config()
-class BinaryConfig(BaseTransformConfig):
-    name: Literal['binary'] = "binary"
-    op: Literal['prod', 'min', 'max', 'add', 'replace'] = MISSING
-
-    other: str = MISSING
-    other_xform: list[TransformConfig] = list_([IdentityConfig])
-
-
-@config()
 class SplitConfig(BaseTransformConfig):
     name: Literal['split'] = 'split'
 
@@ -78,7 +69,6 @@ TransformConfig = Annotated[
     | NormalizerConfig
     | NukeConfig
     | PowerConfig
-    | BinaryConfig
     | ScaleConfig
     | SplitConfig
     | SympyConfig
@@ -88,17 +78,14 @@ TransformConfig = Annotated[
 
 
 def register_dispatchers():
-    from corerl.data_pipeline.transforms.binary import BinaryTransform
     from corerl.data_pipeline.transforms.split import SplitTransform
     from corerl.data_pipeline.transforms.sympy import SympyTransform
 
-    transform_group.dispatcher(BinaryTransform)
     transform_group.dispatcher(SplitTransform)
     transform_group.dispatcher(SympyTransform)
 
     # Because TransformConfig was only partially known when
     # pydantic first parsed these schemas, rebuild them
     # now that they are completely known.
-    rebuild_dataclass(cast(Any, BinaryConfig))
     rebuild_dataclass(cast(Any, SplitConfig))
     rebuild_dataclass(cast(Any, SympyConfig))
