@@ -7,7 +7,7 @@ from lib_config.loader import direct_load_config
 from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
-from corerl.tags.components.bounds import SafetyZonedTag, get_tag_bounds
+from corerl.tags.components.bounds import SafetyZonedTag, get_priority_violation_bounds
 from corerl.tags.validate_tag_configs import validate_tag_configs
 
 
@@ -26,7 +26,7 @@ def test_red_bounds_expression():
     )
 
     df = pd.DataFrame({'tag-1': [5], 'tag-2': [0]})
-    lo, hi = get_tag_bounds(tag2, df)
+    lo, hi = get_priority_violation_bounds(tag2, df)
     assert lo.unwrap() == 4.0
     assert hi.unwrap() == 6.0
 
@@ -46,7 +46,7 @@ def test_yellow_bounds_expression():
     )
 
     df = pd.DataFrame({'tag-1': [7], 'tag-3': [0]})
-    lo, hi = get_tag_bounds(tag3, df)
+    lo, hi = get_priority_violation_bounds(tag3, df)
     assert lo.unwrap() == 5.0
     assert hi.unwrap() == 9.0
 

@@ -8,7 +8,7 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.tags.components.bounds import get_tag_bounds
+from corerl.tags.components.bounds import get_priority_violation_bounds
 from corerl.tags.tag_config import get_scada_tags
 from corerl.data_pipeline.virtual_tags import VirtualTagComputer
 from corerl.eval.evals import EvalsTable
@@ -60,7 +60,7 @@ def df(cfg: MainConfig, tag_names: list[str]):
     for tag_cfg in cfg.pipeline.tags:
         if tag_cfg.name in tag_names:
             for i in range(obs_steps):
-                tag_bounds = get_tag_bounds(tag_cfg, data.iloc[[i]])
+                tag_bounds = get_priority_violation_bounds(tag_cfg, data.iloc[[i]])
                 if tag_cfg.type == TagType.delta:
                     data.loc[dates[i], tag_cfg.name] += i * tag_bounds[1].unwrap()
                 else:

@@ -12,7 +12,7 @@ from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.tags.components.bounds import BoundInfo, BoundsInfo, get_float_bound, get_maybe_bound_info
+from corerl.tags.components.bounds import BoundInfo, BoundsInfo, get_bound_with_data, get_maybe_bound_info
 from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
@@ -150,7 +150,7 @@ def get_clip_bounds(action_cfg: SetpointTagConfig, action: pd.DataFrame):
             .flat_otherwise(lambda: get_maybe_bound_info(action_cfg.operating_bounds_info, lens))
         )
 
-    lo = get_float_bound(_get_bound_info(lambda b: b.lower), action).expect()
-    hi = get_float_bound(_get_bound_info(lambda b: b.upper), action).expect()
+    lo = get_bound_with_data(_get_bound_info(lambda b: b.lower), action).expect()
+    hi = get_bound_with_data(_get_bound_info(lambda b: b.upper), action).expect()
 
     return lo, hi

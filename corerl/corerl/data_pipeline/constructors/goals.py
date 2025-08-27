@@ -9,7 +9,7 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.environment.reward.config import Goal, JointGoal, Optimization, RewardConfig
 from corerl.state import AppState
-from corerl.tags.components.bounds import BoundedTag, SafetyZonedTag, get_tag_bounds
+from corerl.tags.components.bounds import BoundedTag, SafetyZonedTag, get_priority_violation_bounds
 from corerl.tags.tag_config import TagConfig
 from corerl.utils.math import put_in_range
 
@@ -125,7 +125,7 @@ class GoalConstructor:
         bounds = (
             Maybe.find(lambda cfg: cfg.name == tag, self._tag_cfgs)
             .is_instance(SafetyZonedTag)
-            .map(partial(get_tag_bounds, row=row))
+            .map(partial(get_priority_violation_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {tag}')
         )
         lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {tag}')
@@ -242,7 +242,7 @@ class GoalConstructor:
         bounds = (
             Maybe.find(lambda cfg: cfg.name == goal.tag, self._tag_cfgs)
             .is_instance(SafetyZonedTag)
-            .map(partial(get_tag_bounds, row=row))
+            .map(partial(get_priority_violation_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {goal.tag}')
         )
         x: float = row[goal.tag].to_numpy()[0]

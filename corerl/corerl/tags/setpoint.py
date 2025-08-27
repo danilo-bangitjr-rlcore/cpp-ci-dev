@@ -14,7 +14,7 @@ from corerl.tags.components.bounds import (
     BoundType,
     FloatBounds,
     SafetyZonedTag,
-    get_float_bound,
+    get_bound_with_data,
     get_maybe_bound_info,
     init_bounds_info,
 )
@@ -212,11 +212,11 @@ def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float,
         )
 
     lo = (
-        get_float_bound(_get_bound_info(lambda b: b.lower), row)
+        get_bound_with_data(_get_bound_info(lambda b: b.lower), row)
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
     hi = (
-        get_float_bound(_get_bound_info(lambda b: b.upper), row)
+        get_bound_with_data(_get_bound_info(lambda b: b.upper), row)
         .expect(f"Tag {cfg.name} is configured as an action, but no lower bound found")
     )
 
