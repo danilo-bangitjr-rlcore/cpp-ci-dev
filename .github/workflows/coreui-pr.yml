@@ -48,3 +48,7 @@ jobs:
           pylance-version: latest-release
           working-directory: coreui/server
 
+      # App creation (no running)
+      - name: Test server imports
+        run: uv run python coreui/server/run_dev.py
+
