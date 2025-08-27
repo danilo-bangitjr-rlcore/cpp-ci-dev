@@ -3,19 +3,21 @@ import sys
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
+from server.opc_api.opc_routes import print_hello
 
 class CoreUI:
-    def __init__(self, dist_path=None):
+    def __init__(self, dist_path: str | None=None):
         self.app = FastAPI()
 
         # Default dist path (dev mode)
         if dist_path is None:
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
             dist_path = os.path.join(base_dir, "client", "dist")
 
         # PyInstaller temp directory (frozen exe)
-        if hasattr(sys, "_MEIPASS"):
-            dist_path = os.path.join(sys._MEIPASS, "dist")
+        meipass_path = getattr(sys, '_MEIPASS', None)
+        if meipass_path:
+            dist_path = os.path.join(meipass_path, "dist")
 
         dist_path = os.path.abspath(dist_path)
 
@@ -41,4 +43,5 @@ class CoreUI:
             return FileResponse(index_html)
 
     def get_app(self):
+        print_hello()
         return self.app
