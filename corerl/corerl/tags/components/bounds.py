@@ -316,10 +316,10 @@ def parse_string_bounds(
 
 
 def eval_bound(
-    data: pd.DataFrame | None,
+    data: pd.DataFrame,
     bound_info: BoundInfo,  # This is the last argument for cleaner mapping in Maybe with functools partial
 ) -> Maybe[float]:
-    def _inner(data: pd.DataFrame) -> float | None:
+    def _inner() -> float | None:
         res_func, res_tags = bound_info.bound_func, bound_info.bound_tags
         assert res_func and res_tags  # Assertion for pyright
 
@@ -337,12 +337,12 @@ def eval_bound(
     bound = bound_info.bound_elem
 
     if isinstance(bound, str):
-        return Maybe(data).map(_inner)
+        return Maybe(_inner())
 
     return Maybe(bound)
 
 
-def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame | None) -> tuple[Maybe[float], Maybe[float]]:
+def get_tag_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tuple[Maybe[float], Maybe[float]]:
     def _get_bound_info(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[BoundInfo]:
         return (
             get_maybe_bound_info(cfg.expected_bounds_info, lens)
@@ -392,7 +392,7 @@ def init_bounds_info(
         upper=upper_bound_info,
     )
 
-def get_float_bound(bound_info: Maybe[BoundInfo], row: pd.DataFrame | None) -> Maybe[float]:
+def get_float_bound(bound_info: Maybe[BoundInfo], row: pd.DataFrame) -> Maybe[float]:
     return (
         bound_info.flat_map(partial(eval_bound, row))
         .is_instance(float)
