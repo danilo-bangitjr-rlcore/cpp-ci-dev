@@ -6,8 +6,7 @@ import numpy as np
 from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.constructors.constructor import Constructor
-from corerl.data_pipeline.datatypes import MissingType, PipelineFrame, StageCode
-from corerl.data_pipeline.utils import update_missing_info
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
@@ -39,7 +38,6 @@ class ConditionalFilter(Constructor):
                 logger.warning(f"Conditional filter for {tag} could not be cast to bool")
                 continue
             pf.data.loc[filter_mask, tag] = np.nan
-            update_missing_info(pf.missing_info, tag, filter_mask, MissingType.FILTER)
 
         return pf
 

@@ -17,7 +17,7 @@ log = logging.getLogger(__name__)
 
 
 class _EvalPoint(NamedTuple):
-    timestamp: str
+    time: str
     agent_step: int
     evaluator: str
     value: object # jsonb
@@ -54,22 +54,13 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
             index_columns=['evaluator'],
         )
 
-
-    def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, agent_step, evaluator, value)
-            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, :agent_step, :evaluator, :value)
-        """)
-
-
     def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
         if not self.cfg.enabled:
             return
 
         value = value if isinstance(value, str) else json.dumps(value)
         point = _EvalPoint(
-            timestamp=timestamp or now_iso(),
+            time=timestamp or now_iso(),
             agent_step=agent_step,
             evaluator=evaluator,
             value=value,

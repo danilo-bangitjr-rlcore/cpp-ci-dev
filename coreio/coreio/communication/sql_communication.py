@@ -1,4 +1,5 @@
 import logging
+from typing import Any
 
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.sql_logging import (
@@ -8,7 +9,15 @@ from lib_utils.sql_logging.sql_logging import (
     get_sql_engine,
     table_exists,
 )
-from lib_utils.sql_logging.utils import SQLColumn, add_column_to_table_query, create_tsdb_table_query
+from lib_utils.sql_logging.utils import (
+    ColumnMapper,
+    SanitizedName,
+    SQLColumn,
+    add_column_to_table_query,
+    create_tsdb_table_query,
+)
+from lib_utils.time import now_iso
+from sqlalchemy import text
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.types import TypeEngine
 
@@ -31,20 +40,18 @@ class SQL_Manager:
         self.schema = cfg.db.schema
         self.table_name = table_name
         self.time_column_name = "time"
-        self.nodes_to_persist = self._node_names_to_lower(nodes_to_persist)
+
+        column_names = [node.name for node in nodes_to_persist.values()]
+        self.column_mapper = ColumnMapper(column_names)
+        self.nodes_to_persist = {
+            key: node.model_copy(update={"name": self.column_mapper.name_to_pg[node.name]})
+            for key, node in nodes_to_persist.items()
+        }
 
         self._ensure_db_schema()
         if warn_extra_cols:
             self._check_for_extra_columns()
 
-    def _node_names_to_lower(self, nodes_to_persist: dict[str, NodeData]):
-        """Convert all node names in nodes_to_persist to lowercase,
-           since postgres automatically converts column names to lowercase too.
-        """
-        return {
-            key: node.model_copy(update={"name": node.name.lower()})
-            for key, node in nodes_to_persist.items()
-        }
 
     def _ensure_db_schema(self):
         """Ensure database table exists with required columns, create table/columns if necessary."""
@@ -141,3 +148,52 @@ class SQL_Manager:
         sqlalchemy_type = self._get_sqlalchemy_type(node)
         return self._sqlalchemy_to_tsdb_type(sqlalchemy_type)
 
+    def _insert_sql(self, col_names_to_write: list[SanitizedName]):
+        """Generates SQL query for inserting data into the tsdb table."""
+
+        columns = ', '.join([f"{col}" for col in col_names_to_write])
+        placeholders = ', '.join([f":{col}" for col in col_names_to_write])
+        return text(f"""
+            INSERT INTO {self.schema}.{self.table_name}
+            (time, {columns})
+            VALUES (TIMESTAMP WITH TIME ZONE :timestamp, {placeholders});
+        """)
+
+    # Write data to the tsdb table with the given timestamp.
+    # This method expects data to be a dictionary where keys are node names
+    # and values are their corresponding values.
+    def write_to_sql(self, data: dict[str, Any], timestamp: str | None):
+        """Write data to the tsdb table with the given timestamp."""
+
+        if not self.engine:
+            logger.error("SQL engine is not initialized")
+            return
+
+        if not data:
+            logger.warning("No data provided to write_to_sql")
+            return
+
+        # Ensure all keys in input data are sanitized
+        column_mapper = ColumnMapper(list(data.keys()))
+        sanitized_data = {column_mapper.name_to_pg[k]: v for k, v in data.items()}
+
+        # Ensure all keys in input data are only expected columns
+        valid_columns = {node.name for node in self.nodes_to_persist.values()}
+        filtered_data = {k: v for k, v in sanitized_data.items() if k in valid_columns}
+
+        if not filtered_data:
+            logger.warning("No valid columns found in provided data")
+            return
+
+        filtered_data[SanitizedName('timestamp')] = timestamp or now_iso()
+
+        try:
+            with TryConnectContextManager(self.engine, backoff_seconds=10, max_tries=99) as connection:
+                col_names_to_write = [col for col in filtered_data.keys() if col != "timestamp"]
+                sql = self._insert_sql(col_names_to_write)
+
+                # Cast SanitizedName to str just for connection.execute
+                connection.execute(sql, {str(k): v for k, v in filtered_data.items()})
+                connection.commit()
+        except Exception as exc:
+            logger.error(f"Failed to write nodes: {exc}")

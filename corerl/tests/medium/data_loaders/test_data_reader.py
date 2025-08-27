@@ -4,38 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 from pandas import DataFrame, DatetimeIndex, Series
-from sqlalchemy import Engine
 
-from corerl.data_pipeline.db.data_reader import Agg, DataReader, TagDBConfig
+from corerl.data_pipeline.db.data_reader import Agg, DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
 from tests.medium.data_loaders.test_data_writer import write_n_random_vals
 
-
-@pytest.fixture()
-def data_reader_writer(
-    tsdb_engine: Engine,
-    tsdb_tmp_db_name: str,
-):
-    port = tsdb_engine.url.port
-    assert port is not None
-
-    db_cfg = TagDBConfig(
-        drivername="postgresql+psycopg2",
-        username="postgres",
-        password="password",
-        ip="localhost",
-        port=port,
-        db_name=tsdb_tmp_db_name,
-        table_name='sensors',
-        table_schema='public',
-    )
-
-    data_reader = DataReader(db_cfg=db_cfg)
-    data_writer = DataWriter(cfg=db_cfg)
-
-    yield (data_reader, data_writer)
-
-    data_reader.close()
 
 class TestDataReaderLogic:
     def test_single_aggregated_read_end_time_inclusive(self, data_reader_writer: tuple[DataReader, DataWriter]):
@@ -243,7 +216,7 @@ class TestDataReader:
         names = TestDataReader.sensor_names
         _, data_writer = data_reader_writer
         for name in names:
-            write_n_random_vals(n=n_vals, name=name, data_writer=data_writer, end_time=now)
+            write_n_random_vals(n=n_vals, name=name, data_reader_writer=data_reader_writer, end_time=now)
 
     def test_read_with_no_data(self, data_reader_writer: tuple[DataReader, DataWriter], populate_db: None, now: datetime): # noqa: E501
         data_reader, _ = data_reader_writer

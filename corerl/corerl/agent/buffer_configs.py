@@ -16,7 +16,7 @@ class RecencyBiasBufferConfig:
     obs_period: int = MISSING
     gamma: Sequence[float] = field(default_factory=lambda: [0.99])
     effective_episodes: Sequence[int] = field(default_factory=lambda: [100])
-    ensemble: int = 2
+    ensemble: int = MISSING
     uniform_weight: float = 0.01
     ensemble_probability: float = 0.5
     batch_size: int = 32
@@ -60,7 +60,7 @@ class RecencyBiasBufferConfig:
 @config()
 class MixedHistoryBufferConfig:
     name: Literal["mixed_history_buffer"] = "mixed_history_buffer"
-    ensemble: int = 1
+    ensemble: int = MISSING
     max_size: int = 1_000_000
     ensemble_probability: float = 0.5
     batch_size: int = 256

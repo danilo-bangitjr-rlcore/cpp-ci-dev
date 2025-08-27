@@ -66,6 +66,9 @@ class RepresentationEval:
         if self._lmax is None or lrep > self._lmax:
             self._lmax = lrep
 
+        if self._lmax == 0:
+            return 0.0
+
         return 1 - (lrep / self._lmax)
 
     def get_dynamics_awareness(

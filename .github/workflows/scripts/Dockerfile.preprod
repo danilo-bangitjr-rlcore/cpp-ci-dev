@@ -1,0 +1,13 @@
+FROM fedora:41
+
+WORKDIR /app
+
+ARG CORERL_ARTIFACT
+ARG COREIO_ARTIFACT
+
+ENV COREIO_EXEC=${COREIO_ARTIFACT}
+ENV CORERL_EXEC=${CORERL_ARTIFACT}
+
+COPY dist/${CORERL_ARTIFACT} dist/${COREIO_ARTIFACT} ./
+
+CMD ["bash", "-c", "echo 'App container started' && tail -f /dev/null"]

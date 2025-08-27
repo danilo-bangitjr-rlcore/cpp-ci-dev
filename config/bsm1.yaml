@@ -2,33 +2,47 @@ env:
   name: sim_async_env
   gym:
     env_config:
-      name: BSM1-v0
-    init_type: custom
+      name : BSM1-v0
+      only_so5_action: False
+      influent_source: mixed
+      ox_ctrl_enabled: True
+      sno_ctrl_enabled: True
+      direct_action_aeration: False
+      direct_action_imlr: False
+      baseline_duration: 14.0
+      env_dt_minutes: 60.0
 
 interaction:
   name: sim_interaction
   obs_period: 00:00:01
   action_period: 00:00:01
+  checkpoint_freq: 1000000:00:00
 
-max_steps : 10000
+max_steps : 40000
+
+agent:
+  gamma: 0.95
+  max_critic_updates: 1
 
 metrics:
-  enabled: False
+  enabled: True
 
 evals:
   enabled: False
 
-agent:
-  name: greedy_ac
-
 pipeline:
   reward:
     priorities:
-      - op: up_to
-        tag: tag-5 # effluent NO
-        thresh: 0.5
+      # - op: and
+      #   goals:
+      #   - op: down_to
+      #     tag: tag-11
+      #     thresh: 18.0      
+      #   - op: down_to
+      #     tag: tag-13
+      #     thresh: 4.0
 
-      - tags: [action-0]
+      - tags: [tag-21]
         directions: [min]
 
   tags:
@@ -40,45 +54,148 @@ pipeline:
     type: meta
 
   # observations
-  - name: tag-0 # Influent NH
-    operating_range: [0, 1]
+  - name: tag-0 # Influent Q
+    operating_range: [0, 1e5]
 
-  - name: tag-1 # Influent DO
-    operating_range: [0, 1]
+  - name: tag-1 # Influent SNH
+    operating_range: [0, 50]
 
-  - name: tag-2 # Tank 1 NH
-    operating_range: [0, 1]
+  - name: tag-2 # Influent SO
+    operating_range: [0, 10]
 
-  - name: tag-3 # Tank 3 DO
-    operating_range: [0, 1]
+  - name: tag-3 # Influent SNO
+    operating_range: [0, 20]
 
-  - name: tag-4 # Effluent NH
-    operating_range: [0, 1]
+  - name: tag-4 # Influent SALK
+    operating_range: [0, 20]
 
-  - name: tag-5 # Effluent NO
-    operating_range: [0, 1]
+  - name: tag-5 # Tank 2 SNO
+    operating_range: [0, 20]
+
+  - name: tag-6 # Tank 5 SO
+    operating_range: [0, 20]
+  
+  - name: tag-7 # IMLR Q
+    operating_range: [0, 1e5]
+  
+  - name: tag-8 # IMLR TSS
+    operating_range: [0, 1e4]
+  
+  - name: tag-9 # Effluent SNH
+    operating_range: [0, 50]
+  
+  - name: tag-10 # Effluent SNO
+    operating_range: [0, 20]
+  
+  - name: tag-11 # Sludge Bed Height
+    operating_range: [0, 5]
+    red_bounds: [Null, 3.5]
+    yellow_bounds: [Null, 3.]
+
+  - name: tag-12 # Effluent total N
+    operating_range: [0, 100]
+    expected_range: [0, 18]
+    # yellow_bounds: [Null, 17]
+  
+  - name: tag-13 # Effluent COD
+    operating_range: [0, 500]
+    expected_range: [0, 100]
+    # yellow_bounds: [Null, 90]
+  
+  - name: tag-14 # Effluent SNH
+    operating_range: [0, 50]
+    expected_range: [0, 4]
+    # yellow_bounds: [Null, 3.5]
+
+  - name: tag-15 # Effluent TSS
+    operating_range: [0, 1e4]
+    expected_range: [0, 30]
+    # yellow_bounds: [Null, 27]
+
+  - name: tag-16 # Effluent BOD
+    operating_range: [0, 50]
+    expected_range: [0, 10]
+    # yellow_bounds: [Null, 9]
+
+  - name: tag-17 # Effluent quality index
+    operating_range: [0, 3e4]
+  
+  - name: tag-18 # Waste Sludge
+    operating_range: [0, 1e4]
+  
+  - name: tag-19 # Effluent Sludge
+    operating_range: [0, 1e4]
+
+  - name: tag-20 # Pumping Energy
+    operating_range: [0, 1e3]
+  
+  - name: tag-21 # Aeration Energy
+    operating_range: [0, 2e4]
+
+  - name: tag-22 # Operational cost index
+    operating_range: [0, 1e5]
+
+  - name: tag-23 # Daily average total nitrogen
+    operating_range: [0, 100]
+    red_bounds: [Null, 18]
+    yellow_bounds: [Null, 17]
+  
+  - name: tag-24 # Daily average Effluent COD
+    operating_range: [0, 500]
+    red_bounds: [Null, 100]
+    yellow_bounds: [Null, 90]
+  
+  - name: tag-25 # Daily average Effluent SNH
+    operating_range: [0, 50]
+    red_bounds: [Null, 4]
+    yellow_bounds: [Null, 3.5]
+
+  - name: tag-26 # Daily average Effluent TSS
+    operating_range: [0, 1e4]
+    red_bounds: [Null, 30]
+    yellow_bounds: [Null, 27]
+
+  - name: tag-27 # Daily average Effluent BOD
+    operating_range: [0, 50]
+    red_bounds: [Null, 10]
+    yellow_bounds: [Null, 9]
 
   # actions
-  - name: action-0
-    operating_range: [0, 1]
+  - name: action-0 # Aeration setpoint tank 3
+    operating_range: [0, 360]
+    # operating_range: [230, 250]
+    action_bounds: ['{action-0} - 5', '{action-0} + 5']
     type: ai_setpoint
 
-  - name: action-1
-    operating_range: [0, 1]
+  - name: action-1 # Aeration setpoint tank 4
+    operating_range: [0, 360]
+    # operating_range: [230, 250]
+    action_bounds: ['{action-1} - 5', '{action-1} + 5']
     type: ai_setpoint
 
-  - name: action-2
-    operating_range: [0, 1]
+  - name: action-2 # Aeration setpoint tank 5
+    # operating_range: [0, 360]
+    operating_range: [0.1,4.]
+    action_bounds: ['{action-2} - 0.1', '{action-2} + 0.1']
+    # action_bounds: ['{action-2} - 25', '{action-2} + 25']
     type: ai_setpoint
 
-  - name: action-3
-    operating_range: [0, 1]
+  - name: action-3 # IMLR setpoint
+    # operating_range: [0, 92230]
+    operating_range: [0.1, 3.]
+    # operating_range: [30000, 80000]
+    action_bounds: ['{action-3} - 0.1', '{action-3} + 0.1']
     type: ai_setpoint
 
-  - name: action-4
-    operating_range: [0, 1]
+  - name: action-4 # Waste Sludge setpoint
+    # operating_range: [0, 36892] 
+    operating_range: [10000, 25000]
+    action_bounds: ['{action-4} - 500', '{action-4} + 500']
     type: ai_setpoint
 
-  - name: action-5
-    operating_range: [0, 1]
+  - name: action-5 # Return Sludge setpoint
+    # operating_range: [0, 1844.6] 
+    operating_range: [200, 600]
+    action_bounds: ['{action-5} - 10', '{action-5} + 10']
+    # operating_range: [0.1, 2.]
     type: ai_setpoint

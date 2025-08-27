@@ -1,0 +1,197 @@
+log_path: outputs/pipeline
+agent_name: pipeline
+seed: 1
+is_simulation: True
+
+feature_flags:
+  nominal_setpoint_bias: true
+  normalize_return: true
+
+infra:
+  db:
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "password"
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+
+agent:
+  name: greedy_ac
+  gamma: 0.8
+
+  critic:
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: critic # for metric logging
+
+  policy:
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: actor # for metric logging
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+  # update_warmup: 500 # number of updates before interacting
+  # historical_batch_size: 51840 # 180 days @ 5 minute obs period
+  # historical_windows:
+  # - [2025-07-02 17:30:00-0700, null]
+
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: Pipeline-v0
+
+metrics:
+  enabled: True
+
+evals:
+  enabled: True
+
+pipeline:
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0., 0.5, 0.8 ] # half life 2 hours
+
+  reward:
+    priorities:
+    # - tags: [L0_health, L1_health, L2_health]
+    #   directions: max
+    #   weights: [1.0, 1.0, 1.0]
+    - tags: [total_reward]
+      directions: max
+
+  tags:
+  - name: terminated
+    type: meta
+  - name: truncated
+    type: meta
+
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [0.0, 1.0]
+    # action_bounds: ['{tag-10}-0.1', '{tag-10}+0.1']
+
+  - name: action-1
+    type: ai_setpoint
+    operating_range: [0.0, 1.0]
+    # action_bounds: ['{tag-11}-0.1', '{tag-11}+0.1']
+    # action_bounds: ['{action-1}-0.1', '{action-1}+0.1']
+
+  # tank levels (3)
+  - name: tag-0 # L0
+    operating_range: [-1, 2]
+    expected_range: [0, 1]
+    yellow_bounds: [0.2, 0.8]
+    red_bounds: [0.1, 0.9]
+    # red_zone_reaction:
+    #   - tag: action-0
+    #     kind: lower_violation
+    #     bounds: [0, 0.01]
+    #   - tag: action-0
+    #     kind: upper_violation
+    #     bounds: [0.99, 1]
+
+
+  - name: tag-1 # L1
+    operating_range: [-1, 2]
+    expected_range: [0, 1]
+    yellow_bounds: [0.2, 0.8]
+    red_bounds: [0.1, 0.9]
+    red_zone_reaction:
+      # - tag: action-0
+      #   kind: lower_violation
+      #   bounds: [0.99, 1]
+      # - tag: action-0
+      #   kind: upper_violation
+      #   bounds: [0, 0.01]
+      # - tag: action-1
+      #   kind: lower_violation
+      #   bounds: [0, 0.01]
+      # - tag: action-1
+      #   kind: upper_violation
+      #   bounds: [0.99, 1]
+
+  - name: tag-2 # L2
+    operating_range: [-1, 2]
+    expected_range: [0, 1]
+    yellow_bounds: [0.2, 0.8]
+    red_bounds: [0.1, 0.9]
+    # red_zone_reaction:
+    #   - tag: action-1
+    #     kind: lower_violation
+    #     bounds: [0.99, 1]
+    #   - tag: action-1
+    #     kind: upper_violation
+    #     bounds: [0, 0.01]
+
+  # receipts (2)
+  - name: tag-3 # R0
+    operating_range: [0, 1]
+
+  - name: tag-4 # R1
+    operating_range: [0, 1]
+
+  # deliveries (1)
+  - name: tag-5 # D0
+    operating_range: [0, 1]
+
+  # stops (2)
+  - name: tag-6 # Stop0
+    operating_range: [0, 1]
+
+  - name: tag-7 # Stop1
+    operating_range: [0, 1]
+
+  # starts (2)
+  - name: tag-8 # Start0
+    operating_range: [0, 1]
+
+  - name: tag-9 # Start1
+    operating_range: [0, 1]
+
+  # MPC actions (2)
+  # - name: tag-10 # MPC action 0
+  #   operating_range: [0, 1]
+
+  # - name: tag-11 # MPC action 1
+  #   operating_range: [0, 1]
+
+  - name: L0_health
+    operating_range: [0, 0.01]
+    # expected_range: [0, 0.01]
+    is_computed: true
+    value: "(1 - {tag-0})*{tag-0}"
+
+  - name: L1_health
+    operating_range: [0, 0.01]
+    # expected_range: [0, 0.01]
+    is_computed: true
+    value: "(1 - {tag-1})*{tag-1}"
+
+  - name: L2_health
+    operating_range: [0, 0.01]
+    # expected_range: [0, 0.01]
+    is_computed: true
+    value: "(1 - {tag-2})*{tag-2}"
+
+  - name: total_level
+    is_computed: true
+    operating_range: [-3, 6]
+    value: "{tag-0} + {tag-1} + {tag-2}"
+
+  - name: total_reward
+    operating_range: [-2, 0.75]
+    is_computed: true
+    value: "{L0_health} + {L1_health} + {L2_health} - {tag-8} - {tag-9}"
+

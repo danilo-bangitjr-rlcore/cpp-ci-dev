@@ -6,7 +6,8 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import pytest
 
-from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
+from lib_agent.critic.critic_utils import QRCConfig, RollingResetConfig
+from lib_agent.critic.qrc_critic import QRCCritic
 
 
 @dataclass
@@ -28,7 +29,10 @@ def critic_config() -> QRCConfig:
         action_regularization_epsilon=0.1,
         l2_regularization=1.0,
         nominal_setpoint_updates=10,
-        use_noisy_nets=False,
+        rolling_reset_config=RollingResetConfig(
+            reset_period=100,
+            warm_up_steps=50,
+        ),
     )
 
 
@@ -121,6 +125,7 @@ def test_get_values_batch(critic: QRCCritic):
         batch_actions,
     )
 
+    # Check output shape: should be (ensemble, batch_size, n_samples, 1)
     assert q_values.shape == (critic._cfg.ensemble, batch_size, 1)
     assert q_values.dtype == jnp.float32
 
@@ -156,6 +161,98 @@ def test_get_values_batch_n_samples(critic: QRCCritic):
         batch_actions,
     )
 
-    # Check output shape: should be (ensemble, batch_size, n_samples, 1)
     assert q_values.shape == (critic._cfg.ensemble, batch_size, n_samples, 1)
     assert q_values.dtype == jnp.float32
+
+
+@pytest.fixture
+def rolling_reset_config() -> QRCConfig:
+    return QRCConfig(
+        name="test_qrc",
+        stepsize=0.001,
+        ensemble=3,
+        ensemble_prob=1.0,
+        num_rand_actions=1,
+        action_regularization=0.0,
+        action_regularization_epsilon=0.1,
+        l2_regularization=0.0,
+        rolling_reset_config=RollingResetConfig(
+            reset_period=100,
+            warm_up_steps=50,
+        ),
+    )
+
+
+@pytest.fixture
+def rolling_critic(rolling_reset_config: QRCConfig) -> QRCCritic:
+    state_dim = 4
+    action_dim = 2
+    seed = 42
+    return QRCCritic(rolling_reset_config, seed, state_dim, action_dim)
+
+
+def test_rolling_reset_initialization(rolling_critic: QRCCritic):
+    assert rolling_critic._reset_manager.total_critics == 3
+    assert len(rolling_critic._reset_manager.active_indices) == 3
+    assert rolling_critic._reset_manager.active_indices == {0, 1, 2}
+
+    status = rolling_critic._reset_manager.get_status()
+    assert status.total_critics == 3
+    assert status.active_critics == 3
+    assert status.active_indices == [0, 1, 2]
+
+
+def test_rolling_reset(rolling_critic: QRCCritic):
+    state = jnp.array([1.0, 2.0, 3.0, 4.0])
+    action = jnp.array([0.5, -0.5])
+    rng = jax.random.PRNGKey(123)
+
+    critic_state = rolling_critic.init_state(rng, state, action)
+
+    # critic 0: oldest, warmed up (should be reset)
+    rolling_critic._reset_manager._critic_info[0].training_steps = 60
+    rolling_critic._reset_manager._critic_info[0].birthdate = 0
+    rolling_critic._reset_manager._critic_info[0].is_warmed_up = True
+    rolling_critic._reset_manager._critic_info[0].is_active = True
+
+    # critic 1: younger, warmed up
+    rolling_critic._reset_manager._critic_info[1].training_steps = 60
+    rolling_critic._reset_manager._critic_info[1].birthdate = 20
+    rolling_critic._reset_manager._critic_info[1].is_warmed_up = True
+    rolling_critic._reset_manager._critic_info[1].is_active = True
+
+    # critic 2: not warmed up yet
+    rolling_critic._reset_manager._critic_info[2].training_steps = 30
+    rolling_critic._reset_manager._critic_info[2].birthdate = 10
+    rolling_critic._reset_manager._critic_info[2].is_warmed_up = False
+    rolling_critic._reset_manager._critic_info[2].is_active = True
+
+    # simulate reset
+    rolling_critic._reset_manager.reset(
+        critic_state,
+        rng,
+        rolling_critic._init_member_state,
+        rolling_critic._state_dim,
+        rolling_critic._action_dim,
+    )
+
+    # Critic 0 should be removed from active set (reset)
+    current_active = rolling_critic._reset_manager.active_indices
+    assert 0 not in current_active
+    assert 1 in current_active
+    assert 2 in current_active
+
+    status = rolling_critic._reset_manager.get_status()
+    assert status.active_critics == 2
+
+
+def test_get_active_values(rolling_critic: QRCCritic):
+    state = jnp.array([1.0, 2.0, 3.0, 4.0])
+    action = jnp.array([0.5, -0.5])
+    rng = jax.random.PRNGKey(123)
+
+    critic_state = rolling_critic.init_state(rng, state, action)
+
+    rng_apply = jax.random.PRNGKey(456)
+    active_values = rolling_critic.get_active_values(critic_state.params, rng_apply, state, action)
+    assert active_values.shape == (len(rolling_critic._reset_manager.active_indices), 1)  # (3, 1)

@@ -1,12 +1,11 @@
 [project]
 name = "corerl"
-version = "0.142.0"
+version = "0.145.0"
 description = ""
 requires-python = "==3.13.0"
 authors = []
 dependencies = [
     "discrete-dists~=1.0",
-    "fastapi[standard]~=0.115.6",
     "numba~=0.60",
     "numpy~=2.0",
     "pandas~=2.2",
@@ -46,16 +45,14 @@ dev = [
     "pytest-xdist>=3.7.0",
     "ruff>=0.11.11",
     "test",
-    "uv>=0.7.8",
+    "uv~=0.7",
     "pytest-benchmark>=5.1.0",
 ]
 
 [project.scripts]
-coreio_main = "coreio.main_io:main"
 corerl_main = "corerl.main:main"
 corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
 corerl_agent_step = "corerl.bin.corerl_step_cli:main"
-corerl_start_web = "corerl.bin.start_web_app:main"
 
 [build-system]
 requires = ["hatchling"]

@@ -3,7 +3,7 @@ from typing import Annotated
 
 from pydantic import Field
 
-from rl_env.bsm1 import BSM1Config
+from rl_env.bsm1.bsm1 import BSM1Config
 from rl_env.calibration import CalibrationConfig
 from rl_env.distraction_world import DistractionWorldConfig
 from rl_env.four_rooms import FourRoomsConfig
@@ -15,6 +15,7 @@ from rl_env.pvs import PVSConfig
 from rl_env.saturation import SaturationConfig
 from rl_env.saturation_goals import SaturationGoalsConfig
 from rl_env.stand_still_mc import StandStillMCConfig
+from rl_env.streamline import PipelineEnvConfig
 from rl_env.t_maze import TMazeConfig
 from rl_env.three_tanks import ThreeTanksConfig
 from rl_env.windy_room import WindyRoomConfig
@@ -29,6 +30,7 @@ EnvConfig = Annotated[
     SaturationConfig |
     SaturationGoalsConfig |
     StandStillMCConfig |
+    PipelineEnvConfig |
     TMazeConfig |
     ThreeTanksConfig |
     WindyRoomConfig |

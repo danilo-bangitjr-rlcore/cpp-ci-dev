@@ -1,13 +1,10 @@
-import datetime
-from typing import Any
 
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-import pytest
+import pandas.testing as pdt
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
-from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
@@ -15,85 +12,51 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 
 
-@pytest.fixture
-def pipeline1_config():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/assets/test_pipeline1.yaml')
-    assert not isinstance(cfg, ConfigValidationErrors)
-    return cfg
-
-
-def make_time_index(start: datetime.datetime, steps: int, delta: datetime.timedelta):
-    return pd.DatetimeIndex([start + i * delta for i in range(steps)])
-
-
-@pytest.fixture
-def fake_pipeline1_data():
-    start = datetime.datetime.now(datetime.UTC)
-    Δ = datetime.timedelta(minutes=5)
-    idx = make_time_index(start, 7, Δ)
-    cols = ['tag-1', 'tag-2', 'reward', 'action-1']
-    df = pd.DataFrame(
-        data=[
-            [np.nan, 0,        0,    0],
-            [0,      2,        3,    1],
-            [1,      4,        0,    0],
-            [2,      6,        0,    1],
-            [np.nan, np.nan,   0,    0],
-            [4,      10,       1,    1],
-            [5,      12,       0,    0],
-        ],
-        columns=cols,
-        index=idx,
-    )
-    return df, idx
-
-
 def test_construct_pipeline(
     dummy_app_state: AppState,
-    pipeline1_config: MainConfig,
+    basic_config: MainConfig,
 ):
-    _ = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    _ = Pipeline(dummy_app_state, basic_config.pipeline)
 
 
 def test_passing_data_to_pipeline(
-    dummy_app_state: AppState,
-    pipeline1_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+    fake_pipeline_data: pd.DataFrame,
+    dummy_pipeline: Pipeline,
 ):
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
-    df, _ = fake_pipeline1_data
-    _ = pipeline(df, data_mode=DataMode.OFFLINE)
+    df = fake_pipeline_data
+    _ = dummy_pipeline(df, data_mode=DataMode.OFFLINE)
 
 
 def test_state_action_dim(
     dummy_app_state: AppState,
-    pipeline1_config: MainConfig,
+    basic_config: MainConfig,
 ):
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
     col_desc = pipeline.column_descriptions
-    assert col_desc.state_dim == 5
+    assert col_desc.state_dim == 4
     assert col_desc.action_dim == 1
 
 
 def test_pipeline1(
     dummy_app_state: AppState,
-    pipeline1_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+    basic_config: MainConfig,
+    fake_pipeline_data: pd.DataFrame,
 ):
-    df, idx = fake_pipeline1_data
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
+    df = fake_pipeline_data
+    idx = df.index
+    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
-    cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'countdown.[0]', 'tag-2_trace-0.1']
+    cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'tag-2_trace-0.1']
     expected_df = pd.DataFrame(
         data=[
-            [np.nan, 1, 0, 0, 0],
-            [0,      1, 0, 0, 0.18],
-            [1,      1, 0, 0, 0.378],
-            [2,      1, 0, 0, 0.5778],
-            [np.nan, 1, 0, 0, 0.77778],
-            [np.nan, 1, 0, 0, 0.977778],
-            [5,      1, 0, 0, 0.977778],
+            [np.nan, 1, 0, 0],
+            [0,      1, 0, 0.18],
+            [1,      1, 0, 0.378],
+            [2,      1, 0, 0.57780004],
+            [np.nan, 1, 0, 0.57780004],
+            [np.nan, 1, 0, 0.95778],
+            [5,      1, 0, 0.95778],
         ],
         columns=cols,
         index=idx,
@@ -101,7 +64,7 @@ def test_pipeline1(
 
     expected_reward = pd.DataFrame(
         data=[
-            [0],
+            [0.],
             [3],
             [0],
             [0],
@@ -113,8 +76,8 @@ def test_pipeline1(
         index=idx,
     )
 
-    assert dfs_close(got.df, expected_df, col_order_matters=True)
-    assert dfs_close(got.rewards, expected_reward)
+    pdt.assert_frame_equal(got.df, expected_df, check_exact=False, check_dtype=False, rtol=1e-5, atol=1e-8)
+    pdt.assert_frame_equal(got.rewards, expected_reward, check_exact=False, check_dtype=False, rtol=1e-5, atol=1e-8)
     assert got.transitions == [
         Transition(
             steps=[
@@ -122,7 +85,7 @@ def test_pipeline1(
                     reward=3,
                     action=jnp.array([1.]),
                     gamma=0.9,
-                    state=jnp.array([0.0, 1, 0, 0, 0.18]),
+                    state=jnp.array([0.0, 1, 0, 0.18]),
                     action_lo=jnp.zeros_like(jnp.array([1.])),
                     action_hi=jnp.ones_like(jnp.array([1.])),
                     dp=True,
@@ -132,7 +95,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([0.]),
                     gamma=0.9,
-                    state=jnp.array([1.0, 1, 0, 0, 0.378]),
+                    state=jnp.array([1.0, 1, 0, 0.378]),
                     action_lo=jnp.zeros_like(jnp.array([0.])),
                     action_hi=jnp.ones_like(jnp.array([0.])),
                     dp=True,
@@ -148,7 +111,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([0.]),
                     gamma=0.9,
-                    state=jnp.array([1.0, 1, 0, 0, 0.378]),
+                    state=jnp.array([1.0, 1, 0, 0.378]),
                     action_lo=jnp.zeros_like(jnp.array([0.])),
                     action_hi=jnp.ones_like(jnp.array([0.])),
                     dp=True,
@@ -158,7 +121,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([1.]),
                     gamma=0.9,
-                    state=jnp.array([2.0, 1, 0, 0,  0.5778]),
+                    state=jnp.array([2.0, 1, 0, 0.5778]),
                     action_lo=jnp.zeros_like(jnp.array([1.])),
                     action_hi=jnp.ones_like(jnp.array([1.])),
                     dp=True,
@@ -173,11 +136,12 @@ def test_pipeline1(
 
 def test_pipeline_overlapping_time(
     dummy_app_state: AppState,
-    pipeline1_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
+    basic_config: MainConfig,
+    fake_pipeline_data: pd.DataFrame,
 ):
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
-    df, idx = fake_pipeline1_data
+    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
+    df = fake_pipeline_data
+    idx = df.index
     pipeline(df)
 
     # Overlap time by two time steps
@@ -216,18 +180,3 @@ def test_duplicate_tag_names_raises():
     # However, we don't want to tightly couple this test to the exact error message.
     # In the future, we will have dedicated error types for different validation issues.
     assert "duplicate" in cfg_or_err.meta['pipeline'].message.lower()
-
-
-def test_pipeline_benchmark(
-    benchmark: Any,
-    dummy_app_state: AppState,
-    pipeline1_config: MainConfig,
-    fake_pipeline1_data: tuple[pd.DataFrame, pd.DatetimeIndex],
-):
-    pipeline = Pipeline(dummy_app_state, pipeline1_config.pipeline)
-    df, _ = fake_pipeline1_data
-
-    def _inner(pipeline: Pipeline, df: pd.DataFrame):
-        pipeline(df)
-
-    benchmark(_inner, pipeline, df)

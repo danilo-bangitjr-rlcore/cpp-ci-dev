@@ -1,3 +1,4 @@
+from datetime import timedelta
 from enum import StrEnum, auto
 from pathlib import Path
 from typing import Literal
@@ -5,6 +6,12 @@ from typing import Literal
 from lib_config.config import MISSING, config, list_
 from pydantic import Field
 
+
+@config(allow_extra=True, frozen=True)
+class TagConfigAdapter:
+    name: str = MISSING
+    connection_id: str | None = None
+    node_identifier: str | None = None
 
 class OPCSecurityPolicy(StrEnum):
     none = auto()
@@ -57,9 +64,12 @@ class OPCConnectionConfig:
 @config(frozen=True)
 class DataIngressConfig:
     enabled: bool = False
+    ingress_period: timedelta = timedelta(seconds=1)
 
 @config(frozen=True)
 class CoreIOConfig:
     data_ingress: DataIngressConfig = Field(default_factory=DataIngressConfig)
     coreio_origin: str = "tcp://localhost:5557"
+    coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()
+    tags: list[TagConfigAdapter] = list_()

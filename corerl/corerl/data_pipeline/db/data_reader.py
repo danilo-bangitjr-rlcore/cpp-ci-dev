@@ -7,6 +7,7 @@ from typing import Any, assert_never
 
 import pandas as pd
 from lib_utils.sql_logging.connect_engine import TryConnectContextManager
+from lib_utils.sql_logging.utils import ColumnMapper, SanitizedName
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
@@ -82,6 +83,10 @@ class DataReader:
         Please see the tests in the TestDataReaderLogic class in test/medium/data_loaders/test_data_reader.py
         for concrete examples of input and expected output.
         """
+        assert (
+            start_time < end_time
+        ), "The start_time passed to DataReader.batch_aggregated_read must come before the passed end_time."
+
         if start_time.tzinfo is None:
             start_tz = start_time.astimezone().tzinfo
             logger.warning(f"naive start_time passed, assuming {start_tz} and converting to UTC")
@@ -94,13 +99,19 @@ class DataReader:
         if self.wide_format:
             if tag_aggregations is None:
                 raise ValueError("tag_aggregations is required for wide format")
-            return self._batch_aggregated_read_wide(
-                names,
+
+            column_mapper = ColumnMapper(names)
+            sanitized_names = [column_mapper.name_to_pg[name] for name in names]
+            sanitized_tag_aggregations = {column_mapper.name_to_pg[k]: v for k, v in tag_aggregations.items()}
+            df_read = self._batch_aggregated_read_wide(
+                sanitized_names,
                 start_time,
                 end_time,
                 bucket_width,
-                tag_aggregations,
+                sanitized_tag_aggregations,
             )
+            return df_read.rename(columns=column_mapper.pg_to_name)
+
         return self._batch_aggregated_read_narrow(
             names,
             start_time,
@@ -112,11 +123,11 @@ class DataReader:
 
     def _batch_aggregated_read_wide(
         self,
-        names: list[str],
+        names: list[SanitizedName],
         start_time: datetime,
         end_time: datetime,
         bucket_width: timedelta,
-        tag_aggregations: dict[str, Agg],
+        tag_aggregations: dict[SanitizedName, Agg],
     ) -> pd.DataFrame:
         bucket_width_str = f"{bucket_width.total_seconds()} seconds"
 
@@ -201,7 +212,7 @@ class DataReader:
                     sensor_data = pd.DataFrame(index=full_range, columns=pd.Index(names))
 
                 for col in sensor_data.columns:
-                    col_agg = tag_aggregations.get(col)
+                    col_agg = tag_aggregations.get(SanitizedName(col)) # Cast str to SanitizedName
                     col_type = column_types.get(col, "unknown")
 
                     if col_type == "boolean" or col_agg == Agg.bool_or:

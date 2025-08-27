@@ -13,7 +13,7 @@ from sqlalchemy import Engine
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
-from corerl.data_pipeline.db.data_reader import TagDBConfig
+from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
@@ -21,7 +21,7 @@ from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig, EvalsTable
 from corerl.eval.metrics import MetricsDBConfig, MetricsTable
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import OfflineTraining
+from corerl.offline.utils import load_offline_transitions, offline_rl_from_buffer
 from corerl.state import AppState
 
 
@@ -60,15 +60,6 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
         table_schema='public',
     )
 
-
-@pytest.fixture()
-def data_writer(test_db_config: TagDBConfig):
-    data_writer = DataWriter(cfg=test_db_config)
-
-    yield data_writer
-
-    data_writer.close()
-
 @pytest.fixture(scope="function")
 def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
     cfg = direct_load_config(
@@ -96,11 +87,10 @@ def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
 
     return cfg
 
-@pytest.fixture
-def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState) -> OfflineTraining:
-    """
-    Generate offline data for tests and return the OfflineTraining object
-    """
+@pytest.fixture()
+def data_writer(offline_cfg: MainConfig, test_db_config: TagDBConfig):
+    data_writer = DataWriter(cfg=test_db_config)
+
     steps = 5
     obs_period = offline_cfg.interaction.obs_period
 
@@ -132,21 +122,31 @@ def offline_trainer(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_
 
     data_writer.blocking_sync()
 
+    yield data_writer
+
+    data_writer.close()
+
+@pytest.fixture
+def offline_pipeout(offline_cfg: MainConfig, dummy_app_state: AppState, data_writer: DataWriter):
+    """
+    Generate offline data for tests and return the OfflineTraining object
+    """
     # Produce offline transitions
-    offline_training = OfflineTraining(offline_cfg)
+
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    offline_training.load_offline_transitions(pipeline)
+    data_reader = DataReader(db_cfg=offline_cfg.env.db)
+    dummy_app_state.cfg = offline_cfg
+    pipeout =  load_offline_transitions(dummy_app_state, pipeline, data_reader)
+    assert pipeout is not None
+    return pipeout
 
-    return offline_training
-
-def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: OfflineTraining):
+def test_load_offline_transitions(offline_cfg: MainConfig, offline_pipeout: PipelineReturn):
     """
     Ensure the test data generated in the 'offline_trainer' fixture was written to TSDB,
     read from TSDB, and that the correct transitions were produced by the data pipeline
     """
-    assert offline_trainer.pipeline_out is not None
-    assert offline_trainer.pipeline_out.transitions is not None
-    created_transitions = offline_trainer.pipeline_out.transitions
+    created_transitions = offline_pipeout.transitions
+    assert created_transitions is not None
 
     # Expected transitions
     gamma = offline_cfg.agent.gamma
@@ -168,7 +168,7 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_trainer: Offl
 @pytest.mark.skip(reason="failing on master, requires further investigation")
 def test_offline_training(
     offline_cfg: MainConfig,
-    offline_trainer: OfflineTraining,
+    offline_pipeout: PipelineReturn,
     tsdb_engine: Engine,
     dummy_app_state: AppState,
 ):
@@ -187,8 +187,9 @@ def test_offline_training(
     col_desc = pipeline.column_descriptions
     agent = GreedyAC(offline_cfg.agent, app_state, col_desc)
 
-    # Offline training
-    critic_losses = offline_trainer.train(app_state, agent, pipeline, col_desc)
+    agent.update_buffer(offline_pipeout)
+
+    critic_losses = offline_rl_from_buffer(agent, offline_cfg.offline.offline_steps)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
@@ -234,46 +235,24 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_s
 
     assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])
 
-def test_offline_start_end(offline_cfg: MainConfig, data_writer: DataWriter, dummy_app_state: AppState):
-    steps = 5
+def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, data_writer: DataWriter):
     obs_period = offline_cfg.interaction.obs_period
-
-    # Generate timestamps
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
 
-    step_timestamps = [
-        first_step + obs_period * i
-        for i in range(steps)
-    ]
-
-    # Generate tag data and write to tsdb
-    steps_per_decision = int(
-        offline_cfg.interaction.action_period.total_seconds() / offline_cfg.interaction.obs_period.total_seconds(),
-    )
-    for i in range(steps):
-        for tag_cfg in offline_cfg.pipeline.tags:
-            tag = tag_cfg.name
-            if tag_cfg.type == TagType.ai_setpoint:
-                val = int(i / steps_per_decision) % 2
-            else:
-                val = i
-
-            data_writer.write(timestamp=step_timestamps[i], name=tag, val=val)
-
-    data_writer.blocking_sync()
-
     # Produce offline transitions
     offline_cfg.offline.offline_start_time = first_step
     offline_cfg.offline.offline_end_time = first_step + 2 * obs_period
-    offline_training = OfflineTraining(offline_cfg)
+
+    dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    offline_training.load_offline_transitions(pipeline)
+    data_reader = DataReader(db_cfg=offline_cfg.env.db)
+    offline_pipeout = load_offline_transitions(dummy_app_state, pipeline, data_reader)
 
     # Since start_time and end_time are specified,
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
-    assert isinstance(offline_training.pipeline_out, PipelineReturn)
-    df = offline_training.pipeline_out.df
+    assert isinstance(offline_pipeout, PipelineReturn)
+    df = offline_pipeout.df
     assert len(df) == (offline_cfg.offline.offline_end_time - offline_cfg.offline.offline_start_time) / obs_period

@@ -22,14 +22,15 @@ def main(cfg: MainConfigAdapter):
     context = zmq.Context()
     socket = context.socket(zmq.PUB)
     socket.connect(cfg.coreio.coreio_origin)
+    connection_id = cfg.coreio.opc_connections[0].connection_id
     time.sleep(0.001)
 
     topic = IOEventTopic.coreio
-    node_id = cfg.pipeline.tags[0].node_identifier
+    node_id = cfg.coreio.tags[0].node_identifier
     action_period = cfg.interaction.action_period.total_seconds()
     assert node_id is not None, "No tags in config.yaml"
 
-    for i in range(10):
+    for i in range(30):
         # Make message
         x = np.random.rand()
         if i % 3 == 1:
@@ -39,8 +40,8 @@ def main(cfg: MainConfigAdapter):
 
         # Send write opc event
         messagedata = IOEvent(
-            type=IOEventType.write_opcua_nodes,
-            data={"asdxf": [OPCUANodeWriteValue(node_id=node_id, value= x)]},
+            type=IOEventType.write_to_opc,
+            data={connection_id: [OPCUANodeWriteValue(node_id=node_id, value= x)]},
         ).model_dump_json()
 
         payload = f"{topic} {messagedata}"
@@ -50,7 +51,7 @@ def main(cfg: MainConfigAdapter):
         if cfg.coreio.data_ingress.enabled:
             # Send read from opc event
             messagedata = IOEvent(
-                type = IOEventType.read_opcua_nodes,
+                type = IOEventType.read_from_opc,
                 data={},
             ).model_dump_json()
 

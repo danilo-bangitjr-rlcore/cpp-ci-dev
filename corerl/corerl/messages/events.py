@@ -9,7 +9,7 @@ from pydantic import Field, ValidationError
 logger = logging.getLogger(__name__)
 
 
-class EventType(BaseEventType):
+class RLEventType(BaseEventType):
     # ---------------
     # -- Lifecycle --
     # ---------------
@@ -44,7 +44,7 @@ class EventType(BaseEventType):
     ping_setpoints = auto()
     flush_buffers = auto()
 
-class EventTopic(BaseEventTopic):
+class RLEventTopic(BaseEventTopic):
     # Topic filtering occurs using subscriber-side prefixing
     corerl = auto()
     corerl_scheduler = auto()
@@ -52,18 +52,18 @@ class EventTopic(BaseEventTopic):
     debug_app = auto()
 
 
-class Event(BaseEvent[EventType]):
+class RLEvent(BaseEvent[RLEventType]):
     id: uuid.UUID = Field(default_factory=uuid.uuid4)
     time: str = Field(default_factory=now_iso)
-    type: EventType
+    type: RLEventType
 
 
 # ---------------------
 # -- Utility methods --
 # ---------------------
-def maybe_parse_event(msg: str | bytes) -> Event | None:
+def maybe_parse_event(msg: str | bytes) -> RLEvent | None:
     try:
-        return Event.model_validate_json(msg)
+        return RLEvent.model_validate_json(msg)
     except ValidationError:
         logger.exception('Failed to parse message')
         return None

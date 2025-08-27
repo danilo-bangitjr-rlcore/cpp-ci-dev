@@ -73,9 +73,9 @@ def linear_interpolation(x: np.ndarray, prev: float, num_nans: int, max_gap: int
     A given index's value can only be imputed if the first non-NaN value before and after
     the index are separated by at most 'max_gap' NaNs
     """
+    assert x.ndim == 1
     insert_ind = 0 # Where to insert the imputed list of vals in 'x'
     for i, v in enumerate(x):
-        assert isinstance(v, float)
         reset_prev = False
         if np.isnan(prev):
             # Can't perform linear interpolation while 'prev' is NaN

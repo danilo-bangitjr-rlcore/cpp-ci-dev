@@ -1,10 +1,9 @@
 from datetime import timedelta
 
 from lib_config.config import MISSING, config, list_
-from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
-from coreio.config import CoreIOConfig
+from coreio.config import CoreIOConfig, TagConfigAdapter
 
 
 @config(allow_extra=True, frozen=True)
@@ -28,13 +27,6 @@ class DBConfigAdapter:
 @config(allow_extra=True, frozen=True)
 class InfraConfigAdapter:
     db: DBConfigAdapter = Field(default_factory=DBConfigAdapter)
-
-@config(allow_extra=True, frozen=True)
-class TagConfigAdapter:
-    type: TagType = TagType.default
-    name: str = MISSING
-    connection_id: str | None = None
-    node_identifier: str | None = None
 
 @config(allow_extra=True, frozen=True)
 class PipelineConfigAdapter:

@@ -39,18 +39,21 @@ class GoalConstructor:
                 # log violation satisfaction
                 self._app_state.metrics.write(
                     self._app_state.agent_step,
-                    f'priority_{priority}_satisfaction',
-                    1-violation_percent,
+                    f'priority_{priority_idx}_satisfaction',
+                    1-max(violation_percent, 0),
                 )
+
             else:
                 opt_violation = self._avg_optimization_violation(priority, row)
+                opt_active = all(p<=0 for p in priority_violations)
+
                 priority_violations.append(opt_violation)
 
-                # log optimization satisfaction
+                # log optimization performance
                 self._app_state.metrics.write(
                     self._app_state.agent_step,
-                    'optimization_satisfaction',
-                    1+opt_violation,
+                    'optimization_performance',
+                    1+opt_violation if opt_active else 0,
                 )
 
         return priority_violations
@@ -87,7 +90,7 @@ class GoalConstructor:
 
         pf.rewards = pd.DataFrame({
             'reward': rewards,
-        }, index=pf.data.index)
+        }, index=pf.data.index, dtype=np.float32)
 
         return pf
 
@@ -242,8 +245,21 @@ class GoalConstructor:
             .map(partial(get_tag_bounds, row=row))
             .expect(f'Was unable to find tag config for tag: {goal.tag}')
         )
-
         x: float = row[goal.tag].to_numpy()[0]
+
+        # log the tags value as well as the threshold
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            f'priority_{active_idx}_{goal.tag}_{goal.op}',
+            x,
+        )
+
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            f'priority_{active_idx}_{goal.tag}_{goal.op}_thresh',
+            thresh,
+        )
+
         if goal.op == 'down_to':
             hi = bounds[1].expect(f'Was unable to find an upper bound for tag: {goal.tag}')
             delta = x - thresh
@@ -251,19 +267,6 @@ class GoalConstructor:
 
         lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {goal.tag}')
         delta = thresh - x
-
-        # log the tags value as well as the threshold
-        self._app_state.metrics.write(
-            self._app_state.agent_step,
-            f'priority_{active_idx}_{goal.tag}',
-            x,
-        )
-
-        self._app_state.metrics.write(
-            self._app_state.agent_step,
-            f'priority_{active_idx}_{goal.tag}_thresh',
-            thresh,
-        )
 
         return delta / (thresh - lo)
 

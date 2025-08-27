@@ -12,13 +12,14 @@ from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
-from lib_agent.critic.qrc_critic import (
+from lib_agent.critic.critic_utils import (
     QRCConfig,
-    QRCCritic,
+    RollingResetConfig,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,
 )
+from lib_agent.critic.qrc_critic import QRCCritic
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field, TypeAdapter
@@ -27,7 +28,7 @@ from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
 from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
-from corerl.messages.events import EventType
+from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
 
@@ -40,7 +41,12 @@ BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
 
 @config()
 class CriticNetworkConfig:
-    ensemble: int = 1
+    ensemble: int = MISSING
+
+    @computed('ensemble')
+    @classmethod
+    def _ensemble(cls, cfg: 'MainConfig'):
+        return cfg.feature_flags.ensemble
 
 @config()
 class GTDCriticConfig:
@@ -49,6 +55,7 @@ class GTDCriticConfig:
     buffer: BufferConfig = MISSING
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
+    rolling_reset_config: RollingResetConfig = Field(default_factory=RollingResetConfig)
 
     @computed('buffer')
     @classmethod
@@ -205,7 +212,8 @@ class GreedyAC(BaseAgent):
             action_regularization=cfg.critic.action_regularization,
             action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
-            use_noisy_nets=app_state.cfg.feature_flags.noisy_networks,
+            use_state_layer_norm=app_state.cfg.feature_flags.state_layer_norm,
+            rolling_reset_config=cfg.critic.rolling_reset_config,
         )
 
         self.critic = QRCCritic(
@@ -216,9 +224,11 @@ class GreedyAC(BaseAgent):
         )
 
         self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
-        self.critic_buffer = build_buffer(cfg.critic.buffer.to_lib_config(), JaxTransition)
+        critic_buffer_config = cfg.critic.buffer.to_lib_config()
+        critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
+        self.critic_buffer = build_buffer(critic_buffer_config, JaxTransition)
 
-        self.ensemble = self.cfg.critic.buffer.ensemble
+        self.ensemble = len(self.critic._reset_manager.active_indices)
 
         # for early stopping
         self._last_critic_loss = 0.
@@ -286,31 +296,20 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_values(self, state: jax.Array, action: jax.Array):
+    def get_active_values(self, state: jax.Array, action: jax.Array):
         """
-        returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
-            1 state, and
-            1 action OR a batch of actions
-        """
-        self._jax_rng, rng = jax.random.split(self._jax_rng)
-        if action.ndim == 2:
-            rng = jax.random.split(rng, action.shape[0])
-
-        return self._get_values(self._critic_state.params, rng, state, action)
-
-    @jax_u.method_jit
-    def _get_values(self, critic_params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
-        """
-        jittable version of `self.get_values` that takes critic params as an argument
-
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
             1 state, and
             1 action OR a batch of actions
         """
         chex.assert_shape(state, (self.state_dim,))
-        assert action.ndim in {state.ndim, state.ndim + 1}
-        ens_get_values = jax_u.vmap_only(self.critic.get_values, ['params'])
-        qs = ens_get_values(critic_params, rng, state, action)
+        self._jax_rng, rng = jax.random.split(self._jax_rng)
+        assert action.ndim in {1, 2}
+        if action.ndim == 2:
+            rng = jax.random.split(rng, action.shape[0])
+
+        # use active critic values for decision making
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action)
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -327,7 +326,7 @@ class GreedyAC(BaseAgent):
         """
         Samples a single action during interaction.
         """
-        self._app_state.event_bus.emit_event(EventType.agent_get_action)
+        self._app_state.event_bus.emit_event(RLEventType.agent_get_action)
 
         jaxtion, metrics = self._actor.get_actions(
             self._actor_state.actor.params,
@@ -348,7 +347,7 @@ class GreedyAC(BaseAgent):
         if pr.transitions is None:
             return
 
-        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
+        self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
 
         jax_transitions = [convert_corerl_transition_to_jax_transition(t) for t in pr.transitions]
 
@@ -395,7 +394,7 @@ class GreedyAC(BaseAgent):
 
     def update_critic(self) -> list[float]:
         if not self.critic_buffer.is_sampleable:
-            return [0 for _ in range(self.ensemble)]
+            return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 
         batches: JaxTransition = self.critic_buffer.sample()
         critic_batch = abs_transition_from_batch(batches)
@@ -410,6 +409,7 @@ class GreedyAC(BaseAgent):
             transitions=critic_batch,
             next_actions=next_actions,
         )
+        rolling_reset_metrics = self.critic.get_rolling_reset_metrics()
 
         metrics_dict = create_ensemble_dict(
             metrics,
@@ -423,6 +423,10 @@ class GreedyAC(BaseAgent):
             metrics_dict,
             agent_step=self._app_state.agent_step,
         )
+        self._app_state.metrics.write_dict(
+            rolling_reset_metrics,
+            agent_step=self._app_state.agent_step,
+        )
 
         stable_ranks_dict = create_ensemble_dict(
             self._critic_state.params,
@@ -434,7 +438,13 @@ class GreedyAC(BaseAgent):
             agent_step=self._app_state.agent_step,
         )
 
-        return [loss.mean() for loss in metrics.loss]
+        rolling_reset_metrics = self.critic.get_rolling_reset_metrics()
+        self._app_state.metrics.write_dict(
+            rolling_reset_metrics,
+            agent_step=self._app_state.agent_step,
+        )
+
+        return [metrics.loss[i].mean().item() for i in self.critic._reset_manager.active_indices]
 
     @jax_u.method_jit
     def _aggregate_ensemble_values(self, ensemble_values: jax.Array) -> jax.Array:
@@ -452,8 +462,8 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        ensemble_return = self._get_values(params, rng, x, a)
-        aggregated_values = self._aggregate_ensemble_values(ensemble_return.ensemble_values)
+        qs = self.critic.get_active_values(params, rng, x, a)
+        aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
     def update_actor(self):
@@ -531,7 +541,7 @@ class GreedyAC(BaseAgent):
     # ---------------------------- saving and loading ---------------------------- #
 
     def save(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_save)
+        self._app_state.event_bus.emit_event(RLEventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
 
@@ -549,7 +559,7 @@ class GreedyAC(BaseAgent):
 
 
     def load(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(EventType.agent_load)
+        self._app_state.event_bus.emit_event(RLEventType.agent_load)
 
         actor_path = path / "actor.pkl"
         with open(actor_path, "rb") as f:

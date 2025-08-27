@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 from coreio.config import CoreIOConfig
-from lib_config.config import MISSING, computed, config, list_, post_processor
+from lib_config.config import MISSING, computed, config, post_processor
 from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
@@ -69,7 +69,7 @@ class FeatureFlags:
     https://docs.google.com/document/d/1Inm7dMHIRvIGvM7KByrRhxHsV7uCIZSNsddPTrqUcOU/edit?tab=t.4238yb3saoju
     """
     # 2025-02-01
-    ensemble: int = 1
+    ensemble: int = 2
 
     # 2025-04-29
     recency_bias_buffer: bool = False
@@ -96,20 +96,39 @@ class FeatureFlags:
     higher_critic_lr: bool = True
 
     # 2025-06-27
-    ensemble_2: bool = True
-
-    # 2025-06-27
     mu_sigma_multipliers: bool = False
+
+    # 2025-07-24
+    wide_metrics: bool = False
+
+    # 2025-08-15
+    state_layer_norm: bool = False
 
 
 @config()
 class OfflineConfig:
     offline_steps: int = 0
-    offline_eval_iters: list[int] = list_()
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
+    eval_periods: list[tuple[datetime, datetime]] | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
+    update_agent_during_offline_recs: bool = False
+    remove_eval_from_train: bool = True
 
+    @post_processor
+    def _validate(self, cfg: 'MainConfig'):
+        if isinstance(self.offline_start_time, datetime) and isinstance(self.offline_end_time, datetime):
+            assert (
+                self.offline_start_time < self.offline_end_time
+            ), "Offline training start timestamp must come before the offline training end timestamp."
+
+        if self.eval_periods is not None:
+            for eval_period in self.eval_periods:
+                assert len(eval_period) == 2, "Eval periods must be defined as a list with length 2."
+                start = eval_period[0]
+                end = eval_period[1]
+                assert start < end, "Eval start must precede eval end."
+            # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
 
 @config()
 class MainConfig:
@@ -171,17 +190,8 @@ class MainConfig:
     @post_processor
     def _enable_ensemble(self, cfg: 'MainConfig'):
         ensemble_size = self.feature_flags.ensemble
-        self.agent.critic.critic_network.ensemble = ensemble_size
-        self.agent.critic.buffer.ensemble = ensemble_size
-
         if ensemble_size == 1:
             self.agent.critic.buffer.ensemble_probability = 1.
-
-    @post_processor
-    def _enable_ensemble_2(self, cfg: 'MainConfig'):
-        if self.feature_flags.ensemble_2:
-            self.agent.critic.critic_network.ensemble = 2
-            self.agent.critic.buffer.ensemble = 2
 
     @post_processor
     def _enable_higher_critic_lr(self, cfg: 'MainConfig'):
@@ -258,5 +268,13 @@ class MainConfig:
         if not self.feature_flags.normalize_return:
             return
 
-        self.agent.critic.action_regularization = 5e-4
         self.agent.loss_threshold = 1e-8
+
+
+    @post_processor
+    def _enable_wide_metrics(self, cfg: 'MainConfig'):
+        if not self.feature_flags.wide_metrics:
+            return
+
+        self.metrics.narrow_format = False
+        self.metrics.table_name = self.metrics.table_name + '_wide'

@@ -435,3 +435,53 @@ def test_get_at_path1():
     path = 'a.b'
     got = dict_u.get_at_path(d, path)
     assert got == 'hi'
+
+# ----------
+# -- keep --
+# ----------
+
+def test_keep1():
+    """
+    Can keep a single key from a dictionary
+    without mutating the original dictionary.
+    """
+    d = {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+    }
+
+    got = dict_u.keep(d, ['a'])
+    assert got == {
+        'a': 1,
+    }
+    assert d == {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+    }
+
+
+def test_keep2():
+    """
+    Can keep multiple keys from a dictionary
+    without mutating the original dictionary.
+    """
+    d = {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+        'd': 4,
+    }
+
+    got = dict_u.keep(d, ['a', 'c'])
+    assert got == {
+        'a': 1,
+        'c': 3,
+    }
+    assert d == {
+        'a': 1,
+        'b': 2,
+        'c': 3,
+        'd': 4,
+    }

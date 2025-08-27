@@ -63,15 +63,20 @@ class PipelineConfig:
                 self.tags.append(BasicTagConfig(
                     name=dep,
                     agg=Agg.last,
+                    operating_range=tag.operating_range,
+                    expected_range=tag.expected_range,
                     preprocess=[],
                     state_constructor=[NukeConfig()],
                 ))
 
             if in_taglist(tag.cascade.mode, self.tags): continue
+            min_op = min(tag.cascade.op_mode_val, tag.cascade.ai_mode_val)
+            max_op = max(tag.cascade.op_mode_val, tag.cascade.ai_mode_val)
             self.tags.append(
                 BasicTagConfig(
                     name=tag.cascade.mode,
                     agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
+                    operating_range=(min_op, max_op),
                     preprocess=[],
                     state_constructor=[NukeConfig()],
                     outlier=[IdentityFilterConfig()],

@@ -15,8 +15,8 @@ class IOEventType(BaseEventType):
     # ------------
     # -- CoreIO --
     # ------------
-    write_opcua_nodes = auto()
-    read_opcua_nodes = auto()
+    write_to_opc = auto()
+    read_from_opc = auto()
     exit_io = auto()
 
 class IOEventTopic(BaseEventTopic):

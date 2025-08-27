@@ -85,7 +85,7 @@ jobs:
       # -------------
       - name: Run Pytest Benchmark
         run: |
-          pytest --benchmark-only --benchmark-json output.json tests/small/
+          pytest --benchmark-only --benchmark-json output.json tests/benchmarks/
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
@@ -99,6 +99,7 @@ jobs:
           summary-always: true
           fail-on-alert: true
           alert-comment-cc-users: '@rlcoretech/rlcore-codeowners @andy-rlcore'
+          auto-push: true
 
       - uses: actions/upload-artifact@v4
         id: htmlcov-upload-step
@@ -108,13 +109,13 @@ jobs:
           overwrite: true
 
       - run: |
-          echo "🏁 Test ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "🏁 CoreRL tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
           echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
 
       - uses: thollander/actions-comment-pull-request@v3
         with:
           message: |
             _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
-            🏁 Test ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            🏁 CoreRL tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
             ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
-          comment-tag: execution
+          comment-tag: execution-corerl

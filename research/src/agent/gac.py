@@ -4,7 +4,6 @@ from typing import Any, NamedTuple, Protocol
 import chex
 import jax
 import jax.numpy as jnp
-import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
 from lib_agent.actor.percentile_actor import State
@@ -118,7 +117,8 @@ class GreedyAC:
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         self.rng, c_rng = jax.random.split(self.rng)
-        return self._critic.get_values(
+        # use get_active_values instead of vmapping over all critics
+        return self._critic.get_active_values(
             self.agent_state.critic.params,
             c_rng,
             state=state.features,
@@ -211,8 +211,7 @@ class GreedyAC:
 
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        ens_forward = jax_u.vmap_only(self._critic.get_values, ['params'])
-        qs = ens_forward(params, rng, x, a)
+        qs = self._critic.get_active_values(params, rng, x, a)
         values = qs.mean(axis=0).squeeze(-1)
 
         chex.assert_rank(values, 0)

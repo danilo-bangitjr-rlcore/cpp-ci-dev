@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, Self
 
+import numpy as np
 import pandas as pd
 from lib_agent.buffer.datatypes import DataMode
 from pandas import DataFrame
@@ -24,7 +25,6 @@ from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.imputers.factory import init_imputer
-from corerl.data_pipeline.missing_data_checker import missing_data_checker
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
@@ -116,10 +116,9 @@ class Pipeline:
         self.tags = cfg.tags
 
         # initialization all stateful stages
-        self.missing_data_checkers = {tag.name: missing_data_checker for tag in self.tags}
         self.seasonal_tags = SeasonalTagIncluder(self.tags)
         self.delta_tags = DeltaizeTags(self.tags, cfg.delta)
-        self.virtual_tags = VirtualTagComputer(self.tags)
+        self.virtual_tags = VirtualTagComputer(self.tags, app_state)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
             tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.operating_range_tol)
@@ -155,7 +154,7 @@ class Pipeline:
             StageCode.SEASONAL:   self.seasonal_tags,
             StageCode.DELTA:      self.delta_tags,
             StageCode.VIRTUAL:    self.virtual_tags,
-            StageCode.INIT:       lambda pf: invoke_stage_per_tag(pf, self.missing_data_checkers),
+            StageCode.INIT:       lambda pf: pf,
             StageCode.FILTER:     self.conditional_filter,
             StageCode.TRIGGER:    self.tag_trigger,
             StageCode.PREPROCESS: self.preprocessor,
@@ -245,6 +244,7 @@ class Pipeline:
                 action_hi=data,
                 transitions=[],
             )
+        data = data.astype(dtype=np.float32)
 
         # construct the internal carry object that is mutated
         # by each stage of the pipeline

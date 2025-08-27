@@ -6,9 +6,8 @@ import numpy as np
 from lib_config.config import config
 
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
-from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
-from corerl.data_pipeline.utils import update_missing_info
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -78,8 +77,6 @@ class EMAFilter(BaseOddityFilter):
 
         self._log_moving_stats(tag, tag_ts, pf.data_mode)
 
-        # update missing info and set nans
-        update_missing_info(pf.missing_info, name=tag, missing_mask=oddity_mask, new_val=MissingType.OUTLIER)
         tag_data[oddity_mask] = np.nan
 
         return pf, tag_ts

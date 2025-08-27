@@ -3,59 +3,60 @@
 
 import asyncio
 import logging
+import threading
 
-import colorlog
 from lib_config.loader import load_config
-from lib_utils.base_event_bus import BaseEventBus
 
 from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.communication.sql_communication import SQL_Manager
+from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
+from coreio.utils.event_handlers import handle_read_event, handle_write_event
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
-from coreio.utils.opc_utils import concat_opc_nodes
+from coreio.utils.logging_setup import setup_logging
+from coreio.utils.opc_utils import concat_opc_nodes, initialize_opc_connections
 
-colorlog.basicConfig(
-    level=logging.DEBUG,
-    format='%(log_color)s%(levelname)s%(reset)s: %(asctime)s %(message)s',
-    datefmt= '%Y-%m-%d %H:%M:%S',
-    reset=True,
-    log_colors={
-        'DEBUG': 'cyan',
-        'INFO': 'green',
-        'WARNING': 'yellow',
-        'ERROR': 'red',
-        'CRITICAL': 'red,bg_white',
-    },
-)
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-logging.getLogger("asyncua").setLevel(logging.WARNING)
-logging.getLogger("asyncuagds").setLevel(logging.WARNING)
+logger = setup_logging(logging.INFO)
 
 @load_config(MainConfigAdapter)
 async def coreio_loop(cfg: MainConfigAdapter):
-    opc_connections: dict[str, OPC_Connection] = {}
-    for opc_conn_cfg in cfg.coreio.opc_connections:
-        logger.info(f"Connecting to OPC Connection {opc_conn_cfg.connection_id} at {opc_conn_cfg.opc_conn_url}")
-        opc_conn = await OPC_Connection().init(opc_conn_cfg)
-        opc_connections[opc_conn_cfg.connection_id] = opc_conn
-
-        async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg.pipeline.tags, ai_setpoint_only = True)
-
-        # Register heartbeat_id separately
-        if cfg.interaction.heartbeat.connection_id == opc_conn_cfg.connection_id:
-            heartbeat_id = cfg.interaction.heartbeat.heartbeat_node_id
-
-            if heartbeat_id is not None:
-                async with opc_conn:
-                    await opc_conn.register_node(heartbeat_id, "heartbeat")
+    logger.info("Starting OPC Connections")
+    # Temporary flag to keep reading opc details from pipeline in old config versions
+    if cfg.coreio.data_ingress.enabled:
+        opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+            cfg.coreio.opc_connections,
+            cfg.coreio.tags,
+            cfg.interaction.heartbeat,
+        )
+    else:
+        opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+            cfg.coreio.opc_connections,
+            cfg.pipeline.tags,
+            cfg.interaction.heartbeat,
+        )
 
     all_registered_nodes = None
     sql_communication = None
 
+    logger.info("Starting ZMQ communication")
+    zmq_communication = ZMQ_Communication(
+        event_class=IOEvent,
+        topic=IOEventTopic.coreio,
+        consumer_name="coreio_consumer",
+        subscriber_addrs=[cfg.coreio.coreio_origin, cfg.coreio.coreio_app],
+        publisher_addr=cfg.coreio.coreio_app,
+    )
+
+    zmq_communication.start()
+
+    # Callbacks have to be async
+    zmq_communication.attach_callback(
+        event_type=IOEventType.write_to_opc,
+        cb=lambda event: handle_write_event(event, opc_connections),
+    )
+
+    ingress_stop_event = None
     if cfg.coreio.data_ingress.enabled:
         logger.info("Starting SQL communication")
         all_registered_nodes = concat_opc_nodes(opc_connections, skip_heartbeat=True)
@@ -65,58 +66,35 @@ async def coreio_loop(cfg: MainConfigAdapter):
             nodes_to_persist=all_registered_nodes,
         )
 
-    logger.info("Starting ZMQ communication")
-    zmq_communication = BaseEventBus(
-        event_class=IOEvent,
-        topic=IOEventTopic.coreio,
-        consumer_name="coreio_consumer",
-        subscriber_sockets=[cfg.coreio.coreio_origin],
-    )
-    zmq_communication.start()
+        ingress_stop_event = threading.Event()
+        start_scheduler_io_thread(cfg.coreio.data_ingress, ingress_stop_event, zmq_communication)
+
+        # Callbacks have to be async
+        zmq_communication.attach_callback(
+            event_type=IOEventType.read_from_opc,
+            cb=lambda event: handle_read_event(
+                event,
+                opc_connections,
+                sql_communication,
+                read_period=cfg.coreio.data_ingress.ingress_period,
+            ),
+        )
 
     logger.info("CoreIO is ready")
 
     try:
-        while True:
-            event = zmq_communication.recv_event()
-            if event is None:
-                continue
-
-            match event.type:
-                case IOEventType.write_opcua_nodes:
-                    logger.info(f"Received writing event {event}")
-                    for connection_id, payload in event.data.items():
-                        opc_conn = opc_connections.get(connection_id)
-                        if opc_conn is None:
-                            logger.warning(f"Connection Id {connection_id} is unkown.")
-                            continue
-
-                        async with opc_conn:
-                            await opc_conn.write_opcua_nodes(payload)
-
-                case IOEventType.read_opcua_nodes:
-                    logger.info(f"Received reading event {event}")
-
-                    if sql_communication is None:
-                        logger.error("SQL Communication must be enabled to handle read events")
-                        continue
-
-                    nodes_name_val = {}
-
-                    for opc_conn in opc_connections.values():
-                        async with opc_conn:
-                            nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
-
-                    logger.info(f"Read nodes value: {nodes_name_val}")
-
-                case IOEventType.exit_io:
-                    logger.info("Received exit event, shutting down CoreIO...")
-                    break
+        async for event in zmq_communication.async_listen_forever():
+            if event.type == IOEventType.exit_io:
+                logger.info("Received exit event, shutting down CoreIO...")
+                break
 
     except Exception:
         logger.exception("CoreIO error occurred")
     finally:
         zmq_communication.cleanup()
+        if ingress_stop_event:
+            ingress_stop_event.set()
+
         logger.info("CoreIO finished cleanup")
 
 def main():
@@ -124,4 +102,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

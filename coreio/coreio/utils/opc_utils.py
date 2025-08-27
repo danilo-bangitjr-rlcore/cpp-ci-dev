@@ -16,8 +16,38 @@ from sqlalchemy import (
 )
 
 from coreio.communication.opc_communication import NodeData, OPC_Connection
+from coreio.config import OPCConnectionConfig, TagConfigAdapter
+from coreio.utils.config_schemas import HeartbeatConfigAdapter
 
 logger = logging.getLogger()
+
+
+async def initialize_opc_connections(
+        cfg_opc_connections: list[OPCConnectionConfig],
+        cfg_tags: list[TagConfigAdapter],
+        cfg_heartbeat: HeartbeatConfigAdapter,
+) -> dict[str, OPC_Connection]:
+
+    opc_connections: dict[str, OPC_Connection] = {}
+
+    for opc_conn_cfg in cfg_opc_connections:
+        logger.info(f"Connecting to OPC Connection {opc_conn_cfg.connection_id} at {opc_conn_cfg.opc_conn_url}")
+        opc_conn = await OPC_Connection().init(opc_conn_cfg)
+        opc_connections[opc_conn_cfg.connection_id] = opc_conn
+
+        async with opc_conn:
+            await opc_conn.register_cfg_nodes(cfg_tags, ai_setpoint_only = False)
+
+        # Register heartbeat_id separately
+        if cfg_heartbeat.connection_id == opc_conn_cfg.connection_id:
+            heartbeat_id = cfg_heartbeat.heartbeat_node_id
+
+            if heartbeat_id is not None:
+                async with opc_conn:
+                    await opc_conn.register_node(heartbeat_id, "heartbeat")
+
+    return opc_connections
+
 
 def concat_opc_nodes(
         opc_connections: dict[str, OPC_Connection],

@@ -1,9 +1,9 @@
 import datetime
 from collections.abc import Callable
 from dataclasses import dataclass, field, fields
-from enum import Enum, IntFlag, auto
+from enum import Enum, auto
 from math import isclose
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
@@ -14,18 +14,6 @@ from lib_agent.buffer.datatypes import DataMode, JaxTransition
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-
-class MissingType(IntFlag):
-    NULL = auto()     # data is not missing
-    MISSING = auto()  # indicates data did not exist in db
-    FILTER = auto()   # filtered by conditional filter stage
-    BOUNDS = auto()
-    OUTLIER = auto()
-
-
-# for use to create sparse pandas dataframes
-# for example: sparse_df = pd.DataFrame(..., dtype=SparseMissingType)
-SparseMissingType = pd.SparseDtype(dtype=int, fill_value=MissingType.NULL)
 
 @dataclass
 class Step:
@@ -191,18 +179,13 @@ class PipelineFrame:
     action_lo: pd.DataFrame = field(init=False)
     action_hi: pd.DataFrame = field(init=False)
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
-    missing_info: pd.DataFrame = field(init=False)
     decision_points: np.ndarray = field(init=False)
     action_change: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
     transitions: list[Transition] | None = None
 
     def __post_init__(self):
-        missing_info = pd.DataFrame(index=self.data.index, dtype=SparseMissingType)
         N = len(self.data)
-        # initialize filled with NULL (no memory cost)
-        null_cols: Any = {col: [MissingType.NULL] * N for col in self.data.columns}
-        self.missing_info = missing_info.assign(**null_cols)
 
         # initialize dp flags
         self.decision_points = np.zeros(N, dtype=np.bool_)
@@ -241,6 +224,4 @@ def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -
         next_dp=jnp.asarray(corerl_transition.post.dp),
         n_step_reward=jnp.asarray(corerl_transition.n_step_reward),
         n_step_gamma=jnp.asarray(corerl_transition.n_step_gamma),
-        state_dim=corerl_transition.state_dim,
-        action_dim=corerl_transition.action_dim,
     )

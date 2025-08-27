@@ -5,7 +5,7 @@ import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
-from corerl.data_pipeline.datatypes import DataMode, MissingType, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.transforms import BinaryConfig, ScaleConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.tags.tag_config import BasicTagConfig
@@ -67,17 +67,6 @@ def test_filter_constructor():
     )
 
     assert dfs_close(out.data, expected_df)
-    expected_missing_vals = [
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.FILTER,  MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-    ]
-    expected_missing_df = pd.DataFrame(data=expected_missing_vals, columns=expected_cols, index=idx)
-    assert dfs_close(out.missing_info, expected_missing_df)
 
 
 def test_filter_constructor_with_replace():
@@ -136,14 +125,3 @@ def test_filter_constructor_with_replace():
     )
 
     assert dfs_close(out.data, expected_df)
-    expected_missing_vals = [
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.FILTER,  MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-        [MissingType.NULL,    MissingType.NULL],
-    ]
-    expected_missing_df = pd.DataFrame(data=expected_missing_vals, columns=expected_cols, index=idx)
-    assert dfs_close(out.missing_info, expected_missing_df)

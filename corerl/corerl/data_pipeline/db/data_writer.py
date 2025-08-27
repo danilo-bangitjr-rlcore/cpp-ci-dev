@@ -5,7 +5,6 @@ from typing import NamedTuple
 
 from lib_config.config import config
 from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
-from sqlalchemy import text
 
 from corerl.sql_logging.sql_logging import get_sql_engine
 from corerl.tags.components.opc import Agg
@@ -21,9 +20,9 @@ class TagDBConfig(BufferedWriterConfig):
 
 
 class Point(NamedTuple):
-    ts: str
+    time: str
     name: str
-    jsonb: str
+    fields: str
     host: str
     id: str
 
@@ -51,20 +50,13 @@ class DataWriter(BufferedWriter[Point]):
 
         jsonb = json.dumps({"val": val})
         point = Point(
-            ts=ts_iso,
+            time=ts_iso,
             name=name,
-            jsonb=jsonb,
+            fields=jsonb,
             host=host or self.host,
             id=id or name,
         )
         self._write(point)
-
-    def _insert_sql(self):
-        return text(f"""
-            INSERT INTO {self.cfg.table_schema}.{self.cfg.table_name}
-            (time, host, id, name, fields)
-            VALUES (TIMESTAMP :ts, :host, :id, :name, :jsonb);
-        """)
 
     def _create_table_sql(self):
         return create_tsdb_table_query(

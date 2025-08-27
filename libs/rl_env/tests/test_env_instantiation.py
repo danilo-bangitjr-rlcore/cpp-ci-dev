@@ -1,6 +1,6 @@
 import pytest
 
-from rl_env.bsm1 import BSM1Config
+from rl_env.bsm1.bsm1 import BSM1Config
 from rl_env.calibration import CalibrationConfig
 from rl_env.distraction_world import DistractionWorldConfig
 from rl_env.factory import EnvConfig, init_env
