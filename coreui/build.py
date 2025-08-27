@@ -39,6 +39,7 @@ def build_executable():
         f"--hidden-import=win32timezone "
         f"--hidden-import=fastapi "
         f"--hidden-import=fastapi.staticfiles "
+        f"--hidden-import=starlette.responses "
         f"--add-data {DIST}:dist "
         f"--paths {SERVER_LIB}"
     )
