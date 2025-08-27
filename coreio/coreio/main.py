@@ -22,11 +22,19 @@ logger = setup_logging(logging.INFO)
 @load_config(MainConfigAdapter)
 async def coreio_loop(cfg: MainConfigAdapter):
     logger.info("Starting OPC Connections")
-    opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
-        cfg.coreio.opc_connections,
-        cfg.pipeline.tags,
-        cfg.interaction.heartbeat,
-    )
+    # Temporary flag to keep reading opc details from pipeline in old config versions
+    if cfg.coreio.data_ingress.enabled:
+        opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+            cfg.coreio.opc_connections,
+            cfg.coreio.tags,
+            cfg.interaction.heartbeat,
+        )
+    else:
+        opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+            cfg.coreio.opc_connections,
+            cfg.pipeline.tags,
+            cfg.interaction.heartbeat,
+        )
 
     all_registered_nodes = None
     sql_communication = None

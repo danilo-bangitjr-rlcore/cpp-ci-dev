@@ -188,7 +188,7 @@ class SQL_Manager:
         filtered_data[SanitizedName('timestamp')] = timestamp or now_iso()
 
         try:
-            with TryConnectContextManager(self.engine) as connection:
+            with TryConnectContextManager(self.engine, backoff_seconds=10, max_tries=99) as connection:
                 col_names_to_write = [col for col in filtered_data.keys() if col != "timestamp"]
                 sql = self._insert_sql(col_names_to_write)
 

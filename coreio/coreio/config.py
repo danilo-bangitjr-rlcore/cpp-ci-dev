@@ -7,6 +7,12 @@ from lib_config.config import MISSING, config, list_
 from pydantic import Field
 
 
+@config(allow_extra=True, frozen=True)
+class TagConfigAdapter:
+    name: str = MISSING
+    connection_id: str | None = None
+    node_identifier: str | None = None
+
 class OPCSecurityPolicy(StrEnum):
     none = auto()
     basic256_sha256 = auto()
@@ -66,3 +72,4 @@ class CoreIOConfig:
     coreio_origin: str = "tcp://localhost:5557"
     coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()
+    tags: list[TagConfigAdapter] = list_()

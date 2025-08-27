@@ -220,7 +220,7 @@ wheels = [
 
 [[package]]
 name = "coreio"
-version = "0.2.0"
+version = "0.3.0"
 source = { editable = "." }
 dependencies = [
     { name = "asyncua" },
@@ -273,7 +273,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.143.0"
+version = "0.144.0"
 source = { editable = "../corerl" }
 dependencies = [
     { name = "coreio" },
@@ -340,7 +340,7 @@ dev = [
     { name = "rl-env", editable = "../libs/rl_env" },
     { name = "ruff", specifier = ">=0.11.11" },
     { name = "test", editable = "../test" },
-    { name = "uv", specifier = ">=0.7.8" },
+    { name = "uv", specifier = "~=0.7" },
 ]
 
 [[package]]

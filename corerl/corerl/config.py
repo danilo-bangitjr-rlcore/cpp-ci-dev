@@ -4,7 +4,7 @@ from pathlib import Path
 
 import yaml
 from coreio.config import CoreIOConfig
-from lib_config.config import MISSING, computed, config, list_, post_processor
+from lib_config.config import MISSING, computed, config, post_processor
 from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
@@ -108,10 +108,12 @@ class FeatureFlags:
 @config()
 class OfflineConfig:
     offline_steps: int = 0
-    offline_eval_iters: list[int] = list_()
     offline_start_time: datetime | None = None
     offline_end_time: datetime | None = None
+    eval_periods: list[tuple[datetime, datetime]] | None = None
     pipeline_batch_duration: timedelta = timedelta(days=7)
+    update_agent_during_offline_recs: bool = False
+    remove_eval_from_train: bool = True
 
     @post_processor
     def _validate(self, cfg: 'MainConfig'):
@@ -120,6 +122,13 @@ class OfflineConfig:
                 self.offline_start_time < self.offline_end_time
             ), "Offline training start timestamp must come before the offline training end timestamp."
 
+        if self.eval_periods is not None:
+            for eval_period in self.eval_periods:
+                assert len(eval_period) == 2, "Eval periods must be defined as a list with length 2."
+                start = eval_period[0]
+                end = eval_period[1]
+                assert start < end, "Eval start must precede eval end."
+            # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
 
 @config()
 class MainConfig:

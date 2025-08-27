@@ -195,12 +195,16 @@ class SetpointTagConfig(
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
 
         if self.nominal_setpoint is not None:
+            # Want nominal setpoint to be specified as a raw value but it must then be converted to a normalized value
             assert self.operating_range[0] is not None
             assert self.operating_range[1] is not None
             assert (
                 self.operating_range[0] <= self.nominal_setpoint <= self.operating_range[1]
             ), f"The nominal setpoint {self.nominal_setpoint} must be within the operating range:" \
                f"[{self.operating_range[0]}, {self.operating_range[1]}]."
+            mi = self.operating_range[0]
+            ma = self.operating_range[1]
+            self.nominal_setpoint = (self.nominal_setpoint - mi) / (ma - mi)
 
 
 def get_action_bounds(cfg: SetpointTagConfig, row: pd.DataFrame) -> tuple[float, float]:

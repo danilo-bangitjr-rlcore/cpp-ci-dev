@@ -37,8 +37,8 @@ def test_time_of_day():
         "tag-1": [1, 2, 3],
         "tag-2": [4, 5, 6],
         "time_of_day": [25200, 37800, 65831],
-        "time_of_day_sin": [0.9659258, 0.382683, -0.99719058],
-        "time_of_day_cos": [-0.258819, -0.9238795, 0.074906209],
+        "time_of_day_sin": [0.9829629, 0.6913415, 0.00140471],
+        "time_of_day_cos": [0.3705905, 0.03806025, 0.5374531],
     })
 
     assert dfs_close(pf.data, expected)
@@ -94,12 +94,15 @@ def test_day_of_year():
     seasonal_features = SeasonalTagFeatures(tag_cfgs)
     pf = seasonal_features(pf)
 
-    expected = pd.DataFrame({
-        "tag-1": [1, 2, 3],
-        "tag-2": [4, 5, 6],
-        "day_of_year": [18, 86, 195],
-        "time_of_year_sin": [0.3049212, 0.995919, -0.204552],
-        "time_of_year_cos": [0.9523775, 0.0902516, -0.978855],
-    })
+    expected = pd.DataFrame(
+        data={
+            "tag-1": [1, 2, 3],
+            "tag-2": [4, 5, 6],
+            "day_of_year": [18, 86, 195],
+            "time_of_year_sin": [0.6524606, 0.9979595, 0.397724],
+            "time_of_year_cos": [0.97618875, 0.5451258, 0.0105725],
+            },
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
+    )
 
-    assert dfs_close(pf.data, expected)
+    assert dfs_close(pf.data, expected, tol=1e-5)
