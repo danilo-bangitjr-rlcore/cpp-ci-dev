@@ -10,7 +10,6 @@ BACKEND = ROOT / "server"
 SERVICE = ROOT / BACKEND / "win-service"
 DIST = FRONTEND / "dist"
 SERVICE_SCRIPT = SERVICE / "windows-service.py"
-CORE_UI_SCRIPT = BACKEND / "server" / "core_ui.py"
 FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 SERVER_LIB = BACKEND / "server" / ".."
@@ -40,12 +39,8 @@ def build_executable():
         f"--hidden-import=win32timezone "
         f"--hidden-import=fastapi "
         f"--hidden-import=fastapi.staticfiles "
-        f"--hidden-import=starlette.responses "
-        f"--hidden-import=server.opc_api.opc_routes "
         f"--add-data {DIST}:dist "
         f"--paths {SERVER_LIB}"
-#        f"--add-data {CORE_UI_SCRIPT}:server "
-#        f"--add-data {OPC_LIB}:server\\opc_api "
     )
     run(cmd, cwd=SERVICE)
 
