@@ -6,7 +6,7 @@
 
 ## 1. Executive Summary
 
-The CoreTelemetry service is a critical component of the CoreRL platform, responsible for collecting, storing, and forwarding all telemetry data, including logs and metrics from all microservices. It is designed to operate reliably in environments with intermittent or no internet connectivity, ensuring that valuable diagnostic and performance data is never lost. In connected environments, it forwards data to a centralized cloud backend for platform-wide observability and analytics.
+The CoreTelemetry service is a critical component of the RLTune platform, responsible for collecting, storing, and forwarding all telemetry data, including logs and metrics from all microservices. It is designed to operate reliably in environments with intermittent or no internet connectivity, ensuring that valuable diagnostic and performance data is never lost. In connected environments, it forwards data to a centralized cloud backend for platform-wide observability and analytics.
 
 ### Key Features
 - **Unified Telemetry Pipeline**: A single service for collecting logs and metrics.
@@ -20,7 +20,7 @@ The CoreTelemetry service is a critical component of the CoreRL platform, respon
 
 ## 2. System Architecture
 
-CoreTelemetry is designed as a standalone service that runs alongside other CoreRL services. It exposes an API for data ingestion and uses a file-based buffering system managed by Fluentd for local storage and forwarding.
+CoreTelemetry is designed as a standalone service that runs alongside other RLTune services. It exposes an API for data ingestion and uses a file-based buffering system managed by Fluentd for local storage and forwarding.
 
 ### Component Diagram
 
@@ -29,7 +29,7 @@ graph TD
     G -- "logs/metrics" --> J;
 
     subgraph On-Premise Environment
-        subgraph CoreRL Services
+    subgraph RLTune Services
             A[CoreRL]
             B[CoreIO]
             C[Coredinator]
@@ -79,7 +79,7 @@ graph TD
 
 ### Data Flow
 
-1.  **Log Ingestion**: CoreRL services send structured logs to the `CoreTelemetry` API server via HTTP POST requests.
+1.  **Log Ingestion**: RLTune services (including the CoreRL service) send structured logs to the `CoreTelemetry` API server via HTTP POST requests.
 2.  **Metric Polling**: A background worker in the `Cloud Forwarder` periodically polls the TimescaleDB database to retrieve the latest agent performance metrics.
 3.  **Local Buffering**: The API server writes the incoming logs to a local file-based buffer. The polled metrics are also written to a separate buffer.
 4.  **Cloud Ingestion**: The `Cloud Forwarder` reads from the buffer files, batches the data, and sends it to a public-facing AWS API Gateway endpoint.

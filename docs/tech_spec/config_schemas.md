@@ -1,9 +1,9 @@
-# CoreRL Configuration Schema
+# RLTune Configuration Schema
 
 **Version**: 1.0
 **Date**: August 26, 2025
 
-This document provides a reference for configuring the CoreRL system using a commented example. The configuration is managed via a single YAML file that defines everything from data sources and agent behavior to hardware settings.
+This document provides a reference for configuring the RLTune system using a commented example. The configuration is managed via a single YAML file that defines everything from data sources and agent behavior to hardware settings.
 
 ---
 

@@ -6,7 +6,7 @@
 
 ## Summary — Purpose • Scope • Key decisions
 
-- **Purpose**: Provides a single, secure, public REST API ingress for the CoreRL platform. The gateway enforces authentication and rate-limits, then forwards all authorized traffic to `Coredinator`, which is the sole component responsible for internal service routing and agent instance resolution.
+- **Purpose**: Provides a single, secure, public REST API ingress for the RLTune platform. The gateway enforces authentication and rate-limits, then forwards all authorized traffic to `Coredinator`, which is the sole component responsible for internal service routing and agent instance resolution.
 - **Scope**: External ingress (TLS termination optional), authentication enforcement (via CoreAuth), rate limiting, API versioning, request/response normalization, forwarding to `Coredinator`. Protocol translation (e.g., HTTP <> ZeroMQ or other internal transports) is explicitly delegated to `Coredinator` or the destination service façade and is not performed in the gateway.
 - Key decisions:
   - `CoreGateway` performs local JWT validation but does not look up internal service locations; it forwards to `Coredinator`.
@@ -18,7 +18,7 @@
 
 ## Spec outline
 
-- Context: Edge-of-network reverse-proxy/gateway for CoreRL
+- Context: Edge-of-network reverse-proxy/gateway for RLTune
 -- Primary use-cases:
   - UI / external client obtains JWT via `/api/v1/auth/token` (forwarded to CoreAuth via Coredinator path).
   - Client invokes `/api/v1/agent/*` (and other domain endpoints); gateway authenticates + rate-limits and forwards to `Coredinator` on an internal consolidation endpoint.

@@ -2,7 +2,7 @@
 
 ## Overview
 
-CoreIO is the I/O service for communication between the CoreRL system and external industrial control systems. It provides data exchange using the OPC UA protocol.
+CoreIO is the I/O service for communication between the RLTune system and external industrial control systems. It provides data exchange using the OPC UA protocol.
 
 ## Architecture
 

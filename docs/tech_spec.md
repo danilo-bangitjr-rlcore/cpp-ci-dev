@@ -1,4 +1,4 @@
-# CoreRL Technical Specification
+# RLTune Technical Specification
 
 **Version**: 1.0
 **Date**: August 22, 2025
@@ -22,7 +22,7 @@
 
 ## Executive Summary
 
-CoreRL is a reinforcement learning system engineered for industrial control and process optimization. It provides real-time, data-driven decision-making for complex industrial environments. The system is built on a distributed microservices architecture that prioritizes reliability, performance, and integration with existing control systems.
+RLTune is a reinforcement learning system engineered for industrial control and process optimization. It provides real-time, data-driven decision-making for complex industrial environments. The system is built on a distributed microservices architecture that prioritizes reliability, performance, and integration with existing control systems.
 
 ### Key Features
 - **Real-time Decision Making**: Sub-second response times for control loops.
@@ -53,7 +53,7 @@ CoreRL is a reinforcement learning system engineered for industrial control and 
 
 ## System Architecture Overview
 
-The CoreRL system uses a distributed microservices architecture for industrial environments, prioritizing reliability and real-time performance.
+The RLTune platform uses a distributed microservices architecture for industrial environments, prioritizing reliability and real-time performance.
 
 ```mermaid
 flowchart TD
@@ -118,7 +118,6 @@ flowchart TD
     class SensorDB,Buffer,ConfigDB,TSDB db;
 ```
 
-_Figure: Updated architecture — CoreGateway no longer calls backend services directly; all internal routing and agent_id -> instance resolution handled by Coredinator._
 
 ### (Removed Redundant Architecture Principles)
 
@@ -156,22 +155,22 @@ _Figure: Updated architecture — CoreGateway no longer calls backend services d
 ## Microservices Documentation
 
 ### [CoreGateway Service](tech_spec/coregateway.md)
-Public-facing API Gateway for the CoreRL platform.
+Public-facing API Gateway for the RLTune platform.
 
 ### [CoreRL Service](tech_spec/corerl.md)
-The main reinforcement learning engine providing AI-powered decision making capabilities.
+The main reinforcement learning microservice (CoreRL) providing AI-powered decision making capabilities within the RLTune platform.
 
 ### [CoreIO Service](tech_spec/coreio.md)
-Industrial I/O service handling OPC UA communication and data exchange with control systems.
+Industrial I/O service handling OPC UA communication and data exchange with control systems for RLTune.
 
 ### [Coredinator Service](tech_spec/coredinator.md)
-Orchestration service managing multi-agent coordination and service lifecycle management.
+Orchestration service managing multi-agent coordination and service lifecycle management across the RLTune deployment.
 
 ### [CoreTelemetry Service](tech_spec/coretelemetry.md)
-The telemetry service for the CoreRL platform.
+The telemetry service for the RLTune platform.
 
 ### [Shared Libraries](tech_spec/libraries.md)
-Common libraries providing reusable functionality across all services.
+Common libraries providing reusable functionality across all RLTune services.
 
 ### [Research Platform](tech_spec/research.md)
 Experimental environment for algorithm development and performance benchmarking.
@@ -211,7 +210,7 @@ Experimental environment for algorithm development and performance benchmarking.
 #### Health Monitoring
 - **Health Endpoints**: `/healthcheck` for each service
 - **Dependency Checks**: Database, external service connectivity
-- **OPC-UA Watchdog**: A signal that constantly writes new values to an OPC tag to indicate the `corerl` service is still running.
+- **OPC-UA Watchdog**: A signal that constantly writes new values to an OPC tag to indicate the `CoreRL` service is still running.
 
 ### Backup and Recovery
 
@@ -223,7 +222,7 @@ Experimental environment for algorithm development and performance benchmarking.
 
 ## Deployment Strategy
 
-The system uses a blue/green deployment strategy for agent upgrades, managed by the `coredinator` service. A new agent version is deployed to a staging environment, and traffic is switched after successful health and validation checks. `coredinator` handles automated rollbacks if issues are detected.
+The RLTune system uses a blue/green deployment strategy for agent upgrades, managed by the `coredinator` service. A new agent version is deployed to a staging environment, and traffic is switched after successful health and validation checks. `coredinator` handles automated rollbacks if issues are detected.
 
 In case of data corruption, the system reverts to the last stable agent version. Transient data, like neural network weights, is purged and reconstructed from the process data historian.
 
@@ -264,7 +263,7 @@ In case of data corruption, the system reverts to the last stable agent version.
 
 ## Performance and Scalability
 
-As an on-premise, local-first application, performance and scalability are focused on efficient use of local hardware.
+As an on-premise, local-first application, RLTune performance and scalability are focused on efficient use of local hardware.
 
 ### Performance Targets
 - **Inference Time**: Agent decision-making completes in < 1s.

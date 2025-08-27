@@ -2,7 +2,7 @@
 
 ## Overview
 
-The CoreRL system includes shared libraries that provide common functionality across microservices, promoting code reuse and consistency.
+The RLTune platform includes shared libraries that provide common functionality across microservices, promoting code reuse and consistency.
 
 ## Library Architecture
 

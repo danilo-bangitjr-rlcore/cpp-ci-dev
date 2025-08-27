@@ -2,7 +2,7 @@
 
 ## Overview
 
-Coredinator is the orchestration and internal routing service. It manages the lifecycle of CoreRL platform services, coordinates multi-agent interactions, maintains the mapping between `agent_id` and concrete instances of services (e.g., CoreRL, CoreIO), and acts as the single internal dispatch point for all requests forwarded from `CoreGateway`.
+Coredinator is the orchestration and internal routing service. It manages the lifecycle of RLTune platform services, coordinates multi-agent interactions, maintains the mapping between `agent_id` and concrete instances of services (e.g., CoreRL, CoreIO), and acts as the single internal dispatch point for all requests forwarded from `CoreGateway`.
 
 ## Architecture
 
@@ -98,7 +98,7 @@ A `MultiAgentCoordinator` class can be implemented to perform coordination cycle
 
 ## Deployment
 
-Coredinator is deployed as a bare-metal executable on Windows and Linux and manages the lifecycle of other CoreRL services on the same machine. Configuration is managed via local YAML files.
+Coredinator is deployed as a bare-metal executable on Windows and Linux and manages the lifecycle of other RLTune services on the same machine. Configuration is managed via local YAML files.
 
 ## Monitoring and Alerting
 
