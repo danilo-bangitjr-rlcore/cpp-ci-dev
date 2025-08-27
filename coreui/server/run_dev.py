@@ -1,6 +1,6 @@
 import os
 import sys
-from .core_ui import CoreUI
+from server.core_ui import CoreUI
 
 # ===== DEBUG INFO =====
 print("===== DEBUG INFO =====")

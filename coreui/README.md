@@ -26,6 +26,30 @@
 All automation is handled by [`build.py`](build.py).  
 Run commands from the `coreui` directory:
 
+### 0. Environment
+
+Activate the uv virtual environment with
+
+On Linux:
+```sh
+source server/.venv/bin/activate
+```
+
+On Windows (`git-bash`):
+```sh
+source server/.venv/Scripts/activate
+```
+
+Install for linux and development work:
+```
+uv sync
+```
+
+If you wish to install `CoreUI` as a windows service, then also install the windows dependencies:
+```
+uv sync --group win
+```
+
 ### 1. Clean
 
 Removes all build artifacts and temporary files.
@@ -42,7 +66,7 @@ Installs frontend dependencies, builds the React app, copies the build output to
 python build.py build
 ```
 
-The executable will be at `win-service/dist/coreui-service.exe`.
+The executable will be at `server/win-service/dist/coreui-service.exe`.
 
 ### 3. Development
 
@@ -59,4 +83,4 @@ python build.py dev
 # Developing Modules Independently
 
 Each module—frontend, backend, and Windows service—can also be run and developed independently without using `build.py`.  
-Refer to the instructions in the respective directories (`client/`, `server/`, `win-service/`) for standalone development and run commands.
+Refer to the instructions in the respective directories (`client/`, `server/server`, `server/win-service/`) for standalone development and run commands.

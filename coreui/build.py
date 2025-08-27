@@ -10,11 +10,11 @@ BACKEND = ROOT / "server"
 SERVICE = ROOT / BACKEND / "win-service"
 DIST = FRONTEND / "dist"
 SERVICE_SCRIPT = SERVICE / "windows-service.py"
-CORE_UI_SCRIPT = BACKEND / "core_ui.py"
 FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
+SERVER_LIB = BACKEND / "server" / ".."
 
-def run(cmd, cwd=None):
+def run(cmd: str, cwd: Path | None=None):
     """Run a shell command"""
     print(f"Running: {cmd}")
     subprocess.run(cmd, cwd=cwd, shell=True, check=True)
@@ -27,10 +27,10 @@ def build_frontend():
 def build_executable():
     print("Building Windows executable with PyInstaller...")
     
-    venv_path = SERVICE / ".venv"
+    venv_path = BACKEND / ".venv"
     venv_active = "VIRTUAL_ENV" in os.environ and Path(os.environ["VIRTUAL_ENV"]).resolve() == venv_path.resolve()
     if not venv_active:
-        print("Please activate the .venv in win-service before running this command.")
+        print("Please activate the .venv before running this command.")
         exit(1)
     
     cmd = (
@@ -41,7 +41,7 @@ def build_executable():
         f"--hidden-import=fastapi.staticfiles "
         f"--hidden-import=starlette.responses "
         f"--add-data {DIST}:dist "
-        f"--add-data {CORE_UI_SCRIPT}:server"
+        f"--paths {SERVER_LIB}"
     )
     run(cmd, cwd=SERVICE)
 
