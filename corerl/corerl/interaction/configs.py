@@ -181,8 +181,10 @@ class InteractionConfig:
 
         assert (
             self.state_age_tol >= self.obs_period
-        ), "States can only be stale after at least obs_period has elapsed. \
-            state_age_tol must be greater or equal to obs_period."
+        ), (
+            "States can only be stale after at least obs_period has elapsed. "
+            "state_age_tol must be greater or equal to obs_period."
+        )
 
 
 
