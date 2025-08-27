@@ -1,10 +1,12 @@
-import win32serviceutil
-import win32service
-import servicemanager
-import time
 import sys
+import time
+
+import servicemanager
 import uvicorn
+import win32service
+import win32serviceutil
 from server.core_ui import CoreUI
+
 
 class MyService:
     def __init__(self):

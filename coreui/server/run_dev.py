@@ -1,5 +1,6 @@
 import os
 import sys
+
 from server.core_ui import CoreUI
 
 # ===== DEBUG INFO =====

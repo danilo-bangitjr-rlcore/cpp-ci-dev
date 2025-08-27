@@ -1,9 +1,12 @@
 import os
 import sys
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
+
 from server.opc_api.opc_routes import print_hello
+
 
 class CoreUI:
     def __init__(self, dist_path: str | None=None):
