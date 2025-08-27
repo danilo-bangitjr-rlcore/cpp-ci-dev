@@ -25,15 +25,14 @@
 RLTune is a reinforcement learning system engineered for industrial control and process optimization. It provides real-time, data-driven decision-making for complex industrial environments. The system is built on a distributed microservices architecture that prioritizes reliability, performance, and integration with existing control systems.
 
 ### Key Features
-- **Real-time Decision Making**: Sub-second response times for control loops.
+- **Continuous Adaptation**: Agents continually learn, adapt, and improve.
+- **Supervisory Control**: High-level optimization of lower-level controllers.
 - **Multi-Agent Coordination**: Orchestration between multiple RL agents.
 - **Industrial Integration**: Native OPC UA support.
-- **High-Performance Computing**: JAX-based neural networks.
 - **Scalable Architecture**: Microservices design.
 - **Production-Ready**: Includes monitoring, logging, and deployment tools.
-- **Supervisory Control**: High-level optimization of lower-level controllers.
 - **Low-Configuration**: Minimal configuration and setup complexity.
-- **Continuous Adaptation**: Agents continually learn, adapt, and improve.
+- **High-Performance Computing**: JAX-based neural networks.
 
 
 ---
