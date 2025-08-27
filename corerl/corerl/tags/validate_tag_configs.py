@@ -1,7 +1,6 @@
 import warnings
 from functools import partial
 from itertools import product
-from typing import Any
 
 import numpy as np
 from lib_utils.maybe import Maybe
@@ -11,7 +10,7 @@ from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_widest_
 from corerl.tags.tag_config import TagConfig
 
 
-def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[Any,...]]:
+def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[float,...]]:
     tag_vals: list[np.ndarray] = [np.empty(1) for _ in range(len(tags))]
     for ind, tag_name in enumerate(tags):
         bounds = (
@@ -39,7 +38,7 @@ def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> li
             )
             return []
 
-        tag_vals[ind] = np.linspace(start=lo, stop=hi, num=11, endpoint=True)
+        tag_vals[ind] = np.linspace(start=lo, stop=hi, num=11, endpoint=True).tolist()
 
     return list(product(*tag_vals))
 
