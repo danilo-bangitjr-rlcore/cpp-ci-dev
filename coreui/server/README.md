@@ -32,3 +32,4 @@ The backend uses the frontend's `dist` folder to serve the production build. All
 ### API
 
 All backend API endpoints are accessible under `/api/`.
+
