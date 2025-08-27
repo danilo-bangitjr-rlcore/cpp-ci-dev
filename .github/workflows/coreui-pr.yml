@@ -52,3 +52,23 @@ jobs:
       - name: Test server imports
         run: uv run python server/run_dev.py
 
+  coreui-client-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run: 
+        working-directory: coreui/client
+
+    steps: 
+      - uses: actions/checkout@v4
+
+      - name: Set up client
+        run: npm ci
+
+      - name: Check formatting
+        run: |
+          npm run lint
+          npm run format:check
+
+      - name: Build client
+        run: npm run build
+
