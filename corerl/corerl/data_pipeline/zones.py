@@ -16,7 +16,7 @@ from corerl.tags.components.bounds import (
     BoundsInfo,
     SafetyZonedTag,
     ViolationDirection,
-    get_float_bound,
+    get_bound_with_data,
     get_maybe_bound_info,
 )
 from corerl.tags.tag_config import TagConfig
@@ -177,17 +177,17 @@ class ZoneDiscourager:
         x: float = row[tag.name].to_numpy()[0]
 
         yellow_lo = (
-            get_float_bound(_get_yellow_bound_info(lambda b: b.lower), row)
+            get_bound_with_data(_get_yellow_bound_info(lambda b: b.lower), row)
             .unwrap()
         )
         yellow_hi = (
-            get_float_bound(_get_yellow_bound_info(lambda b: b.upper), row)
+            get_bound_with_data(_get_yellow_bound_info(lambda b: b.upper), row)
             .unwrap()
         )
 
         if yellow_lo is not None and x < yellow_lo:
             next_lo = (
-                get_float_bound(_get_next_bound_info(lambda b: b.lower), row)
+                get_bound_with_data(_get_next_bound_info(lambda b: b.lower), row)
                 .expect(f'Yellow zone specified for tag {tag.name}, but no lower bound found')
             )
             return ZoneViolation(
@@ -200,7 +200,7 @@ class ZoneDiscourager:
 
         if yellow_hi is not None and x > yellow_hi:
             next_hi = (
-                get_float_bound(_get_next_bound_info(lambda b: b.upper), row)
+                get_bound_with_data(_get_next_bound_info(lambda b: b.upper), row)
                 .expect(f'Yellow zone specified for tag {tag.name}, but no upper bound found')
             )
             return ZoneViolation(
@@ -223,17 +223,17 @@ class ZoneDiscourager:
         x: float = row[tag.name].to_numpy()[0]
 
         red_lo = (
-            get_float_bound(_get_red_bound_info(lambda b: b.lower), row)
+            get_bound_with_data(_get_red_bound_info(lambda b: b.lower), row)
             .unwrap()
         )
         red_hi = (
-            get_float_bound(_get_red_bound_info(lambda b: b.upper), row)
+            get_bound_with_data(_get_red_bound_info(lambda b: b.upper), row)
             .unwrap()
         )
 
         if red_lo is not None and x < red_lo:
             op_lo = (
-                get_float_bound(_get_next_bound_info(lambda b: b.lower), row)
+                get_bound_with_data(_get_next_bound_info(lambda b: b.lower), row)
                 .expect(f'Red zone specified for tag {tag.name}, but no lower bound found')
             )
             return ZoneViolation(
@@ -246,7 +246,7 @@ class ZoneDiscourager:
 
         if red_hi is not None and x > red_hi:
             op_hi = (
-                get_float_bound(_get_next_bound_info(lambda b: b.upper), row)
+                get_bound_with_data(_get_next_bound_info(lambda b: b.upper), row)
                 .expect(f'Red zone specified for tag {tag.name}, but no upper bound found')
             )
             return ZoneViolation(

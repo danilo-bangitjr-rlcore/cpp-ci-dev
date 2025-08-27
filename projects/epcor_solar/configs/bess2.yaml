@@ -13,7 +13,6 @@ feature_flags:
 
 offline:
   offline_steps: 2001
-  offline_eval_iters: [0, 1, 10, 100, 500, 1000, 2000, 5000]
   offline_start_time: 2023-03-01 00:00
   offline_end_time: 2024-07-31 23:45
   pipeline_batch_duration: 100 days

@@ -23,6 +23,7 @@ from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
+from corerl.tags.validate_tag_configs import validate_tag_configs
 
 log = logging.getLogger(__name__)
 log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
@@ -116,6 +117,7 @@ def retryable_main(cfg: MainConfig):
 
 @load_config(MainConfig)
 def main(cfg: MainConfig):
+    validate_tag_configs(cfg)
     logging.basicConfig(
         format=log_fmt,
         encoding="utf-8",

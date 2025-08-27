@@ -18,6 +18,7 @@ from corerl.offline.utils import (
     offline_rl_from_buffer,
 )
 from corerl.state import AppState
+from corerl.tags.validate_tag_configs import validate_tag_configs
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -28,6 +29,7 @@ def main(cfg: MainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
+    validate_tag_configs(cfg)
     save_path = cfg.save_path
 
     # set the random seeds
