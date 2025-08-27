@@ -35,7 +35,7 @@ sequenceDiagram
 
     Note over OPC,DB: Real-time Control Loop
 
-    OPC->>CoreIO: Sensor Data (subscription)
+    OPC->>CoreIO: Sensor Data (polling)
     CoreIO->>Agent: Processed Data (ZMQ)
     Agent->>CoreIO: Control Commands (ZMQ)
     CoreIO->>OPC: Setpoint Updates (write)
