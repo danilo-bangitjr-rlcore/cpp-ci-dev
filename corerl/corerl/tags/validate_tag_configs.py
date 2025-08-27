@@ -1,3 +1,4 @@
+import warnings
 from functools import partial
 from itertools import product
 from typing import Any
@@ -21,6 +22,23 @@ def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> li
         )
         lo = bounds[0].unwrap()
         hi = bounds[1].unwrap()
+
+        if lo is None:
+            warnings.warn(
+                message=f"{tag_name} has no specified lower bound. " \
+                        f"Cannot generate value permutations to evaluate sympy function and compare bounds.",
+                stacklevel=2,
+            )
+            return []
+
+        if hi is None:
+            warnings.warn(
+                message=f"{tag_name} has no specified upper bound. " \
+                        f"Cannot generate value permutations to evaluate sympy function and compare bounds.",
+                stacklevel=2,
+            )
+            return []
+
         tag_vals[ind] = np.linspace(start=lo, stop=hi, num=11, endpoint=True)
 
     return list(product(*tag_vals))
@@ -43,6 +61,13 @@ def assert_bound_ordering(
         assert upper.bound_func is not None
         assert upper.bound_tags is not None
         upper_tag_permutations = get_tag_value_permutations(upper.bound_tags, tag_cfgs)
+        if len(upper_tag_permutations) == 0:
+            warnings.warn(
+                message=f"Cannot check that {lower.tag}'s {lower.direction} bound of the {lower.type} is less than " \
+                        f"{upper.tag}'s {upper.direction} bound of the {upper.type} because {upper.tag}'s " \
+                        f"{upper.direction} bound of the {upper.type}'s sympy function has tags that are unbounded",
+                stacklevel=2,
+            )
         for permutation in upper_tag_permutations:
             upper_val = upper.bound_func(*permutation)
             assert (
@@ -55,6 +80,13 @@ def assert_bound_ordering(
         assert lower.bound_func is not None
         assert lower.bound_tags is not None
         lower_tag_permutations = get_tag_value_permutations(lower.bound_tags, tag_cfgs)
+        if len(lower_tag_permutations) == 0:
+            warnings.warn(
+                message=f"Cannot check that {lower.tag}'s {lower.direction} bound of the {lower.type} is less than " \
+                        f"{upper.tag}'s {upper.direction} bound of the {upper.type} because {lower.tag}'s " \
+                        f"{lower.direction} bound of the {lower.type}'s sympy function has tags that are unbounded",
+                stacklevel=2,
+            )
         for permutation in lower_tag_permutations:
             lower_val = lower.bound_func(*permutation)
             assert (
@@ -72,6 +104,13 @@ def assert_bound_ordering(
         lower_tag_inds = [all_tags.index(tag_str) for tag_str in lower.bound_tags]
         upper_tag_inds = [all_tags.index(tag_str) for tag_str in upper.bound_tags]
         tag_permutations = get_tag_value_permutations(all_tags, tag_cfgs)
+        if len(tag_permutations) == 0:
+            warnings.warn(
+                message=f"Cannot check that {lower.tag}'s {lower.direction} bound of the {lower.type} is less than " \
+                        f"{upper.tag}'s {upper.direction} bound of the {upper.type} because one of the bounds's " \
+                        f"sympy functions has tags that are unbounded",
+                stacklevel=2,
+            )
         for permutation in tag_permutations:
             lower_tag_vals = [permutation[ind] for ind in lower_tag_inds]
             lower_val = lower.bound_func(*lower_tag_vals)
