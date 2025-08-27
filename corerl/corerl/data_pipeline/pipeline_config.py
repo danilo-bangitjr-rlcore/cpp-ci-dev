@@ -98,8 +98,10 @@ class PipelineConfig:
     def _validate_obs_period_alignment(self, cfg: MainConfig):
         assert (
             self.max_data_gap >= cfg.interaction.obs_period
-        ), "Temporal state can only become stale after at least obs_period has elapsed. \
-            max_data_gap must be greater or equal to obs_period."
+        ), (
+            "Temporal state can only become stale after at least obs_period has elapsed. "
+            "max_data_gap must be greater or equal to obs_period."
+        )
 
     @post_processor
     def _validate_tags(self, cfg: MainConfig):
