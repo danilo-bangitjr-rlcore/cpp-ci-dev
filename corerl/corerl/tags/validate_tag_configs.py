@@ -6,7 +6,7 @@ import numpy as np
 from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
-from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_tag_bounds
+from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_widest_static_bounds
 from corerl.tags.tag_config import TagConfig
 
 
@@ -16,11 +16,11 @@ def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> li
         bounds = (
             Maybe.find(lambda tag_cfg, tag_name=tag_name: tag_cfg.name == tag_name, tag_cfgs)
             .is_instance(SafetyZonedTag)
-            .map(partial(get_tag_bounds, row=None))
+            .map(partial(get_widest_static_bounds))
             .expect(f'Was unable to find tag config for tag: {tag_name}')
         )
-        lo = bounds[0].expect(f'Was unable to find a lower bound for tag: {tag_name}')
-        hi = bounds[1].expect(f'Was unable to find an upper bound for tag: {tag_name}')
+        lo = bounds[0].unwrap()
+        hi = bounds[1].unwrap()
         tag_vals[ind] = np.linspace(start=lo, stop=hi, num=11, endpoint=True)
 
     return list(product(*tag_vals))

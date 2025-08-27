@@ -356,6 +356,20 @@ def get_priority_violation_bounds(cfg: SafetyZonedTag, row: pd.DataFrame) -> tup
 
     return lo, hi
 
+def get_widest_static_bounds(cfg: SafetyZonedTag) -> tuple[Maybe[float], Maybe[float]]:
+    def _get_bound(lens: Callable[[BoundsInfo], BoundInfo | None]) -> Maybe[float]:
+        return (
+            get_static_bound(cfg.operating_bounds_info, lens)
+            .flat_otherwise(lambda: get_static_bound(cfg.red_bounds_info, lens))
+            .flat_otherwise(lambda: get_static_bound(cfg.expected_bounds_info, lens))
+            .flat_otherwise(lambda: get_static_bound(cfg.yellow_bounds_info, lens))
+        )
+
+    lo = _get_bound(lambda b: b.lower)
+    hi = _get_bound(lambda b: b.upper)
+
+    return lo, hi
+
 def init_bounds_info(
     cfg: GlobalTagAttributes,
     bounds: Bounds,
