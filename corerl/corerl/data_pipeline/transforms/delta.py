@@ -33,8 +33,10 @@ class DeltaConfig(BaseTransformConfig):
     def _validate_obs_period_alignment(self, cfg: "MainConfig"):
         assert (
             self.time_thresh >= cfg.interaction.obs_period
-        ), "New sensor readings are only observed every obs_period, therefore at least obs_period must elapse \
-            before deltas can be computed. DeltaConfig.time_thresh must be greater or equal to obs_period."
+        ), (
+            "New sensor readings are only observed every obs_period, therefore at least obs_period must elapse "
+            "before deltas can be computed. DeltaConfig.time_thresh must be greater or equal to obs_period."
+        )
 
 
 @dataclass
