@@ -299,7 +299,3 @@ See [internal_practices.md](tech_spec/internal_practices.md) for internal tools,
 
 ### Appendix D: Security Audit Reports (TODO)
 [Link to security assessment results](tech_spec/security_audit.md)
-
----
-
-*This document is maintained by the CoreRL engineering team and is updated with each major release.*

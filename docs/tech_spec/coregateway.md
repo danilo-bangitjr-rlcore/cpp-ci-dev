@@ -241,6 +241,3 @@ Simplified flow:
 
 - Risk: Key rotation invalidates active tokens -> Mitigation: support JWK rotation with cache and grace period.
 - Risk: Gateway becomes single point of failure -> Mitigation: `coredinator` monitors the service's health via its health check endpoint and automatically restarts it upon failure.
-
----
-*This document is maintained by the CoreRL engineering team.*
