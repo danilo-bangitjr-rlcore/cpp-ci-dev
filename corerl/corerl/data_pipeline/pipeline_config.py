@@ -19,6 +19,7 @@ from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.transforms import NukeConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.environment.reward.config import RewardConfig
+from corerl.tags.components.bounds import BoundType, init_bounds_info
 from corerl.tags.components.opc import Agg
 from corerl.tags.tag_config import BasicTagConfig, TagConfig, in_taglist
 
@@ -55,33 +56,55 @@ class PipelineConfig:
 
     @post_processor
     def _cascade_dependencies(self, cfg: MainConfig):
+        tags = {tag.name for tag in self.tags}
         for tag in self.tags:
             if tag.type != TagType.ai_setpoint or tag.cascade is None:
                 continue
             for dep in [tag.cascade.op_sp, tag.cascade.ai_sp]:
                 if in_taglist(dep, self.tags): continue
-                self.tags.append(BasicTagConfig(
+                new_tag = BasicTagConfig(
                     name=dep,
                     agg=Agg.last,
                     operating_range=tag.operating_range,
                     expected_range=tag.expected_range,
                     preprocess=[],
                     state_constructor=[NukeConfig()],
-                ))
+                )
+                if new_tag.operating_range is not None:
+                    new_tag.operating_bounds_info = init_bounds_info(
+                        cfg=new_tag,
+                        bounds=new_tag.operating_range,
+                        bound_type=BoundType.operating_range,
+                        known_tags=tags,
+                    )
+                if new_tag.expected_range is not None:
+                    new_tag.expected_bounds_info = init_bounds_info(
+                        cfg=new_tag,
+                        bounds=new_tag.expected_range,
+                        bound_type=BoundType.expected_range,
+                        known_tags=tags,
+                    )
+                self.tags.append(new_tag)
 
             if in_taglist(tag.cascade.mode, self.tags): continue
             min_op = min(tag.cascade.op_mode_val, tag.cascade.ai_mode_val)
             max_op = max(tag.cascade.op_mode_val, tag.cascade.ai_mode_val)
-            self.tags.append(
-                BasicTagConfig(
-                    name=tag.cascade.mode,
-                    agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
-                    operating_range=(min_op, max_op),
-                    preprocess=[],
-                    state_constructor=[NukeConfig()],
-                    outlier=[IdentityFilterConfig()],
-                ),
+            mode_tag = BasicTagConfig(
+                name=tag.cascade.mode,
+                agg=Agg.bool_or if tag.cascade.mode_is_bool else Agg.last,
+                operating_range=(min_op, max_op),
+                preprocess=[],
+                state_constructor=[NukeConfig()],
+                outlier=[IdentityFilterConfig()],
             )
+            if mode_tag.operating_range is not None:
+                mode_tag.operating_bounds_info = init_bounds_info(
+                    cfg=mode_tag,
+                    bounds=mode_tag.operating_range,
+                    bound_type=BoundType.operating_range,
+                    known_tags=tags,
+                )
+            self.tags.append(mode_tag)
 
     @post_processor
     def _default_imputers(self, cfg: MainConfig):

@@ -168,32 +168,36 @@ def zone_bounds_vs_operating_range_checks(tag_cfg: SafetyZonedTag, tag_cfgs: lis
             upper=tag_cfg.operating_bounds_info.upper,
             tag_cfgs=tag_cfgs,
         )
-        # Red Zone Lower Bound < Operating Range Upper Bound
+        # Red Zone Lower Bound <= Operating Range Upper Bound
         assert_bound_ordering(
             lower=tag_cfg.red_bounds_info.lower,
             upper=tag_cfg.operating_bounds_info.upper,
             tag_cfgs=tag_cfgs,
+            can_equal=True,
         )
-        # Operating Range Lower Bound < Red Zone Upper Bound
+        # Operating Range Lower Bound <= Red Zone Upper Bound
         assert_bound_ordering(
             lower=tag_cfg.operating_bounds_info.lower,
             upper=tag_cfg.red_bounds_info.upper,
             tag_cfgs=tag_cfgs,
+            can_equal=True,
         )
 
 def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
     if tag_cfg.red_bounds_info is not None and tag_cfg.yellow_bounds_info is not None:
-        # Red Zone Lower Bound < Yellow Zone Lower Bound
+        # Red Zone Lower Bound <= Yellow Zone Lower Bound
         assert_bound_ordering(
             lower=tag_cfg.red_bounds_info.lower,
             upper=tag_cfg.yellow_bounds_info.lower,
             tag_cfgs=tag_cfgs,
+            can_equal=True,
         )
-        # Yellow Zone Upper Bound < Red Zone Upper Bound
+        # Yellow Zone Upper Bound <= Red Zone Upper Bound
         assert_bound_ordering(
             lower=tag_cfg.yellow_bounds_info.upper,
             upper=tag_cfg.red_bounds_info.upper,
             tag_cfgs=tag_cfgs,
+            can_equal=True,
         )
 
 def validate_tag_configs(cfg: MainConfig):
