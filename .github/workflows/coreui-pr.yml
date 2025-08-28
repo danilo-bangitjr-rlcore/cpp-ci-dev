@@ -1,0 +1,74 @@
+name: CoreUI Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "coreui/**"
+      - "libs/**"
+      - "config/**"
+  merge_group:
+    paths:
+      - "coreui/**"
+      - "libs/**"
+      - "config/**"
+
+concurrency:
+  group: coreui-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  coreui-server-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreui
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: coreui/server
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: coreui/server
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: coreui/server
+
+      # App creation (no running)
+      - name: Test server imports
+        run: uv run python server/run_dev.py
+
+  coreui-client-ci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreui/client
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up client
+        run: npm ci
+
+      - name: Check formatting
+        run: |
+          npm run lint
+          npm run format:check
+
+      - name: Build client
+        run: npm run build
+
