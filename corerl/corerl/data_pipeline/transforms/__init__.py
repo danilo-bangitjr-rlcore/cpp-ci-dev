@@ -9,12 +9,9 @@ from pydantic.dataclasses import rebuild_dataclass
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.bounds import BoundsConfig
-from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.data_pipeline.transforms.delta import DeltaConfig
-from corerl.data_pipeline.transforms.greater_than import GreaterThanConfig
 from corerl.data_pipeline.transforms.identity import IdentityConfig
 from corerl.data_pipeline.transforms.inverse import InverseConfig
-from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.nuke import NukeConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
@@ -58,16 +55,13 @@ TransformConfig = Annotated[
     AddRawConfig
     | BoundsConfig
     | DeltaConfig
-    | GreaterThanConfig
     | IdentityConfig
     | InverseConfig
-    | LessThanConfig
     | NormalizerConfig
     | NukeConfig
     | SplitConfig
     | SympyConfig
     | TraceConfig
-    | ComparatorConfig
 , Field(discriminator='name')]
 
 

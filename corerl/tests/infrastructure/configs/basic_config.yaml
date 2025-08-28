@@ -28,10 +28,7 @@ pipeline:
     is_endogenous: False
     filter:
       - name: sympy
-        expression: "0.5 * {tag-1}"
-      - name: comparator
-        op: '=='
-        val: 2
+        expression: "0.5 * {tag-1} == 2"
     preprocess:
       - name: identity
     state_constructor:

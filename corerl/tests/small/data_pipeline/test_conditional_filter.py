@@ -7,7 +7,6 @@ from test.infrastructure.utils.pandas import dfs_close
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.transforms import SympyConfig
-from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.tags.tag_config import BasicTagConfig
 
 
@@ -39,8 +38,7 @@ def test_filter_constructor():
             name='tag-1',
             # set tag-1 to nan if its value*3 == 6
             filter=[
-                SympyConfig(expression="3 * {tag-1}"),
-                ComparatorConfig(op='==', val=6),
+                SympyConfig(expression="3 * {tag-1} == 6"),
             ],
         ),
         BasicTagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
