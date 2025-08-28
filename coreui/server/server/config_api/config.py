@@ -39,7 +39,7 @@ def _load_config_data(config_name: str) -> dict | MainConfig:
             detail=f"Config file '{config_name}.yml' not found",
         )
 
-    with open(config_path) as f:
+    with open(config_path, encoding='utf-8') as f:
         config = yaml.safe_load(f)
     _config_cache[config_name] = config
     return config
@@ -73,11 +73,3 @@ async def get_tag(config_name: str, tag_name: str) -> JSONResponse:
 async def get_config(config_name: str) -> JSONResponse:
     config_dict = _load_config_data(config_name)
     return JSONResponse(content={"config": config_dict})
-
-async def load_config_by_name(config_name: str) -> JSONResponse:
-    config_dict = _load_config_data(config_name)
-    if isinstance(config_dict, MainConfig):
-        config_dict = json.loads(config_to_json(MainConfig, config_dict))
-    validated_config = _validate_config(config_dict)
-    json_config = json.loads(config_to_json(MainConfig, validated_config))
-    return JSONResponse(content=json_config)
