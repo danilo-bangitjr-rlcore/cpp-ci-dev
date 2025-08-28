@@ -136,17 +136,18 @@ def is_affine(input_expr: sy.Expr | sy.Basic) -> bool:
 def is_valid_expression(term: Any) -> bool:
     """
     Evaluate if the expression is made up of:
-    * Additions (or substractiosn)
+    * Additions (or subtractions)
     * Multiplications
     * Divisions
     * Numbers
     * Variables
-    In any order and in any hirearchy.
+    * Absolute value functions
+    In any order and in any hierarchy.
 
     We are not permitting:
-    * Powers
+    * Powers (except for division cases like 1/y)
     * Trigonometric functions
-    * Special functions: abs, power, piecewise, etc
+    * Special functions: power, piecewise, etc
     """
 
     try:
@@ -167,6 +168,10 @@ def is_valid_expression(term: Any) -> bool:
 
         if hasattr(term, "is_Pow") and term.is_Pow and term.args[1] == -1:
             # Handle cases like 1/y
+            return is_valid_expression(term.args[0])
+
+        # Handle absolute value functions
+        if hasattr(term, "func") and str(term.func) == "Abs":
             return is_valid_expression(term.args[0])
 
         return False

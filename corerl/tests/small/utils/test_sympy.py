@@ -104,11 +104,11 @@ def test_is_valid_expression():
     res = is_valid_expression(sy.sympify("sin(a)"))
     assert not res
     res = is_valid_expression(sy.sympify("abs(a)"))
-    assert not res
+    assert res
     res = is_valid_expression(sy.sympify("x**2"))
     assert not res
     res = is_valid_expression(sy.sympify("(3*(5*a+4*b)-x/y)/(2+1+x)+abs(x)"))
-    assert not res
+    assert res
     res = is_valid_expression(sy.sympify("sqrt(x)+1"))
     assert not res
 
