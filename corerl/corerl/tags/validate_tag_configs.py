@@ -7,6 +7,7 @@ from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
 from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_widest_static_bounds
+from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import TagConfig
 
 
@@ -124,6 +125,47 @@ def assert_bound_ordering(
                f"{upper.direction} bound of the {upper.type} was achieved with the following values {upper_tag_vals} " \
                f"for the following tags {upper.bound_tags} in the function {upper.bound_elem}."
 
+def non_empty_range_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
+    if tag_cfg.operating_bounds_info is not None:
+        # Operating Range Lower Bound < Operating Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.operating_bounds_info.lower,
+            upper=tag_cfg.operating_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+
+    if tag_cfg.expected_bounds_info is not None:
+        # Expected Range Lower Bound < Expected Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.expected_bounds_info.lower,
+            upper=tag_cfg.expected_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+
+    if tag_cfg.red_bounds_info is not None:
+        # Red Zone Lower Bound < Red Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.red_bounds_info.lower,
+            upper=tag_cfg.red_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+
+    if tag_cfg.yellow_bounds_info is not None:
+        # Yellow Zone Lower Bound < Yellow Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.yellow_bounds_info.lower,
+            upper=tag_cfg.yellow_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+
+    if isinstance(tag_cfg, SetpointTagConfig) and tag_cfg.action_bounds_info is not None:
+        # Action Lower Bound < Action Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.action_bounds_info.lower,
+            upper=tag_cfg.action_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+
 def operating_vs_expected_range_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
     if tag_cfg.operating_bounds_info is not None and tag_cfg.expected_bounds_info is not None:
         # Operating Range Lower Bound <= Expected Range Lower Bound
@@ -204,6 +246,7 @@ def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
 
     def check_bounds(tag_cfg: SafetyZonedTag):
+        non_empty_range_checks(tag_cfg, tag_cfgs)
         operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
         zone_bounds_vs_operating_range_checks(tag_cfg, tag_cfgs)
         red_vs_yellow_zone_checks(tag_cfg, tag_cfgs)
