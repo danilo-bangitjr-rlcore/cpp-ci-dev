@@ -117,7 +117,7 @@ class Pipeline:
 
         # initialization all stateful stages
         self.seasonal_tags = SeasonalTagIncluder(self.tags)
-        self.delta_tags = DeltaizeTags(self.tags, cfg.delta)
+        self.delta_tags = DeltaizeTags(self.tags, cfg.delta, app_state)
         self.virtual_tags = VirtualTagComputer(self.tags, app_state)
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {

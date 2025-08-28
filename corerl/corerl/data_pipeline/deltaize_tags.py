@@ -9,6 +9,7 @@ from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.delta import DeltaConfig
+from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
 
 
@@ -17,14 +18,23 @@ class DeltaStageConfig:
     delta_cfg: DeltaConfig = Field(default_factory=DeltaConfig)
 
 class DeltaizeTags(Constructor):
-    def __init__(self, tag_cfgs: Sequence[TagConfig], cfg: DeltaStageConfig):
+    def __init__(self, tag_cfgs: Sequence[TagConfig], cfg: DeltaStageConfig, app_state: AppState):
         self._cfg = cfg
+        self._app_state = app_state
         super().__init__(tag_cfgs)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         transformed_parts, tag_names = self._transform_tags(pf, StageCode.DELTA)
         for tag_name, transformed_part in zip(tag_names, transformed_parts, strict=True):
             pf.data[tag_name] = transformed_part
+
+            if len(pf.data[tag_name]) > 0:
+                val = pf.data[tag_name].values[0]
+                self._app_state.metrics.write(
+                    agent_step=self._app_state.agent_step,
+                    metric="DELTA-" + tag_name,
+                    value=val,
+                )
 
         return pf
 

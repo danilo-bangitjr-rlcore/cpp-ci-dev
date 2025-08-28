@@ -17,7 +17,14 @@ def test_one_delta_tag_one_pf():
     cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
     assert isinstance(cfg, MainConfig)
 
-    delta_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta)
+    app_state = AppState(
+        cfg=cfg,
+        metrics=MetricsTable(cfg.metrics),
+        evals=EvalsTable(cfg.evals),
+        event_bus=DummyEventBus(),
+    )
+
+    delta_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta, app_state)
     df = pd.DataFrame({
         "tag_1": [1, 1, 1, 1],
         "tag_2": [1, 2, 4, 3],
