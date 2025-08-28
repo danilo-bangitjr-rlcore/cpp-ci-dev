@@ -102,7 +102,7 @@ class FeatureFlags:
     wide_metrics: bool = False
 
     # 2025-08-15
-    state_layer_norm: bool = False
+    state_layer_norm: bool = True
 
 
 @config()
