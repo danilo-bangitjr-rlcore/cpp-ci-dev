@@ -34,11 +34,16 @@ class SympyTransform:
             for tag_name in self._tag_names
         ]
 
-        return (
-            np.nan
-            if any(np.isnan(val) for val in tag_values)
-            else self._lambda_func(*tag_values)
-        )
+        if any(np.isnan(val) for val in tag_values):
+            return np.nan
+
+        result = self._lambda_func(*tag_values)
+
+        # Convert boolean results to float (0.0/1.0) to match original transform behavior
+        if isinstance(result, bool | np.bool_):
+            return float(result)
+
+        return result
 
     def _get_tag_value(
         self,

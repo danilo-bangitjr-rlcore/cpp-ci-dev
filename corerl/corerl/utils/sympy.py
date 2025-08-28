@@ -59,6 +59,17 @@ def to_sympy(input_string: str) -> tuple[sy.Expr, Callable[..., float], list[str
     """
 
     processed_expression = _preprocess_expression_string(input_string)
+
+    # Handle == and != by replacing them with Eq and Ne functions before sympify
+    if " == " in processed_expression:
+        parts = processed_expression.split(" == ")
+        if len(parts) == 2:
+            processed_expression = f"Eq({parts[0]}, {parts[1]})"
+    elif " != " in processed_expression:
+        parts = processed_expression.split(" != ")
+        if len(parts) == 2:
+            processed_expression = f"Ne({parts[0]}, {parts[1]})"
+
     expression: Any = sy.sympify(processed_expression)
 
     # Both are sorted to keep parity between tag names and symbol names
@@ -143,12 +154,12 @@ def is_valid_expression(term: Any) -> bool:
     * Variables
     * Absolute value functions
     * Power operations (x**n where n is integer)
+    * Comparison operations (>, <, >=, <=, ==, !=)
     In any order and in any hierarchy.
 
     We are not permitting:
     * Trigonometric functions
     * Special functions: piecewise, etc
-    * Comparison operations (will be handled by other transforms)
     """
 
     try:
@@ -177,6 +188,10 @@ def is_valid_expression(term: Any) -> bool:
         # Handle absolute value functions
         if hasattr(term, "func") and str(term.func) == "Abs":
             return is_valid_expression(term.args[0])
+
+        # Handle comparison operations (>, <, >=, <=, ==, !=)
+        if hasattr(term, "is_Relational") and term.is_Relational:
+            return (is_valid_expression(term.lhs) and is_valid_expression(term.rhs))
 
         return False
 
