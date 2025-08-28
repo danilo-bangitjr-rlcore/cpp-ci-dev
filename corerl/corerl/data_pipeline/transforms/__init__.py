@@ -7,7 +7,6 @@ from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
 
 from corerl.data_pipeline.transforms.add_raw import AddRawConfig
-from corerl.data_pipeline.transforms.affine import AffineConfig
 from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
 from corerl.data_pipeline.transforms.bounds import BoundsConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
@@ -59,7 +58,6 @@ class SympyConfig(BaseTransformConfig):
 
 TransformConfig = Annotated[
     AddRawConfig
-    | AffineConfig
     | BoundsConfig
     | DeltaConfig
     | GreaterThanConfig
