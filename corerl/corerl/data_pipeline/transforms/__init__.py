@@ -11,7 +11,6 @@ from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_
 from corerl.data_pipeline.transforms.bounds import BoundsConfig
 from corerl.data_pipeline.transforms.delta import DeltaConfig
 from corerl.data_pipeline.transforms.identity import IdentityConfig
-from corerl.data_pipeline.transforms.inverse import InverseConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.nuke import NukeConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
@@ -39,6 +38,7 @@ class SplitConfig(BaseTransformConfig):
 class SympyConfig(BaseTransformConfig):
     name: Literal["sympy"] = "sympy"
     expression: str = MISSING
+    tolerance: float = 1e-4  # Tolerance for division operations, similar to inverse transform
 
     @post_processor
     def _validate_expression(self, cfg: MainConfig):
@@ -56,13 +56,12 @@ TransformConfig = Annotated[
     | BoundsConfig
     | DeltaConfig
     | IdentityConfig
-    | InverseConfig
     | NormalizerConfig
     | NukeConfig
     | SplitConfig
     | SympyConfig
     | TraceConfig
-, Field(discriminator='name')]
+, Field(discriminator="name")]
 
 
 def register_dispatchers():

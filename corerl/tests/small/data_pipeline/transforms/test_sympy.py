@@ -563,3 +563,244 @@ def test_abs_function():
     )
 
     pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+def test_division_basic():
+    """Test basic division operation."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(4)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2"])
+    df = pd.DataFrame(
+        data=[
+            [10.0, 2.0],
+            [15.0, 3.0],
+            [8.0, 4.0],
+            [6.0, 2.0],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    tf = SympyTransform(SympyConfig(expression="{tag-1} / {tag-2}"))
+    tf_data = df.get(["tag-1"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="tag-1",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_results = [5.0, 5.0, 2.0, 3.0]  # 10/2, 15/3, 8/4, 6/2
+    expected_cols = pd.Index(["tag-1"])
+    expected_df = pd.DataFrame(
+        data=[[val] for val in expected_results],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+def test_division_by_zero_exact():
+    """Test division by exact zero produces NaN."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2"])
+    df = pd.DataFrame(
+        data=[
+            [10.0, 0.0],    # Exact zero
+            [15.0, 2.0],    # Normal case
+            [8.0, 0.0],     # Another exact zero
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    tf = SympyTransform(SympyConfig(expression="{tag-1} / {tag-2}"))
+    tf_data = df.get(["tag-1"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="tag-1",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    results = tf_carry.transform_data["tag-1"].tolist()
+    assert pd.isna(results[0])  # 10/0 -> NaN
+    assert results[1] == 7.5    # 15/2 -> 7.5
+    assert pd.isna(results[2])  # 8/0 -> NaN
+
+
+def test_division_tolerance_behavior():
+    """Test division tolerance behavior with small denominators."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(5)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2"])
+    df = pd.DataFrame(
+        data=[
+            [2.0, 1e-5],     # Below default tolerance (1e-4)
+            [2.0, 1e-3],     # Above default tolerance
+            [2.0, 1e-6],     # Well below tolerance
+            [2.0, 0.1],      # Well above tolerance
+            [2.0, 1e-4],     # Exactly at tolerance
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    tf = SympyTransform(SympyConfig(expression="{tag-1} / {tag-2}", tolerance=1e-4))
+    tf_data = df.get(["tag-1"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="tag-1",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    results = tf_carry.transform_data["tag-1"].tolist()
+    assert pd.isna(results[0])  # 2/(1e-5) -> NaN (below tolerance)
+    assert results[1] == 2000.0 # 2/(1e-3) -> 2000 (above tolerance)
+    assert pd.isna(results[2])  # 2/(1e-6) -> NaN (below tolerance)
+    assert results[3] == 20.0   # 2/0.1 -> 20 (above tolerance)
+    assert pd.isna(results[4])  # 2/(1e-4) -> NaN (exactly at tolerance)
+
+
+def test_division_custom_tolerance():
+    """Test division with custom tolerance setting."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2"])
+    df = pd.DataFrame(
+        data=[
+            [2.0, 1e-6],     # Below custom tolerance (1e-5)
+            [2.0, 1e-4],     # Above custom tolerance
+            [2.0, 1e-5],     # Exactly at custom tolerance
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    tf = SympyTransform(SympyConfig(expression="{tag-1} / {tag-2}", tolerance=1e-5))
+    tf_data = df.get(["tag-1"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="tag-1",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    results = tf_carry.transform_data["tag-1"].tolist()
+    assert pd.isna(results[0])    # 2/(1e-6) -> NaN (below custom tolerance)
+    assert results[1] == 20000.0  # 2/(1e-4) -> 20000 (above custom tolerance)
+    assert pd.isna(results[2])    # 2/(1e-5) -> NaN (exactly at custom tolerance)
+
+
+def test_inverse_expression():
+    """Test inverse expression equivalent to old inverse transform."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(7)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["data"])
+    df = pd.DataFrame(
+        data=[
+            [2.0],
+            [1.0],
+            [0.1],
+            [1e-5],
+            [0.0],
+            [-1.0],
+            [0.001],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    tf = SympyTransform(SympyConfig(expression="1 / {data}", tolerance=1e-4))
+    tf_data = df.copy()
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data,
+        tag="data",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    results = tf_carry.transform_data["data"].tolist()
+    expected = [0.5, 1.0, 10.0, float('nan'), float('nan'), -1.0, 1000.0]
+
+    for i, (result, exp) in enumerate(zip(results, expected, strict=True)):
+        if pd.isna(exp):
+            assert pd.isna(result), f"Row {i}: expected NaN, got {result}"
+        else:
+            assert abs(result - exp) < 1e-10, f"Row {i}: expected {exp}, got {result}"
+
+
+def test_complex_division_expression():
+    """Test complex expression with multiple division operations."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(4)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["tag-1", "tag-2", "tag-3"])
+    df = pd.DataFrame(
+        data=[
+            [12.0, 3.0, 2.0],    # (12/3)/2 = 2.0
+            [20.0, 4.0, 2.0],    # (20/4)/2 = 2.5
+            [15.0, 0.0, 3.0],    # (15/0)/3 -> NaN (division by zero)
+            [18.0, 6.0, 1e-5],   # (18/6)/1e-5 -> NaN (below tolerance)
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    tf = SympyTransform(SympyConfig(expression="({tag-1} / {tag-2}) / {tag-3}"))
+    tf_data = df.get(["tag-1"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="tag-1",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    results = tf_carry.transform_data["tag-1"].tolist()
+    assert results[0] == 2.0     # (12/3)/2 = 2.0
+    assert results[1] == 2.5     # (20/4)/2 = 2.5
+    assert pd.isna(results[2])   # (15/0)/3 -> NaN
+    assert pd.isna(results[3])   # (18/6)/1e-5 -> NaN (tolerance)
