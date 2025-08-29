@@ -4,15 +4,17 @@
 # to construct tag name for PLC tags
 # NOTE: for some reason, we shouldn't escape
 # the closing bracket in [^]] (any character except closing bracket)
-s/ns=1;s=\[.+-([^]]+)\][^\t]+\t([^\t]+)\t([^\t]+)\t/\L\1_\2_\3\t/
+s/^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;s=\[.+-([^]]+)\][^\t]+\t([^\t]+)\t([^\t]+)\t/\1\L\2_\3_\4\t/
 
 
 # add rlcore label to workaround tags from custom micro OPC
 # and construct tag name
-s/ns=1;[^\t]+\t([^\t]+)\t([^\t]+)\t/\Lrlcore_\1_\2\t/
+# s/ns=1;[^\t]+\t([^\t]+)\t([^\t]+)\t/\Lrlcore_\1_\2\t/
+s/^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;[^\t]+\t([^\t]+)\t([^\t]+)\t/\1\Lrlcore_\2_\3\t/
 
 # clean up double uf1_uf1 or uf2_uf2
-s/uf([12])_uf\1/uf\1/
+# s/uf([12])_uf\1/uf\1/
+s/^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t.+)uf([12])_uf\2/\1uf\2/
 
 # grep -P '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t' clean_tail.txt
 # grep -E '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+[0-9]{2}' clean_tail.txt

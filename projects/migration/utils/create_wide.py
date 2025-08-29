@@ -1,6 +1,7 @@
 import pandas as pd
+import argparse
 
-def create_table_from_tsv(file_path, table_name):
+def create_table_from_tsv(file_path: str, table_name: str):
     """
     Reads a tab-delimited file and generates a CREATE TABLE SQL statement.
 
@@ -12,7 +13,7 @@ def create_table_from_tsv(file_path, table_name):
         str: The CREATE TABLE SQL statement.
     """
     try:
-        df = pd.read_csv(file_path, sep='\t', names=['tag', 'dtype'])
+        df = pd.read_csv(file_path, sep='\t', names=['tag', 'dtype']) 
     except FileNotFoundError:
         return f"Error: File not found at {file_path}"
     except Exception as e:
@@ -32,4 +33,22 @@ def create_table_from_tsv(file_path, table_name):
     return create_table_sql
 
 if __name__ == '__main__':
-    print(create_table_from_tsv('/home/kerrick/epcor_scrubber/raw_tag_dtype.txt', table_name='scrubber4_wide'))
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument(
+        '--input-file',
+        type=str,
+        required=True,
+        help='Path to input file'
+    )
+
+    parser.add_argument(
+        '--table-name',
+        type=str,
+        default='scrubber4_wide',
+        help='Name of the table to create'
+    )
+
+    args = parser.parse_args()
+
+    print(create_table_from_tsv(args.input_file, table_name=args.table_name))
