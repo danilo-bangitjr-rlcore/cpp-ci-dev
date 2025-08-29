@@ -241,6 +241,20 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
             tag_cfgs=tag_cfgs,
             can_equal=True,
         )
+        # Red Zone Lower Bound <= Yellow Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.red_bounds_info.lower,
+            upper=tag_cfg.yellow_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+        # Yellow Zone Lower Bound <= Red Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.yellow_bounds_info.lower,
+            upper=tag_cfg.red_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
 
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
