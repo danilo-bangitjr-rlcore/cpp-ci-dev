@@ -6,6 +6,7 @@ import numpy as np
 from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
+from corerl.environment.reward.config import Goal, JointGoal
 from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_widest_static_bounds
 from corerl.tags.tag_config import TagConfig
 
@@ -200,8 +201,69 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
             can_equal=True,
         )
 
+def assert_consistent_non_redundant_goals(cfg: MainConfig):
+    """
+    Iterate through the list of Priorities and update the range of values tags can occupy.
+    Throw warnings if there are redundancies and errors if there are inconistencies.
+    """
+    def _evaluate_joint_goals(joint_goal: JointGoal, tag_bounds: dict[str, list[float | None]]):
+        for sub_goal in joint_goal.goals:
+            if isinstance(sub_goal, Goal):
+                _check_goal_bounds(sub_goal, tag_bounds)
+            else:
+                _evaluate_joint_goals(sub_goal, tag_bounds)
+
+    def _check_goal_bounds(goal: Goal, tag_bounds: dict[str, list[float | None]]):
+        ind = 0 if goal.op == "up_to" else 1
+        symbol = ">" if goal.op == "up_to" else "<"
+        comparison = (lambda x, y: x < y) if goal.op == "up_to" else (lambda x, y: x > y)
+        if goal.tag not in tag_bounds:
+            tag_bounds[goal.tag] = [None, None]
+
+        # Only compare sympy threshold to given tag's upper/lower range if it's a float
+        if isinstance(goal.thresh, str) and isinstance(tag_bounds[goal.tag][ind], float):
+            assert goal.thresh_tags
+            assert goal.thresh_func
+            permutations = get_tag_value_permutations(goal.thresh_tags, cfg.pipeline.tags)
+            for permutation in permutations:
+                thresh = goal.thresh_func(*permutation)
+                if comparison(thresh, tag_bounds[goal.tag][ind]):
+                    warnings.warn(
+                        message=f"The Goal: {goal.tag} {goal.op} {goal.thresh} violates the higher priority goal "
+                        f"of {goal.tag} {symbol}= {tag_bounds[goal.tag][ind]} when {goal.thresh_tags} "
+                        f"has the following values: {permutation}.",
+                        stacklevel=2,
+                    )
+        elif isinstance(goal.thresh, float):
+            if isinstance(tag_bounds[goal.tag][ind], float):
+                # Redundancy check
+                assert comparison(tag_bounds[goal.tag][ind], goal.thresh), (
+                    f"The Goal: {goal.tag} {goal.op} {goal.thresh} violates the higher priority goal "
+                    f"of {goal.tag} {symbol} {tag_bounds[goal.tag][ind]}."
+                )
+            tag_bounds[goal.tag][ind] = goal.thresh
+            goal_lo = tag_bounds[goal.tag][0]
+            goal_hi = tag_bounds[goal.tag][1]
+            if isinstance(goal_lo, float) and isinstance(goal_hi, float):
+                # Consistency check
+                assert goal_lo <= goal_hi, (
+                    f"The Goals: {goal.tag} >= {goal_lo} and {goal.tag} <= {goal_hi} "
+                    f"are inconsistent."
+                )
+
+    tag_ranges = {}
+    if cfg.pipeline.reward:
+        for priority in cfg.pipeline.reward.priorities:
+            if isinstance(priority, Goal):
+                _check_goal_bounds(priority, tag_ranges)
+            elif isinstance(priority, JointGoal):
+                _evaluate_joint_goals(priority, tag_ranges)
+
+    return tag_ranges
+
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
+    assert_consistent_non_redundant_goals(cfg)
 
     def check_bounds(tag_cfg: SafetyZonedTag):
         operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
