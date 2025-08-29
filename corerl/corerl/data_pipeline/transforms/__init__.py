@@ -17,8 +17,6 @@ from corerl.data_pipeline.transforms.inverse import InverseConfig
 from corerl.data_pipeline.transforms.less_than import LessThanConfig
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.nuke import NukeConfig
-from corerl.data_pipeline.transforms.power import PowerConfig
-from corerl.data_pipeline.transforms.scale import ScaleConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
@@ -66,8 +64,6 @@ TransformConfig = Annotated[
     | LessThanConfig
     | NormalizerConfig
     | NukeConfig
-    | PowerConfig
-    | ScaleConfig
     | SplitConfig
     | SympyConfig
     | TraceConfig
