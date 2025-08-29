@@ -120,34 +120,8 @@ pipeline:
       name: copy
       imputation_horizon: 96
     filter: # ignore perm if following conditions are met
-    - name: comparator
-      op: ">"
-      val: 100000 # HACKY!
-    # binary max acts as OR
-    - name: binary
-      op: max 
-      # filter if mode is not production (8)
-      other: UF2_SEQ_STATE
-      other_xform:
-      - name: comparator
-        op: '!='
-        val: 8
-    - name: binary
-      op: max 
-      # filter if mode is not production (8)
-      other: UF2_FIT301_PV
-      other_xform:
-      - name: comparator
-        op: <
-        val: 10
-    - name: binary
-      op: max 
-       # filter if magnitude of TMP is too low
-      other: UF2_TMP_PV 
-      other_xform:
-      - name: comparator
-        op: '>'
-        val: -1
+    - name: sympy
+      expression: "({UF2_SEQ_STATE} != 8) | ({UF2_FIT301_PV} < 10) | ({UF2_TMP_PV} > -1)"
 
   - name: UF2_FIT301_PV # permeate flow rate
     preprocess:

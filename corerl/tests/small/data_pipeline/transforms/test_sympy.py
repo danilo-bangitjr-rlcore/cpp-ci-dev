@@ -3,6 +3,7 @@ import datetime
 import pandas as pd
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config_from_yaml
+from lib_utils.list import find, find_instance
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.transforms import SympyConfig
@@ -189,3 +190,70 @@ pipeline:
     cfg = direct_load_config_from_yaml(MainConfig, test_cfg)
     assert isinstance(cfg, ConfigValidationErrors)
     assert "unsupported operation" in str(cfg.meta).lower()
+
+
+# ----------------------------
+# -- Common Transformations --
+# ----------------------------
+
+def test_multiply_two_tags(basic_config_path: str):
+    test_cfg = f"""
+defaults:
+    - {basic_config_path}
+
+pipeline:
+    tags:
+      - name: fake_tag
+        type: default
+        state_constructor:
+          - name: sympy
+            expression: "{{fake_tag}} * {{tag-2}}"
+"""
+
+    cfg = direct_load_config_from_yaml(MainConfig, test_cfg)
+    assert not isinstance(cfg, ConfigValidationErrors)
+
+    # Create fake data
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+    df = pd.DataFrame(
+        data=[
+            [1.0, 3.0, 2.0],
+            [2.0, 5.0, 4.0],
+            [3.0, 7.0, 6.0],
+        ],
+        columns=pd.Index(["tag-1", "tag-2", "fake_tag"]),
+        index=idx,
+    )
+
+    fake_tag_cfg = find(lambda x: x.name == "fake_tag", cfg.pipeline.tags)
+    assert fake_tag_cfg is not None
+    assert fake_tag_cfg.state_constructor is not None
+    sympy_cfg = find_instance(SympyConfig, fake_tag_cfg.state_constructor)
+    assert sympy_cfg is not None
+
+    tf = SympyTransform(sympy_cfg)
+    tf_data = df.get(["fake_tag"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="fake_tag",
+    )
+
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_df = pd.DataFrame(
+        data=[
+            [2.0 * 3.0],
+            [4.0 * 5.0],
+            [6.0 * 7.0],
+        ],
+        columns=pd.Index(["fake_tag"]),
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)

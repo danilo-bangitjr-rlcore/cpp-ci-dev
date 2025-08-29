@@ -6,7 +6,7 @@ from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.transforms import BinaryConfig, ScaleConfig
+from corerl.data_pipeline.transforms import ScaleConfig, SympyConfig
 from corerl.data_pipeline.transforms.comparator import ComparatorConfig
 from corerl.tags.tag_config import BasicTagConfig
 
@@ -97,8 +97,7 @@ def test_filter_constructor_with_replace():
             name='tag-1',
             # set tag-1 to nan if tag-2 == 4
             filter=[
-                BinaryConfig(op='replace', other='tag-2'),
-                ComparatorConfig(op='==', val=4),
+                SympyConfig(expression="Eq({tag-2}, 4)"),
             ],
         ),
         BasicTagConfig(name='tag-2', red_bounds=(1.1, 3.3)),
