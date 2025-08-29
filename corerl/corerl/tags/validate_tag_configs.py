@@ -247,7 +247,7 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
 def assert_consistent_non_redundant_goals(cfg: MainConfig):
     """
     Iterate through the list of Priorities and update the range of values tags can occupy.
-    Throw warnings if there are redundancies and errors if there are inconistencies.
+    Throw warnings if there are redundancies and errors if there are inconsistencies.
     """
     def _evaluate_joint_goals(joint_goal: JointGoal, tag_bounds: dict[str, list[float | None]]):
         for sub_goal in joint_goal.goals:
