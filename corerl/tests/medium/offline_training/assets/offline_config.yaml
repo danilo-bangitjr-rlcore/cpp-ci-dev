@@ -50,8 +50,8 @@ pipeline:
     state_constructor:
     - name: identity
     reward_constructor:
-    - name: less_than
-      threshold: 3
+    - name: sympy
+      expression: "{Tag_1} < 3"
 
   - name: reward
     preprocess:
