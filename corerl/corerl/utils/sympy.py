@@ -142,12 +142,13 @@ def is_valid_expression(term: Any) -> bool:
     * Numbers
     * Variables
     * Absolute value functions
+    * Power operations (x**n where n is integer)
     In any order and in any hierarchy.
 
     We are not permitting:
-    * Powers (except for division cases like 1/y)
     * Trigonometric functions
-    * Special functions: power, piecewise, etc
+    * Special functions: piecewise, etc
+    * Comparison operations (will be handled by other transforms)
     """
 
     try:
@@ -166,9 +167,12 @@ def is_valid_expression(term: Any) -> bool:
         if hasattr(term, "is_Add") and term.is_Add:
             return all(is_valid_expression(arg) for arg in term.args)
 
-        if hasattr(term, "is_Pow") and term.is_Pow and term.args[1] == -1:
-            # Handle cases like 1/y
-            return is_valid_expression(term.args[0])
+        if hasattr(term, "is_Pow") and term.is_Pow:
+            # Handle power operations (x**n) and division cases (1/y)
+            base, exponent = term.args[0], term.args[1]
+            # Only allow integer powers or simple division (x**-1)
+            return (is_valid_expression(base) and
+                   (hasattr(exponent, "is_integer") and exponent.is_integer))
 
         # Handle absolute value functions
         if hasattr(term, "func") and str(term.func) == "Abs":

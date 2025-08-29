@@ -27,8 +27,8 @@ pipeline:
   - name: tag-1
     is_endogenous: False
     filter:
-      - name: scale
-        factor: 0.5
+      - name: sympy
+        expression: "0.5 * {tag-1}"
       - name: comparator
         op: '=='
         val: 2
