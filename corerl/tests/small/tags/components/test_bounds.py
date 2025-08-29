@@ -129,3 +129,13 @@ def test_yellow_upper_greater_than_red_upper_sympy():
     assert not isinstance(cfg, ConfigValidationErrors)
     with pytest.raises(AssertionError):
         validate_tag_configs(cfg)
+
+def test_computed_tag_in_op_range():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/computed_tag_in_op_range.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.warns():
+        validate_tag_configs(cfg)
