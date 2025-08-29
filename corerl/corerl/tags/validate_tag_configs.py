@@ -242,6 +242,51 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
             can_equal=True,
         )
 
+def red_zone_reflex_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
+    if tag_cfg.red_zone_reaction is not None:
+        for reflex in tag_cfg.red_zone_reaction:
+            assert reflex.bounds_info
+            # Red Zone Reflex Lower Bound < Red Zone Reflex Upper Bound
+            assert_bound_ordering(
+                lower=reflex.bounds_info.lower,
+                upper=reflex.bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+            )
+
+            # Get TagConfig for action that the red zone reflex is applied to
+            action_cfg = (
+                Maybe.find(lambda cfg, tag_name=reflex.tag: cfg.name == tag_name, tag_cfgs)
+                .is_instance(SafetyZonedTag)
+                .expect(f"Was unable to find tag config for tag: {reflex.tag}")
+            )
+            assert action_cfg.operating_bounds_info
+            # Operating Range Lower Bound <= Red Zone Reflex Lower Bound
+            assert_bound_ordering(
+                lower=action_cfg.operating_bounds_info.lower,
+                upper=reflex.bounds_info.lower,
+                tag_cfgs=tag_cfgs,
+                can_equal=True,
+            )
+            # Red Zone Reflex Upper Bound <= Operating Range Upper Bound
+            assert_bound_ordering(
+                lower=reflex.bounds_info.upper,
+                upper=action_cfg.operating_bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+                can_equal=True,
+            )
+            # Operating Range Lower Bound < Red Zone Reflex Upper Bound
+            assert_bound_ordering(
+                lower=action_cfg.operating_bounds_info.lower,
+                upper=reflex.bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+            )
+            # Red Zone Reflex Lower Bound < Operating Range Upper Bound
+            assert_bound_ordering(
+                lower=reflex.bounds_info.lower,
+                upper=action_cfg.operating_bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+            )
+
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
 
@@ -250,6 +295,7 @@ def validate_tag_configs(cfg: MainConfig):
         operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
         zone_bounds_vs_operating_range_checks(tag_cfg, tag_cfgs)
         red_vs_yellow_zone_checks(tag_cfg, tag_cfgs)
+        red_zone_reflex_checks(tag_cfg, tag_cfgs)
 
     for tag_cfg in tag_cfgs:
         Maybe(tag_cfg).is_instance(SafetyZonedTag).tap(check_bounds)
