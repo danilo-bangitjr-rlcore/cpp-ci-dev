@@ -257,3 +257,309 @@ pipeline:
     )
 
     pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+# ----------------------------------------
+# -- Affine Transform Equivalence Tests --
+# ----------------------------------------
+
+def test_self_reference():
+    """Test that sympy can reference the current tag in expressions."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["input_value", "output"])
+    df = pd.DataFrame(
+        data=[
+            [10.0, 5.0],   # initial output value
+            [20.0, 15.0],  # initial output value
+            [30.0, 25.0],  # initial output value
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    # Expression that modifies the output based on its current value and input
+    # New output = current_output * 2 + input_value
+    tf = SympyTransform(SympyConfig(expression="{output} * 2 + {input_value}"))
+    tf_data = df.get(["output"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="output",
+    )
+
+    # call transform
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_cols = pd.Index(["output"])
+    expected_df = pd.DataFrame(
+        data=[
+            [5.0 * 2 + 10.0],   # 10 + 10 = 20
+            [15.0 * 2 + 20.0],  # 30 + 20 = 50
+            [25.0 * 2 + 30.0],  # 50 + 30 = 80
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+def test_affine_equivalence_basic():
+    """Test that sympy can replicate basic affine transform: scale=2, bias=3."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(4)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["x_val", "output"])
+    df = pd.DataFrame(
+        data=[
+            [1.0, 0.0],
+            [2.0, 0.0],
+            [3.0, 0.0],
+            [4.0, 0.0],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    # Test sympy equivalent of affine with scale=2, bias=3
+    # Affine: 2 * x + 3
+    tf = SympyTransform(SympyConfig(expression="2 * {x_val} + 3"))
+    tf_data = df.get(["output"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="output",
+    )
+
+    # call transform
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_cols = pd.Index(["output"])
+    expected_df = pd.DataFrame(
+        data=[
+            [2.0 * 1.0 + 3.0],  # 5.0
+            [2.0 * 2.0 + 3.0],  # 7.0
+            [2.0 * 3.0 + 3.0],  # 9.0
+            [2.0 * 4.0 + 3.0],  # 11.0
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+def test_affine_equivalence_scale_only():
+    """Test that sympy can replicate affine transform with scale only: scale=0.5, bias=0."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["value", "result"])
+    df = pd.DataFrame(
+        data=[
+            [10.0, 0.0],
+            [20.0, 0.0],
+            [30.0, 0.0],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    # Test sympy equivalent of affine with scale=0.5, bias=0
+    # Affine: 0.5 * x + 0
+    tf = SympyTransform(SympyConfig(expression="0.5 * {value}"))
+    tf_data = df.get(["result"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="result",
+    )
+
+    # call transform
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_cols = pd.Index(["result"])
+    expected_df = pd.DataFrame(
+        data=[
+            [0.5 * 10.0],  # 5.0
+            [0.5 * 20.0],  # 10.0
+            [0.5 * 30.0],  # 15.0
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+def test_affine_equivalence_bias_only():
+    """Test that sympy can replicate affine transform with bias only: scale=1, bias=-5."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(3)]
+    idx = pd.DatetimeIndex(dates)
+
+    cols = pd.Index(["temp", "adjusted"])
+    df = pd.DataFrame(
+        data=[
+            [25.0, 0.0],
+            [30.0, 0.0],
+            [35.0, 0.0],
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    # Test sympy equivalent of affine with scale=1, bias=-5
+    # Affine: 1 * x + (-5)
+    tf = SympyTransform(SympyConfig(expression="{temp} - 5"))
+    tf_data = df.get(["adjusted"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="adjusted",
+    )
+
+    # call transform
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_cols = pd.Index(["adjusted"])
+    expected_df = pd.DataFrame(
+        data=[
+            [25.0 - 5.0],  # 20.0
+            [30.0 - 5.0],  # 25.0
+            [35.0 - 5.0],  # 30.0
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+
+def test_affine_equivalence_normalization():
+    """Test sympy equivalent of affine normalization: scale=1/(max-min), bias=-min/(max-min)."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(4)]
+    idx = pd.DatetimeIndex(dates)
+
+    # Simulate normalization where original range is [10, 90] -> [0, 1]
+    z_min, z_max = 10.0, 90.0
+    scale = 1.0 / (z_max - z_min)
+    bias = -z_min / (z_max - z_min)
+
+    cols = pd.Index(["raw", "normalized"])
+    df = pd.DataFrame(
+        data=[
+            [10.0, 0.0],  # should normalize to 0
+            [30.0, 0.0],  # should normalize to 0.25
+            [50.0, 0.0],  # should normalize to 0.5
+            [90.0, 0.0],  # should normalize to 1
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    # Test sympy equivalent of normalization affine transform
+    # scale * x + bias = (1/(max-min)) * x + (-min/(max-min))
+    tf = SympyTransform(SympyConfig(expression=f"{scale} * {{raw}} + {bias}"))
+    tf_data = df.get(["normalized"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="normalized",
+    )
+
+    # call transform
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_cols = pd.Index(["normalized"])
+    expected_df = pd.DataFrame(
+        data=[
+            [0.0],   # (10-10)/(90-10) = 0
+            [0.25],  # (30-10)/(90-10) = 20/80 = 0.25
+            [0.5],   # (50-10)/(90-10) = 40/80 = 0.5
+            [1.0],   # (90-10)/(90-10) = 80/80 = 1.0
+        ],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
+
+def test_abs_function():
+    """Test that abs function works correctly in sympy transforms."""
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+
+    dates = [start + i * Δ for i in range(5)]
+    idx = pd.DatetimeIndex(dates)
+
+    # Test data around 0.5 to verify absolute value calculation
+    cols = pd.Index(["tag-0", "result"])
+    df = pd.DataFrame(
+        data=[
+            [0.2, 0.0],  # abs(0.2 - 0.5) = 0.3
+            [0.5, 0.0],  # abs(0.5 - 0.5) = 0.0
+            [0.8, 0.0],  # abs(0.8 - 0.5) = 0.3
+            [0.1, 0.0],  # abs(0.1 - 0.5) = 0.4
+            [0.9, 0.0],  # abs(0.9 - 0.5) = 0.4
+        ],
+        columns=cols,
+        index=idx,
+    )
+
+    # Test the expression that was failing before: -Abs({tag-0} - 0.5)
+    tf = SympyTransform(SympyConfig(expression="-Abs({tag-0} - 0.5)"))
+    tf_data = df.get(["result"])
+    assert tf_data is not None
+
+    tf_carry = TransformCarry(
+        obs=df,
+        transform_data=tf_data.copy(),
+        tag="result",
+    )
+
+    # call transform
+    tf_carry, _ = tf(tf_carry, ts=None)
+
+    expected_results = [
+        -abs(0.2 - 0.5),  # -0.3
+        -abs(0.5 - 0.5),  # -0.0
+        -abs(0.8 - 0.5),  # -0.3
+        -abs(0.1 - 0.5),  # -0.4
+        -abs(0.9 - 0.5),  # -0.4
+    ]
+
+    expected_cols = pd.Index(["result"])
+    expected_df = pd.DataFrame(
+        data=[[val] for val in expected_results],
+        columns=expected_cols,
+        index=idx,
+    )
+
+    pd.testing.assert_frame_equal(tf_carry.transform_data, expected_df)
