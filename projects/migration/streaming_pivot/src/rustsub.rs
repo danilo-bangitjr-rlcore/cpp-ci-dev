@@ -3,6 +3,7 @@ use std::io::{BufRead, Write};
 use std::path::Path;
 use std::usize;
 use clap::Parser;
+use regex::Regex;
 
 mod utils;
 use utils::{get_buffered_reader, get_buffered_writer, get_column_names};
@@ -18,6 +19,34 @@ struct Args {
     #[arg(short, long)]
     output_file: String,
 }
+
+// fn parse_row(line: &String) -> String {
+//
+//     // first, combine info in id, process, name 
+//     // to construct tag name for PLC tags
+//     // for some reason, we shouldn't escape
+//     // the closing bracket in [^]] (any character except closing bracket)
+//     // original: s/^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;s=\[.+-([^]]+)\][^\t]+\t([^\t]+)\t([^\t]+)\t/\1\L\2_\3_\4\t/
+//     let re1 = Regex::new(r"^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;s=\[.+-([^]]+)\][^\t]+\t([^\t]+)\t([^\t]+)\t").unwrap();
+//     // NOTE: referencing a capture group with $ followed by underscore results in a bug that is
+//     // known and wont be fixed: https://github.com/rust-lang/regex/issues/69
+//     // Need to workaround by using a separator "|" and then removing it.
+//     let result1 = re1.replace(line, "$1$2|_$3|_$4\t").replace("|", "");
+//
+//     // add rlcore label to workaround tags from custom micro OPC
+//     // and construct tag name
+//     // original: s/^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;[^\t]+\t([^\t]+)\t([^\t]+)\t/\1\Lrlcore_\2_\3\t/
+//     let re2 = Regex::new(r"^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;[^\t]+\t([^\t]+)\t([^\t]+)\t").unwrap();
+//     let result2 = re2.replace(&result1, "$1rlcore_$2|_$3$t").replace("|", "");
+//
+//     // # clean up double uf1_uf1 or uf2_uf2
+//     // # s/uf([12])_uf\1/uf\1/
+//     // s/^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t.+)uf([12])_uf\2/\1uf\2/
+//     let re3 = Regex::new(r"^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t.+)uf([12])_uf[12]").unwrap();
+//     let result3 = re3.replace(&result2, "$1uf$2").to_lowercase();
+//
+//     result3
+// }
 
 fn main() {
     let args = Args::parse();
@@ -51,8 +80,16 @@ fn main() {
     let mut last_timestamp = String::from("");
     let mut line_data: Vec<String> = vec![String::from("\\N"); col_names.len()];
 
-    for (i, line) in buf_reader.lines().map_while(Result::ok).enumerate() {
-        let mut vals = line.split("\t");
+
+    let re1 = Regex::new(r"^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;s=\[.+-([^]]+)\][^\t]+\t([^\t]+)\t([^\t]+)\t").unwrap();
+    let re2 = Regex::new(r"^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t)ns=1;[^\t]+\t([^\t]+)\t([^\t]+)\t").unwrap();
+    let re3 = Regex::new(r"^([0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}\+00\t.+)uf([12])_uf[12]").unwrap();
+
+    for (i, raw_row) in buf_reader.lines().map_while(Result::ok).enumerate() {
+
+        // let row = parse_row(&raw_row);
+        let row = re3.replace(&re2.replace(&re1.replace(&raw_row, "$1$2|_$3|_$4\t"), "$1rlcore_$2|_$3$t"), "$1uf$2").replace("|", "");
+        let mut vals = row.split("\t");
 
         // Get timestamp and check if it is new
         let timestamp = vals.next().unwrap();
@@ -81,10 +118,14 @@ fn main() {
         // add data to line
         let idx = col_idx[tag.as_str()];
         line_data[idx] = val.to_string();
+        //
+        // // log
+        // if i % 100_000 == 0 {
+        //     println!("processing row {i}");
+        // }
     }
     // write last line
     let new_line = last_timestamp + "\t" + &line_data.join("\t") + "\n";
     buf_writer.write(&new_line.as_bytes()).unwrap();
     buf_writer.flush().unwrap();
 }
-
