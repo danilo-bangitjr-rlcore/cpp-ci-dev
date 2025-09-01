@@ -3,17 +3,14 @@ import logging
 from asyncua.ua import VariantType
 from sqlalchemy import (
     JSON,
-    BigInteger,
     Boolean,
     DateTime,
-    Double,
-    Float,
     Integer,
     LargeBinary,
-    SmallInteger,
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import INTEGER, REAL
 
 from coreio.communication.opc_communication import NodeData, OPC_Connection
 from coreio.config import OPCConnectionConfig, TagConfigAdapter
@@ -70,18 +67,18 @@ OPC_TO_SQLALCHEMY_TYPE_MAP = {
     VariantType.Boolean: Boolean(),
 
     # Integer Types
-    VariantType.SByte: SmallInteger(),
-    VariantType.Byte: SmallInteger(),
-    VariantType.Int16: SmallInteger(),
-    VariantType.UInt16: Integer(),
-    VariantType.Int32: Integer(),
-    VariantType.UInt32: BigInteger(),
-    VariantType.Int64: BigInteger(),
-    VariantType.UInt64: BigInteger(),
+    VariantType.SByte: INTEGER(),
+    VariantType.Byte: INTEGER(),
+    VariantType.Int16: INTEGER(),
+    VariantType.UInt16: INTEGER(),
+    VariantType.Int32: INTEGER(),
+    VariantType.UInt32: INTEGER(),
+    VariantType.Int64: INTEGER(),
+    VariantType.UInt64: INTEGER(),
 
     # Floating Point Types
-    VariantType.Float: Float(),
-    VariantType.Double: Double(),
+    VariantType.Float: REAL(),
+    VariantType.Double: REAL(),
 
     # String and Data Types
     VariantType.String: Text(),
