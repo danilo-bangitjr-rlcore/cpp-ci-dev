@@ -380,34 +380,24 @@ def assert_consistent_goals_and_red_zones(cfg: MainConfig, goal_ranges: dict[str
             .expect(f"Was unable to find tag config for tag: {tag_name}")
         )
         if goal_tag_cfg.red_bounds_info is not None:
-            # Compare red_lo and goal_lo
-            _assert_goal_bound_within_red_bounds(
-                tag_cfg=goal_tag_cfg,
-                lens=(lambda bounds_info: bounds_info.lower),
-                comparison=(lambda goal_bound, red_bound: goal_bound > red_bound),
-                ind=0,
-            )
-            # Compare red_hi and goal_hi
-            _assert_goal_bound_within_red_bounds(
-                tag_cfg=goal_tag_cfg,
-                lens=(lambda bounds_info: bounds_info.upper),
-                comparison=(lambda goal_bound, red_bound: goal_bound < red_bound),
-                ind=1,
-            )
-            # Compare red_lo and goal_hi
-            _assert_goal_bound_within_red_bounds(
-                tag_cfg=goal_tag_cfg,
-                lens=(lambda bounds_info: bounds_info.lower),
-                comparison=(lambda goal_bound, red_bound: goal_bound > red_bound),
-                ind=1,
-            )
-            # Compare red_hi and goal_lo
-            _assert_goal_bound_within_red_bounds(
-                tag_cfg=goal_tag_cfg,
-                lens=(lambda bounds_info: bounds_info.upper),
-                comparison=(lambda goal_bound, red_bound: goal_bound < red_bound),
-                ind=0,
-            )
+            comparisons = [
+                # Compare red_lo and goal_lo
+                ((lambda bounds_info: bounds_info.lower), (lambda goal_bound, red_bound: goal_bound > red_bound), 0),
+                # Compare red_hi and goal_hi
+                ((lambda bounds_info: bounds_info.upper), (lambda goal_bound, red_bound: goal_bound < red_bound), 1),
+                # Compare red_lo and goal_hi
+                ((lambda bounds_info: bounds_info.lower), (lambda goal_bound, red_bound: goal_bound > red_bound), 1),
+                # Compare red_hi and goal_lo
+                ((lambda bounds_info: bounds_info.upper), (lambda goal_bound, red_bound: goal_bound < red_bound), 0),
+            ]
+            
+            for lens_func, comparison_func, goal_ind in comparisons:
+                _assert_goal_bound_within_red_bounds(
+                    tag_cfg=goal_tag_cfg,
+                    lens=lens_func,
+                    comparison=comparison_func,
+                    ind=goal_ind,
+                )
 
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
