@@ -27,6 +27,7 @@ def build_frontend():
 def build_executable():
     print("Building Windows executable with PyInstaller...")
     
+    configs_dir = BACKEND / "server" / "config_api" / "mock_configs"
     venv_path = BACKEND / ".venv"
     venv_active = "VIRTUAL_ENV" in os.environ and Path(os.environ["VIRTUAL_ENV"]).resolve() == venv_path.resolve()
     if not venv_active:
@@ -40,7 +41,9 @@ def build_executable():
         f"--hidden-import=fastapi "
         f"--hidden-import=fastapi.staticfiles "
         f"--hidden-import=starlette.responses "
+        f"--hidden-import=scipy._cyutility "
         f"--add-data {DIST}:dist "
+        f"--add-data {configs_dir}:mock_configs "
         f"--paths {SERVER_LIB}"
     )
     run(cmd, cwd=SERVICE)
