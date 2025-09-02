@@ -324,7 +324,7 @@ def assert_valid_sympy_goals(cfg: MainConfig):
                 if isinstance(op_hi, float):
                     p_in_op_range &= thresh <= op_hi
                 assert p_in_op_range, (
-                    f"The Goal: {goal.tag} {goal.op} {goal.thresh} violated the operating range of "
+                    f"The threshold in the Goal: {goal.tag} {goal.op} {goal.thresh} violated the operating range of "
                     f"[{op_lo}, {op_hi}] when {goal.thresh_tags} had the following values: {permutation}."
                 )
 
