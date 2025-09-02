@@ -278,5 +278,4 @@ def validate_tag_configs(cfg: MainConfig):
 
     for tag_cfg in tag_cfgs:
         Maybe(tag_cfg).is_instance(SafetyZonedTag).tap(check_bounds)
-        Maybe(tag_cfg).is_instance(SetpointTagConfig).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
-        Maybe(tag_cfg).is_instance(BasicTagConfig).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
+        Maybe(tag_cfg).is_instance((SetpointTagConfig, BasicTagConfig)).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
