@@ -390,7 +390,7 @@ def assert_consistent_goals_and_red_zones(cfg: MainConfig, goal_ranges: dict[str
                 # Compare red_hi and goal_lo
                 ((lambda bounds_info: bounds_info.upper), (lambda goal_bound, red_bound: goal_bound < red_bound), 0),
             ]
-            
+
             for lens_func, comparison_func, goal_ind in comparisons:
                 _assert_goal_bound_within_red_bounds(
                     tag_cfg=goal_tag_cfg,
