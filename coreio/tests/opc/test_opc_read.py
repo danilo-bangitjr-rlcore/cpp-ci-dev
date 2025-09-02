@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 from test.infrastructure.networking import get_free_port
 
-from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.opc_communication import OPC_Connection_IO
 from tests.infrastructure.load_config import load_config
 from tests.infrastructure.mock_opc_server import FakeOpcServer
 
@@ -18,12 +18,12 @@ def opc_port():
 
 @pytest.fixture
 async def client():
-    client = OPC_Connection()
+    client = OPC_Connection_IO()
     yield client
     await client.cleanup()
 
 
-async def test_read(server: FakeOpcServer, client: OPC_Connection, opc_port: int):
+async def test_read(server: FakeOpcServer, client: OPC_Connection_IO, opc_port: int):
     """
     Client should be able to connect to a running server.
     """

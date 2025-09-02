@@ -35,6 +35,11 @@ jax = [
     "optax>=0.2.4",
 ]
 
+opc = [
+    "asyncua>=1.1.6",
+    "backoff>=2.2.1",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"

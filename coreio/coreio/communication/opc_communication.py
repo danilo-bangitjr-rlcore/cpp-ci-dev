@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from datetime import UTC
-from types import TracebackType
 from typing import Any, assert_never
 
 import backoff
-from asyncua import Client, Node, ua
+from asyncua import Client, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from asyncua.ua.uaerrors import BadNodeIdUnknown
-from pydantic import BaseModel, ConfigDict
+from lib_utils.opc.opc_communication import NodeData, OPC_Connection, log_backoff
 
 from coreio.config import (
     OPCAuthMode,
@@ -29,23 +28,9 @@ logger = logging.getLogger(__name__)
 
 MAX_BACKOFF_SECONDS = 30
 
-class NodeData(BaseModel):
-    node: Node
-    var_type: ua.VariantType
-    name: str
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-def log_backoff(details: Any):
-    wait = details["wait"]
-    tries = details["tries"]
-    func = details["target"].__name__
-    logger.error(f"Backing off {wait:.1f} seconds after {tries} tries calling {func}")
-
-class OPC_Connection:
+class OPC_Connection_IO(OPC_Connection):
     def __init__(self):
-        self.opc_client: Client | None = None
-        self.registered_nodes: dict[str, NodeData] = {}
-        self._context_active = False
+        super().__init__()
 
     # -------------------- #
     # --- Init methods --- #
@@ -104,71 +89,12 @@ class OPC_Connection:
             case _:
                 assert_never(auth_mode)
 
-
-    # -------------------------- #
-    # --- Manage Connections --- #
-    # -------------------------- #
-
-    @backoff.on_exception(backoff.expo, Exception, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
-    async def ensure_connected(self):
-        assert self.opc_client is not None, 'OPC client is not initialized'
-
-        if self._connected is False:
-            await self.opc_client.connect()
-            self._connected = True
-
-        try:
-            await self.opc_client.check_connection()
-
-        except Exception:
-            await self.opc_client.connect()
-            await self.opc_client.check_connection()
-            self._connected = True
-            logger.error(f"Problem connecting to OPC server in {self.connection_id}")
-
-        return self.opc_client
-
-    async def start(self):
-        await self.ensure_connected()
-        return self
-
-    async def cleanup(self):
-        if self.opc_client is None:
-            return self
-
-        await self.opc_client.disconnect()
-        self._connected = False
-        return self
-
-    async def __aenter__(self):
-        self._context_active = True
-        return await self.start()
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc: BaseException | None,
-        tb: TracebackType | None,
-    ):
-        _ = exc_type, exc, tb
-        self._context_active = False
-        await self.cleanup()
-
-    @staticmethod
-    def requires_context(func: Callable[..., Any]):
-        """Decorator that ensures method is called within active context"""
-        async def wrapper(self: OPC_Connection, *args: Any, **kwargs: Any):
-            if not self._context_active:
-                raise RuntimeError(f"Function {func.__name__} must be called within the OPC context manager")
-            return await func(self, *args, **kwargs)
-        return wrapper
-
     # ------------------ #
     # --- IO Methods --- #
     # ------------------ #
     # All of these use @requires_context
 
-    @requires_context
+    @OPC_Connection.requires_context
     @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def register_node(self, node_id: str, name: str):
         assert self.opc_client is not None, 'OPC client is not initialized'
@@ -182,8 +108,8 @@ class OPC_Connection:
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type, name=name)
 
-    @requires_context
-    async def register_cfg_nodes(self, tag_configs: Sequence[TagConfigAdapter], ai_setpoint_only: bool = False):
+    @OPC_Connection.requires_context
+    async def register_cfg_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         for tag_cfg in tag_configs:
             if tag_cfg.connection_id != self.connection_id or tag_cfg.node_identifier is None:
@@ -192,7 +118,7 @@ class OPC_Connection:
             await self.register_node(tag_cfg.node_identifier, tag_cfg.name)
 
 
-    @requires_context
+    @OPC_Connection.requires_context
     @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def write_opcua_nodes(self, nodes_to_write: Sequence[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
@@ -244,7 +170,7 @@ class OPC_Connection:
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)
 
-    @requires_context
+    @OPC_Connection.requires_context
     @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not initialized'
@@ -252,7 +178,7 @@ class OPC_Connection:
         opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
         return await self.opc_client.read_values(opc_nodes_to_read)
 
-    @requires_context
+    @OPC_Connection.requires_context
     async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]) -> dict[str, Any]:
         read_values = await self._read_opcua_nodes(nodes_to_read)
 

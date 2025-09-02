@@ -1,2 +1,106 @@
-def print_hello():
-    print("Hello, World!")
+from fastapi import APIRouter, HTTPException
+
+from server.opc_api.opc_connection import OPC_Connection_UI
+
+opc_connection = OPC_Connection_UI()
+opc_router = APIRouter()
+
+
+# Core Connection Management
+
+@opc_router.post("/connect")
+async def connect_to_server(url: str):
+    """Test connection to OPC server and store URL for future operations"""
+    try:
+        # Test connection with short-lived client
+        await opc_connection.init(url)
+        return {
+            "status": "connection_tested",
+            "server_url": url,
+            "message": "Successfully tested connection to OPC server",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to connect to OPC server: {e!s}") from e
+    finally:
+        # Always cleanup the test connection
+        try:
+            await opc_connection.cleanup()
+        except Exception:
+            pass  # Ignore cleanup errors
+
+
+@opc_router.post("/disconnect")
+async def disconnect_from_server():
+    """Clear stored OPC server configuration"""
+    try:
+        # Clear the stored server URL
+        opc_connection.server_url = ""
+
+        return {
+            "status": "disconnected",
+            "message": "Cleared OPC server configuration",
+        }
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to clear configuration: {e!s}") from e
+
+
+@opc_router.get("/status")
+async def get_connection_status():
+    """Test ability to connect to configured OPC server"""
+    if not opc_connection.server_url:
+        return {
+            "connected": False,
+            "server_url": None,
+            "message": "No OPC server URL configured",
+        }
+
+    try:
+        # Test connection ability with fresh short-lived connection
+        return await opc_connection.get_connection_status()
+    except Exception as e:
+        return {
+            "connected": False,
+            "server_url": opc_connection.server_url,
+            "error": str(e),
+        }
+
+
+# Node Browsing & Navigation
+
+@opc_router.get("/browse")
+async def browse_root():
+    """Get root nodes of the OPC server"""
+
+
+@opc_router.get("/browse/{node_id}")
+async def browse_node(node_id: str):
+    """Browse children of a specific node"""
+
+
+@opc_router.get("/node/{node_id}")
+async def get_node_details(node_id: str):
+    """Get detailed information about a specific node"""
+
+
+# Data Access
+
+@opc_router.get("/read/{node_id}")
+async def read_node_value(node_id: str):
+    """Read current value of a variable node"""
+
+
+@opc_router.post("/write/{node_id}")
+async def write_node_value(node_id: str, value: str):
+    """Write value to a variable node"""
+
+
+# Enhanced Features (placeholders)
+
+@opc_router.get("/search")
+async def search_nodes(query: str, node_class: str | None = None):
+    """Search for nodes by name or other criteria"""
+
+
+@opc_router.get("/attributes/{node_id}")
+async def get_node_attributes(node_id: str):
+    """Get all attributes of a node (data type, access level, etc.)"""

@@ -11,12 +11,14 @@ from server.config_api.config import (
     get_tag,
     get_tags,
 )
-from server.opc_api.opc_routes import print_hello
+from server.opc_api.opc_routes import opc_router
 
 
 class CoreUI:
     def __init__(self, dist_path: str | None = None):
         self.app = FastAPI()
+
+        self.app.include_router(opc_router, prefix="/api/v1/opc")
 
         if dist_path is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -72,5 +74,4 @@ class CoreUI:
             return FileResponse(index_html)
 
     def get_app(self):
-        print_hello()
         return self.app

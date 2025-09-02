@@ -2,7 +2,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.opc_communication import OPC_Connection_IO
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.utils.io_events import IOEvent
 
@@ -17,7 +17,7 @@ def is_stale_event(event: IOEvent, max_stale: timedelta = timedelta(seconds=5)):
     return False
 
 
-async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Connection]):
+async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Connection_IO]):
     logger.info(f"Received writing event {event}")
     for connection_id, payload in event.data.items():
         opc_conn = opc_connections.get(connection_id)
@@ -30,7 +30,7 @@ async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Conn
 
 async def handle_read_event(
         event: IOEvent,
-        opc_connections: dict[str, OPC_Connection],
+        opc_connections: dict[str, OPC_Connection_IO],
         sql_communication: SQL_Manager,
         read_period: timedelta,
 ):
