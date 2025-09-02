@@ -308,13 +308,13 @@ def assert_valid_sympy_goals(cfg: MainConfig):
         if isinstance(goal.thresh, str):
             assert goal.thresh_tags
             assert goal.thresh_func
-            thresh_tag = (
+            goal_tag = (
                 Maybe.find(lambda tag_cfg: tag_cfg.name == goal.tag, cfg.pipeline.tags)
                 .is_instance(BoundedTag)
                 .expect(f"The tag used to define the Goal threshold ({goal.tag}) must have a TagConfig")
             )
-            op_lo = get_static_bound(thresh_tag.operating_bounds_info, lambda b: b.lower).unwrap()
-            op_hi = get_static_bound(thresh_tag.operating_bounds_info, lambda b: b.upper).unwrap()
+            op_lo = get_static_bound(goal_tag.operating_bounds_info, lambda b: b.lower).unwrap()
+            op_hi = get_static_bound(goal_tag.operating_bounds_info, lambda b: b.upper).unwrap()
             permutations = get_tag_value_permutations(goal.thresh_tags, cfg.pipeline.tags)
             for permutation in permutations:
                 p_in_op_range = True
