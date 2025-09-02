@@ -25,10 +25,8 @@ pipeline:
     action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
     nominal_setpoint: 1.2
     reward_constructor:
-    - name: power
-      pow: 2
-    - name: scale
-      factor: -1
+    - name: sympy
+      expression: "-1 * {action-0} ** 2"
 
   - name: tag-0
     operating_range: [-1.2, 0.6]

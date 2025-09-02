@@ -6,6 +6,8 @@ dependencies = [
     "corerl",
     "rl_env",
     "pytest>=8.3.5",
+    "pandas~=2.2",
+    "pandas-stubs~=2.2",
 ]
 
 [dependency-groups]
@@ -27,3 +29,16 @@ packages = ["epcor_solar"]
 [tool.uv.sources]
 corerl = { path = "../corerl", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
+
+# -------------
+# -- Pyright --
+# -------------
+
+[tool.pyright]
+extends='../standards/python/pyright.toml'
+include = ['.']
+exclude = [
+    '.venv/',
+    '.worktree/',
+]
+venvPath = '.'

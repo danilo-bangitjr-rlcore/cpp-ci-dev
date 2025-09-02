@@ -26,9 +26,8 @@ pipeline:
       condition:
         - name: delta
           time_thresh: 00:10:00
-        - name: comparator
-          op: '!='
-          val: 0
+        - name: sympy
+          expression: "{tag-0} != 0"
 
   # actions
   - name: action-0

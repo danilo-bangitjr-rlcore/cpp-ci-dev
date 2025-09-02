@@ -174,14 +174,7 @@ def _resolve_default_discriminated_unions(config: Any) -> dict[str, object]:
 
     return out
 
-def _load_raw_config(config_name: str) -> dict[str, Any]:
-    if not config_name.endswith('.yaml'):
-        config_name += '.yaml'
-
-    path = Path(config_name)
-    with path.open() as f:
-        config = yaml.safe_load(f)
-
+def _load_raw_config(config: dict[str, Any], base_dir: Path) -> dict[str, Any]:
     # if a config does not load subfiles
     # then our work here is done
     if 'defaults' not in config:
@@ -194,9 +187,9 @@ def _load_raw_config(config_name: str) -> dict[str, Any]:
         # then merge with the entire parent
         if isinstance(default, str):
             # define the subfile path relative to the config
-            default = str(Path(config_name).parent / Path(default))
+            default = str(base_dir / Path(default))
 
-            def_config = _load_raw_config(default)
+            def_config = _load_raw_config_file(default)
             config = dict_u.merge(def_config, config)
 
         # if the subfile is a key-value pair,
@@ -210,13 +203,24 @@ def _load_raw_config(config_name: str) -> dict[str, Any]:
                 config = dict_u.set_at_path(config, k, {})
 
             # define the subfile path relative to the config
-            v = str(Path(config_name).parent / Path(v))
-            raw_def_config = _load_raw_config(v)
+            v = str(base_dir / Path(v))
+            raw_def_config = _load_raw_config_file(v)
             def_config = dict_u.set_at_path({}, k, raw_def_config)
             config = dict_u.merge(def_config, config)
 
     del config['defaults']
     return config
+
+
+def _load_raw_config_file(config_name: str):
+    if not config_name.endswith('.yaml'):
+        config_name += '.yaml'
+
+    path = Path(config_name)
+    with path.open() as f:
+        config = yaml.safe_load(f)
+
+    return _load_raw_config(config, path.parent)
 
 
 def direct_load_config[T](
@@ -235,7 +239,22 @@ def direct_load_config[T](
     assert config_name is not None, 'Must specify a config name'
 
     # load the raw config with defaults resolved
-    raw_config = _load_raw_config(config_name)
+    raw_config = _load_raw_config_file(config_name)
+    return config_from_dict(Config, raw_config, flags=flags)
+
+
+def direct_load_config_from_yaml[T](
+    Config: type[T],
+    yaml_str: str,
+    overrides: dict[str, str] | None = None,
+):
+    """
+    Load config from a raw YAML string, with override support.
+    """
+    flags = _flags_from_cli()
+    flags |= (overrides or {})
+    raw_config = yaml.safe_load(yaml_str)
+    raw_config = _load_raw_config(raw_config, Path.cwd())
     return config_from_dict(Config, raw_config, flags=flags)
 
 
