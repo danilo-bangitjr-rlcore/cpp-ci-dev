@@ -11,20 +11,20 @@ from lib_agent.buffer.recency_bias_buffer import MaskedUGDistribution
 class FakeTransition(NamedTuple):
     state: jnp.ndarray
     action: jnp.ndarray
-    reward: float
+    reward: jnp.ndarray
 
 
-def create_test_transition(i: int) -> FakeTransition:
+def create_test_transition(i: int):
     return FakeTransition(
         state=jnp.array([i]),
         action=jnp.array([i]),
-        reward=float(i),
+        reward=jnp.array([float(i)]),
     )
 
 
 def test_feed_online_mode():
     for _ in range(100):
-        buffer = MixedHistoryBuffer(
+        buffer = MixedHistoryBuffer[FakeTransition](
             ensemble=1,
             max_size=100,
             batch_size=10,
@@ -39,7 +39,7 @@ def test_feed_online_mode():
         idxs = buffer.feed(offline_transitions, DataMode.OFFLINE)
 
         samples = buffer.sample()
-        assert samples.state.shape == (1, 10, 1)  # type: ignore
+        assert samples.state.shape == (1, 10, 1)
 
 
 def test_masked_ab_distribution():
@@ -119,7 +119,7 @@ def test_mixed_history_buffer_online_offline_mixing():
 
 
 def test_mixed_history_buffer_ensemble():
-    buffer = MixedHistoryBuffer(
+    buffer = MixedHistoryBuffer[FakeTransition](
         ensemble=2,
         max_size=100,
         batch_size=5,
@@ -136,7 +136,7 @@ def test_mixed_history_buffer_ensemble():
     assert all(size > 0 for size in buffer.ensemble_sizes)
 
     samples = buffer.sample()
-    assert samples.state.shape == (2, 5, 1)  # type: ignore
+    assert samples.state.shape == (2, 5, 1)
 
 
 def test_mixed_history_buffer_sampleable():
@@ -157,7 +157,7 @@ def test_mixed_history_buffer_sampleable():
 
 
 def test_mixed_history_buffer_get_batch():
-    buffer = MixedHistoryBuffer(
+    buffer = MixedHistoryBuffer[FakeTransition](
         ensemble=1,
         max_size=100,
         batch_size=5,
@@ -169,6 +169,6 @@ def test_mixed_history_buffer_get_batch():
     idxs = buffer.feed(transitions, DataMode.ONLINE)
 
     batch = buffer.get_batch(idxs)
-    assert batch.state.shape == (3, 1)  # type: ignore
-    assert batch.action.shape == (3, 1)  # type: ignore
-    assert batch.reward.shape == (3,)  # type: ignore
+    assert batch.state.shape == (3, 1)
+    assert batch.action.shape == (3, 1)
+    assert batch.reward.shape == (3, 1)
