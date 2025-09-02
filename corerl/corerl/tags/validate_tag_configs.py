@@ -258,6 +258,8 @@ def assert_computed_tag_in_op_range(tag_cfg: BasicTagConfig | SetpointTagConfig,
             if isinstance(op_hi, float):
                 p_in_op_range &= computed_val <= op_hi
             has_vals_in_op_range |= p_in_op_range
+            if has_vals_in_op_range:
+                return
 
         if not has_vals_in_op_range:
             warnings.warn(
