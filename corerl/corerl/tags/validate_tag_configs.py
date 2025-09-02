@@ -19,6 +19,11 @@ from corerl.tags.tag_config import TagConfig
 
 
 def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[float,...]]:
+    """
+    Bounds defined as sympy functions are dynamic and depend upon the values of other tags.
+    This function takes in 'tags', a list of tags in a sympy function and extracts their widest static bounds.
+    These bounds are used to create a list of possible input permutations to the sympy function.
+    """
     tag_vals: list[np.ndarray] = [np.empty(1) for _ in range(len(tags))]
     for ind, tag_name in enumerate(tags):
         bounds = (
