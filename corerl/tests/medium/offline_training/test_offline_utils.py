@@ -135,7 +135,7 @@ def offline_pipeout(offline_cfg: MainConfig, dummy_app_state: AppState, data_wri
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     dummy_app_state.cfg = offline_cfg
-    pipeout =  load_offline_transitions(dummy_app_state, pipeline)
+    pipeout, _ =  load_offline_transitions(dummy_app_state, pipeline)
     assert pipeout is not None
     return pipeout
 
@@ -247,7 +247,7 @@ def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, d
 
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    offline_pipeout = load_offline_transitions(dummy_app_state, pipeline)
+    offline_pipeout, _ = load_offline_transitions(dummy_app_state, pipeline)
 
     # Since start_time and end_time are specified,
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
