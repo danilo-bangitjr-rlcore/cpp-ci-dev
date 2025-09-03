@@ -179,45 +179,27 @@ def get_all_offline_recommendations(
         log.info("No evaluation phase.")
         return
 
-    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(app_state.cfg.pipeline.tags)]
-
     for eval_period in app_state.cfg.offline.eval_periods:
         start = eval_period[0]
         end = eval_period[1]
         log.info(f"Starting evaluation phase: {start} to {end}")
-        params = OfflineRecParameters(
-            start,
-            end,
-            app_state.cfg.interaction.obs_period,
-            tag_names=tag_names,
-            data_agg=app_state.cfg.env.db.data_agg,
-            update_agent=app_state.cfg.offline.update_agent_during_offline_recs,
-        )
-        get_offline_recommendations(app_state, agent, pipeline, data_reader, params)
 
-@dataclass
-class OfflineRecParameters:
-    eval_start: datetime
-    eval_end: datetime
-    obs_period: timedelta
-    tag_names: list[str]
-    data_agg: Agg
-    update_agent: bool = True
+        get_offline_recommendations(app_state, agent, pipeline, start, end)
 
 def get_offline_recommendations(
     app_state: AppState,
     agent: GreedyAC,
     pipeline: Pipeline,
-    data_reader: DataReader,
-    params: OfflineRecParameters,
+    start: datetime,
+    end: datetime,
     ):
 
     state = None
 
     data_chunks = load_data_chunks(
         cfg=app_state.cfg,
-        start_time=params.eval_start,
-        end_time=params._eval_end,
+        start_time=start,
+        end_time=end,
         chunk_duration=app_state.cfg.interaction.obs_period,  # 1 obs_period-wide chunks
         exclude_periods=None,
     )
@@ -248,7 +230,7 @@ def get_offline_recommendations(
             log.warning("No transitions found for eval chunk")
             continue
 
-        if params.update_agent:
+        if app_state.cfg.offline.update_agent_during_offline_recs:
             agent.update_buffer(chunk_pr)
             losses = agent.update()
             log.info(f"Agent updated with num transitions={len(chunk_pr.transitions)}, final q loss={losses[-1]}")
