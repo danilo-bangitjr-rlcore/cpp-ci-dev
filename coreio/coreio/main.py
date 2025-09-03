@@ -7,7 +7,7 @@ import threading
 
 from lib_config.loader import load_config
 
-from coreio.communication.opc_communication import OPC_Connection
+from coreio.communication.opc_communication import OPC_Connection_IO
 from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.communication.zmq_communication import ZMQ_Communication
@@ -24,13 +24,13 @@ async def coreio_loop(cfg: MainConfigAdapter):
     logger.info("Starting OPC Connections")
     # Temporary flag to keep reading opc details from pipeline in old config versions
     if cfg.coreio.data_ingress.enabled:
-        opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+        opc_connections: dict[str, OPC_Connection_IO] = await initialize_opc_connections(
             cfg.coreio.opc_connections,
             cfg.coreio.tags,
             cfg.interaction.heartbeat,
         )
     else:
-        opc_connections: dict[str, OPC_Connection] = await initialize_opc_connections(
+        opc_connections: dict[str, OPC_Connection_IO] = await initialize_opc_connections(
             cfg.coreio.opc_connections,
             cfg.pipeline.tags,
             cfg.interaction.heartbeat,

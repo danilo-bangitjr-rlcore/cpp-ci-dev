@@ -31,18 +31,8 @@ pipeline:
   - name: tag-0
     operating_range: [0, 1.0]
     reward_constructor:
-    # subtract saturation SP
-    - name: affine
-      scale: 1
-      bias: -0.5
-    # take absolute value
-    - name: power
-      pow: 2.0
-    - name: power
-      pow: 0.5
-    # invert for penalty
-    - name: scale
-      factor: -1
+    - name: sympy
+      expression: "-Abs({tag-0} - 0.5)"
 
   # actions
   - name: action-0

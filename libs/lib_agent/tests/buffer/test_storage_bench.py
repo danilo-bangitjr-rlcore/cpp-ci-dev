@@ -1,13 +1,14 @@
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import jax
 import jax.numpy as jnp
 import numpy as np
+from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.buffer.storage import ReplayStorage
 
 
-def test_storage_integration(benchmark: Any):
+def test_storage_integration(benchmark: BenchmarkFixture):
     rng = np.random.default_rng(0)
     storage = ReplayStorage(1000)
 
@@ -26,7 +27,7 @@ def test_storage_integration(benchmark: Any):
         storage.add(fake_step)
 
 
-    def _inner(storage: ReplayStorage, step: Step, idxs: list[np.ndarray]) -> None:
+    def _inner(storage: ReplayStorage, step: Step, idxs: list[np.ndarray]):
         for _ in range(10):
             storage.add(step)
             storage.get_ensemble_batch(idxs)

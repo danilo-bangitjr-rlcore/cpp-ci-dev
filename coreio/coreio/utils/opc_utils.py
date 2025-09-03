@@ -3,19 +3,16 @@ import logging
 from asyncua.ua import VariantType
 from sqlalchemy import (
     JSON,
-    BigInteger,
     Boolean,
     DateTime,
-    Double,
-    Float,
     Integer,
     LargeBinary,
-    SmallInteger,
     String,
     Text,
 )
+from sqlalchemy.dialects.postgresql import INTEGER, REAL
 
-from coreio.communication.opc_communication import NodeData, OPC_Connection
+from coreio.communication.opc_communication import NodeData, OPC_Connection_IO
 from coreio.config import OPCConnectionConfig, TagConfigAdapter
 from coreio.utils.config_schemas import HeartbeatConfigAdapter
 
@@ -26,17 +23,17 @@ async def initialize_opc_connections(
         cfg_opc_connections: list[OPCConnectionConfig],
         cfg_tags: list[TagConfigAdapter],
         cfg_heartbeat: HeartbeatConfigAdapter,
-) -> dict[str, OPC_Connection]:
+) -> dict[str, OPC_Connection_IO]:
 
-    opc_connections: dict[str, OPC_Connection] = {}
+    opc_connections: dict[str, OPC_Connection_IO] = {}
 
     for opc_conn_cfg in cfg_opc_connections:
         logger.info(f"Connecting to OPC Connection {opc_conn_cfg.connection_id} at {opc_conn_cfg.opc_conn_url}")
-        opc_conn = await OPC_Connection().init(opc_conn_cfg)
+        opc_conn = await OPC_Connection_IO().init(opc_conn_cfg)
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
         async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg_tags, ai_setpoint_only = False)
+            await opc_conn.register_cfg_nodes(cfg_tags)
 
         # Register heartbeat_id separately
         if cfg_heartbeat.connection_id == opc_conn_cfg.connection_id:
@@ -50,7 +47,7 @@ async def initialize_opc_connections(
 
 
 def concat_opc_nodes(
-        opc_connections: dict[str, OPC_Connection],
+        opc_connections: dict[str, OPC_Connection_IO],
         skip_heartbeat: bool = False,
         heartbeat_name: str = "heartbeat",
 ) -> dict[str, NodeData]:
@@ -70,18 +67,18 @@ OPC_TO_SQLALCHEMY_TYPE_MAP = {
     VariantType.Boolean: Boolean(),
 
     # Integer Types
-    VariantType.SByte: SmallInteger(),
-    VariantType.Byte: SmallInteger(),
-    VariantType.Int16: SmallInteger(),
-    VariantType.UInt16: Integer(),
-    VariantType.Int32: Integer(),
-    VariantType.UInt32: BigInteger(),
-    VariantType.Int64: BigInteger(),
-    VariantType.UInt64: BigInteger(),
+    VariantType.SByte: INTEGER(),
+    VariantType.Byte: INTEGER(),
+    VariantType.Int16: INTEGER(),
+    VariantType.UInt16: INTEGER(),
+    VariantType.Int32: INTEGER(),
+    VariantType.UInt32: INTEGER(),
+    VariantType.Int64: INTEGER(),
+    VariantType.UInt64: INTEGER(),
 
     # Floating Point Types
-    VariantType.Float: Float(),
-    VariantType.Double: Double(),
+    VariantType.Float: REAL(),
+    VariantType.Double: REAL(),
 
     # String and Data Types
     VariantType.String: Text(),

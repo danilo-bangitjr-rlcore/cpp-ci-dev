@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.146.0](https://github.com/rlcoretech/core-rl/compare/v0.145.0...v0.146.0) (2025-08-28)
+
+
+### Features
+
+* **corerl:** enable state layer norm by default ([5006f73](https://github.com/rlcoretech/core-rl/commit/5006f737108e703741b132e9bacf483d502d698a))
+* **corerl:** enable state layer norm by default ([11435a7](https://github.com/rlcoretech/core-rl/commit/11435a77a251a88d953d0f3bcee02e5d24f17da0))
+* **PROD-702:** check that ranges/bounds aren't empty if they are defined ([86dfefa](https://github.com/rlcoretech/core-rl/commit/86dfefab54a79a849e2c2c774d24e3d2c0035ca6))
+* **PROD-702:** checks that ensure ranges/bounds aren't empty if they are defined ([f2916d1](https://github.com/rlcoretech/core-rl/commit/f2916d1c6aa12e670bffc3313f72d5c30f24ef0f))
+* **PROD-729:** Make sure tag with red zone reflex has corresponding red zone ([7df1a7d](https://github.com/rlcoretech/core-rl/commit/7df1a7d703e62bfb9ba062ead06db40f31c67887))
+* **PROD-729:** making sure tag with red zone reflex has corresponding red zone ([07b95fc](https://github.com/rlcoretech/core-rl/commit/07b95fcb1d5dc66643d10eb6e570b4c4511dd3a0))
+* **PROD-804:** BoundInfo Comparison Helper Functions ([0683117](https://github.com/rlcoretech/core-rl/commit/06831172f4dd7dbed6b8583f286e7e8589fd15b9))
+* **PROD-819:** log deltaized tags to metrics table ([b63675d](https://github.com/rlcoretech/core-rl/commit/b63675dc9f2aaa9265996cd68fe78fe7de5e608d))
+
+
+### Bug Fixes
+
+* create BoundsInfo objects for cascade tags ([8cfbddc](https://github.com/rlcoretech/core-rl/commit/8cfbddccd4c24e853b982a8a3b01db97ea019b26))
+* update some config validation checks to allow equality ([375f863](https://github.com/rlcoretech/core-rl/commit/375f863f2799507484398c2b7ca92b6d4fcf8bd4))
+
 ## [0.145.0](https://github.com/rlcoretech/core-rl/compare/v0.144.0...v0.145.0) (2025-08-26)
 
 

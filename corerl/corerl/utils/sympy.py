@@ -59,6 +59,17 @@ def to_sympy(input_string: str) -> tuple[sy.Expr, Callable[..., float], list[str
     """
 
     processed_expression = _preprocess_expression_string(input_string)
+
+    # Handle == and != by replacing them with Eq and Ne functions before sympify
+    if " == " in processed_expression:
+        parts = processed_expression.split(" == ")
+        if len(parts) == 2:
+            processed_expression = f"Eq({parts[0]}, {parts[1]})"
+    elif " != " in processed_expression:
+        parts = processed_expression.split(" != ")
+        if len(parts) == 2:
+            processed_expression = f"Ne({parts[0]}, {parts[1]})"
+
     expression: Any = sy.sympify(processed_expression)
 
     # Both are sorted to keep parity between tag names and symbol names
@@ -136,17 +147,19 @@ def is_affine(input_expr: sy.Expr | sy.Basic) -> bool:
 def is_valid_expression(term: Any) -> bool:
     """
     Evaluate if the expression is made up of:
-    * Additions (or substractiosn)
+    * Additions (or subtractions)
     * Multiplications
     * Divisions
     * Numbers
     * Variables
-    In any order and in any hirearchy.
+    * Absolute value functions
+    * Power operations (x**n where n is integer)
+    * Comparison operations (>, <, >=, <=, ==, !=)
+    In any order and in any hierarchy.
 
     We are not permitting:
-    * Powers
     * Trigonometric functions
-    * Special functions: abs, power, piecewise, etc
+    * Special functions: piecewise, etc
     """
 
     try:
@@ -165,9 +178,20 @@ def is_valid_expression(term: Any) -> bool:
         if hasattr(term, "is_Add") and term.is_Add:
             return all(is_valid_expression(arg) for arg in term.args)
 
-        if hasattr(term, "is_Pow") and term.is_Pow and term.args[1] == -1:
-            # Handle cases like 1/y
+        if hasattr(term, "is_Pow") and term.is_Pow:
+            # Handle power operations (x**n) and division cases (1/y)
+            base, exponent = term.args[0], term.args[1]
+            # Only allow integer powers or simple division (x**-1)
+            return (is_valid_expression(base) and
+                   (hasattr(exponent, "is_integer") and exponent.is_integer))
+
+        # Handle absolute value functions
+        if hasattr(term, "func") and str(term.func) == "Abs":
             return is_valid_expression(term.args[0])
+
+        # Handle comparison operations (>, <, >=, <=, ==, !=)
+        if hasattr(term, "is_Relational") and term.is_Relational:
+            return (is_valid_expression(term.lhs) and is_valid_expression(term.rhs))
 
         return False
 

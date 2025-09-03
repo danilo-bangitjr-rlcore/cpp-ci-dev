@@ -1,23 +1,33 @@
-import { createRootRoute, Link, Outlet } from '@tanstack/react-router';
+import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
+import { GlobalHeader } from '../components/navigation/GlobalHeader';
+import { LeftNav } from '../components/navigation/LeftNav';
+
+const navItems = [
+  {
+    label: 'Home',
+    to: '/',
+    icon: <img src="/app/assets/corei.svg" style={{ maxWidth: '75%' }} />,
+  },
+  { label: 'OPC Navigation', to: '/opc-navigation' },
+  { label: 'About', to: '/about' },
+];
+
+const headerItems = [
+  { label: 'Settings', onClick: () => console.log('Settings clicked') },
+];
 
 export const Route = createRootRoute({
   component: () => (
-    <>
-      <div className="p-2 flex gap-2">
-        <Link to="/" className="[&.active]:font-bold">
-          Home
-        </Link>{' '}
-        <Link to="/opc-navigation" className="[&.active]:font-bold">
-          OPC Navigation
-        </Link>{' '}
-        <Link to="/about" className="[&.active]:font-bold">
-          About
-        </Link>
+    <div className="min-h-screen bg-white">
+      <GlobalHeader items={headerItems} />
+      <div className="flex">
+        <LeftNav items={navItems} />
+        <main className="flex-1 p-4">
+          <Outlet />
+        </main>
       </div>
-      <hr />
-      <Outlet />
       <TanStackRouterDevtools />
-    </>
+    </div>
   ),
 });

@@ -6,8 +6,19 @@ requires-python = "==3.13.0"
 authors = []
 dependencies = [
     "fastapi[standard]~=0.115.6",
-    "uvicorn[standard]==0.35.0"
+    "uvicorn[standard]==0.35.0",
+    "asyncua>=1.1.6",
+    "lib-utils",
+    "backoff>=2.2.1",
+    "lib-config",
+    "corerl",
 ]
+
+[tool.uv.sources]
+lib-config = { path = "../../libs/lib_config", editable = true }
+corerl = { path = "../../corerl", editable = true }
+rl_env = { path = "../../libs/rl_env", editable = true }
+lib-utils = { path = "../../libs/lib_utils", editable = true }
 
 [dependency-groups]
 dev = [
@@ -18,11 +29,13 @@ dev = [
     "pytest-mock>=3.14.1",
     "ruff>=0.11.12",
     "uv>=0.5.24",
+    "rl_env",
 ]
 win = [
     "pywin32==310",
     "pyinstaller==6.12.0",
 ]
+
 
 # ----------
 # -- Ruff --

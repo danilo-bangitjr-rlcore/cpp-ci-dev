@@ -85,10 +85,8 @@ pipeline:
       starting_range: [-0.1, 0.1]
       duration: 00:02:00
     reward_constructor:
-    - name: power
-      pow: 2
-    - name: scale
-      factor: -0.1
+    - name: sympy
+      expression: "-0.1 * {action-0} ** 2"
 
   - name: tag-0
     connection_id: mountain_car_opc_connection
