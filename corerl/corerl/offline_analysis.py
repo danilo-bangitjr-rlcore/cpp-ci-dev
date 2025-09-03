@@ -14,6 +14,7 @@ from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import load_data_chunks, load_entire_dataset
 from corerl.state import AppState
+from corerl.utils.pandas import split_dataframe_into_chunks
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -49,15 +50,6 @@ class StageDataCapture:
         if not self.captured_data[stage]:
             return pd.DataFrame()
         return pd.concat(self.captured_data[stage])
-
-
-def split_dataframe_into_chunks(df: pd.DataFrame, chunk_length: int):
-    """Split a pandas DataFrame into chunks of specified length"""
-    chunks = []
-    for i in range(0, len(df), chunk_length):
-        chunk = df.iloc[i:i + chunk_length]
-        chunks.append(chunk)
-    return chunks
 
 
 @load_config(MainConfig)
