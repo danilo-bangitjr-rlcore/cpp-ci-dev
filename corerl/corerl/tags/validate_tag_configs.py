@@ -15,7 +15,8 @@ from corerl.tags.components.bounds import (
     get_widest_static_bounds,
 )
 from corerl.tags.setpoint import SetpointTagConfig
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig, TagConfig
+from corerl.utils.sympy import to_sympy
 
 
 def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[float,...]]:
@@ -340,6 +341,30 @@ def assert_valid_sympy_goals(cfg: MainConfig):
             elif isinstance(priority, JointGoal):
                 _evaluate_joint_goals(priority)
 
+def assert_computed_tag_in_op_range(tag_cfg: BasicTagConfig | SetpointTagConfig, tag_cfgs: list[TagConfig]):
+    if tag_cfg.value is not None and tag_cfg.operating_bounds_info is not None:
+        op_lo = get_static_bound(tag_cfg.operating_bounds_info, lambda b: b.lower).unwrap()
+        op_hi = get_static_bound(tag_cfg.operating_bounds_info, lambda b: b.upper).unwrap()
+        _, computed_func, computed_func_tags = to_sympy(tag_cfg.value)
+        permutations = get_tag_value_permutations(computed_func_tags, tag_cfgs)
+        has_vals_in_op_range = False
+        for permutation in permutations:
+            p_in_op_range = True
+            computed_val = computed_func(*permutation)
+            if isinstance(op_lo, float):
+                p_in_op_range &= computed_val >= op_lo
+            if isinstance(op_hi, float):
+                p_in_op_range &= computed_val <= op_hi
+            has_vals_in_op_range |= p_in_op_range
+            if has_vals_in_op_range:
+                return
+
+        if not has_vals_in_op_range:
+            warnings.warn(
+                message=f"Could not compute values for {tag_cfg.name} within operating range of [{op_lo}, {op_hi}]",
+                stacklevel=2,
+            )
+
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
     assert_valid_sympy_goals(cfg)
@@ -352,3 +377,5 @@ def validate_tag_configs(cfg: MainConfig):
 
     for tag_cfg in tag_cfgs:
         Maybe(tag_cfg).is_instance(SafetyZonedTag).tap(check_bounds)
+        Maybe(tag_cfg).is_instance(SetpointTagConfig).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
+        Maybe(tag_cfg).is_instance(BasicTagConfig).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
