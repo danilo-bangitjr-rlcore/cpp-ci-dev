@@ -278,23 +278,4 @@ def get_latest_state(pipe_return: PipelineReturn):
     )
 
 
-def get_data_start_end_times(
-    data_reader: DataReader, start_time: dt.datetime | None = None, end_time: dt.datetime | None = None,
-) -> tuple[dt.datetime, dt.datetime]:
-    if start_time is None or end_time is None:
-        time_stats = data_reader.get_time_stats()
-        if start_time is None:
-            start_time = time_stats.start
-            if end_time is not None:
-                assert (
-                    start_time < end_time
-                ), "The specified 'end' timestamp must come after the first timestamp in the offline data."
-        if end_time is None:
-            end_time = time_stats.end
-            if start_time != time_stats.start:
-                assert (
-                    start_time < end_time
-                ), "The specified 'start' timestamp must come before the final timestamp in the offline data."
-
-    return start_time, end_time
 
