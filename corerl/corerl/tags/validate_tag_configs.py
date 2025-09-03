@@ -6,12 +6,24 @@ import numpy as np
 from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
-from corerl.tags.components.bounds import BoundInfo, SafetyZonedTag, get_widest_static_bounds
+from corerl.environment.reward.config import Goal, JointGoal
+from corerl.tags.components.bounds import (
+    BoundedTag,
+    BoundInfo,
+    SafetyZonedTag,
+    get_static_bound,
+    get_widest_static_bounds,
+)
 from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import TagConfig
 
 
 def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[float,...]]:
+    """
+    Bounds defined as sympy functions are dynamic and depend upon the values of other tags.
+    This function takes in 'tags', a list of tags in a sympy function and extracts their widest static bounds.
+    These bounds are used to create a list of possible input permutations to the sympy function.
+    """
     tag_vals: list[np.ndarray] = [np.empty(1) for _ in range(len(tags))]
     for ind, tag_name in enumerate(tags):
         bounds = (
@@ -285,8 +297,52 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
             can_equal=True,
         )
 
+def assert_valid_sympy_goals(cfg: MainConfig):
+    """
+    Ensure Goal.thresh is within the given tag's operating range when Goal.thresh is a sympy function.
+    _assert_tag_in_range() already performs this check when Goal.thresh is a float.
+    """
+    def _evaluate_joint_goals(joint_goal: JointGoal):
+        for sub_goal in joint_goal.goals:
+            if isinstance(sub_goal, Goal):
+                _assert_valid_sympy_goal(sub_goal)
+            else:
+                _evaluate_joint_goals(sub_goal)
+
+    def _assert_valid_sympy_goal(goal: Goal):
+        if isinstance(goal.thresh, str):
+            assert goal.thresh_tags
+            assert goal.thresh_func
+            goal_tag = (
+                Maybe.find(lambda tag_cfg: tag_cfg.name == goal.tag, cfg.pipeline.tags)
+                .is_instance(BoundedTag)
+                .expect(f"The tag used to define the Goal threshold ({goal.tag}) must have a TagConfig")
+            )
+            op_lo = get_static_bound(goal_tag.operating_bounds_info, lambda b: b.lower).unwrap()
+            op_hi = get_static_bound(goal_tag.operating_bounds_info, lambda b: b.upper).unwrap()
+            permutations = get_tag_value_permutations(goal.thresh_tags, cfg.pipeline.tags)
+            for permutation in permutations:
+                p_in_op_range = True
+                thresh = goal.thresh_func(*permutation)
+                if isinstance(op_lo, float):
+                    p_in_op_range &= thresh >= op_lo
+                if isinstance(op_hi, float):
+                    p_in_op_range &= thresh <= op_hi
+                assert p_in_op_range, (
+                    f"The threshold in the Goal: {goal.tag} {goal.op} {goal.thresh} violated the operating range of "
+                    f"[{op_lo}, {op_hi}] when {goal.thresh_tags} had the following values: {permutation}."
+                )
+
+    if cfg.pipeline.reward:
+        for priority in cfg.pipeline.reward.priorities:
+            if isinstance(priority, Goal):
+                _assert_valid_sympy_goal(priority)
+            elif isinstance(priority, JointGoal):
+                _evaluate_joint_goals(priority)
+
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
+    assert_valid_sympy_goals(cfg)
 
     def check_bounds(tag_cfg: SafetyZonedTag):
         non_empty_range_checks(tag_cfg, tag_cfgs)
