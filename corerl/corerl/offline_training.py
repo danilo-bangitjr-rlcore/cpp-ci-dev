@@ -6,7 +6,6 @@ from lib_config.loader import load_config
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
-from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalsTable
@@ -46,7 +45,6 @@ def main(cfg: MainConfig):
 
     pipeline = Pipeline(app_state, cfg.pipeline)
     assert isinstance(cfg.env, AsyncEnvConfig)
-    data_reader = DataReader(db_cfg=cfg.env.db)
 
     column_desc = pipeline.column_descriptions
     agent = GreedyAC(cfg.agent, app_state, column_desc)
@@ -57,7 +55,7 @@ def main(cfg: MainConfig):
     assert pipeline_out is not None
     agent.update_buffer(pipeline_out)
     offline_rl_from_buffer(agent, cfg.offline.offline_steps)
-    get_all_offline_recommendations(app_state, agent, pipeline, data_reader)
+    get_all_offline_recommendations(app_state, agent, pipeline)
 
     app_state.metrics.close()
     app_state.evals.close()

@@ -1,6 +1,5 @@
 import datetime as dt
 import logging
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import jax.numpy as jnp
@@ -16,7 +15,6 @@ from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval import agent as agent_eval
 from corerl.state import AppState
-from corerl.tags.components.opc import Agg
 from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import exclude_from_chunks, split_into_chunks
 
@@ -170,7 +168,6 @@ def get_all_offline_recommendations(
         app_state: AppState,
         agent: GreedyAC,
         pipeline: Pipeline,
-        data_reader: DataReader,
     ):
     """
     Gives the data specfied in offline_cfg.eval_periods to the agent to get the agent's recommendations
