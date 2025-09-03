@@ -213,21 +213,17 @@ def get_offline_recommendations(
     ):
 
     state = None
-    # Create 1 obs_period-wide chunks
-    time_chunks = split_into_chunks(
-        params.eval_start,
-        params.eval_end,
-        width=params.obs_period,
+
+    data_chunks = load_data_chunks(
+        cfg=app_state.cfg,
+        start_time=params.eval_start,
+        end_time=params._eval_end,
+        chunk_duration=app_state.cfg.interaction.obs_period,  # 1 obs_period-wide chunks
+        exclude_periods=None,
     )
-    for chunk_start, chunk_end in time_chunks:
-        log.info(f"Rolling out on {chunk_start} to {chunk_end}.")
-        chunk_data = data_reader.batch_aggregated_read(
-            names=params.tag_names,
-            start_time=chunk_start,
-            end_time=chunk_end,
-            bucket_width=params.obs_period,
-            aggregation=params.data_agg,
-        )
+
+    for chunk_data in data_chunks:
+        log.info(f"Rolling out on chunk with {len(chunk_data)} rows.")
         chunk_pr = pipeline(
             data=chunk_data,
             data_mode=DataMode.ONLINE,
@@ -249,7 +245,7 @@ def get_offline_recommendations(
             agent_eval.q_values_and_act_prob(app_state, agent, state.features)
 
         if chunk_pr.transitions is None or len(chunk_pr.transitions) == 0:
-            log.warning(f"No transitions found for eval chunk: {chunk_start} to {chunk_end}")
+            log.warning("No transitions found for eval chunk")
             continue
 
         if params.update_agent:
