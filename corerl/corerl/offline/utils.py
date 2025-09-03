@@ -55,6 +55,44 @@ def get_time_range(
 
     return start_time, end_time
 
+
+def load_data_chunks(
+    cfg: MainConfig,
+    start_time: dt.datetime | None = None,
+    end_time: dt.datetime | None = None,
+    chunk_duration: timedelta | None = None,
+    exclude_periods: list[tuple[dt.datetime, dt.datetime]] | None = None,
+):
+    """
+    Generator that yields chunks of data from the database.
+    """
+    data_reader = get_data_reader(cfg)
+    start_time, end_time = get_time_range(data_reader, start_time, end_time)
+    # Use config default if no chunk_duration provided
+    if chunk_duration is None:
+        chunk_duration = cfg.offline.pipeline_batch_duration
+
+    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
+    obs_period = cfg.interaction.obs_period
+
+    time_chunks = split_into_chunks(start_time, end_time, width=chunk_duration)
+
+    # Filter out excluded periods if configured
+    if exclude_periods:
+        time_chunks = exclude_from_chunks(time_chunks, exclude_periods)
+
+    for chunk_start, chunk_end in time_chunks:
+        chunk_data = data_reader.batch_aggregated_read(
+            names=tag_names,
+            start_time=chunk_start,
+            end_time=chunk_end,
+            bucket_width=obs_period,
+            aggregation=cfg.env.db.data_agg,
+        )
+        if not chunk_data.empty:
+            yield chunk_data
+
+
 def load_entire_dataset(
     cfg: MainConfig,
     start_time: dt.datetime | None = None,
