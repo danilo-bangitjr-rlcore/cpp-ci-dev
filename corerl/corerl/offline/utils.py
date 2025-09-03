@@ -131,34 +131,27 @@ def offline_rl_from_buffer(agent: GreedyAC, steps: int=100):
 def load_offline_transitions(
         app_state: AppState,
         pipeline: Pipeline,
-        data_reader: DataReader,
     ):
-
-    # Infer missing start or end time
+    """
+    Load offline transitions from database through the data pipeline.
+    """
+    # Get time range from config
     offline_cfg = app_state.cfg.offline
-    start_time, end_time = get_data_start_end_times(
-        data_reader,
-        offline_cfg.offline_start_time,
-        offline_cfg.offline_end_time,
-    )
 
-    time_chunks = split_into_chunks(start_time, end_time, width=offline_cfg.pipeline_batch_duration)
-
-    # Filter out evaluation periods if configured
-    if offline_cfg.remove_eval_from_train and offline_cfg.eval_periods:
-        time_chunks = exclude_from_chunks(time_chunks, offline_cfg.eval_periods)
+    # Get configuration for data loading
+    exclude_periods = offline_cfg.eval_periods if offline_cfg.remove_eval_from_train else None
 
     # Pass offline data through data pipeline chunk by chunk to produce transitions
     out = None
-    tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(app_state.cfg.pipeline.tags)]
-    for chunk_start, chunk_end in time_chunks:
-        chunk_data = data_reader.batch_aggregated_read(
-            names=tag_names,
-            start_time=chunk_start,
-            end_time=chunk_end,
-            bucket_width=app_state.cfg.interaction.obs_period,
-            aggregation=app_state.cfg.env.db.data_agg,
-        )
+
+    data_chunks = load_data_chunks(
+        cfg=app_state.cfg,
+        start_time=offline_cfg.offline_start_time,
+        end_time=offline_cfg.offline_end_time,
+        exclude_periods=exclude_periods,
+    )
+
+    for chunk_data in data_chunks:
         chunk_pr = pipeline(
             data=chunk_data,
             data_mode=DataMode.OFFLINE,
