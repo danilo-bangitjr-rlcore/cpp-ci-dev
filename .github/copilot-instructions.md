@@ -5,7 +5,7 @@
 4. **Types**: Use type hints for inputs, prefer generic/wide types, avoid `Any`, and rely on inference where possible. Assume modern python versions (3.13+).
 5. **Minimal changes**: Prefer making minimal changes to existing code. If larger changes are needed, consider staging them in smaller, incremental commits.
 6. **Testability**: Write code that is easy to test. Avoid complex dependencies and side effects. Use dependency injection where appropriate.
-
+7. **Documentation**: Never suggest docstrings except for tests. Always require docstrings for tests.
 
 ## Testing guidelines
 1. **Integration**: Prefer larger integration tests over unit tests.
