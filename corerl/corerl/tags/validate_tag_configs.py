@@ -8,12 +8,26 @@ from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
 from corerl.environment.reward.config import Goal, JointGoal
-from corerl.tags.components.bounds import BoundInfo, BoundsInfo, Direction, SafetyZonedTag, get_widest_static_bounds
+from corerl.tags.components.bounds import (
+    BoundedTag,
+    BoundInfo,
+    BoundsInfo,
+    Direction,
+    SafetyZonedTag,
+    get_static_bound,
+    get_widest_static_bounds,
+)
 from corerl.tags.setpoint import SetpointTagConfig
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import BasicTagConfig, TagConfig
+from corerl.utils.sympy import to_sympy
 
 
 def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> list[tuple[float,...]]:
+    """
+    Bounds defined as sympy functions are dynamic and depend upon the values of other tags.
+    This function takes in 'tags', a list of tags in a sympy function and extracts their widest static bounds.
+    These bounds are used to create a list of possible input permutations to the sympy function.
+    """
     tag_vals: list[np.ndarray] = [np.empty(1) for _ in range(len(tags))]
     for ind, tag_name in enumerate(tags):
         bounds = (
@@ -227,6 +241,35 @@ def zone_bounds_vs_operating_range_checks(tag_cfg: SafetyZonedTag, tag_cfgs: lis
             can_equal=True,
         )
 
+    if tag_cfg.yellow_bounds_info is not None:
+        assert tag_cfg.operating_bounds_info is not None
+        # Operating Range Lower Bound < Yellow Zone Lower Bound
+        assert_bound_ordering(
+            lower=tag_cfg.operating_bounds_info.lower,
+            upper=tag_cfg.yellow_bounds_info.lower,
+            tag_cfgs=tag_cfgs,
+        )
+        # Yellow Zone Upper Bound < Operating Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.yellow_bounds_info.upper,
+            upper=tag_cfg.operating_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+        )
+        # Yellow Zone Lower Bound <= Operating Range Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.yellow_bounds_info.lower,
+            upper=tag_cfg.operating_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+        # Operating Range Lower Bound <= Yellow Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.operating_bounds_info.lower,
+            upper=tag_cfg.yellow_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+
 def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
     if tag_cfg.red_bounds_info is not None and tag_cfg.yellow_bounds_info is not None:
         # Red Zone Lower Bound <= Yellow Zone Lower Bound
@@ -243,6 +286,132 @@ def red_vs_yellow_zone_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]
             tag_cfgs=tag_cfgs,
             can_equal=True,
         )
+        # Red Zone Lower Bound <= Yellow Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.red_bounds_info.lower,
+            upper=tag_cfg.yellow_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+        # Yellow Zone Lower Bound <= Red Zone Upper Bound
+        assert_bound_ordering(
+            lower=tag_cfg.yellow_bounds_info.lower,
+            upper=tag_cfg.red_bounds_info.upper,
+            tag_cfgs=tag_cfgs,
+            can_equal=True,
+        )
+
+def assert_valid_sympy_goals(cfg: MainConfig):
+    """
+    Ensure Goal.thresh is within the given tag's operating range when Goal.thresh is a sympy function.
+    _assert_tag_in_range() already performs this check when Goal.thresh is a float.
+    """
+    def _evaluate_joint_goals(joint_goal: JointGoal):
+        for sub_goal in joint_goal.goals:
+            if isinstance(sub_goal, Goal):
+                _assert_valid_sympy_goal(sub_goal)
+            else:
+                _evaluate_joint_goals(sub_goal)
+
+    def _assert_valid_sympy_goal(goal: Goal):
+        if isinstance(goal.thresh, str):
+            assert goal.thresh_tags
+            assert goal.thresh_func
+            goal_tag = (
+                Maybe.find(lambda tag_cfg: tag_cfg.name == goal.tag, cfg.pipeline.tags)
+                .is_instance(BoundedTag)
+                .expect(f"The tag used to define the Goal threshold ({goal.tag}) must have a TagConfig")
+            )
+            op_lo = get_static_bound(goal_tag.operating_bounds_info, lambda b: b.lower).unwrap()
+            op_hi = get_static_bound(goal_tag.operating_bounds_info, lambda b: b.upper).unwrap()
+            permutations = get_tag_value_permutations(goal.thresh_tags, cfg.pipeline.tags)
+            for permutation in permutations:
+                p_in_op_range = True
+                thresh = goal.thresh_func(*permutation)
+                if isinstance(op_lo, float):
+                    p_in_op_range &= thresh >= op_lo
+                if isinstance(op_hi, float):
+                    p_in_op_range &= thresh <= op_hi
+                assert p_in_op_range, (
+                    f"The threshold in the Goal: {goal.tag} {goal.op} {goal.thresh} violated the operating range of "
+                    f"[{op_lo}, {op_hi}] when {goal.thresh_tags} had the following values: {permutation}."
+                )
+
+    if cfg.pipeline.reward:
+        for priority in cfg.pipeline.reward.priorities:
+            if isinstance(priority, Goal):
+                _assert_valid_sympy_goal(priority)
+            elif isinstance(priority, JointGoal):
+                _evaluate_joint_goals(priority)
+
+def red_zone_reflex_checks(tag_cfg: SafetyZonedTag, tag_cfgs: list[TagConfig]):
+    if tag_cfg.red_zone_reaction is not None:
+        for reflex in tag_cfg.red_zone_reaction:
+            assert reflex.bounds_info
+            # Red Zone Reflex Lower Bound < Red Zone Reflex Upper Bound
+            assert_bound_ordering(
+                lower=reflex.bounds_info.lower,
+                upper=reflex.bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+            )
+
+            # Get TagConfig for action that the red zone reflex is applied to
+            action_cfg = (
+                Maybe.find(lambda cfg, tag_name=reflex.tag: cfg.name == tag_name, tag_cfgs)
+                .is_instance(SafetyZonedTag)
+                .expect(f"Was unable to find tag config for tag: {reflex.tag}")
+            )
+            assert action_cfg.operating_bounds_info
+            # Operating Range Lower Bound <= Red Zone Reflex Lower Bound
+            assert_bound_ordering(
+                lower=action_cfg.operating_bounds_info.lower,
+                upper=reflex.bounds_info.lower,
+                tag_cfgs=tag_cfgs,
+                can_equal=True,
+            )
+            # Red Zone Reflex Upper Bound <= Operating Range Upper Bound
+            assert_bound_ordering(
+                lower=reflex.bounds_info.upper,
+                upper=action_cfg.operating_bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+                can_equal=True,
+            )
+            # Operating Range Lower Bound < Red Zone Reflex Upper Bound
+            assert_bound_ordering(
+                lower=action_cfg.operating_bounds_info.lower,
+                upper=reflex.bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+            )
+            # Red Zone Reflex Lower Bound < Operating Range Upper Bound
+            assert_bound_ordering(
+                lower=reflex.bounds_info.lower,
+                upper=action_cfg.operating_bounds_info.upper,
+                tag_cfgs=tag_cfgs,
+            )
+
+def assert_computed_tag_in_op_range(tag_cfg: BasicTagConfig | SetpointTagConfig, tag_cfgs: list[TagConfig]):
+    if tag_cfg.value is not None and tag_cfg.operating_bounds_info is not None:
+        op_lo = get_static_bound(tag_cfg.operating_bounds_info, lambda b: b.lower).unwrap()
+        op_hi = get_static_bound(tag_cfg.operating_bounds_info, lambda b: b.upper).unwrap()
+        _, computed_func, computed_func_tags = to_sympy(tag_cfg.value)
+        permutations = get_tag_value_permutations(computed_func_tags, tag_cfgs)
+        has_vals_in_op_range = False
+        for permutation in permutations:
+            p_in_op_range = True
+            computed_val = computed_func(*permutation)
+            if isinstance(op_lo, float):
+                p_in_op_range &= computed_val >= op_lo
+            if isinstance(op_hi, float):
+                p_in_op_range &= computed_val <= op_hi
+            has_vals_in_op_range |= p_in_op_range
+            if has_vals_in_op_range:
+                return
+
+        if not has_vals_in_op_range:
+            warnings.warn(
+                message=f"Could not compute values for {tag_cfg.name} within operating range of [{op_lo}, {op_hi}]",
+                stacklevel=2,
+            )
 
 def assert_consistent_non_redundant_goals(cfg: MainConfig):
     """
@@ -401,6 +570,7 @@ def assert_consistent_goals_and_red_zones(cfg: MainConfig, goal_ranges: dict[str
 
 def validate_tag_configs(cfg: MainConfig):
     tag_cfgs = cfg.pipeline.tags
+    assert_valid_sympy_goals(cfg)
     goal_ranges = assert_consistent_non_redundant_goals(cfg)
     assert_consistent_goals_and_red_zones(cfg, goal_ranges)
 
@@ -409,6 +579,9 @@ def validate_tag_configs(cfg: MainConfig):
         operating_vs_expected_range_checks(tag_cfg, tag_cfgs)
         zone_bounds_vs_operating_range_checks(tag_cfg, tag_cfgs)
         red_vs_yellow_zone_checks(tag_cfg, tag_cfgs)
+        red_zone_reflex_checks(tag_cfg, tag_cfgs)
 
     for tag_cfg in tag_cfgs:
         Maybe(tag_cfg).is_instance(SafetyZonedTag).tap(check_bounds)
+        Maybe(tag_cfg).is_instance(SetpointTagConfig).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
+        Maybe(tag_cfg).is_instance(BasicTagConfig).tap(partial(assert_computed_tag_in_op_range, tag_cfgs=tag_cfgs))
