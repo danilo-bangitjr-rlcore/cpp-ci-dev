@@ -130,6 +130,26 @@ def test_yellow_upper_greater_than_red_upper_sympy():
     with pytest.raises(AssertionError):
         validate_tag_configs(cfg)
 
+def test_red_zone_reflex_hi_greater_than_reflex_lo():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/red_zone_reflex_hi_greater_than_reflex_lo.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
+def test_red_zone_reflex_within_op_range():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/red_zone_reflex_within_op_range.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
 def test_goal_thresh_in_op_range_sympy():
     config_path = os.path.join(
         os.path.dirname(__file__),
