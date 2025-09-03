@@ -2,19 +2,62 @@ import logging
 import random
 
 import numpy as np
+import pandas as pd
 from lib_config.loader import load_config
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import load_entire_dataset
+from corerl.offline.utils import load_data_chunks, load_entire_dataset
 from corerl.state import AppState
 
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
+
+
+class StageDataCapture:
+    """Captures pipeline dataframe state after each specified stage"""
+    def __init__(self, pipeline: Pipeline):
+        self.captured_data: dict[StageCode, list[pd.DataFrame]] = {}
+        stages = pipeline.default_stages
+
+        # Initialize empty lists for each stage
+        for stage in stages:
+            self.captured_data[stage] = []
+
+        for stage in stages:
+            pipeline.register_hook(
+                data_modes=DataMode.OFFLINE,
+                stages=stage,
+                f=self.create_capture_hook(stage),
+                order='post',
+        )
+
+    def create_capture_hook(self, stage: StageCode):
+        """Returns a hook function that captures dataframe state after specified stage"""
+        def hook(pf: PipelineFrame) -> None:
+            self.captured_data[stage].append(pf.data.copy())
+
+        return hook
+
+    def get_concatenated_data(self, stage: StageCode) -> pd.DataFrame:
+        """Returns concatenated dataframe for the specified stage"""
+        if not self.captured_data[stage]:
+            return pd.DataFrame()
+        return pd.concat(self.captured_data[stage])
+
+
+def split_dataframe_into_chunks(df: pd.DataFrame, chunk_length: int) -> list[pd.DataFrame]:
+    """Split a pandas DataFrame into chunks of specified length"""
+    chunks = []
+    for i in range(0, len(df), chunk_length):
+        chunk = df.iloc[i:i + chunk_length]
+        chunks.append(chunk)
+    return chunks
 
 
 @load_config(MainConfig)
@@ -35,22 +78,39 @@ def main(cfg: MainConfig):
     )
 
     pipeline = Pipeline(app_state, cfg.pipeline)
-    log.info("loading dataset...")
-    data = load_entire_dataset(cfg)
+    log.info("Loading dataset...")
 
-    stages = cfg.report.stages
-    outs = []
-    for i in range(len(stages)):
-        exec_stages = stages[:i]
-        pipeline_out = pipeline(
-            data=data,
+    data = load_entire_dataset(cfg)
+    data_chunks = split_dataframe_into_chunks(data, 10_000)
+
+    log.info("Loaded Dataset")
+    capture = StageDataCapture(pipeline)
+
+    # Single pipeline execution through all stages
+    log.info("Running pipeline with stage capture hooks...")
+
+    exclude_periods = cfg.offline.eval_periods if cfg.offline.remove_eval_from_train else None
+    data_chunks = load_data_chunks(
+        cfg=app_state.cfg,
+        start_time=cfg.offline.offline_start_time,
+        end_time=cfg.offline.offline_end_time,
+        exclude_periods=exclude_periods,
+    )
+
+    for chunk in data_chunks:
+        pipeline(
+            data=chunk,
             data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
-            stages=exec_stages,
         )
-        outs.append(pipeline_out.df)
 
-    generate_report(cfg.report, outs, stages)
+    # Extract captured dataframes
+    data = []
+    for stage in cfg.report.stages:
+        data.append(capture.get_concatenated_data(stage))
+
+    log.info("Generating report from captured stage data...")
+    generate_report(cfg.report, data, cfg.report.stages)
 
 
 if __name__ == "__main__":
