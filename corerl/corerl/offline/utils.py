@@ -1,6 +1,7 @@
 import datetime as dt
 import logging
 from datetime import datetime, timedelta
+from math import ceil
 
 import jax.numpy as jnp
 import numpy as np
@@ -161,8 +162,31 @@ def load_offline_transitions(
         else:
             out = chunk_pr
 
-    return out
+    # Apply test split if requested
+    test_split = app_state.cfg.offline.test_split
+    if test_split > 0.0 and out is not None and out.transitions is not None:
+        return get_test_split(out, test_split)
 
+    return out, []
+
+def get_test_split(pr: PipelineReturn, test_split: float):
+    transitions = pr.transitions
+    assert transitions is not None
+    n_transitions = len(transitions)
+    n_test = ceil(n_transitions * test_split)
+
+    # Randomly select test indices
+    test_indices = np.random.choice(n_transitions, size=n_test, replace=False)
+    test_mask = np.zeros(n_transitions, dtype=bool)
+    test_mask[test_indices] = True
+
+    # Split transitions
+    test_transitions = [transitions[i] for i in range(n_transitions) if test_mask[i]]
+    train_transitions = [transitions[i] for i in range(n_transitions) if not test_mask[i]]
+
+    pr.transitions = train_transitions
+
+    return pr, test_transitions
 
 def get_all_offline_recommendations(
         app_state: AppState,

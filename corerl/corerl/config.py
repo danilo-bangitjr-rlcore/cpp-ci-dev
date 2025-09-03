@@ -114,6 +114,7 @@ class OfflineConfig:
     pipeline_batch_duration: timedelta = timedelta(days=7)
     update_agent_during_offline_recs: bool = False
     remove_eval_from_train: bool = True
+    test_split: float = 0.0
 
     @post_processor
     def _validate(self, cfg: 'MainConfig'):
