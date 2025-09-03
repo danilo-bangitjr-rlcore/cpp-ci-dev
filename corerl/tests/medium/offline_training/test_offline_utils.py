@@ -13,7 +13,7 @@ from sqlalchemy import Engine
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
-from corerl.data_pipeline.db.data_reader import DataReader, TagDBConfig
+from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
@@ -134,9 +134,8 @@ def offline_pipeout(offline_cfg: MainConfig, dummy_app_state: AppState, data_wri
     # Produce offline transitions
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    data_reader = DataReader(db_cfg=offline_cfg.env.db)
     dummy_app_state.cfg = offline_cfg
-    pipeout =  load_offline_transitions(dummy_app_state, pipeline, data_reader)
+    pipeout =  load_offline_transitions(dummy_app_state, pipeline)
     assert pipeout is not None
     return pipeout
 
@@ -248,8 +247,7 @@ def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, d
 
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    data_reader = DataReader(db_cfg=offline_cfg.env.db)
-    offline_pipeout = load_offline_transitions(dummy_app_state, pipeline, data_reader)
+    offline_pipeout = load_offline_transitions(dummy_app_state, pipeline)
 
     # Since start_time and end_time are specified,
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
