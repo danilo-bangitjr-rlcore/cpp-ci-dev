@@ -22,20 +22,47 @@ from corerl.utils.time import exclude_from_chunks, split_into_chunks
 
 log = logging.getLogger(__name__)
 
+
+def get_data_reader(cfg: MainConfig) -> DataReader:
+    """Get DataReader instance from config"""
+    assert isinstance(cfg.env, AsyncEnvConfig)
+    return DataReader(db_cfg=cfg.env.db)
+
+
+def get_time_range(
+    data_reader: DataReader,
+    start_time: dt.datetime | None = None,
+    end_time: dt.datetime | None = None,
+) -> tuple[dt.datetime, dt.datetime]:
+    """
+    Get start and end times, using database time stats for None values.
+    """
+    if start_time is not None and end_time is not None:
+        return start_time, end_time
+
+    time_stats = data_reader.get_time_stats()
+
+    if start_time is None:
+        start_time = time_stats.start
+    if end_time is None:
+        end_time = time_stats.end
+
+    # Validation
+    assert start_time < end_time, (
+        "Start time must come before end time. "
+        f"Got start: {start_time}, end: {end_time}"
+    )
+
+    return start_time, end_time
+
 def load_entire_dataset(
     cfg: MainConfig,
     start_time: dt.datetime | None = None,
     end_time: dt.datetime | None = None,
 ) -> pd.DataFrame:
 
-    assert isinstance(cfg.env, AsyncEnvConfig)
-    data_reader = DataReader(db_cfg=cfg.env.db)
-    if start_time is None or end_time is None:
-        time_stats = data_reader.get_time_stats()
-        if start_time is None:
-            start_time = time_stats.start
-        if end_time is None:
-            end_time = time_stats.end
+    data_reader = get_data_reader(cfg)
+    start_time, end_time = get_time_range(data_reader, start_time, end_time)
 
     tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
     obs_period = cfg.interaction.obs_period
