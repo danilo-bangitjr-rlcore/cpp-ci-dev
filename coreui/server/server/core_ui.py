@@ -2,6 +2,7 @@ import os
 import sys
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
@@ -17,6 +18,20 @@ from server.opc_api.opc_routes import opc_router
 class CoreUI:
     def __init__(self, dist_path: str | None = None):
         self.app = FastAPI()
+
+        # Add CORS middleware
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:4173",
+                "http://localhost:8000",
+            ],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
         self.app.include_router(opc_router, prefix="/api/v1/opc")
 
