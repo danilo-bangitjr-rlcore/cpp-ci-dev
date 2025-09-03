@@ -31,8 +31,13 @@ jax = [
     "distrax>=0.1.5",
     "dm-haiku>=0.0.14",
     "flax>=0.10.6",
-    "jax>=0.6.1",
+    "jax>=0.6.1, <0.7.0",
     "optax>=0.2.4",
+]
+
+opc = [
+    "asyncua>=1.1.6",
+    "backoff>=2.2.1",
 ]
 
 [build-system]

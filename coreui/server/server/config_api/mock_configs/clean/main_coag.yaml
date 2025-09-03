@@ -1,0 +1,152 @@
+log_path: outputs/main/coag
+
+feature_flags:
+  nominal_setpoint_bias: true
+
+infra:
+  db:
+    drivername: postgresql+psycopg2
+    username: postgres
+    password: password
+    ip: localhost
+    port: 5432
+    db_name: postgres
+
+agent_name: coag
+seed: 0
+is_simulation: False
+
+interaction:
+  name: dep_interaction
+  restore_checkpoint: false
+  obs_period: PT15M
+  update_period: PT30S
+  action_period: PT2H
+  warmup_period: 12:00:00
+  state_age_tol: 00:30:00
+  update_warmup: 30 # number of updates before interacting
+  historical_batch_size: 51840 # 180 days @ 5 minute obs period
+  historical_windows:
+  - [2025-04-16 00:00:00+0000, null]
+
+event_bus:
+  enabled: true
+  cli_connection: tcp://localhost:5567
+  app_connection: inproc://corerl_app
+
+coreio:
+  coreio_origin: "tcp://localhost:5559"
+  opc_connections:
+    - connection_id: main_opc
+      opc_conn_url: "opc.tcp://localhost:62541"
+      application_uri: main_coag
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+env:
+  name: dep_async_env
+  db:
+    table_name: main
+
+agent:
+  name: greedy_ac
+  gamma: 0.9727 # ~50% of return occurs after 6 hrs (@ 15 min obs period)
+
+  critic:
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: critic # for metric logging
+
+  policy:
+    buffer:
+      name: mixed_history_buffer
+      n_most_recent: 24
+      ensemble: 1
+      ensemble_probability: 1
+      id: actor # for metric logging
+
+metrics:
+  enabled: True
+  table_name: metrics_main_coag
+evals:
+  enabled: True
+  table_name: evals_main_coag
+
+pipeline:
+  reward:
+    priorities:
+    - op: down_to
+      tag: FLR03_TRYP_PV
+      thresh: 4.5
+    - tags:
+      - DEP_COAG_AI_SP
+      directions: min
+      weights:
+      - 1.0
+
+  state_constructor:
+    defaults:
+      - name: multi_trace
+        trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
+
+  transition_creator:
+    name: all-the-time
+    # n_step should be 8, give some buffer
+    min_n_step: 7
+    max_n_step: 8
+
+  transition_filter:
+    filters:
+    - "only_pre_dp_or_ac"
+    - "only_post_dp"
+    - "no_nan"
+    - "only_no_action_change"
+
+  tags:
+  - name: DEP_COAG_AI_SP
+    connection_id: main_opc
+    node_identifier: ns=1;s=[main-veolia]AI_DOSE_SP
+    type: ai_setpoint
+    operating_range:
+    - 0.0
+    - 6.0
+    action_bounds:
+    - '{Dose_AL_SP_F_SP}-{COAG_AI_DOSE_EXCD_ALM_SP}+0.01'
+    - '{Dose_AL_SP_F_SP}+{COAG_AI_DOSE_EXCD_ALM_SP}-0.01'
+    cascade:
+      mode: COAG_AI_CTRL_EN
+      op_sp: Dose_AL_SP_F_SP
+      ai_sp: COAG_AI_DOSE_SP
+      op_mode_val: 0
+      ai_mode_val: 1
+      mode_is_bool: True
+
+  - name: Dose_AL_SP_F_SP
+    connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
+    node_identifier: ns=1;s=[main-veolia]Dose_AL_SP_F.OUT
+    operating_range:
+    - 0.0
+    - 5.0
+    
+  - name: COAG_AI_DOSE_EXCD_ALM_SP
+    connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
+    node_identifier: ns=1;s=[main-veolia]AI_DOSE_EXCD_SP_F.OUT
+    operating_range:
+    - 0.0
+    - 5.0
+
+  - name: FLR03_CDOM_PV
+    operating_range: [0, 100]
+    expected_range: [10, 30]
+
+  - name: FLR03_TRYP_PV # Permeate Tryptophan
+    operating_range: [0, 20]
+    expected_range: [2, 5]
+
+  - name: FLR01_TRYP_PV # Raw Tryptophan
+    operating_range: [0, null]
+    expected_range: [2, 8]

@@ -1,0 +1,24 @@
+[package]
+name = "streaming_pivot"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+chrono = "0.4.41"
+clap = { version = "4.0", features = ["derive"] }
+postgres = { version = "0.19.10", features = ["with-chrono-0_4"] }
+regex = "1.11.1"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_yaml = "0.9.34"
+
+[[bin]]
+name = "streaming_pivot"
+path = "src/main.rs"
+
+[[bin]]
+name = "rustsub"
+path = "src/rustsub.rs"
+
+[[bin]]
+name = "sed"
+path = "src/old_main.rs"

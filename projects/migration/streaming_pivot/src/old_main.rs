@@ -1,0 +1,90 @@
+use std::collections::HashMap;
+use std::io::{BufRead, Write};
+use std::path::Path;
+use std::usize;
+use clap::Parser;
+
+mod utils;
+use utils::{get_buffered_reader, get_buffered_writer, get_column_names};
+
+#[derive(Parser)]
+struct Args {
+    #[arg(short, long)]
+    input_file: String,
+
+    #[arg(short, long)]
+    col_names: String,
+
+    #[arg(short, long)]
+    output_file: String,
+}
+
+fn main() {
+    let args = Args::parse();
+    println!("Input: {}", args.input_file);
+    println!("Output: {}", args.output_file);
+    println!("Col name: {}", args.col_names);
+
+    let col_names_path = Path::new(&args.col_names);
+    let col_names = get_column_names(col_names_path);
+
+    let col_idx = col_names
+        .clone()
+        .into_iter()
+        .enumerate()
+        .map(|(i, v)| (v, i))
+        .collect::<HashMap<String, usize>>();
+
+    // let long_tsv = Path::new("/home/kerrick/epcor_scrubber/data_copy-07_21_2025.txt");
+    // let wide_tsv = Path::new("/home/kerrick/epcor_scrubber/data_copy-07_21_2025_wide.txt");
+
+    let long_tsv = Path::new(&args.input_file);
+    let wide_tsv = Path::new(&args.output_file);
+
+    let buf_reader = get_buffered_reader(long_tsv);
+    let mut buf_writer = get_buffered_writer(wide_tsv);
+
+    // Add column names to Rust
+    let header_line = String::from("time\t") + &col_names.join("\t") + "\n";
+    buf_writer.write(&header_line.as_bytes()).unwrap();
+
+    let mut last_timestamp = String::from("");
+    let mut line_data: Vec<String> = vec![String::from("\\N"); col_names.len()];
+
+    for (i, line) in buf_reader.lines().map_while(Result::ok).enumerate() {
+        let mut vals = line.split("\t");
+
+        // Get timestamp and check if it is new
+        let timestamp = vals.next().unwrap();
+        if i == 0 {
+            // i hope this check is compiled out
+            last_timestamp = timestamp.to_string();
+        }
+        if timestamp != last_timestamp {
+            // if current line has new timestamp,
+            // write line data (built from previous lines) to file
+            let new_line = last_timestamp + "\t" + &line_data.join("\t") + "\n";
+            buf_writer.write(&new_line.as_bytes()).unwrap();
+
+            // update last timestamp and reset line data
+            last_timestamp = timestamp.to_string();
+            line_data = vec![String::from("\\N"); col_names.len()];
+        }
+
+        // get columns we care about
+        let name = vals.next().unwrap(); // second col
+        let val = vals.next().unwrap(); // third col
+
+        // combine process and name into single col
+        let tag = name.to_lowercase();
+
+        // add data to line
+        let idx = col_idx[tag.as_str()];
+        line_data[idx] = val.to_string();
+    }
+    // write last line
+    let new_line = last_timestamp + "\t" + &line_data.join("\t") + "\n";
+    buf_writer.write(&new_line.as_bytes()).unwrap();
+    buf_writer.flush().unwrap();
+}
+

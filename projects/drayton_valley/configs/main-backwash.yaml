@@ -1,12 +1,14 @@
+defaults:
+  - ./coreio_main_tags.yaml
+
 log_path: outputs/main/backwash
 agent_name: main_backwash
 seed: 1
 is_simulation: False
 
 feature_flags:
-  nominal_setpoint_bias: true
-  normalize_return: true
   autoencoder_imputer: false
+  wide_metrics: true
 
 infra:
   db:
@@ -40,9 +42,26 @@ event_bus:
 
 coreio:
   coreio_origin: "tcp://localhost:5560"
+  data_ingress:
+    enabled: True
+    ingress_period: 00:00:01
   opc_connections:
     - connection_id: main_opc
+      opc_conn_url: "opc.tcp://localhost:62541"
+      application_uri: main_bw
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+    - connection_id: backwash_wa
       opc_conn_url: "opc.tcp://localhost:50505"
+      application_uri: main_bw
+      security_policy:
+        policy: none
+        mode: none
+      authentication_mode: anonymous
+    - connection_id: coag_wa
+      opc_conn_url: "opc.tcp://localhost:50506"
       application_uri: main_bw
       security_policy:
         policy: none
@@ -53,7 +72,8 @@ coreio:
 env:
   name: dep_async_env
   db:
-    table_name: "main"
+    table_name: "main_sensors3"
+    wide_format: true
 
 metrics:
   enabled: True
@@ -67,7 +87,7 @@ pipeline:
   reward:
     priorities:
     - op: down_to
-      tag: BP_CYCLE_TOTAL
+      tag: VEOLIA_UF2_BP_CYCLE_TOTAL
       thresh: 3500
     - tags:
       - PERMEABILITY
@@ -94,15 +114,15 @@ pipeline:
     - "only_no_action_change"
 
   tags:
-  - name: DEP_BP_FLOW_SP_WA
-    connection_id: main_opc
+  - name: RLCORE_CLEAN_DEP_BP_FLOW_SP_WA
+    connection_id: backwash_wa
     node_identifier: "ns=1;s=ai_flow_sp"
     operating_range: [120, 179]
     type: ai_setpoint
     agg: last
 
-  - name: DEP_BP_DUR_SP_WA
-    connection_id: main_opc
+  - name: RLCORE_CLEAN_DEP_BP_DUR_SP_WA
+    connection_id: backwash_wa
     node_identifier: "ns=1;s=ai_dur_sp"
     operating_range: [10, 30]
     type: ai_setpoint
@@ -112,7 +132,7 @@ pipeline:
     operating_range: [0, 10]
     expected_range: [5, 7]
     is_computed: true
-    value: "-{UF2_FIT301_PV}/{UF2_TMP_PV}"
+    value: "-{VEOLIA_UF2_FIT301_PV}/{VEOLIA_UF2_TMP_PV}"
     outlier:
       - name: exp_moving
         alpha: 0.9928 # half life 24h
@@ -120,85 +140,59 @@ pipeline:
       name: copy
       imputation_horizon: 96
     filter: # ignore perm if following conditions are met
-    - name: comparator
-      op: ">"
-      val: 100000 # HACKY!
-    # binary max acts as OR
-    - name: binary
-      op: max 
-      # filter if mode is not production (8)
-      other: UF2_SEQ_STATE
-      other_xform:
-      - name: comparator
-        op: '!='
-        val: 8
-    - name: binary
-      op: max 
-      # filter if mode is not production (8)
-      other: UF2_FIT301_PV
-      other_xform:
-      - name: comparator
-        op: <
-        val: 10
-    - name: binary
-      op: max 
-       # filter if magnitude of TMP is too low
-      other: UF2_TMP_PV 
-      other_xform:
-      - name: comparator
-        op: '>'
-        val: -1
+    - name: sympy
+      expression: "({VEOLIA_UF2_SEQ_STATE} != 8) | ({VEOLIA_UF2_FIT301_PV} < 10) | ({VEOLIA_UF2_TMP_PV} > -1)"
 
-  - name: UF2_FIT301_PV # permeate flow rate
+  - name: VEOLIA_UF2_FIT301_PV # permeate flow rate
     preprocess:
     - name: identity
     state_constructor:
     - name: nuke
 
-  - name: UF2_TMP_PV # used in permeability calculation
+  - name: VEOLIA_UF2_TMP_PV # used in permeability calculation
     state_constructor:
     - name: nuke
 
-  - name: UF2_SEQ_STATE # used in permeability calculation
+  - name: VEOLIA_UF2_SEQ_STATE # used in permeability calculation
     operating_range: [1, 2048]
     state_constructor:
     - name: nuke
 
-  - name: BP_CYCLE_TOTAL
+  - name: VEOLIA_UF2_BP_CYCLE_TOTAL
     operating_range: [0, 5500]
     expected_range: [1300, 5000]
 
-  - name: UV01_UV254_PV # raw uvt
+  - name: ISL_RAW_UV01_UV254_PV # raw uvt
     operating_range: [0, 110]
 
-  - name: UV03_UV254_PV # permeate uvt
+  - name: ISL_PERMEATE_UV03_UV254_PV # permeate uvt
     operating_range: [0, 110]
 
-  - name: FLR01_TRYP_PV # raw tryptophan
+  - name: ISL_RAW_FLR01_TRYP_PV # raw tryptophan
     operating_range: [0, 10]
 
-  - name: FLR03_TRYP_PV # permeate tryptophan
+  - name: ISL_PERMEATE_FLR03_TRYP_PV # permeate tryptophan
     operating_range: [0, 10]
     expected_range: [2, 7]
 
-  - name: FLR04_TRYP_PV # drain tryptophan
+  - name: ISL_CLEAN_FLR04_TRYP_PV # drain tryptophan
     operating_range: [0, 20]
 
-  - name: FLR01_CDOM_PV # raw cdom
+  - name: ISL_RAW_FLR01_CDOM_PV # raw cdom
     operating_range: [0, 100]
 
-  - name: FLR03_CDOM_PV # permeate cdom
+  - name: ISL_PERMEATE_FLR03_CDOM_PV # permeate cdom
     operating_range: [0, 100]
     expected_range: [15, 40]
 
-  - name: AIT310_PV # raw turbidity
+  - name: VEOLIA_RAW_AIT310_PV # raw turbidity
     expected_range: [0, 150]
     operating_range: [0, null]
 
-  - name: AIT320_PV # permeate turbidity
-    operating_range: [0, 30]
+#  - name: VEOLIA_UF2_AIT320_PV # permeate turbidity
+#    operating_range: [0, 30]
 
-  - name: AIT_130_PV # raw pH
+  - name: ISL_DIST_AIT_130_PV # raw pH
     operating_range: [6.5, 8.5]
 
 # C4025 temporarily disabled
