@@ -51,7 +51,7 @@ class StageDataCapture:
         return pd.concat(self.captured_data[stage])
 
 
-def split_dataframe_into_chunks(df: pd.DataFrame, chunk_length: int) -> list[pd.DataFrame]:
+def split_dataframe_into_chunks(df: pd.DataFrame, chunk_length: int):
     """Split a pandas DataFrame into chunks of specified length"""
     chunks = []
     for i in range(0, len(df), chunk_length):
