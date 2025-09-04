@@ -5,7 +5,6 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
-from lib_config.loader import direct_load_config
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.sql_logging.sql_logging import table_exists
 from sqlalchemy import Engine
@@ -17,9 +16,8 @@ from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.evals import EvalDBConfig, EvalsTable
-from corerl.eval.metrics import MetricsDBConfig, MetricsTable
+from corerl.eval.evals import EvalsTable
+from corerl.eval.metrics import MetricsTable
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import load_offline_transitions, offline_rl_from_buffer
 from corerl.state import AppState
@@ -44,48 +42,6 @@ def make_step(
         ac=ac,
     )
 
-@pytest.fixture()
-def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) -> TagDBConfig:
-    port = tsdb_engine.url.port
-    assert port is not None
-
-    return TagDBConfig(
-        drivername="postgresql+psycopg2",
-        username="postgres",
-        password="password",
-        ip="localhost",
-        port=port,
-        db_name=tsdb_tmp_db_name,
-        table_name="tags",
-        table_schema='public',
-    )
-
-@pytest.fixture(scope="function")
-def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
-    cfg = direct_load_config(
-        MainConfig,
-        config_name='tests/medium/offline_training/assets/offline_config.yaml',
-    )
-    assert isinstance(cfg, MainConfig)
-
-    if cfg.agent.critic.buffer.name == 'mixed_history_buffer':
-        cfg.agent.critic.buffer.online_weight = 0.0
-
-    if cfg.agent.policy.buffer.name == 'mixed_history_buffer':
-        cfg.agent.policy.buffer.online_weight = 0.0
-
-    assert isinstance(cfg.env, AsyncEnvConfig)
-    cfg.env.db = test_db_config
-
-    assert isinstance(cfg.metrics, MetricsDBConfig)
-    cfg.metrics.port = test_db_config.port
-    cfg.metrics.db_name = test_db_config.db_name
-
-    assert isinstance(cfg.evals, EvalDBConfig)
-    cfg.evals.port = test_db_config.port
-    cfg.evals.db_name = test_db_config.db_name
-
-    return cfg
 
 @pytest.fixture()
 def data_writer(offline_cfg: MainConfig, test_db_config: TagDBConfig):
