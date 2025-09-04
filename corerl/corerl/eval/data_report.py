@@ -22,26 +22,27 @@ from corerl.eval.raw_data import raw_data_eval_for_tag
 
 log = logging.getLogger(__name__)
 
+
 @config()
 class ReportConfig:
     output_dir: Path = Path('outputs/report')
-    stages : list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
-    tags_to_exclude : list = Field(default_factory=list) # tags to exclude from analysis
+    stages: list[StageCode] = Field(default_factory=lambda: [StageCode.INIT])
+    tags_to_exclude: list = Field(default_factory=list)  # tags to exclude from analysis
 
     # for stat table
-    stat_table_enabled : bool = True
+    stat_table_enabled: bool = True
 
     # for cross correlation
     # options for cross_corr_tags:
     # 1. list of tag names -> will find cross correlation for all pairs of tags in this list
     # 2. list of list[str] -> will find cross correlation only for these pairs in each list.
     # 3. None -> will find cross correlation for ALL pairs of tags
-    cross_corr_enabled : bool = True
-    cross_corr_tags : list[str] | list[list[str]] | None = Field(default_factory=list)
+    cross_corr_enabled: bool = True
+    cross_corr_tags: list[str] | list[list[str]] | None = Field(default_factory=list)
     cross_corr_max_lag: int = 100
 
     # for histograms
-    hist_enabled : bool = True
+    hist_enabled: bool = True
     hist_show_mean: bool = True
     hist_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
     hist_num_bins: int = 30
@@ -77,7 +78,7 @@ def make_stat_table(
             table_data.append(row)
     table_data.insert(0, headers)
     table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
-    with open(output_path/'sensor_report.txt', 'w') as f:
+    with open(output_path / 'sensor_report.txt', 'w') as f:
         f.write(table_str)
 
 
@@ -106,7 +107,7 @@ def make_distribution_plots(
             plot_sensor_data(
                 df,
                 tag,
-                save_path= tag_stage_output_path / f'{tag}_sensor_data_{stage_name}.png',
+                save_path=tag_stage_output_path / f'{tag}_sensor_data_{stage_name}.png',
                 title=f'{tag} Sensor Data - {stage_name}',
             )
             plot_sensor_histogram(
@@ -115,7 +116,7 @@ def make_distribution_plots(
                 save_path=tag_stage_output_path / f'{tag}_sensor_histogram_{stage_name}.png',
                 title=f'{tag} Histogram - {stage_name}',
                 show_mean=show_hist_mean,
-                percentiles = percentiles,
+                percentiles=percentiles,
                 bins=num_bins,
             )
             plot_nan_histogram(
@@ -124,7 +125,7 @@ def make_distribution_plots(
                 save_path=tag_stage_output_path / f'{tag}_nan_histogram_{stage_name}.png',
                 title=f'{tag} NaN Histogram - {stage_name}',
                 show_mean=show_hist_mean,
-                percentiles = percentiles,
+                percentiles=percentiles,
                 bins=num_bins,
             )
             plot_chunk_histogram(
@@ -133,7 +134,7 @@ def make_distribution_plots(
                 save_path=tag_stage_output_path / f'{tag}_chunk_histogram_{stage_name}.png',
                 title=f'{tag} Chunk Histogram - {stage_name}',
                 show_mean=show_hist_mean,
-                percentiles = percentiles,
+                percentiles=percentiles,
                 bins=num_bins,
             )
 
@@ -143,15 +144,15 @@ def get_tag_pairs(
         data: list[pd.DataFrame],
     ) -> list[tuple[str, str]]:
     tag_info = cfg.cross_corr_tags
-    if tag_info is None: # all pairs of tags
+    if tag_info is None:  # all pairs of tags
         tags = get_tags(data)
         pairs = list(combinations(tags, 2))
     elif len(tag_info) == 0:
         return []
-    elif isinstance(tag_info[0], str): # all pairs of tags specified in cfg.cross_corr_tags
+    elif isinstance(tag_info[0], str):  # all pairs of tags specified in cfg.cross_corr_tags
         str_tags = tag_info
         pairs = list(combinations(str_tags, 2))
-    else: # only pairs of tags specified in cfg.cross_corr_tags
+    else:  # only pairs of tags specified in cfg.cross_corr_tags
         for pair in tag_info:
             assert len(pair) == 2
         pairs = tag_info
@@ -184,10 +185,10 @@ def make_cross_correlation_table(
             assert tag_2 in all_tags
             cc, lag, _ = cross_correlation(df, tag_1, tag_2, max_lag)
             row = [stage.name, tag_1, tag_2, cc, lag]
-            table.append(row) # type: ignore
+            table.append(row)  # type: ignore
 
     table_str = tabulate(table, headers='firstrow', tablefmt='grid')
-    with open(output_path/'cross_correlation.txt', 'w') as f:
+    with open(output_path / 'cross_correlation.txt', 'w') as f:
         f.write(table_str)
 
 
@@ -203,7 +204,7 @@ def standardize(x: np.ndarray, mask: np.ndarray):
         return np.zeros_like(x)
     x = x.copy()
     mean = np.mean(x[mask])
-    return mask*((x-mean)/std)
+    return mask * ((x - mean) / std)
 
 
 def correlate(
@@ -218,7 +219,7 @@ def correlate(
     correlations = []
     for lag in range(-max_lag, max_lag + 1):
         if lag < 0:
-            x_, y_ = x[:lag], y[-lag:] #note: lag is negative, so we are implicity flipping the sign for indexing
+            x_, y_ = x[:lag], y[-lag:]  # note: lag is negative, so we are implicity flipping the sign for indexing
         elif lag > 0:
             x_, y_ = x[lag:], y[:-lag]
         else:
@@ -246,10 +247,10 @@ def cross_correlation(
     x = df[tag_1].to_numpy()
     y = df[tag_2].to_numpy()
 
-    x_mask = ~np.isnan(x) # where x is not nan
-    y_mask = ~np.isnan(y) # where y is not nan
+    x_mask = ~np.isnan(x)  # where x is not nan
+    y_mask = ~np.isnan(y)  # where y is not nan
 
-    if np.all(~x_mask) or np.all(~y_mask): # either x or y is all nan
+    if np.all(~x_mask) or np.all(~y_mask):  # either x or y is all nan
         return -np.inf, 0, np.array([-np.inf])
 
     # zero-out nans
@@ -272,10 +273,10 @@ def cross_correlation(
     # make zeros nan, to signal when cross corr not valid
     num_non_nan = np.where(num_non_nan == 0, np.nan, num_non_nan)
 
-    cross_corr = corr / num_non_nan # normalize cross corr
+    cross_corr = corr / num_non_nan  # normalize cross corr
     cross_corr = np.where(np.isnan(cross_corr), -np.inf, cross_corr)
     max_idx = np.argmax(cross_corr)
-    lags = np.arange(-max_lag, max_lag+1)
+    lags = np.arange(-max_lag, max_lag + 1)
     return cross_corr[max_idx], lags[max_idx], cross_corr
 
 
@@ -292,5 +293,5 @@ def generate_report(
     output_path.mkdir(parents=True)
 
     make_stat_table(cfg, data, stages, output_path)
-    make_distribution_plots(cfg, data, stages, output_path/'plots')
+    make_distribution_plots(cfg, data, stages, output_path / 'plots')
     make_cross_correlation_table(cfg, data, stages, output_path)
