@@ -25,11 +25,11 @@ const isValidOpcUrl = (url: string): boolean => {
   return trimmed.startsWith('opc.tcp://') && trimmed.length > 10;
 };
 
-export function OpcConnectionCard({ 
-  statusData, 
-  statusError, 
-  isStatusLoading, 
-  className = '' 
+export function OpcConnectionCard({
+  statusData,
+  statusError,
+  isStatusLoading,
+  className = '',
 }: OpcConnectionCardProps) {
   const [url, setUrl] = useState('');
   const [showValidationError, setShowValidationError] = useState(false);
@@ -139,7 +139,9 @@ export function OpcConnectionCard({
   };
 
   return (
-    <div className={`p-4 bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}>
+    <div
+      className={`p-4 bg-white rounded-lg border border-gray-200 shadow-sm ${className}`}
+    >
       <h2 className="text-lg font-semibold text-gray-900 mb-4">
         OPC Server Connection
       </h2>
@@ -178,9 +180,7 @@ export function OpcConnectionCard({
         <div>
           <button
             onClick={isConnected ? handleDisconnect : handleConnect}
-            disabled={
-              connectMutation.isPending || disconnectMutation.isPending
-            }
+            disabled={connectMutation.isPending || disconnectMutation.isPending}
             className={`px-6 py-2 rounded-md font-medium text-white transition-colors whitespace-nowrap ${
               connectMutation.isPending || disconnectMutation.isPending
                 ? 'bg-gray-400 cursor-not-allowed'
