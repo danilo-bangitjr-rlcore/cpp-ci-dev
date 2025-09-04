@@ -59,31 +59,44 @@ def _find_tag_index(tags: list[dict], tag_name: str) -> int:
     )
 
 async def get_tags(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
-    tags = _get_tags(config_dict)
-    return JSONResponse(content={"tags": tags})
+    try:
+        config_dict = _load_config_data(config_name, subfolder)
+        tags = _get_tags(config_dict)
+        return JSONResponse(content={"tags": tags}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def get_tag(config_name: str, tag_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
-    tags = _get_tags(config_dict)
-    tag_index = _find_tag_index(tags, tag_name)
-    return JSONResponse(content={"tag": tags[tag_index]})
+    try:
+        config_dict = _load_config_data(config_name, subfolder)
+        tags = _get_tags(config_dict)
+        tag_index = _find_tag_index(tags, tag_name)
+        return JSONResponse(content={"tag": tags[tag_index]}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def get_config(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
-    return JSONResponse(content={"config": config_dict})
+    try:
+        config_dict = _load_config_data(config_name, subfolder)
+        return JSONResponse(content={"config": config_dict}, status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def add_tag(
     config_name: str,
     tag: dict,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config = _load_config_data(config_name, subfolder)
-    tags = _get_tags(config)
-    tags.append(tag)
-    _write_config_data(config_name, config, subfolder)
+    try:
+        config = _load_config_data(config_name, subfolder)
+        tags = _get_tags(config)
+        tags.append(tag)
+        _write_config_data(config_name, config, subfolder)
 
-    return JSONResponse(content={"message": "Tag created", "tag": tag, "index": len(tags) - 1}, status_code=201)
+        return JSONResponse(content={"message": "Tag created", "tag": tag, "index": len(tags) - 1},
+                            status_code=status.HTTP_201_CREATED)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def update_tag(
     config_name: str,
@@ -91,29 +104,41 @@ async def update_tag(
     tag: dict,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config = _load_config_data(config_name, subfolder)
-    tags = _get_tags(config)
-    if index < 0 or index >= len(tags):
-        raise HTTPException(status_code=404, detail="Tag index out of range")
-    tags[index] = tag
-    _write_config_data(config_name, config, subfolder)
-    return JSONResponse(content={"message": "Tag updated", "tag": tag, "index": index})
+    try:
+        config = _load_config_data(config_name, subfolder)
+        tags = _get_tags(config)
+        if index < 0 or index >= len(tags):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
+        tags[index] = tag
+        _write_config_data(config_name, config, subfolder)
+        return JSONResponse(content={"message": "Tag updated", "tag": tag, "index": index},
+                            status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def delete_tag(
     config_name: str,
     index: int,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config = _load_config_data(config_name, subfolder)
-    tags = _get_tags(config)
-    if index < 0 or index >= len(tags):
-        raise HTTPException(status_code=404, detail="Tag index out of range")
-    removed = tags.pop(index)
-    _write_config_data(config_name, config, subfolder)
-    return JSONResponse(content={"message": "Tag deleted", "tag": removed, "index": index})
+    try:
+        config = _load_config_data(config_name, subfolder)
+        tags = _get_tags(config)
+        if index < 0 or index >= len(tags):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
+        removed = tags.pop(index)
+        _write_config_data(config_name, config, subfolder)
+        return JSONResponse(content={"message": "Tag deleted", "tag": removed, "index": index},
+                            status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 async def get_all_configs(subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    configs_dir = _get_configs_dir(subfolder)
-    config_files = list(configs_dir.glob("*.yaml"))
-    config_names = [f.stem for f in config_files]
-    return JSONResponse(content={"configs": config_names}, status_code=200)
+    try:
+        configs_dir = _get_configs_dir(subfolder)
+        config_files = list(configs_dir.glob("*.yaml"))
+        config_names = [f.stem for f in config_files]
+        return JSONResponse(content={"configs": config_names},
+                            status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
