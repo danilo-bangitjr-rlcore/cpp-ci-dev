@@ -355,6 +355,9 @@ def make_transition_statistics_table(
         cfg: ReportConfig,
         transitions: list[Transition],
         output_path: Path,
+        app_state: AppState,
+        start_time: datetime,
+        end_time: datetime,
     ) -> None:
     """
     Generate transition statistics table and save to file.
@@ -382,8 +385,22 @@ def make_transition_statistics_table(
     total_transitions = len(transitions)
     table_data.extend([
         ['Total Transitions', str(total_transitions)],
-
     ])
+
+    # Add transitions filtered count from metrics if available
+    try:
+        transitions_filtered_df = app_state.metrics.read(
+            metric='transitions_filtered',
+            start_time=start_time,
+            end_time=end_time,
+        )
+        if not transitions_filtered_df.empty:
+            total_filtered = transitions_filtered_df['transitions_filtered'].sum()
+            table_data.extend([
+                ['Total Transitions Filtered', str(int(total_filtered))],
+            ])
+    except Exception as e:
+        log.warning(f"Could not read transitions_filtered metric: {e}")
 
     # Sequence statistics
     sequence_stat_dict = get_sequence_stats(cfg, sequence_lengths)
@@ -419,4 +436,11 @@ def generate_report(
 
     # Generate transition statistics if transitions are provided
     if transitions:
-        make_transition_statistics_table(cfg, transitions, output_path)
+        make_transition_statistics_table(
+            cfg,
+            transitions,
+            output_path,
+            app_state,
+            start_time,
+            end_time,
+        )
