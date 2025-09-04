@@ -16,8 +16,8 @@ class CoreRLService(Service):
 
     @staticmethod
     def _find_executable(base_path: Path) -> Path:
-        exe_pattern = str(base_path / "corerl-*")
-        matches = glob.glob(exe_pattern)
+        exe_pattern = str(base_path / "**/*corerl-*")
+        matches = glob.glob(exe_pattern, recursive=True)
         if not matches:
-            raise FileNotFoundError(f"No corerl executable found in {base_path} matching 'corerl-*'")
+            raise FileNotFoundError(f"No corerl executable found in {base_path} matching '**/*corerl-*'")
         return Path(matches[0])
