@@ -53,22 +53,25 @@ class Agent(ServiceLike):
         coreio_status = self._coreio_service.status()
 
         statuses = [corerl_status, coreio_status]
-
-        if any(s.state == ServiceState.FAILED for s in statuses):
-            state = ServiceState.FAILED
-        elif all(s.state == ServiceState.RUNNING for s in statuses):
-            state = ServiceState.RUNNING
-        elif all(s.state == ServiceState.STOPPED for s in statuses):
-            state = ServiceState.STOPPED
-        else:
-            # This covers mixed states like starting/stopping
-            state = ServiceState.STARTING
+        state = self._get_joint_status([s.state for s in statuses])
 
         return AgentStatus(
             id=self._id,
             state=state,
             config_path=self._config_path,
         )
+
+    def _get_joint_status(self, service_statuses: list[ServiceState]) -> ServiceState:
+        if any(s == ServiceState.FAILED for s in service_statuses):
+            return ServiceState.FAILED
+
+        if all(s == ServiceState.RUNNING for s in service_statuses):
+            return ServiceState.RUNNING
+
+        if all(s == ServiceState.STOPPED for s in service_statuses):
+            return ServiceState.STOPPED
+
+        return ServiceState.STARTING
 
     def get_process_ids(self) -> list[int | None]:
         """Get process IDs as a 2-element list: [corerl_pid, coreio_pid]."""

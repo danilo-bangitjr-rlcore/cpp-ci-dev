@@ -73,9 +73,8 @@ class Service:
 
         exe = self._ensure_executable()
         cfg = self._ensure_config()
-        cfg_name = cfg.stem
 
-        args = [str(exe), "--config-name", cfg_name]
+        args = self._build_args(exe, cfg)
         popen = Popen(
             args,
             stdin=DEVNULL,
@@ -179,6 +178,9 @@ class Service:
             return False
 
         return self._process.is_running() and self._process.status() != psutil.STATUS_ZOMBIE
+
+    def _build_args(self, exe: Path, cfg: Path) -> list[str]:
+        return [str(exe), "--config-name", str(cfg)]
 
 
     # -------------

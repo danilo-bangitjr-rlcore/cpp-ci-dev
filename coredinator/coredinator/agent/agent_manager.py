@@ -36,17 +36,17 @@ class AgentManager:
     # ----------------
     # -- Public API --
     # ----------------
-    def start_agent(self, config_path: Path):
+    def start_agent(self, config_path: Path, agent_factory: type[Agent] = Agent) -> AgentID:
         agent_id = AgentID(config_path.stem)
         if agent_id not in self._agents:
-            self._agents[agent_id] = Agent(id=agent_id, config_path=config_path, base_path=self._base_path)
+            self._agents[agent_id] = agent_factory(id=agent_id, config_path=config_path, base_path=self._base_path)
 
         self._agents[agent_id].start()
 
         # Wait a moment for processes to start, then get process IDs
         time.sleep(0.1)
         process_ids = self._agents[agent_id].get_process_ids()
-        # List has exactly 2 elements: [corerl_pid, coreio_pid] (each can be int or None)
+        # Extract corerl and coreio process IDs (first two are always these)
         corerl_process_id = process_ids[0]
         coreio_process_id = process_ids[1]
         self._update_agent_state(agent_id, "running", config_path, corerl_process_id, coreio_process_id)
@@ -69,6 +69,7 @@ class AgentManager:
 
     def list_agents(self):
         return list(self._agents.keys())
+
 
     # -------------------
     # -- Serialization --
