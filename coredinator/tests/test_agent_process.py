@@ -1,22 +1,13 @@
 from __future__ import annotations
 
+import shutil
 import stat
 import time
 from pathlib import Path
 
 import pytest
 
-from coredinator.agent.agent_process import AgentID, AgentProcess
-
-
-@pytest.fixture(scope="session")
-def fake_agent_path() -> Path:
-    here = Path(__file__).parent
-    agent = here / "fixtures" / "fake_agent.py"
-    # Ensure executable bit for POSIX
-    mode = agent.stat().st_mode
-    agent.chmod(mode | stat.S_IXUSR)
-    return agent
+from coredinator.agent.agent_manager import AgentID, AgentManager
 
 
 @pytest.fixture()
@@ -26,98 +17,154 @@ def config_file(tmp_path: Path) -> Path:
     return cfg
 
 
-@pytest.fixture(autouse=True)
-def patch_agent_executable(monkeypatch: pytest.MonkeyPatch, fake_agent_path: Path):
-    from coredinator.agent import agent_process as ap
+@pytest.fixture()
+def dist_with_fake_executable(tmp_path: Path) -> Path:
+    dist_dir = tmp_path / "dist"
+    dist_dir.mkdir()
+    src = Path(__file__).parent / "fixtures" / "fake_agent.py"
+    dst_coreio = dist_dir / "coreio-1.0.0"
+    dst_corerl = dist_dir / "corerl-1.0.0"
+    for dst in [dst_coreio, dst_corerl]:
+        shutil.copy(src, dst)
+        # Make executable
+        mode = dst.stat().st_mode
+        dst.chmod(mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    return dist_dir
 
-    monkeypatch.setattr(ap, "AGENT_EXECUTABLE", fake_agent_path)
 
-
-def test_initial_status_stopped(config_file: Path):
+def test_initial_status_stopped(
+    dist_with_fake_executable: Path,
+):
     """
     Test that the initial status of an AgentProcess is stopped.
     """
-    proc = AgentProcess(id=AgentID("a1"), config_path=config_file)
-    s = proc.status()
-    assert s.id == "a1"
+    manager = AgentManager(base_path=dist_with_fake_executable)
+
+    agent_id = AgentID('agent')
+    s = manager.get_agent_status(agent_id)
+
+    assert s.id == agent_id
     assert s.state == "stopped"
-    assert s.config_path == config_file
 
 
 @pytest.mark.timeout(5)
-def test_start_and_running_status(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_start_and_running_status(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that starting an AgentProcess transitions it to running status.
     """
     # Default behavior is long-running process. Ensure environment is set.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    proc = AgentProcess(id=AgentID("a2"), config_path=config_file)
-    proc.start()
+    manager = AgentManager(base_path=dist_with_fake_executable)
+    agent_id = manager.start_agent(config_file)
 
     # Give a brief moment for process to boot
     time.sleep(0.2)
 
-    assert proc.status().state == "running"
+    assert manager.get_agent_status(agent_id).state == "running"
 
     # Clean up
-    proc.stop()
-    assert proc.status().state == "stopped"
+    manager.stop_agent(agent_id)
+    assert manager.get_agent_status(agent_id).state == "stopped"
 
 
 @pytest.mark.timeout(5)
-def test_stop_transitions_to_stopped(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_stop_transitions_to_stopped(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that stopping an AgentProcess transitions it to stopped status.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    proc = AgentProcess(id=AgentID("a3"), config_path=config_file)
-    proc.start()
+    manager = AgentManager(base_path=dist_with_fake_executable)
+    agent_id = manager.start_agent(config_file)
     time.sleep(0.2)
 
-    proc.stop()
-    assert proc.status().state == "stopped"
+    manager.stop_agent(agent_id)
+    assert manager.get_agent_status(agent_id).state == "stopped"
 
     time.sleep(0.2)
-    proc.stop()
-    assert proc.status().state == "stopped"
+    manager.stop_agent(agent_id)
+    assert manager.get_agent_status(agent_id).state == "stopped"
 
 
 @pytest.mark.timeout(5)
-def test_failed_status_when_process_exits_nonzero(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_failed_status_when_process_exits_nonzero(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that an AgentProcess status is failed when the process exits with a non-zero code.
     """
     # Configure the fake agent to exit with failure immediately.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
 
-    proc = AgentProcess(id=AgentID("a4"), config_path=config_file)
-    proc.start()
+    manager = AgentManager(base_path=dist_with_fake_executable)
+    agent_id = manager.start_agent(config_file)
 
     # Wait briefly to allow process to exit
     time.sleep(0.2)
 
-    assert proc.status().state == "failed"
+    assert manager.get_agent_status(agent_id).state == "failed"
 
 
 @pytest.mark.timeout(5)
-def test_start_is_idempotent(monkeypatch: pytest.MonkeyPatch, config_file: Path):
+def test_start_is_idempotent(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
     """
     Test that starting an AgentProcess is idempotent when already running.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    proc = AgentProcess(id=AgentID("a5"), config_path=config_file)
-
-    proc.start()
+    manager = AgentManager(base_path=dist_with_fake_executable)
+    agent_id = manager.start_agent(config_file)
 
     time.sleep(0.2)
-    assert proc.status().state == "running"
+    assert manager.get_agent_status(agent_id).state == "running"
 
     # Starting again should be a no-op while running
-    proc.start()
+    manager.start_agent(config_file)
 
     time.sleep(0.2)
-    assert proc.status().state == "running"
+    assert manager.get_agent_status(agent_id).state == "running"
 
-    proc.stop()
+    manager.stop_agent(agent_id)
+
+
+@pytest.mark.timeout(5)
+def test_agent_fails_when_child_service_fails(
+    monkeypatch: pytest.MonkeyPatch,
+    config_file: Path,
+    dist_with_fake_executable: Path,
+):
+    """
+    Test that an AgentProcess status is failed if one of its child services fails.
+    """
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    manager = AgentManager(base_path=dist_with_fake_executable)
+    agent_id = manager.start_agent(config_file)
+
+    time.sleep(0.2)
+    assert manager.get_agent_status(agent_id).state == "running"
+
+    # Kill one of the services
+    # It's a bit ugly to reach into the private attributes, but it's the most
+    # direct way to simulate a service crash for this test.
+    coreio_process = manager._agents[agent_id]._coreio_service._process
+    assert coreio_process is not None
+    coreio_process.kill()
+
+    time.sleep(0.2)  # Allow time for status to update
+
+    assert manager.get_agent_status(agent_id).state == "failed"
+    manager.stop_agent(agent_id)

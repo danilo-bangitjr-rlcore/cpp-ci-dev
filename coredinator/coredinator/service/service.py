@@ -6,44 +6,33 @@ import time
 from dataclasses import dataclass
 from pathlib import Path
 from subprocess import DEVNULL, Popen
-from typing import Literal, NewType
 
 import backoff
 
-AgentID = NewType("AgentID", str)
-
-# TODO: make this configurable
-# TODO: add automatic discovery
-AGENT_EXECUTABLE = Path("dist/corerl")
-
-
-AgentState = Literal["starting", "running", "stopping", "stopped", "failed"]
+from coredinator.service.protocols import ServiceID, ServiceState
 
 
 @dataclass(frozen=True, slots=True)
-class AgentStatus:
-    id: AgentID
-    state: AgentState
+class ServiceStatus:
+    id: ServiceID
+    state: ServiceState
     config_path: Path | None
 
 
-class AgentProcess:
-    def __init__(self, id: AgentID, config_path: Path):
+class Service:
+    def __init__(self, id: ServiceID, executable_path: Path, config_path: Path):
         self.id = id
-
         self._process: Popen | None = None
-        self._exe_path: Path = AGENT_EXECUTABLE
+        self._exe_path: Path = executable_path
         self._config_path: Path = config_path
-
 
     def _ensure_executable(self):
         if not self._exe_path.exists():
-            raise FileNotFoundError(f"Agent executable not found at {self._exe_path}")
+            raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
         if not os.access(self._exe_path, os.X_OK):
-            raise PermissionError(f"Agent executable is not executable: {self._exe_path}")
+            raise PermissionError(f"Service executable is not executable: {self._exe_path}")
 
         return self._exe_path
-
 
     def _ensure_config(self):
         if not self._config_path.exists():
@@ -51,10 +40,8 @@ class AgentProcess:
 
         return self._config_path
 
-
     def is_running(self):
         return self._process is not None and self._process.poll() is None
-
 
     @backoff.on_exception(
         backoff.expo,
@@ -72,7 +59,6 @@ class AgentProcess:
 
         args = [str(exe), "--config-name", cfg_name]
         self._process = Popen(args, stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
-
 
     @backoff.on_exception(
         backoff.expo,
@@ -114,30 +100,28 @@ class AgentProcess:
         finally:
             self._process = None
 
-
     def restart(self):
         self.stop()
         self.start()
 
-
     def status(self):
         if self._process is None:
-            return AgentStatus(
+            return ServiceStatus(
                 id=self.id,
-                state="stopped",
+                state=ServiceState.STOPPED,
                 config_path=self._config_path,
             )
 
         code = self._process.poll()
         if code is None:
-            return AgentStatus(
+            return ServiceStatus(
                 id=self.id,
-                state="running",
+                state=ServiceState.RUNNING,
                 config_path=self._config_path,
             )
 
-        return AgentStatus(
+        return ServiceStatus(
             id=self.id,
-            state="failed",
+            state=ServiceState.FAILED,
             config_path=self._config_path,
         )
