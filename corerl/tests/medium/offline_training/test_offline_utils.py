@@ -135,7 +135,7 @@ def offline_pipeout(offline_cfg: MainConfig, dummy_app_state: AppState, data_wri
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     dummy_app_state.cfg = offline_cfg
-    pipeout =  load_offline_transitions(dummy_app_state, pipeline)
+    pipeout, _ =  load_offline_transitions(dummy_app_state, pipeline)
     assert pipeout is not None
     return pipeout
 
@@ -247,10 +247,25 @@ def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, d
 
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    offline_pipeout = load_offline_transitions(dummy_app_state, pipeline)
+    offline_pipeout, _ = load_offline_transitions(dummy_app_state, pipeline)
 
     # Since start_time and end_time are specified,
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
     assert isinstance(offline_pipeout, PipelineReturn)
     df = offline_pipeout.df
     assert len(df) == (offline_cfg.offline.offline_end_time - offline_cfg.offline.offline_start_time) / obs_period
+
+
+def test_test_split(offline_cfg: MainConfig, dummy_app_state: AppState, data_writer: DataWriter):
+    """
+    Tests ability to split offline transitions into a train and test set.
+    """
+    offline_cfg.offline.test_split = 0.2
+    dummy_app_state.cfg = offline_cfg
+    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
+    offline_pipeout, test_transitions = load_offline_transitions(dummy_app_state, pipeline)
+    assert offline_pipeout is not None
+    assert offline_pipeout.transitions is not None
+    assert test_transitions is not None
+    assert len(offline_pipeout.transitions) == 4
+    assert len(test_transitions) == 1
