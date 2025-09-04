@@ -1,17 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../utils/api';
-
-interface StatusResponse {
-  connected: boolean;
-  server_url: string | null;
-  message?: string;
-  error?: string;
-  server_info?: {
-    node_id: string;
-    display_name: string;
-  };
-}
+import type { StatusResponse } from '../routes/opc-navigation';
 
 interface OpcConnectionCardProps {
   statusData?: StatusResponse;
@@ -85,7 +75,7 @@ export function OpcConnectionCard({
   const getDisplayStatus = (): string => {
     if (connectMutation.isPending) return 'Connecting...';
     if (disconnectMutation.isPending) return 'Disconnecting...';
-    if (showValidationError) return 'Please enter a valid url';
+    if (showValidationError) return 'Please enter a valid URL';
     if (connectMutation.error && !showValidationError) return 'Error';
     if (statusError) return 'Error';
     if (isStatusLoading) return 'Checking...';

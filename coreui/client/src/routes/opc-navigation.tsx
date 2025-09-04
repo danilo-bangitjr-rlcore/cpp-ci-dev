@@ -7,7 +7,7 @@ export const Route = createFileRoute('/opc-navigation')({
   component: RouteComponent,
 });
 
-interface StatusResponse {
+export interface StatusResponse {
   connected: boolean;
   server_url: string | null;
   message?: string;
