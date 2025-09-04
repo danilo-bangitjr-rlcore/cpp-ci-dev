@@ -33,6 +33,7 @@ class BoundType(StrEnum):
     red_zone = auto()
     yellow_zone = auto()
     action_bound = auto()
+    red_zone_reflex = auto()
 
 class Direction(StrEnum):
     Lower = auto()
@@ -81,6 +82,13 @@ class RedZoneReflexConfig:
     Kind: required external
     The bounds of the red zone. This is used to determine the
     reaction to the violation.
+    """
+
+    bounds_info: BoundsInfo | None = None
+    """
+    Kind: computed internal
+
+    Store a BoundsInfo object containing information about the lower and upper bounds of the red zone reflex.
     """
 
 
@@ -244,6 +252,10 @@ class SafetyZonedTag(BoundedTag):
 
         if self.yellow_bounds is not None:
             self.yellow_bounds_info = init_bounds_info(self, self.yellow_bounds, BoundType.yellow_zone, tags)
+
+        if self.red_zone_reaction is not None:
+            for reflex in self.red_zone_reaction:
+                reflex.bounds_info = init_bounds_info(self, reflex.bounds, BoundType.red_zone_reflex, tags)
 
     @post_processor
     def _red_zone_reflex_check(self, cfg: 'MainConfig'):

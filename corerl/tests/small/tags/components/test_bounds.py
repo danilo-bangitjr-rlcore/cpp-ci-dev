@@ -130,10 +130,80 @@ def test_yellow_upper_greater_than_red_upper_sympy():
     with pytest.raises(AssertionError):
         validate_tag_configs(cfg)
 
+def test_red_zone_reflex_hi_greater_than_reflex_lo():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/red_zone_reflex_hi_greater_than_reflex_lo.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
+def test_red_zone_reflex_within_op_range():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/red_zone_reflex_within_op_range.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
 def test_goal_thresh_in_op_range_sympy():
     config_path = os.path.join(
         os.path.dirname(__file__),
         'assets/goal_thresh_in_op_range_sympy.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
+def test_computed_tag_in_op_range():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/computed_tag_in_op_range.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.warns():
+        validate_tag_configs(cfg)
+
+def test_redundant_goals():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/redundant_goals.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
+def test_inconsistent_goals():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/inconsistent_goals.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
+def test_inconsistent_goals_and_red_zones_float():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/inconsistent_goals_and_red_zones_float.yaml',
+    )
+    cfg = direct_load_config(MainConfig, config_name=config_path)
+    assert not isinstance(cfg, ConfigValidationErrors)
+    with pytest.raises(AssertionError):
+        validate_tag_configs(cfg)
+
+def test_inconsistent_goals_and_red_zones_sympy():
+    config_path = os.path.join(
+        os.path.dirname(__file__),
+        'assets/inconsistent_goals_and_red_zones_sympy.yaml',
     )
     cfg = direct_load_config(MainConfig, config_name=config_path)
     assert not isinstance(cfg, ConfigValidationErrors)
