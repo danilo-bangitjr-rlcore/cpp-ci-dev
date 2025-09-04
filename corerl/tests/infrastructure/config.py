@@ -16,7 +16,6 @@ def basic_config_path():
     return "tests/infrastructure/configs/basic_config.yaml"
 
 
-
 def load_config(path: str, overrides: dict[str, Any]):
     cfg = direct_load_config(MainConfig, config_name=path, overrides=overrides)
     assert isinstance(cfg, MainConfig), f"Failed to load MainConfig at path {path}"
@@ -31,7 +30,7 @@ def basic_config(
 
 
 @pytest.fixture()
-def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) :
+def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     port = tsdb_engine.url.port
     assert port is not None
 
@@ -47,7 +46,7 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str) :
     )
 
 @pytest.fixture(scope="function")
-def offline_cfg(test_db_config: TagDBConfig) -> MainConfig:
+def offline_cfg(test_db_config: TagDBConfig):
     cfg = direct_load_config(
         MainConfig,
         config_name='tests/medium/offline_training/assets/offline_config.yaml',
