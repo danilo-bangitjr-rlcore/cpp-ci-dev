@@ -1,4 +1,3 @@
-
 # Coredinator
 
 Coredinator is a FastAPI-based orchestration layer for all RLTune microservices.
@@ -85,6 +84,9 @@ Optional configuration:
 | `GET` | `/api/agents/{agent_id}/status` | Get agent status information |
 | `GET` | `/api/agents/` | List all managed agents |
 | `GET` | `/api/healthcheck` | Service health check |
+| `POST` | `/api/agents/demo/tep/start` | Start a TEP demo agent with a demo configuration |
+| `POST` | `/api/agents/demo/tep/{agent_id}/stop` | Stop a running TEP demo agent |
+| `GET` | `/api/agents/demo/tep/{agent_id}/status` | Get status for a TEP demo agent |
 
 ### Example Usage
 
@@ -104,6 +106,67 @@ curl -X GET "http://localhost:8000/api/agents/{agent_id}/status"
 ```bash
 curl -X POST "http://localhost:8000/api/agents/{agent_id}/stop"
 ```
+
+## TEP Demo: AgentManager demo routes
+
+The TEP demo endpoints provide a quick way to start, inspect, and stop a demo agent used for the TEP showcase. These endpoints are implemented in the `AgentManager` as a convenience wrapper around the regular agent lifecycle APIs. They do not embed special/demo configs; under the hood they follow the same configuration loading and validation as the standard agent start flow and therefore may require a valid config path or standard parameters depending on the runtime implementation.
+
+Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/agents/demo/tep/start` | Start a TEP demo agent. Returns the new `agent_id` and metadata. |
+| `POST` | `/api/agents/demo/tep/{agent_id}/stop` | Stop a running TEP demo agent. |
+| `GET` | `/api/agents/demo/tep/{agent_id}/status` | Get status for a TEP demo agent. |
+
+Start request example (may require a config or parameters depending on implementation):
+
+```bash
+curl -X POST "http://localhost:8000/api/agents/demo/tep/start" \
+  -H "Content-Type: application/json" \
+  -d '{"config_path": "/path/to/demo_config.yaml"}'
+```
+
+Successful start response (JSON, illustrative):
+
+```json
+{
+  "agent_id": "tep-demo-2025-09-04-001",
+  "status": "starting",
+  "ports": {
+    "coreio": 5001,
+    "corerl": 5002
+  },
+  "config": "/path/to/demo_config.yaml"
+}
+```
+
+Stop request example:
+
+```bash
+curl -X POST "http://localhost:8000/api/agents/demo/tep/tep-demo-2025-09-04-001/stop"
+```
+
+Status response example:
+
+```json
+{
+  "agent_id": "tep-demo-2025-09-04-001",
+  "status": "running",
+  "uptime_seconds": 42,
+  "ports": {
+    "coreio": 5001,
+    "corerl": 5002
+  }
+}
+```
+
+Notes
+
+- These demo endpoints are intended for local demos and CI smoke tests only. They are convenience wrappers and should be used in trusted environments.
+- The demo routes use the same config-loading/validation pathway as the standard `/api/agents/start` flow. If your runtime requires a config path or parameters, pass them in the request.
+- The returned `agent_id` follows a predictable pattern but should be treated as opaque by callers.
+- If you need fine-grained control (different seeds, port offsets, or non-demo configs), use `/api/agents/start` with an explicit YAML config.
 
 ## Development
 
