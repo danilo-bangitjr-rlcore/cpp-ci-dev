@@ -1,5 +1,6 @@
 import logging
 import random
+from datetime import datetime
 
 import numpy as np
 import pandas as pd
@@ -61,6 +62,7 @@ def main(cfg: MainConfig):
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
+    start_time = datetime.now()
 
     app_state = AppState(
         cfg,
@@ -99,13 +101,23 @@ def main(cfg: MainConfig):
         if pr.transitions is not None:
             transitions += pr.transitions
 
+    end_time = datetime.now()
+
     # Extract captured dataframes
     data = []
     for stage in cfg.report.stages:
         data.append(capture.get_concatenated_data(stage))
 
     log.info("Generating report from captured stage data...")
-    generate_report(cfg.report, data, cfg.report.stages, transitions)
+    generate_report(
+        cfg.report,
+        data,
+        cfg.report.stages,
+        app_state,
+        start_time,
+        end_time,
+        transitions,
+    )
 
 
 if __name__ == "__main__":

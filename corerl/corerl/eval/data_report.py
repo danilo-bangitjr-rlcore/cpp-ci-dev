@@ -1,5 +1,6 @@
 import logging
 import shutil
+from datetime import datetime
 from itertools import combinations
 from pathlib import Path
 from typing import cast
@@ -18,6 +19,7 @@ from corerl.eval.plotting.report import (
     plot_sensor_histogram,
 )
 from corerl.eval.raw_data import raw_data_eval_for_tag
+from corerl.state import AppState
 
 log = logging.getLogger(__name__)
 
@@ -399,6 +401,9 @@ def generate_report(
         cfg: ReportConfig,
         data: list[pd.DataFrame],
         stages: list[StageCode],
+        app_state: AppState,
+        start_time: datetime,
+        end_time: datetime,
         transitions: list[Transition] | None = None,
     ) -> None:
 
