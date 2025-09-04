@@ -62,3 +62,32 @@ class OPC_Connection_UI(OPC_Connection):
                 await self.cleanup()
             except Exception as e:
                 logger.error(f"Error during cleanup: {e!s}")
+
+    async def browse_root(self) -> list[dict[str, Any]]:
+        """Browse the root nodes of the OPC server"""
+        if not self.opc_client:
+            raise ValueError("OPC client not initialized")
+
+        try:
+            await self.ensure_connected_no_backoff()
+            root_node = self.opc_client.get_root_node()
+            children = await root_node.get_children()
+            nodes = []
+            for child in children:
+                display_name = (await child.read_display_name()).Text
+                node_id = str(child.nodeid)
+                node_class = await child.read_node_class()
+                nodes.append({
+                    "node_id": node_id,
+                    "display_name": display_name,
+                    "node_class": str(node_class),
+                })
+            return nodes
+        except Exception as e:
+            logger.error(f"Error browsing root nodes: {e!s}")
+            raise
+        finally:
+            try:
+                await self.cleanup()
+            except Exception as e:
+                logger.error(f"Error during cleanup: {e!s}")
