@@ -84,8 +84,7 @@ def make_stat_table(
             table_data.append(row)
     table_data.insert(0, headers)
     table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
-    with open(output_path / 'sensor_report.txt', 'w') as f:
-        f.write(table_str)
+    (output_path / 'sensor_report.txt').write_text(table_str, encoding='utf-8')
 
 
 def make_distribution_plots(
@@ -194,8 +193,7 @@ def make_cross_correlation_table(
             table.append(row)  # type: ignore
 
     table_str = tabulate(table, headers='firstrow', tablefmt='grid')
-    with open(output_path / 'cross_correlation.txt', 'w') as f:
-        f.write(table_str)
+    (output_path / 'cross_correlation.txt').write_text(table_str, encoding='utf-8')
 
 
 def standardize(x: np.ndarray, mask: np.ndarray):
