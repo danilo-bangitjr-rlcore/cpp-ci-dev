@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../utils/api';
-import { OpcConnectionCard } from '../components/OpcConnectionCard';
+import { OpcConnectionCard }  from '../components/OpcConnectionCard';
 
 export const Route = createFileRoute('/opc-navigation')({
   component: RouteComponent,
