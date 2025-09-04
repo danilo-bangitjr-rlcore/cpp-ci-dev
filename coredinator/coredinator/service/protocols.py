@@ -51,6 +51,17 @@ class ServiceLike(Protocol):
     def status(self) -> object:
         ...
 
+    def get_process_ids(self) -> list[int | None]:
+        """Get process IDs of all running processes for this service."""
+        ...
+
+    def reattach_process(self, pid: int) -> bool:
+        """Reattach to an existing process if it exists and is running.
+
+        Returns True if successfully reattached, False otherwise.
+        """
+        ...
+
 
 @dataclass(frozen=True)
 class ServiceStatus:

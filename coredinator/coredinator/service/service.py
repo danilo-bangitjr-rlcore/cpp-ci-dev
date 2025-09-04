@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import os
-import signal
 import threading
 import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from subprocess import DEVNULL, Popen
+from subprocess import DEVNULL, Popen, TimeoutExpired
+from urllib.error import URLError
+from urllib.request import urlopen
+
+import psutil
+from lib_utils.errors import fail_gracefully
 
 from coredinator.service.protocols import ServiceID, ServiceState
 
@@ -30,6 +34,10 @@ class ServiceStatus:
 class ServiceConfig:
     heartbeat_interval: timedelta = timedelta(seconds=5)
     degraded_wait: timedelta = timedelta(seconds=30)
+    host: str = "127.0.0.1"
+    port: int = 8080
+    healthcheck_timeout: timedelta = timedelta(seconds=3)
+    healthcheck_enabled: bool = False
 
 
 class Service:
@@ -41,7 +49,7 @@ class Service:
         self._exe_path: Path = executable_path
         self._config_path: Path = config_path
 
-        self._process: Popen | None = None
+        self._process: psutil.Process | None = None
         self._keep_alive_thread: threading.Thread | None = None
 
 
@@ -49,9 +57,15 @@ class Service:
     # -- Public --
     # ------------
     def is_running(self):
-        return self._process is not None and self._process.poll() is None
+        if not self._is_process_running():
+            return False
 
+        if self.config.healthcheck_enabled:
+            return self._is_healthy()
 
+        return True
+
+    @fail_gracefully()
     def start(self):
         self._mode = ServiceMode.STARTED
         if self.is_running():
@@ -62,10 +76,18 @@ class Service:
         cfg_name = cfg.stem
 
         args = [str(exe), "--config-name", cfg_name]
-        self._process = Popen(args, stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
+        popen = Popen(
+            args,
+            stdin=DEVNULL,
+            stdout=DEVNULL,
+            stderr=DEVNULL,
+            start_new_session=True,  # Detach from parent process
+        )
+        self._process = psutil.Process(popen.pid)
         self._keep_alive()
 
 
+    @fail_gracefully()
     def stop(self, grace_seconds: float = 5.0) -> None:
         self._mode = ServiceMode.STOPPED
         if not self._process:
@@ -79,6 +101,7 @@ class Service:
         self.stop()
         self.start()
 
+
     def status(self):
         if self._process is None:
             return ServiceStatus(
@@ -87,20 +110,41 @@ class Service:
                 config_path=self._config_path,
             )
 
-        code = self._process.poll()
-        if code is None:
+        if not self._process.is_running() or self._process.status() == psutil.STATUS_ZOMBIE:
             return ServiceStatus(
                 id=self.id,
-                state=ServiceState.RUNNING,
+                state=ServiceState.FAILED,
                 config_path=self._config_path,
             )
 
+        state = ServiceState.RUNNING if self._is_healthy() else ServiceState.FAILED
         return ServiceStatus(
             id=self.id,
-            state=ServiceState.FAILED,
+            state=state,
             config_path=self._config_path,
         )
 
+    def get_process_ids(self) -> list[int | None]:
+        """Get process ID of the main process for this service."""
+        if self._process is not None:
+            return [self._process.pid]
+
+        return [None]
+
+    def reattach_process(self, pid: int) -> bool:
+        """Reattach to an existing process if it exists and is running.
+
+        Returns True if successfully reattached, False otherwise.
+        """
+        try:
+            proc = psutil.Process(pid)
+            if proc.is_running() and proc.status() != psutil.STATUS_ZOMBIE:
+                self._process = proc
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            pass
+
+        return False
 
     # -----------------
     # -- Validations --
@@ -118,6 +162,23 @@ class Service:
             raise FileNotFoundError(f"Config file not found at {self._config_path}")
 
         return self._config_path
+
+    def _is_healthy(self) -> bool:
+        if not self.config.healthcheck_enabled:
+            return True
+
+        try:
+            url = f"http://{self.config.host}:{self.config.port}/api/healthcheck"
+            with urlopen(url, timeout=self.config.healthcheck_timeout.total_seconds()) as response:
+                return response.status == 200
+        except (URLError, OSError):
+            return False
+
+    def _is_process_running(self) -> bool:
+        if self._process is None:
+            return False
+
+        return self._process.is_running() and self._process.status() != psutil.STATUS_ZOMBIE
 
 
     # -------------
@@ -154,29 +215,11 @@ class Service:
         self._keep_alive_thread = t
 
 
-def stop_process(proc: Popen, grace_seconds: float) -> None:
-    """
-    Attempt to gracefully stop a Popen process, escalating to kill if needed.
-    """
-    if proc.poll() is not None:
-        return
-
-    try:
-        proc.send_signal(signal.SIGTERM)
-    except Exception:
+@fail_gracefully()
+def stop_process(proc: psutil.Process, grace_seconds: float = 5.0) -> None:
+    for child in proc.children(recursive=True):
+        child.terminate()
         try:
-            proc.kill()
-        except Exception:
-            pass
-        return
-
-    deadline = time.monotonic() + grace_seconds
-    while time.monotonic() < deadline:
-        if proc.poll() is not None:
-            return
-        time.sleep(0.05)
-
-    try:
-        proc.kill()
-    finally:
-        pass
+            child.wait(timeout=grace_seconds)
+        except TimeoutExpired:
+            child.kill()

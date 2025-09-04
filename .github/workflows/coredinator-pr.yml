@@ -58,4 +58,4 @@ jobs:
 
       - name: Run Pytest
         run: |
-          pytest -n auto --dist loadscope tests/
+          pytest tests/

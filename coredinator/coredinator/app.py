@@ -1,10 +1,10 @@
 import argparse
-import importlib.metadata
 import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
 
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -17,6 +17,7 @@ _log = logging.getLogger("uvicorn.error")
 _log.setLevel(logging.INFO)
 
 logger = logging.getLogger("uvicorn")
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -44,11 +45,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-try:
-    version = importlib.metadata.version("corerl")
-except Exception:
-    logger.exception("Failed to determine corerl version")
-    version = "0.0.0"
+version = "0.0.0"
 
 
 @app.middleware("http")
@@ -69,3 +66,7 @@ async def health():
 
 
 app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
+
+
+if __name__ == "__main__":
+    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=8000, reload=True)

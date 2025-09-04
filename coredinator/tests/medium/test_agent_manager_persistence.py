@@ -1,10 +1,10 @@
 import sqlite3
-import time
 from pathlib import Path
 
 import pytest
 
 from coredinator.agent.agent_manager import AgentManager
+from coredinator.utils.test_polling import wait_for_event
 
 
 class TestAgentManagerPersistence:
@@ -27,8 +27,12 @@ class TestAgentManagerPersistence:
         manager1 = AgentManager(base_path=dist_with_fake_executable)
         agent_id = manager1.start_agent(test_config)
 
-        time.sleep(0.2)  # Allow agent to start
-        assert manager1.get_agent_status(agent_id).state == "running"
+        # Wait for agent to start
+        assert wait_for_event(
+            lambda: manager1.get_agent_status(agent_id).state == "running",
+            interval=0.05,
+            timeout=1.0,
+        )
         assert agent_id in manager1.list_agents()
 
         # Phase 2: Create new AgentManager (simulating restart)
@@ -38,10 +42,12 @@ class TestAgentManagerPersistence:
         # Verify agent was restored
         assert agent_id in manager2.list_agents()
 
-        # Give time for auto-start
-        time.sleep(0.2)
-        status = manager2.get_agent_status(agent_id)
-        assert status.state == "running", "Agent should auto-start because it was marked as running"
+        # Wait for auto-start to complete
+        assert wait_for_event(
+            lambda: manager2.get_agent_status(agent_id).state == "running",
+            interval=0.05,
+            timeout=2.0,
+        ), "Agent should auto-start because it was marked as running"
 
         # Clean up
         manager2.stop_agent(agent_id)
@@ -71,7 +77,15 @@ class TestAgentManagerPersistence:
         agent2_id = manager1.start_agent(config2)  # Will be stopped
         agent3_id = manager1.start_agent(config3)  # Will be running
 
-        time.sleep(0.2)
+        # Wait for all agents to start
+        def _all_running():
+            return (
+                manager1.get_agent_status(agent1_id).state == "running" and
+                manager1.get_agent_status(agent2_id).state == "running" and
+                manager1.get_agent_status(agent3_id).state == "running"
+            )
+
+        assert wait_for_event(_all_running, interval=0.05, timeout=2.0)
 
         # Stop agent2 to create mixed states
         manager1.stop_agent(agent2_id)
@@ -85,12 +99,15 @@ class TestAgentManagerPersistence:
         assert agent2_id in restored_agents
         assert agent3_id in restored_agents
 
-        time.sleep(0.2)
+        # Wait for auto-start to complete and verify states
+        def _correct_states():
+            return (
+                manager2.get_agent_status(agent1_id).state == "running" and
+                manager2.get_agent_status(agent2_id).state == "stopped" and  # Should NOT be auto-started
+                manager2.get_agent_status(agent3_id).state == "running"
+            )
 
-        # Check that only running agents were auto-started
-        assert manager2.get_agent_status(agent1_id).state == "running"
-        assert manager2.get_agent_status(agent2_id).state == "stopped"  # Should NOT be auto-started
-        assert manager2.get_agent_status(agent3_id).state == "running"
+        assert wait_for_event(_correct_states, interval=0.05, timeout=2.0)
 
         # Clean up
         for agent_id in [agent1_id, agent2_id, agent3_id]:
