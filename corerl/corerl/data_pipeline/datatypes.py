@@ -138,6 +138,14 @@ class Transition:
             self.n_step_gamma,
         ))
 
+    @property
+    def start(self):
+        return self.prior.timestamp
+
+    @property
+    def end(self):
+        return self.post.timestamp
+
 
 class AbsTransition(NamedTuple):
     state: State
