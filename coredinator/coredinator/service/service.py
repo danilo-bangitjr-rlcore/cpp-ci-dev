@@ -2,14 +2,22 @@ from __future__ import annotations
 
 import os
 import signal
+import threading
 import time
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from enum import StrEnum
 from pathlib import Path
 from subprocess import DEVNULL, Popen
 
 import backoff
 
 from coredinator.service.protocols import ServiceID, ServiceState
+
+
+class ServiceMode(StrEnum):
+    STARTED = "started"
+    STOPPED = "stopped"
 
 
 @dataclass(frozen=True, slots=True)
@@ -19,29 +27,32 @@ class ServiceStatus:
     config_path: Path | None
 
 
+
+@dataclass
+class ServiceConfig:
+    heartbeat_interval: timedelta = timedelta(seconds=5)
+    degraded_wait: timedelta = timedelta(seconds=30)
+
+
 class Service:
-    def __init__(self, id: ServiceID, executable_path: Path, config_path: Path):
+    def __init__(self, id: ServiceID, executable_path: Path, config_path: Path, config: ServiceConfig | None = None):
+        self._mode = ServiceMode.STOPPED
+        self.config = config if config is not None else ServiceConfig()
+
         self.id = id
-        self._process: Popen | None = None
         self._exe_path: Path = executable_path
         self._config_path: Path = config_path
 
-    def _ensure_executable(self):
-        if not self._exe_path.exists():
-            raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
-        if not os.access(self._exe_path, os.X_OK):
-            raise PermissionError(f"Service executable is not executable: {self._exe_path}")
+        self._process: Popen | None = None
+        self._keep_alive_thread: threading.Thread | None = None
 
-        return self._exe_path
 
-    def _ensure_config(self):
-        if not self._config_path.exists():
-            raise FileNotFoundError(f"Config file not found at {self._config_path}")
-
-        return self._config_path
-
+    # ------------
+    # -- Public --
+    # ------------
     def is_running(self):
         return self._process is not None and self._process.poll() is None
+
 
     @backoff.on_exception(
         backoff.expo,
@@ -50,6 +61,7 @@ class Service:
         jitter=backoff.full_jitter,
     )
     def start(self):
+        self._mode = ServiceMode.STARTED
         if self.is_running():
             return
 
@@ -59,6 +71,8 @@ class Service:
 
         args = [str(exe), "--config-name", cfg_name]
         self._process = Popen(args, stdin=DEVNULL, stdout=DEVNULL, stderr=DEVNULL)
+        self._keep_alive()
+
 
     @backoff.on_exception(
         backoff.expo,
@@ -67,38 +81,13 @@ class Service:
         jitter=backoff.full_jitter,
     )
     def stop(self, grace_seconds: float = 5.0) -> None:
+        self._mode = ServiceMode.STOPPED
         if not self._process:
             return
 
-        proc = self._process
-        if proc.poll() is not None:
-            self._process = None
-            return
+        stop_process(self._process, grace_seconds)
+        self._process = None
 
-        try:
-            proc.send_signal(signal.SIGTERM)
-        except Exception:
-            # If sending SIGTERM fails (rare), fall back to kill
-            try:
-                proc.kill()
-            except Exception:
-                pass
-            self._process = None
-            return
-
-        # Wait up to grace period
-        deadline = time.monotonic() + grace_seconds
-        while time.monotonic() < deadline:
-            if proc.poll() is not None:
-                self._process = None
-                return
-            time.sleep(0.05)
-
-        # Escalate
-        try:
-            proc.kill()
-        finally:
-            self._process = None
 
     def restart(self):
         self.stop()
@@ -125,3 +114,84 @@ class Service:
             state=ServiceState.FAILED,
             config_path=self._config_path,
         )
+
+
+    # -----------------
+    # -- Validations --
+    # -----------------
+
+    def _ensure_executable(self):
+        if not self._exe_path.exists():
+            raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
+        if not os.access(self._exe_path, os.X_OK):
+            raise PermissionError(f"Service executable is not executable: {self._exe_path}")
+
+        return self._exe_path
+
+    def _ensure_config(self):
+        if not self._config_path.exists():
+            raise FileNotFoundError(f"Config file not found at {self._config_path}")
+
+        return self._config_path
+
+
+    # -------------
+    # -- Private --
+    # -------------
+    def _keep_alive(self):
+        if self._keep_alive_thread is not None and self._keep_alive_thread.is_alive():
+            return
+
+        def monitor():
+            degraded_start: datetime | None = None
+            while True:
+                time.sleep(self.config.heartbeat_interval.total_seconds())
+
+                if self._mode == ServiceMode.STOPPED:
+                    self._keep_alive_thread = None
+                    return
+
+                if self._mode == ServiceMode.STARTED and self.is_running():
+                    degraded_start = None
+                    continue
+
+                if degraded_start is None:
+                    degraded_start = datetime.now()
+
+                if degraded_start is not None:
+                    elapsed = datetime.now() - degraded_start
+                    if elapsed >= self.config.degraded_wait:
+                        self.restart()
+                        degraded_start = None
+
+        t = threading.Thread(target=monitor, daemon=True)
+        t.start()
+        self._keep_alive_thread = t
+
+
+def stop_process(proc: Popen, grace_seconds: float) -> None:
+    """
+    Attempt to gracefully stop a Popen process, escalating to kill if needed.
+    """
+    if proc.poll() is not None:
+        return
+
+    try:
+        proc.send_signal(signal.SIGTERM)
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+        return
+
+    deadline = time.monotonic() + grace_seconds
+    while time.monotonic() < deadline:
+        if proc.poll() is not None:
+            return
+        time.sleep(0.05)
+
+    try:
+        proc.kill()
+    finally:
+        pass
