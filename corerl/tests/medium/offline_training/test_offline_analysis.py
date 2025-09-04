@@ -122,7 +122,11 @@ def test_stage_data_capture(
     pd.testing.assert_frame_equal(init_captured, test_dataframe, check_dtype=False)
 
 
-def test_generate_report_smoke_test(tmp_path: Path, transitions_with_timestamps: list[Transition]):
+def test_generate_report_smoke_test(
+        tmp_path: Path,
+        transitions_with_timestamps: list[Transition],
+        dummy_app_state: AppState,
+    ):
     """Smoke test for generate_report to ensure it terminates with mixed nan/non-nan data"""
 
     # Create test dataframes with mixed nan and non-nan values
@@ -153,9 +157,10 @@ def test_generate_report_smoke_test(tmp_path: Path, transitions_with_timestamps:
 
     data_list = [test_data_1, test_data_2]
     stages = [StageCode.INIT, StageCode.SC]
-
+    start = dt.datetime.now()
+    end = start + dt.timedelta(minutes=6)
     # This should not raise any exceptions - we don't care about the output
-    generate_report(report_cfg, data_list, stages, transitions=transitions_with_timestamps)
+    generate_report(report_cfg, data_list, stages, dummy_app_state, start, end, transitions=transitions_with_timestamps)
 
     # Verify that output directory was created (basic sanity check)
     assert (tmp_path / "smoke_test_report").exists()
