@@ -1,4 +1,3 @@
-
 import logging
 import shutil
 from itertools import combinations
@@ -11,7 +10,7 @@ from lib_config.config import config
 from pydantic import Field
 from tabulate import tabulate
 
-from corerl.data_pipeline.datatypes import StageCode
+from corerl.data_pipeline.datatypes import StageCode, Transition
 from corerl.eval.plotting.report import (
     plot_chunk_histogram,
     plot_nan_histogram,
@@ -46,6 +45,11 @@ class ReportConfig:
     hist_show_mean: bool = True
     hist_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
     hist_num_bins: int = 30
+
+    # for transition statistics
+    transition_stats_enabled: bool = True
+    transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
+    contiguous_time_threshold_seconds: float = 60.0  # max time gap to consider transitions contiguous
 
 
 def get_tags(data: list[pd.DataFrame]) -> list[str]:
@@ -280,10 +284,122 @@ def cross_correlation(
     return cross_corr[max_idx], lags[max_idx], cross_corr
 
 
+def calculate_contiguous_sequence_lengths(transitions: list[Transition], time_threshold_seconds: float) -> list[int]:
+    """
+    Calculate lengths of contiguous transition sequences.
+    Transitions are considered contiguous if the time gap between consecutive transitions
+    is less than the specified threshold.
+    """
+    if not transitions:
+        return []
+
+    sequence_lengths = []
+    current_length = 1
+
+    for i in range(1, len(transitions)):
+        prev_transition = transitions[i - 1]
+        curr_transition = transitions[i]
+
+        # Check if transitions are contiguous based on timestamp
+        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold_seconds):
+            current_length += 1
+        else:
+            sequence_lengths.append(current_length)
+            current_length = 1
+
+    # Add the last sequence
+    sequence_lengths.append(current_length)
+
+    return sequence_lengths
+
+
+def are_transitions_contiguous(
+    prev_transition: Transition,
+    curr_transition: Transition,
+    time_threshold_seconds: float,
+) -> bool:
+    """
+    Determine if two transitions are contiguous based on timestamp proximity.
+    """
+    # Check if both transitions have timestamps
+    prev_timestamp = prev_transition.end
+    curr_timestamp = curr_transition.start
+
+    if prev_timestamp is None or curr_timestamp is None:
+        return False
+
+    # Calculate time difference
+    time_diff = curr_timestamp - prev_timestamp
+    return time_diff.total_seconds() <= time_threshold_seconds
+
+
+def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int] | None):
+    if sequence_lengths:
+        return_dict = {
+            'Total Sequences': len(sequence_lengths),
+            'Average Sequence Length': np.mean(sequence_lengths),
+            'Min Sequence Length': np.min(sequence_lengths),
+            'Max Sequence Length': np.max(sequence_lengths),
+        }
+        # Add percentiles
+        for p in cfg.transition_percentiles:
+            percentile_value = np.percentile(sequence_lengths, p * 100)
+            return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
+        return return_dict
+    return {}
+
+
+def make_transition_statistics_table(
+        cfg: ReportConfig,
+        transitions: list[Transition],
+        output_path: Path,
+    ) -> None:
+    """
+    Generate transition statistics table and save to file.
+    """
+
+    if not cfg.transition_stats_enabled:
+        return
+
+    log.info("Generating transition statistics...")
+
+    # Calculate contiguous sequence lengths
+    sequence_lengths = calculate_contiguous_sequence_lengths(
+        transitions,
+        cfg.contiguous_time_threshold_seconds,
+    )
+
+    # Prepare table data
+    table_data: list[list[str]] = []
+    headers = [
+        'Metric',
+        'Value',
+    ]
+
+    # Basic statistics
+    total_transitions = len(transitions)
+    table_data.extend([
+        ['Total Transitions', str(total_transitions)],
+
+    ])
+
+    # Sequence statistics
+    sequence_stat_dict = get_sequence_stats(cfg, sequence_lengths)
+    for k, v in sequence_stat_dict.items():
+        table_data.extend([
+        [k, str(v)],
+    ])
+
+    # Generate table and save
+    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
+    (output_path / 'transition_statistics.txt').write_text(table_str, encoding='utf-8')
+
+
 def generate_report(
         cfg: ReportConfig,
         data: list[pd.DataFrame],
         stages: list[StageCode],
+        transitions: list[Transition] | None = None,
     ) -> None:
 
     output_path = Path(cfg.output_dir)
@@ -295,3 +411,7 @@ def generate_report(
     make_stat_table(cfg, data, stages, output_path)
     make_distribution_plots(cfg, data, stages, output_path / 'plots')
     make_cross_correlation_table(cfg, data, stages, output_path)
+
+    # Generate transition statistics if transitions are provided
+    if transitions:
+        make_transition_statistics_table(cfg, transitions, output_path)
