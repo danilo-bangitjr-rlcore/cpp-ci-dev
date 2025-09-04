@@ -1,16 +1,10 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
 from server.opc_api.opc_connection import OPC_Connection_UI
+from server.opc_api.opc_models import NodeDetails, NodeInfo, StatusResponse
 
 opc_connection = OPC_Connection_UI()
 opc_router = APIRouter()
-
-
-class NodeInfo(BaseModel):
-    node_id: str
-    display_name: str
-    node_class: str
 
 
 # Core Connection Management
@@ -52,24 +46,22 @@ async def disconnect_from_server():
 
 
 @opc_router.get("/status")
-async def get_connection_status():
+async def get_connection_status() -> StatusResponse:
     """Test ability to connect to configured OPC server"""
     if not opc_connection.server_url:
-        return {
-            "connected": False,
-            "server_url": None,
-            "message": "No OPC server URL configured",
-        }
+        return StatusResponse(
+            connected=False,
+            message="No OPC server URL configured",
+        )
 
     try:
-        # Test connection ability with fresh short-lived connection
         return await opc_connection.get_connection_status()
     except Exception as e:
-        return {
-            "connected": False,
-            "server_url": opc_connection.server_url,
-            "error": str(e),
-        }
+        return StatusResponse(
+            connected=False,
+            server_url=opc_connection.server_url,
+            error=str(e),
+        )
 
 
 # Node Browsing & Navigation
@@ -81,20 +73,33 @@ async def browse_root() -> list[NodeInfo]:
         raise HTTPException(status_code=400, detail="No OPC server URL configured")
 
     try:
-        nodes = await opc_connection.browse_root()
-        return [NodeInfo(**node) for node in nodes]
+        return await opc_connection.browse_root()
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to browse root nodes: {e!s}") from e
 
 
 @opc_router.get("/browse/{node_id}")
-async def browse_node(node_id: str):
+async def browse_node(node_id: str) -> list[NodeInfo]:
     """Browse children of a specific node"""
+    if not opc_connection.server_url:
+        raise HTTPException(status_code=400, detail="No OPC server URL configured")
+
+    try:
+        return await opc_connection.browse_node(node_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to browse node {node_id}: {e!s}") from e
 
 
 @opc_router.get("/node/{node_id}")
-async def get_node_details(node_id: str):
+async def get_node_details(node_id: str) -> NodeDetails:
     """Get detailed information about a specific node"""
+    if not opc_connection.server_url:
+        raise HTTPException(status_code=400, detail="No OPC server URL configured")
+
+    try:
+        return await opc_connection.get_node_details(node_id)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get details for node {node_id}: {e!s}") from e
 
 
 # Data Access
