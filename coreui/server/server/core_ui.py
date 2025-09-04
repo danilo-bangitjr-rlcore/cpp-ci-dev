@@ -1,16 +1,20 @@
 import os
 import sys
 
-from fastapi import FastAPI
+from fastapi import Body, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from server.config_api.config import (
     ConfigSubfolder,
+    add_tag,
+    delete_tag,
+    get_all_configs,
     get_config,
     get_tag,
     get_tags,
+    update_tag,
 )
 from server.opc_api.opc_routes import opc_router
 
@@ -53,6 +57,10 @@ class CoreUI:
             return {"status": "ok"}
 
         # Clean config endpoints
+        @self.app.get("/api/configs")
+        async def get_all_clean_configs():
+            return await get_all_configs(subfolder=ConfigSubfolder.CLEAN)
+
         @self.app.get("/api/configs/{config_name}")
         async def get_clean_config(config_name: str):
             return await get_config(config_name, ConfigSubfolder.CLEAN)
@@ -65,7 +73,25 @@ class CoreUI:
         async def get_clean_tag(config_name: str, tag_name: str):
             return await get_tag(config_name, tag_name, ConfigSubfolder.CLEAN)
 
+        @self.app.post("/api/configs/{config_name}/tags")
+        async def post_clean_tag(config_name: str, tag: dict):
+            tag = Body(...)
+            return await add_tag(config_name, tag, subfolder=ConfigSubfolder.CLEAN)
+
+        @self.app.put("/api/configs/{config_name}/tags/{index}")
+        async def put_clean_tag(config_name: str, index: int, tag: dict):
+            tag = Body(...)
+            return await update_tag(config_name, index, tag, ConfigSubfolder.CLEAN)
+
+        @self.app.delete("/api/configs/{config_name}/tags/{index}")
+        async def delete_clean_tag(config_name: str, index: int):
+            return await delete_tag(config_name, index, ConfigSubfolder.CLEAN)
+
         # Raw config endpoints
+        @self.app.get("/api/raw-configs")
+        async def get_all_raw_configs():
+            return await get_all_configs(subfolder=ConfigSubfolder.RAW)
+
         @self.app.get("/api/raw-configs/{config_name}")
         async def get_raw_config(config_name: str):
             return await get_config(config_name, ConfigSubfolder.RAW)
@@ -77,6 +103,20 @@ class CoreUI:
         @self.app.get("/api/raw-configs/{config_name}/tags/{tag_name}")
         async def get_raw_tag(config_name: str, tag_name: str):
             return await get_tag(config_name, tag_name, ConfigSubfolder.RAW)
+
+        @self.app.post("/api/raw-configs/{config_name}/tags")
+        async def post_raw_tag(config_name: str, tag: dict):
+            tag = Body(...)
+            return await add_tag(config_name, tag, subfolder=ConfigSubfolder.RAW)
+
+        @self.app.put("/api/raw-configs/{config_name}/tags/{index}")
+        async def put_raw_tag(config_name: str, index: int, tag: dict):
+            tag = Body(...)
+            return await update_tag(config_name, index, tag, ConfigSubfolder.RAW)
+
+        @self.app.delete("/api/raw-configs/{config_name}/tags/{index}")
+        async def delete_raw_tag(config_name: str, index: int):
+            return await delete_tag(config_name, index, ConfigSubfolder.RAW)
 
         index_html = os.path.join(dist_path, "index.html")
 
