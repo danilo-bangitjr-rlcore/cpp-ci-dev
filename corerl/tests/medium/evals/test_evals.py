@@ -3,7 +3,7 @@ from copy import deepcopy
 
 import pandas as pd
 import pytz
-from lib_utils.sql_logging.sql_logging import table_exists
+from lib_sql.inspection import table_exists
 from lib_utils.time import now_iso
 from sqlalchemy import Engine
 

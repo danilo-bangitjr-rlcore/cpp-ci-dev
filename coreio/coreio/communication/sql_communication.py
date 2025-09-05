@@ -1,14 +1,14 @@
 import logging
 from typing import Any
 
-from lib_utils.sql_logging.connect_engine import TryConnectContextManager
-from lib_utils.sql_logging.sql_logging import (
+from lib_sql.engine import get_sql_engine
+from lib_sql.inspection import (
     column_exists,
     get_all_columns,
     get_column_type,
-    get_sql_engine,
     table_exists,
 )
+from lib_utils.sql_logging.connect_engine import TryConnectContextManager
 from lib_utils.sql_logging.utils import (
     ColumnMapper,
     SanitizedName,

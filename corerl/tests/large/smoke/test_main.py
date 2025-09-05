@@ -2,7 +2,7 @@ import subprocess
 
 import pandas as pd
 import pytest
-from lib_utils.sql_logging.sql_logging import table_exists
+from lib_sql.inspection import table_exists
 from sqlalchemy import Engine
 
 

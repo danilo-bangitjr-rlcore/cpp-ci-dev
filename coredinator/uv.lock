@@ -1,5 +1,5 @@
 version = 1
-revision = 3
+revision = 2
 requires-python = "==3.13.0"
 
 [[package]]
@@ -509,17 +509,19 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "annotated-types", specifier = ">=0.7.0" },
+    { name = "asyncua", marker = "extra == 'opc'", specifier = ">=1.1.6" },
+    { name = "backoff", marker = "extra == 'opc'", specifier = ">=2.2.1" },
     { name = "chex", marker = "extra == 'jax'", specifier = ">=0.1.89" },
     { name = "distrax", marker = "extra == 'jax'", specifier = ">=0.1.5" },
     { name = "dm-haiku", marker = "extra == 'jax'", specifier = ">=0.0.14" },
     { name = "flax", marker = "extra == 'jax'", specifier = ">=0.10.6" },
-    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1" },
+    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.7.0" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "optax", marker = "extra == 'jax'", specifier = ">=0.2.4" },
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "pyzmq", specifier = "~=26.4.0" },
 ]
-provides-extras = ["jax"]
+provides-extras = ["jax", "opc"]
 
 [package.metadata.requires-dev]
 dev = [

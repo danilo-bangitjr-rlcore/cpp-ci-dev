@@ -3,7 +3,7 @@ from typing import Any
 import filelock
 import pytest
 from corerl.sql_logging.sql_logging import SQLEngineConfig
-from lib_utils.sql_logging.sql_logging import get_sql_engine
+from lib_sql.engine import get_sql_engine
 
 from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest

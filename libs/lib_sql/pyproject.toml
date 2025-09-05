@@ -6,7 +6,9 @@ requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
     "psycopg[binary]~=3.2",
+    "lib-utils",
 ]
 readme = "README.md"
 
@@ -39,3 +41,6 @@ exclude = [
     '.venv/',
 ]
 venvPath = '.'
+
+[tool.uv.sources]
+lib-utils = { path = "../lib_utils", editable = true }

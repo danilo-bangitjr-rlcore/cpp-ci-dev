@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 import lib_utils.dict as dict_u
 from lib_config.config import MISSING, computed, config
-from lib_utils.sql_logging.sql_logging import get_sql_engine
+from lib_sql.engine import get_sql_engine
 from sqlalchemy import Connection, Engine, inspect, select, text
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import create_database, drop_database

@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from lib_defs.config_defs.tag_config import TagType
-from lib_utils.sql_logging.sql_logging import table_exists
+from lib_sql.inspection import table_exists
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
