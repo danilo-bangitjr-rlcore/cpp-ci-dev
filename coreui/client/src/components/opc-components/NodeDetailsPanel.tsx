@@ -18,13 +18,24 @@ export const NodeDetailsPanel = ({
   const queryClient = useQueryClient();
 
   const writeMutation = useMutation({
-    mutationFn: async ({ nodeId, value }: { nodeId: string; value: string }) => {
+    mutationFn: async ({
+      nodeId,
+      value,
+    }: {
+      nodeId: string;
+      value: string;
+    }) => {
       const encodedNodeId = encodeURIComponent(nodeId);
-      const response = await fetch(`${API_BASE_URL}/v1/opc/write/${encodedNodeId}?value=${encodeURIComponent(value)}`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/v1/opc/write/${encodedNodeId}?value=${encodeURIComponent(value)}`,
+        {
+          method: 'POST',
+        }
+      );
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+        const errorData = await response
+          .json()
+          .catch(() => ({ detail: 'Unknown error' }));
         throw new Error(errorData.detail || 'Failed to write value');
       }
       return response.json();
@@ -56,7 +67,10 @@ export const NodeDetailsPanel = ({
     return String(value);
   };
 
-  const isVariable = selectedNodeDetails && selectedNodeDetails.node_class === 'Variable' && !isLoading;
+  const isVariable =
+    selectedNodeDetails &&
+    selectedNodeDetails.node_class === 'Variable' &&
+    !isLoading;
 
   return (
     <div className="flex-1">
@@ -127,7 +141,9 @@ export const NodeDetailsPanel = ({
                 </p>
               )}
               {writeMutation.isSuccess && (
-                <p className="text-green-600 text-xs mt-1">Value updated successfully</p>
+                <p className="text-green-600 text-xs mt-1">
+                  Value updated successfully
+                </p>
               )}
             </div>
           )}

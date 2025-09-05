@@ -230,19 +230,18 @@ class OPC_Connection_UI(OPC_Connection):
                         cast_value = [str(value)]
                 except ValueError:
                     cast_value = [str(value)]
+        # Single value
+        elif dt_display_name in ["Float", "Double"]:
+            cast_value = float(value)
+        elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
+            cast_value = int(value)
+        elif dt_display_name == "Boolean":
+            cast_value = value.lower() in ("true", "1", "yes", "on")
+        elif dt_display_name == "String":
+            cast_value = str(value)
         else:
-            # Single value
-            if dt_display_name in ["Float", "Double"]:
-                cast_value = float(value)
-            elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
-                cast_value = int(value)
-            elif dt_display_name == "Boolean":
-                cast_value = value.lower() in ("true", "1", "yes", "on")
-            elif dt_display_name == "String":
-                cast_value = str(value)
-            else:
-                # For unknown types, try to write as string
-                cast_value = str(value)
+            # For unknown types, try to write as string
+            cast_value = str(value)
 
         await node.write_value(cast_value)
 
