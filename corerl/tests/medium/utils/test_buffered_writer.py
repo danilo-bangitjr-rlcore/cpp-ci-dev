@@ -203,3 +203,4 @@ def test_static_columns_mode(
     })
 
     pd.testing.assert_frame_equal(final_df, expected_df)
+    writer.close()

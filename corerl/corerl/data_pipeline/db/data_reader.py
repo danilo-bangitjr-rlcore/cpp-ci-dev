@@ -354,7 +354,7 @@ class DataReader:
         return pd.DataFrame(df[-1:])
 
     def close(self) -> None:
-        return
+        self.engine.dispose()
 
     def query(self, q: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
         params = params or {}

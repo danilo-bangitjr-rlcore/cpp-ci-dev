@@ -26,6 +26,7 @@ def data_reader_writer(
     writer = DataWriter(cfg=db)
     yield (reader, writer)
     reader.close()
+    writer.close()
 
 
 @pytest.fixture()

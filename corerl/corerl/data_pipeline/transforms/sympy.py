@@ -86,12 +86,28 @@ class SympyTransform:
     ) -> float:
         if tag_name == carry.tag:
             # Use the current column being processed from transform_data
-            col_idx = carry.transform_data.columns.get_loc(current_column)
-            return carry.transform_data.iat[idx, col_idx]
+            return _safe_get_dataframe_value(carry.transform_data, idx, current_column)
 
         # Get from original observations for all other tags
-        col_idx = carry.obs.columns.get_loc(tag_name)
-        return carry.obs.iat[idx, col_idx]
+        return _safe_get_dataframe_value(carry.obs, idx, tag_name)
 
     def reset(self) -> None:
         ...
+
+
+def _safe_get_dataframe_value(df: pd.DataFrame, idx: int, column_name: str) -> float:
+    """Safely extract a float value from a DataFrame, handling type conversion issues."""
+    col_idx = df.columns.get_loc(column_name)
+
+    # Handle the case where get_loc returns a slice or array
+    if isinstance(col_idx, int):
+        value = df.iat[idx, col_idx]
+    else:
+        # If get_loc returns something other than int, use loc with column name
+        value = df.loc[df.index[idx], column_name]
+
+    # Convert pandas scalar to float, handling different numpy dtypes
+    if pd.isna(value):
+        return float('nan')
+
+    return float(np.asarray(value).item())

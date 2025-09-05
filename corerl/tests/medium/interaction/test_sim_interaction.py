@@ -27,10 +27,13 @@ def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
 
     # build global objects
     event_bus = DummyEventBus()
+    metrics = MetricsTable(cfg.metrics)
+    evals = EvalsTable(cfg.evals)
+
     app_state = AppState(
         cfg=cfg,
-        metrics=MetricsTable(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        metrics=metrics,
+        evals=evals,
         event_bus=event_bus,
     )
     pipeline = Pipeline(app_state, cfg.pipeline)
@@ -65,3 +68,8 @@ def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
             low = (1-p)*0.25 + p*0
             high = (1-p)*0.26 + p*0.5
             assert low <= last_a <= high
+
+    agent.close()
+    env.close()
+    metrics.close()
+    evals.close()

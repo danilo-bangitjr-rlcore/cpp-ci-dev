@@ -34,4 +34,7 @@ def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_tmp_db_name
     engine = get_sql_engine(cfg, tsdb_tmp_db_name)
     yield engine
 
+    # Dispose of the engine to close all connections before dropping the database
+    # This is required in SQLAlchemy 2.0 to prevent "database is being accessed by other users" errors
+    engine.dispose()
     drop_database(engine.url)
