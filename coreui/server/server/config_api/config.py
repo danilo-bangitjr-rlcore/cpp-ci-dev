@@ -43,11 +43,8 @@ def _load_config_data(config_name: str, subfolder: ConfigSubfolder = ConfigSubfo
 
 def _get_tags(config: dict) -> list[dict]:
     pipeline = config.setdefault("pipeline", {})
-    tags = pipeline.get("tags")
-    if tags is None:
-        pipeline["tags"] = []
-        tags = pipeline["tags"]
-    return tags
+    # tags = pipeline.setdefault("tags", [])
+    return pipeline.setdefault("tags", [])
 
 def _find_tag_index(tags: list[dict], tag_name: str) -> int:
     for i, tag in enumerate(tags):
@@ -90,10 +87,10 @@ async def add_tag(
     try:
         config = _load_config_data(config_name, subfolder)
         tags = _get_tags(config)
-        tags.append(tag)
+        tags.append(tag["tag"])
         _write_config_data(config_name, config, subfolder)
 
-        return JSONResponse(content={"message": "Tag created", "tag": tag, "index": len(tags) - 1},
+        return JSONResponse(content={"message": "Tag created", "tag": tag["tag"], "index": len(tags) - 1},
                             status_code=status.HTTP_201_CREATED)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -107,11 +104,11 @@ async def update_tag(
     try:
         config = _load_config_data(config_name, subfolder)
         tags = _get_tags(config)
-        if index < 0 or index >= len(tags):
+        if not (0 <= index < len(tags)):
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
-        tags[index] = tag
+        tags[index] = tag["tag"]
         _write_config_data(config_name, config, subfolder)
-        return JSONResponse(content={"message": "Tag updated", "tag": tag, "index": index},
+        return JSONResponse(content={"message": "Tag updated", "tag": tag["tag"], "index": index},
                             status_code=status.HTTP_200_OK)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

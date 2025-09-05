@@ -18,7 +18,7 @@ interaction:
   obs_period: PT15M
   update_period: PT30S
   action_period: PT2H
-  warmup_period: 43200
+  warmup_period: 12:00:00
   state_age_tol: 00:30:00
   update_warmup: 30
   historical_batch_size: 51840

@@ -93,4 +93,3 @@ pipeline:
     operating_range:
     - 10
     - 79
-    hello: 123
