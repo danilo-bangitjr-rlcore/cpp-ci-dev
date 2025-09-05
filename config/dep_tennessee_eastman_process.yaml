@@ -21,7 +21,7 @@ coreio:
       authentication_mode: anonymous
 
 evals:
-  enabled: True
+  enabled: False
 
 env:
   name: dep_async_env
@@ -33,7 +33,7 @@ event_bus:
   enabled: True
 
 metrics:
-  enabled: True
+  enabled: False
 
 # -----------
 # -- Agent --
@@ -43,12 +43,18 @@ interaction:
   name: dep_interaction
   restore_checkpoint: false
   load_historical_data: false
-  obs_period: 00:00:01
-  action_period: 00:00:01
-  update_period: 00:00:01
+  obs_period: 00:00:05
+  action_period: 00:00:05
+  update_period: 00:00:05
   state_age_tol: 01:00:00
 
 pipeline:
+  imputer:
+      name: per-tag
+      default:
+        name: copy
+        imputation_horizon: 10
+
   max_data_gap: 01:00:00
 
   reward:
