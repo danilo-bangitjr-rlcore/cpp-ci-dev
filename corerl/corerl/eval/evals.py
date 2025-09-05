@@ -5,8 +5,8 @@ from typing import NamedTuple
 
 import pandas as pd
 from lib_config.config import config
-from lib_utils.sql_logging.connect_engine import TryConnectContextManager
-from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
+from lib_sql.connection import TryConnectContextManager
+from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_utils.time import now_iso
 from pydantic import Field
 from sqlalchemy import text

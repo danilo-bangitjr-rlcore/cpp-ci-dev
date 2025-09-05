@@ -6,9 +6,9 @@ from math import floor
 from typing import Any, assert_never
 
 import pandas as pd
+from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
-from lib_utils.sql_logging.connect_engine import TryConnectContextManager
-from lib_utils.sql_logging.utils import ColumnMapper, SanitizedName
+from lib_sql.utils import ColumnMapper, SanitizedName
 from sqlalchemy import TEXT, TIMESTAMP, Boolean, Column, Float, MetaData, Table, cast, func, select, union_all
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text

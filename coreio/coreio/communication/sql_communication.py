@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
 from lib_sql.inspection import (
     column_exists,
@@ -8,8 +9,7 @@ from lib_sql.inspection import (
     get_column_type,
     table_exists,
 )
-from lib_utils.sql_logging.connect_engine import TryConnectContextManager
-from lib_utils.sql_logging.utils import (
+from lib_sql.utils import (
     ColumnMapper,
     SanitizedName,
     SQLColumn,
