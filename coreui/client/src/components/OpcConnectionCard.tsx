@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../utils/api';
 import type { StatusResponse } from '../routes/opc-navigation';
@@ -72,6 +72,12 @@ export function OpcConnectionCard({
     },
   });
 
+  useEffect(() => {
+    if (statusData?.connected) {
+      connectMutation.reset();
+    }
+  }, [statusData?.connected, connectMutation]);
+
   const getDisplayStatus = (): string => {
     if (connectMutation.isPending) return 'Connecting...';
     if (disconnectMutation.isPending) return 'Disconnecting...';
@@ -141,10 +147,10 @@ export function OpcConnectionCard({
           {isConnected ? (
             <div>
               <label className="block text-sm font-medium text-gray-600 mb-1">
-                Connected to
+                {statusData?.server_url || url ? 'Connected to' : 'Connected'}
               </label>
               <div className="px-3 py-2 bg-green-50 border border-green-200 rounded-md text-gray-900">
-                {statusData?.server_url}
+                {statusData?.server_url || url || 'Unknown URL'}
               </div>
             </div>
           ) : (

@@ -1,6 +1,7 @@
 import logging
 
 from asyncua import Client
+from asyncua.ua import NodeId
 from lib_utils.opc.opc_communication import OPC_Connection
 
 from server.opc_api.opc_models import NodeDetails, NodeInfo, ServerInfo, StatusResponse
@@ -15,6 +16,20 @@ class OPC_Connection_UI(OPC_Connection):
         super().__init__()
         self.server_url: str = ""
         self._connected = False
+
+    def _format_node_id(self, nodeid: NodeId) -> str:
+        """Format NodeId object to standard OPC UA format (ns=X;i=Y)"""
+        try:
+            # Handle different NodeId types
+            if hasattr(nodeid, 'NamespaceIndex') and hasattr(nodeid, 'Identifier'):
+                ns = nodeid.NamespaceIndex
+                identifier = nodeid.Identifier
+                return f"ns={ns};i={identifier}"
+            # Fallback to string representation if properties not available
+            return str(nodeid)
+        except Exception:
+            # Final fallback
+            return str(nodeid)
 
     async def init(self, server_url: str):
         """Initialize the OPC client with server URL"""
@@ -47,7 +62,7 @@ class OPC_Connection_UI(OPC_Connection):
                 connected=self._connected,
                 server_url=self.server_url,
                 server_info=ServerInfo(
-                    node_id=str(server_info.nodeid),
+                    node_id=self._format_node_id(server_info.nodeid),
                     display_name=(await server_info.read_display_name()).Text or "",
                 ),
             )
@@ -75,7 +90,7 @@ class OPC_Connection_UI(OPC_Connection):
             nodes = []
             for child in children:
                 display_name = (await child.read_display_name()).Text or ""
-                node_id = str(child.nodeid)
+                node_id = self._format_node_id(child.nodeid)
                 node_class = await child.read_node_class()
                 nodes.append(NodeInfo(
                     node_id=node_id,
@@ -104,7 +119,7 @@ class OPC_Connection_UI(OPC_Connection):
             nodes = []
             for child in children:
                 display_name = (await child.read_display_name()).Text or ""
-                child_node_id = str(child.nodeid)
+                child_node_id = self._format_node_id(child.nodeid)
                 node_class = await child.read_node_class()
                 nodes.append(NodeInfo(
                     node_id=child_node_id,
@@ -136,7 +151,7 @@ class OPC_Connection_UI(OPC_Connection):
             data_type = None
             try:
                 dt = await node.read_data_type()
-                data_type = str(dt)
+                data_type = self._format_node_id(dt)
             except Exception:
                 pass  # Not all nodes have data type
 
