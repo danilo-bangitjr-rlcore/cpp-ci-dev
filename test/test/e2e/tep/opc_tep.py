@@ -340,11 +340,12 @@ def main(cfg: MainConfig):
 
     action_values_target = None
     action_values = None
+    action_offsets = np.zeros(len(ACTIONS))
 
     disturbance_values = None
 
     def get_action(state: np.ndarray):
-        nonlocal i, action_values, action_values_target, disturbance_values, action_values_temp
+        nonlocal i, action_values, action_values_target, disturbance_values, action_values_temp, action_offsets
         if i%10 == 0:
             print('step')
             assert state.shape == (len(STATES),)
@@ -360,10 +361,21 @@ def main(cfg: MainConfig):
             if mode == 0:
                 print("Manual", end=" ")
                 action_values_temp = np.asarray(client.read_values(manual_action_nodes))
-            else:
+            elif mode == 1:
                 print("AI Control", end=" ")
                 action_values_temp = np.asarray(client.read_values(ai_action_nodes))
-
+            elif mode == 2:
+                print('Manual + Varying Control', end=" ")
+                # Pick random action values every 10th step
+                if i%100 == 0:
+                    action_offsets = np.random.randn(len(ACTIONS))*0.02*action_values_temp
+                action_values_temp = np.asarray(client.read_values(manual_action_nodes)) + action_offsets
+                action_values_temp = np.clip(action_values_temp, 0, None)
+                    # client.write_values(manual_action_nodes, action_values_temp)
+            else:
+                print("Unknown mode, falling back to manual", end=" ")
+                action_values_temp = np.asarray(client.read_values(manual_action_nodes))
+            
             client.write_values(action_nodes, action_values_temp)
             action_values_target = np.asarray(client.read_values(action_nodes))
 
