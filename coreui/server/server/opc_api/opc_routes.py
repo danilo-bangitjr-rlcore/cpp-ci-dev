@@ -121,7 +121,16 @@ async def write_node_value(node_id: str, value: str):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to write value to node {node_id}: {e!s}") from e
+        error_str = str(e)
+        if "BadUserAccessDenied" in error_str or "User does not have permission" in error_str:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Write access denied for node {node_id}. "
+                       "The node may be read-only or you may not have sufficient permissions.",
+            ) from e
+        if "BadNodeIdUnknown" in error_str:
+            raise HTTPException(status_code=404, detail=f"Node {node_id} not found.") from e
+        raise HTTPException(status_code=500, detail=f"Failed to write value to node {node_id}: {error_str}") from e
 
 
 # Enhanced Features (placeholders)

@@ -207,21 +207,42 @@ class OPC_Connection_UI(OPC_Connection):
         if node_class != NodeClass.Variable:
             raise ValueError(f"Node {node_id} is not a variable (node class: {node_class.name})")
 
+        # Read the current value to check if it's an array
+        current_value = await node.read_value()
+        is_array = isinstance(current_value, list)
+
         # Read the data type and cast the value appropriately
         dt_display_name = await self._get_data_type_display_name(node)
 
         # Cast value based on data type
-        if dt_display_name in ["Float", "Double"]:
-            cast_value = float(value)
-        elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
-            cast_value = int(value)
-        elif dt_display_name == "Boolean":
-            cast_value = value.lower() in ("true", "1", "yes", "on")
-        elif dt_display_name == "String":
-            cast_value = str(value)
+        if is_array:
+            # If current value is an array, try to write as array of the base type
+            if dt_display_name == "String":
+                cast_value = [str(value)]
+            else:
+                # For other types, try to parse as comma-separated values
+                try:
+                    if dt_display_name in ["Float", "Double"]:
+                        cast_value = [float(v.strip()) for v in value.split(',')]
+                    elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
+                        cast_value = [int(v.strip()) for v in value.split(',')]
+                    else:
+                        cast_value = [str(value)]
+                except ValueError:
+                    cast_value = [str(value)]
         else:
-            # For unknown types, try to write as string
-            cast_value = str(value)
+            # Single value
+            if dt_display_name in ["Float", "Double"]:
+                cast_value = float(value)
+            elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
+                cast_value = int(value)
+            elif dt_display_name == "Boolean":
+                cast_value = value.lower() in ("true", "1", "yes", "on")
+            elif dt_display_name == "String":
+                cast_value = str(value)
+            else:
+                # For unknown types, try to write as string
+                cast_value = str(value)
 
         await node.write_value(cast_value)
 
