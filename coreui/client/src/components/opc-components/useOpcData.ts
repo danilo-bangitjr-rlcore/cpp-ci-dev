@@ -74,6 +74,8 @@ export const useOpcData = (
     retryDelay: 500, // Faster retry
     refetchOnWindowFocus: false, // Don't refetch when window regains focus
     refetchOnReconnect: false, // Don't refetch on reconnect
+    refetchInterval: selectedNodeId ? 1000 : false, // Poll every 1 second when a node is selected
+    refetchIntervalInBackground: false, // Don't poll when window is not focused
   });
 
   return {
