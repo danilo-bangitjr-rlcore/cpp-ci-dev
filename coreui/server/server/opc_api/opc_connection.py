@@ -1,6 +1,6 @@
 import logging
 
-from asyncua import Client
+from asyncua import Client, Node
 from asyncua.ua import NodeClass, NodeId
 from lib_utils.opc.opc_communication import OPC_Connection
 
@@ -33,6 +33,21 @@ class OPC_Connection_UI(OPC_Connection):
             return str(nodeid)
         except Exception:
             return str(nodeid)
+
+    async def _get_data_type_display_name(self, node: Node) -> str:
+        """Get the display name of a node's data type"""
+        if not self.opc_client:
+            return "Unknown"
+
+        try:
+            dt_nodeid = await node.read_data_type()
+            if dt_nodeid:
+                dt_node = self.opc_client.get_node(dt_nodeid)
+                dt_display_name = (await dt_node.read_display_name()).Text
+                return dt_display_name or self._format_node_id(dt_nodeid)
+        except Exception:
+            pass
+        return "Unknown"
 
     async def _ensure_connection(self):
         """Ensure we have a persistent connection to the OPC server"""
@@ -132,8 +147,7 @@ class OPC_Connection_UI(OPC_Connection):
         # Get optional attributes
         data_type = None
         try:
-            dt = await node.read_data_type()
-            data_type = self._format_node_id(dt)
+            data_type = await self._get_data_type_display_name(node)
         except Exception:
             pass
 
@@ -159,3 +173,62 @@ class OPC_Connection_UI(OPC_Connection):
             value=value,
             description=description,
         )
+
+    async def read_node_value(self, node_id: str):
+        """Read current value of a variable node"""
+        if not self.opc_client:
+            raise ValueError("OPC client not initialized")
+
+        await self._ensure_connection()
+        node = self.opc_client.get_node(node_id)
+
+        # Check if node is a variable
+        node_class = await node.read_node_class()
+        if node_class != NodeClass.Variable:
+            raise ValueError(f"Node {node_id} is not a variable (node class: {node_class.name})")
+
+        value = await node.read_value()
+        return {
+            "node_id": node_id,
+            "value": value,
+            "timestamp": None,  # Could add server timestamp if needed
+        }
+
+    async def write_node_value(self, node_id: str, value: str):
+        """Write value to a variable node"""
+        if not self.opc_client:
+            raise ValueError("OPC client not initialized")
+
+        await self._ensure_connection()
+        node = self.opc_client.get_node(node_id)
+
+        # Check if node is a variable
+        node_class = await node.read_node_class()
+        if node_class != NodeClass.Variable:
+            raise ValueError(f"Node {node_id} is not a variable (node class: {node_class.name})")
+
+        # Read the data type and cast the value appropriately
+        dt_display_name = await self._get_data_type_display_name(node)
+
+        # Cast value based on data type
+        if dt_display_name in ["Float", "Double"]:
+            cast_value = float(value)
+        elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
+            cast_value = int(value)
+        elif dt_display_name == "Boolean":
+            cast_value = value.lower() in ("true", "1", "yes", "on")
+        elif dt_display_name == "String":
+            cast_value = str(value)
+        else:
+            # For unknown types, try to write as string
+            cast_value = str(value)
+
+        await node.write_value(cast_value)
+
+        return {
+            "node_id": node_id,
+            "value": cast_value,
+            "data_type": dt_display_name,
+            "status": "written",
+            "message": f"Successfully wrote value '{cast_value}' to node {node_id}",
+        }

@@ -4,7 +4,9 @@ from server.opc_api.opc_connection import OPC_Connection_UI
 from server.opc_api.opc_models import NodeDetails, NodeInfo, StatusResponse
 
 opc_connection = OPC_Connection_UI()
-opc_router = APIRouter()
+opc_router = APIRouter(
+    tags=["OPC UA"],
+)
 
 
 # Core Connection Management
@@ -97,11 +99,29 @@ async def get_node_details(node_id: str) -> NodeDetails:
 @opc_router.get("/read/{node_id}")
 async def read_node_value(node_id: str):
     """Read current value of a variable node"""
+    if not opc_connection.server_url:
+        raise HTTPException(status_code=400, detail="No OPC server URL configured")
+
+    try:
+        return await opc_connection.read_node_value(node_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read value from node {node_id}: {e!s}") from e
 
 
 @opc_router.post("/write/{node_id}")
 async def write_node_value(node_id: str, value: str):
     """Write value to a variable node"""
+    if not opc_connection.server_url:
+        raise HTTPException(status_code=400, detail="No OPC server URL configured")
+
+    try:
+        return await opc_connection.write_node_value(node_id, value)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to write value to node {node_id}: {e!s}") from e
 
 
 # Enhanced Features (placeholders)
@@ -109,8 +129,16 @@ async def write_node_value(node_id: str, value: str):
 @opc_router.get("/search")
 async def search_nodes(query: str, node_class: str | None = None):
     """Search for nodes by name or other criteria"""
+    raise HTTPException(
+        status_code=501,
+        detail="Node search functionality is not yet implemented",
+    )
 
 
 @opc_router.get("/attributes/{node_id}")
 async def get_node_attributes(node_id: str):
     """Get all attributes of a node (data type, access level, etc.)"""
+    raise HTTPException(
+        status_code=501,
+        detail="Node attributes functionality is not yet implemented",
+    )
