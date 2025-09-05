@@ -34,6 +34,32 @@ class OPC_Connection_UI(OPC_Connection):
         except Exception:
             return str(nodeid)
 
+    async def _cast_array_value(self, value: str, dt_display_name: str) -> list:
+        """Cast a string value to an array of the appropriate type"""
+        if dt_display_name == "String":
+            return [str(value)]
+        # For other types, try to parse as comma-separated values
+        try:
+            if dt_display_name in ["Float", "Double"]:
+                return [float(v.strip()) for v in value.split(',')]
+            if dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
+                return [int(v.strip()) for v in value.split(',')]
+            return [str(value)]
+        except ValueError:
+            return [str(value)]
+
+    async def _cast_single_value(self, value: str, dt_display_name: str):
+        """Cast a string value to the appropriate single type"""
+        if dt_display_name in ["Float", "Double"]:
+            return float(value)
+        if dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
+            return int(value)
+        if dt_display_name == "Boolean":
+            return value.lower() in ("true", "1", "yes", "on")
+        if dt_display_name == "String":
+            return str(value)
+        # For unknown types, try to write as string
+        return str(value)
     async def _get_data_type_display_name(self, node: Node) -> str:
         """Get the display name of a node's data type"""
         if not self.opc_client:
@@ -216,32 +242,9 @@ class OPC_Connection_UI(OPC_Connection):
 
         # Cast value based on data type
         if is_array:
-            # If current value is an array, try to write as array of the base type
-            if dt_display_name == "String":
-                cast_value = [str(value)]
-            else:
-                # For other types, try to parse as comma-separated values
-                try:
-                    if dt_display_name in ["Float", "Double"]:
-                        cast_value = [float(v.strip()) for v in value.split(',')]
-                    elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
-                        cast_value = [int(v.strip()) for v in value.split(',')]
-                    else:
-                        cast_value = [str(value)]
-                except ValueError:
-                    cast_value = [str(value)]
-        # Single value
-        elif dt_display_name in ["Float", "Double"]:
-            cast_value = float(value)
-        elif dt_display_name in ["Int16", "Int32", "Int64", "UInt16", "UInt32", "UInt64"]:
-            cast_value = int(value)
-        elif dt_display_name == "Boolean":
-            cast_value = value.lower() in ("true", "1", "yes", "on")
-        elif dt_display_name == "String":
-            cast_value = str(value)
+            cast_value = await self._cast_array_value(value, dt_display_name)
         else:
-            # For unknown types, try to write as string
-            cast_value = str(value)
+            cast_value = await self._cast_single_value(value, dt_display_name)
 
         await node.write_value(cast_value)
 
