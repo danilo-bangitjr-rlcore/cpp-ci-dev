@@ -26,13 +26,10 @@ def column_exists(
 def get_column_type(
     engine: Engine, table_name: str, column_name: str, schema: str | None = None,
 ):
-    assert column_exists(
-        engine, table_name, column_name, schema,
-    ), "SQL Error, column not found"
     iengine = inspect(engine)
     columns = iengine.get_columns(table_name, schema=schema)
     column = find(lambda col: col["name"] == column_name, columns)
-    assert column is not None  # Check for pyright, since we already checked that column exists
+    assert column is not None, "SQL Error, column not found"
     return column["type"]
 
 
