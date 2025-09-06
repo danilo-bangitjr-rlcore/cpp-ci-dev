@@ -1,8 +1,49 @@
+import time
 from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any
 
 from docker import errors, from_env
+from docker.models.containers import Container
+
+
+def wait_for_postgres_ready(container: Container, timeout: int = 60, check_interval: float = 1.0):
+    """
+    Wait for PostgreSQL container to be ready to accept connections.
+    """
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        try:
+            # Check if container is running
+            container.reload()
+            if container.status != 'running':
+                time.sleep(check_interval)
+                continue
+
+            # Check PostgreSQL logs for ready signal
+            logs = container.logs(tail=50).decode('utf-8')
+
+            # Look for PostgreSQL ready indicators in logs
+            ready_indicators = [
+                'database system is ready to accept connections',
+                'PostgreSQL init process complete',
+                'listening on IPv4 address',
+            ]
+
+            if any(indicator in logs for indicator in ready_indicators):
+                # Double-check with a simple connection test via container exec
+                result = container.exec_run('pg_isready -h localhost -p 5432 -U postgres')
+                if result.exit_code == 0:
+                    return True
+
+        except Exception:
+            pass
+
+        time.sleep(check_interval)
+
+    container_id = container.id[:12] if container.id else "unknown"
+    raise TimeoutError(f"PostgreSQL container {container_id} not ready after {timeout} seconds")
 
 
 def init_docker_container(
@@ -38,7 +79,7 @@ def init_docker_container(
     except errors.ImageNotFound:
         image = client.images.pull(repository, tag)
 
-    return client.containers.run(
+    container = client.containers.run(
         image,
         detach=True,
         ports=dict(ports),
@@ -46,3 +87,13 @@ def init_docker_container(
         name=name,
     )
 
+    # Wait for PostgreSQL to be ready before returning
+    try:
+        wait_for_postgres_ready(container, timeout=60)
+    except TimeoutError as e:
+        # Clean up container if it fails to start properly
+        container.stop()
+        container.remove()
+        raise e
+
+    return container
