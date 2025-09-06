@@ -1,6 +1,7 @@
 import hashlib
 import re
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, NewType
 
@@ -152,17 +153,11 @@ def _sanitize_key(name: str):
     # lowercase
     return sanitized.lower()
 
-def sanitize_keys(dict_points: list[dict]):
+def sanitize_keys(dict_points: Sequence[dict]):
+    def _sanitize_dict_keys(d: dict[str, Any]) -> dict[str, Any]:
+        return {
+            _sanitize_key(key): value
+            for key, value in d.items()
+        }
 
-    def _sanitize_dict_keys(d: dict[str, Any]):
-        keys = list(d.keys())
-        for key in keys:
-            sanitized_key = _sanitize_key(key)
-            if sanitized_key != key:
-                d[sanitized_key] = d.pop(key)
-
-    # Sanitize the dictionary keys
-    for point in dict_points:
-        _sanitize_dict_keys(point)
-
-    return dict_points
+    return [_sanitize_dict_keys(point) for point in dict_points]
