@@ -17,10 +17,13 @@ dev = [
     "pylint>=3.3.7",
     "pyright>=1.1.392.post0",
     "pytest>=8.4.0",
+    "pytest-timeout>=2.4.0",
     "pytest-xdist>=3.7.0",
     "pytest-mock>=3.14.1",
     "ruff>=0.11.12",
     "uv>=0.5.24",
+    "docker>=7.1.0",
+    "test",
 ]
 
 [build-system]
@@ -44,3 +47,4 @@ venvPath = '.'
 
 [tool.uv.sources]
 lib-utils = { path = "../lib_utils", editable = true }
+test = { path = "../../test", editable = true }
