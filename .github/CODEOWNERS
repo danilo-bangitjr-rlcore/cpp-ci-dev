@@ -1,16 +1,21 @@
 # file path                                         # owners
 *                                                   @rlcoretech/rlcore-codeowners
 
-.github/                                            @rlcoretech/rlcore-codeowners @rlcoretech/software-team
+.github/                                            @rlcoretech/software-team @rlcoretech/rlcore-codeowners
 
 # services
-corerl/                                             @rlcoretech/rlcore-codeowners @rlcoretech/agent-team
-coreio/                                             @rlcoretech/rlcore-codeowners @rlcoretech/software-team
+corerl/                                             @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+coreio/                                             @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coredinator/                                        @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coregateway/                                        @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coretelemetry/                                      @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coreui/                                             @rlcoretech/software-team @rlcoretech/rlcore-codeowners
 
 # libraries
-libs/lib_agent/                                     @rlcoretech/rlcore-codeowners @rlcoretech/agent-team
-libs/rl_env/                                        @rlcoretech/rlcore-codeowners @rlcoretech/agent-team
+libs/*                                              @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+libs/lib_agent/                                     @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+libs/rl_env/                                        @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
 
 # tools
-research/                                           @rlcoretech/rlcore-codeowners @rlcoretech/agent-team
-standards/                                          @rlcoretech/rlcore-codeowners @rlcoretech/software-team
+research/                                           @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+standards/                                          @rlcoretech/software-team @rlcoretech/rlcore-codeowners
