@@ -26,6 +26,7 @@ def test_initial_status_stopped(
 
     assert s.id == agent_id
     assert s.state == "stopped"
+    assert s.service_statuses == {}
 
 
 @pytest.mark.timeout(5)
@@ -45,6 +46,13 @@ def test_start_and_running_status(
 
     # Wait for agent to start
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
+
+    # Check service statuses
+    status = manager.get_agent_status(agent_id)
+    assert "corerl" in status.service_statuses
+    assert "coreio" in status.service_statuses
+    assert status.service_statuses["corerl"].state in ["running", "starting"]
+    assert status.service_statuses["coreio"].state in ["running", "starting"]
 
     # Clean up
     manager.stop_agent(agent_id)

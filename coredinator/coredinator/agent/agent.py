@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NewType
 
 from coredinator.service.protocols import ServiceID, ServiceLike, ServiceState
+from coredinator.service.service import ServiceStatus
 from coredinator.services import CoreIOService, CoreRLService
 
 AgentID = NewType("AgentID", str)
@@ -15,6 +16,7 @@ class AgentStatus:
     id: AgentID
     state: ServiceState
     config_path: Path | None
+    service_statuses: dict[str, ServiceStatus] = field(default_factory=dict)
 
 
 class Agent(ServiceLike):
@@ -55,10 +57,16 @@ class Agent(ServiceLike):
         statuses = [corerl_status, coreio_status]
         state = self._get_joint_status([s.state for s in statuses])
 
+        service_statuses = {
+            "corerl": corerl_status,
+            "coreio": coreio_status,
+        }
+
         return AgentStatus(
             id=self._id,
             state=state,
             config_path=self._config_path,
+            service_statuses=service_statuses,
         )
 
     def _get_joint_status(self, service_statuses: list[ServiceState]) -> ServiceState:

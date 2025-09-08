@@ -40,10 +40,18 @@ class TEPDemoAgent(Agent):
         statuses = [corerl_status, coreio_status, tep_status, uaserver_status]
         state = self._get_joint_status([s.state for s in statuses])
 
+        service_statuses = {
+            "corerl": corerl_status,
+            "coreio": coreio_status,
+            "tep": tep_status,
+            "uaserver": uaserver_status,
+        }
+
         return AgentStatus(
             id=self._id,
             state=state,
             config_path=self._config_path,
+            service_statuses=service_statuses,
         )
 
     def get_process_ids(self) -> list[int | None]:

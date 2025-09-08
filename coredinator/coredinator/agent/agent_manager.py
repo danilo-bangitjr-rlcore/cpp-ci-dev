@@ -65,7 +65,7 @@ class AgentManager:
         if agent_id in self._agents:
             return self._agents[agent_id].status()
 
-        return AgentStatus(id=agent_id, state=ServiceState.STOPPED, config_path=None)
+        return AgentStatus(id=agent_id, state=ServiceState.STOPPED, config_path=None, service_statuses={})
 
     def list_agents(self):
         return list(self._agents.keys())
