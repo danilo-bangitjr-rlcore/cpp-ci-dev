@@ -171,12 +171,17 @@ class OPC_Connection_IO(OPC_Connection):
             await self.opc_client.write_values(nodes, data_values)
 
     @OPC_Connection.requires_context
-    @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         assert nodes_to_read.keys() <= self.registered_nodes.keys(), "Not all nodes_to_read are in our registered_nodes"
         opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
-        return await self.opc_client.read_values(opc_nodes_to_read)
+        read_values = [None] * len(opc_nodes_to_read)
+        try:
+            read_values = await self.opc_client.read_values(opc_nodes_to_read)
+        except Exception as exc:
+            logger.error(f"Error on bulk read, returning [Nones]:\n{exc!s}")
+
+        return read_values
 
     @OPC_Connection.requires_context
     async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]) -> dict[str, Any]:
