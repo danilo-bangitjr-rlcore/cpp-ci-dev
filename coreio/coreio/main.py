@@ -82,12 +82,8 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     logger.info("CoreIO is ready")
 
-    i = 0
     try:
         async for event in zmq_communication.async_listen_forever():
-            i += 1
-            if i > 1000:
-                break
             if event.type == IOEventType.exit_io:
                 logger.info("Received exit event, shutting down CoreIO...")
                 break
