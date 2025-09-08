@@ -18,7 +18,8 @@ services:
       # - ./.cache/timescaledb:/var/lib/postgresql/data
 
   opc-server:
-    build: ./test/test/e2e/opc_server
+    image: ghcr.io/rlcoretech/corerl-opc-server:latest
+    pull_policy: always
     ports:
       - 4840:4840
     healthcheck:
@@ -30,87 +31,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    develop:
-      watch:
-        - action: rebuild
-          path: ./e2e/opc_server
-
-  telegraf:
-    # image: telegraf:latest
-    image: telegraf:1.32.3
-    depends_on:
-      timescale-db:
-        condition: service_healthy
-      opc-server:
-        condition: service_healthy
-    volumes:
-      - ./test/test/e2e/telegraf/generated_telegraf.conf:/etc/telegraf/telegraf.conf:ro
-      # - ./test/test/e2e/tep/telegraf/tennessee_telegraf.conf:/etc/telegraf/telegraf.conf:ro
-    restart: unless-stopped
-    develop:
-      watch:
-        - action: sync+restart
-          path: ./test/test/e2e/telegraf/generated_telegraf.conf
-          # path: ./test/test/e2e/tep/telegraf/tennessee_telegraf.conf
-          target: /etc/telegraf/telegraf.conf
-
-  corerl:
-    # corerl web server for direct main config API
-    build:
-      context: .
-      dockerfile: ./corerl/Dockerfile
-      ssh:
-        - default
-    ports:
-      - 8000:8000
-    healthcheck:
-      test: ["CMD", "curl", "--fail", "http://localhost:8000/api/corerl/health"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-    entrypoint: ["corerl_start_web"]
-    develop:
-      watch:
-        - action: rebuild
-          path: ./corerl
-    volumes:
-      - type: volume
-        source: coreio-storage
-        target: /app/coreio-data
-
-  core-ui:
-    # thin client: https://github.com/rlcoretech/core-ui
-
-    # By default, use the latest stable image pushed to github container registry.
-    image: ghcr.io/rlcoretech/core-ui:latest
-    pull_policy: always
-
-    # When working with core-ui local image, comment out the "image:" line above and
-    # uncomment "build:" and "context:" lines below. Assumes that core-ui exists within the same directory as core-rl.
-    # build:
-    #   context: ../core-ui/
-
-    healthcheck:
-      test: ["CMD", "wget", "--spider", "http://localhost:2222"]
-      interval: 10s
-      timeout: 10s
-      retries: 3
-      start_period: 10s
-
-    depends_on:
-      opc-server:
-        condition: service_healthy
-      # soft dependency for MainConfig API proxy, thin client can function without this
-      # corerl:
-      #   condition: service_healthy
-    ports:
-      - 2222:2222
-    volumes:
-      - type: volume
-        source: coreio-storage
-        target: /app/data
-
   grafana:
     image: grafana/grafana-enterprise
     restart: unless-stopped
@@ -167,12 +87,9 @@ services:
       ]
 
   opc-sim:
-    build:
-      context: .
-      dockerfile: ./test/Dockerfile
-      ssh:
-        - default
-
+    image: ghcr.io/rlcoretech/corerl-opc-sim:latest
+    pull_policy: always
+    command: ["./opc_sim", "--opc_endpoint_uri", "opc.tcp://admin@opc-server:4840/rlcore/server/"]
     depends_on:
       timescale-db:
         condition: service_healthy
@@ -180,12 +97,6 @@ services:
         condition: service_healthy
     volumes:
       - ./config/opc_sim:/app/test/config/opc_sim
-    entrypoint: ["opc_sim"]
-    command: [
-        "--config-name",
-        "config/opc_sim/async_mountain_car_continuous.yaml",
-        "opc_endpoint_uri=opc.tcp://admin@opc-server:4840/rlcore/server/",
-      ]
 
 volumes:
   timescale-storage: {}
