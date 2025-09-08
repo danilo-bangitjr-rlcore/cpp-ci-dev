@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.147.0](https://github.com/rlcoretech/core-rl/compare/v0.146.0...v0.147.0) (2025-09-08)
+
+
+### Features
+
+* ability to generate test split in load_offline_transitions ([8060e5f](https://github.com/rlcoretech/core-rl/commit/8060e5f291c738a41b76acfcc72d175ccda62007))
+* initial config GET api ([6651d7f](https://github.com/rlcoretech/core-rl/commit/6651d7fd376222ec8c05fe911462ed19a08012f9))
+* **PROD-721:** time threshes at least obs_period in duration ([e0cfcd8](https://github.com/rlcoretech/core-rl/commit/e0cfcd815bdd6ddb8f783ea3cb121af70d9c295f))
+* **PROD-724:** Ensure Sympy Goal.thresh Is In Goal.tag Operating Range ([f8963b9](https://github.com/rlcoretech/core-rl/commit/f8963b973cdb7d5704dd53cffcf7f4c326ef1aaf))
+* **PROD-725:** Ensure Goals/JointGoals are self-consistent and don't violate red zones ([8098cbf](https://github.com/rlcoretech/core-rl/commit/8098cbffbb047f10bdfe324fd08707a219fc3c18))
+* **PROD-727:** yellow zone vs operating range checks ([6f9778e](https://github.com/rlcoretech/core-rl/commit/6f9778eed7cac96ef904a89a8776f30bbbce8241))
+* **PROD-728:** additional yellow vs red zone checks ([19233f9](https://github.com/rlcoretech/core-rl/commit/19233f9f9d2726380340919433e0cd9d6a9495ce))
+* **PROD-730:** red zone reflex checks ([5d8f1a6](https://github.com/rlcoretech/core-rl/commit/5d8f1a6c81dbd2c35c943590e5ee5bb98096f5ed))
+* **PROD-731:** Check computed tags can be within their operating range ([ebbc7d4](https://github.com/rlcoretech/core-rl/commit/ebbc7d41ced5e319654af71dd6eaa02f8b89ea62))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+
+
+### Bug Fixes
+
+* offline tests ([67caf35](https://github.com/rlcoretech/core-rl/commit/67caf3558ce401ccde7745fe4733d7dc7d66877b))
+* **PROD-815:** update offline_analysis ([402310c](https://github.com/rlcoretech/core-rl/commit/402310c618909bc75519033e7857674179eb5ae6))
+* remove return type annotation from split_dataframe_into_chunks function ([cba5d1b](https://github.com/rlcoretech/core-rl/commit/cba5d1b4bf61de61e8a68522e6d88b23da8017e7))
+
 ## [0.146.0](https://github.com/rlcoretech/core-rl/compare/v0.145.0...v0.146.0) (2025-08-28)
 
 
