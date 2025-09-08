@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { API_ENDPOINTS } from '../utils/api';
 import { OpcConnectionCard } from '../components/OpcConnectionCard';
+import { OpcNavigation } from '../components/OpcNavigation';
 
 export const Route = createFileRoute('/opc-navigation')({
   component: RouteComponent,
@@ -53,7 +54,7 @@ function RouteComponent() {
       />
 
       {/* Future components can also use the status data */}
-      {/* statusData?.connected && <OpcDataViewer statusData={statusData} /> */}
+      {statusData?.connected && <OpcNavigation />}
     </div>
   );
 }

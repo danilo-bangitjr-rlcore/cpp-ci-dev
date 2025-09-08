@@ -14,3 +14,9 @@ export const API_ENDPOINTS = {
     raw: (configName: string) => `${API_BASE_URL}/raw-configs/${configName}`,
   },
 } as const;
+
+// Utility functions for HTTP requests
+export const post = (url: string, options?: RequestInit) =>
+  fetch(url, { method: 'POST', ...options });
+export const get = (url: string, options?: RequestInit) =>
+  fetch(url, { method: 'GET', ...options });
