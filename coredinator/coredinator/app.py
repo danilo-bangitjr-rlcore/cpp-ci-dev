@@ -29,7 +29,7 @@ async def lifespan(app: FastAPI):
 def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
     parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
-    parser.add_argument("--port", type=int, default=8000, help="Port to run the service on (default: 8000)")
+    parser.add_argument("--port", type=int, default=7000, help="Port to run the service on (default: 7000)")
     args = parser.parse_args()
 
     return args.base_path, args.port

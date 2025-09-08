@@ -24,7 +24,7 @@ uv sync
 uv run python coredinator/app.py --base-path /path/to/executables
 ```
 
-The service will start on `http://localhost:8000` with interactive API documentation available at `/docs`.
+The service will start on `http://localhost:7000` with interactive API documentation available at `/docs`.
 
 Optionally, you can specify a custom port:
 ```bash
@@ -33,10 +33,10 @@ uv run python coredinator/app.py --base-path /path/to/executables --port 9000
 
 ### Configuration
 
-The service requires a `--base-path` argument pointing to the directory containing CoreIO and CoreRL executables. Additionally, you can specify the port using the `--port` argument (default: 8000). Agent configurations are provided as YAML files when starting agents.
+The service requires a `--base-path` argument pointing to the directory containing CoreIO and CoreRL executables. Additionally, you can specify the port using the `--port` argument (default: 7000). Agent configurations are provided as YAML files when starting agents.
 
 Optional configuration:
-- `--port`: Specify the port number (default: 8000)
+- `--port`: Specify the port number (default: 7000)
 
 ## Architecture
 
@@ -92,19 +92,19 @@ Optional configuration:
 
 **Start an Agent:**
 ```bash
-curl -X POST "http://localhost:8000/api/agents/start" \
+curl -X POST "http://localhost:7000/api/agents/start" \
   -H "Content-Type: application/json" \
   -d '{"config_path": "/path/to/config.yaml"}'
 ```
 
 **Check Agent Status:**
 ```bash
-curl -X GET "http://localhost:8000/api/agents/{agent_id}/status"
+curl -X GET "http://localhost:7000/api/agents/{agent_id}/status"
 ```
 
 **Stop an Agent:**
 ```bash
-curl -X POST "http://localhost:8000/api/agents/{agent_id}/stop"
+curl -X POST "http://localhost:7000/api/agents/{agent_id}/stop"
 ```
 
 ## TEP Demo: AgentManager demo routes
@@ -122,7 +122,7 @@ Endpoints
 Start request example (may require a config or parameters depending on implementation):
 
 ```bash
-curl -X POST "http://localhost:8000/api/agents/demo/tep/start" \
+curl -X POST "http://localhost:7000/api/agents/demo/tep/start" \
   -H "Content-Type: application/json" \
   -d '{"config_path": "/path/to/demo_config.yaml"}'
 ```
@@ -144,7 +144,7 @@ Successful start response (JSON, illustrative):
 Stop request example:
 
 ```bash
-curl -X POST "http://localhost:8000/api/agents/demo/tep/tep-demo-2025-09-04-001/stop"
+curl -X POST "http://localhost:7000/api/agents/demo/tep/tep-demo-2025-09-04-001/stop"
 ```
 
 Status response example:
