@@ -1,16 +1,16 @@
 import { useQuery, useQueries } from '@tanstack/react-query';
-import { API_BASE_URL } from '../../utils/api';
+import { API_BASE_URL, get } from '../../utils/api';
 import type { NodeInfo, NodeDetails } from './types';
 
 export const useOpcData = (
   expandedNodes: Set<string>,
-  selectedNodeId: string | null
+  selectedNodeId?: string
 ) => {
   // Fetch root nodes
   const { data: rootNodes, isLoading: isLoadingRoot } = useQuery({
     queryKey: ['opc-browse-root'],
     queryFn: async (): Promise<NodeInfo[]> => {
-      const response = await fetch(`${API_BASE_URL}/v1/opc/browse`);
+      const response = await get(`${API_BASE_URL}/v1/opc/browse`);
       if (!response.ok) throw new Error('Failed to fetch root nodes');
       return response.json();
     },
@@ -22,7 +22,7 @@ export const useOpcData = (
     queries: Array.from(expandedNodes).map((nodeId) => ({
       queryKey: ['opc-browse-node', nodeId],
       queryFn: async (): Promise<NodeInfo[]> => {
-        const response = await fetch(`${API_BASE_URL}/v1/opc/browse/${nodeId}`);
+        const response = await get(`${API_BASE_URL}/v1/opc/browse/${nodeId}`);
         if (!response.ok)
           throw new Error(`Failed to fetch children of ${nodeId}`);
         return response.json();
@@ -49,7 +49,7 @@ export const useOpcData = (
       const timeoutId = setTimeout(() => controller.abort(), 3000); // Reduced to 3 seconds
 
       try {
-        const response = await fetch(
+        const response = await get(
           `${API_BASE_URL}/v1/opc/node/${selectedNodeId}`,
           {
             signal: controller.signal,

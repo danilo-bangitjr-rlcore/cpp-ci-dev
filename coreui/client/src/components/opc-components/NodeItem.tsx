@@ -8,7 +8,7 @@ interface NodeItemProps {
   level: number;
   isExpanded: boolean;
   isSelected: boolean;
-  childrenQuery: { data?: NodeInfo[]; isLoading?: boolean } | undefined;
+  childrenQuery?: { data?: NodeInfo[]; isLoading?: boolean } ;
   onNodeClick: (nodeId: string) => void;
   renderChildren: (children: NodeInfo[], level: number) => React.ReactNode;
 }

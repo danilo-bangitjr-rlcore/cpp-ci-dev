@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { NodeDetails } from './types';
-import { API_BASE_URL } from '../../utils/api';
+import { API_BASE_URL, post } from '../../utils/api';
 
 interface NodeDetailsPanelProps {
   selectedNodeDetails?: NodeDetails;
-  selectedNodeId: string | null;
+  selectedNodeId?: string;
   isLoading: boolean;
 }
 
@@ -26,11 +26,8 @@ export const NodeDetailsPanel = ({
       value: string;
     }) => {
       const encodedNodeId = encodeURIComponent(nodeId);
-      const response = await fetch(
-        `${API_BASE_URL}/v1/opc/write/${encodedNodeId}?value=${encodeURIComponent(value)}`,
-        {
-          method: 'POST',
-        }
+      const response = await post(
+        `${API_BASE_URL}/v1/opc/write/${encodedNodeId}?value=${encodeURIComponent(value)}`
       );
       if (!response.ok) {
         const errorData = await response

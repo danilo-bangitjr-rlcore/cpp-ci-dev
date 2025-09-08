@@ -4,7 +4,7 @@ import { NodeItem } from './NodeItem';
 interface NodeTreeProps {
   nodes: NodeInfo[];
   expandedNodes: Set<string>;
-  selectedNodeId: string | null;
+  selectedNodeId?: string;
   childrenMap: Map<
     string,
     { data?: NodeInfo[]; isLoading?: boolean } | undefined

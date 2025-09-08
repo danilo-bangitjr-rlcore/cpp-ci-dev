@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 export const useOpcNavigation = () => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined);
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes((prev) => {
@@ -17,8 +17,10 @@ export const useOpcNavigation = () => {
   };
 
   const handleNodeClick = (nodeId: string) => {
-    // Only update if it's a different node
-    if (selectedNodeId !== nodeId) {
+    // If the same node is clicked, deselect it (set to undefined)
+    if (selectedNodeId === nodeId) {
+      setSelectedNodeId(undefined);
+    } else {
       setSelectedNodeId(nodeId);
     }
     // Always toggle expansion
