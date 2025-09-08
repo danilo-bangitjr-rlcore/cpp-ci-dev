@@ -1,5 +1,54 @@
 # Changelog
 
+## [0.6.0](https://github.com/rlcoretech/core-rl/compare/0.5.0...v0.6.0) (2025-09-08)
+
+
+### Features
+
+* coreio-pr workflow should comment code coverage report ([ff13beb](https://github.com/rlcoretech/core-rl/commit/ff13beb8f8a0c7fd0bdf0724b0a7bdf585d52b1b))
+* **coreio/tests:** test for sql writes ([571eb36](https://github.com/rlcoretech/core-rl/commit/571eb36c72133096e11ebefc1f66e0faee112ea2))
+* **coreio/tests:** testing data ingress e2e ([6229d26](https://github.com/rlcoretech/core-rl/commit/6229d263d3582ed13ff16decd4147fb6ace50336))
+* **coreio:** use pg dialect for int and real dtypes in ingress ([5df1438](https://github.com/rlcoretech/core-rl/commit/5df14383d58f44673b814bd0436b2610a494bcd2))
+* **PROD-497:** CoreIO test SQL writes ([d0e5470](https://github.com/rlcoretech/core-rl/commit/d0e547049ca04206ede9982bd8a3738f0323c501))
+* **PROD-784:** CoreIO data ingress tests and code coverage ([c4f42c4](https://github.com/rlcoretech/core-rl/commit/c4f42c4a1f2369392ca7a95b8a0847ef55f66460))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+
+
+### Bug Fixes
+
+* adding some try/except blocks ([7ba1715](https://github.com/rlcoretech/core-rl/commit/7ba171507040de33bb7de85813aa9aab4f13669f))
+* addressing PR comments ([4c7d296](https://github.com/rlcoretech/core-rl/commit/4c7d2965e997676623f484d6299c87217a81317e))
+* better type hint for read opc nodes function ([811a10f](https://github.com/rlcoretech/core-rl/commit/811a10f645e600ff5a4a96f929d66e372fd491f1))
+* coreio reads tags from separate part of config + new configs + some utils ([89fc9a8](https://github.com/rlcoretech/core-rl/commit/89fc9a832e7dc93a66218b00f7da40af65d847fa))
+* **coreio/dummy_agent:** dummy agent reads opc connection id from cfg ([ab9d013](https://github.com/rlcoretech/core-rl/commit/ab9d01306b77755e152ead998611952592c0d52d))
+* **coreio/tests:** change clock tolerance from 1% to 5% ([cca79a5](https://github.com/rlcoretech/core-rl/commit/cca79a58f5fcdedefc12fde6608ee155f8499fb9))
+* **coreio/tests:** indent of function args ([a8619d0](https://github.com/rlcoretech/core-rl/commit/a8619d0c792a23a8efe97a1122d8428dbe3159a1))
+* **coreio/tests:** merge two tests into one file ([510a88f](https://github.com/rlcoretech/core-rl/commit/510a88ffbab09b7c9aa8a8e0c46f304922a9a4de))
+* **coreio/tests:** rename smoke tests to integration ([41f05b6](https://github.com/rlcoretech/core-rl/commit/41f05b6f72f0dd9ffb225095c57aa2dfb404271d))
+* **coreio:** backoff on unknown node read/write ([a88f82b](https://github.com/rlcoretech/core-rl/commit/a88f82b03bdc5f64382cf03b8278b99862b17740))
+* **coreio:** check registered nodes on opc write ([9b0f10b](https://github.com/rlcoretech/core-rl/commit/9b0f10b9ab622e6af5e4c31fe50f51f15828c520))
+* **Coreio:** Coreio's event bus uses callbacks ([9964c06](https://github.com/rlcoretech/core-rl/commit/9964c063bac20a3e1e510763f1bfd3865a62bb8b))
+* **coreio:** delete unnecessary comments ([49ad3e3](https://github.com/rlcoretech/core-rl/commit/49ad3e384b873c8a10a4853d066ae5d4577654d3))
+* **coreio:** doesn't crash on unknown node ([45c0474](https://github.com/rlcoretech/core-rl/commit/45c0474a9b06a1ddea9800492acaae2fd24eacc0))
+* **coreio:** dropping out stale clock-generated events ([d6e1dce](https://github.com/rlcoretech/core-rl/commit/d6e1dcede666bd123ec3c0fe43e1eeb521f35251))
+* **coreio:** prepare to persist all nodes ([f8be717](https://github.com/rlcoretech/core-rl/commit/f8be717f6f4d1e7d18f0b44e40a56714b4159453))
+* **coreio:** preserve original tag name ([ef8055b](https://github.com/rlcoretech/core-rl/commit/ef8055bd473fedea6c64fc9df1093f504e3ea4f7))
+* **coreio:** rename write_nodes to write_to_sql to emphasize that an OPC Read -&gt; SQL Write ([c8ee28d](https://github.com/rlcoretech/core-rl/commit/c8ee28df10ea842f3640b60a3650c6c0cc679476))
+* **coreio:** uses sanitized column name ([a0fb178](https://github.com/rlcoretech/core-rl/commit/a0fb17821a74ff42f92333c92c9e2dfd6916908a))
+* **coreio:** Using column_mapper instead of sanitize_keys ([495ae99](https://github.com/rlcoretech/core-rl/commit/495ae99acc3bf8e8f392d23c76d698648e97e765))
+* db test use docker tsdb fixture ([db0ac49](https://github.com/rlcoretech/core-rl/commit/db0ac49bf61d34fd0dd076ef9423e9ccd5fb289a))
+* feature flag for config changes ([28611e5](https://github.com/rlcoretech/core-rl/commit/28611e5da47c9ca3f2ee25fa488669ebe8a7050e))
+* **PROD-789:** CoreRL/CoreIO sanitize wide format column names ([07f6f9c](https://github.com/rlcoretech/core-rl/commit/07f6f9cd7a87fde3e806b62d93ea7e0c701c698a))
+* **PROD-793:** CoreIO doesn't crash on unknown OPC node ([29a2350](https://github.com/rlcoretech/core-rl/commit/29a235079a3686c8fa7a8bee5e6568a33cd35c17))
+* **PROD-802:** sanitized postgres column names now resolve collisions ([9ecf58b](https://github.com/rlcoretech/core-rl/commit/9ecf58b9c44ea9969aecfdc7851398cc0afd4bf3))
+* **PROD-808:** CoreIO backoff on read/write ([15cafa5](https://github.com/rlcoretech/core-rl/commit/15cafa55b43e2a70b7b82ea1ab5a3a94c712ff0c))
+* **PROD-811:** CoreIO reads tags from separate part of config ([3964f45](https://github.com/rlcoretech/core-rl/commit/3964f45e3cbb0e38e2dbbe280e8d849e63c59625))
+* **PROD-843:** CoreIO try/except blocks ([4a42c62](https://github.com/rlcoretech/core-rl/commit/4a42c62107717e74f28f882ee63489730da490f4))
+* remove test code ([200c58c](https://github.com/rlcoretech/core-rl/commit/200c58c5ad595b4a95026d33fcc1e0126c7bd9d0))
+* renamed test files, added ([8edd273](https://github.com/rlcoretech/core-rl/commit/8edd273eaad86040dc56455502f8d133fba4cbbf))
+* sql communication can write partial rows ([0677510](https://github.com/rlcoretech/core-rl/commit/06775104eb334d200d1832f5b2decd0a9148b385))
+* way more retries for sql disconnections ([912c9ff](https://github.com/rlcoretech/core-rl/commit/912c9ffc4c04d5933533349d598969dbdbc06cc1))
+
 ## [0.5.0](https://github.com/rlcoretech/core-rl/compare/0.4.0...v0.5.0) (2025-08-28)
 
 
