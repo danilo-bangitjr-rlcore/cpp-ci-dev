@@ -16,5 +16,7 @@ export const API_ENDPOINTS = {
 } as const;
 
 // Utility functions for HTTP requests
-export const post = (url: string, options?: RequestInit) => fetch(url, { method: 'POST', ...options });
-export const get = (url: string, options?: RequestInit) => fetch(url, { method: 'GET', ...options });
+export const post = (url: string, options?: RequestInit) =>
+  fetch(url, { method: 'POST', ...options });
+export const get = (url: string, options?: RequestInit) =>
+  fetch(url, { method: 'GET', ...options });

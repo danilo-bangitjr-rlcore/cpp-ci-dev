@@ -2,7 +2,9 @@ import { useState } from 'react';
 
 export const useOpcNavigation = () => {
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(undefined);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | undefined>(
+    undefined
+  );
 
   const toggleNode = (nodeId: string) => {
     setExpandedNodes((prev) => {
