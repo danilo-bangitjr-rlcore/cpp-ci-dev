@@ -25,8 +25,11 @@ async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Conn
             logger.warning(f"Connection Id {connection_id} is unknown.")
             continue
 
-        async with opc_conn:
-            await opc_conn.write_opcua_nodes(payload)
+        try:
+            async with opc_conn:
+                await opc_conn.write_opcua_nodes(payload)
+        except Exception as exc:
+            logger.error(f"Failed to write nodes to OPC: {exc!s}")
 
 async def handle_read_event(
         event: IOEvent,
@@ -42,8 +45,11 @@ async def handle_read_event(
     nodes_name_val: dict[str, Any] = {}
 
     for opc_conn in opc_connections.values():
-        async with opc_conn:
-            nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
+        try:
+            async with opc_conn:
+                nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
+        except Exception as exc:
+            logger.error(f"Failed to read nodes from OPC: {exc!s}")
 
     logger.info(f"Read nodes value: {nodes_name_val}")
 
@@ -54,4 +60,4 @@ async def handle_read_event(
     try:
         sql_communication.write_to_sql(nodes_name_val, event.time)
     except Exception as exc:
-        logger.error(f"Failed to write nodes to SQL: {exc}")
+        logger.error(f"Failed to write nodes to SQL: {exc!s}")
