@@ -9,11 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TagsRouteImport } from './routes/tags'
 import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
 import { Route as AgentsOverviewRouteImport } from './routes/agents-overview'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
+const TagsRoute = TagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const OpcNavigationRoute = OpcNavigationRouteImport.update({
   id: '/opc-navigation',
   path: '/opc-navigation',
@@ -40,12 +46,14 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/agents-overview': typeof AgentsOverviewRoute
   '/opc-navigation': typeof OpcNavigationRoute
+  '/tags': typeof TagsRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/agents-overview': typeof AgentsOverviewRoute
   '/opc-navigation': typeof OpcNavigationRoute
+  '/tags': typeof TagsRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -53,13 +61,20 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/agents-overview': typeof AgentsOverviewRoute
   '/opc-navigation': typeof OpcNavigationRoute
+  '/tags': typeof TagsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/agents-overview' | '/opc-navigation'
+  fullPaths: '/' | '/about' | '/agents-overview' | '/opc-navigation' | '/tags'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/agents-overview' | '/opc-navigation'
-  id: '__root__' | '/' | '/about' | '/agents-overview' | '/opc-navigation'
+  to: '/' | '/about' | '/agents-overview' | '/opc-navigation' | '/tags'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/agents-overview'
+    | '/opc-navigation'
+    | '/tags'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -67,10 +82,18 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AgentsOverviewRoute: typeof AgentsOverviewRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
+  TagsRoute: typeof TagsRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tags': {
+      id: '/tags'
+      path: '/tags'
+      fullPath: '/tags'
+      preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/opc-navigation': {
       id: '/opc-navigation'
       path: '/opc-navigation'
@@ -107,6 +130,7 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AgentsOverviewRoute: AgentsOverviewRoute,
   OpcNavigationRoute: OpcNavigationRoute,
+  TagsRoute: TagsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
