@@ -8,6 +8,7 @@ import pytest
 from coredinator.agent.agent_manager import AgentID, AgentManager
 from coredinator.service.protocols import ServiceID
 from coredinator.service.service import Service, ServiceConfig
+from coredinator.service.service_manager import ServiceManager
 from coredinator.services.coreio import CoreIOService
 from coredinator.services.corerl import CoreRLService
 from coredinator.utils.test_polling import wait_for_event
@@ -19,7 +20,7 @@ def test_initial_status_stopped(
     """
     Test that the initial status of an AgentProcess is stopped.
     """
-    manager = AgentManager(base_path=dist_with_fake_executable)
+    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
 
     agent_id = AgentID("agent")
     s = manager.get_agent_status(agent_id)
@@ -41,7 +42,7 @@ def test_start_and_running_status(
     # Default behavior is long-running process. Ensure environment is set.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    manager = AgentManager(base_path=dist_with_fake_executable)
+    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
     agent_id = manager.start_agent(config_file)
 
     # Wait for agent to start
@@ -70,7 +71,7 @@ def test_stop_transitions_to_stopped(
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    manager = AgentManager(base_path=dist_with_fake_executable)
+    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
     agent_id = manager.start_agent(config_file)
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
 
@@ -94,7 +95,7 @@ def test_failed_status_when_process_exits_nonzero(
     # Configure the fake agent to exit with failure immediately.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
 
-    manager = AgentManager(base_path=dist_with_fake_executable)
+    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
     agent_id = manager.start_agent(config_file)
 
     # Wait for process to exit with failure
@@ -111,7 +112,7 @@ def test_start_is_idempotent(
     Test that starting an AgentProcess is idempotent when already running.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager(base_path=dist_with_fake_executable)
+    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
     agent_id = manager.start_agent(config_file)
 
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
@@ -135,7 +136,7 @@ def test_agent_fails_when_child_service_fails(
     Test that an AgentProcess status is failed if one of its child services fails.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager(base_path=dist_with_fake_executable)
+    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
     agent_id = manager.start_agent(config_file)
 
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
@@ -143,9 +144,12 @@ def test_agent_fails_when_child_service_fails(
     # Kill one of the services
     # It's a bit ugly to reach into the private attributes, but it's the most
     # direct way to simulate a service crash for this test.
-    coreio_process = manager._agents[agent_id]._coreio_service._process
-    assert coreio_process is not None
-    coreio_process.kill()
+    agent = manager._agents[agent_id]
+    coreio_service = manager._service_manager.get_service(agent._coreio_service_id)
+    assert coreio_service is not None
+    assert isinstance(coreio_service, CoreIOService)
+    assert coreio_service._process is not None
+    coreio_service._process.kill()
 
     # Wait for agent to detect the failure
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "failed", interval=0.05, timeout=1.0)

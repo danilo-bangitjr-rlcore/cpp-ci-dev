@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import NewType, Protocol
+
+from coredinator.service.service import ServiceStatus
 
 ServiceID = NewType("ServiceID", str)
 
@@ -39,16 +40,16 @@ class ServiceLike(Protocol):
     def id(self) -> ServiceID:
         ...
 
-    def start(self) -> None:
+    def start(self) -> object:
         ...
 
-    def stop(self, grace_seconds: float = 5.0) -> None:
+    def stop(self, grace_seconds: float = 5.0) -> object:
         ...
 
     def restart(self) -> None:
         ...
 
-    def status(self) -> object:
+    def status(self) -> ServiceStatus:
         ...
 
     def get_process_ids(self) -> list[int | None]:
@@ -61,10 +62,3 @@ class ServiceLike(Protocol):
         Returns True if successfully reattached, False otherwise.
         """
         ...
-
-
-@dataclass(frozen=True)
-class ServiceStatus:
-    id: ServiceID
-    state: ServiceState
-    config_path: Path | None

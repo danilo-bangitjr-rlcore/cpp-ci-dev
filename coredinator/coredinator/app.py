@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from coredinator.agent.agent_manager import AgentManager
+from coredinator.service.service_manager import ServiceManager
 from coredinator.web.agent_manager import router as agent_manager
 
 # For debugging while running the server
@@ -37,7 +38,8 @@ def parse_args():
 
 base_path, main_port = parse_args()
 app = FastAPI(lifespan=lifespan)
-app.state.agent_manager = AgentManager(base_path=base_path)
+service_manager = ServiceManager()
+app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
 
 app.add_middleware(
     CORSMiddleware,

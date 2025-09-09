@@ -2,24 +2,35 @@ from pathlib import Path
 
 from coredinator.agent.agent import Agent, AgentID, AgentStatus
 from coredinator.service.service import ServiceID
+from coredinator.service.service_manager import ServiceManager
 from coredinator.services.demos.tep import TEPService
 from coredinator.services.demos.uaserver import UAServer
 
 
 class TEPDemoAgent(Agent):
-    def __init__(self, id: AgentID, config_path: Path, base_path: Path):
-        super().__init__(id=id, config_path=config_path, base_path=base_path)
-        self._tep_service = TEPService(
-            id=ServiceID(f"{id}-tep"),
+    def __init__(self, id: AgentID, config_path: Path, base_path: Path, service_manager: ServiceManager):
+        super().__init__(id=id, config_path=config_path, base_path=base_path, service_manager=service_manager)
+
+        self._tep_service_id = ServiceID(f"{id}-tep")
+        self._uaserver_service_id = ServiceID(f"{id}-uaserver")
+
+        tep_service = TEPService(
+            id=self._tep_service_id,
+            config_path=config_path,
+            base_path=base_path,
+        )
+        uaserver_service = UAServer(
+            id=self._uaserver_service_id,
             config_path=config_path,
             base_path=base_path,
         )
 
-        self._uaserver_service = UAServer(
-            id=ServiceID(f"{id}-uaserver"),
-            config_path=config_path,
-            base_path=base_path,
-        )
+        self._service_manager.register_service(tep_service)
+        self._service_manager.register_service(uaserver_service)
+
+        # Cache service objects since they never change reference
+        self._tep_service = tep_service
+        self._uaserver_service = uaserver_service
 
     def start(self):
         self._uaserver_service.start()
@@ -36,8 +47,8 @@ class TEPDemoAgent(Agent):
         coreio_status = self._coreio_service.status()
         tep_status = self._tep_service.status()
         uaserver_status = self._uaserver_service.status()
-
         statuses = [corerl_status, coreio_status, tep_status, uaserver_status]
+
         state = self._get_joint_status([s.state for s in statuses])
 
         service_statuses = {

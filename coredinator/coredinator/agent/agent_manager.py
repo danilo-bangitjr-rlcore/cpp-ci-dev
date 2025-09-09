@@ -6,6 +6,7 @@ from typing import Any, Concatenate, cast
 
 from coredinator.agent.agent import Agent, AgentID, AgentStatus
 from coredinator.service.protocols import ServiceState
+from coredinator.service.service_manager import ServiceManager
 
 
 def db_recovery_decorator[**P, R](
@@ -22,10 +23,11 @@ def db_recovery_decorator[**P, R](
 
 
 class AgentManager:
-    def __init__(self, base_path: Path):
+    def __init__(self, base_path: Path, service_manager: ServiceManager):
         self._agents: dict[AgentID, Agent] = {}
         self._base_path = base_path
         self._db_path = base_path / "agent_state.db"
+        self._service_manager = service_manager
 
         # Initialize database
         self._init_database()
@@ -39,7 +41,12 @@ class AgentManager:
     def start_agent(self, config_path: Path, agent_factory: type[Agent] = Agent) -> AgentID:
         agent_id = AgentID(config_path.stem)
         if agent_id not in self._agents:
-            self._agents[agent_id] = agent_factory(id=agent_id, config_path=config_path, base_path=self._base_path)
+            self._agents[agent_id] = agent_factory(
+                id=agent_id,
+                config_path=config_path,
+                base_path=self._base_path,
+                service_manager=self._service_manager,
+            )
 
         self._agents[agent_id].start()
 
@@ -112,7 +119,12 @@ class AgentManager:
                 config_path = Path(config_path_str)
 
                 # Create agent instance
-                self._agents[agent_id] = Agent(id=agent_id, config_path=config_path, base_path=self._base_path)
+                self._agents[agent_id] = Agent(
+                    id=agent_id,
+                    config_path=config_path,
+                    base_path=self._base_path,
+                    service_manager=self._service_manager,
+                )
 
                 # Start agent if it was marked as running
                 if operating_mode == "running":
