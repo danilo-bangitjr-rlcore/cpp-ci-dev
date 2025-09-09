@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from asyncua import Node
 from asyncua.ua import VariantType
-from lib_utils.sql_logging.utils import ColumnMapper
+from lib_sql.utils import ColumnMapper
 from sqlalchemy import text
 
 from coreio.communication.opc_communication import NodeData

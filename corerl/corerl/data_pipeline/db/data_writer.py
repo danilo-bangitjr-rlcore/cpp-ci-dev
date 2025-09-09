@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 from typing import NamedTuple
 
 from lib_config.config import config
-from lib_utils.sql_logging.utils import SQLColumn, create_tsdb_table_query
+from lib_sql.engine import get_sql_engine
+from lib_sql.utils import SQLColumn, create_tsdb_table_query
 
-from corerl.sql_logging.sql_logging import get_sql_engine
 from corerl.tags.components.opc import Agg
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 

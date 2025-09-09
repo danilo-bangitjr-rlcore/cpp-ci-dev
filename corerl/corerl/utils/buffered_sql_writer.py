@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING, Literal, NamedTuple, Protocol
 
 from lib_config.config import MISSING, computed, config
 from lib_config.group import Group
-from lib_utils.sql_logging.connect_engine import TryConnectContextManager
-from lib_utils.sql_logging.sql_logging import get_sql_engine, table_exists
-from lib_utils.sql_logging.utils import sanitize_keys
+from lib_sql.connection import TryConnectContextManager
+from lib_sql.engine import get_sql_engine
+from lib_sql.inspection import table_exists
+from lib_sql.utils import sanitize_keys
 from pydantic import Field
 from sqlalchemy import Engine, TextClause, text
 

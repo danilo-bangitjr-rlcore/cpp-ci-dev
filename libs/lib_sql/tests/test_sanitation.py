@@ -1,6 +1,6 @@
 import re
 
-from lib_utils.sql_logging.utils import (
+from lib_sql.utils import (
     ColumnMapper,
     SanitizedName,
     _clean_names_with_hash_disambiguation,

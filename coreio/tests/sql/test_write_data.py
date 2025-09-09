@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 from asyncua import Node
 from asyncua.ua import VariantType
-from lib_utils.sql_logging.sql_logging import get_sql_engine
+from lib_sql.engine import get_sql_engine
 from lib_utils.time import now_iso
 from sqlalchemy import Engine, text
 
@@ -108,4 +108,3 @@ def test_partial_write(
         assert isinstance(row[0], datetime)
         assert row[1] is None
         assert row[2] == nodes_name_val["sensor2"]
-

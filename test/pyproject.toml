@@ -11,6 +11,7 @@ dependencies = [
     "psutil>=7.0.0",
     "filelock>=3.18.0",
     "gymnasium~=1.0",
+    "lib-sql",
     "lib-utils",
 ]
 
@@ -41,6 +42,7 @@ packages = ["test"]
 [tool.uv.sources]
 corerl = { path = "../corerl", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
+lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 
 # ----------

@@ -1,14 +1,14 @@
 [project]
-name = "lib_utils"
+name = "lib_sql"
 version = "0.0.0"
-description = ""
+description = "Shared SQL utilities for the monorepo (scaffold)"
 requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
-    "annotated-types>=0.7.0",
-    "lib-defs",
-    "pydantic>=2.11.5",
-    "pyzmq~=26.4.0",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
+    "psycopg[binary]~=3.2",
+    "lib-utils",
 ]
 readme = "README.md"
 
@@ -23,28 +23,13 @@ dev = [
     "uv>=0.5.24",
 ]
 
-[project.optional-dependencies]
-jax = [
-    "chex>=0.1.89",
-    "distrax>=0.1.5",
-    "dm-haiku>=0.0.14",
-    "flax>=0.10.6",
-    "jax>=0.6.1, <0.7.0",
-    "optax>=0.2.4",
-]
-
-opc = [
-    "asyncua>=1.1.6",
-    "backoff>=2.2.1",
-]
-
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool]
 [tool.hatch.build.targets.wheel]
-packages = ["lib_utils"]
+packages = ["lib_sql"]
 
 [tool.ruff]
 extend = "../../standards/python/ruff.toml"
@@ -57,13 +42,5 @@ exclude = [
 ]
 venvPath = '.'
 
-
-[tool.commitizen]
-name = "cz_conventional_commits"
-version_scheme = "pep440"
-version_provider = "pep621"
-update_changelog_on_bump = true
-major_version_zero = true
-
 [tool.uv.sources]
-lib-defs = { path = "../lib_defs", editable = true }
+lib-utils = { path = "../lib_utils", editable = true }

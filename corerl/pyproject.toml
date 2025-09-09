@@ -23,6 +23,7 @@ dependencies = [
     "sympy~=1.14",
     "lib-agent",
     "lib-config",
+    "lib-sql",
     "lib-utils[jax]",
     "lib-defs",
 ]
@@ -68,6 +69,7 @@ coreio = { path = "../coreio", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
 lib-agent = { path = "../libs/lib_agent", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
+lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-defs = { path = "../libs/lib_defs", editable = true }
 

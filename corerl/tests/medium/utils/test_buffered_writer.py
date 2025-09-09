@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 import pandas as pd
 import pytest
-from lib_utils.sql_logging.connect_engine import TryConnectContextManager
+from lib_sql.connection import TryConnectContextManager
 from sqlalchemy import Engine, text
 
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig, sanitize_keys
