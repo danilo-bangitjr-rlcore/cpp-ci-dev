@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ExampleComponent } from '../components/ExampleComponent';
-import { TagCard } from '../components/tags-components/Tags'
+import { TagCard } from '../components/tags-components/Tags';
 import { API_ENDPOINTS, get } from '../utils/api';
 
 export const Route = createFileRoute('/tags')({
@@ -9,8 +9,8 @@ export const Route = createFileRoute('/tags')({
 });
 
 type Tag = {
-    name: string;
-}
+  name: string;
+};
 
 function Tags() {
   const { isPending, error, data } = useQuery({
@@ -22,16 +22,16 @@ function Tags() {
     },
   });
 
-  if (isPending) return 'Loading tags..'
+  if (isPending) return 'Loading tags..';
 
-  if (error) return ' :-( ' + error.message
+  if (error) return ' :-( ' + error.message;
 
   return (
     <div className="p-2">
       <ExampleComponent title="Tags" />
-      { data.tags.map((tag: Tag, index: number) => {
-        return <TagCard key={index} tag={tag} />
-      }) }
+      {data.tags.map((tag: Tag, index: number) => {
+        return <TagCard key={index} tag={tag} />;
+      })}
     </div>
   );
 }

@@ -12,7 +12,7 @@ export const API_ENDPOINTS = {
   configs: {
     clean: (configName: string) => `${API_BASE_URL}/configs/${configName}`,
     raw: (configName: string) => `${API_BASE_URL}/raw-configs/${configName}`,
-  // TEMPORARY PLACEHOLDER FOR TAGS -- HARD CODED CONFIG NAME
+    // TEMPORARY PLACEHOLDER FOR TAGS -- HARD CODED CONFIG NAME
     tags: `${API_BASE_URL}/v1/config/main_backwash/tags`,
   },
 } as const;

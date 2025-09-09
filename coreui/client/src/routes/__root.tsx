@@ -1,6 +1,6 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 
@@ -13,14 +13,14 @@ const navItems = [
   { label: 'Agents Overview', to: '/agents-overview' },
   { label: 'OPC Navigation', to: '/opc-navigation' },
   { label: 'About', to: '/about' },
-  { label: 'Tags', to: '/tags'}
+  { label: 'Tags', to: '/tags' },
 ];
 
 const headerItems = [
   { label: 'Settings', onClick: () => console.log('Settings clicked') },
 ];
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient();
 
 export const Route = createRootRoute({
   component: () => (
