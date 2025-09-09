@@ -139,3 +139,35 @@ async def get_all_configs(subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) ->
                             status_code=status.HTTP_200_OK)
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+async def create_config(
+    config_name: str,
+    subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+) -> JSONResponse:
+    try:
+        base_config = {"agent_name": config_name}
+        configs_dir = _get_configs_dir(subfolder)
+        config_path = configs_dir / f"{config_name}.yaml"
+        if config_path.exists():
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Config already exists")
+        _write_config_data(config_name, base_config, subfolder)
+        return JSONResponse(content={"message": "Config created", "config": base_config, "name": config_name},
+                            status_code=status.HTTP_201_CREATED)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+async def delete_config(
+    config_name: str,
+    subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+) -> JSONResponse:
+    try:
+        configs_dir = _get_configs_dir(subfolder)
+        config_path = configs_dir / f"{config_name}.yaml"
+        if not config_path.exists():
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found")
+        config_path.unlink()
+        _config_cache.pop((config_name, subfolder), None)
+        return JSONResponse(content={"message": "Config deleted", "name": config_name},
+                            status_code=status.HTTP_200_OK)
+    except Exception as e:
+        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)

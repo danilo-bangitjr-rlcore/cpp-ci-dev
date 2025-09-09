@@ -7,6 +7,8 @@ from pydantic import BaseModel
 from server.config_api.config import (
     ConfigSubfolder,
     add_tag,
+    create_config,
+    delete_config,
     delete_tag,
     get_all_configs,
     get_config,
@@ -42,7 +44,13 @@ class ConfigsResponse(BaseModel):
 class ErrorResponse(BaseModel):
     error: str
 
+class ConfigNameRequest(BaseModel):
+    config_name: str
 
+
+#════════════════════════════════════════════════════════════════════════════
+#                          CLEAN CONFIG ENDPOINTS
+#════════════════════════════════════════════════════════════════════════════
 
 @config_router.get(
     "/list",
@@ -216,6 +224,58 @@ async def put_clean_tag(config_name: str, index: int, tag: Tag = Body(...)):
 async def delete_clean_tag(config_name: str, index: int):
     return await delete_tag(config_name, index, ConfigSubfolder.CLEAN)
 
+@config_router.post(
+    "/configs",
+    response_model=ConfigResponse,
+    responses={
+        201: {
+            "description": "Configuration successfully created",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "config_name": "new_config",
+                    },
+                },
+            },
+        },
+        400: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Create Config",
+    description="Create a new configuration with the given name.",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_clean_config(config: ConfigNameRequest = Body(...)):
+    return await create_config(config.config_name, subfolder=ConfigSubfolder.CLEAN)
+
+@config_router.delete(
+    "/configs",
+    response_model=ConfigResponse,
+    responses={
+        200: {
+            "description": "Configuration successfully deleted",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "config_name": "new_config",
+                    },
+                },
+            },
+        },
+        404: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Delete Config",
+    description="Delete an existing configuration by name.",
+)
+async def delete_clean_config(config: ConfigNameRequest = Body(...)):
+    return await delete_config(config.config_name, subfolder=ConfigSubfolder.CLEAN)
+
+
+#════════════════════════════════════════════════════════════════════════════
+#                          RAW CONFIG ENDPOINTS
+#════════════════════════════════════════════════════════════════════════════
+
 @config_router.get(
     "/raw/list",
     response_model=ConfigsResponse,
@@ -384,3 +444,50 @@ async def put_raw_tag(config_name: str, index: int, tag: Tag = Body(...)):
 )
 async def delete_raw_tag(config_name: str, index: int):
     return await delete_tag(config_name, index, ConfigSubfolder.RAW)
+
+@config_router.post(
+    "/raw/configs",
+    response_model=ConfigResponse,
+    responses={
+        201: {
+            "description": "Configuration successfully created",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "config_name": "new_config",
+                    },
+                },
+            },
+        },
+        400: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Create Raw Config",
+    description="Create a new raw configuration with the given name.",
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_raw_config(config: ConfigNameRequest = Body(...)):
+    return await create_config(config.config_name, subfolder=ConfigSubfolder.RAW)
+
+@config_router.delete(
+    "/raw/configs",
+    response_model=ConfigResponse,
+    responses={
+        200: {
+            "description": "Configuration successfully deleted",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "config_name": "new_config",
+                    },
+                },
+            },
+        },
+        404: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Delete Raw Config",
+    description="Delete an existing raw configuration by name.",
+)
+async def delete_raw_config(config: ConfigNameRequest = Body(...)):
+    return await delete_config(config.config_name, subfolder=ConfigSubfolder.RAW)
