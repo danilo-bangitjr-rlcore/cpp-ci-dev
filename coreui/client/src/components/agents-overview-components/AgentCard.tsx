@@ -1,10 +1,5 @@
 import React, { useState, useEffect } from 'react';
-
-interface Agent {
-  name: string;
-  status: 'on' | 'off' | 'error';
-  configPath: string;
-}
+import { type Agent } from '../../routes/agents-overview';
 
 interface AgentCardProps {
   agent: Agent;
@@ -37,12 +32,6 @@ const AgentCard: React.FC<AgentCardProps> = ({
     onAgentChange(updatedAgent);
   };
 
-  const handleConfigPathChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const updatedAgent = { ...localAgent, configPath: e.target.value };
-    setLocalAgent(updatedAgent);
-    onAgentChange(updatedAgent);
-  };
-
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete ${localAgent.name}?`)) {
       onDelete();
@@ -61,11 +50,11 @@ const AgentCard: React.FC<AgentCardProps> = ({
             className="text-xl font-bold bg-transparent border border-transparent focus:border-gray-300 focus:bg-white p-1 rounded w-full"
           />
         </div>
-        <div>
+        <div className="flex items-center justify-between my-4">
           <div className="flex items-center space-x-2">
             <label className="text-sm font-medium text-gray-700">Status:</label>
             <span
-              className={`px-2 py-1 rounded text-sm ${
+              className={`px-3 py-1 rounded text-sm ${
                 localAgent.status === 'on'
                   ? 'bg-green-100 text-green-800'
                   : localAgent.status === 'off'
@@ -73,30 +62,22 @@ const AgentCard: React.FC<AgentCardProps> = ({
                     : 'bg-yellow-100 text-yellow-800'
               }`}
             >
-              {localAgent.status}
+              {localAgent.status.toUpperCase()}
             </span>
           </div>
-          <div className="mt-2">
-            <button
-              onClick={handleToggleStatus}
-              className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-600"
-            >
-              {localAgent.status === 'on' ? 'Turn Off' : 'Turn On'}
-            </button>
-          </div>
+          <button
+            onClick={handleToggleStatus}
+            className={`text-white px-3 py-1 rounded text-sm ${localAgent.status === 'on' ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+          >
+            {localAgent.status === 'on' ? 'Turn Off' : 'Turn On'}
+          </button>
         </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Config Path:
-          </label>
-          <input
-            type="text"
-            value={localAgent.configPath}
-            onChange={handleConfigPathChange}
-            placeholder="Enter config file path"
-            className="mt-1 block w-full border border-gray-300 bg-white rounded px-3 py-2"
-          />
-        </div>
+        <button className="w-full bg-gray-500 text-white py-1 rounded hover:bg-gray-600">
+          Configure
+        </button>
+        <button className="w-full bg-gray-500 text-white py-1 rounded hover:bg-gray-600">
+          Monitor
+        </button>
       </div>
       <div className="mt-4 flex justify-end">
         <button

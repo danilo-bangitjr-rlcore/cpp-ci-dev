@@ -1,9 +1,9 @@
 import { createFileRoute } from '@tanstack/react-router';
-import AgentCard from '../components/agents-oveview-components/AgentCard';
-import AddAgentCard from '../components/agents-oveview-components/AddAgentCard';
+import AgentCard from '../components/agents-overview-components/AgentCard';
+import AddAgentCard from '../components/agents-overview-components/AddAgentCard';
 import { useState } from 'react';
 
-interface Agent {
+export interface Agent {
   name: string;
   status: 'on' | 'off' | 'error';
   configPath: string;
