@@ -53,23 +53,116 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 4. Get Raw Config
+### 4. Add Clean Tag
+
+- **POST** `/api/configs/{config_name}/tags`
+- **Description:** Add a new tag to the type-validated ("clean") configuration.
+- **Body:**  
+  - `tag` (object): Tag object to add.
+- **Response:**
+  ```json
+  {
+    "message": "Tag created",
+    "tag": { "name": "NEW_TAG" },
+    "index": 2
+  }
+  ```
+
+### 5. Update Clean Tag
+
+- **PUT** `/api/configs/{config_name}/tags/{index}`
+- **Description:** Update an existing tag by index in the type-validated ("clean") configuration.
+- **Args:**  
+  - `index` (int): Index of the tag to update.
+- **Body:**  
+  - `tag` (object): Updated tag object.
+- **Response:**
+  ```json
+  {
+    "message": "Tag updated",
+    "tag": { "name": "UPDATED_TAG" },
+    "index": 2
+  }
+  ```
+
+### 6. Delete Clean Tag
+
+- **DELETE** `/api/configs/{config_name}/tags/{index}`
+- **Description:** Delete a tag by index from the type-validated ("clean") configuration.
+- **Args:**  
+  - `index` (int): Index of the tag to delete.
+- **Response:**
+  ```json
+  {
+    "message": "Tag deleted",
+    "tag": { "name": "REMOVED_TAG" },
+    "index": 2
+  }
+  ```
+
+### 7. List Clean Config Names
+
+- **GET** `/api/configs`
+- **Description:** List all available type-validated ("clean") configuration names.
+- **Response:**
+  ```json
+  {
+    "configs": [
+      "main_backwash",
+      "secondary_config"
+    ]
+  }
+  ```
+
+### 8. Get Raw Config
 
 - **GET** `/api/raw-configs/{config_name}`
 - **Description:** Retrieve the raw (not type-validated) configuration as a JSON object.
 - **Response:** Same as "Get Clean Config".
 
-### 5. List Raw Tags
+### 9. List Raw Tags
 
 - **GET** `/api/raw-configs/{config_name}/tags`
 - **Description:** List all tags defined in the raw configuration.
 - **Response:** Same as "List Clean Tags".
 
-### 6. Get Raw Tag
+### 10. Get Raw Tag
 
 - **GET** `/api/raw-configs/{config_name}/tags/{tag_name}`
 - **Description:** Retrieve a specific tag by name from the raw configuration.
 - **Response:** Same as "Get Clean Tag".
+
+### 11. Add Raw Tag
+
+- **POST** `/api/raw-configs/{config_name}/tags`
+- **Description:** Add a new tag to the raw configuration.
+- **Body:**  
+  - `tag` (object): Tag object to add.
+- **Response:** Same as "Add Clean Tag".
+
+### 12. Update Raw Tag
+
+- **PUT** `/api/raw-configs/{config_name}/tags/{index}`
+- **Description:** Update an existing tag by index in the raw configuration.
+- **Args:**  
+  - `index` (int): Index of the tag to update.
+- **Body:**  
+  - `tag` (object): Updated tag object.
+- **Response:** Same as "Update Clean Tag".
+
+### 13. Delete Raw Tag
+
+- **DELETE** `/api/raw-configs/{config_name}/tags/{index}`
+- **Description:** Delete a tag by index from the raw configuration.
+- **Args:**  
+  - `index` (int): Index of the tag to delete.
+- **Response:** Same as "Delete Clean Tag".
+
+### 14. List Raw Config Names
+
+- **GET** `/api/raw-configs`
+- **Description:** List all available raw configuration names.
+- **Response:** Same as "List Clean Config Names".
 
 ## Mock Configs Directory
 
