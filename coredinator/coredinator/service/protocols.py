@@ -1,10 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import NewType, Protocol
-
-from coredinator.service.service import ServiceStatus
 
 ServiceID = NewType("ServiceID", str)
 
@@ -15,6 +14,13 @@ class ServiceState(StrEnum):
     STOPPING = "stopping"
     STOPPED = "stopped"
     FAILED = "failed"
+
+
+@dataclass(frozen=True, slots=True)
+class ServiceStatus:
+    id: ServiceID
+    state: ServiceState
+    config_path: Path | None
 
 
 class StatusLike(Protocol):
