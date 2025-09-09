@@ -10,12 +10,18 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
+import { Route as AgentsOverviewRouteImport } from './routes/agents-overview'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 
 const OpcNavigationRoute = OpcNavigationRouteImport.update({
   id: '/opc-navigation',
   path: '/opc-navigation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AgentsOverviewRoute = AgentsOverviewRouteImport.update({
+  id: '/agents-overview',
+  path: '/agents-overview',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -32,30 +38,34 @@ const IndexRoute = IndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agents-overview': typeof AgentsOverviewRoute
   '/opc-navigation': typeof OpcNavigationRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agents-overview': typeof AgentsOverviewRoute
   '/opc-navigation': typeof OpcNavigationRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/agents-overview': typeof AgentsOverviewRoute
   '/opc-navigation': typeof OpcNavigationRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/about' | '/opc-navigation'
+  fullPaths: '/' | '/about' | '/agents-overview' | '/opc-navigation'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/about' | '/opc-navigation'
-  id: '__root__' | '/' | '/about' | '/opc-navigation'
+  to: '/' | '/about' | '/agents-overview' | '/opc-navigation'
+  id: '__root__' | '/' | '/about' | '/agents-overview' | '/opc-navigation'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  AgentsOverviewRoute: typeof AgentsOverviewRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
 }
 
@@ -66,6 +76,13 @@ declare module '@tanstack/react-router' {
       path: '/opc-navigation'
       fullPath: '/opc-navigation'
       preLoaderRoute: typeof OpcNavigationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/agents-overview': {
+      id: '/agents-overview'
+      path: '/agents-overview'
+      fullPath: '/agents-overview'
+      preLoaderRoute: typeof AgentsOverviewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  AgentsOverviewRoute: AgentsOverviewRoute,
   OpcNavigationRoute: OpcNavigationRoute,
 }
 export const routeTree = rootRouteImport
