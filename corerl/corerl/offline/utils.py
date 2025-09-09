@@ -91,6 +91,8 @@ def load_data_chunks(
         if not chunk_data.empty:
             yield chunk_data
 
+    data_reader.close()
+
 
 def load_entire_dataset(
     cfg: MainConfig,
@@ -103,13 +105,15 @@ def load_entire_dataset(
 
     tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
     obs_period = cfg.interaction.obs_period
-    return data_reader.batch_aggregated_read(
+    out = data_reader.batch_aggregated_read(
         names=tag_names,
         start_time=start_time,
         end_time=end_time,
         bucket_width=obs_period,
         aggregation=cfg.env.db.data_agg,
     )
+    data_reader.close()
+    return out
 
 
 def offline_rl_from_buffer(agent: GreedyAC, steps: int=100):
@@ -275,6 +279,3 @@ def get_latest_state(pipe_return: PipelineReturn):
         dp=jnp.ones((1,)),
         last_a=jnp.asarray(pipe_return.actions.iloc[-1]),
     )
-
-
-

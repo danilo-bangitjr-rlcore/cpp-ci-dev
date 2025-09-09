@@ -233,6 +233,8 @@ class BufferedWriter[T: NamedTuple](ABC):
     def close(self) -> None:
         self.blocking_sync()
         self._exec.shutdown()
+        if self.engine:
+            self.engine.dispose()
 
 
     def _get_columns(self, dict_points: list[dict]):
@@ -321,4 +323,3 @@ class BufferedWriter[T: NamedTuple](ABC):
 
     def _transform(self, points: list[T]):
         return [point._asdict() for point in points]
-
