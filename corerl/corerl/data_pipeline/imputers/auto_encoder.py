@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Literal, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import chex
 import haiku as hk
@@ -14,7 +14,7 @@ import numpy as np
 import optax
 import pandas as pd
 from lib_agent.buffer.storage import ReplayStorage
-from lib_config.config import config, list_
+from lib_config.config import config, list_, post_processor
 from lib_defs.config_defs.tag_config import TagType
 
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
@@ -23,6 +23,9 @@ from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState, log_trace_quality
 from corerl.state import AppState
 from corerl.tags.tag_config import TagConfig
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
 
@@ -51,8 +54,17 @@ class MaskedAEConfig(BaseImputerStageConfig):
     buffer_size: int = 50_000
 
     fill_val: float = 0.0
-    prop_missing_tol: float = 0.5
+    prop_missing_tol: float = np.nan
     train_cfg: TrainingConfig = field(default_factory=TrainingConfig)
+
+    @post_processor
+    def _set_missing_tol(self, cfg: 'MainConfig'):
+        """
+        If no missing tol is explicitly set, use the training_missing_perc
+        """
+        if not np.isnan(self.prop_missing_tol):
+            return
+        self.prop_missing_tol = self.train_cfg.training_missing_perc
 
 class ImputeData(NamedTuple):
     obs: jax.Array # raw observation
@@ -164,7 +176,7 @@ class MaskedAutoencoder(BaseImputer):
             perc_nan_trace = num_nan_trace / (self._num_traces * self._num_obs)
 
             should_impute = num_nan_obs > 0
-            nan_tol = self._cfg.train_cfg.training_missing_perc
+            nan_tol = self._cfg.prop_missing_tol
             can_impute = (perc_nan_obs <= nan_tol) and (perc_nan_trace <= nan_tol)
             within_horizon = ts.num_outside_thresh <= self._cfg.horizon
             if len(df) == 1 and not (can_impute or within_horizon):
