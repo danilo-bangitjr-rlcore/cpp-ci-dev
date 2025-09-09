@@ -30,25 +30,23 @@ class Agent:
         self._corerl_service_id = ServiceID(f"{id}-corerl")
         self._coreio_service_id = ServiceID(f"{id}-coreio")
 
-        # Create services
-        corerl_service = CoreRLService(
-            id=self._corerl_service_id,
-            config_path=config_path,
-            base_path=base_path,
+        # Get or create services using the service manager
+        self._corerl_service = self._service_manager.get_or_register_service(
+            self._corerl_service_id,
+            lambda: CoreRLService(
+                id=self._corerl_service_id,
+                config_path=config_path,
+                base_path=base_path,
+            ),
         )
-        coreio_service = CoreIOService(
-            id=self._coreio_service_id,
-            config_path=config_path,
-            base_path=base_path,
+        self._coreio_service = self._service_manager.get_or_register_service(
+            self._coreio_service_id,
+            lambda: CoreIOService(
+                id=self._coreio_service_id,
+                config_path=config_path,
+                base_path=base_path,
+            ),
         )
-
-        # Register services with the manager
-        self._service_manager.register_service(corerl_service)
-        self._service_manager.register_service(coreio_service)
-
-        # Cache service objects since they never change reference
-        self._corerl_service = corerl_service
-        self._coreio_service = coreio_service
 
     @property
     def id(self):

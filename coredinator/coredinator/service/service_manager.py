@@ -1,3 +1,5 @@
+from collections.abc import Callable
+
 from coredinator.service.protocols import ServiceID, ServiceLike
 
 
@@ -24,3 +26,12 @@ class ServiceManager:
 
     def has_service(self, service_id: ServiceID) -> bool:
         return service_id in self._services
+
+    def get_or_register_service(self, service_id: ServiceID, service_factory: Callable[[], ServiceLike]) -> ServiceLike:
+        existing_service = self.get_service(service_id)
+        if existing_service is not None:
+            return existing_service
+
+        service = service_factory()
+        self.register_service(service)
+        return service

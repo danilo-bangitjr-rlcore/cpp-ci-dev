@@ -14,23 +14,23 @@ class TEPDemoAgent(Agent):
         self._tep_service_id = ServiceID(f"{id}-tep")
         self._uaserver_service_id = ServiceID(f"{id}-uaserver")
 
-        tep_service = TEPService(
-            id=self._tep_service_id,
-            config_path=config_path,
-            base_path=base_path,
+        # Get or create services using the service manager
+        self._tep_service = self._service_manager.get_or_register_service(
+            self._tep_service_id,
+            lambda: TEPService(
+                id=self._tep_service_id,
+                config_path=config_path,
+                base_path=base_path,
+            ),
         )
-        uaserver_service = UAServer(
-            id=self._uaserver_service_id,
-            config_path=config_path,
-            base_path=base_path,
+        self._uaserver_service = self._service_manager.get_or_register_service(
+            self._uaserver_service_id,
+            lambda: UAServer(
+                id=self._uaserver_service_id,
+                config_path=config_path,
+                base_path=base_path,
+            ),
         )
-
-        self._service_manager.register_service(tep_service)
-        self._service_manager.register_service(uaserver_service)
-
-        # Cache service objects since they never change reference
-        self._tep_service = tep_service
-        self._uaserver_service = uaserver_service
 
     def start(self):
         self._uaserver_service.start()
