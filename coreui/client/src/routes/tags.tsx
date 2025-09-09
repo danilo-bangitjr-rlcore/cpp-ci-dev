@@ -1,7 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
 import { ExampleComponent } from '../components/ExampleComponent';
-import { TagCard } from '../components/navigation/Tags'
+import { TagCard } from '../components/tags-components/Tags'
+import { API_ENDPOINTS, get } from '../utils/api';
 
 export const Route = createFileRoute('/tags')({
   component: Tags,
@@ -14,11 +15,11 @@ type Tag = {
 function Tags() {
   const { isPending, error, data } = useQuery({
     queryKey: ['tags'],
-    queryFn: () =>
-        fetch('http://localhost:8000/api/configs/main_backwash/tags'
-    ).then((res) => 
-        res.json(),
-    ),
+    queryFn: async () => {
+      const response = await get(API_ENDPOINTS.configs.tags);
+      if (!response.ok) throw new Error('Failed to fetch tags');
+      return response.json();
+    },
   });
 
   if (isPending) return 'Loading tags..'

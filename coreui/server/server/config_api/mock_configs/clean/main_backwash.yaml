@@ -213,3 +213,9 @@ pipeline:
     operating_range:
     - 10
     - 79
+  - additionalProp1: {}
+  - additionalProp1: {}
+  - additionalProp1: {}
+  - additionalProp1: {}
+  - additionalProp1: {}
+  - additionalProp1: {}
