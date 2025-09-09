@@ -8,7 +8,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.tags.setpoint import SetpointTagConfig
@@ -27,7 +27,7 @@ def test_nominal_setpoint_norm():
     event_bus = DummyEventBus()
     app_state = AppState[DummyEventBus](
         cfg=cfg,
-        metrics=MetricsTable(cfg.metrics),
+        metrics=create_metrics_writer(cfg.metrics),
         evals=EvalsTable(cfg.evals),
         event_bus=event_bus,
     )

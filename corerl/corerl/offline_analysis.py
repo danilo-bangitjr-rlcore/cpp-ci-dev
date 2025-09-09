@@ -11,7 +11,7 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.data_report import generate_report
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import load_data_chunks, load_entire_dataset
 from corerl.state import AppState
@@ -67,7 +67,7 @@ def main(cfg: MainConfig):
     app_state = AppState(
         cfg,
         evals=EvalsTable(cfg.evals),
-        metrics=MetricsTable(cfg.metrics),
+        metrics=create_metrics_writer(cfg.metrics),
         event_bus=DummyEventBus(),
     )
 

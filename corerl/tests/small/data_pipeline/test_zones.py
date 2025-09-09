@@ -10,7 +10,7 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.zones import ZoneDiscourager, ZoneViolationEvent
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
@@ -31,7 +31,7 @@ def app_state(cfg: MainConfig):
     return AppState(
         cfg=cfg,
         evals=EvalsTable(cfg.evals),
-        metrics=MetricsTable(cfg.metrics),
+        metrics=create_metrics_writer(cfg.metrics),
         event_bus=DummyEventBus(),
     )
 

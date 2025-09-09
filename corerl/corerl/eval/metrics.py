@@ -1,9 +1,8 @@
 import logging
 from collections.abc import Mapping
 from datetime import UTC, datetime
-from typing import Any, NamedTuple, SupportsFloat
+from typing import Any, NamedTuple, Protocol, SupportsFloat
 
-import lib_utils.iterable as itr_utils
 import pandas as pd
 from lib_config.config import config
 from lib_sql.connection import TryConnectContextManager
@@ -23,6 +22,64 @@ class _MetricPoint(NamedTuple):
     agent_step : int
     metric: str
     value: float
+
+class MetricsWriterProtocol(Protocol):
+    def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None) -> None:
+        ...
+
+    def write_dict(
+        self,
+        values: Mapping[str, SupportsFloat | Mapping[str, Any]],
+        agent_step: int,
+        prefix: str = '',
+    ) -> None:
+        ...
+
+    def read(
+        self,
+        metric: str,
+        step_start: int | None = None,
+        step_end: int | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> pd.DataFrame:
+        ...
+
+
+    def close(self) -> None:
+        ...
+
+
+class DummyMetricsWriter:
+    def write(self, agent_step: int | None, metric: str, value: SupportsFloat, timestamp: str | None = None) -> None:
+        ...
+
+    def write_dict(
+        self,
+        values: Mapping[str, SupportsFloat | Mapping[str, Any]],
+        agent_step: int,
+        prefix: str = '',
+    ) -> None:
+        ...
+
+    def read(
+        self,
+        metric: str,
+        step_start: int | None = None,
+        step_end: int | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ) -> pd.DataFrame:
+        return pd.DataFrame()
+
+    def close(self) -> None:
+        ...
+
+
+def create_metrics_writer(cfg: 'MetricsDBConfig') -> MetricsWriterProtocol:
+    if not cfg.enabled:
+        return DummyMetricsWriter()
+    return MetricsTable(cfg)
 
 
 @config()

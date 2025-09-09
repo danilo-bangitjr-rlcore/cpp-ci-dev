@@ -17,7 +17,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics import create_metrics_writer
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
@@ -61,7 +61,7 @@ def retryable_main(cfg: MainConfig):
         event_bus = DummyEventBus()
         app_state = AppState[DummyEventBus](
             cfg=cfg,
-            metrics=MetricsTable(cfg.metrics),
+            metrics=create_metrics_writer(cfg.metrics),
             evals=EvalsTable(cfg.evals),
             event_bus=event_bus,
         )
@@ -69,7 +69,7 @@ def retryable_main(cfg: MainConfig):
         event_bus = EventBus(cfg.event_bus)
         app_state = AppState[EventBus](
             cfg=cfg,
-            metrics=MetricsTable(cfg.metrics),
+            metrics=create_metrics_writer(cfg.metrics),
             evals=EvalsTable(cfg.evals),
             event_bus=event_bus,
         )
