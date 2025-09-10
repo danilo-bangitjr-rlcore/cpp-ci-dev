@@ -57,6 +57,9 @@ class ReportConfig:
     transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
     contiguous_time_threshold: timedelta = MISSING  # max time gap to consider transitions contiguous
 
+    # for goal violations
+    violation_period_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
+
     @computed('contiguous_time_threshold')
     @classmethod
     def _contiguous_time_threshold(cls, cfg: 'MainConfig'):
@@ -359,7 +362,80 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
     return return_dict
 
 
+def calculate_violation_periods(satisfaction_df: pd.DataFrame, metric_name: str, obs_period: timedelta):
+    """
+    Calculate consecutive violation periods from satisfaction data.
+    Returns list of violation period durations.
+    """
+    if satisfaction_df.empty:
+        return []
+
+    # Ensure dataframe is sorted by timestamp
+    satisfaction_df = satisfaction_df.sort_index()
+
+    # Find violations (satisfaction < 1)
+    violations = satisfaction_df[metric_name] < 1
+
+    if not violations.any():
+        return []
+
+    # Find start and end of consecutive violation periods
+    violation_periods = []
+    in_violation = False
+    violation_start = None
+
+    print(satisfaction_df)
+    for idx, is_violation in violations.items():
+        assert isinstance(idx, int)
+        if is_violation and not in_violation:
+            # Start of violation period
+            violation_start = idx
+            in_violation = True
+        elif not is_violation and in_violation:
+            # End of violation period
+            assert violation_start is not None
+            period_duration = idx - violation_start
+            violation_periods.append(period_duration)
+            in_violation = False
+            violation_start = None
+
+    # Handle case where violation period extends to end of data
+    if in_violation and violation_start is not None:
+        last_idx = satisfaction_df.index[-1]
+        assert isinstance(last_idx, int)
+        period_duration = last_idx - violation_start
+        violation_periods.append(period_duration)
+
+    return [vp * obs_period for vp in violation_periods]
+
+
+def get_violation_period_stats(violation_periods: list[timedelta], percentiles: list[float]):
+    """
+    Calculate statistics for violation periods.
+    """
+    if not violation_periods:
+        return {'No violation periods found': ''}
+
+    # Convert timedeltas to total seconds for calculations
+    period_seconds = [period.total_seconds() / 60 for period in violation_periods]
+
+    stats = {
+        'Total Violation Periods': str(len(violation_periods)),
+        'Min Violation Period (mintes)': f'{min(period_seconds):.2f}',
+        'Max Violation Period (mintes)': f'{max(period_seconds):.2f}',
+        'Mean Violation Period (mintes)': f'{np.mean(period_seconds):.2f}',
+    }
+
+    # Add percentiles
+    for p in percentiles:
+        percentile_value = np.percentile(period_seconds, p * 100)
+        stats[f'P{int(p * 100)} Violation Period (minutes)'] = f'{percentile_value:.2f}'
+
+    return stats
+
+
 def make_goal_violations_table(
+        cfg: ReportConfig,
         output_path: Path,
         app_state: AppState,
         start_time: datetime,
@@ -416,6 +492,16 @@ def make_goal_violations_table(
                 f'Priority {priority_idx} Satisfaction Rate (%)',
                 f'{satisfaction_rate:.2f}',
             ])
+
+            # Calculate violation period statistics
+            violation_periods = calculate_violation_periods(
+                satisfaction_df, metric_name, app_state.cfg.interaction.obs_period,
+            )
+            period_stats = get_violation_period_stats(violation_periods, cfg.violation_period_percentiles)
+
+            # Add violation period statistics to table
+            for stat_name, stat_value in period_stats.items():
+                table_data.append([f'Priority {priority_idx} {stat_name}', stat_value])
 
     # Check for optimization performance metric (last priority should be optimization)
     if isinstance(priorities[-1], Optimization):
@@ -517,6 +603,7 @@ def generate_report(
 
     # Generate goal violations table
     make_goal_violations_table(
+        cfg,
         output_path,
         app_state,
         start_time,
