@@ -1,13 +1,13 @@
 import logging
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from itertools import combinations
 from pathlib import Path
-from typing import cast
+from typing import TYPE_CHECKING, cast
 
 import numpy as np
 import pandas as pd
-from lib_config.config import config
+from lib_config.config import MISSING, computed, config
 from pydantic import Field
 from tabulate import tabulate
 
@@ -20,6 +20,10 @@ from corerl.eval.plotting.report import (
 )
 from corerl.eval.raw_data import raw_data_eval_for_tag
 from corerl.state import AppState
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
+
 
 log = logging.getLogger(__name__)
 
@@ -50,7 +54,12 @@ class ReportConfig:
 
     # for transition statistics
     transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
-    contiguous_time_threshold_seconds: float = 60.0  # max time gap to consider transitions contiguous
+    contiguous_time_threshold: timedelta = MISSING  # max time gap to consider transitions contiguous
+
+    @computed('contiguous_time_threshold')
+    @classmethod
+    def _ensemble(cls, cfg: 'MainConfig'):
+        return cfg.interaction.obs_period
 
 
 def get_tags(data: list[pd.DataFrame]) -> list[str]:
@@ -283,7 +292,10 @@ def cross_correlation(
     return cross_corr[max_idx], lags[max_idx], cross_corr
 
 
-def calculate_contiguous_sequence_lengths(transitions: list[Transition], time_threshold_seconds: float) -> list[int]:
+def calculate_contiguous_sequence_lengths(
+        transitions: list[Transition],
+        time_threshold: timedelta,
+    ):
     """
     Calculate lengths of contiguous transition sequences.
     Transitions are considered contiguous if the time gap between consecutive transitions
@@ -300,7 +312,7 @@ def calculate_contiguous_sequence_lengths(transitions: list[Transition], time_th
         curr_transition = transitions[i]
 
         # Check if transitions are contiguous based on timestamp
-        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold_seconds):
+        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold):
             current_length += 1
         else:
             sequence_lengths.append(current_length)
@@ -315,8 +327,8 @@ def calculate_contiguous_sequence_lengths(transitions: list[Transition], time_th
 def are_transitions_contiguous(
     prev_transition: Transition,
     curr_transition: Transition,
-    time_threshold_seconds: float,
-) -> bool:
+    time_threshold: timedelta,
+):
     """
     Determine if two transitions are contiguous based on timestamp proximity.
     """
@@ -329,7 +341,7 @@ def are_transitions_contiguous(
 
     # Calculate time difference
     time_diff = curr_timestamp - prev_timestamp
-    return time_diff.total_seconds() <= time_threshold_seconds
+    return time_diff <= time_threshold
 
 
 def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int] | None):
@@ -365,7 +377,7 @@ def make_transition_statistics_table(
     # Calculate contiguous sequence lengths
     sequence_lengths = calculate_contiguous_sequence_lengths(
         transitions,
-        cfg.contiguous_time_threshold_seconds,
+        cfg.contiguous_time_threshold,
     )
 
     # Prepare table data
