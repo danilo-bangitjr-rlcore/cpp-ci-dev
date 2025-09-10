@@ -79,7 +79,7 @@ def create_tsdb_table_query(
     table_sql = f"""
         {schema_builder}
         CREATE TABLE {schema_table} (
-            {cols}{f',\n            {primary_key}' if primary_key else ''}
+            {cols}{f',\n {primary_key}' if primary_key else ''}
         );
         {hypertable_sql}
         {idxs}

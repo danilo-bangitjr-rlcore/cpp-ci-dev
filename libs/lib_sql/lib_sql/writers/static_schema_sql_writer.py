@@ -66,6 +66,9 @@ class StaticSchemaSqlWriter(SqlWriter):
     def write(self, row: dict[str, Any]):
         self.write_many([row])
 
+    def flush(self):
+        """No-op flush for StaticSchemaSqlWriter."""
+
     def close(self):
         self.engine.dispose()
 
