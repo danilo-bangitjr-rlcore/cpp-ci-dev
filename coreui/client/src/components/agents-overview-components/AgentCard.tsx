@@ -26,12 +26,6 @@ const AgentCard: React.FC<AgentCardProps> = ({
     onAgentChange(updatedAgent);
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const updatedAgent = { ...localAgent, name: e.target.value };
-    setLocalAgent(updatedAgent);
-    onAgentChange(updatedAgent);
-  };
-
   const handleDelete = () => {
     if (window.confirm(`Are you sure you want to delete ${localAgent.name}?`)) {
       onDelete();
@@ -42,13 +36,11 @@ const AgentCard: React.FC<AgentCardProps> = ({
     <div className="border border-gray-300 bg-gray-100 p-4 rounded-lg shadow-sm min-h-[200px] flex flex-col justify-between">
       <div className="space-y-2">
         <div>
-          <input
-            type="text"
-            value={localAgent.name}
-            onChange={handleNameChange}
-            placeholder="Enter agent name"
-            className="text-xl font-bold bg-transparent border border-transparent focus:border-gray-300 focus:bg-white p-1 rounded w-full"
-          />
+          <div
+            className="text-xl font-bold bg-transparent border border-transparent p-1 rounded w-full"
+          >
+            {localAgent.name}
+          </div>
         </div>
         <div className="flex items-center justify-between my-4">
           <div className="flex items-center space-x-2">
