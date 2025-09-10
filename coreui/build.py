@@ -14,6 +14,8 @@ FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 SERVER_LIB = BACKEND / "server" / ".."
 
+DEV_GRACE_SECONDS = 5.0
+
 def run(cmd: str, cwd: Path | None=None):
     """Run a shell command"""
     print(f"Running: {cmd}")
@@ -82,6 +84,13 @@ def dev():
         vite_proc.terminate()
         fastapi_proc.terminate()
 
+        try:
+            vite_proc.wait(timeout=DEV_GRACE_SECONDS)
+            fastapi_proc.wait(timeout=DEV_GRACE_SECONDS)
+
+        except subprocess.TimeoutExpired:
+            vite_proc.kill()
+            fastapi_proc.kill()
 
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
