@@ -381,7 +381,11 @@ def make_transition_statistics_table(
     )
 
     # Prepare table data
-    table_data: list[list[str]] = []
+    table_data: list[list[str]] = [
+        ['start time of report gen.', str(start_time)],
+        ['end time of report gen.', str(end_time)],
+    ]
+
     headers = [
         'Metric',
         'Value',
