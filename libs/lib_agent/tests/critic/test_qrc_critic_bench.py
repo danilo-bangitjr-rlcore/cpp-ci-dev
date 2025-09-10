@@ -245,7 +245,7 @@ def test_critic_ensemble_update_small(benchmark: BenchmarkFixture):
 
     def _inner(critic: QRCCritic, state: Any, transitions: CriticBatch, next_actions: jax.Array):
         for _ in range(5):
-            new_state, metrics = critic.update(state, transitions, next_actions)
+            _new_state, metrics = critic.update(state, transitions, next_actions)
             # Force computation
             _ = metrics.loss.sum()
 
@@ -304,7 +304,7 @@ def test_critic_ensemble_update_large(benchmark: BenchmarkFixture):
 
     def _inner(critic: QRCCritic, state: Any, transitions: CriticBatch, next_actions: jax.Array):
         for _ in range(3):
-            new_state, metrics = critic.update(state, transitions, next_actions)
+            _new_state, metrics = critic.update(state, transitions, next_actions)
             # Force computation
             _ = metrics.loss.sum()
 
