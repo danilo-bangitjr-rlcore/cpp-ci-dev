@@ -8,7 +8,7 @@ from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 

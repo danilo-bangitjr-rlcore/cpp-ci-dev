@@ -1,7 +1,7 @@
 import pytest
 from corerl.config import MainConfig
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_config.loader import direct_load_config

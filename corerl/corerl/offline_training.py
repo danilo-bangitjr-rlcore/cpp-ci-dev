@@ -9,7 +9,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import (
     get_all_offline_recommendations,

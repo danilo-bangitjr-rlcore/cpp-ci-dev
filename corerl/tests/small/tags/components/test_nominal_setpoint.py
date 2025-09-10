@@ -8,7 +8,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.tags.setpoint import SetpointTagConfig

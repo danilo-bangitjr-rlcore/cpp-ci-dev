@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsWriterProtocol
+from corerl.eval.metrics.base import MetricsWriterProtocol
 from corerl.messages.event_bus import DummyEventBus, EventBus
 
 if TYPE_CHECKING:

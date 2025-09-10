@@ -17,7 +17,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
@@ -84,7 +84,6 @@ def retryable_main(cfg: MainConfig):
         column_desc,
     )
 
-    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.metrics.background_sync())
     event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
     register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 

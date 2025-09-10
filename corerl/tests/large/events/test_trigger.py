@@ -9,7 +9,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState

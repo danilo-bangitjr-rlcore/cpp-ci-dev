@@ -17,7 +17,7 @@ from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import create_metrics_writer
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.offline.utils import load_offline_transitions, offline_rl_from_buffer
 from corerl.state import AppState
