@@ -49,7 +49,6 @@ class ReportConfig:
     hist_num_bins: int = 30
 
     # for transition statistics
-    transition_stats_enabled: bool = True
     transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
     contiguous_time_threshold_seconds: float = 60.0  # max time gap to consider transitions contiguous
 
@@ -360,9 +359,6 @@ def make_transition_statistics_table(
     """
     Generate transition statistics table and save to file.
     """
-
-    if not cfg.transition_stats_enabled:
-        return
 
     log.info("Generating transition statistics...")
 
