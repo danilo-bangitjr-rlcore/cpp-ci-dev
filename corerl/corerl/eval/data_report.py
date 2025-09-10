@@ -344,20 +344,18 @@ def are_transitions_contiguous(
     return time_diff <= time_threshold
 
 
-def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int] | None):
-    if sequence_lengths:
-        return_dict = {
-            'Total Sequences': len(sequence_lengths),
-            'Average Sequence Length': np.mean(sequence_lengths),
-            'Min Sequence Length': np.min(sequence_lengths),
-            'Max Sequence Length': np.max(sequence_lengths),
-        }
-        # Add percentiles
-        for p in cfg.transition_percentiles:
-            percentile_value = np.percentile(sequence_lengths, p * 100)
-            return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
-        return return_dict
-    return {}
+def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
+    return_dict = {
+        'Total Sequences': len(sequence_lengths),
+        'Average Sequence Length': np.mean(sequence_lengths),
+        'Min Sequence Length': np.min(sequence_lengths),
+        'Max Sequence Length': np.max(sequence_lengths),
+    }
+    # Add percentiles
+    for p in cfg.transition_percentiles:
+        percentile_value = np.percentile(sequence_lengths, p * 100)
+        return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
+    return return_dict
 
 
 def make_transition_statistics_table(
