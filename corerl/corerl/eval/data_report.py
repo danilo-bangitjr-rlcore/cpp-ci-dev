@@ -322,8 +322,8 @@ def are_transitions_contiguous(
     Determine if two transitions are contiguous based on timestamp proximity.
     """
     # Check if both transitions have timestamps
-    prev_timestamp = prev_transition.end
-    curr_timestamp = curr_transition.start
+    prev_timestamp = prev_transition.end_time
+    curr_timestamp = curr_transition.start_time
 
     if prev_timestamp is None or curr_timestamp is None:
         return False

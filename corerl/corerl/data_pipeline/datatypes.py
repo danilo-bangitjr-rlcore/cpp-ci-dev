@@ -139,11 +139,11 @@ class Transition:
         ))
 
     @property
-    def start(self):
+    def start_time(self):
         return self.prior.timestamp
 
     @property
-    def end(self):
+    def end_time(self):
         return self.post.timestamp
 
 
