@@ -12,6 +12,7 @@ from pydantic import Field
 from tabulate import tabulate
 
 from corerl.data_pipeline.datatypes import StageCode, Transition
+from corerl.environment.reward.config import Optimization
 from corerl.eval.plotting.report import (
     plot_chunk_histogram,
     plot_nan_histogram,
@@ -358,6 +359,83 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
     return return_dict
 
 
+def make_goal_violations_table(
+        output_path: Path,
+        app_state: AppState,
+        start_time: datetime,
+        end_time: datetime,
+    ):
+    """
+    Generate goal violations table and save to file.
+    """
+
+    if app_state.cfg.pipeline.reward is None:
+        return
+
+    log.info("Generating goal violations statistics...")
+
+    # Prepare table data
+    table_data: list[list[str]] = [
+        ['start time of report gen.', str(start_time)],
+        ['end time of report gen.', str(end_time)],
+    ]
+
+    headers = [
+        'Metric',
+        'Value',
+    ]
+
+    assert app_state.cfg.pipeline.reward is not None
+    priorities = app_state.cfg.pipeline.reward.priorities
+
+    for priority_idx, priority in enumerate(priorities):
+        # Skip optimization priorities - they use a different metric
+        if isinstance(priority, Optimization):
+            continue
+
+        metric_name = f'priority_{priority_idx}_satisfaction'  # from goals.py
+
+        satisfaction_df = app_state.metrics.read(
+            metric=metric_name,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if not satisfaction_df.empty:
+            # Count violations (entries where satisfaction < 1)
+            violations = (satisfaction_df[metric_name] < 1).sum()
+            table_data.append([f'Priority {priority_idx} Violations', str(violations)])
+
+            # Calculate satisfaction rate
+            total_entries = len(satisfaction_df)
+            satisfaction_rate = (
+                ((satisfaction_df[metric_name] >= 1).sum() / total_entries) * 100
+                if total_entries > 0 else 0
+            )
+            table_data.append([
+                f'Priority {priority_idx} Satisfaction Rate (%)',
+                f'{satisfaction_rate:.2f}',
+            ])
+
+    # Check for optimization performance metric (last priority should be optimization)
+    if isinstance(priorities[-1], Optimization):
+        opt_performance_df = app_state.metrics.read(
+            metric='optimization_performance',
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if not opt_performance_df.empty:
+            table_data.append([
+                'Average Optimization Performance',
+                str(opt_performance_df['optimization_performance'].mean()),
+            ])
+
+    # Generate table and save
+    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
+    (output_path / 'goal_violations.txt').write_text(table_str, encoding='utf-8')
+
+
 def make_transition_statistics_table(
         cfg: ReportConfig,
         transitions: list[Transition],
@@ -436,6 +514,14 @@ def generate_report(
     make_stat_table(cfg, data, stages, output_path)
     make_distribution_plots(cfg, data, stages, output_path / 'plots')
     make_cross_correlation_table(cfg, data, stages, output_path)
+
+    # Generate goal violations table
+    make_goal_violations_table(
+        output_path,
+        app_state,
+        start_time,
+        end_time,
+    )
 
     # Generate transition statistics if transitions are provided
     if transitions:
