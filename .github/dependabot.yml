@@ -5,12 +5,105 @@
 
 version: 2
 updates:
-  - package-ecosystem: "pip" # See documentation for possible values
-    directory: "/" # Location of package manifests
+  # Root (in case any shared requirement/lock files live here)
+  - package-ecosystem: "pip"
+    directory: "/"
     schedule:
-      interval: "weekly"
+      interval: "daily"
     groups:
-      deps:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  # Individual Python packages in the monorepo (Dependabot does not support globs; each must be listed)
+  - package-ecosystem: "pip"
+    directory: "/coreio"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/corerl"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/coredinator"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/libs/lib_agent"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/libs/lib_config"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/libs/lib_utils"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/libs/lib_sql"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/libs/rl_env"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/research"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
+    directory: "/test"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
         applies-to: version-updates
         patterns:
           - "*"
