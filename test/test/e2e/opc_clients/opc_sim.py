@@ -86,7 +86,7 @@ def run(env: gym.Env, client: Client, cfg: OPCSimConfig):
     assert cfg.gym is not None
     seed = cfg.gym.seed
 
-    initial_observation, info = env.reset(seed=seed)
+    initial_observation, _info = env.reset(seed=seed)
     initial_action = env.action_space.sample()
 
     opc_nodes = initialize_opc_nodes_from_tags(
@@ -107,9 +107,9 @@ def run(env: gym.Env, client: Client, cfg: OPCSimConfig):
         action_values = client.read_values(opc_nodes["action"])
 
         # read the observation from the environment, write to OPC
-        observation, reward, terminated, truncated, info = env.step(action_values)
+        observation, _reward, terminated, truncated, _info = env.step(action_values)
         if terminated or truncated:
-            observation, info = env.reset()
+            observation, _info = env.reset()
 
         # write the observation values to OPC
         client.write_values(opc_nodes["observation"], observation.tolist())

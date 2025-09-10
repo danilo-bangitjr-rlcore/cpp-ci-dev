@@ -126,7 +126,7 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         batch: FakeActorBatch,
     ):
         for _ in range(config.iterations):
-            new_state, metrics = actor.update(state, ve, ve_params, batch)
+            _new_state, metrics = actor.update(state, ve, ve_params, batch)
             # Force computation
             _ = metrics.actor_loss.sum()
 
