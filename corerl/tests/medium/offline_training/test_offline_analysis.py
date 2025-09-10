@@ -153,6 +153,7 @@ def test_generate_report_smoke_test(
         cross_corr_enabled=True,
         cross_corr_max_lag=5,  # Keep small to speed up test
         hist_num_bins=10,  # Keep small to speed up test
+        contiguous_time_threshold=dt.timedelta(minutes=1),
     )
 
     data_list = [test_data_1, test_data_2]
