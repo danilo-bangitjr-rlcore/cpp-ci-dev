@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { type Agent } from '../../routes/agents-overview';
+import { type Agent } from './AgentsOverviewContainer';
 
 interface AgentCardProps {
   agent: Agent;
