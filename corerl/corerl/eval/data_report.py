@@ -391,9 +391,7 @@ def make_transition_statistics_table(
 
     # Basic statistics
     total_transitions = len(transitions)
-    table_data.extend([
-        ['Total Transitions', str(total_transitions)],
-    ])
+    table_data.append(['Total Transitions', str(total_transitions)])
 
     # Add transitions filtered count from metrics if available
     try:
@@ -404,18 +402,15 @@ def make_transition_statistics_table(
         )
         if not transitions_filtered_df.empty:
             total_filtered = transitions_filtered_df['transitions_filtered'].sum()
-            table_data.extend([
-                ['Total Transitions Filtered', str(int(total_filtered))],
-            ])
+            table_data.append(['Total Transitions Filtered', str(total_filtered)])
+
     except Exception as e:
         log.warning(f"Could not read transitions_filtered metric: {e}")
 
     # Sequence statistics
     sequence_stat_dict = get_sequence_stats(cfg, sequence_lengths)
     for k, v in sequence_stat_dict.items():
-        table_data.extend([
-        [k, str(v)],
-    ])
+        table_data.append([k, str(v)])
 
     # Generate table and save
     table_str = tabulate(table_data, headers=headers, tablefmt='grid')
