@@ -58,7 +58,7 @@ class ReportConfig:
 
     @computed('contiguous_time_threshold')
     @classmethod
-    def _ensemble(cls, cfg: 'MainConfig'):
+    def _contiguous_time_threshold(cls, cfg: 'MainConfig'):
         return cfg.interaction.obs_period
 
 
