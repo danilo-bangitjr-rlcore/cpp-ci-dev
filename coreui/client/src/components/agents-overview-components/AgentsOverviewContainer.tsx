@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState } from 'react';
 import AgentCard from './AgentCard';
 import AddAgentCard from './AddAgentCard';
 import { useDeleteAgentMutation } from './useAgentMutations';
@@ -11,89 +11,61 @@ export interface Agent {
 }
 
 const AgentsOverviewContainer: React.FC = () => {
-  const [agents, setAgents] = useState<Agent[]>([]);
+  // Temporary mock state for agent statuses
+  const [statusMap, setStatusMap] = useState<Record<string, Agent['status']>>(
+    {}
+  );
 
-  // Delete mutation
   const deleteAgentMutation = useDeleteAgentMutation();
 
-  // Fetch config list and raw configs
-  const { data: configNames, isLoading: isLoadingConfigList, error: configListError } = useConfigListQuery();
-  const configQueries = useRawConfigsQueries(configNames);
+  const {
+    data: configNames = [],
+    isLoading: isLoadingConfigList,
+    error: configListError,
+  } = useConfigListQuery();
+  const rawConfigQueries = useRawConfigsQueries(configNames);
 
-  // Transform configs to agents when all queries are successful
-  const allConfigsLoaded = configQueries.length > 0 && configQueries.every(query => query.isSuccess);
-  const fetchedAgents = allConfigsLoaded
-    ? configQueries.map((query, index) => ({
-        agentName: query.data?.agent_name || configNames![index],
-        configName: configNames![index],
-        status: 'off' as const,
-      }))
-    : [];
+  const isLoading =
+    isLoadingConfigList || rawConfigQueries.some((q) => q.isLoading);
+  const hasError = !!configListError || rawConfigQueries.some((q) => q.error);
 
-  // Update agents state when fetched agents change (only for initial load)
-  useEffect(() => {
-    if (allConfigsLoaded && fetchedAgents.length > 0 && agents.length === 0) {
-      setAgents(fetchedAgents);
-    }
-  }, [allConfigsLoaded, fetchedAgents, agents.length]);
+  const agents: Agent[] = configNames.map((name, idx) => {
+    const query = rawConfigQueries[idx];
+    const agentName = (query?.data as any)?.agent_name || name;
+    return {
+      agentName,
+      configName: name,
+      status: statusMap[name] ?? 'off',
+    } as Agent;
+  });
 
-  const handleAddAgent = () => {
-    const newAgent: Agent = { agentName: '', configName: '', status: 'off' };
-    setAgents([...agents, newAgent]);
+  const handleUpdateAgent = (updated: Agent) => {
+    setStatusMap((prev) => ({ ...prev, [updated.configName]: updated.status }));
   };
 
-  const handleUpdateAgent = (index: number, updatedAgent: Agent) => {
-    const newAgents = [...agents];
-    newAgents[index] = updatedAgent;
-    setAgents(newAgents);
-  };
-
-  const handleDeleteAgent = (index: number) => {
-    const agentToDelete = agents[index];
-    if (window.confirm(`Are you sure you want to delete ${agentToDelete.agentName}?`)) {
-      // Call the delete mutation with configName
-      deleteAgentMutation.mutate(agentToDelete.configName, {
-        onSuccess: () => {
-          // Remove from local state only after successful deletion
-          const newAgents = agents.filter((_, i) => i !== index);
-          setAgents(newAgents);
-        },
-        onError: (error) => {
-          console.error('Failed to delete agent:', error);
-          alert(`Failed to delete agent ${agentToDelete.agentName}. Please try again.`);
-        },
-      });
+  const handleDeleteAgent = (agent: Agent) => {
+    if (window.confirm(`Are you sure you want to delete ${agent.agentName}?`)) {
+      deleteAgentMutation.mutate(agent.configName);
     }
   };
 
-  const isLoading = isLoadingConfigList || (configNames && configQueries.some(query => query.isLoading));
-
-  // Check for errors
-  const hasError = configListError || configQueries.some(query => query.error);
-
-  if (isLoading) {
-    return <div className="p-6">Loading agents...</div>;
-  }
-
-  if (hasError) {
+  if (isLoading) return <div className="p-6">Loading agents...</div>;
+  if (hasError)
     return <div className="p-6 text-red-600">Failed to load agents</div>;
-  }
 
   return (
-    <div className="p-6">
+    <div className="p-2">
       <h1 className="text-2xl font-bold mb-6">Agents Overview</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {agents.map((agent: Agent, index: number) => (
+        {agents.map((agent) => (
           <AgentCard
-            key={index}
+            key={agent.configName}
             agent={agent}
-            onAgentChange={(updatedAgent) =>
-              handleUpdateAgent(index, updatedAgent)
-            }
-            onDelete={() => handleDeleteAgent(index)}
+            onAgentChange={handleUpdateAgent}
+            onDelete={() => handleDeleteAgent(agent)}
           />
         ))}
-        <AddAgentCard onAdd={handleAddAgent} />
+        <AddAgentCard />
       </div>
     </div>
   );

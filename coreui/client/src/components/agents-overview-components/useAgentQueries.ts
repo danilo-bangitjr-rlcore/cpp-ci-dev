@@ -11,7 +11,9 @@ const fetchConfigList = async (): Promise<string[]> => {
   return data.configs;
 };
 
-const fetchRawConfig = async (configName: string): Promise<Record<string, any>> => {
+const fetchRawConfig = async (
+  configName: string
+): Promise<Record<string, any>> => {
   const response = await get(API_ENDPOINTS.configs.raw(configName));
   if (!response.ok) {
     throw new Error(`Failed to fetch raw config for ${configName}`);
@@ -29,12 +31,13 @@ export const useConfigListQuery = () => {
 };
 
 // Hook for fetching all raw configs
-export const useRawConfigsQueries = (configNames: string[] | undefined) => {
+export const useRawConfigsQueries = (configNames?: string[]) => {
+  const names = configNames ?? [];
   return useQueries({
-    queries: (configNames || []).map((configName) => ({
-      queryKey: ['rawConfig', configName],
-      queryFn: () => fetchRawConfig(configName),
-      enabled: !!configNames,
+    queries: names.map((name) => ({
+      queryKey: ['rawConfig', name],
+      queryFn: () => fetchRawConfig(name),
+      enabled: names.length > 0,
     })),
   });
 };

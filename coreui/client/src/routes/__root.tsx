@@ -25,8 +25,8 @@ export const Route = createRootRoute({
       <GlobalHeader items={headerItems} />
       <div className="flex flex-1 min-h-0">
         <LeftNav items={navItems} />
-  {/* Make main a flex column so route components using h-full can stretch */}
-  <main className="flex-1 p-4 overflow-auto flex flex-col min-h-0">
+        {/* Make main a flex column so route components using h-full can stretch */}
+        <main className="flex-1 p-4 overflow-auto flex flex-col min-h-0">
           <Outlet />
         </main>
       </div>

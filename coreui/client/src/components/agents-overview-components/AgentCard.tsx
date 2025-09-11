@@ -27,9 +27,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
     <div className="border border-gray-300 bg-gray-100 p-4 rounded-lg shadow-sm min-h-[200px] flex flex-col justify-between">
       <div className="space-y-2">
         <div>
-          <div
-            className="text-xl font-bold bg-transparent border border-transparent p-1 rounded w-full"
-          >
+          <div className="text-xl font-bold bg-transparent border border-transparent p-1 rounded w-full">
             {agent.agentName}
           </div>
         </div>
@@ -41,7 +39,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
                 agent.status === 'on'
                   ? 'bg-green-100 text-green-800'
                   : agent.status === 'off'
-                    ? 'bg-red-100 text-red-800'
+                    ? 'bg-gray-200 text-red-800'
                     : 'bg-yellow-100 text-yellow-800'
               }`}
             >
@@ -65,7 +63,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
       <div className="mt-4 flex justify-end">
         <button
           onClick={handleDelete}
-          className="bg-red-100 text-red-800 px-3 py-1 rounded text-sm hover:bg-red-600 hover:text-white"
+          className="bg-gray-200 text-red-800 px-3 py-1 rounded text-sm hover:bg-red-600 hover:text-white"
         >
           Delete Agent
         </button>

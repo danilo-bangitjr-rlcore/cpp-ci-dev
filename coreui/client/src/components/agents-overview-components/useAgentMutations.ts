@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS, del } from '../../utils/api';
+import { API_ENDPOINTS, del, post } from '../../utils/api';
 
 // Delete config mutation
 const deleteConfig = async (configName: string): Promise<void> => {
@@ -22,14 +22,41 @@ export const useDeleteAgentMutation = () => {
 
   return useMutation({
     mutationFn: deleteConfig,
-    onSuccess: (_, configName) => {
-      // Invalidate and refetch the config list
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['configList'] });
-      // Also invalidate individual config queries
-      queryClient.invalidateQueries({ queryKey: ['rawConfig', configName] });
     },
     onError: (error, configName) => {
       console.error(`Failed to delete agent ${configName}:`, error);
+    },
+  });
+};
+
+// Add config mutation
+const addConfig = async (configName: string): Promise<void> => {
+  const response = await post(API_ENDPOINTS.configs.delete_raw_config, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      config_name: configName,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to add config ${configName}`);
+  }
+};
+
+export const useAddAgentMutation = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: addConfig,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['configList'] });
+    },
+    onError: (error, configName) => {
+      console.error(`Failed to add agent ${configName}:`, error);
     },
   });
 };
