@@ -1,9 +1,7 @@
 import React, { useState } from 'react';
 import { useAddAgentMutation } from './useAgentMutations';
 
-interface AddAgentCardProps {}
-
-const AddAgentCard: React.FC<AddAgentCardProps> = () => {
+const AddAgentCard: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [configName, setConfigName] = useState('');
   const addMutation = useAddAgentMutation();
@@ -22,18 +20,17 @@ const AddAgentCard: React.FC<AddAgentCardProps> = () => {
           <div className="flex space-x-2">
             <button
               onClick={() => {
-                if (configName.trim()) {
-                  const name = configName.trim();
-                  addMutation.mutate(name, {
-                    onError: () => {
-                      window.alert(`Failed to add agent "${name}"`);
-                    },
-                  });
-                  if (!addMutation.isPending) {
+                const name = configName.trim();
+                if (!name) return;
+                addMutation.mutate(name, {
+                  onSuccess: () => {
                     setConfigName('');
                     setShowForm(false);
-                  }
-                }
+                  },
+                  onError: () => {
+                    window.alert(`Failed to add agent "${name}"`);
+                  },
+                });
               }}
               disabled={!configName.trim() || addMutation.isPending}
               className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
@@ -47,7 +44,6 @@ const AddAgentCard: React.FC<AddAgentCardProps> = () => {
               Cancel
             </button>
           </div>
-          {/* Error feedback now provided via window.alert in onError */}
         </div>
       ) : (
         <button
