@@ -13,7 +13,7 @@ type LeftNavProps = {
 
 export function LeftNav({ items }: LeftNavProps) {
   return (
-    <nav className="w-64 bg-gray-100 min-h-screen p-4">
+  <nav className="w-64 bg-gray-100 h-full p-4 flex-shrink-0 border-r border-gray-200 flex flex-col overflow-y-auto">
       <div className="space-y-2">
         {items.map((item) => {
           const baseClasses =

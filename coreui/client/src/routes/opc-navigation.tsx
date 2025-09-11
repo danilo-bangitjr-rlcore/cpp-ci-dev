@@ -46,7 +46,7 @@ function RouteComponent() {
   });
 
   return (
-    <div className="p-2 min-h-screen bg-gray-200 rounded-lg">
+    <div className="p-2 h-full bg-gray-200 rounded-lg flex flex-col">
       <OpcConnectionCard
         statusData={statusData}
         statusError={statusError}
