@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { type Agent } from './AgentsOverviewContainer';
 
 interface AgentCardProps {
@@ -12,24 +12,15 @@ const AgentCard: React.FC<AgentCardProps> = ({
   onAgentChange,
   onDelete,
 }) => {
-  const [localAgent, setLocalAgent] = useState<Agent>(agent);
-
-  useEffect(() => {
-    setLocalAgent(agent);
-  }, [agent]);
-
   const handleToggleStatus = () => {
     const newStatus: 'on' | 'off' | 'error' =
-      localAgent.status === 'on' ? 'off' : 'on';
-    const updatedAgent = { ...localAgent, status: newStatus };
-    setLocalAgent(updatedAgent);
+      agent.status === 'on' ? 'off' : 'on';
+    const updatedAgent = { ...agent, status: newStatus };
     onAgentChange(updatedAgent);
   };
 
   const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${localAgent.name}?`)) {
-      onDelete();
-    }
+    onDelete();
   };
 
   return (
@@ -39,7 +30,7 @@ const AgentCard: React.FC<AgentCardProps> = ({
           <div
             className="text-xl font-bold bg-transparent border border-transparent p-1 rounded w-full"
           >
-            {localAgent.name}
+            {agent.agentName}
           </div>
         </div>
         <div className="flex items-center justify-between my-4">
@@ -47,21 +38,21 @@ const AgentCard: React.FC<AgentCardProps> = ({
             <label className="text-sm font-medium text-gray-700">Status:</label>
             <span
               className={`px-3 py-1 rounded text-sm ${
-                localAgent.status === 'on'
+                agent.status === 'on'
                   ? 'bg-green-100 text-green-800'
-                  : localAgent.status === 'off'
+                  : agent.status === 'off'
                     ? 'bg-red-100 text-red-800'
                     : 'bg-yellow-100 text-yellow-800'
               }`}
             >
-              {localAgent.status.toUpperCase()}
+              {agent.status.toUpperCase()}
             </span>
           </div>
           <button
             onClick={handleToggleStatus}
-            className={`text-white px-3 py-1 rounded text-sm ${localAgent.status === 'on' ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-500 hover:bg-blue-600'}`}
+            className={`text-white px-3 py-1 rounded text-sm ${agent.status === 'on' ? 'bg-gray-500 hover:bg-gray-600' : 'bg-blue-500 hover:bg-blue-600'}`}
           >
-            {localAgent.status === 'on' ? 'Turn Off' : 'Turn On'}
+            {agent.status === 'on' ? 'Turn Off' : 'Turn On'}
           </button>
         </div>
         <button className="w-full bg-gray-500 text-white py-1 rounded hover:bg-gray-600">

@@ -1,56 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useQueries } from '@tanstack/react-query';
 import AgentCard from './AgentCard';
 import AddAgentCard from './AddAgentCard';
-import { API_ENDPOINTS, get } from '../../utils/api';
+import { useDeleteAgentMutation } from './useAgentMutations';
+import { useConfigListQuery, useRawConfigsQueries } from './useAgentQueries';
 
 export interface Agent {
-  name: string;
+  agentName: string;
+  configName: string;
   status: 'on' | 'off' | 'error';
 }
-
-// Config API functions
-const fetchConfigList = async (): Promise<string[]> => {
-  const response = await get(API_ENDPOINTS.configs.list_raw);
-  if (!response.ok) {
-    throw new Error('Failed to fetch config list');
-  }
-  const data: { configs: string[] } = await response.json();
-  return data.configs;
-};
-
-const fetchRawConfig = async (configName: string): Promise<Record<string, any>> => {
-  const response = await get(API_ENDPOINTS.configs.raw(configName));
-  if (!response.ok) {
-    throw new Error(`Failed to fetch raw config for ${configName}`);
-  }
-  const data: { config: Record<string, any> } = await response.json();
-  return data.config;
-};
 
 const AgentsOverviewContainer: React.FC = () => {
   const [agents, setAgents] = useState<Agent[]>([]);
 
-  // Fetch config list using React Query
-  const { data: configNames, isLoading: isLoadingConfigList, error: configListError } = useQuery({
-    queryKey: ['configList'],
-    queryFn: fetchConfigList,
-  });
+  // Delete mutation
+  const deleteAgentMutation = useDeleteAgentMutation();
 
-  // Fetch all raw configs using useQueries
-  const configQueries = useQueries({
-    queries: (configNames || []).map((configName) => ({
-      queryKey: ['rawConfig', configName],
-      queryFn: () => fetchRawConfig(configName),
-      enabled: !!configNames,
-    })),
-  });
+  // Fetch config list and raw configs
+  const { data: configNames, isLoading: isLoadingConfigList, error: configListError } = useConfigListQuery();
+  const configQueries = useRawConfigsQueries(configNames);
 
   // Transform configs to agents when all queries are successful
   const allConfigsLoaded = configQueries.length > 0 && configQueries.every(query => query.isSuccess);
   const fetchedAgents = allConfigsLoaded
     ? configQueries.map((query, index) => ({
-        name: query.data?.agent_name || configNames![index],
+        agentName: query.data?.agent_name || configNames![index],
+        configName: configNames![index],
         status: 'off' as const,
       }))
     : [];
@@ -63,7 +38,7 @@ const AgentsOverviewContainer: React.FC = () => {
   }, [allConfigsLoaded, fetchedAgents, agents.length]);
 
   const handleAddAgent = () => {
-    const newAgent: Agent = { name: '', status: 'off' };
+    const newAgent: Agent = { agentName: '', configName: '', status: 'off' };
     setAgents([...agents, newAgent]);
   };
 
@@ -74,8 +49,21 @@ const AgentsOverviewContainer: React.FC = () => {
   };
 
   const handleDeleteAgent = (index: number) => {
-    const newAgents = agents.filter((_, i) => i !== index);
-    setAgents(newAgents);
+    const agentToDelete = agents[index];
+    if (window.confirm(`Are you sure you want to delete ${agentToDelete.agentName}?`)) {
+      // Call the delete mutation with configName
+      deleteAgentMutation.mutate(agentToDelete.configName, {
+        onSuccess: () => {
+          // Remove from local state only after successful deletion
+          const newAgents = agents.filter((_, i) => i !== index);
+          setAgents(newAgents);
+        },
+        onError: (error) => {
+          console.error('Failed to delete agent:', error);
+          alert(`Failed to delete agent ${agentToDelete.agentName}. Please try again.`);
+        },
+      });
+    }
   };
 
   const isLoading = isLoadingConfigList || (configNames && configQueries.some(query => query.isLoading));
