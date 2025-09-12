@@ -1,6 +1,7 @@
 import hashlib
 import re
 from collections import defaultdict
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any, NewType
 
@@ -12,26 +13,48 @@ class SQLColumn:
     name: str
     type: str
     nullable: bool = False
+    primary: bool = False
 
 
 def create_tsdb_table_query(
     schema: str,
     table: str,
     columns: list[SQLColumn],
-    partition_column: str | None,
-    index_columns: list[str],
+    partition_column: str | None = None,
+    index_columns: list[str] | None = None,
     time_column: str = 'time',
     chunk_time_interval: str = '1d',
 ):
+    # Strict requirement: TSDB tables must have a time column
+    if not columns:
+        raise ValueError("TSDB table creation requires at least one column to be defined")
+
+    if not any(col.name == time_column for col in columns):
+        raise ValueError(f"TSDB table creation requires a '{time_column}' column to be defined in the schema")
+
+    if index_columns is None:
+        index_columns = []
+
     schema_builder = ''
     if schema != 'public':
         schema_builder = f'CREATE SCHEMA IF NOT EXISTS {schema};'
 
     schema_table = schema + '.' + table
-    cols = ', '.join([
-        f'{col.name} {col.type} {"NOT NULL" if not col.nullable else ""}'
-        for col in columns
-    ])
+
+    # Build columns and determine primary key columns
+    cols_list: list[str] = []
+    primary_key_columns: list[str] = []
+
+    # Find user-defined primary key columns
+    for col in columns:
+        nullable_clause = "NOT NULL" if not col.nullable else ""
+        cols_list.append(f'{col.name} {col.type} {nullable_clause}')
+        if col.primary:
+            primary_key_columns.append(col.name)
+
+    # Only create primary key if columns are explicitly marked as primary
+    cols = ', '.join(cols_list)
+    primary_key = f"PRIMARY KEY ({', '.join(primary_key_columns)})" if primary_key_columns else ""
 
     idxs = '\n'.join([
         f'CREATE INDEX IF NOT EXISTS {table}_{col}_idx ON {schema_table} ({col});'
@@ -39,22 +62,31 @@ def create_tsdb_table_query(
     ])
 
     cti = chunk_time_interval
-    return text(f"""
-        {schema_builder}
-        CREATE TABLE {schema_table} (
-            {cols}
-        );
+
+    # Create hypertable and compression (we're guaranteed to have a time column)
+    hypertable_sql = f"""
         SELECT create_hypertable(
             '{schema_table}', '{time_column}',
             if_not_exists => TRUE,
             chunk_time_interval => INTERVAL '{cti}'
-        );
-        {idxs}
+        );"""
+    compress_sql = f"""
         ALTER TABLE {schema_table} SET (
             timescaledb.compress,
             timescaledb.compress_segmentby='{partition_column if partition_column is not None else ""}'
+        );"""
+
+    table_sql = f"""
+        {schema_builder}
+        CREATE TABLE {schema_table} (
+            {cols}{f',\n            {primary_key}' if primary_key else ''}
         );
-    """)
+        {hypertable_sql}
+        {idxs}
+        {compress_sql}
+    """
+
+    return text(table_sql)
 
 def add_column_to_table_query(
     schema: str,
@@ -152,17 +184,11 @@ def _sanitize_key(name: str):
     # lowercase
     return sanitized.lower()
 
-def sanitize_keys(dict_points: list[dict]):
+def sanitize_keys(dict_points: Sequence[dict]):
+    def _sanitize_dict_keys(d: dict[str, Any]) -> dict[str, Any]:
+        return {
+            _sanitize_key(key): value
+            for key, value in d.items()
+        }
 
-    def _sanitize_dict_keys(d: dict[str, Any]):
-        keys = list(d.keys())
-        for key in keys:
-            sanitized_key = _sanitize_key(key)
-            if sanitized_key != key:
-                d[sanitized_key] = d.pop(key)
-
-    # Sanitize the dictionary keys
-    for point in dict_points:
-        _sanitize_dict_keys(point)
-
-    return dict_points
+    return [_sanitize_dict_keys(point) for point in dict_points]
