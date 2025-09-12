@@ -1,6 +1,8 @@
 import sys
+from collections.abc import Awaitable, Callable
 from enum import StrEnum
 from pathlib import Path
+from typing import Any
 
 import yaml
 from fastapi import HTTPException, status
@@ -55,119 +57,116 @@ def _find_tag_index(tags: list[dict], tag_name: str) -> int:
         detail=f"Tag '{tag_name}' not found",
     )
 
+
+def _handle_exception(e: Exception) -> JSONResponse:
+    if isinstance(e, HTTPException):
+        raise e
+    return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+def handle_exceptions(func: Callable[..., Awaitable[JSONResponse]]) -> Callable[..., Awaitable[JSONResponse]]:
+    async def wrapper(*args: Any, **kwargs: Any) -> JSONResponse:
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            return _handle_exception(e)
+    return wrapper
+
+@handle_exceptions
 async def get_tags(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    try:
-        config_dict = _load_config_data(config_name, subfolder)
-        tags = _get_tags(config_dict)
-        return JSONResponse(content={"tags": tags}, status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    config_dict = _load_config_data(config_name, subfolder)
+    tags = _get_tags(config_dict)
+    return JSONResponse(content={"tags": tags}, status_code=status.HTTP_200_OK)
 
+@handle_exceptions
 async def get_tag(config_name: str, tag_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    try:
-        config_dict = _load_config_data(config_name, subfolder)
-        tags = _get_tags(config_dict)
-        tag_index = _find_tag_index(tags, tag_name)
-        return JSONResponse(content={"tag": tags[tag_index]}, status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    config_dict = _load_config_data(config_name, subfolder)
+    tags = _get_tags(config_dict)
+    tag_index = _find_tag_index(tags, tag_name)
+    return JSONResponse(content={"tag": tags[tag_index]}, status_code=status.HTTP_200_OK)
 
+@handle_exceptions
 async def get_config(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    try:
-        config_dict = _load_config_data(config_name, subfolder)
-        return JSONResponse(content={"config": config_dict}, status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    config_dict = _load_config_data(config_name, subfolder)
+    return JSONResponse(content={"config": config_dict}, status_code=status.HTTP_200_OK)
 
+@handle_exceptions
 async def add_tag(
     config_name: str,
     tag: dict,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    try:
-        config = _load_config_data(config_name, subfolder)
-        tags = _get_tags(config)
-        tags.append(tag["tag"])
-        _write_config_data(config_name, config, subfolder)
+    config = _load_config_data(config_name, subfolder)
+    tags = _get_tags(config)
+    tags.append(tag["tag"])
+    _write_config_data(config_name, config, subfolder)
 
-        return JSONResponse(content={"message": "Tag created", "tag": tag["tag"], "index": len(tags) - 1},
-                            status_code=status.HTTP_201_CREATED)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    return JSONResponse(content={"message": "Tag created", "tag": tag["tag"], "index": len(tags) - 1},
+                        status_code=status.HTTP_201_CREATED)
 
+@handle_exceptions
 async def update_tag(
     config_name: str,
     index: int,
     tag: dict,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    try:
-        config = _load_config_data(config_name, subfolder)
-        tags = _get_tags(config)
-        if not (0 <= index < len(tags)):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
-        tags[index] = tag["tag"]
-        _write_config_data(config_name, config, subfolder)
-        return JSONResponse(content={"message": "Tag updated", "tag": tag["tag"], "index": index},
-                            status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    config = _load_config_data(config_name, subfolder)
+    tags = _get_tags(config)
+    if not (0 <= index < len(tags)):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
+    tags[index] = tag["tag"]
+    _write_config_data(config_name, config, subfolder)
+    return JSONResponse(content={"message": "Tag updated", "tag": tag["tag"], "index": index},
+                        status_code=status.HTTP_200_OK)
 
+@handle_exceptions
 async def delete_tag(
     config_name: str,
     index: int,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    try:
-        config = _load_config_data(config_name, subfolder)
-        tags = _get_tags(config)
-        if index < 0 or index >= len(tags):
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
-        removed = tags.pop(index)
-        _write_config_data(config_name, config, subfolder)
-        return JSONResponse(content={"message": "Tag deleted", "tag": removed, "index": index},
-                            status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    config = _load_config_data(config_name, subfolder)
+    tags = _get_tags(config)
+    if index < 0 or index >= len(tags):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
+    removed = tags.pop(index)
+    _write_config_data(config_name, config, subfolder)
+    return JSONResponse(content={"message": "Tag deleted", "tag": removed, "index": index},
+                        status_code=status.HTTP_200_OK)
 
+@handle_exceptions
 async def get_all_configs(subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    try:
-        configs_dir = _get_configs_dir(subfolder)
-        config_files = list(configs_dir.glob("*.yaml"))
-        config_names = [f.stem for f in config_files]
-        return JSONResponse(content={"configs": config_names},
-                            status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    configs_dir = _get_configs_dir(subfolder)
+    config_files = list(configs_dir.glob("*.yaml"))
+    config_names = [f.stem for f in config_files]
+    return JSONResponse(content={"configs": config_names},
+                        status_code=status.HTTP_200_OK)
 
+@handle_exceptions
 async def create_config(
     config_name: str,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    try:
-        base_config = {"agent_name": config_name}
-        configs_dir = _get_configs_dir(subfolder)
-        config_path = configs_dir / f"{config_name}.yaml"
-        if config_path.exists():
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Config already exists")
-        _write_config_data(config_name, base_config, subfolder)
-        return JSONResponse(content={"message": "Config created", "config": base_config, "name": config_name},
-                            status_code=status.HTTP_201_CREATED)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    base_config = {"agent_name": config_name}
+    configs_dir = _get_configs_dir(subfolder)
+    config_path = configs_dir / f"{config_name}.yaml"
+    if config_path.exists():
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Config already exists")
+    _write_config_data(config_name, base_config, subfolder)
+    return JSONResponse(content={"message": "Config created", "config": base_config, "name": config_name},
+                        status_code=status.HTTP_201_CREATED)
 
+@handle_exceptions
 async def delete_config(
     config_name: str,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    try:
-        configs_dir = _get_configs_dir(subfolder)
-        config_path = configs_dir / f"{config_name}.yaml"
-        if not config_path.exists():
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found")
-        config_path.unlink()
-        _config_cache.pop((config_name, subfolder), None)
-        return JSONResponse(content={"message": "Config deleted", "name": config_name},
-                            status_code=status.HTTP_200_OK)
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    configs_dir = _get_configs_dir(subfolder)
+    config_path = configs_dir / f"{config_name}.yaml"
+    if not config_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found")
+    config_path.unlink()
+    _config_cache.pop((config_name, subfolder), None)
+    return JSONResponse(content={"message": "Config deleted", "name": config_name},
+                        status_code=status.HTTP_200_OK)

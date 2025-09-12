@@ -22,7 +22,7 @@ export const useDeleteAgentMutation = () => {
 
   return useMutation({
     mutationFn: deleteConfig,
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['configList'] });
     },
     onError: (error, configName) => {
@@ -43,7 +43,16 @@ const addConfig = async (configName: string): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to add config ${configName}`);
+    let message = '';
+    try {
+      const data = await response.json();
+      if (data && typeof data.error === 'string') {
+        message = data.error;
+      }
+    } catch {
+      console.log('Failed to parse error response as JSON');
+    }
+    throw new Error(message);
   }
 };
 
@@ -52,7 +61,7 @@ export const useAddAgentMutation = () => {
 
   return useMutation({
     mutationFn: addConfig,
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['configList'] });
     },
     onError: (error, configName) => {

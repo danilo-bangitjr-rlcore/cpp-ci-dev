@@ -27,8 +27,16 @@ const AddAgentCard: React.FC = () => {
                     setConfigName('');
                     setShowForm(false);
                   },
-                  onError: () => {
-                    window.alert(`Failed to add agent "${name}"`);
+                  onError: (error) => {
+                    const base = `Failed to add agent "${name}"`;
+                    if (error instanceof Error) {
+                      const extra = error.message?.trim();
+                      const msg =
+                        extra && extra !== base ? `${base}\n${extra}` : base;
+                      window.alert(msg);
+                    } else {
+                      window.alert(base);
+                    }
                   },
                 });
               }}
