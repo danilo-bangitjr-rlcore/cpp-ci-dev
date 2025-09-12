@@ -13,7 +13,7 @@ type GlobalHeaderProps = {
 
 export function GlobalHeader({ items }: GlobalHeaderProps) {
   return (
-    <header className="bg-gray-100 border-b border-gray-200 px-4 py-3">
+    <header className="bg-gray-100 border-b border-gray-200 px-4 py-3 flex-shrink-0">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <img src="/app/assets/rlcore-logo.png" className="h-14 w-auto" />

@@ -1,5 +1,5 @@
 log_path: outputs/main/backwash
-agent_name: im_a_test
+agent_name: Test_Config
 seed: 1
 is_simulation: False
 

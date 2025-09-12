@@ -26,7 +26,8 @@ function About() {
   });
 
   return (
-    <div className="p-2 min-h-screen bg-gray-200 rounded-lg">
+    // h-full so this gray panel fills the available vertical space inside the flex main container
+    <div className="p-2 h-full bg-gray-200 rounded-lg flex flex-col">
       <ExampleComponent title="Hello from the about page!" />
 
       {/* Health Status */}

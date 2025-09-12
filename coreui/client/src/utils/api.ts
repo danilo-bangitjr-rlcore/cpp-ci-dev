@@ -10,8 +10,11 @@ export const API_ENDPOINTS = {
     status: `${API_BASE_URL}/v1/opc/status`,
   },
   configs: {
+    list_raw: `${API_BASE_URL}/v1/config/raw/list`,
+    list_clean: `${API_BASE_URL}/v1/config/clean/list`,
     clean: (configName: string) => `${API_BASE_URL}/configs/${configName}`,
-    raw: (configName: string) => `${API_BASE_URL}/raw-configs/${configName}`,
+    raw: (configName: string) => `${API_BASE_URL}/v1/config/raw/${configName}`,
+    mutate_raw_config: `${API_BASE_URL}/v1/config/raw/configs`,
     // TEMPORARY PLACEHOLDER FOR TAGS -- HARD CODED CONFIG NAME
     tags: `${API_BASE_URL}/v1/config/main_backwash/tags`,
   },
@@ -22,3 +25,5 @@ export const post = (url: string, options?: RequestInit) =>
   fetch(url, { method: 'POST', ...options });
 export const get = (url: string, options?: RequestInit) =>
   fetch(url, { method: 'GET', ...options });
+export const del = (url: string, options?: RequestInit) =>
+  fetch(url, { method: 'DELETE', ...options });

@@ -1,6 +1,5 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 
@@ -20,21 +19,18 @@ const headerItems = [
   { label: 'Settings', onClick: () => console.log('Settings clicked') },
 ];
 
-const queryClient = new QueryClient();
-
 export const Route = createRootRoute({
   component: () => (
-    <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-white">
-        <GlobalHeader items={headerItems} />
-        <div className="flex">
-          <LeftNav items={navItems} />
-          <main className="flex-1 p-4">
-            <Outlet />
-          </main>
-        </div>
-        <TanStackRouterDevtools />
+    <div className="flex flex-col h-screen bg-white">
+      <GlobalHeader items={headerItems} />
+      <div className="flex flex-1 min-h-0">
+        <LeftNav items={navItems} />
+        {/* Make main a flex column so route components using h-full can stretch */}
+        <main className="flex-1 p-4 overflow-auto flex flex-col min-h-0">
+          <Outlet />
+        </main>
       </div>
-    </QueryClientProvider>
+      <TanStackRouterDevtools />
+    </div>
   ),
 });
