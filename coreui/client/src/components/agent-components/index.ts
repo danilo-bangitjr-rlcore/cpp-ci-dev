@@ -1,2 +1,2 @@
-export { AgentNotFound } from './AgentNotFound'
-export { useAgentExists } from './useAgentExists'
+export { AgentNotFound } from './AgentNotFound';
+export { useAgentExists } from './useAgentExists';

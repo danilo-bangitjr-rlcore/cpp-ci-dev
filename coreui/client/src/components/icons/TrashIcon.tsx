@@ -2,7 +2,7 @@ interface TrashIconProps {
   className?: string;
 }
 
-export function TrashIcon({ className = "w-4 h-4" }: TrashIconProps) {
+export function TrashIcon({ className = 'w-4 h-4' }: TrashIconProps) {
   return (
     <svg
       className={className}
