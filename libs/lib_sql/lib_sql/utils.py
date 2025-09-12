@@ -66,6 +66,45 @@ def add_column_to_table_query(
          {"NOT NULL" if not column.nullable else ""};""")
 
 
+def create_sqlite_table_query(
+    schema: str,
+    table: str,
+    columns: list[SQLColumn],
+    index_columns: list[str] | None = None,
+):
+    """Create a SQLite table with the given columns and indexes.
+
+    Note: SQLite doesn't support schemas like PostgreSQL, so the schema parameter is ignored.
+    partition_column, time_column, and chunk_time_interval are ignored for SQLite compatibility.
+    """
+    if index_columns is None:
+        index_columns = []
+
+    # SQLite doesn't support schemas, use table name directly
+    table_name = table
+
+    # Build columns list from schema
+    cols_list = []
+
+    for col in columns:
+        nullable_clause = "NOT NULL" if not col.nullable else ""
+        cols_list.append(f'{col.name} {col.type} {nullable_clause}')
+
+    cols = ', '.join(cols_list)
+
+    idxs = '\n'.join([
+        f'CREATE INDEX IF NOT EXISTS {table}_{col}_idx ON {table_name} ({col});'
+        for col in index_columns
+    ])
+
+    return text(f"""
+        CREATE TABLE IF NOT EXISTS {table_name} (
+            {cols}
+        );
+        {idxs}
+    """)
+
+
 #######################
 ### Name sanitation ###
 #######################
