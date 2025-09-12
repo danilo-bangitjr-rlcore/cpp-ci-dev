@@ -44,7 +44,7 @@ class DataReader:
             self.sensor_table = Table(
                 db_cfg.table_name,
                 self.db_metadata,
-                Column("time", TIMESTAMP, nullable=False, primary_key=True),
+                Column("time", TIMESTAMP, nullable=False),
                 schema=db_cfg.table_schema,
                 extend_existing=True,
             )

@@ -190,7 +190,7 @@ class ThreeTankEnv(gym.Env):
         return error/(2*self.constants.H_Max**2)
 
     def plot(self, filename: str):
-        fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
+        _fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 8))
 
         ax1.plot(self.history['time'], self.history['H1'], 'b-', label='Tank 1 Height')
         ax1.plot(self.history['time'], self.history['H3'], 'g-', label='Tank 3 Height')

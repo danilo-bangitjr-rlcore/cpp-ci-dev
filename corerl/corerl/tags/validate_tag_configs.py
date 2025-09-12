@@ -34,8 +34,16 @@ def get_tag_value_permutations(tags: list[str], tag_cfgs: list[TagConfig]) -> li
             Maybe.find(lambda tag_cfg, tag_name=tag_name: tag_cfg.name == tag_name, tag_cfgs)
             .is_instance(SafetyZonedTag)
             .map(partial(get_widest_static_bounds))
-            .expect(f'Was unable to find tag config for tag: {tag_name}')
+            .unwrap()
         )
+        if bounds is None:
+            warnings.warn(
+                message=f"{tag_name} has no TagConfig or is not a SafetyZonedTag. " \
+                        f"Therefore, input permutations cannot be generated for the sympy function containing this tag",
+                stacklevel=2,
+            )
+            return []
+
         lo = bounds[0].unwrap()
         hi = bounds[1].unwrap()
 

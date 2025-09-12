@@ -29,7 +29,7 @@ def consumer_task(
             if poll_resp == 0:
                 continue
             raw_payload = sub_socket.recv()
-            raw_topic, raw_event = raw_payload.split(b" ", 1)
+            _raw_topic, raw_event = raw_payload.split(b" ", 1)
             event = event_class.model_validate_json(raw_event)
             logger.debug(f"Adding to queue Event: {event}")
             queue.put(event)
