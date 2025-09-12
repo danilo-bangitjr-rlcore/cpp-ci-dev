@@ -22,7 +22,7 @@ export const useDeleteAgentMutation = () => {
 
   return useMutation({
     mutationFn: deleteConfig,
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['configList'] });
     },
     onError: (error, configName) => {
@@ -61,7 +61,7 @@ export const useAddAgentMutation = () => {
 
   return useMutation({
     mutationFn: addConfig,
-    onSuccess: () => {
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['configList'] });
     },
     onError: (error, configName) => {
