@@ -49,7 +49,7 @@ const addConfig = async (configName: string): Promise<void> => {
       if (data && typeof data.error === 'string') {
         message = data.error;
       }
-    } catch (_) {
+    } catch {
       // ignore JSON parse errors, fall back to default message
     }
     throw new Error(message);

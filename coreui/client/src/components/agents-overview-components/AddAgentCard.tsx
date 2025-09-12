@@ -31,7 +31,8 @@ const AddAgentCard: React.FC = () => {
                     const base = `Failed to add agent "${name}"`;
                     if (error instanceof Error) {
                       const extra = error.message?.trim();
-                      const msg = extra && extra !== base ? `${base}\n${extra}` : base;
+                      const msg =
+                        extra && extra !== base ? `${base}\n${extra}` : base;
                       window.alert(msg);
                     } else {
                       window.alert(base);
