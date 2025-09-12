@@ -3,7 +3,7 @@ import { API_ENDPOINTS, del, post } from '../../utils/api';
 
 // Delete config mutation
 const deleteConfig = async (configName: string): Promise<void> => {
-  const response = await del(API_ENDPOINTS.configs.delete_raw_config, {
+  const response = await del(API_ENDPOINTS.configs.mutate_raw_config, {
     headers: {
       'Content-Type': 'application/json',
     },
@@ -33,7 +33,7 @@ export const useDeleteAgentMutation = () => {
 
 // Add config mutation
 const addConfig = async (configName: string): Promise<void> => {
-  const response = await post(API_ENDPOINTS.configs.delete_raw_config, {
+  const response = await post(API_ENDPOINTS.configs.mutate_raw_config, {
     headers: {
       'Content-Type': 'application/json',
     },
