@@ -8,7 +8,7 @@ dependencies = [
     "annotated-types>=0.7.0",
     "lib-defs",
     "pydantic>=2.11.5",
-    "pyzmq~=26.4.0",
+    "pyzmq~=27.1.0",
 ]
 readme = "README.md"
 
