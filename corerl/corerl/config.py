@@ -156,7 +156,6 @@ class MainConfig:
     # -- Evaluation --
     # ----------------
     eval_cfgs: EvalConfig = Field(default_factory=EvalConfig)
-    report : ReportConfig = Field(default_factory=ReportConfig)
 
     # ---------------
     # -- Computeds --
