@@ -424,9 +424,9 @@ def get_violation_period_stats(violation_periods: list[timedelta], percentiles: 
 
     stats = {
         'Total Violation Periods': str(len(violation_periods)),
-        'Min Violation Period (mintes)': f'{min(period_seconds):.2f}',
-        'Max Violation Period (mintes)': f'{max(period_seconds):.2f}',
-        'Mean Violation Period (mintes)': f'{np.mean(period_seconds):.2f}',
+        'Min Violation Period (minutes)': f'{min(period_seconds):.2f}',
+        'Max Violation Period (minutes)': f'{max(period_seconds):.2f}',
+        'Mean Violation Period (minutes)': f'{np.mean(period_seconds):.2f}',
     }
 
     # Add percentiles
