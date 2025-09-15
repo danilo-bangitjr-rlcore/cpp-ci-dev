@@ -1,0 +1,106 @@
+name: CoreConfig Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "corecfg/**"
+      - "libs/**"
+      - "config/**"
+  merge_group:
+    paths:
+      - "corecfg/**"
+      - "libs/**"
+      - "config/**"
+
+concurrency:
+  group: corecfg-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  corecfg-style-n-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: corecfg
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: corecfg
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: corecfg
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: corecfg
+
+      # -----------
+      # -- Tests --
+      # -----------
+      - name: Create artifact directory
+        run: mkdir -p artifact
+
+      - name: Run Pytest
+        run: |
+          pytest --cov=. tests/
+
+      - name: Combine coverage
+        run: |
+          uv run coverage html
+          echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+
+      # -------------
+      # -- Benchmark --
+      # -------------
+      # - name: Run Pytest Benchmark
+      #   run: |
+      #     pytest --benchmark-only --benchmark-json output.json tests/benchmarks/
+      #     git restore .
+
+      # - name: Store benchmark result
+      #   uses: benchmark-action/github-action-benchmark@v1
+      #   with:
+      #     name: Python Benchmark with pytest-benchmark
+      #     tool: 'pytest'
+      #     output-file-path: corecfg/output.json
+      #     github-token: ${{ secrets.GITHUB_TOKEN }}
+      #     alert-threshold: '130%'
+      #     comment-always: true
+      #     summary-always: true
+      #     fail-on-alert: true
+      #     alert-comment-cc-users: '@rlcoretech/rlcore-codeowners @andy-rlcore'
+      #     auto-push: true
+
+      - uses: actions/upload-artifact@v4
+        id: htmlcov-upload-step
+        with:
+          name: htmlcov-corecfg
+          path: corecfg/htmlcov/
+          overwrite: true
+
+      - run: |
+          echo "🏁 CoreConfig tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreConfig tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
+          comment-tag: execution-corecfg
