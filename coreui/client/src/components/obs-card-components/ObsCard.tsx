@@ -66,7 +66,7 @@ export const ObsCard: React.FC<ObsCardProps> = ({ config }) => {
           connection_id={connection_id}
           onConnectionIdChange={setConnectionId}
         />
-        <div className="flex-1 space-y-2">
+        <div className="flex-1">
           <div className="my-4">
             <NumberLine
               min={min}
@@ -78,7 +78,7 @@ export const ObsCard: React.FC<ObsCardProps> = ({ config }) => {
               }))}
             />
           </div>
-          <div className="flex gap-10 mb-4 justify-center">
+          <div className="flex gap-10 mb-4 justify-center text-center">
             {tags.map((t, i) => (
               <RangeInput
                 key={t.label}

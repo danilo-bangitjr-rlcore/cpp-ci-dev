@@ -24,7 +24,7 @@ export const NumberLine: React.FC<NumberLineProps> = ({
       <div
         style={{
           position: 'relative',
-          height: '6px',
+          height: '50px',
           background: '#ddd',
           borderRadius: '3px',
         }}
@@ -40,8 +40,8 @@ export const NumberLine: React.FC<NumberLineProps> = ({
                   position: 'absolute',
                   left: `${percent}%`,
                   top: '-6px',
-                  width: '2px',
-                  height: '18px',
+                  width: '5px',
+                  height: '65px',
                   background: color,
                   border: color === 'red' ? '1px dashed red' : undefined,
                 }}
@@ -56,7 +56,7 @@ export const NumberLine: React.FC<NumberLineProps> = ({
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: '12px',
+          fontSize: '15px',
           marginTop: '4px',
         }}
       >
