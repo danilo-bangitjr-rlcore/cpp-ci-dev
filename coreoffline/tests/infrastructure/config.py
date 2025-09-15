@@ -31,8 +31,9 @@ def test_db_config(tsdb_engine: Engine, tsdb_tmp_db_name: str):
 def offline_cfg(test_db_config: TagDBConfig):
     cfg = direct_load_config(
         OfflineMainConfig,
-        config_name='assets/offline_config.yaml',
+        config_name='tests/infrastructure/assets/offline_config.yaml',
     )
+
 
     assert isinstance(cfg, OfflineMainConfig)
 
