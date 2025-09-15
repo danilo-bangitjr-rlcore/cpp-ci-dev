@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.7.0](https://github.com/rlcoretech/core-rl/compare/0.6.0...v0.7.0) (2025-09-15)
+
+
+### Features
+
+* **coreio:** use pg dialect for int and real dtypes in ingress ([5df1438](https://github.com/rlcoretech/core-rl/commit/5df14383d58f44673b814bd0436b2610a494bcd2))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+
+
+### Bug Fixes
+
+* adding some try/except blocks ([7ba1715](https://github.com/rlcoretech/core-rl/commit/7ba171507040de33bb7de85813aa9aab4f13669f))
+* coreio reads tags from separate part of config + new configs + some utils ([89fc9a8](https://github.com/rlcoretech/core-rl/commit/89fc9a832e7dc93a66218b00f7da40af65d847fa))
+* **coreio/dummy_agent:** dummy agent reads opc connection id from cfg ([ab9d013](https://github.com/rlcoretech/core-rl/commit/ab9d01306b77755e152ead998611952592c0d52d))
+* **coreio:** backoff on unknown node read/write ([a88f82b](https://github.com/rlcoretech/core-rl/commit/a88f82b03bdc5f64382cf03b8278b99862b17740))
+* **coreio:** check registered nodes on opc write ([9b0f10b](https://github.com/rlcoretech/core-rl/commit/9b0f10b9ab622e6af5e4c31fe50f51f15828c520))
+* **coreio:** doesn't crash on unknown node ([45c0474](https://github.com/rlcoretech/core-rl/commit/45c0474a9b06a1ddea9800492acaae2fd24eacc0))
+* **coreio:** dropping out stale clock-generated events ([d6e1dce](https://github.com/rlcoretech/core-rl/commit/d6e1dcede666bd123ec3c0fe43e1eeb521f35251))
+* feature flag for config changes ([28611e5](https://github.com/rlcoretech/core-rl/commit/28611e5da47c9ca3f2ee25fa488669ebe8a7050e))
+* **PROD-793:** CoreIO doesn't crash on unknown OPC node ([29a2350](https://github.com/rlcoretech/core-rl/commit/29a235079a3686c8fa7a8bee5e6568a33cd35c17))
+* **PROD-802:** sanitized postgres column names now resolve collisions ([9ecf58b](https://github.com/rlcoretech/core-rl/commit/9ecf58b9c44ea9969aecfdc7851398cc0afd4bf3))
+* **PROD-808:** CoreIO backoff on read/write ([15cafa5](https://github.com/rlcoretech/core-rl/commit/15cafa55b43e2a70b7b82ea1ab5a3a94c712ff0c))
+* **PROD-811:** CoreIO reads tags from separate part of config ([3964f45](https://github.com/rlcoretech/core-rl/commit/3964f45e3cbb0e38e2dbbe280e8d849e63c59625))
+* **PROD-843:** CoreIO try/except blocks ([4a42c62](https://github.com/rlcoretech/core-rl/commit/4a42c62107717e74f28f882ee63489730da490f4))
+* remove test code ([200c58c](https://github.com/rlcoretech/core-rl/commit/200c58c5ad595b4a95026d33fcc1e0126c7bd9d0))
+* way more retries for sql disconnections ([912c9ff](https://github.com/rlcoretech/core-rl/commit/912c9ffc4c04d5933533349d598969dbdbc06cc1))
+
 ## [0.6.0](https://github.com/rlcoretech/core-rl/compare/0.5.0...v0.6.0) (2025-09-08)
 
 
