@@ -214,7 +214,6 @@ class TestDataReader:
     def populate_db(self, data_reader_writer: tuple[DataReader, DataWriter], now: datetime):
         n_vals = 50
         names = TestDataReader.sensor_names
-        _, data_writer = data_reader_writer
         for name in names:
             write_n_random_vals(n=n_vals, name=name, data_reader_writer=data_reader_writer, end_time=now)
 

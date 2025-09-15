@@ -152,7 +152,7 @@ def test_regular_rl_capture(dummy_app_state: AppState):
             'only_no_action_change',
         ],
     )
-    transition_filter = TransitionFilter(cfg)
+    transition_filter = TransitionFilter(dummy_app_state, cfg)
     pf = transition_filter(pf)
 
     assert pf.transitions is not None

@@ -86,6 +86,7 @@ jobs:
       - name: Run Pytest Benchmark
         run: |
           pytest --benchmark-only --benchmark-json output.json tests/benchmarks/
+          git restore .
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1

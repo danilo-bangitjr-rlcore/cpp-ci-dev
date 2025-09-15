@@ -33,7 +33,7 @@ from test.behavior.saturation.cases import (
 )
 from test.behavior.t_maze.cases import LongTMazeTest, MediumTMazeTest, ShortTMazeTest
 from test.behavior.windy_room.cases import WindyRoomTest
-from test.infrastructure.utils.docker import init_docker_container
+from test.infrastructure.utils.tsdb import init_postgres_container
 
 
 @pytest.fixture(scope='session')
@@ -45,10 +45,10 @@ def bsuite_tsdb():
     # Note: we aren't cleaning up after ourselves here, because the bsuite
     # tsdb docker container is intended to be long-lived
     with filelock.FileLock('output/bsuite.lock'):
-        init_docker_container(
+        init_postgres_container(
             name='tsdb-bsuite',
             restart=False,
-            ports={'5432': 22222},
+            port=22222,
         )
 
 

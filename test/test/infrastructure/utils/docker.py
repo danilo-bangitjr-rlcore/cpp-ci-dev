@@ -6,17 +6,18 @@ from docker import errors, from_env
 
 
 def init_docker_container(
-    name: str = "test_timescale",
-    repository: str = "timescale/timescaledb",
-    tag: str = "latest-pg17",
-    env: Mapping[str, str] = MappingProxyType({"POSTGRES_PASSWORD": "password"}),
-    ports: Mapping[str, Any] = MappingProxyType({"5432": 5433}),
+    name: str,
+    repository: str,
+    tag: str = "latest",
+    env: Mapping[str, str] = MappingProxyType({}),
+    ports: Mapping[str, Any] = MappingProxyType({}),
     restart: bool = True,
 ):
-    """This function will spin up a docker container running timescaledb.
-    All docker container and image configurations are parameterized.
-    By default, a timescaledb:latest-pg17 image will be used to create a container named
-    test_timescale, binding container port 5432 to 5433.
+    """Initialize a Docker container with the specified configuration.
+
+    This is a generic Docker container initialization function that does not
+    assume any specific database or service type. For database-specific
+    containers, use the appropriate wrapper functions.
     """
     client = from_env()
 
@@ -45,4 +46,3 @@ def init_docker_container(
         environment=dict(env),
         name=name,
     )
-

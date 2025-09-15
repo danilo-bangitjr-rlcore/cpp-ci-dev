@@ -7,6 +7,7 @@ import jax.numpy as jnp
 from lib_config.config import config, list_, post_processor
 
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
+from corerl.state import AppState
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -39,15 +40,24 @@ class TransitionFilterConfig:
 
 
 class TransitionFilter:
-    def __init__(self, cfg: TransitionFilterConfig):
+    def __init__(self, app_state: AppState, cfg: TransitionFilterConfig):
         self.filter_names = cfg.filters
+        self._app_state = app_state
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         if pf.transitions is None:
             return pf
 
+        transitions_before = len(pf.transitions)
         for filter_name in self.filter_names:
             pf.transitions = call_filter(pf.transitions, filter_name)
+
+        transitions_after = len(pf.transitions)
+        self._app_state.metrics.write(
+            self._app_state.agent_step,
+            'transitions_filtered',
+            transitions_before - transitions_after,
+        )
 
         return pf
 

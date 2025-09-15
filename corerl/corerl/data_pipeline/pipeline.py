@@ -128,7 +128,7 @@ class Pipeline:
         self.tag_trigger = TagTrigger(app_state, self.tags)
         self.conditional_filter = ConditionalFilter(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator)
-        self.transition_filter = TransitionFilter(cfg.transition_filter)
+        self.transition_filter = TransitionFilter(app_state, cfg.transition_filter)
         self.outlier_detectors = OddityFilterConstructor(self.tags, app_state, cfg.oddity_filter)
         self.imputers = init_imputer(cfg.imputer, app_state, self.tags)
         self.action_constructor = ActionConstructor(app_state, self.tags, self.preprocessor)

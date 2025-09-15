@@ -19,6 +19,7 @@ from corerl.data_pipeline.transition_filter import (
     only_no_action_change,
     only_post_dp,
 )
+from corerl.state import AppState
 from tests.small.data_pipeline.test_transition_pipeline import pf_from_actions
 
 
@@ -207,14 +208,14 @@ def test_no_nan():
     assert no_nan(transition)
 
 
-def test_transition_filter_1():
+def test_transition_filter_1(dummy_app_state: AppState):
     cfg = TransitionFilterConfig(
         filters=[
             'only_post_dp',
             'only_no_action_change',
         ],
     )
-    transition_filter = TransitionFilter(cfg)
+    transition_filter = TransitionFilter(dummy_app_state, cfg)
 
     # no action change and dp is true
     transition_0 = Transition(
@@ -274,7 +275,7 @@ def test_transition_filter_1():
     assert pf.transitions[0] == transition_0
 
 
-def test_capture_regular_RL():
+def test_capture_regular_RL(dummy_app_state: AppState):
 
     first = make_test_step(
         i=0,
@@ -332,7 +333,7 @@ def test_capture_regular_RL():
             'only_post_dp',
         ],
     )
-    transition_filter = TransitionFilter(cfg)
+    transition_filter = TransitionFilter(dummy_app_state, cfg)
 
     pf = PipelineFrame(
         pd.DataFrame([]),

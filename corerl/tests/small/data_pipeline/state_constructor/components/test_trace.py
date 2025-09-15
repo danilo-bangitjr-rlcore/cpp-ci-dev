@@ -146,7 +146,7 @@ def test_trace_temporal_state():
         },
     )
 
-    new_carry, new_ts = trace_sc(carry, ts)
+    new_carry, _ = trace_sc(carry, ts)
 
     assert np.allclose(
         new_carry.transform_data['obs_1_trace-0.1'],

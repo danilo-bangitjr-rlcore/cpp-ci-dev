@@ -50,7 +50,7 @@ const addConfig = async (configName: string): Promise<void> => {
         message = data.error;
       }
     } catch {
-      // ignore JSON parse errors, fall back to default message
+      console.log('Failed to parse error response as JSON');
     }
     throw new Error(message);
   }
