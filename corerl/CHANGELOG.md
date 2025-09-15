@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.148.0](https://github.com/rlcoretech/core-rl/compare/v0.147.0...v0.148.0) (2025-09-15)
+
+
+### Features
+
+* **corerl:** allow independent config of AE missingtol ([cd2867d](https://github.com/rlcoretech/core-rl/commit/cd2867d03adf87338f07f18dd98fcc23798d9fdd))
+* **PROD-840:** add calculation and statistics for goal violation periods ([6a92bc2](https://github.com/rlcoretech/core-rl/commit/6a92bc2d4ce72601143bef367f74b7107e514cbe))
+* **PROD-840:** add goal violations table generation in report ([aa201ee](https://github.com/rlcoretech/core-rl/commit/aa201ee14d1226f7d90f7570f7208513a2ee7a96))
+
+
+### Bug Fixes
+
+* **corerl:** add schema to data_reader queries ([db5eeba](https://github.com/rlcoretech/core-rl/commit/db5eebab7736e43474fad73ad8ae51577679f6dc))
+* **corerl:** add schema to data_reader queries ([1a7307c](https://github.com/rlcoretech/core-rl/commit/1a7307cb1754f93f1329db3051e380a94cdbf684))
+* **corerl:** timeseries data should not use time as primary key ([e3ba87a](https://github.com/rlcoretech/core-rl/commit/e3ba87a35b9dfa8ffabc8225f4ae656f39897b66))
+* **PROD-845:** don't generate sympy permutation inputs if tags aren't SafetyZonedTags ([96bfd91](https://github.com/rlcoretech/core-rl/commit/96bfd91fcc648962ca4dc6a77f834e85e0b6b247))
+* rename _ensemble method to _contiguous_time_threshold ([0f7a6cf](https://github.com/rlcoretech/core-rl/commit/0f7a6cffb83abbe9dcbd3b80faedf5a5bc1245c9))
+
 ## [0.147.0](https://github.com/rlcoretech/core-rl/compare/v0.146.0...v0.147.0) (2025-09-08)
 
 
