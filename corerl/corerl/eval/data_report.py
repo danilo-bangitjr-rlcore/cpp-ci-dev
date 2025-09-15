@@ -12,6 +12,7 @@ from pydantic import Field
 from tabulate import tabulate
 
 from corerl.data_pipeline.datatypes import StageCode, Transition
+from corerl.environment.reward.config import Optimization
 from corerl.eval.plotting.report import (
     plot_chunk_histogram,
     plot_nan_histogram,
@@ -55,6 +56,9 @@ class ReportConfig:
     # for transition statistics
     transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
     contiguous_time_threshold: timedelta = MISSING  # max time gap to consider transitions contiguous
+
+    # for goal violations
+    violation_period_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
 
     @computed('contiguous_time_threshold')
     @classmethod
@@ -358,6 +362,169 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
     return return_dict
 
 
+def calculate_violation_periods(
+        satisfaction_df: pd.DataFrame,
+        metric_name: str,
+        obs_period: timedelta,
+    ) -> list[timedelta]:
+    """
+    Calculate consecutive violation periods from satisfaction data.
+    Returns list of violation period durations.
+    """
+    if satisfaction_df.empty:
+        return []
+
+    # Ensure dataframe is sorted by timestamp
+    satisfaction_df = satisfaction_df.sort_index()
+
+    # Find violations (satisfaction < 1)
+    violations = satisfaction_df[metric_name] < 1
+
+    if not violations.any():
+        return []
+
+    # Find start and end of consecutive violation periods
+    violation_periods: list[int] = []
+    in_violation = False
+    violation_start_idx: int | None = None
+
+    for idx, is_violation in violations.items():
+        assert isinstance(idx, int)
+        if is_violation and not in_violation:
+            # Start of violation period
+            violation_start_idx = idx
+            in_violation = True
+        elif not is_violation and in_violation:
+            # End of violation period
+            assert violation_start_idx is not None
+            period_duration = idx - violation_start_idx
+            violation_periods.append(period_duration)
+            in_violation = False
+            violation_start_idx = None
+
+    # Handle case where violation period extends to end of data
+    if in_violation and violation_start_idx is not None:
+        last_idx = satisfaction_df.index[-1]
+        assert isinstance(last_idx, int)
+        period_duration = last_idx - violation_start_idx
+        violation_periods.append(period_duration)
+
+    return [vp * obs_period for vp in violation_periods]
+
+
+def get_violation_period_stats(violation_periods: list[timedelta], percentiles: list[float]):
+    """
+    Calculate statistics for violation periods.
+    """
+    if not violation_periods:
+        return {'No violation periods found': ''}
+
+    # Convert timedeltas to total seconds for calculations
+    period_seconds = [period.total_seconds() / 60 for period in violation_periods]
+
+    stats = {
+        'Total Violation Periods': str(len(violation_periods)),
+        'Min Violation Period (minutes)': f'{min(period_seconds):.2f}',
+        'Max Violation Period (minutes)': f'{max(period_seconds):.2f}',
+        'Mean Violation Period (minutes)': f'{np.mean(period_seconds):.2f}',
+    }
+
+    # Add percentiles
+    for p in percentiles:
+        percentile_value = np.percentile(period_seconds, p * 100)
+        stats[f'P{int(p * 100)} Violation Period (minutes)'] = f'{percentile_value:.2f}'
+
+    return stats
+
+
+def make_goal_violations_table(
+        cfg: ReportConfig,
+        output_path: Path,
+        app_state: AppState,
+        start_time: datetime,
+        end_time: datetime,
+    ):
+    """
+    Generate goal violations table and save to file.
+    """
+
+    if app_state.cfg.pipeline.reward is None:
+        return
+
+    log.info("Generating goal violations statistics...")
+
+    # Prepare table data
+    table_data: list[list[str]] = [
+        ['start time of report gen.', str(start_time)],
+        ['end time of report gen.', str(end_time)],
+    ]
+
+    headers = [
+        'Metric',
+        'Value',
+    ]
+
+    assert app_state.cfg.pipeline.reward is not None
+    priorities = app_state.cfg.pipeline.reward.priorities
+
+    for priority_idx, priority in enumerate(priorities):
+        # Skip optimization priorities - they use a different metric
+        if isinstance(priority, Optimization):
+            continue
+
+        metric_name = f'priority_{priority_idx}_satisfaction'  # from goals.py
+
+        satisfaction_df = app_state.metrics.read(
+            metric=metric_name,
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if not satisfaction_df.empty:
+            # Count violations (entries where satisfaction < 1)
+            violations = (satisfaction_df[metric_name] < 1).sum()
+            table_data.append([f'Priority {priority_idx} Violations', str(violations)])
+
+            # Calculate satisfaction rate
+            total_entries = len(satisfaction_df)
+            satisfaction_rate = (
+                ((satisfaction_df[metric_name] >= 1).sum() / total_entries) * 100
+                if total_entries > 0 else 0
+            )
+            table_data.append([
+                f'Priority {priority_idx} Satisfaction Rate (%)',
+                f'{satisfaction_rate:.2f}',
+            ])
+
+            # Calculate violation period statistics
+            violation_periods = calculate_violation_periods(
+                satisfaction_df, metric_name, app_state.cfg.interaction.obs_period,
+            )
+            period_stats = get_violation_period_stats(violation_periods, cfg.violation_period_percentiles)
+
+            # Add violation period statistics to table
+            for stat_name, stat_value in period_stats.items():
+                table_data.append([f'Priority {priority_idx} {stat_name}', stat_value])
+
+    # Check for optimization performance metric (last priority should be optimization)
+    if isinstance(priorities[-1], Optimization):
+        opt_performance_df = app_state.metrics.read(
+            metric='optimization_performance',
+            start_time=start_time,
+            end_time=end_time,
+        )
+
+        if not opt_performance_df.empty:
+            table_data.append([
+                'Average Optimization Performance',
+                str(opt_performance_df['optimization_performance'].mean()),
+            ])
+
+    # Generate table and save
+    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
+    (output_path / 'goal_violations.txt').write_text(table_str, encoding='utf-8')
+
+
 def make_transition_statistics_table(
         cfg: ReportConfig,
         transitions: list[Transition],
@@ -436,6 +603,15 @@ def generate_report(
     make_stat_table(cfg, data, stages, output_path)
     make_distribution_plots(cfg, data, stages, output_path / 'plots')
     make_cross_correlation_table(cfg, data, stages, output_path)
+
+    # Generate goal violations table
+    make_goal_violations_table(
+        cfg,
+        output_path,
+        app_state,
+        start_time,
+        end_time,
+    )
 
     # Generate transition statistics if transitions are provided
     if transitions:
