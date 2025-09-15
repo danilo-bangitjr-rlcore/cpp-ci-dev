@@ -106,32 +106,6 @@ class FeatureFlags:
 
 
 @config()
-class OfflineConfig:
-    offline_steps: int = 0
-    offline_start_time: datetime | None = None
-    offline_end_time: datetime | None = None
-    eval_periods: list[tuple[datetime, datetime]] | None = None
-    pipeline_batch_duration: timedelta = timedelta(days=7)
-    update_agent_during_offline_recs: bool = False
-    remove_eval_from_train: bool = True
-    test_split: float = 0.0
-
-    @post_processor
-    def _validate(self, cfg: 'MainConfig'):
-        if isinstance(self.offline_start_time, datetime) and isinstance(self.offline_end_time, datetime):
-            assert (
-                self.offline_start_time < self.offline_end_time
-            ), "Offline training start timestamp must come before the offline training end timestamp."
-
-        if self.eval_periods is not None:
-            for eval_period in self.eval_periods:
-                assert len(eval_period) == 2, "Eval periods must be defined as a list with length 2."
-                start = eval_period[0]
-                end = eval_period[1]
-                assert start < end, "Eval start must precede eval end."
-            # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
-
-@config()
 class MainConfig:
     """
     Top-level configuration for corerl.
@@ -143,7 +117,6 @@ class MainConfig:
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    offline: OfflineConfig = Field(default_factory=OfflineConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     save_path: Path = MISSING
     log_path: Path | None = None
