@@ -193,6 +193,10 @@ def is_valid_expression(term: Any) -> bool:
         if hasattr(term, "is_Relational") and term.is_Relational:
             return (is_valid_expression(term.lhs) and is_valid_expression(term.rhs))
 
+        # Handle logical operations (And, Or)
+        if hasattr(term, "func") and (str(term.func) == "And" or str(term.func) == "Or"):
+            return (is_valid_expression(term.args[0]) and is_valid_expression(term.args[1]))
+
         return False
 
     except Exception:
