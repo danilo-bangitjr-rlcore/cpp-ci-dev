@@ -362,7 +362,11 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
     return return_dict
 
 
-def calculate_violation_periods(satisfaction_df: pd.DataFrame, metric_name: str, obs_period: timedelta):
+def calculate_violation_periods(
+        satisfaction_df: pd.DataFrame,
+        metric_name: str,
+        obs_period: timedelta,
+    ) -> list[timedelta]:
     """
     Calculate consecutive violation periods from satisfaction data.
     Returns list of violation period durations.
@@ -380,30 +384,29 @@ def calculate_violation_periods(satisfaction_df: pd.DataFrame, metric_name: str,
         return []
 
     # Find start and end of consecutive violation periods
-    violation_periods = []
+    violation_periods: list[int] = []
     in_violation = False
-    violation_start = None
+    violation_start_idx: int | None = None
 
-    print(satisfaction_df)
     for idx, is_violation in violations.items():
         assert isinstance(idx, int)
         if is_violation and not in_violation:
             # Start of violation period
-            violation_start = idx
+            violation_start_idx = idx
             in_violation = True
         elif not is_violation and in_violation:
             # End of violation period
-            assert violation_start is not None
-            period_duration = idx - violation_start
+            assert violation_start_idx is not None
+            period_duration = idx - violation_start_idx
             violation_periods.append(period_duration)
             in_violation = False
-            violation_start = None
+            violation_start_idx = None
 
     # Handle case where violation period extends to end of data
-    if in_violation and violation_start is not None:
+    if in_violation and violation_start_idx is not None:
         last_idx = satisfaction_df.index[-1]
         assert isinstance(last_idx, int)
-        period_duration = last_idx - violation_start
+        period_duration = last_idx - violation_start_idx
         violation_periods.append(period_duration)
 
     return [vp * obs_period for vp in violation_periods]
