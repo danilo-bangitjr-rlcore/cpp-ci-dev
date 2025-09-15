@@ -9,7 +9,7 @@ const navItems = [
     to: '/',
     icon: <img src="/app/assets/corei.svg" style={{ maxWidth: '75%' }} />,
   },
-  { label: 'Agents Overview', to: '/agents-overview' },
+  { label: 'Agents Overview', to: '/agents' },
   { label: 'OPC Navigation', to: '/opc-navigation' },
   { label: 'About', to: '/about' },
   { label: 'Tags', to: '/tags' },

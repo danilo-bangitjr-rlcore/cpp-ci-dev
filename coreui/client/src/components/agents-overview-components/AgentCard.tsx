@@ -1,4 +1,6 @@
 import React from 'react';
+import { Link } from '@tanstack/react-router';
+import { TrashIcon } from '../icons';
 import { type Agent } from './AgentsOverviewContainer';
 
 interface AgentCardProps {
@@ -26,10 +28,17 @@ const AgentCard: React.FC<AgentCardProps> = ({
   return (
     <div className="border border-gray-300 bg-gray-100 p-4 rounded-lg shadow-sm min-h-[200px] flex flex-col justify-between">
       <div className="space-y-2">
-        <div>
-          <div className="text-xl font-bold bg-transparent border border-transparent p-1 rounded w-full">
+        <div className="flex items-center justify-between">
+          <div className="text-xl font-bold bg-transparent border border-transparent p-1 rounded">
             {agent.agentName}
           </div>
+          <button
+            onClick={handleDelete}
+            className="text-gray-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition-colors"
+            title="Delete Agent"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
         </div>
         <div className="flex items-center justify-between my-4">
           <div className="flex items-center space-x-2">
@@ -53,20 +62,15 @@ const AgentCard: React.FC<AgentCardProps> = ({
             {agent.status === 'on' ? 'Turn Off' : 'Turn On'}
           </button>
         </div>
-        <button className="w-full bg-gray-500 text-white py-1 rounded hover:bg-gray-600">
-          Configure
-        </button>
-        <button className="w-full bg-gray-500 text-white py-1 rounded hover:bg-gray-600">
-          Monitor
-        </button>
-      </div>
-      <div className="mt-4 flex justify-end">
-        <button
-          onClick={handleDelete}
-          className="bg-gray-200 text-red-800 px-3 py-1 rounded text-sm hover:bg-red-600 hover:text-white"
-        >
-          Delete Agent
-        </button>
+        <div className="flex justify-center">
+          <Link
+            to="/agents/$agent-name"
+            params={{ 'agent-name': agent.agentName }}
+            className="bg-gray-500 text-white px-16 py-1 mt-4 rounded hover:bg-gray-600"
+          >
+            Details
+          </Link>
+        </div>
       </div>
     </div>
   );
