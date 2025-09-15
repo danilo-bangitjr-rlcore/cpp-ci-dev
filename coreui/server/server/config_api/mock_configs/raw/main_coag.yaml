@@ -9,7 +9,7 @@ infra:
     ip: localhost
     port: 5432
     db_name: postgres
-agent_name: coag
+agent_name: main_coag
 seed: 0
 is_simulation: false
 interaction:
