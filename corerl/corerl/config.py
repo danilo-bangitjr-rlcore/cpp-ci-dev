@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -13,7 +12,6 @@ from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
-from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics import MetricsDBConfig
 from corerl.interaction.factory import InteractionConfig
@@ -141,13 +139,13 @@ class MainConfig:
     # -- Problem --
     # -------------
     max_steps: int | None = None
-    seed: int = 0 # affects agent and env
+    seed: int = 0  # affects agent and env
     is_simulation: bool = True
 
     # -----------
     # -- Agent --
     # -----------
-    agent_name: str = 'corey' # typically should indicate the process the agent is controlling
+    agent_name: str = 'corey'  # typically should indicate the process the agent is controlling
     env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
     interaction: InteractionConfig = Field(default_factory=InteractionConfig)
     agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
@@ -207,7 +205,6 @@ class MainConfig:
             if tag_cfg.type == TagType.ai_setpoint and tag_cfg.guardrail_schedule is not None:
                 tag_cfg.guardrail_schedule.duration /= self.interaction.time_dilation
 
-
     @computed('save_path')
     @classmethod
     def _save_path(cls, cfg: 'MainConfig'):
@@ -223,7 +220,6 @@ class MainConfig:
             yaml.safe_dump(json.loads(cfg_json), f)
 
         return save_path
-
 
     @post_processor
     def _regenerative_optimism(self, cfg: 'MainConfig'):
@@ -242,7 +238,6 @@ class MainConfig:
             return
 
         self.agent.loss_threshold = 1e-8
-
 
     @post_processor
     def _enable_wide_metrics(self, cfg: 'MainConfig'):
