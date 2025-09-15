@@ -5,13 +5,13 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
-from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import StageCode, Step, Transition
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 from corerl.utils.pandas import split_dataframe_into_chunks
 from lib_agent.buffer.datatypes import DataMode
 
+from coreoffline.config import OfflineMainConfig
 from coreoffline.data_analysis.data_report import ReportConfig, generate_report
 from coreoffline.data_analysis.offline_analysis import StageDataCapture
 
@@ -86,7 +86,7 @@ def transitions_with_timestamps() -> list[Transition]:
 
 
 def test_stage_data_capture(
-    offline_cfg: MainConfig,
+    offline_cfg: OfflineMainConfig,
     dummy_app_state: AppState,
 ):
     """Test that StageDataCapture works with pipeline execution and that INIT stage data equals original"""
