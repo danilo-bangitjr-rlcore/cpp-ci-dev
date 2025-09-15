@@ -359,7 +359,10 @@ class DataReader:
     def query(self, q: str, params: dict[str, Any] | None = None) -> pd.DataFrame:
         params = params or {}
 
-        q = q.replace(":table", self.sensor_table.name)
+        table_name = self.sensor_table.name
+        table_schema = self.sensor_table.schema
+        qualified_table = f"{table_schema}.{table_name}" if table_schema else table_name
+        q = q.replace(":table", qualified_table)
 
         if not self.wide_format:
             q = q.replace(":val", _parse_jsonb("fields"))
