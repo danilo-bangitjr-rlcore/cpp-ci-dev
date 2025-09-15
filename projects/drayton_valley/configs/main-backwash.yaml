@@ -141,7 +141,7 @@ pipeline:
       imputation_horizon: 96
     filter: # ignore perm if following conditions are met
     - name: sympy
-      expression: "({VEOLIA_UF2_SEQ_STATE} != 8) | ({VEOLIA_UF2_FIT301_PV} < 10) | ({VEOLIA_UF2_TMP_PV} > -1)"
+      expression: "Ne({VEOLIA_UF2_SEQ_STATE}, 8) | ({VEOLIA_UF2_FIT301_PV} < 10) | ({VEOLIA_UF2_TMP_PV} > -1)"
 
   - name: VEOLIA_UF2_FIT301_PV # permeate flow rate
     preprocess:
