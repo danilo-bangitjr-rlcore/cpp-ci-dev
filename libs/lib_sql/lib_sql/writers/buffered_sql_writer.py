@@ -65,15 +65,16 @@ class BufferedSqlWriter[T]:
         if not self._enabled:
             return
 
-
         if self._future is not None:
             self._future.result()
-
 
         self._background_sync()
 
         if self._future is not None:
             self._future.result()
+
+        # Forward flush to inner writer
+        self._inner.flush()
 
     def close(self):
         try:
@@ -84,13 +85,10 @@ class BufferedSqlWriter[T]:
 
     # ----------------- sync operations -----------------
     def _hard_sync(self):
-
         if self._future is not None:
             self._future.result()
 
-
         self._background_sync()
-
 
         if self._future is not None:
             self._future.result()
@@ -106,3 +104,6 @@ class BufferedSqlWriter[T]:
 
     def _deferred_write(self, batch: Iterable[T]):
         self._inner.write_many(list(batch))
+
+        if len(self._buf) >= self._low_wm:
+            self._future = self._exec.submit(self._background_sync)

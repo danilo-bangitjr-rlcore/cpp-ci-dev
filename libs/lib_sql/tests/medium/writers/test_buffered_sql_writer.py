@@ -30,6 +30,9 @@ class DummyWriter(SqlWriter[int]):
     def close(self):
         self.closed = True
 
+    def flush(self):
+        ...
+
 
 def test_soft_flush():
     inner = DummyWriter()

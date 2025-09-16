@@ -25,6 +25,9 @@ class DummyWriter(SqlWriter[MetricRow]):
     def write(self, row: MetricRow) -> None:
         self.received.append(row)
 
+    def flush(self) -> None:
+        ...
+
     def close(self) -> None:
         self.closed = True
 
@@ -326,7 +329,7 @@ def test_auto_flush_basic():
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory, auto_flush_delay=0.1)
+    writer = PointCollectingSqlWriter(inner, row_factory, auto_collect_delay=0.1)
 
     writer.write_point("accuracy", 0.95)
 
@@ -347,7 +350,7 @@ def test_auto_flush_single_timer():
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory, auto_flush_delay=0.2)
+    writer = PointCollectingSqlWriter(inner, row_factory, auto_collect_delay=0.2)
 
     writer.write_point("accuracy", 0.9)
     writer.write_point("loss", 0.1)
@@ -374,7 +377,7 @@ def test_auto_flush_timer_not_reset():
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory, auto_flush_delay=0.2)
+    writer = PointCollectingSqlWriter(inner, row_factory, auto_collect_delay=0.2)
 
     writer.write_point("accuracy", 0.9)
 
@@ -395,11 +398,11 @@ def test_auto_flush_timer_not_reset():
 @pytest.mark.timeout(5)
 def test_auto_flush_disabled_when_no_delay():
     """
-    Test auto-flush is disabled when auto_flush_delay is None.
+    Test that auto-collect is disabled when auto_collect_delay is None.
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory)
+    writer = PointCollectingSqlWriter(inner, row_factory)  # No auto_collect_delay
 
     writer.write_point("accuracy", 0.95)
 
@@ -420,7 +423,7 @@ def test_manual_flush_cancels_auto_flush():
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory, auto_flush_delay=0.3)
+    writer = PointCollectingSqlWriter(inner, row_factory, auto_collect_delay=0.3)
 
     writer.write_point("accuracy", 0.9)
 
@@ -441,7 +444,7 @@ def test_close_cancels_auto_flush_timer():
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory, auto_flush_delay=0.3)
+    writer = PointCollectingSqlWriter(inner, row_factory, auto_collect_delay=0.3)
 
     writer.write_point("accuracy", 0.9)
     writer.close()
@@ -461,7 +464,7 @@ def test_auto_flush_disabled_writer():
     """
     inner = DummyWriter()
     row_factory = create_row_factory()
-    writer = PointCollectingSqlWriter(inner, row_factory, enabled=False, auto_flush_delay=0.1)
+    writer = PointCollectingSqlWriter(inner, row_factory, enabled=False, auto_collect_delay=0.1)
 
     writer.write_point("accuracy", 0.95)
 

@@ -4,7 +4,7 @@ from sqlalchemy import Engine
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics.factory import create_metrics_writer
 from tests.infrastructure.config import load_config
 
 
@@ -42,7 +42,27 @@ def metrics_table(
         'metrics.db_name': tsdb_tmp_db_name,
         'metrics.port': port,
     })
-    table = MetricsTable(basic_config.metrics)
+    table = create_metrics_writer(basic_config.metrics)
+    yield table
+    table.close()
+
+
+@pytest.fixture()
+def wide_metrics_table(
+    tsdb_engine: Engine,
+    tsdb_tmp_db_name: str,
+    basic_config_path: str,
+):
+    port = tsdb_engine.url.port
+    assert port is not None
+
+    basic_config = load_config(basic_config_path, overrides={
+        'metrics.db_name': tsdb_tmp_db_name,
+        'metrics.port': port,
+        'metrics.narrow_format': False,
+        'metrics.table_name': 'metrics_wide',
+    })
+    table = create_metrics_writer(basic_config.metrics)
     yield table
     table.close()
 

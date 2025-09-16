@@ -29,6 +29,7 @@ class DynamicSchemaSqlWriter(SqlWriter):
         table_creation_factory: TableCreationFactory,
         schema: str | None = None,
         default_column_type: str = "FLOAT",
+        initial_columns: list[SQLColumn] | None = None,
     ):
         self.engine = engine
         self.table_name = table_name
@@ -39,6 +40,10 @@ class DynamicSchemaSqlWriter(SqlWriter):
         self._table_created = False
         self._columns_initialized = False
         self._known_columns: set[str] = set()
+
+        # Create table immediately if initial columns provided
+        if initial_columns:
+            self._create_table_with_columns(initial_columns)
 
     @property
     def _table_ref(self):
@@ -76,6 +81,9 @@ class DynamicSchemaSqlWriter(SqlWriter):
 
     def write(self, row: dict[str, Any]):
         self.write_many([row])
+
+    def flush(self):
+        ...
 
     def close(self):
         self.engine.dispose()
@@ -133,6 +141,25 @@ class DynamicSchemaSqlWriter(SqlWriter):
                 ADD COLUMN IF NOT EXISTS "{column.name}" {column.type}
             """))
             self._known_columns.add(column.name)
+
+    def _create_table_with_columns(self, columns: list[SQLColumn]):
+        """Create table with initial columns if it doesn't exist."""
+        with TryConnectContextManager(self.engine) as connection:
+            if table_exists(self.engine, table_name=self.table_name, schema=self.schema):
+                self._table_created = True
+                return
+
+            table_sql = self.table_creation_factory(
+                self.schema or "public",
+                self.table_name,
+                columns,
+            )
+            connection.execute(table_sql)
+            connection.commit()
+            self._table_created = True
+            # Mark columns as known since we just created them
+            self._known_columns.update(col.name for col in columns)
+            self._columns_initialized = True
 
     # ========================================
     # SQL Query Generation

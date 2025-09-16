@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics.base import MetricsWriterProtocol
 from corerl.messages.event_bus import DummyEventBus, EventBus
 
 if TYPE_CHECKING:
@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class AppState[AppEventBus: (EventBus, DummyEventBus)]:
     cfg: MainConfig
     evals: EvalsTable
-    metrics: MetricsTable
+    metrics: MetricsWriterProtocol
     event_bus: AppEventBus
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))

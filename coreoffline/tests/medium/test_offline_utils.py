@@ -11,7 +11,7 @@ from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_agent.buffer.datatypes import DataMode
@@ -136,7 +136,7 @@ def test_offline_training(
     """
     app_state = AppState(
         cfg=offline_cfg,
-        metrics=MetricsTable(offline_cfg.metrics),
+        metrics=create_metrics_writer(offline_cfg.metrics),
         evals=EvalsTable(offline_cfg.evals),
         event_bus=DummyEventBus(),
     )

@@ -7,7 +7,7 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.utils.pandas import split_dataframe_into_chunks
@@ -69,7 +69,7 @@ def main(cfg: OfflineMainConfig):
     app_state = AppState(
         cfg,
         evals=EvalsTable(cfg.evals),
-        metrics=MetricsTable(cfg.metrics),
+        metrics=create_metrics_writer(cfg.metrics),
         event_bus=DummyEventBus(),
     )
     assert isinstance(app_state.cfg, OfflineMainConfig)  # for typing
