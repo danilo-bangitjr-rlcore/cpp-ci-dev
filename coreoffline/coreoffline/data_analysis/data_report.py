@@ -17,16 +17,12 @@ from coreoffline.config import ReportConfig
 from coreoffline.data_analysis.plotting import (
     make_distribution_plots,
 )
-
-if TYPE_CHECKING:
-    pass
-
+from coreoffline.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)
 
-
-def get_tags(data: list[pd.DataFrame]) -> list[str]:
-    return list(data[0].columns)
+if TYPE_CHECKING:
+    pass
 
 
 def make_stat_table(

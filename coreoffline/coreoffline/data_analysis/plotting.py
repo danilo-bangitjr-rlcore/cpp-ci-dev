@@ -1,13 +1,16 @@
+import logging
 from pathlib import Path
 
-from corerl.data_pipeline.datatypes import StageCode
 import jax
 import matplotlib.pyplot as plt
 import pandas as pd
+from corerl.data_pipeline.datatypes import StageCode
 from corerl.eval.raw_data import length_of_chunks
 
 from coreoffline.config import ReportConfig
-from coreoffline.data_analysis.data_report import get_tags, log
+from coreoffline.data_analysis.utils import get_tags
+
+log = logging.getLogger(__name__)
 
 
 def plot_sensor_data(
