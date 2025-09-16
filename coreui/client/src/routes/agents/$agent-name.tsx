@@ -16,7 +16,10 @@ export const Route = createFileRoute('/agents/$agent-name')({
 function RouteComponent() {
   const params = useParams({ from: '/agents/$agent-name' });
   const agentName = params['agent-name'];
-  const { exists, loading, error } = useAgentExists(agentName);
+  const { data, isLoading, error } = useAgentExists(agentName);
+  const exists = isLoading ? null : (data ?? false);
+  const loading = isLoading;
+  const errorMessage = error?.message ?? null;
 
   // Show loading state
   if (loading) {
@@ -30,12 +33,12 @@ function RouteComponent() {
   }
 
   // Show error state
-  if (error) {
+  if (errorMessage) {
     return (
       <div className="flex-1 p-2 bg-gray-50 rounded">
         <div className="bg-red-50 border border-red-200 rounded-md p-4">
           <div className="text-red-800 font-medium">Error checking agent</div>
-          <div className="text-red-600 text-sm mt-1">{error}</div>
+          <div className="text-red-600 text-sm mt-1">{errorMessage}</div>
         </div>
       </div>
     );
