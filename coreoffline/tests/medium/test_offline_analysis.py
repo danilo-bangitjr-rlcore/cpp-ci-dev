@@ -13,7 +13,7 @@ from lib_agent.buffer.datatypes import DataMode
 
 from coreoffline.config import OfflineMainConfig
 from coreoffline.data_analysis.data_report import ReportConfig, generate_report
-from coreoffline.data_analysis.offline_analysis import StageDataCapture
+from coreoffline.data_analysis.create_data_report import StageDataCapture
 
 
 @pytest.fixture
