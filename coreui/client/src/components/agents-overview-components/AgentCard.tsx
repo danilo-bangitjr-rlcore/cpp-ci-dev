@@ -64,8 +64,8 @@ const AgentCard: React.FC<AgentCardProps> = ({
         </div>
         <div className="flex justify-center">
           <Link
-            to="/agents/$agent-name"
-            params={{ 'agent-name': agent.agentName }}
+            to="/agents/$config-name"
+            params={{ 'config-name': agent.configName }}
             className="bg-gray-500 text-white px-16 py-1 mt-4 rounded hover:bg-gray-600"
           >
             Details

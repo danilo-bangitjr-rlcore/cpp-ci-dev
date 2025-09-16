@@ -1,10 +1,10 @@
 import { Link } from '@tanstack/react-router';
 
 interface AgentNotFoundProps {
-  agentName: string;
+  configName: string;
 }
 
-export function AgentNotFound({ agentName }: AgentNotFoundProps) {
+export function AgentNotFound({ configName }: AgentNotFoundProps) {
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px] bg-white rounded-lg shadow-md p-8">
       <div className="text-center">
@@ -15,7 +15,7 @@ export function AgentNotFound({ agentName }: AgentNotFoundProps) {
         <p className="text-gray-600 mb-6">
           The agent{' '}
           <span className="font-mono bg-gray-100 px-2 py-1 rounded">
-            {agentName}
+            {configName}
           </span>{' '}
           could not be found.
         </p>
