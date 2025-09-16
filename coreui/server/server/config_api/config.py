@@ -35,7 +35,7 @@ def _load_config_data(config_name: str, subfolder: ConfigSubfolder = ConfigSubfo
     if not config_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Config file '{config_name}.yml' not found in '{subfolder}'",
+            detail=f"Config file '{config_name}.yml' not found in '{subfolder}/'",
         )
 
     with open(config_path, encoding='utf-8') as f:
@@ -57,6 +57,24 @@ def _find_tag_index(tags: list[dict], tag_name: str) -> int:
         detail=f"Tag '{tag_name}' not found",
     )
 
+def _get_nested_value(config_dict: dict, key_path: str) -> Any:
+    """Get a nested value from a dictionary using dot-separated keys, supporting lists."""
+    keys = key_path.split('.')
+    current = config_dict
+    for key in keys:
+        if isinstance(current, dict):
+            current = current.get(key)
+        elif isinstance(current, list) and key.isdigit():
+            index = int(key)
+            if 0 <= index < len(current):
+                current = current[index]
+            else:
+                return None
+        else:
+            return None
+        if current is None:
+            return None
+    return current
 
 def _handle_exception(e: Exception) -> JSONResponse:
     if isinstance(e, HTTPException):
@@ -89,6 +107,14 @@ async def get_tag(config_name: str, tag_name: str, subfolder: ConfigSubfolder = 
 async def get_config(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
     config_dict = _load_config_data(config_name, subfolder)
     return JSONResponse(content={"config": config_dict}, status_code=status.HTTP_200_OK)
+
+@handle_exceptions
+async def get_config_field(
+    config_name: str, field: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+) -> JSONResponse:
+    config_dict = _load_config_data(config_name, subfolder)
+    value = _get_nested_value(config_dict, field)
+    return JSONResponse(content={field: value}, status_code=status.HTTP_200_OK)
 
 @handle_exceptions
 async def add_tag(

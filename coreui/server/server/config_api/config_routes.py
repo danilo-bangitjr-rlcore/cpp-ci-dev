@@ -12,6 +12,7 @@ from server.config_api.config import (
     delete_tag,
     get_all_configs,
     get_config,
+    get_config_field,
     get_tag,
     get_tags,
     update_tag,
@@ -37,6 +38,9 @@ class TagDetailResponse(BaseModel):
 
 class ConfigResponse(BaseModel):
     config: dict[str, Any]
+
+class AgentNameResponse(BaseModel):
+    agent_name: str
 
 class ConfigsResponse(BaseModel):
     configs: list[str]
@@ -323,6 +327,29 @@ async def get_all_raw_configs():
 )
 async def get_raw_config(config_name: str):
     return await get_config(config_name, ConfigSubfolder.RAW)
+
+@config_router.get(
+    "/raw/{config_name}/agent_name",
+    response_model=AgentNameResponse,
+    responses={
+        200: {
+            "description": "The agent_name field from the raw configuration.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "agent_name": "main_backwash",
+                    },
+                },
+            },
+        },
+        404: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Get Raw Config Agent Name",
+    description="Retrieve the agent_name field from the raw configuration.",
+)
+async def get_raw_config_agent_name(config_name: str):
+    return await get_config_field(config_name, "agent_name", ConfigSubfolder.RAW)
 
 @config_router.get(
     "/raw/{config_name}/tags",
