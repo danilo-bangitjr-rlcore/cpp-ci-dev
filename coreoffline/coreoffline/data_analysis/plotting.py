@@ -1,9 +1,13 @@
 from pathlib import Path
 
+from corerl.data_pipeline.datatypes import StageCode
 import jax
 import matplotlib.pyplot as plt
 import pandas as pd
 from corerl.eval.raw_data import length_of_chunks
+
+from coreoffline.config import ReportConfig
+from coreoffline.data_analysis.data_report import get_tags, log
 
 
 def plot_sensor_data(
@@ -150,3 +154,60 @@ def make_actor_critic_plots(
 
     fig.savefig(save_path / f"offline_iter_{step}_state_{eval_state_num}_actor_critic_plot.png")
     plt.close(fig)
+
+
+def make_distribution_plots(
+        cfg: ReportConfig,
+        data: list[pd.DataFrame],
+        stages: list[StageCode],
+        output_path: Path,
+    ) -> None:
+
+    if not cfg.hist_enabled:
+        return
+
+    tags = get_tags(data)
+
+    show_hist_mean = cfg.hist_show_mean
+    percentiles = cfg.hist_percentiles
+    num_bins = cfg.hist_num_bins
+
+    log.info('Generating Distribution Plots...')
+    for tag in tags:
+        for stage_i, df in enumerate(data):
+            stage_name = stages[stage_i].name
+            tag_stage_output_path = output_path / tag / stage_name
+            tag_stage_output_path.mkdir(parents=True, exist_ok=True)
+            plot_sensor_data(
+                df,
+                tag,
+                save_path=tag_stage_output_path / f'{tag}_sensor_data_{stage_name}.png',
+                title=f'{tag} Sensor Data - {stage_name}',
+            )
+            plot_sensor_histogram(
+                df,
+                tag,
+                save_path=tag_stage_output_path / f'{tag}_sensor_histogram_{stage_name}.png',
+                title=f'{tag} Histogram - {stage_name}',
+                show_mean=show_hist_mean,
+                percentiles=percentiles,
+                bins=num_bins,
+            )
+            plot_nan_histogram(
+                df,
+                tag,
+                save_path=tag_stage_output_path / f'{tag}_nan_histogram_{stage_name}.png',
+                title=f'{tag} NaN Histogram - {stage_name}',
+                show_mean=show_hist_mean,
+                percentiles=percentiles,
+                bins=num_bins,
+            )
+            plot_chunk_histogram(
+                df,
+                tag,
+                save_path=tag_stage_output_path / f'{tag}_chunk_histogram_{stage_name}.png',
+                title=f'{tag} Chunk Histogram - {stage_name}',
+                show_mean=show_hist_mean,
+                percentiles=percentiles,
+                bins=num_bins,
+            )
