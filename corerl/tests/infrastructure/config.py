@@ -8,7 +8,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.db.data_reader import TagDBConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalDBConfig
-from corerl.eval.metrics import MetricsDBConfig
+from corerl.eval.metrics.base import MetricsDBConfig
 
 
 @pytest.fixture

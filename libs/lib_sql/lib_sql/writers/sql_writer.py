@@ -20,3 +20,6 @@ class SqlWriter(Protocol[T_contra]):
 
     def close(self) -> None:
         ...
+
+    def flush(self) -> None:
+        ...

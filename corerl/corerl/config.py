@@ -15,7 +15,7 @@ from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
-from corerl.eval.metrics import MetricsDBConfig
+from corerl.eval.metrics.base import MetricsDBConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig
 

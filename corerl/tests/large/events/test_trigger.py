@@ -9,7 +9,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals import EvalsTable
-from corerl.eval.metrics import MetricsTable
+from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
@@ -39,7 +39,7 @@ def test_no_trigger(
 
     app_state = AppState(
         cfg=main_cfg,
-        metrics=MetricsTable(main_cfg.metrics),
+        metrics=create_metrics_writer(main_cfg.metrics),
         evals=EvalsTable(main_cfg.evals),
         event_bus=event_bus,
     )
@@ -78,7 +78,7 @@ def test_trigger(
 
     app_state = AppState(
         cfg=main_cfg,
-        metrics=MetricsTable(main_cfg.metrics),
+        metrics=create_metrics_writer(main_cfg.metrics),
         evals=EvalsTable(main_cfg.evals),
         event_bus=event_bus,
     )
