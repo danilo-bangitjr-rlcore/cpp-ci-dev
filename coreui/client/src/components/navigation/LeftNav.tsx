@@ -3,7 +3,7 @@ import { Link } from '@tanstack/react-router';
 type NavItem = {
   label: string;
   to?: string;
-  params?: Record<string, any>; // optional route params
+  params?: Record<string, string | number>; 
   onClick?: () => void;
   icon?: React.ReactNode;
   children?: NavItem[]; // for grouped nested links like agent subpages

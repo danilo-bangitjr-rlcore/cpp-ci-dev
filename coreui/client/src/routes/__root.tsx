@@ -1,4 +1,4 @@
-import { createRootRoute, Outlet, useMatchRoute } from '@tanstack/react-router';
+import { createRootRoute, Outlet, useMatch } from '@tanstack/react-router';
 import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
@@ -31,14 +31,8 @@ const headerItems = [
 ];
 
 function useAgentContextNav() {
-  const matchRoute = useMatchRoute();
-  const dynamicMatch = matchRoute({
-    to: '/agents/$agent-name',
-    fuzzy: true,
-    pending: false,
-  }) as any;
-  const agentName: string | undefined =
-    dynamicMatch?.['agent-name'] || dynamicMatch?.params?.['agent-name'];
+  const match = useMatch({ from: '/agents/$agent-name', shouldThrow: false });
+  const agentName = match?.params?.['agent-name'];
   if (!agentName) return [];
   return [
     {
