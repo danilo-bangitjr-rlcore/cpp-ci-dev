@@ -1,2 +1,2 @@
 export { AgentNotFound } from './AgentNotFound';
-export { useConfigExists } from './useConfigExists';
+export { useConfigExists } from '../../utils/useConfigExists';

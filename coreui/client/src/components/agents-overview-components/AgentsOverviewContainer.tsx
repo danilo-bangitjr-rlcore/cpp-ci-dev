@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import AgentCard from './AgentCard';
 import AddAgentCard from './AddAgentCard';
-import { useDeleteAgentMutation } from './useAgentMutations';
-import { useConfigListQuery, useAgentNamesQueries } from './useAgentQueries';
+import { useDeleteAgentMutation } from '../../utils/useAgentMutations';
+import {
+  useConfigListQuery,
+  useAgentNamesQueries,
+} from '../../utils/useAgentQueries';
 
 export interface Agent {
   agentName: string;

@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { API_ENDPOINTS, get } from '../../utils/api';
+import { API_ENDPOINTS, get } from './api';
 
 export function useConfigExists(configName: string) {
   return useQuery({

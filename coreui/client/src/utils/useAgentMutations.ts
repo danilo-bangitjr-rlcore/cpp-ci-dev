@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS, del, post } from '../../utils/api';
+import { API_ENDPOINTS, del, post } from './api';
 
 // Delete config mutation
 const deleteConfig = async (configName: string): Promise<void> => {

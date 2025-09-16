@@ -3,7 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 import { HomeIcon } from '../components/icons/HomeIcon';
-import { useAgentNameQuery } from '../components/agents-overview-components/useAgentQueries';
+import { useAgentNameQuery } from '../utils/useAgentQueries';
 
 const baseNavItems = [
   {

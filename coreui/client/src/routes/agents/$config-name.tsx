@@ -8,7 +8,7 @@ import {
   AgentNotFound,
   useConfigExists,
 } from '../../components/agent-components';
-import { useAgentNameQuery } from '../../components/agents-overview-components/useAgentQueries';
+import { useAgentNameQuery } from '../../utils/useAgentQueries';
 
 export const Route = createFileRoute('/agents/$config-name')({
   component: RouteComponent,
