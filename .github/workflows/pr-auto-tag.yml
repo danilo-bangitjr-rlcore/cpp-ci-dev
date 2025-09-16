@@ -1,0 +1,154 @@
+name: PR Auto-Tagging
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-auto-tag-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get changed files
+        id: changed-files
+        uses: tj-actions/changed-files@v40
+        with:
+          files_separator: ' '
+
+      - name: Detect languages and services
+        id: detect-tags
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const changedFiles = '${{ steps.changed-files.outputs.all_changed_files }}';
+            const files = changedFiles.split(' ').filter(f => f.trim() !== '');
+
+            console.log('Changed files:', files);
+
+            // Language detection based on file extensions
+            const languages = new Set();
+            const languageMap = {
+              '.py': 'python',
+              '.ts': 'typescript',
+              '.tsx': 'typescript',
+              '.js': 'javascript',
+              '.jsx': 'javascript',
+              '.yaml': 'yaml',
+              '.yml': 'yaml',
+              '.json': 'json',
+              '.md': 'markdown',
+              '.toml': 'toml',
+              '.dockerfile': 'docker',
+              '.sh': 'shell',
+              '.rs': 'rust',
+              '.go': 'go',
+              '.f': 'fortran',
+              '.f90': 'fortran',
+              '.f95': 'fortran',
+              '.f03': 'fortran',
+              '.f08': 'fortran',
+              '.for': 'fortran'
+            };
+
+            // Service/library detection using rule-based inference
+            const services = new Set();
+
+            function inferServiceName(filePath) {
+              // Get the first directory component
+              const parts = filePath.split('/');
+              if (parts.length === 0) return null;
+
+              let firstDir = parts[0];
+
+              // Remove leading dots for hidden directories
+              if (firstDir.startsWith('.')) {
+                firstDir = firstDir.substring(1);
+              }
+
+              // Handle libs/ prefix - keep the full lib name
+              if (firstDir === 'libs' && parts.length > 1) {
+                return parts[1]; // Keep full name like 'lib_agent', 'lib_utils'
+              }
+
+              // Special case mappings for readability
+              const specialCases = {
+                'github': 'github-infra'
+              };
+
+              return specialCases[firstDir] || firstDir;
+            }
+
+            files.forEach(file => {
+              // Detect language
+              const ext = file.substring(file.lastIndexOf('.'));
+              if (languageMap[ext]) {
+                languages.add(languageMap[ext]);
+              }
+
+              // Detect Dockerfile specifically
+              if (file.includes('Dockerfile')) {
+                languages.add('docker');
+              }
+
+              // Detect service/library using rule-based inference
+              const serviceName = inferServiceName(file);
+              if (serviceName) {
+                services.add(serviceName);
+              }
+            });
+
+            const languageTags = Array.from(languages).map(lang => `lang:${lang}`);
+            const serviceTags = Array.from(services).map(svc => `service:${svc}`);
+            const allTags = [...languageTags, ...serviceTags];
+
+            console.log('Detected languages:', languageTags);
+            console.log('Detected services:', serviceTags);
+            console.log('All tags to apply:', allTags);
+
+            core.setOutput('tags', JSON.stringify(allTags));
+
+            return {
+              languages: languageTags,
+              services: serviceTags,
+              all: allTags
+            };
+
+      - name: Apply labels
+        if: steps.detect-tags.outputs.tags != '[]'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const tags = JSON.parse('${{ steps.detect-tags.outputs.tags }}');
+
+            if (tags.length === 0) {
+              console.log('No tags to apply');
+              return;
+            }
+
+            console.log('Applying tags:', tags);
+
+            try {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: tags
+              });
+
+              console.log('Successfully applied labels:', tags);
+            } catch (error) {
+              console.error('Error applying labels:', error);
+              // Don't fail the workflow if labeling fails
+              core.warning(`Failed to apply some labels: ${error.message}`);
+            }
