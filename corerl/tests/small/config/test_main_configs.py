@@ -54,6 +54,8 @@ def walk_no_missing(part: object, key_path: str = ""):
         ("../config/bsm1"),
         ("../config/dep_mountain_car_continuous"),
         ("../projects/epcor_scrubber/configs/epcor_scrubber"),
+        ("../projects/drayton_valley/configs/main-backwash.yaml"),
+        ("../projects/drayton_valley/configs/main-coag.yaml"),
         *get_bsuite_configs(),
     ],
 )
