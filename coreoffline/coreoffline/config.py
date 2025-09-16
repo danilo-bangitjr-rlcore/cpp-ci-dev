@@ -73,5 +73,5 @@ class ReportConfig:
 
 @config()
 class OfflineMainConfig(MainConfig):
-    offline: OfflineTrainingConfig = Field(default_factory=OfflineTrainingConfig)
+    offline_training: OfflineTrainingConfig = Field(default_factory=OfflineTrainingConfig)
     report: ReportConfig = Field(default_factory=ReportConfig)

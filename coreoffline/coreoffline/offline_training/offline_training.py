@@ -50,11 +50,11 @@ def main(cfg: OfflineMainConfig):
     agent = GreedyAC(cfg.agent, app_state, column_desc)
 
     # Offline training
-    assert cfg.offline.offline_steps > 0
+    assert cfg.offline_training.offline_steps > 0
     pipeline_out, _ = load_offline_transitions(app_state, pipeline)
     assert pipeline_out is not None
     agent.update_buffer(pipeline_out)
-    offline_rl_from_buffer(agent, cfg.offline.offline_steps)
+    offline_rl_from_buffer(agent, cfg.offline_training.offline_steps)
     get_all_offline_recommendations(app_state, agent, pipeline)
 
     app_state.metrics.close()

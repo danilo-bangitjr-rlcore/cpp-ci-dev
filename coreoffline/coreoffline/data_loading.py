@@ -65,7 +65,7 @@ def load_data_chunks(
     start_time, end_time = get_time_range(data_reader, start_time, end_time)
     # Use config default if no chunk_duration provided
     if chunk_duration is None:
-        chunk_duration = cfg.offline.pipeline_batch_duration
+        chunk_duration = cfg.offline_training.pipeline_batch_duration
 
     tag_names = [tag_cfg.name for tag_cfg in get_scada_tags(cfg.pipeline.tags)]
     obs_period = cfg.interaction.obs_period
@@ -137,7 +137,7 @@ def load_offline_transitions(
     """
     assert isinstance(app_state.cfg, OfflineMainConfig)
     # Get time range from config
-    offline_cfg = app_state.cfg.offline
+    offline_cfg = app_state.cfg.offline_training
 
     # Get configuration for data loading
     exclude_periods = offline_cfg.eval_periods if offline_cfg.remove_eval_from_train else None

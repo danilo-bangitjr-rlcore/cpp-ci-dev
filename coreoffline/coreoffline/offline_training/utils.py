@@ -27,11 +27,11 @@ def get_all_offline_recommendations(
     """
 
     assert isinstance(app_state.cfg, OfflineMainConfig)
-    if app_state.cfg.offline.eval_periods is None:
+    if app_state.cfg.offline_training.eval_periods is None:
         log.info("No evaluation phase.")
         return
 
-    for eval_period in app_state.cfg.offline.eval_periods:
+    for eval_period in app_state.cfg.offline_training.eval_periods:
         start = eval_period[0]
         end = eval_period[1]
         log.info(f"Starting evaluation phase: {start} to {end}")
@@ -84,7 +84,7 @@ def get_offline_recommendations(
             log.warning("No transitions found for eval chunk")
             continue
 
-        if app_state.cfg.offline.update_agent_during_offline_recs:
+        if app_state.cfg.offline_training.update_agent_during_offline_recs:
             agent.update_buffer(chunk_pr)
             losses = agent.update()
             log.info(f"Agent updated with num transitions={len(chunk_pr.transitions)}, final q loss={losses[-1]}")

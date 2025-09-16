@@ -52,7 +52,7 @@ def data_writer(offline_cfg: OfflineMainConfig, test_db_config: TagDBConfig):
 
     # Generate timestamps
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
-    offline_cfg.offline.offline_start_time = start_time
+    offline_cfg.offline_training.offline_start_time = start_time
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
@@ -147,7 +147,7 @@ def test_offline_training(
 
     agent.update_buffer(offline_pipeout)
 
-    critic_losses = offline_rl_from_buffer(agent, offline_cfg.offline.offline_steps)
+    critic_losses = offline_rl_from_buffer(agent, offline_cfg.offline_training.offline_steps)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
@@ -202,8 +202,8 @@ def test_offline_start_end(offline_cfg: OfflineMainConfig, dummy_app_state: AppS
     first_step = start_time + obs_period
 
     # Produce offline transitions
-    offline_cfg.offline.offline_start_time = first_step
-    offline_cfg.offline.offline_end_time = first_step + 2 * obs_period
+    offline_cfg.offline_training.offline_start_time = first_step
+    offline_cfg.offline_training.offline_end_time = first_step + 2 * obs_period
 
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
@@ -213,15 +213,15 @@ def test_offline_start_end(offline_cfg: OfflineMainConfig, dummy_app_state: AppS
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
     assert isinstance(offline_pipeout, PipelineReturn)
     df = offline_pipeout.df
-    assert len(df) == (offline_cfg.offline.offline_end_time -
-                        offline_cfg.offline.offline_start_time) / obs_period
+    assert len(df) == (offline_cfg.offline_training.offline_end_time -
+                        offline_cfg.offline_training.offline_start_time) / obs_period
 
 
 def test_test_split(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, data_writer: DataWriter):
     """
     Tests ability to split offline transitions into a train and test set.
     """
-    offline_cfg.offline.test_split = 0.2
+    offline_cfg.offline_training.test_split = 0.2
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     offline_pipeout, test_transitions = load_offline_transitions(dummy_app_state, pipeline)

@@ -86,11 +86,11 @@ def main(cfg: OfflineMainConfig):
     # Single pipeline execution through all stages
     log.info("Running pipeline with stage capture hooks...")
 
-    exclude_periods = cfg.offline.eval_periods if cfg.offline.remove_eval_from_train else None
+    exclude_periods = cfg.offline_training.eval_periods if cfg.offline_training.remove_eval_from_train else None
     data_chunks = load_data_chunks(
         cfg=app_state.cfg,
-        start_time=cfg.offline.offline_start_time,
-        end_time=cfg.offline.offline_end_time,
+        start_time=cfg.offline_training.offline_start_time,
+        end_time=cfg.offline_training.offline_end_time,
         exclude_periods=exclude_periods,
     )
 
