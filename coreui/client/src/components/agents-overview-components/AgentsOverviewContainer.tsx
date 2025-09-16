@@ -2,7 +2,7 @@ import { useState } from 'react';
 import AgentCard from './AgentCard';
 import AddAgentCard from './AddAgentCard';
 import { useDeleteAgentMutation } from './useAgentMutations';
-import { useConfigListQuery, useRawConfigsQueries } from './useAgentQueries';
+import { useConfigListQuery, useAgentNamesQueries } from './useAgentQueries';
 
 export interface Agent {
   agentName: string;
@@ -23,15 +23,15 @@ const AgentsOverviewContainer: React.FC = () => {
     isLoading: isLoadingConfigList,
     error: configListError,
   } = useConfigListQuery();
-  const rawConfigQueries = useRawConfigsQueries(configNames);
+  const agentNamesQueries = useAgentNamesQueries(configNames);
 
   const isLoading =
-    isLoadingConfigList || rawConfigQueries.some((q) => q.isLoading);
-  const hasError = !!configListError || rawConfigQueries.some((q) => q.error);
+    isLoadingConfigList || agentNamesQueries.some((q) => q.isLoading);
+  const hasError = !!configListError || agentNamesQueries.some((q) => q.error);
 
   const agents: Agent[] = configNames.map((name, idx) => {
-    const query = rawConfigQueries[idx];
-    const agentName = (query?.data as any)?.agent_name || name;
+    const query = agentNamesQueries[idx];
+    const agentName = query?.data ?? name;
     return {
       agentName,
       configName: name,

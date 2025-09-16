@@ -22,6 +22,15 @@ const fetchRawConfig = async (
   return data.config;
 };
 
+const fetchAgentName = async (configName: string): Promise<string> => {
+  const response = await get(API_ENDPOINTS.configs.agent_name(configName));
+  if (!response.ok) {
+    throw new Error(`Failed to fetch agent name for ${configName}`);
+  }
+  const data: { agent_name: string } = await response.json();
+  return data.agent_name;
+};
+
 // Hook for fetching config list
 export const useConfigListQuery = () => {
   return useQuery({
@@ -37,6 +46,18 @@ export const useRawConfigsQueries = (configNames?: string[]) => {
     queries: names.map((name) => ({
       queryKey: ['rawConfig', name],
       queryFn: () => fetchRawConfig(name),
+      enabled: names.length > 0,
+    })),
+  });
+};
+
+// Hook for fetching all agent names
+export const useAgentNamesQueries = (configNames?: string[]) => {
+  const names = configNames ?? [];
+  return useQueries({
+    queries: names.map((name) => ({
+      queryKey: ['agentName', name],
+      queryFn: () => fetchAgentName(name),
       enabled: names.length > 0,
     })),
   });

@@ -14,6 +14,8 @@ export const API_ENDPOINTS = {
     list_clean: `${API_BASE_URL}/v1/config/clean/list`,
     clean: (configName: string) => `${API_BASE_URL}/configs/${configName}`,
     raw: (configName: string) => `${API_BASE_URL}/v1/config/raw/${configName}`,
+    agent_name: (configName: string) =>
+      `${API_BASE_URL}/v1/config/raw/${configName}/agent_name`,
     mutate_raw_config: `${API_BASE_URL}/v1/config/raw/configs`,
     // TEMPORARY PLACEHOLDER FOR TAGS -- HARD CODED CONFIG NAME
     tags: `${API_BASE_URL}/v1/config/main_backwash/tags`,
