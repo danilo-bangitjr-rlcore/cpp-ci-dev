@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 import { HomeIcon } from '../components/icons/HomeIcon';
+import { useAgentNameQuery } from '../components/agents-overview-components/useAgentQueries';
 
 const baseNavItems = [
   {
@@ -33,10 +34,11 @@ const headerItems = [
 function useAgentContextNav() {
   const match = useMatch({ from: '/agents/$config-name', shouldThrow: false });
   const configName = match?.params?.['config-name'];
+  const { data: agentName } = useAgentNameQuery(configName);
   if (!configName) return [];
   return [
     {
-      label: configName,
+      label: agentName || configName,
       to: '/agents/$config-name',
       params: { 'config-name': configName },
       children: [

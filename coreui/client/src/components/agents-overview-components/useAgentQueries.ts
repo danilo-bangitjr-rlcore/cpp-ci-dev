@@ -62,3 +62,12 @@ export const useAgentNamesQueries = (configNames?: string[]) => {
     })),
   });
 };
+
+// Hook for fetching a single agent name
+export const useAgentNameQuery = (configName?: string) => {
+  return useQuery({
+    queryKey: ['agentName', configName],
+    queryFn: () => fetchAgentName(configName!),
+    enabled: !!configName,
+  });
+};

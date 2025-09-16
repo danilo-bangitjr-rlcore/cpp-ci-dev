@@ -8,6 +8,7 @@ import {
   AgentNotFound,
   useConfigExists,
 } from '../../components/agent-components';
+import { useAgentNameQuery } from '../../components/agents-overview-components/useAgentQueries';
 
 export const Route = createFileRoute('/agents/$config-name')({
   component: RouteComponent,
@@ -17,6 +18,7 @@ function RouteComponent() {
   const params = useParams({ from: '/agents/$config-name' });
   const configName = params['config-name'];
   const { data, isLoading, error } = useConfigExists(configName);
+  const { data: agentName } = useAgentNameQuery(configName);
   const exists = data ?? false;
   const errorMessage = error?.message ?? null;
 
@@ -60,7 +62,7 @@ function RouteComponent() {
         params={{ 'config-name': configName }}
         className="block text-3xl font-bold text-gray-800 hover:text-blue-600 transition-colors duration-200 mb-6"
       >
-        {configName}
+        {agentName || configName}
       </Link>
       <Outlet />
     </div>
