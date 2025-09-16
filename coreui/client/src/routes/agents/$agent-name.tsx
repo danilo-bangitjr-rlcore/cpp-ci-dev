@@ -17,12 +17,11 @@ function RouteComponent() {
   const params = useParams({ from: '/agents/$agent-name' });
   const agentName = params['agent-name'];
   const { data, isLoading, error } = useAgentExists(agentName);
-  const exists = isLoading ? null : (data ?? false);
-  const loading = isLoading;
+  const exists = data ?? false;
   const errorMessage = error?.message ?? null;
 
   // Show loading state
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex-1 p-2 bg-gray-50 rounded">
         <div className="flex items-center justify-center min-h-[200px]">
