@@ -4,8 +4,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NewType
 
-from coredinator.service.protocols import ServiceID, ServiceLike, ServiceState
+from coredinator.service.protocols import ServiceID, ServiceState
 from coredinator.service.service import ServiceStatus
+from coredinator.service.service_manager import ServiceManager
 from coredinator.services import CoreIOService, CoreRLService
 
 AgentID = NewType("AgentID", str)
@@ -19,20 +20,35 @@ class AgentStatus:
     service_statuses: dict[str, ServiceStatus] = field(default_factory=dict)
 
 
-class Agent(ServiceLike):
-    def __init__(self, id: AgentID, config_path: Path, base_path: Path):
+class Agent:
+    def __init__(self, id: AgentID, config_path: Path, base_path: Path, service_manager: ServiceManager):
         self._id = id
         self._config_path = config_path
-        self._corerl_service = CoreRLService(
-            id=ServiceID(f"{id}-corerl"),
+        self._service_manager = service_manager
+
+        # Create service IDs
+        self._corerl_service_id = ServiceID(f"{id}-corerl")
+        self._coreio_service_id = ServiceID(f"{id}-coreio")
+
+        # Create services
+        corerl_service = CoreRLService(
+            id=self._corerl_service_id,
             config_path=config_path,
             base_path=base_path,
         )
-        self._coreio_service = CoreIOService(
-            id=ServiceID(f"{id}-coreio"),
+        coreio_service = CoreIOService(
+            id=self._coreio_service_id,
             config_path=config_path,
             base_path=base_path,
         )
+
+        # Register services with the manager
+        self._service_manager.register_service(corerl_service)
+        self._service_manager.register_service(coreio_service)
+
+        # Cache service objects since they never change reference
+        self._corerl_service = corerl_service
+        self._coreio_service = coreio_service
 
     @property
     def id(self):
@@ -46,14 +62,10 @@ class Agent(ServiceLike):
         self._corerl_service.stop(grace_seconds)
         self._coreio_service.stop(grace_seconds)
 
-    def restart(self):
-        self.stop()
-        self.start()
 
     def status(self):
         corerl_status = self._corerl_service.status()
         coreio_status = self._coreio_service.status()
-
         statuses = [corerl_status, coreio_status]
         state = self._get_joint_status([s.state for s in statuses])
 
@@ -89,13 +101,7 @@ class Agent(ServiceLike):
         # Each service returns exactly one element (int or None)
         return [corerl_pids[0], coreio_pids[0]]
 
-    def reattach_process(self, pid: int) -> bool:
-        """Reattach to an existing process.
 
-        This method is not implemented for Agent as it manages multiple services.
-        Use reattach_processes instead.
-        """
-        raise NotImplementedError("Use reattach_processes for Agent")
 
     def reattach_processes(self, corerl_pid: int | None, coreio_pid: int | None) -> tuple[bool, bool]:
         """Reattach to existing CoreRL and CoreIO processes.

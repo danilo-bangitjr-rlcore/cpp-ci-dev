@@ -4,6 +4,7 @@ from pathlib import Path
 import pytest
 
 from coredinator.agent.agent_manager import AgentManager
+from coredinator.service.service_manager import ServiceManager
 
 
 class TestAgentManagerPersistenceEdgeCases:
@@ -32,7 +33,7 @@ class TestAgentManagerPersistenceEdgeCases:
         # AgentManager should fail on startup
         # TODO: consider gracefully marking agent as failed in this case
         try:
-            AgentManager(base_path=tmp_path)
+            AgentManager(base_path=tmp_path, service_manager=ServiceManager())
         except Exception as e:
             # Should be an informative error about missing config
             assert "config" in str(e).lower() or "file" in str(e).lower()
@@ -45,7 +46,7 @@ class TestAgentManagerPersistenceEdgeCases:
         readonly_dir.chmod(0o444)  # Read-only
 
         try:
-            AgentManager(base_path=readonly_dir)
+            AgentManager(base_path=readonly_dir, service_manager=ServiceManager())
         except Exception as e:
             # Should be a clear error about permissions or database creation
             assert any(word in str(e).lower() for word in ["permission", "database", "create", "write"])
@@ -66,7 +67,7 @@ class TestAgentManagerPersistenceEdgeCases:
         config = tmp_path / "test.yaml"
         config.write_text("dummy: true\n")
 
-        manager = AgentManager(base_path=dist_with_fake_executable)
+        manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
 
         # Start the same agent multiple times
         agent_id1 = manager.start_agent(config)

@@ -14,19 +14,12 @@ from urllib.request import urlopen
 import psutil
 from lib_utils.errors import fail_gracefully
 
-from coredinator.service.protocols import ServiceID, ServiceState
+from coredinator.service.protocols import ServiceID, ServiceState, ServiceStatus
 
 
 class ServiceMode(StrEnum):
     STARTED = "started"
     STOPPED = "stopped"
-
-
-@dataclass(frozen=True, slots=True)
-class ServiceStatus:
-    id: ServiceID
-    state: ServiceState
-    config_path: Path | None
 
 
 
