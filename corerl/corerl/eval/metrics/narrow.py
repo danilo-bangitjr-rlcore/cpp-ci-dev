@@ -188,15 +188,27 @@ class NarrowMetricsTable:
         metric: str,
         step_start: int | None,
         step_end: int | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
-        stmt = f"""
-        SELECT
-            agent_step,
-            value
-        FROM {self.cfg.table_name}
-        WHERE
-            metric='{metric}'
-        """
+        if prefix_match:
+            stmt = f"""
+            SELECT
+                agent_step,
+                metric,
+                value
+            FROM {self.cfg.table_name}
+            WHERE
+                metric LIKE '{metric}%'
+            """
+        else:
+            stmt = f"""
+            SELECT
+                agent_step,
+                value
+            FROM {self.cfg.table_name}
+            WHERE
+                metric='{metric}'
+            """
 
         if step_start is not None:
             stmt += f" AND agent_step>='{step_start}'"
@@ -208,6 +220,19 @@ class NarrowMetricsTable:
 
         df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
+
+        if prefix_match:
+            # Pivot the data to create columns for each metric
+            pivot_df = df.pivot_table(
+                index="agent_step",
+                columns="metric",
+                values="value",
+                aggfunc="first",
+            ).reset_index()
+            # Flatten column names
+            pivot_df.columns.name = None
+            return pivot_df
+
         df[metric] = df["value"].astype(float)
         df.drop(columns=["value"], inplace=True)
         return df
