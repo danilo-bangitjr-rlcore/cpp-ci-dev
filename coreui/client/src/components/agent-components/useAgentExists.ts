@@ -1,54 +1,18 @@
-import { useEffect, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from '../../utils/api';
 
-interface UseAgentExistsResult {
-  exists: boolean | null; // null means loading
-  loading: boolean;
-  error: string | null;
-}
-
-export function useAgentExists(agentName: string): UseAgentExistsResult {
-  const [exists, setExists] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!agentName) {
-      setExists(false);
-      setLoading(false);
-      return;
-    }
-
-    const checkAgentExists = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const response = await get(API_ENDPOINTS.configs.raw(agentName));
-
-        if (response.status === 404) {
-          setExists(false);
-        } else if (response.ok) {
-          setExists(true);
-        } else {
-          // Other error status codes
-          setError(
-            `Error checking agent: ${response.status} ${response.statusText}`
-          );
-          setExists(false);
-        }
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : 'Failed to check agent existence'
-        );
-        setExists(false);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAgentExists();
-  }, [agentName]);
-
-  return { exists, loading, error };
+export function useAgentExists(agentName: string) {
+  return useQuery({
+    queryKey: ['agent-exists', agentName],
+    queryFn: async () => {
+      if (!agentName) return false;
+      const response = await get(API_ENDPOINTS.configs.raw(agentName));
+      if (response.status === 404) return false;
+      if (response.ok) return true;
+      throw new Error(
+        `Error checking agent: ${response.status} ${response.statusText}`
+      );
+    },
+    enabled: !!agentName,
+  });
 }
