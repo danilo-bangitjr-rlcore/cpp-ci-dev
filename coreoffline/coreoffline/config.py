@@ -64,6 +64,12 @@ class ReportConfig:
     # for goal violations
     violation_period_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
 
+    # for violation plots
+    violation_plot_enabled: bool = True
+    violation_plot_show_mean: bool = True
+    violation_plot_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
+    violation_plot_num_bins: int = 30
+
     @computed('contiguous_time_threshold')
     @classmethod
     def _contiguous_time_threshold(cls, cfg: 'OfflineMainConfig'):

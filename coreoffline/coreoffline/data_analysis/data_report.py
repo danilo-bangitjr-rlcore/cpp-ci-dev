@@ -16,6 +16,7 @@ from tabulate import tabulate
 from coreoffline.config import ReportConfig
 from coreoffline.data_analysis.plotting import (
     make_distribution_plots,
+    plot_violation_distribution,
 )
 from coreoffline.data_analysis.utils import get_tags
 
@@ -553,6 +554,100 @@ def make_zone_violations_table(
     (output_path / 'zone_violation_statistics.txt').write_text(table_str, encoding='utf-8')
 
 
+# ---------------------------------------------------------------------------- #
+#                             Violation Distribution Plots                     #
+# ---------------------------------------------------------------------------- #
+
+def make_violation_plots(
+    cfg: ReportConfig,
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+) -> None:
+    """
+    Generate violation distribution plots for each tag.
+    """
+
+    if not cfg.violation_plot_enabled:
+        return
+
+    log.info("Generating violation distribution plots...")
+
+    show_mean = cfg.violation_plot_show_mean
+    percentiles = cfg.violation_plot_percentiles
+    num_bins = cfg.violation_plot_num_bins
+
+    def get_violation_data(violation_type: str):
+        """Get violation data for yellow or red violations."""
+        metric_prefix = f'{violation_type}_zone_violation'
+        try:
+            return app_state.metrics.read(
+                metric=metric_prefix,
+                start_time=start_time,
+                end_time=end_time,
+                prefix_match=True,
+            )
+        except Exception as e:
+            log.warning(f"Could not read {metric_prefix} metric: {e}")
+            return pd.DataFrame()
+
+    # Get violation data
+    yellow_df = get_violation_data('yellow')
+    red_df = get_violation_data('red')
+
+    if yellow_df.empty and red_df.empty:
+        log.info("No violation data found, skipping violation plots")
+        return
+
+    # Extract unique tags from column names
+    yellow_tags = set()
+    red_tags = set()
+
+    if not yellow_df.empty:
+        yellow_tags = {
+            col.removeprefix('yellow_zone_violation_')
+            for col in yellow_df.columns
+        }
+
+    if not red_df.empty:
+        red_tags = {
+            col.removeprefix('red_zone_violation_')
+            for col in red_df.columns
+        }
+
+    # Get all unique tags
+    all_tags = yellow_tags.union(red_tags)
+
+    for tag in all_tags:
+        # Create tag-specific output directory
+        tag_output_path = output_path / tag
+        tag_output_path.mkdir(parents=True, exist_ok=True)
+
+        # Get data for this tag
+        yellow_col = f'yellow_zone_violation_{tag}'
+        red_col = f'red_zone_violation_{tag}'
+
+        yellow_violations = (
+            yellow_df[yellow_col] if yellow_col in yellow_df.columns
+            else pd.Series(dtype=float)
+        )
+        red_violations = (
+            red_df[red_col] if red_col in red_df.columns
+            else pd.Series(dtype=float)
+        )
+
+        # Generate the plot
+        plot_violation_distribution(
+            yellow_violations=yellow_violations,
+            red_violations=red_violations,
+            tag=tag,
+            save_path=tag_output_path / f'{tag}_violation_distribution.png',
+            show_mean=show_mean,
+            percentiles=percentiles,
+            bins=num_bins,
+        )
+
 
 def generate_report(
     cfg: ReportConfig,
@@ -586,6 +681,14 @@ def generate_report(
     make_zone_violations_table(
         cfg,
         output_path,
+        app_state,
+        start_time,
+        end_time,
+    )
+
+    make_violation_plots(
+        cfg,
+        output_path / 'plots',
         app_state,
         start_time,
         end_time,

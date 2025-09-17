@@ -214,3 +214,133 @@ def make_distribution_plots(
                 percentiles=percentiles,
                 bins=num_bins,
             )
+
+
+def plot_violation_distribution(
+    yellow_violations: pd.Series,
+    red_violations: pd.Series,
+    tag: str,
+    save_path: Path,
+    show_mean: bool = False,
+    percentiles: list[float] | None = None,
+    bins: int = 30,
+) -> None:
+    """
+    Plots distribution of yellow and red zone violations for a tag using two subplots.
+    """
+    percentiles = percentiles or []
+
+    # Filter out zero violations for the histogram
+    yellow_nonzero = yellow_violations[yellow_violations > 0]
+    red_nonzero = red_violations[red_violations > 0]
+
+    if yellow_nonzero.empty and red_nonzero.empty:
+        return
+
+    # Create subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
+    fig.suptitle(f'{tag} - Zone Violation Distribution', fontsize=14, fontweight='bold')
+
+    # Plot yellow violations
+    if not yellow_nonzero.empty:
+        ax1.hist(
+            yellow_nonzero,
+            bins=bins,
+            alpha=0.7,
+            color='gold',
+            edgecolor='black',
+        )
+        ax1.set_title('Yellow Zone Violations', fontweight='bold')
+        ax1.set_xlabel('Violation Level')
+        ax1.set_ylabel('Frequency')
+        ax1.set_yscale('log')
+        ax1.grid(True, alpha=0.3)
+
+        # Add mean line if requested
+        if show_mean:
+            yellow_mean = float(yellow_nonzero.mean())
+            ax1.axvline(yellow_mean, color='orange', linestyle='dashed', linewidth=2, alpha=0.8)
+            ax1.text(
+                yellow_mean,
+                ax1.get_ylim()[1] * 0.9,
+                f'Mean: {yellow_mean:.2f}',
+                color='orange',
+                fontweight='bold',
+            )
+
+        # Add percentile lines if requested
+        for i, percentile in enumerate(percentiles):
+            yellow_perc = yellow_nonzero.quantile(percentile)
+            ax1.axvline(yellow_perc, color='orange', linestyle='dotted', linewidth=1, alpha=0.6)
+            ax1.text(
+                yellow_perc,
+                ax1.get_ylim()[1] * (0.7 - i * 0.1),
+                f'P{percentile * 100:.0f}: {yellow_perc:.2f}',
+                color='orange',
+                fontsize=8,
+            )
+    else:
+        ax1.text(
+            0.5, 0.5,
+            'No Yellow Violations',
+            horizontalalignment='center',
+            verticalalignment='center',
+            transform=ax1.transAxes,
+            fontsize=14,
+            color='gray',
+        )
+        ax1.set_title('Yellow Zone Violations', fontweight='bold')
+
+    # Plot red violations
+    if not red_nonzero.empty:
+        ax2.hist(
+            red_nonzero,
+            bins=bins,
+            alpha=0.7,
+            color='red',
+            edgecolor='black',
+        )
+        ax2.set_title('Red Zone Violations', fontweight='bold')
+        ax2.set_xlabel('Violation Level')
+        ax2.set_ylabel('Frequency')
+        ax2.set_yscale('log')
+        ax2.grid(True, alpha=0.3)
+
+        # Add mean line if requested
+        if show_mean:
+            red_mean = float(red_nonzero.mean())
+            ax2.axvline(red_mean, color='darkred', linestyle='dashed', linewidth=2, alpha=0.8)
+            ax2.text(
+                red_mean,
+                ax2.get_ylim()[1] * 0.9,
+                f'Mean: {red_mean:.2f}',
+                color='darkred',
+                fontweight='bold',
+            )
+
+        # Add percentile lines if requested
+        for i, percentile in enumerate(percentiles):
+            red_perc = red_nonzero.quantile(percentile)
+            ax2.axvline(red_perc, color='darkred', linestyle='dotted', linewidth=1, alpha=0.6)
+            ax2.text(
+                red_perc,
+                ax2.get_ylim()[1] * (0.7 - i * 0.1),
+                f'P{percentile * 100:.0f}: {red_perc:.2f}',
+                color='darkred',
+                fontsize=8,
+            )
+    else:
+        ax2.text(
+            0.5, 0.5,
+            'No Red Violations',
+            horizontalalignment='center',
+            verticalalignment='center',
+            transform=ax2.transAxes,
+            fontsize=14,
+            color='gray',
+        )
+        ax2.set_title('Red Zone Violations', fontweight='bold')
+
+    plt.tight_layout()
+    plt.savefig(save_path)
+    plt.close()
