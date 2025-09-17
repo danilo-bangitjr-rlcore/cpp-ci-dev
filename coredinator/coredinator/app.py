@@ -39,6 +39,8 @@ def parse_args():
 base_path, main_port = parse_args()
 app = FastAPI(lifespan=lifespan)
 service_manager = ServiceManager()
+app.state.service_manager = service_manager
+app.state.base_path = base_path
 app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
 
 app.add_middleware(
