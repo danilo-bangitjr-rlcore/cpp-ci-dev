@@ -161,17 +161,27 @@ class WideMetricsTable:
         # Exact match - just return the metric if it exists
         return [metric]
 
+    def _read_by_metric(self, metric: str, prefix_match: bool = False) -> pd.DataFrame:
+        matching_columns = self._get_matching_columns(metric, prefix_match)
+
+        if not matching_columns:
+            # Return empty dataframe with expected structure
+            return pd.DataFrame(columns=["time", "agent_step"])
+
+        columns_str = ", ".join(matching_columns)
         stmt = f"""
             SELECT
                 time,
                 agent_step,
-                {metric}
+                {columns_str}
             FROM {self.cfg.table_name}
         """
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
         df["agent_step"] = df["agent_step"].astype(int)
-        df[metric] = df[metric].astype(float)
+
+        for col in matching_columns:
+            df[col] = df[col].astype(float)
 
         return df
 
