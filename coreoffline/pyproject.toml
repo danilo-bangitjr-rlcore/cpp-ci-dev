@@ -6,12 +6,12 @@ requires-python = "==3.13.0"
 authors = []
 dependencies = [
     "corerl",
+    "matplotlib~=3.8",
 ]
 readme = "README.md"
 
 [dependency-groups]
 dev = [
-    "matplotlib~=3.8",
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
     "pyright>=1.1.401",
