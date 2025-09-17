@@ -22,6 +22,11 @@ from coreoffline.data_analysis.utils import get_tags
 log = logging.getLogger(__name__)
 
 
+# ---------------------------------------------------------------------------- #
+#                                Tag Statistics                                #
+# ---------------------------------------------------------------------------- #
+
+
 def make_stat_table(
     cfg: ReportConfig,
     data: list[pd.DataFrame],
@@ -191,71 +196,9 @@ def cross_correlation(
     return cross_corr[max_idx], lags[max_idx], cross_corr
 
 
-def calculate_contiguous_sequence_lengths(
-    transitions: list[Transition],
-    time_threshold: timedelta,
-) -> list[int]:
-    """
-    Calculate lengths of contiguous transition sequences.
-    Transitions are considered contiguous if the time gap between consecutive transitions
-    is less than the specified threshold.
-    """
-    if not transitions:
-        return []
-
-    sequence_lengths = []
-    current_length = 1
-
-    for i in range(1, len(transitions)):
-        prev_transition = transitions[i - 1]
-        curr_transition = transitions[i]
-
-        # Check if transitions are contiguous based on timestamp
-        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold):
-            current_length += 1
-        else:
-            sequence_lengths.append(current_length)
-            current_length = 1
-
-    # Add the last sequence
-    sequence_lengths.append(current_length)
-
-    return sequence_lengths
-
-
-def are_transitions_contiguous(
-    prev_transition: Transition,
-    curr_transition: Transition,
-    time_threshold: timedelta,
-):
-    """
-    Determine if two transitions are contiguous based on timestamp proximity.
-    """
-    # Check if both transitions have timestamps
-    prev_timestamp = prev_transition.end_time
-    curr_timestamp = curr_transition.start_time
-
-    if prev_timestamp is None or curr_timestamp is None:
-        return False
-
-    # Calculate time difference
-    time_diff = curr_timestamp - prev_timestamp
-    return time_diff <= time_threshold
-
-
-def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
-    return_dict = {
-        'Total Sequences': len(sequence_lengths),
-        'Average Sequence Length': np.mean(sequence_lengths),
-        'Min Sequence Length': np.min(sequence_lengths),
-        'Max Sequence Length': np.max(sequence_lengths),
-    }
-    # Add percentiles
-    for p in cfg.transition_percentiles:
-        percentile_value = np.percentile(sequence_lengths, p * 100)
-        return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
-    return return_dict
-
+# ---------------------------------------------------------------------------- #
+#                                Goal Violations                               #
+# ---------------------------------------------------------------------------- #
 
 def calculate_violation_periods(
     satisfaction_df: pd.DataFrame,
@@ -418,6 +361,76 @@ def make_goal_violations_table(
     # Generate table and save
     table_str = tabulate(table_data, headers=headers, tablefmt='grid')
     (output_path / 'goal_violations.txt').write_text(table_str, encoding='utf-8')
+
+
+# ---------------------------------------------------------------------------- #
+#                             Transition Statistics                            #
+# ---------------------------------------------------------------------------- #
+
+def calculate_contiguous_sequence_lengths(
+        transitions: list[Transition],
+        time_threshold: timedelta,
+    ):
+    """
+    Calculate lengths of contiguous transition sequences.
+    Transitions are considered contiguous if the time gap between consecutive transitions
+    is less than the specified threshold.
+    """
+    if not transitions:
+        return []
+
+    sequence_lengths = []
+    current_length = 1
+
+    for i in range(1, len(transitions)):
+        prev_transition = transitions[i - 1]
+        curr_transition = transitions[i]
+
+        # Check if transitions are contiguous based on timestamp
+        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold):
+            current_length += 1
+        else:
+            sequence_lengths.append(current_length)
+            current_length = 1
+
+    # Add the last sequence
+    sequence_lengths.append(current_length)
+
+    return sequence_lengths
+
+
+def are_transitions_contiguous(
+    prev_transition: Transition,
+    curr_transition: Transition,
+    time_threshold: timedelta,
+):
+    """
+    Determine if two transitions are contiguous based on timestamp proximity.
+    """
+    # Check if both transitions have timestamps
+    prev_timestamp = prev_transition.end_time
+    curr_timestamp = curr_transition.start_time
+
+    if prev_timestamp is None or curr_timestamp is None:
+        return False
+
+    # Calculate time difference
+    time_diff = curr_timestamp - prev_timestamp
+    return time_diff <= time_threshold
+
+
+def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
+    return_dict = {
+        'Total Sequences': len(sequence_lengths),
+        'Average Sequence Length': np.mean(sequence_lengths),
+        'Min Sequence Length': np.min(sequence_lengths),
+        'Max Sequence Length': np.max(sequence_lengths),
+    }
+    # Add percentiles
+    for p in cfg.transition_percentiles:
+        percentile_value = np.percentile(sequence_lengths, p * 100)
+        return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
+    return return_dict
 
 
 def make_transition_statistics_table(
