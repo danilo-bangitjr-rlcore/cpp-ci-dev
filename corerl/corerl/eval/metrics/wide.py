@@ -228,11 +228,19 @@ class WideMetricsTable:
         metric: str,
         start_time: datetime | None,
         end_time: datetime | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
+        matching_columns = self._get_matching_columns(metric, prefix_match)
+
+        if not matching_columns:
+            # Return empty dataframe with expected structure
+            return pd.DataFrame(columns=["time"])
+
+        columns_str = ", ".join(matching_columns)
         stmt = f"""
             SELECT
                 time,
-                {metric}
+                {columns_str}
             FROM {self.cfg.table_name}
             WHERE 1=1
         """
@@ -255,6 +263,8 @@ class WideMetricsTable:
 
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
-        df[metric] = df[metric].astype(float)
+
+        for col in matching_columns:
+            df[col] = df[col].astype(float)
 
         return df
