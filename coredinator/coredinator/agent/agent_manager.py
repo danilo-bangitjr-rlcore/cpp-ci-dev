@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any, Concatenate, cast
 
 from coredinator.agent.agent import Agent, AgentID, AgentStatus
-from coredinator.service.protocols import ServiceState
+from coredinator.service.protocols import ServiceID, ServiceState
 from coredinator.service.service_manager import ServiceManager
 
 
@@ -38,7 +38,12 @@ class AgentManager:
     # ----------------
     # -- Public API --
     # ----------------
-    def start_agent(self, config_path: Path, agent_factory: type[Agent] = Agent) -> AgentID:
+    def start_agent(
+        self,
+        config_path: Path,
+        agent_factory: type[Agent] = Agent,
+        coreio_service_id: ServiceID | None = None,
+    ) -> AgentID:
         agent_id = AgentID(config_path.stem)
         if agent_id not in self._agents:
             self._agents[agent_id] = agent_factory(
@@ -46,6 +51,7 @@ class AgentManager:
                 config_path=config_path,
                 base_path=self._base_path,
                 service_manager=self._service_manager,
+                coreio_service_id=coreio_service_id,
             )
 
         self._agents[agent_id].start()
