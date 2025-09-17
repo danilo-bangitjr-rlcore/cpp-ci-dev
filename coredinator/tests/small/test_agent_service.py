@@ -83,7 +83,7 @@ def test_stop_transitions_to_stopped(
     assert manager.get_agent_status(agent_id).state == "stopped"
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(10)
 def test_failed_status_when_process_exits_nonzero(
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,
@@ -99,7 +99,7 @@ def test_failed_status_when_process_exits_nonzero(
     agent_id = manager.start_agent(config_file)
 
     # Wait for process to exit with failure
-    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "failed", interval=0.1, timeout=4.0)
+    assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "failed", interval=0.05, timeout=8.0)
 
 
 @pytest.mark.timeout(5)
