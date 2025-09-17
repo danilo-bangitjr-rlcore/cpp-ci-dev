@@ -31,7 +31,6 @@ class OfflineTrainingConfig:
                 start = eval_period[0]
                 end = eval_period[1]
                 assert start < end, "Eval start must precede eval end."
-            # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
 
 
 @config()
