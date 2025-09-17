@@ -35,7 +35,7 @@ def _load_config_data(config_name: str, subfolder: ConfigSubfolder = ConfigSubfo
     if not config_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Config file '{config_name}.yml' not found in '{subfolder}/'",
+            detail=f"Config file '{config_name}.yaml' not found in '{subfolder}/'",
         )
 
     with open(config_path, encoding='utf-8') as f:
@@ -114,6 +114,11 @@ async def get_config_field(
 ) -> JSONResponse:
     config_dict = _load_config_data(config_name, subfolder)
     value = _get_nested_value(config_dict, field)
+    if value is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Field '{field}' not found in config '{config_name}'"
+        )
     return JSONResponse(content={field: value}, status_code=status.HTTP_200_OK)
 
 @handle_exceptions
