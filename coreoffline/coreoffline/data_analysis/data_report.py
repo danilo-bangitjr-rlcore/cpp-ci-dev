@@ -492,6 +492,68 @@ def make_transition_statistics_table(
     (output_path / 'transition_statistics.txt').write_text(table_str, encoding='utf-8')
 
 
+# ---------------------------------------------------------------------------- #
+#                                Zone Violation                                #
+# ---------------------------------------------------------------------------- #
+
+def make_zone_violations_table(
+        cfg: ReportConfig,
+        output_path: Path,
+        app_state: AppState,
+        start_time: datetime,
+        end_time: datetime,
+    ) -> None:
+    """
+    Generate zone violations statistics table and save to file.
+    """
+
+    log.info("Generating zone violation statistics...")
+
+    # Prepare table data
+    table_data: list[list[str]] = [
+        ['start time of report gen.', str(start_time)],
+        ['end time of report gen.', str(end_time)],
+    ]
+
+    headers = [
+        'Metric',
+        'Value',
+    ]
+
+    def add_zone_violation_rows(violation_type: str):
+        metrix_prefix = f'{violation_type}_zone_violation'
+        try:
+            yz_df = app_state.metrics.read(
+                metric=metrix_prefix,
+                start_time=start_time,
+                end_time=end_time,
+                prefix_match=True,
+            )
+
+            if not yz_df.empty:
+                # Process each column that starts with metric_name
+                metric_columns = [col for col in yz_df.columns if col.startswith(metrix_prefix)]
+
+                for col in metric_columns:
+                    num_violations = int((yz_df[col] > 0).sum())
+                    tag = col.removeprefix(metrix_prefix)
+                    table_data.append([f'Num {tag} violations', str(num_violations)])
+
+                    avg_violation = yz_df[col].mean()
+                    table_data.append([f'Avg {tag} violation level', str(avg_violation)])
+
+        except Exception as e:
+            log.warning(f"Could not read {metrix_prefix} metric: {e}")
+
+    add_zone_violation_rows('yellow')
+    add_zone_violation_rows('red')
+
+    # Generate table and save
+    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
+    (output_path / 'zone_violation_statistics.txt').write_text(table_str, encoding='utf-8')
+
+
+
 def generate_report(
     cfg: ReportConfig,
     data: list[pd.DataFrame],
@@ -521,7 +583,14 @@ def generate_report(
         end_time,
     )
 
-    # Generate transition statistics if transitions are provided
+    make_zone_violations_table(
+        cfg,
+        output_path,
+        app_state,
+        start_time,
+        end_time,
+    )
+
     if transitions:
         make_transition_statistics_table(
             cfg,
