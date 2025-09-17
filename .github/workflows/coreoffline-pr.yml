@@ -4,11 +4,13 @@ permissions: write-all # Needed to comment coverage% on PR
 on:
   pull_request:
     paths:
+      - "coreoffline/**"
       - "corerl/**"
       - "libs/**"
       - "config/**"
   merge_group:
     paths:
+      - "coreoffline/**"
       - "corerl/**"
       - "libs/**"
       - "config/**"
