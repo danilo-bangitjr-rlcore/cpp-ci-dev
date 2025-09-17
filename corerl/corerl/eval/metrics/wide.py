@@ -190,11 +190,19 @@ class WideMetricsTable:
         metric: str,
         step_start: int | None,
         step_end: int | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
+        matching_columns = self._get_matching_columns(metric, prefix_match)
+
+        if not matching_columns:
+            # Return empty dataframe with expected structure
+            return pd.DataFrame(columns=["agent_step"])
+
+        columns_str = ", ".join(matching_columns)
         stmt = f"""
             SELECT
                 agent_step,
-                {metric}
+                {columns_str}
             FROM {self.cfg.table_name}
             WHERE 1=1
         """
@@ -209,7 +217,10 @@ class WideMetricsTable:
 
         df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
-        df[metric] = df[metric].astype(float)
+
+        for col in matching_columns:
+            df[col] = df[col].astype(float)
+
         return df
 
     def _read_by_time(
