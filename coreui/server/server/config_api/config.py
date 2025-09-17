@@ -117,7 +117,7 @@ async def get_config_field(
     if value is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Field '{field}' not found in config '{config_name}'"
+            detail=f"Field '{field}' not found in config '{config_name}'",
         )
     return JSONResponse(content={field: value}, status_code=status.HTTP_200_OK)
 
