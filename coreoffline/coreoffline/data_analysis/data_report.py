@@ -84,7 +84,7 @@ def make_cross_correlation_table(
     data: list[pd.DataFrame],
     stages: list[StageCode],
     output_path: Path,
-    ) -> None:
+):
 
     if not cfg.cross_corr_enabled:
         return
@@ -128,7 +128,7 @@ def correlate(
     x: np.ndarray,
     y: np.ndarray,
     max_lag: int,
-) -> np.ndarray:
+):
     """
     Unnormalized cross correlation for lags in [-max_lag, +max_lag]
     """
@@ -369,9 +369,9 @@ def make_goal_violations_table(
 # ---------------------------------------------------------------------------- #
 
 def calculate_contiguous_sequence_lengths(
-        transitions: list[Transition],
-        time_threshold: timedelta,
-    ):
+    transitions: list[Transition],
+    time_threshold: timedelta,
+):
     """
     Calculate lengths of contiguous transition sequences.
     Transitions are considered contiguous if the time gap between consecutive transitions
@@ -441,7 +441,7 @@ def make_transition_statistics_table(
     app_state: AppState,
     start_time: datetime,
     end_time: datetime,
-) -> None:
+):
     """
     Generate transition statistics table and save to file.
     """
@@ -498,12 +498,12 @@ def make_transition_statistics_table(
 # ---------------------------------------------------------------------------- #
 
 def make_zone_violations_table(
-        cfg: ReportConfig,
-        output_path: Path,
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-    ) -> None:
+    cfg: ReportConfig,
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+):
     """
     Generate zone violations statistics table and save to file.
     """
@@ -564,7 +564,7 @@ def make_violation_plots(
     app_state: AppState,
     start_time: datetime,
     end_time: datetime,
-) -> None:
+):
     """
     Generate violation distribution plots for each tag.
     """
@@ -657,7 +657,7 @@ def generate_report(
     start_time: datetime,
     end_time: datetime,
     transitions: list[Transition] | None = None,
-) -> None:
+):
 
     output_path = Path(cfg.output_dir)
     if output_path.exists():
