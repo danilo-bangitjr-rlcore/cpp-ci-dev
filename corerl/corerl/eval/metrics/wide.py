@@ -129,15 +129,16 @@ class WideMetricsTable:
         step_end: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
         # Make sure all data in buffer has been written to DB
         self._writer.flush()
 
         if start_time is not None or end_time is not None:
-            return self._read_by_time(metric, start_time, end_time)
+            return self._read_by_time(metric, start_time, end_time, prefix_match)
         if step_start is not None or step_end is not None:
-            return self._read_by_step(metric, step_start, step_end)
-        return self._read_by_metric(metric)
+            return self._read_by_step(metric, step_start, step_end, prefix_match)
+        return self._read_by_metric(metric, prefix_match)
 
     # ============================================================================
     # Private Implementation
