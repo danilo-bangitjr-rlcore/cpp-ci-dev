@@ -11,7 +11,6 @@ readme = "README.md"
 
 [dependency-groups]
 dev = [
-    "rl_env",
     "matplotlib~=3.8",
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
@@ -39,7 +38,6 @@ packages = ["coreoffline"]
 [tool.uv.sources]
 test = { path = "../test", editable = true }
 coreio = { path = "../coreio", editable = true }
-rl_env = { path = "../libs/rl_env", editable = true }
 lib-agent = { path = "../libs/lib_agent", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
