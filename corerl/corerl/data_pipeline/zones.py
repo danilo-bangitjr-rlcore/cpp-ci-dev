@@ -87,6 +87,17 @@ class ZoneDiscourager:
             if violation is None:
                 continue
 
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f'red_zone_violation_{violation.tag.name}',
+                value=violation.percent,
+            )
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f'yellow_zone_violation_{violation.tag.name}',
+                value=1.0,
+            )
+
             penalty = self._handle_red_violation(pf, violation)
             if penalty < max_penalty:
                 max_penalty = penalty
@@ -101,6 +112,12 @@ class ZoneDiscourager:
         for violation in yellow_violations:
             if violation is None:
                 continue
+
+            self._app_state.metrics.write(
+                agent_step=self._app_state.agent_step,
+                metric=f'yellow_zone_violation_{violation.tag.name}',
+                value=violation.percent,
+            )
 
             penalty = self._handle_yellow_violation(pf, violation)
             if penalty < max_penalty:
@@ -120,11 +137,6 @@ class ZoneDiscourager:
         if pf.data_mode == DataMode.ONLINE:
             event = ZoneViolationEvent.from_violation(violation)
             self._app_state.event_bus.emit_event(event)
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric='yellow_zone_violation',
-                value=violation.percent,
-            )
             logger.warning(f"Yellow zone violation for tag {violation.tag.name} at level: {violation.percent}")
 
         return -2 * (violation.percent**2)
@@ -144,16 +156,6 @@ class ZoneDiscourager:
         if pf.data_mode == DataMode.ONLINE:
             event = ZoneViolationEvent.from_violation(violation)
             self._app_state.event_bus.emit_event(event)
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric='red_zone_violation',
-                value=violation.percent,
-            )
-            self._app_state.metrics.write(
-                agent_step=self._app_state.agent_step,
-                metric='yellow_zone_violation',
-                value=1.0,
-            )
             logger.error(f"Red zone violation for tag {violation.tag.name} at level: {violation.percent}")
 
 
