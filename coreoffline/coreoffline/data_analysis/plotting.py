@@ -14,11 +14,11 @@ log = logging.getLogger(__name__)
 
 
 def plot_sensor_data(
-        df: pd.DataFrame,
-        tag: str,
-        save_path: Path,
-        title: str = '',
-        ):
+    df: pd.DataFrame,
+    tag: str,
+    save_path: Path,
+    title: str = '',
+    ):
     """
     Plots sensor data.
     """
@@ -34,14 +34,14 @@ def plot_sensor_data(
 
 
 def plot_histogram(
-        data: pd.Series,
-        title: str,
-        save_path: Path,
-        xlabel: str,
-        show_mean: bool = False,
-        percentiles: list[float] | None = None,
-        bins: int = 30,
-    ) -> None:
+    data: pd.Series,
+    title: str,
+    save_path: Path,
+    xlabel: str,
+    show_mean: bool = False,
+    percentiles: list[float] | None = None,
+    bins: int = 30,
+) -> None:
     """
     Generates a histogram, with mean and percentiles shown.
     """
@@ -78,14 +78,14 @@ def plot_histogram(
 
 
 def plot_sensor_histogram(
-        df: pd.DataFrame,
-        tag: str,
-        save_path: Path,
-        title: str = '',
-        show_mean: bool = False,
-        percentiles: list[float] | None = None,
-        bins: int = 30,
-    ) -> None:
+    df: pd.DataFrame,
+    tag: str,
+    save_path: Path,
+    title: str = '',
+    show_mean: bool = False,
+    percentiles: list[float] | None = None,
+    bins: int = 30,
+) -> None:
     """
     Plots distribution of non-nan sensor values.
     """
@@ -95,14 +95,14 @@ def plot_sensor_histogram(
 
 
 def plot_nan_histogram(
-        df: pd.DataFrame,
-        tag: str,
-        save_path: Path,
-        title: str = '',
-        show_mean: bool = False,
-        percentiles: list[float] | None = None,
-        bins: int = 30,
-    ) -> None:
+    df: pd.DataFrame,
+    tag: str,
+    save_path: Path,
+    title: str = '',
+    show_mean: bool = False,
+    percentiles: list[float] | None = None,
+    bins: int = 30,
+) -> None:
     """
     Plots histogram of length of contiguous chunks of nans.
     """
@@ -114,14 +114,14 @@ def plot_nan_histogram(
 
 
 def plot_chunk_histogram(
-        df: pd.DataFrame,
-        tag: str,
-        save_path: Path,
-        title: str = '',
-        show_mean: bool = False,
-        percentiles: list[float] | None = None,
-        bins: int = 30,
-    ) -> None:
+    df: pd.DataFrame,
+    tag: str,
+    save_path: Path,
+    title: str = '',
+    show_mean: bool = False,
+    percentiles: list[float] | None = None,
+    bins: int = 30,
+) -> None:
     """
     Plots histogram of length of contiguous chunks of non-nans.
     """
@@ -160,11 +160,11 @@ def make_actor_critic_plots(
 
 
 def make_distribution_plots(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        output_path: Path,
-    ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    output_path: Path,
+) -> None:
 
     if not cfg.hist_enabled:
         return

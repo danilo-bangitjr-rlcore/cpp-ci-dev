@@ -23,11 +23,11 @@ log = logging.getLogger(__name__)
 
 
 def make_stat_table(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        output_path: Path,
-    ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    output_path: Path,
+) -> None:
 
     if not cfg.stat_table_enabled:
         return
@@ -52,9 +52,9 @@ def make_stat_table(
 
 
 def get_tag_pairs(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-    ) -> list[tuple[str, str]]:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+) -> list[tuple[str, str]]:
     tag_info = cfg.cross_corr_tags
     if tag_info is None:  # all pairs of tags
         tags = get_tags(data)
@@ -74,11 +74,11 @@ def get_tag_pairs(
 
 
 def make_cross_correlation_table(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        output_path: Path,
-        ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    output_path: Path,
+    ) -> None:
 
     if not cfg.cross_corr_enabled:
         return
@@ -144,11 +144,11 @@ def correlate(
 
 
 def cross_correlation(
-        df: pd.DataFrame,
-        tag_1: str,
-        tag_2: str,
-        max_lag: int,
-    ) -> tuple[float, float, np.ndarray]:
+    df: pd.DataFrame,
+    tag_1: str,
+    tag_2: str,
+    max_lag: int,
+) -> tuple[float, float, np.ndarray]:
     """
     Computes cross correlation between tag_1 and tag_2, where the lag may vary between [-max_lag, +max_lag].
 
@@ -192,9 +192,9 @@ def cross_correlation(
 
 
 def calculate_contiguous_sequence_lengths(
-        transitions: list[Transition],
-        time_threshold: timedelta,
-    ):
+    transitions: list[Transition],
+    time_threshold: timedelta,
+) -> list[int]:
     """
     Calculate lengths of contiguous transition sequences.
     Transitions are considered contiguous if the time gap between consecutive transitions
@@ -258,10 +258,10 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
 
 
 def calculate_violation_periods(
-        satisfaction_df: pd.DataFrame,
-        metric_name: str,
-        obs_period: timedelta,
-    ) -> list[timedelta]:
+    satisfaction_df: pd.DataFrame,
+    metric_name: str,
+    obs_period: timedelta,
+) -> list[timedelta]:
     """
     Calculate consecutive violation periods from satisfaction data.
     Returns list of violation period durations.
@@ -333,12 +333,12 @@ def get_violation_period_stats(violation_periods: list[timedelta], percentiles: 
 
 
 def make_goal_violations_table(
-        cfg: ReportConfig,
-        output_path: Path,
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-    ):
+    cfg: ReportConfig,
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+):
     """
     Generate goal violations table and save to file.
     """
@@ -421,13 +421,13 @@ def make_goal_violations_table(
 
 
 def make_transition_statistics_table(
-        cfg: ReportConfig,
-        transitions: list[Transition],
-        output_path: Path,
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-    ) -> None:
+    cfg: ReportConfig,
+    transitions: list[Transition],
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+) -> None:
     """
     Generate transition statistics table and save to file.
     """
@@ -480,14 +480,14 @@ def make_transition_statistics_table(
 
 
 def generate_report(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-        transitions: list[Transition] | None = None,
-    ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+    transitions: list[Transition] | None = None,
+) -> None:
 
     output_path = Path(cfg.output_dir)
     if output_path.exists():

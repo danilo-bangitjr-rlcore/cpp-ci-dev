@@ -18,10 +18,10 @@ log = logging.getLogger(__name__)
 
 
 def get_all_offline_recommendations(
-        app_state: AppState,
-        agent: GreedyAC,
-        pipeline: Pipeline,
-    ):
+    app_state: AppState,
+    agent: GreedyAC,
+    pipeline: Pipeline,
+):
     """
     Gives the data specfied in offline_cfg.eval_periods to the agent to get the agent's recommendations
     """
@@ -45,7 +45,7 @@ def get_offline_recommendations(
     pipeline: Pipeline,
     start: datetime,
     end: datetime,
-    ):
+):
 
     assert isinstance(app_state.cfg, OfflineMainConfig)
     state = None

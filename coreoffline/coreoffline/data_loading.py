@@ -128,10 +128,7 @@ def offline_rl_from_buffer(agent: GreedyAC, steps: int = 100):
     return q_losses
 
 
-def load_offline_transitions(
-        app_state: AppState,
-        pipeline: Pipeline,
-    ):
+def load_offline_transitions(app_state: AppState,pipeline: Pipeline):
     """
     Load offline transitions from database through the data pipeline.
     """
