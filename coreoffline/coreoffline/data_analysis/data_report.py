@@ -3,7 +3,7 @@ import shutil
 from datetime import datetime, timedelta
 from itertools import combinations
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -20,9 +20,6 @@ from coreoffline.data_analysis.plotting import (
 from coreoffline.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    pass
 
 
 def make_stat_table(
@@ -122,10 +119,10 @@ def standardize(x: np.ndarray, mask: np.ndarray):
 
 
 def correlate(
-        x: np.ndarray,
-        y: np.ndarray,
-        max_lag: int,
-    ) -> np.ndarray:
+    x: np.ndarray,
+    y: np.ndarray,
+    max_lag: int,
+) -> np.ndarray:
     """
     Unnormalized cross correlation for lags in [-max_lag, +max_lag]
     """
