@@ -310,3 +310,256 @@ def test_db_metrics_write_wide(
         metrics_df.reindex(columns=['time', 'agent_step', 'q', 'reward']),
         expected_df,
     )
+
+
+# ---------------------------------------------------------------------------- #
+#                              Prefix Reading Tests                           #
+# ---------------------------------------------------------------------------- #
+
+@pytest.fixture()
+def populated_metrics_table_with_prefixes(metrics_table: MetricsWriterProtocol):
+    """Create metrics table with various metrics that have common prefixes."""
+    start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
+    curr_time = deepcopy(start_time)
+    delta = dt.timedelta(hours=1)
+
+    for i in range(3):
+        # Training metrics
+        metrics_table.write(
+            agent_step=i,
+            metric="train_loss",
+            value=i,
+            timestamp=curr_time.isoformat(),
+        )
+        metrics_table.write(
+            agent_step=i,
+            metric="train_accuracy",
+            value=10 + i,
+            timestamp=curr_time.isoformat(),
+        )
+
+        # Validation metrics
+        metrics_table.write(
+            agent_step=i,
+            metric="val_loss",
+            value=2 * i,
+            timestamp=curr_time.isoformat(),
+        )
+        metrics_table.write(
+            agent_step=i,
+            metric="val_accuracy",
+            value=20 + i,
+            timestamp=curr_time.isoformat(),
+        )
+
+        # Test metrics (only for first 2 steps)
+        if i < 2:
+            metrics_table.write(
+                agent_step=i,
+                metric="test_loss",
+                value=3 * i,
+                timestamp=curr_time.isoformat(),
+            )
+
+        curr_time += delta
+
+    metrics_table.flush()
+    return metrics_table, start_time, delta
+
+
+@pytest.fixture()
+def populated_metrics_table_wide_with_prefixes(wide_metrics_table: MetricsWriterProtocol):
+    """Create wide metrics table with various metrics that have common prefixes."""
+    start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
+    curr_time = deepcopy(start_time)
+    delta = dt.timedelta(hours=1)
+
+    for i in range(3):
+        # Training metrics
+        wide_metrics_table.write(
+            agent_step=i,
+            metric="train_loss",
+            value=i,
+            timestamp=curr_time.isoformat(),
+        )
+        wide_metrics_table.write(
+            agent_step=i,
+            metric="train_accuracy",
+            value=10 + i,
+            timestamp=curr_time.isoformat(),
+        )
+
+        # Validation metrics
+        wide_metrics_table.write(
+            agent_step=i,
+            metric="val_loss",
+            value=2 * i,
+            timestamp=curr_time.isoformat(),
+        )
+        wide_metrics_table.write(
+            agent_step=i,
+            metric="val_accuracy",
+            value=20 + i,
+            timestamp=curr_time.isoformat(),
+        )
+
+        # Test metrics (only for first 2 steps)
+        if i < 2:
+            wide_metrics_table.write(
+                agent_step=i,
+                metric="test_loss",
+                value=3 * i,
+                timestamp=curr_time.isoformat(),
+            )
+
+        curr_time += delta
+
+    # Force flush by reading a metric to ensure table is created
+    wide_metrics_table.flush()
+    return wide_metrics_table, start_time, delta
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
+)
+def test_metrics_read_by_prefix_all_metrics(
+    request: pytest.FixtureRequest,
+    fixture_name: str,
+):
+    """Test reading all metrics by prefix (full dataset)."""
+    metrics_table, *_ = get_fixture(request, fixture_name, MetricsTableFixture)
+
+    # Read all training metrics
+    train_df = metrics_table.read("train_", prefix_match=True)
+
+    # Should contain train_loss and train_accuracy columns
+    expected_columns = {"time", "agent_step", "train_loss", "train_accuracy"}
+    assert set(train_df.columns) == expected_columns
+
+    # Should have 3 rows (for agent steps 0, 1, 2)
+    assert len(train_df) == 3
+
+    # Check specific values
+    assert train_df.loc[0, "train_loss"] == 0.0
+    assert train_df.loc[1, "train_loss"] == 1.0
+    assert train_df.loc[2, "train_loss"] == 2.0
+
+    assert train_df.loc[0, "train_accuracy"] == 10.0
+    assert train_df.loc[1, "train_accuracy"] == 11.0
+    assert train_df.loc[2, "train_accuracy"] == 12.0
+
+
+def test_metrics_read_by_prefix_with_missing_data(
+    populated_metrics_table_with_prefixes: MetricsTableFixture,
+):
+    """Test reading metrics by prefix where some metrics have missing data."""
+    metrics_table, *_ = populated_metrics_table_with_prefixes
+
+    # Read all test metrics (only exists for steps 0 and 1)
+    test_df = metrics_table.read("test_", prefix_match=True)
+
+    expected_columns = {"time", "agent_step", "test_loss"}
+    assert set(test_df.columns) == expected_columns
+
+    # Should have 2 rows (for agent steps 0, 1)
+    assert len(test_df) == 2
+
+    # Check values
+    assert test_df.loc[0, "test_loss"] == 0.0
+    assert test_df.loc[1, "test_loss"] == 3.0
+
+
+def test_metrics_read_by_prefix_with_missing_data_wide(
+    populated_metrics_table_wide_with_prefixes: MetricsTableFixture,
+):
+    """Test reading metrics by prefix where some metrics have missing data (wide table)."""
+    metrics_table, *_ = populated_metrics_table_wide_with_prefixes
+
+    # Read all test metrics (only exists for steps 0 and 1)
+    test_df = metrics_table.read("test_", prefix_match=True)
+
+    expected_columns = {"time", "agent_step", "test_loss"}
+    assert set(test_df.columns) == expected_columns
+
+    # Should have 2 rows (for agent steps 0, 1)
+    assert len(test_df) == 3
+
+    # Check values
+    assert test_df.loc[0, "test_loss"] == 0.0
+    assert test_df.loc[1, "test_loss"] == 3.0
+    # wide format will fill in the missing value with nan
+    expected_nan = test_df.loc[2, "test_loss"]
+    assert isinstance(expected_nan, float)
+    assert np.isnan(expected_nan)
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
+)
+def test_metrics_read_by_prefix_step_filtering(
+    request: pytest.FixtureRequest,
+    fixture_name: str,
+):
+    """Test reading metrics by prefix with step filtering."""
+    metrics_table, *_ = get_fixture(request, fixture_name, MetricsTableFixture)
+
+    # Read validation metrics for steps 1-2 only
+    val_df = metrics_table.read("val_", prefix_match=True, step_start=1, step_end=2)
+
+    expected_columns = {"agent_step", "val_loss", "val_accuracy"}
+    assert set(val_df.columns) == expected_columns
+
+    # Should have 2 rows (for agent steps 1, 2)
+    assert len(val_df) == 2
+
+    # Check values
+    assert val_df.loc[0, "agent_step"] == 1
+    assert val_df.loc[1, "agent_step"] == 2
+    assert val_df.loc[0, "val_loss"] == 2.0
+    assert val_df.loc[1, "val_loss"] == 4.0
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
+)
+def test_metrics_read_by_prefix_time_filtering(
+    request: pytest.FixtureRequest,
+    fixture_name: str,
+):
+    """Test reading metrics by prefix with time filtering."""
+    metrics_table, start_time, delta = get_fixture(request, fixture_name, MetricsTableFixture)
+
+    # Read training metrics for middle time period only
+    query_start = start_time + delta  # Second hour
+    query_end = start_time + (2 * delta)  # Third hour
+
+    train_df = metrics_table.read("train_", prefix_match=True, start_time=query_start, end_time=query_end)
+
+    expected_columns = {"time", "train_loss", "train_accuracy"}
+    assert set(train_df.columns) == expected_columns
+
+    # Should have 2 rows (for hours 1 and 2)
+    assert len(train_df) == 2
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
+)
+def test_metrics_read_by_prefix_no_matches(
+    request: pytest.FixtureRequest,
+    fixture_name: str,
+):
+    """Test reading metrics by prefix when no metrics match."""
+    metrics_table, *_ = get_fixture(request, fixture_name, MetricsTableFixture)
+
+    # Try to read metrics with a prefix that doesn't exist
+    nonexistent_df = metrics_table.read("nonexistent_", prefix_match=True)
+
+    # Should return empty dataframe with expected base columns
+    expected_columns = {"time", "agent_step"}
+    assert set(nonexistent_df.columns) == expected_columns
+    assert len(nonexistent_df) == 0

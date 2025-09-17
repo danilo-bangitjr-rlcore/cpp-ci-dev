@@ -33,6 +33,7 @@ class MetricsWriterProtocol(Protocol):
         step_end: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
         ...
 

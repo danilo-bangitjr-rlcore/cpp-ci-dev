@@ -121,15 +121,16 @@ class NarrowMetricsTable:
         step_end: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
         # Make sure all data in buffer has been written to DB
         self._writer.flush()
 
         if start_time is not None or end_time is not None:
-            return self._read_by_time(metric, start_time, end_time)
+            return self._read_by_time(metric, start_time, end_time, prefix_match)
         if step_start is not None or step_end is not None:
-            return self._read_by_step(metric, step_start, step_end)
-        return self._read_by_metric(metric)
+            return self._read_by_step(metric, step_start, step_end, prefix_match)
+        return self._read_by_metric(metric, prefix_match)
 
     # ============================================================================
     # Private Implementation
@@ -139,7 +140,34 @@ class NarrowMetricsTable:
         with TryConnectContextManager(self.engine) as connection:
             return pd.read_sql(sql=text(stmt), con=connection)
 
-    def _read_by_metric(self, metric: str) -> pd.DataFrame:
+    def _read_by_metric(self, metric: str, prefix_match: bool = False) -> pd.DataFrame:
+        if prefix_match:
+            stmt = f"""
+                SELECT
+                    time,
+                    agent_step,
+                    metric,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric LIKE '{metric}%';
+            """
+            df = self._execute_read(stmt)
+            df["time"] = pd.to_datetime(df["time"])
+            df["agent_step"] = df["agent_step"].astype(int)
+
+            # Pivot the data to create columns for each metric
+            pivot_df = df.pivot_table(
+                index=["time", "agent_step"],
+                columns="metric",
+                values="value",
+                aggfunc="first",
+            ).reset_index()
+
+            # Flatten column names
+            pivot_df.columns.name = None
+            return pivot_df
+
         stmt = f"""
             SELECT
                 time,
@@ -161,15 +189,27 @@ class NarrowMetricsTable:
         metric: str,
         step_start: int | None,
         step_end: int | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
-        stmt = f"""
-        SELECT
-            agent_step,
-            value
-        FROM {self.cfg.table_name}
-        WHERE
-            metric='{metric}'
-        """
+        if prefix_match:
+            stmt = f"""
+            SELECT
+                agent_step,
+                metric,
+                value
+            FROM {self.cfg.table_name}
+            WHERE
+                metric LIKE '{metric}%'
+            """
+        else:
+            stmt = f"""
+            SELECT
+                agent_step,
+                value
+            FROM {self.cfg.table_name}
+            WHERE
+                metric='{metric}'
+            """
 
         if step_start is not None:
             stmt += f" AND agent_step>='{step_start}'"
@@ -181,6 +221,19 @@ class NarrowMetricsTable:
 
         df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
+
+        if prefix_match:
+            # Pivot the data to create columns for each metric
+            pivot_df = df.pivot_table(
+                index="agent_step",
+                columns="metric",
+                values="value",
+                aggfunc="first",
+            ).reset_index()
+            # Flatten column names
+            pivot_df.columns.name = None
+            return pivot_df
+
         df[metric] = df["value"].astype(float)
         df.drop(columns=["value"], inplace=True)
         return df
@@ -190,15 +243,27 @@ class NarrowMetricsTable:
         metric: str,
         start_time: datetime | None,
         end_time: datetime | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
-        stmt = f"""
-            SELECT
-                time,
-                value
-            FROM {self.cfg.table_name}
-            WHERE
-                metric='{metric}'
-        """
+        if prefix_match:
+            stmt = f"""
+                SELECT
+                    time,
+                    metric,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric LIKE '{metric}%'
+            """
+        else:
+            stmt = f"""
+                SELECT
+                    time,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric='{metric}'
+            """
 
         if start_time is not None:
             if start_time.tzinfo is None:
@@ -218,6 +283,19 @@ class NarrowMetricsTable:
 
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
+
+        if prefix_match:
+            # Pivot the data to create columns for each metric
+            pivot_df = df.pivot_table(
+                index="time",
+                columns="metric",
+                values="value",
+                aggfunc="first",
+            ).reset_index()
+            # Flatten column names
+            pivot_df.columns.name = None
+            return pivot_df
+
         df[metric] = df["value"].astype(float)
         df.drop(columns=["value"], inplace=True)
 

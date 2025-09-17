@@ -6,6 +6,7 @@ from typing import Any, SupportsFloat
 import pandas as pd
 from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
+from lib_sql.inspection import get_all_columns
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
 from lib_sql.writers.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
@@ -128,15 +129,16 @@ class WideMetricsTable:
         step_end: int | None = None,
         start_time: datetime | None = None,
         end_time: datetime | None = None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
         # Make sure all data in buffer has been written to DB
         self._writer.flush()
 
         if start_time is not None or end_time is not None:
-            return self._read_by_time(metric, start_time, end_time)
+            return self._read_by_time(metric, start_time, end_time, prefix_match)
         if step_start is not None or step_end is not None:
-            return self._read_by_step(metric, step_start, step_end)
-        return self._read_by_metric(metric)
+            return self._read_by_step(metric, step_start, step_end, prefix_match)
+        return self._read_by_metric(metric, prefix_match)
 
     # ============================================================================
     # Private Implementation
@@ -146,18 +148,41 @@ class WideMetricsTable:
         with TryConnectContextManager(self.engine) as connection:
             return pd.read_sql(sql=text(stmt), con=connection)
 
-    def _read_by_metric(self, metric: str) -> pd.DataFrame:
+    def _get_matching_columns(self, metric: str, prefix_match: bool = False) -> list[str]:
+        """Get column names that match the metric (exact or prefix)."""
+        if prefix_match:
+            columns = get_all_columns(self.engine, self.cfg.table_name)
+            columns = [col['name'] for col in columns]
+
+            return [
+                col for col in columns
+                if col.startswith(metric) and col not in {"time", "agent_step"}
+            ]
+
+        # Exact match - just return the metric if it exists
+        return [metric]
+
+    def _read_by_metric(self, metric: str, prefix_match: bool = False) -> pd.DataFrame:
+        matching_columns = self._get_matching_columns(metric, prefix_match)
+
+        if not matching_columns:
+            # Return empty dataframe with expected structure
+            return pd.DataFrame(columns=["time", "agent_step"])
+
+        columns_str = ", ".join(matching_columns)
         stmt = f"""
             SELECT
                 time,
                 agent_step,
-                {metric}
+                {columns_str}
             FROM {self.cfg.table_name}
         """
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
         df["agent_step"] = df["agent_step"].astype(int)
-        df[metric] = df[metric].astype(float)
+
+        for col in matching_columns:
+            df[col] = df[col].astype(float)
 
         return df
 
@@ -166,11 +191,19 @@ class WideMetricsTable:
         metric: str,
         step_start: int | None,
         step_end: int | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
+        matching_columns = self._get_matching_columns(metric, prefix_match)
+
+        if not matching_columns:
+            # Return empty dataframe with expected structure
+            return pd.DataFrame(columns=["agent_step"])
+
+        columns_str = ", ".join(matching_columns)
         stmt = f"""
             SELECT
                 agent_step,
-                {metric}
+                {columns_str}
             FROM {self.cfg.table_name}
             WHERE 1=1
         """
@@ -185,7 +218,10 @@ class WideMetricsTable:
 
         df = self._execute_read(stmt)
         df["agent_step"] = df["agent_step"].astype(int)
-        df[metric] = df[metric].astype(float)
+
+        for col in matching_columns:
+            df[col] = df[col].astype(float)
+
         return df
 
     def _read_by_time(
@@ -193,11 +229,19 @@ class WideMetricsTable:
         metric: str,
         start_time: datetime | None,
         end_time: datetime | None,
+        prefix_match: bool = False,
     ) -> pd.DataFrame:
+        matching_columns = self._get_matching_columns(metric, prefix_match)
+
+        if not matching_columns:
+            # Return empty dataframe with expected structure
+            return pd.DataFrame(columns=["time"])
+
+        columns_str = ", ".join(matching_columns)
         stmt = f"""
             SELECT
                 time,
-                {metric}
+                {columns_str}
             FROM {self.cfg.table_name}
             WHERE 1=1
         """
@@ -220,6 +264,8 @@ class WideMetricsTable:
 
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
-        df[metric] = df[metric].astype(float)
+
+        for col in matching_columns:
+            df[col] = df[col].astype(float)
 
         return df
