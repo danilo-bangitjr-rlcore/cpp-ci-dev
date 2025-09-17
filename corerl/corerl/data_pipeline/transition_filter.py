@@ -82,8 +82,10 @@ def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilter
 def only_dp(transition: Transition):
     return transition.prior.dp and transition.post.dp
 
+
 def only_pre_dp_or_ac(transition: Transition):
     return transition.prior.dp or transition.steps[1].ac
+
 
 def only_post_dp(transition: Transition):
     return transition.post.dp
