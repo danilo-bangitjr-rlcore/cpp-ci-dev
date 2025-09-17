@@ -1,0 +1,98 @@
+name: CoreOffline Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "coreoffline/**"
+      - "corerl/**"
+      - "libs/**"
+      - "config/**"
+  merge_group:
+    paths:
+      - "coreoffline/**"
+      - "corerl/**"
+      - "libs/**"
+      - "config/**"
+
+concurrency:
+  group: coreoffline${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  coreoffline-style-n-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreoffline
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          clean: true
+
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: coreoffline
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: coreoffline
+
+      - uses: dciborow/action-pylint@0.1.0
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          level: warning
+          workdir: coreoffline
+          glob_pattern: "coreoffline/"
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: coreoffline
+
+      # -----------
+      # -- Tests --
+      # -----------
+      - name: Create artifact directory
+        run: mkdir -p artifact
+
+      - name: Run Pytest
+        run: |
+          pytest --cov=. --cov-append tests/small
+          pytest --cov=. --cov-append tests/medium
+
+      - name: Combine coverage
+        run: |
+          uv run coverage html
+          echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        id: htmlcov-upload-step
+        with:
+          name: htmlcov
+          path: coreoffline/htmlcov/
+          overwrite: true
+
+      - run: |
+          echo "🏁 CoreOffline tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreOffline tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
+          comment-tag: execution-coreoffline

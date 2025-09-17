@@ -1,4 +1,4 @@
-offline:
+offline_training:
   offline_steps: 10
 
 agent:

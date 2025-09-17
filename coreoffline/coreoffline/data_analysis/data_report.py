@@ -3,79 +3,31 @@ import shutil
 from datetime import datetime, timedelta
 from itertools import combinations
 from pathlib import Path
-from typing import TYPE_CHECKING, cast
+from typing import cast
 
 import numpy as np
 import pandas as pd
-from lib_config.config import MISSING, computed, config
-from pydantic import Field
-from tabulate import tabulate
-
 from corerl.data_pipeline.datatypes import StageCode, Transition
 from corerl.environment.reward.config import Optimization
-from corerl.eval.plotting.report import (
-    plot_chunk_histogram,
-    plot_nan_histogram,
-    plot_sensor_data,
-    plot_sensor_histogram,
-)
 from corerl.eval.raw_data import raw_data_eval_for_tag
 from corerl.state import AppState
+from tabulate import tabulate
 
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
-
+from coreoffline.config import ReportConfig
+from coreoffline.data_analysis.plotting import (
+    make_distribution_plots,
+)
+from coreoffline.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)
 
 
-@config()
-class ReportConfig:
-    output_dir: Path = Path('outputs/report')
-    stages: list[StageCode] = Field(default_factory=lambda: [StageCode.INIT])
-    tags_to_exclude: list = Field(default_factory=list)  # tags to exclude from analysis
-
-    # for stat table
-    stat_table_enabled: bool = True
-
-    # for cross correlation
-    # options for cross_corr_tags:
-    # 1. list of tag names -> will find cross correlation for all pairs of tags in this list
-    # 2. list of list[str] -> will find cross correlation only for these pairs in each list.
-    # 3. None -> will find cross correlation for ALL pairs of tags
-    cross_corr_enabled: bool = True
-    cross_corr_tags: list[str] | list[list[str]] | None = Field(default_factory=list)
-    cross_corr_max_lag: int = 100
-
-    # for histograms
-    hist_enabled: bool = True
-    hist_show_mean: bool = True
-    hist_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
-    hist_num_bins: int = 30
-
-    # for transition statistics
-    transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
-    contiguous_time_threshold: timedelta = MISSING  # max time gap to consider transitions contiguous
-
-    # for goal violations
-    violation_period_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
-
-    @computed('contiguous_time_threshold')
-    @classmethod
-    def _contiguous_time_threshold(cls, cfg: 'MainConfig'):
-        return cfg.interaction.obs_period
-
-
-def get_tags(data: list[pd.DataFrame]) -> list[str]:
-    return list(data[0].columns)
-
-
 def make_stat_table(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        output_path: Path,
-    ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    output_path: Path,
+) -> None:
 
     if not cfg.stat_table_enabled:
         return
@@ -99,67 +51,10 @@ def make_stat_table(
     (output_path / 'sensor_report.txt').write_text(table_str, encoding='utf-8')
 
 
-def make_distribution_plots(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        output_path: Path,
-    ) -> None:
-
-    if not cfg.hist_enabled:
-        return
-
-    tags = get_tags(data)
-
-    show_hist_mean = cfg.hist_show_mean
-    percentiles = cfg.hist_percentiles
-    num_bins = cfg.hist_num_bins
-
-    log.info('Generating Distribution Plots...')
-    for tag in tags:
-        for stage_i, df in enumerate(data):
-            stage_name = stages[stage_i].name
-            tag_stage_output_path = output_path / tag / stage_name
-            tag_stage_output_path.mkdir(parents=True, exist_ok=True)
-            plot_sensor_data(
-                df,
-                tag,
-                save_path=tag_stage_output_path / f'{tag}_sensor_data_{stage_name}.png',
-                title=f'{tag} Sensor Data - {stage_name}',
-            )
-            plot_sensor_histogram(
-                df,
-                tag,
-                save_path=tag_stage_output_path / f'{tag}_sensor_histogram_{stage_name}.png',
-                title=f'{tag} Histogram - {stage_name}',
-                show_mean=show_hist_mean,
-                percentiles=percentiles,
-                bins=num_bins,
-            )
-            plot_nan_histogram(
-                df,
-                tag,
-                save_path=tag_stage_output_path / f'{tag}_nan_histogram_{stage_name}.png',
-                title=f'{tag} NaN Histogram - {stage_name}',
-                show_mean=show_hist_mean,
-                percentiles=percentiles,
-                bins=num_bins,
-            )
-            plot_chunk_histogram(
-                df,
-                tag,
-                save_path=tag_stage_output_path / f'{tag}_chunk_histogram_{stage_name}.png',
-                title=f'{tag} Chunk Histogram - {stage_name}',
-                show_mean=show_hist_mean,
-                percentiles=percentiles,
-                bins=num_bins,
-            )
-
-
 def get_tag_pairs(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-    ) -> list[tuple[str, str]]:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+) -> list[tuple[str, str]]:
     tag_info = cfg.cross_corr_tags
     if tag_info is None:  # all pairs of tags
         tags = get_tags(data)
@@ -179,11 +74,11 @@ def get_tag_pairs(
 
 
 def make_cross_correlation_table(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        output_path: Path,
-        ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    output_path: Path,
+    ) -> None:
 
     if not cfg.cross_corr_enabled:
         return
@@ -224,10 +119,10 @@ def standardize(x: np.ndarray, mask: np.ndarray):
 
 
 def correlate(
-        x: np.ndarray,
-        y: np.ndarray,
-        max_lag: int,
-    ) -> np.ndarray:
+    x: np.ndarray,
+    y: np.ndarray,
+    max_lag: int,
+) -> np.ndarray:
     """
     Unnormalized cross correlation for lags in [-max_lag, +max_lag]
     """
@@ -249,11 +144,11 @@ def correlate(
 
 
 def cross_correlation(
-        df: pd.DataFrame,
-        tag_1: str,
-        tag_2: str,
-        max_lag: int,
-    ) -> tuple[float, float, np.ndarray]:
+    df: pd.DataFrame,
+    tag_1: str,
+    tag_2: str,
+    max_lag: int,
+) -> tuple[float, float, np.ndarray]:
     """
     Computes cross correlation between tag_1 and tag_2, where the lag may vary between [-max_lag, +max_lag].
 
@@ -297,9 +192,9 @@ def cross_correlation(
 
 
 def calculate_contiguous_sequence_lengths(
-        transitions: list[Transition],
-        time_threshold: timedelta,
-    ):
+    transitions: list[Transition],
+    time_threshold: timedelta,
+) -> list[int]:
     """
     Calculate lengths of contiguous transition sequences.
     Transitions are considered contiguous if the time gap between consecutive transitions
@@ -363,10 +258,10 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
 
 
 def calculate_violation_periods(
-        satisfaction_df: pd.DataFrame,
-        metric_name: str,
-        obs_period: timedelta,
-    ) -> list[timedelta]:
+    satisfaction_df: pd.DataFrame,
+    metric_name: str,
+    obs_period: timedelta,
+) -> list[timedelta]:
     """
     Calculate consecutive violation periods from satisfaction data.
     Returns list of violation period durations.
@@ -438,12 +333,12 @@ def get_violation_period_stats(violation_periods: list[timedelta], percentiles: 
 
 
 def make_goal_violations_table(
-        cfg: ReportConfig,
-        output_path: Path,
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-    ):
+    cfg: ReportConfig,
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+):
     """
     Generate goal violations table and save to file.
     """
@@ -526,13 +421,13 @@ def make_goal_violations_table(
 
 
 def make_transition_statistics_table(
-        cfg: ReportConfig,
-        transitions: list[Transition],
-        output_path: Path,
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-    ) -> None:
+    cfg: ReportConfig,
+    transitions: list[Transition],
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+) -> None:
     """
     Generate transition statistics table and save to file.
     """
@@ -585,14 +480,14 @@ def make_transition_statistics_table(
 
 
 def generate_report(
-        cfg: ReportConfig,
-        data: list[pd.DataFrame],
-        stages: list[StageCode],
-        app_state: AppState,
-        start_time: datetime,
-        end_time: datetime,
-        transitions: list[Transition] | None = None,
-    ) -> None:
+    cfg: ReportConfig,
+    data: list[pd.DataFrame],
+    stages: list[StageCode],
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+    transitions: list[Transition] | None = None,
+) -> None:
 
     output_path = Path(cfg.output_dir)
     if output_path.exists():

@@ -1,5 +1,4 @@
 import json
-from datetime import datetime, timedelta
 from pathlib import Path
 
 import yaml
@@ -13,7 +12,6 @@ from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
-from corerl.eval.data_report import ReportConfig
 from corerl.eval.evals import EvalDBConfig
 from corerl.eval.metrics.base import MetricsDBConfig
 from corerl.interaction.factory import InteractionConfig
@@ -106,32 +104,6 @@ class FeatureFlags:
 
 
 @config()
-class OfflineConfig:
-    offline_steps: int = 0
-    offline_start_time: datetime | None = None
-    offline_end_time: datetime | None = None
-    eval_periods: list[tuple[datetime, datetime]] | None = None
-    pipeline_batch_duration: timedelta = timedelta(days=7)
-    update_agent_during_offline_recs: bool = False
-    remove_eval_from_train: bool = True
-    test_split: float = 0.0
-
-    @post_processor
-    def _validate(self, cfg: 'MainConfig'):
-        if isinstance(self.offline_start_time, datetime) and isinstance(self.offline_end_time, datetime):
-            assert (
-                self.offline_start_time < self.offline_end_time
-            ), "Offline training start timestamp must come before the offline training end timestamp."
-
-        if self.eval_periods is not None:
-            for eval_period in self.eval_periods:
-                assert len(eval_period) == 2, "Eval periods must be defined as a list with length 2."
-                start = eval_period[0]
-                end = eval_period[1]
-                assert start < end, "Eval start must precede eval end."
-            # assert isinstance(self.eval_periods, list[tuple[datetime, datetime]])
-
-@config()
 class MainConfig:
     """
     Top-level configuration for corerl.
@@ -143,7 +115,6 @@ class MainConfig:
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
-    offline: OfflineConfig = Field(default_factory=OfflineConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     save_path: Path = MISSING
     log_path: Path | None = None
@@ -168,13 +139,13 @@ class MainConfig:
     # -- Problem --
     # -------------
     max_steps: int | None = None
-    seed: int = 0 # affects agent and env
+    seed: int = 0  # affects agent and env
     is_simulation: bool = True
 
     # -----------
     # -- Agent --
     # -----------
-    agent_name: str = 'corey' # typically should indicate the process the agent is controlling
+    agent_name: str = 'corey'  # typically should indicate the process the agent is controlling
     env: AsyncEnvConfig = Field(default_factory=AsyncEnvConfig)
     interaction: InteractionConfig = Field(default_factory=InteractionConfig)
     agent: GreedyACConfig = Field(default_factory=GreedyACConfig, discriminator='name')
@@ -183,7 +154,6 @@ class MainConfig:
     # -- Evaluation --
     # ----------------
     eval_cfgs: EvalConfig = Field(default_factory=EvalConfig)
-    report : ReportConfig = Field(default_factory=ReportConfig)
 
     # ---------------
     # -- Computeds --
@@ -235,7 +205,6 @@ class MainConfig:
             if tag_cfg.type == TagType.ai_setpoint and tag_cfg.guardrail_schedule is not None:
                 tag_cfg.guardrail_schedule.duration /= self.interaction.time_dilation
 
-
     @computed('save_path')
     @classmethod
     def _save_path(cls, cfg: 'MainConfig'):
@@ -251,7 +220,6 @@ class MainConfig:
             yaml.safe_dump(json.loads(cfg_json), f)
 
         return save_path
-
 
     @post_processor
     def _regenerative_optimism(self, cfg: 'MainConfig'):
@@ -270,7 +238,6 @@ class MainConfig:
             return
 
         self.agent.loss_threshold = 1e-8
-
 
     @post_processor
     def _enable_wide_metrics(self, cfg: 'MainConfig'):

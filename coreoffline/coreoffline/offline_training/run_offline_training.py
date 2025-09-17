@@ -2,29 +2,29 @@ import logging
 import random
 
 import numpy as np
-from lib_config.loader import load_config
-
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import (
-    get_all_offline_recommendations,
+from corerl.state import AppState
+from corerl.tags.validate_tag_configs import validate_tag_configs
+from lib_config.loader import load_config
+
+from coreoffline.config import OfflineMainConfig
+from coreoffline.data_loading import (
     load_offline_transitions,
     offline_rl_from_buffer,
 )
-from corerl.state import AppState
-from corerl.tags.validate_tag_configs import validate_tag_configs
+from coreoffline.offline_training.utils import get_all_offline_recommendations
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-@load_config(MainConfig)
-def main(cfg: MainConfig):
+@load_config(OfflineMainConfig)
+def main(cfg: OfflineMainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
@@ -50,11 +50,11 @@ def main(cfg: MainConfig):
     agent = GreedyAC(cfg.agent, app_state, column_desc)
 
     # Offline training
-    assert cfg.offline.offline_steps > 0
+    assert cfg.offline_training.offline_steps > 0
     pipeline_out, _ = load_offline_transitions(app_state, pipeline)
     assert pipeline_out is not None
     agent.update_buffer(pipeline_out)
-    offline_rl_from_buffer(agent, cfg.offline.offline_steps)
+    offline_rl_from_buffer(agent, cfg.offline_training.offline_steps)
     get_all_offline_recommendations(app_state, agent, pipeline)
 
     app_state.metrics.close()

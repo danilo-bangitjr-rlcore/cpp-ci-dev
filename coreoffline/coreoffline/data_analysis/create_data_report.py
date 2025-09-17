@@ -4,18 +4,19 @@ from datetime import datetime
 
 import numpy as np
 import pandas as pd
-from lib_config.loader import load_config
-
-from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.data_report import generate_report
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import load_data_chunks, load_entire_dataset
 from corerl.state import AppState
 from corerl.utils.pandas import split_dataframe_into_chunks
+from lib_agent.buffer.datatypes import DataMode
+from lib_config.loader import load_config
+
+from coreoffline.config import OfflineMainConfig
+from coreoffline.data_analysis.data_report import generate_report
+from coreoffline.data_loading import load_data_chunks, load_entire_dataset
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -53,12 +54,13 @@ class StageDataCapture:
         return pd.concat(self.captured_data[stage])
 
 
-@load_config(MainConfig)
-def main(cfg: MainConfig):
+@load_config(OfflineMainConfig)
+def main(cfg: OfflineMainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
     # set the random seeds
+
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
@@ -70,6 +72,7 @@ def main(cfg: MainConfig):
         metrics=create_metrics_writer(cfg.metrics),
         event_bus=DummyEventBus(),
     )
+    assert isinstance(app_state.cfg, OfflineMainConfig)  # for typing
 
     pipeline = Pipeline(app_state, cfg.pipeline)
     log.info("Loading dataset...")
@@ -83,11 +86,11 @@ def main(cfg: MainConfig):
     # Single pipeline execution through all stages
     log.info("Running pipeline with stage capture hooks...")
 
-    exclude_periods = cfg.offline.eval_periods if cfg.offline.remove_eval_from_train else None
+    exclude_periods = cfg.offline_training.eval_periods if cfg.offline_training.remove_eval_from_train else None
     data_chunks = load_data_chunks(
         cfg=app_state.cfg,
-        start_time=cfg.offline.offline_start_time,
-        end_time=cfg.offline.offline_end_time,
+        start_time=cfg.offline_training.offline_start_time,
+        end_time=cfg.offline_training.offline_end_time,
         exclude_periods=exclude_periods,
     )
 

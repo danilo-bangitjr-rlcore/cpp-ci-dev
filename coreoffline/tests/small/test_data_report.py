@@ -3,9 +3,10 @@ from math import isclose
 import numpy as np
 import pandas as pd
 
-from corerl.eval.data_report import correlate, cross_correlation, standardize
+from coreoffline.data_analysis.data_report import correlate, cross_correlation, standardize
 
 # --------------------------- standardization tests -------------------------- #
+
 
 def test_standardize_all_masked():
     x = np.array([1, 2, 3, 4, 5])

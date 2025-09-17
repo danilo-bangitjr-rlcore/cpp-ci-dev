@@ -5,22 +5,22 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
-from lib_defs.config_defs.tag_config import TagType
-from lib_sql.inspection import table_exists
-from sqlalchemy import Engine
-
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, Step, Transition
-from corerl.data_pipeline.db.data_reader import TagDBConfig
-from corerl.data_pipeline.db.data_writer import DataWriter
+from corerl.data_pipeline.datatypes import Step, Transition
+from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.eval.evals import EvalsTable
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
-from corerl.offline.utils import load_offline_transitions, offline_rl_from_buffer
 from corerl.state import AppState
+from lib_agent.buffer.datatypes import DataMode
+from lib_defs.config_defs.tag_config import TagType
+from lib_sql.inspection import table_exists
+from sqlalchemy import Engine
+
+from coreoffline.config import OfflineMainConfig
+from coreoffline.data_loading import load_offline_transitions, offline_rl_from_buffer
 
 
 def make_step(
@@ -28,8 +28,8 @@ def make_step(
     action: jax.Array,
     gamma: float,
     state: jax.Array,
-    dp: bool, # decision point
-    ac: bool, # action change
+    dp: bool,  # decision point
+    ac: bool,  # action change
 ):
     return Step(
         reward=reward,
@@ -44,7 +44,7 @@ def make_step(
 
 
 @pytest.fixture()
-def data_writer(offline_cfg: MainConfig, test_db_config: TagDBConfig):
+def data_writer(offline_cfg: OfflineMainConfig, test_db_config: TagDBConfig):
     data_writer = DataWriter(cfg=test_db_config)
 
     steps = 5
@@ -52,7 +52,7 @@ def data_writer(offline_cfg: MainConfig, test_db_config: TagDBConfig):
 
     # Generate timestamps
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
-    offline_cfg.offline.offline_start_time = start_time
+    offline_cfg.offline_training.offline_start_time = start_time
     # The index of the first row produced by the data reader given start_time will be
     # obs_period after start_time.
     first_step = start_time + obs_period
@@ -82,8 +82,9 @@ def data_writer(offline_cfg: MainConfig, test_db_config: TagDBConfig):
 
     data_writer.close()
 
+
 @pytest.fixture
-def offline_pipeout(offline_cfg: MainConfig, dummy_app_state: AppState, data_writer: DataWriter):
+def offline_pipeout(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, data_writer: DataWriter):
     """
     Generate offline data for tests and return the OfflineTraining object
     """
@@ -91,11 +92,12 @@ def offline_pipeout(offline_cfg: MainConfig, dummy_app_state: AppState, data_wri
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     dummy_app_state.cfg = offline_cfg
-    pipeout, _ =  load_offline_transitions(dummy_app_state, pipeline)
+    pipeout, _ = load_offline_transitions(dummy_app_state, pipeline)
     assert pipeout is not None
     return pipeout
 
-def test_load_offline_transitions(offline_cfg: MainConfig, offline_pipeout: PipelineReturn):
+
+def test_load_offline_transitions(offline_cfg: OfflineMainConfig, offline_pipeout: PipelineReturn):
     """
     Ensure the test data generated in the 'offline_trainer' fixture was written to TSDB,
     read from TSDB, and that the correct transitions were produced by the data pipeline
@@ -106,9 +108,9 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_pipeout: Pipe
     # Expected transitions
     gamma = offline_cfg.agent.gamma
     step_0 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([0, 1, 0]), dp=False, ac=False)
-    step_1 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([1, 1, 0]), dp=True,  ac=False)
+    step_1 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([1, 1, 0]), dp=True, ac=False)
     step_2 = make_step(reward=1.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([2, 1, 0]), dp=False, ac=True)
-    step_3 = make_step(reward=0.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([3, 1, 0]), dp=True,  ac=False)
+    step_3 = make_step(reward=0.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([3, 1, 0]), dp=True, ac=False)
     step_4 = make_step(reward=0.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([4, 1, 0]), dp=False, ac=True)
     expected_transitions = [Transition([step_0, step_1], 1.0, gamma),
                             Transition([step_1, step_2], 1.0, gamma),
@@ -120,9 +122,10 @@ def test_load_offline_transitions(offline_cfg: MainConfig, offline_pipeout: Pipe
     for i, created_transition in enumerate(created_transitions):
         assert created_transition == expected_transitions[i]
 
+
 @pytest.mark.skip(reason="failing on master, requires further investigation")
 def test_offline_training(
-    offline_cfg: MainConfig,
+    offline_cfg: OfflineMainConfig,
     offline_pipeout: PipelineReturn,
     tsdb_engine: Engine,
     dummy_app_state: AppState,
@@ -144,7 +147,7 @@ def test_offline_training(
 
     agent.update_buffer(offline_pipeout)
 
-    critic_losses = offline_rl_from_buffer(agent, offline_cfg.offline.offline_steps)
+    critic_losses = offline_rl_from_buffer(agent, offline_cfg.offline_training.offline_steps)
     first_loss = critic_losses[0]
     last_loss = critic_losses[-1]
 
@@ -166,7 +169,7 @@ def test_offline_training(
         assert len(state_v_entries) == len(observed_a_q_entries) == len(partial_return_entries) == 2
 
 
-def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_state: AppState):
+def test_regression_normalizer_bounds_reset(offline_cfg: OfflineMainConfig, dummy_app_state: AppState):
     normalizer = NormalizerConfig(from_data=True)
 
     # add normalizer to pipeline config
@@ -180,8 +183,8 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_s
     dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.UTC) for i in range(5)]
     df = pd.DataFrame({
         "Tag_1":  [0.1, -0.1, 0, 0, 0],
-        "Action": [  0,    0, 1, 1, 0],
-        "reward": [  0,    0, 0, 0, 0],
+        "Action": [0, 0, 1, 1, 0],
+        "reward": [0, 0, 0, 0, 0],
     }, index=pd.DatetimeIndex(dates))
 
     # check if tag is normalized using [-0.1, 0.1] as bounds
@@ -190,7 +193,8 @@ def test_regression_normalizer_bounds_reset(offline_cfg: MainConfig, dummy_app_s
 
     assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])
 
-def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, data_writer: DataWriter):
+
+def test_offline_start_end(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, data_writer: DataWriter):
     obs_period = offline_cfg.interaction.obs_period
     start_time = dt.datetime(year=2023, month=7, day=13, hour=10, minute=0, tzinfo=dt.UTC)
     # The index of the first row produced by the data reader given start_time will be
@@ -198,8 +202,8 @@ def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, d
     first_step = start_time + obs_period
 
     # Produce offline transitions
-    offline_cfg.offline.offline_start_time = first_step
-    offline_cfg.offline.offline_end_time = first_step + 2 * obs_period
+    offline_cfg.offline_training.offline_start_time = first_step
+    offline_cfg.offline_training.offline_end_time = first_step + 2 * obs_period
 
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
@@ -209,14 +213,15 @@ def test_offline_start_end(offline_cfg: MainConfig, dummy_app_state: AppState, d
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
     assert isinstance(offline_pipeout, PipelineReturn)
     df = offline_pipeout.df
-    assert len(df) == (offline_cfg.offline.offline_end_time - offline_cfg.offline.offline_start_time) / obs_period
+    assert len(df) == (offline_cfg.offline_training.offline_end_time -
+                        offline_cfg.offline_training.offline_start_time) / obs_period
 
 
-def test_test_split(offline_cfg: MainConfig, dummy_app_state: AppState, data_writer: DataWriter):
+def test_test_split(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, data_writer: DataWriter):
     """
     Tests ability to split offline transitions into a train and test set.
     """
-    offline_cfg.offline.test_split = 0.2
+    offline_cfg.offline_training.test_split = 0.2
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     offline_pipeout, test_transitions = load_offline_transitions(dummy_app_state, pipeline)
