@@ -6,6 +6,7 @@ from typing import Any, SupportsFloat
 import pandas as pd
 from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
+from lib_sql.inspection import get_all_columns
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
 from lib_sql.writers.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
@@ -146,7 +147,20 @@ class WideMetricsTable:
         with TryConnectContextManager(self.engine) as connection:
             return pd.read_sql(sql=text(stmt), con=connection)
 
-    def _read_by_metric(self, metric: str) -> pd.DataFrame:
+    def _get_matching_columns(self, metric: str, prefix_match: bool = False) -> list[str]:
+        """Get column names that match the metric (exact or prefix)."""
+        if prefix_match:
+            columns = get_all_columns(self.engine, self.cfg.table_name)
+            columns = [col['name'] for col in columns]
+
+            return [
+                col for col in columns
+                if col.startswith(metric) and col not in {"time", "agent_step"}
+            ]
+
+        # Exact match - just return the metric if it exists
+        return [metric]
+
         stmt = f"""
             SELECT
                 time,
