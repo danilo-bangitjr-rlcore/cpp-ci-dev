@@ -522,10 +522,10 @@ def make_zone_violations_table(
     ]
 
     def add_zone_violation_rows(violation_type: str):
-        metrix_prefix = f'{violation_type}_zone_violation'
+        metric_prefix = f'{violation_type}_zone_violation'
         try:
             yz_df = app_state.metrics.read(
-                metric=metrix_prefix,
+                metric=metric_prefix,
                 start_time=start_time,
                 end_time=end_time,
                 prefix_match=True,
@@ -533,18 +533,18 @@ def make_zone_violations_table(
 
             if not yz_df.empty:
                 # Process each column that starts with metric_name
-                metric_columns = [col for col in yz_df.columns if col.startswith(metrix_prefix)]
+                metric_columns = [col for col in yz_df.columns if col.startswith(metric_prefix)]
 
                 for col in metric_columns:
                     num_violations = int((yz_df[col] > 0).sum())
-                    tag = col.removeprefix(metrix_prefix)
+                    tag = col.removeprefix(metric_prefix)
                     table_data.append([f'Num {tag} violations', str(num_violations)])
 
                     avg_violation = yz_df[col].mean()
                     table_data.append([f'Avg {tag} violation level', str(avg_violation)])
 
         except Exception as e:
-            log.warning(f"Could not read {metrix_prefix} metric: {e}")
+            log.warning(f"Could not read {metric_prefix} metric: {e}")
 
     add_zone_violation_rows('yellow')
     add_zone_violation_rows('red')
