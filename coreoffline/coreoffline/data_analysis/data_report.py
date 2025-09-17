@@ -461,10 +461,14 @@ def make_transition_statistics_table(
             metric='transitions_filtered',
             start_time=start_time,
             end_time=end_time,
+            prefix_match=True,
         )
-        if not transitions_filtered_df.empty:
-            total_filtered = transitions_filtered_df['transitions_filtered'].sum()
-            table_data.append(['Total Transitions Filtered', str(total_filtered)])
+
+        for col in transitions_filtered_df.columns:
+            if col.startswith("transitions_filtered"):
+                total_filtered = transitions_filtered_df[col].sum()
+                transition_filter = col.removeprefix("transitions_filtered_by_")
+                table_data.append([f'Total Transitions Filtered by {transition_filter}', str(total_filtered)])
 
     except Exception as e:
         log.warning(f"Could not read transitions_filtered metric: {e}")
