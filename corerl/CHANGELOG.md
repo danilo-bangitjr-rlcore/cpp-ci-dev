@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.149.0](https://github.com/rlcoretech/core-rl/compare/v0.148.0...v0.149.0) (2025-09-17)
+
+
+### Features
+
+* **corerl:** support logical or/and sympy expressions ([ef92cff](https://github.com/rlcoretech/core-rl/commit/ef92cff688d4fd70da15b18ea8342988d4361a94))
+
 ## [0.148.0](https://github.com/rlcoretech/core-rl/compare/v0.147.0...v0.148.0) (2025-09-15)
 
 
