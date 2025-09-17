@@ -142,6 +142,8 @@ class AgentManager:
 
                     # If both processes were successfully reattached, no need to restart
                     if corerl_success and coreio_success:
+                        # Set agent state to RUNNING when processes are successfully reattached
+                        self._agents[agent_id]._agent_state = ServiceState.RUNNING
                         continue
 
                     # Otherwise, start the agent (which will start any missing services)
