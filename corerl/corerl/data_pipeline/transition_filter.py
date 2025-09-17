@@ -52,12 +52,13 @@ class TransitionFilter:
         for filter_name in self.filter_names:
             pf.transitions = call_filter(pf.transitions, filter_name)
 
-        transitions_after = len(pf.transitions)
-        self._app_state.metrics.write(
-            self._app_state.agent_step,
-            'transitions_filtered',
-            transitions_before - transitions_after,
-        )
+            transitions_after = len(pf.transitions)
+            self._app_state.metrics.write(
+                self._app_state.agent_step,
+                f'transitions_filtered_by_{filter_name}',
+                transitions_before - transitions_after,
+            )
+            transitions_before = transitions_after
 
         return pf
 
@@ -82,8 +83,10 @@ def call_filter(transitions: Iterable[Transition], filter_name: TransitionFilter
 def only_dp(transition: Transition):
     return transition.prior.dp and transition.post.dp
 
+
 def only_pre_dp_or_ac(transition: Transition):
     return transition.prior.dp or transition.steps[1].ac
+
 
 def only_post_dp(transition: Transition):
     return transition.post.dp
