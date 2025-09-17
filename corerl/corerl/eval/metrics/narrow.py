@@ -139,7 +139,34 @@ class NarrowMetricsTable:
         with TryConnectContextManager(self.engine) as connection:
             return pd.read_sql(sql=text(stmt), con=connection)
 
-    def _read_by_metric(self, metric: str) -> pd.DataFrame:
+    def _read_by_metric(self, metric: str, prefix_match: bool = False) -> pd.DataFrame:
+        if prefix_match:
+            stmt = f"""
+                SELECT
+                    time,
+                    agent_step,
+                    metric,
+                    value
+                FROM {self.cfg.table_name}
+                WHERE
+                    metric LIKE '{metric}%';
+            """
+            df = self._execute_read(stmt)
+            df["time"] = pd.to_datetime(df["time"])
+            df["agent_step"] = df["agent_step"].astype(int)
+
+            # Pivot the data to create columns for each metric
+            pivot_df = df.pivot_table(
+                index=["time", "agent_step"],
+                columns="metric",
+                values="value",
+                aggfunc="first",
+            ).reset_index()
+
+            # Flatten column names
+            pivot_df.columns.name = None
+            return pivot_df
+
         stmt = f"""
             SELECT
                 time,
