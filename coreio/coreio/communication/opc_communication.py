@@ -39,7 +39,7 @@ class OPC_Connection_IO(OPC_Connection):
     async def init(self, cfg: OPCConnectionConfig):
         self.connection_id = cfg.connection_id
         logger.debug(f"Starting initialization for {self.connection_id}")
-        self.opc_client = Client(cfg.opc_conn_url)
+        self.opc_client = Client(cfg.opc_conn_url, timeout=30, watchdog_intervall=30)
         self._connected = False
 
         logger.debug(f"Setting application uri for {self.connection_id}")
