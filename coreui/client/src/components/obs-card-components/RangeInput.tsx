@@ -1,55 +1,62 @@
 import React from 'react';
 
-type RangeInputProps = {
+type TickConfig = {
   label: string;
   color: string;
-  value: [number, number];
-  onChange: (value: [number, number]) => void;
+};
+
+type RangeInputProps = {
+  value: number[];
+  onChange: (value: number[]) => void;
   valid: boolean;
+  tickConfig: TickConfig[];
 };
 
 export const RangeInput: React.FC<RangeInputProps> = ({
-  label,
-  color,
   value,
   onChange,
   valid,
+  tickConfig,
 }) => {
-  const handleChange = (index: 0 | 1, v: number) => {
-    const next: [number, number] = [...value] as [number, number];
-    next[index] = v;
+  const handleChange = (idx: number, v: number) => {
+    const next = value.slice();
+    next[idx] = v;
     onChange(next);
   };
 
   return (
     <div>
-      <h4 style={{ color }}>{label}</h4>
-      <div style={{ display: 'flex', gap: '8px' }}>
-        <input
-          type="number"
-          value={value[0] ?? ''}
-          style={{
-            border: '1px solid black',
-            maxWidth: '60px',
-            textAlign: 'center',
-          }}
-          onChange={(e) => handleChange(0, Number(e.target.value) || 0)}
-        />
-        <input
-          type="number"
-          value={value[1] ?? ''}
-          style={{
-            border: '1px solid black',
-            maxWidth: '60px',
-            textAlign: 'center',
-          }}
-          onChange={(e) => handleChange(1, Number(e.target.value) || 0)}
-        />
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        {tickConfig.map((tick, idx) => (
+          <div
+            key={tick.label}
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+            }}
+          >
+            <input
+              type="number"
+              step="any"
+              value={value[idx] ?? ''}
+              style={{
+                border: `1px solid ${tick.color}`,
+                maxWidth: 60,
+                textAlign: 'center',
+              }}
+              onChange={(e) =>
+                handleChange(idx, parseFloat(e.target.value) || 0)
+              }
+            />
+            <span style={{ fontSize: 11, color: tick.color }}>
+              {tick.label}
+            </span>
+          </div>
+        ))}
       </div>
       {!valid && (
-        <span style={{ color: 'red', fontSize: '12px' }}>
-          Low must be ≤ High
-        </span>
+        <span style={{ color: 'red', fontSize: 12 }}>Invalid range values</span>
       )}
     </div>
   );

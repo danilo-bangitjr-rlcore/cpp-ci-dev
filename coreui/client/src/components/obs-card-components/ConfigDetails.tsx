@@ -18,7 +18,7 @@ export const ConfigDetails: React.FC<ConfigDetailsProps> = ({
       type="text"
       value={name}
       onChange={(e) => onNameChange(e.target.value)}
-      placeholder="Config Title"
+      placeholder="Config Name"
       className="text-lg font-bold bg-white border border-gray-300 p-2 rounded"
     />
     <input

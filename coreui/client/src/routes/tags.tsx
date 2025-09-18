@@ -1,69 +1,55 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { useQuery } from '@tanstack/react-query';
 import { ObsCard } from '../components/obs-card-components/ObsCard';
-import { API_ENDPOINTS, get } from '../utils/api';
+import { TrashIcon } from '../components/icons/TrashIcon';
+import { useTagConfigs } from '../utils/useTagConfigs';
 
 export const Route = createFileRoute('/tags')({
   component: Tags,
 });
 
-type RawTag = {
-  name?: string;
-  connection_id?: string;
-  operating_range?: [number, number];
-  expected_range?: [number, number];
-  is_computed?: boolean;
-};
-
 function Tags() {
-  const { isPending, error, data } = useQuery({
-    queryKey: ['tags'],
-    queryFn: async () => {
-      const response = await get(API_ENDPOINTS.configs.tags);
-      if (!response.ok) throw new Error('Failed to fetch tags');
-      return response.json();
-    },
-  });
+  const {
+    configs,
+    isPending,
+    error,
+    handleConfigChange,
+    updateTag,
+    addObsCard,
+    deleteTag,
+  } = useTagConfigs();
 
   if (isPending) return 'Loading tags..';
   if (error) return ' :-( ' + error.message;
 
-  // Filter and map tags for ObsCard
-  const filtered = (data.tags as RawTag[]).filter(
-    (t) =>
-      t.name &&
-      (t.connection_id || t.operating_range || t.expected_range) &&
-      !t.is_computed
-  );
-
-  const obsConfigs = filtered.map((tag) => ({
-    name: tag.name!,
-    connection_id: tag.connection_id,
-    tags: [
-      ...(tag.operating_range
-        ? [
-            {
-              label: 'Operating',
-              values: tag.operating_range as [number, number],
-            },
-          ]
-        : []),
-      ...(tag.expected_range
-        ? [
-            {
-              label: 'Expected',
-              values: tag.expected_range as [number, number],
-            },
-          ]
-        : []),
-    ],
-  }));
-
   return (
     <div className="p-2 space-y-6 flex flex-col gap-1 justify-center">
-      {obsConfigs.map((config) => (
-        <ObsCard key={config.name} config={config} />
+      {configs.map((config, index) => (
+        <div key={index} className="relative">
+          <ObsCard
+            config={config}
+            onConfigChange={(updatedConfig) =>
+              handleConfigChange(index, updatedConfig)
+            }
+            onSave={
+              config.modified ? () => updateTag(config, index) : undefined
+            }
+          />
+          <button
+            onClick={() => deleteTag(config.name, index)}
+            className="absolute top-0 right-0 p-2 bg-transparent hover:bg-gray-200 rounded"
+            aria-label="Delete"
+            type="button"
+          >
+            <TrashIcon className="w-5 h-5 text-gray-500" />
+          </button>
+        </div>
       ))}
+      <button
+        onClick={addObsCard}
+        className="w-full self-start mb-2 px-4 py-2 rounded bg-gray-200 text-gray-800 border border-gray-300 hover:bg-gray-300 transition"
+      >
+        Add Obs Card
+      </button>
     </div>
   );
 }

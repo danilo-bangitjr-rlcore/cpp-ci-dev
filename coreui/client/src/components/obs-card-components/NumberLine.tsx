@@ -2,7 +2,11 @@ import React from 'react';
 
 type Range = {
   label: string;
-  values: [number, number];
+  values: number[];
+};
+
+type TickConfig = {
+  label: string;
   color: string;
 };
 
@@ -10,12 +14,16 @@ type NumberLineProps = {
   ranges: Range[];
   min?: number;
   max?: number;
+  tickConfig: TickConfig[];
+  isValid: boolean;
 };
 
 export const NumberLine: React.FC<NumberLineProps> = ({
   ranges,
   min = 0,
   max = 100,
+  tickConfig,
+  isValid,
 }) => {
   const toPercent = (value: number) => ((value - min) / (max - min)) * 100;
 
@@ -24,40 +32,54 @@ export const NumberLine: React.FC<NumberLineProps> = ({
       <div
         style={{
           position: 'relative',
-          height: '6px',
+          height: 50,
           background: '#ddd',
-          borderRadius: '3px',
+          borderRadius: 3,
         }}
       >
-        {ranges.map(({ values, color, label }) =>
+        {ranges.map(({ values, label }) =>
           values.map((val, idx) => {
             const percent = toPercent(val);
+            const tick = tickConfig[idx] || { label: 'Unknown', color: '#999' };
+            const color = isValid ? tick.color : '#f44336';
             return (
-              <div
-                key={`${label}-${idx}`}
-                title={`${label} ${idx === 0 ? 'low' : 'high'}: ${val}`}
-                style={{
-                  position: 'absolute',
-                  left: `${percent}%`,
-                  top: '-6px',
-                  width: '2px',
-                  height: '18px',
-                  background: color,
-                  border: color === 'red' ? '1px dashed red' : undefined,
-                }}
-              />
+              <React.Fragment key={`${label}-${idx}`}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `${percent}%`,
+                    top: -6,
+                    width: 3,
+                    height: 56,
+                    background: color,
+                    border: !isValid ? '1px dashed #f44336' : undefined,
+                    borderRadius: 2,
+                  }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    left: `calc(${percent}% - 5px)`,
+                    top: 50,
+                    width: 12,
+                    height: 12,
+                    background: color,
+                    borderRadius: '50%',
+                    border: '2px solid #fff',
+                    boxShadow: '0 0 2px #888',
+                  }}
+                />
+              </React.Fragment>
             );
           })
         )}
       </div>
-
-      {/* Axis labels */}
       <div
         style={{
           display: 'flex',
           justifyContent: 'space-between',
-          fontSize: '12px',
-          marginTop: '4px',
+          fontSize: 15,
+          marginTop: 4,
         }}
       >
         <span>{min}</span>
