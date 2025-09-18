@@ -24,6 +24,30 @@ log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------- #
+#                            Report Output Utilities                           #
+# ---------------------------------------------------------------------------- #
+
+
+def save_as_txt(table_data: list[list[str]], output_path: Path, name: str):
+    """Save table data as formatted TXT file."""
+    txt_path = output_path / f'{name}.txt'
+    table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
+    txt_path.write_text(table_str, encoding='utf-8')
+
+
+def save_as_csv(table_data: list[list[str]], output_path: Path, name: str):
+    """Save table data as CSV file."""
+    csv_path = output_path / f'{name}.csv'
+
+    # Convert table data to pandas DataFrame for easy CSV export
+    if len(table_data) > 0:
+        headers = table_data[0]
+        data_rows = table_data[1:]
+        df = pd.DataFrame(data_rows, columns=headers)
+        df.to_csv(csv_path, index=False, encoding='utf-8')
+
+
+# ---------------------------------------------------------------------------- #
 #                                Tag Statistics                                #
 # ---------------------------------------------------------------------------- #
 
@@ -53,8 +77,8 @@ def make_stat_table(
                 row.append(str(round(value, 2)))
             table_data.append(row)
     table_data.insert(0, headers)
-    table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
-    (output_path / 'sensor_report.txt').write_text(table_str, encoding='utf-8')
+    save_as_txt(table_data, output_path, 'sensor_report')
+    save_as_csv(table_data, output_path, 'sensor_report')
 
 
 def get_tag_pairs(
@@ -105,8 +129,8 @@ def make_cross_correlation_table(
             row = [stage.name, tag_1, tag_2, cc, lag]
             table.append(row)  # type: ignore
 
-    table_str = tabulate(table, headers='firstrow', tablefmt='grid')
-    (output_path / 'cross_correlation.txt').write_text(table_str, encoding='utf-8')
+    save_as_txt(table, output_path, 'cross_correlation')
+    save_as_csv(table, output_path, 'cross_correlation')
 
 
 def standardize(x: np.ndarray, mask: np.ndarray):
@@ -360,8 +384,9 @@ def make_goal_violations_table(
             ])
 
     # Generate table and save
-    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
-    (output_path / 'goal_violations.txt').write_text(table_str, encoding='utf-8')
+    full_table_data = [headers, *table_data]
+    save_as_txt(full_table_data, output_path, 'goal_violations')
+    save_as_csv(full_table_data, output_path, 'goal_violations')
 
 
 # ---------------------------------------------------------------------------- #
@@ -493,8 +518,9 @@ def make_transition_statistics_table(
         table_data.append([k, str(v)])
 
     # Generate table and save
-    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
-    (output_path / 'transition_statistics.txt').write_text(table_str, encoding='utf-8')
+    full_table_data = [headers, *table_data]
+    save_as_txt(full_table_data, output_path, 'transition_statistics')
+    save_as_csv(full_table_data, output_path, 'transition_statistics')
 
 
 # ---------------------------------------------------------------------------- #
@@ -554,8 +580,9 @@ def make_zone_violations_table(
     add_zone_violation_rows('red')
 
     # Generate table and save
-    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
-    (output_path / 'zone_violation_statistics.txt').write_text(table_str, encoding='utf-8')
+    full_table_data = [headers, *table_data]
+    save_as_txt(full_table_data, output_path, 'zone_violation_statistics')
+    save_as_csv(full_table_data, output_path, 'zone_violation_statistics')
 
 
 # ---------------------------------------------------------------------------- #
