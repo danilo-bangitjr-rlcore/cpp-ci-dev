@@ -32,16 +32,14 @@ async def initialize_opc_connections(
         opc_conn = await OPC_Connection_IO().init(opc_conn_cfg)
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
-        async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg_tags)
+        await opc_conn.register_cfg_nodes(cfg_tags)
 
         # Register heartbeat_id separately
         if cfg_heartbeat.connection_id == opc_conn_cfg.connection_id:
             heartbeat_id = cfg_heartbeat.heartbeat_node_id
 
             if heartbeat_id is not None:
-                async with opc_conn:
-                    await opc_conn.register_node(heartbeat_id, "heartbeat")
+                await opc_conn.register_node(heartbeat_id, "heartbeat")
 
     return opc_connections
 
