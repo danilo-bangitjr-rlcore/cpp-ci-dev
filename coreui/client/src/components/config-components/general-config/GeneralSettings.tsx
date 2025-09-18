@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import TimeInput from './TimeInput';
-
-interface TimeState {
-  hours: number;
-  minutes: number;
-  seconds: number;
-}
+import TimeInput, { type TimeState } from './TimeInput';
 
 export default function GeneralSettings() {
   const [observationPeriod, setObservationPeriod] = useState<TimeState>({
