@@ -28,6 +28,7 @@ async def lifespan(app: FastAPI):
     )
     yield
     logger.info("CoreRL server shutting down")
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
     parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
@@ -41,72 +42,62 @@ def parse_args():
 
     return args.base_path, args.port, args.log_file, args.log_level, not args.no_console, args.reload
 
-
-base_path, main_port, log_file, log_level, console_output, reload = parse_args()
-
-# Initialize structured logging
-setup_structured_logging(
-    log_file_path=log_file,
-    log_level=log_level,
-    console_output=console_output,
-)
-
-app = FastAPI(lifespan=lifespan)
-service_manager = ServiceManager()
-app.state.service_manager = service_manager
-app.state.base_path = base_path
-app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-version = "0.0.0"
-
-
-@app.middleware("http")
-async def add_core_rl_version(request: Request, call_next: Callable):
-    logger.debug(
-        "Processing request",
-        method=request.method,
-        url=str(request.url),
-        client_host=request.client.host if request.client else None,
-    )
-
-    response = await call_next(request)
-    response.headers["X-CoreRL-Version"] = version
-
-    logger.debug(
-        "Request completed",
-        method=request.method,
-        url=str(request.url),
-        status_code=response.status_code,
-        version=version,
-    )
-
-    return response
-
-
-@app.get("/")
-async def redirect():
-    return RedirectResponse(url="/docs")
-
-
-@app.get("/api/healthcheck")
-async def health():
-    logger.debug("Health check requested")
-    return {"status": "healthy", "version": version}
-
-
-app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
-app.include_router(coreio_manager, prefix="/api/io", tags=["CoreIO"])
-
-
 if __name__ == "__main__":
-    # Re-parse args for __main__ execution
-    _, main_port, log_file, log_level, console_output, reload = parse_args()
-    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=main_port, reload=reload)
+    base_path, main_port, log_file, log_level, console_output, reload = parse_args()
+
+    # Initialize structured logging
+    setup_structured_logging(
+        log_file_path=log_file,
+        log_level=log_level,
+        console_output=console_output,
+    )
+
+    app = FastAPI(lifespan=lifespan)
+    service_manager = ServiceManager()
+    app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    version = "0.0.1"
+
+    @app.middleware("http")
+    async def add_core_rl_version(request: Request, call_next: Callable):
+        logger.debug(
+            "Processing request",
+            method=request.method,
+            url=str(request.url),
+            client_host=request.client.host if request.client else None,
+        )
+
+        response = await call_next(request)
+        response.headers["X-CoreRL-Version"] = version
+
+        logger.debug(
+            "Request completed",
+            method=request.method,
+            url=str(request.url),
+            status_code=response.status_code,
+            version=version,
+        )
+
+        return response
+
+    @app.get("/")
+    async def redirect():
+        return RedirectResponse(url="/docs")
+
+    @app.get("/api/healthcheck")
+    async def health():
+        logger.debug("Health check requested")
+        return {"status": "healthy", "version": version}
+
+    app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
+    app.include_router(coreio_manager, prefix="/api/io", tags=["CoreIO"])
+
+    uvicorn.run(app, host="0.0.0.0", port=main_port, reload=reload)
