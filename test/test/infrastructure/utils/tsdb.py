@@ -139,4 +139,22 @@ def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_tmp_db_name
     # Dispose of the engine to close all connections before dropping the database
     # This is required in SQLAlchemy 2.0 to prevent "database is being accessed by other users" errors
     engine.dispose()
+
+    # Force disconnect all other sessions before dropping database
+    # This handles cases where other engines might still be connected
+    try:
+        with get_sql_engine(cfg, "postgres").connect() as conn:
+            # Terminate all active connections to the test database
+            conn.execute(
+                text(
+                    "SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = :db_name AND pid != pg_backend_pid()",
+                ),
+                {"db_name": tsdb_tmp_db_name},
+            )
+            conn.commit()
+    except Exception:
+        # If termination fails, proceed anyway - drop_database will handle the error
+        pass
+
     drop_database(engine.url)

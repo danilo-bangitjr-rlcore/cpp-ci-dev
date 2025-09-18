@@ -8,6 +8,7 @@ from lib_sql.engine import get_sql_engine
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
 from lib_sql.writers.static_schema_sql_writer import StaticSchemaSqlWriter
+from lib_utils.errors import fail_gracefully
 from lib_utils.time import now_iso
 from sqlalchemy import text
 
@@ -60,8 +61,12 @@ class StaticEvalsTable:
             enabled=True,
         )
 
+    @fail_gracefully()
     def close(self):
         self._writer.close()
+        # Dispose of the engine to close all connections before dropping the database
+        # This is required in SQLAlchemy 2.0 to prevent "database is being accessed by other users" errors
+        self.engine.dispose()
 
     # ============================================================================
     # Public Write API

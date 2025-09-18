@@ -22,5 +22,5 @@ class DummyEvalsWriter:
     def flush(self) -> None:
         ...
 
-    def close(self) -> None:
+    def close(self) -> object:
         ...

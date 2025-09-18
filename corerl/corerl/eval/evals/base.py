@@ -30,7 +30,7 @@ class EvalsWriterProtocol(Protocol):
     def flush(self) -> None:
         ...
 
-    def close(self) -> None:
+    def close(self) -> object:
         ...
 
 
