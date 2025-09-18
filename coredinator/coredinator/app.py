@@ -42,18 +42,14 @@ def parse_args():
 
     return args.base_path, args.port, args.log_file, args.log_level, not args.no_console, args.reload
 
-if __name__ == "__main__":
-    base_path, main_port, log_file, log_level, console_output, reload = parse_args()
 
-    # Initialize structured logging
-    setup_structured_logging(
-        log_file_path=log_file,
-        log_level=log_level,
-        console_output=console_output,
-    )
-
+# pyright: reportUnusedFunction=false
+def create_app(base_path: Path) -> FastAPI:
+    """Factory function to create FastAPI app with given base_path."""
     app = FastAPI(lifespan=lifespan)
     service_manager = ServiceManager()
+    app.state.service_manager = service_manager
+    app.state.base_path = base_path
     app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
 
     app.add_middleware(
@@ -100,4 +96,10 @@ if __name__ == "__main__":
     app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
     app.include_router(coreio_manager, prefix="/api/io", tags=["CoreIO"])
 
-    uvicorn.run(app, host="0.0.0.0", port=main_port, reload=reload)
+    return app
+
+
+if __name__ == "__main__":
+    base_path, main_port = parse_args()
+    app = create_app(base_path)
+    uvicorn.run(app, host="0.0.0.0", port=main_port, reload=False)

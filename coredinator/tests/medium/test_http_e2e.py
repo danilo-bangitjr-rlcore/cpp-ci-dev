@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib
 import sys
 import time
 from pathlib import Path
@@ -8,6 +7,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 
+from coredinator.app import create_app
 from coredinator.utils.test_polling import wait_for_event
 
 
@@ -15,8 +15,8 @@ from coredinator.utils.test_polling import wait_for_event
 def app_client(monkeypatch: pytest.MonkeyPatch, dist_with_fake_executable: Path):
     """Spin up the FastAPI app with a temporary base path and yield a TestClient.
 
-    This fixture ensures the module-level app is (re)imported with the desired
-    --base-path CLI argument and that any started agents are stopped after the test.
+    This fixture creates a FastAPI app instance with the desired base_path
+    and ensures any started agents are stopped after the test.
     """
     # Ensure the fake agent stays alive when started
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
@@ -25,20 +25,16 @@ def app_client(monkeypatch: pytest.MonkeyPatch, dist_with_fake_executable: Path)
     prev_argv = sys.argv[:]
     sys.argv = ["pytest", "--base-path", str(dist_with_fake_executable)]
 
-    # Force a clean import of the app module
-    module_name = "coredinator.app"
-    if module_name in sys.modules:
-        del sys.modules[module_name]
-    app_module = importlib.import_module(module_name)
-
-    client = TestClient(app_module.app)
+    # Create app with the test base path
+    app = create_app(base_path=dist_with_fake_executable)
+    client = TestClient(app)
 
     try:
         yield client
     finally:
         # Stop any agents that may still be running
         try:
-            manager = app_module.app.state.agent_manager
+            manager = app.state.agent_manager
             for agent_id in list(manager.list_agents()):
                 manager.stop_agent(agent_id)
                 # Give processes a moment to exit
