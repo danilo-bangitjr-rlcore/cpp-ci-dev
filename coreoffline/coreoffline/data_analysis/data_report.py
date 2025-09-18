@@ -16,10 +16,16 @@ from tabulate import tabulate
 from coreoffline.config import ReportConfig
 from coreoffline.data_analysis.plotting import (
     make_distribution_plots,
+    plot_violation_distribution,
 )
 from coreoffline.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------- #
+#                                Tag Statistics                                #
+# ---------------------------------------------------------------------------- #
 
 
 def make_stat_table(
@@ -78,7 +84,7 @@ def make_cross_correlation_table(
     data: list[pd.DataFrame],
     stages: list[StageCode],
     output_path: Path,
-    ) -> None:
+):
 
     if not cfg.cross_corr_enabled:
         return
@@ -122,7 +128,7 @@ def correlate(
     x: np.ndarray,
     y: np.ndarray,
     max_lag: int,
-) -> np.ndarray:
+):
     """
     Unnormalized cross correlation for lags in [-max_lag, +max_lag]
     """
@@ -191,71 +197,9 @@ def cross_correlation(
     return cross_corr[max_idx], lags[max_idx], cross_corr
 
 
-def calculate_contiguous_sequence_lengths(
-    transitions: list[Transition],
-    time_threshold: timedelta,
-) -> list[int]:
-    """
-    Calculate lengths of contiguous transition sequences.
-    Transitions are considered contiguous if the time gap between consecutive transitions
-    is less than the specified threshold.
-    """
-    if not transitions:
-        return []
-
-    sequence_lengths = []
-    current_length = 1
-
-    for i in range(1, len(transitions)):
-        prev_transition = transitions[i - 1]
-        curr_transition = transitions[i]
-
-        # Check if transitions are contiguous based on timestamp
-        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold):
-            current_length += 1
-        else:
-            sequence_lengths.append(current_length)
-            current_length = 1
-
-    # Add the last sequence
-    sequence_lengths.append(current_length)
-
-    return sequence_lengths
-
-
-def are_transitions_contiguous(
-    prev_transition: Transition,
-    curr_transition: Transition,
-    time_threshold: timedelta,
-):
-    """
-    Determine if two transitions are contiguous based on timestamp proximity.
-    """
-    # Check if both transitions have timestamps
-    prev_timestamp = prev_transition.end_time
-    curr_timestamp = curr_transition.start_time
-
-    if prev_timestamp is None or curr_timestamp is None:
-        return False
-
-    # Calculate time difference
-    time_diff = curr_timestamp - prev_timestamp
-    return time_diff <= time_threshold
-
-
-def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
-    return_dict = {
-        'Total Sequences': len(sequence_lengths),
-        'Average Sequence Length': np.mean(sequence_lengths),
-        'Min Sequence Length': np.min(sequence_lengths),
-        'Max Sequence Length': np.max(sequence_lengths),
-    }
-    # Add percentiles
-    for p in cfg.transition_percentiles:
-        percentile_value = np.percentile(sequence_lengths, p * 100)
-        return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
-    return return_dict
-
+# ---------------------------------------------------------------------------- #
+#                                Goal Violations                               #
+# ---------------------------------------------------------------------------- #
 
 def calculate_violation_periods(
     satisfaction_df: pd.DataFrame,
@@ -420,6 +364,76 @@ def make_goal_violations_table(
     (output_path / 'goal_violations.txt').write_text(table_str, encoding='utf-8')
 
 
+# ---------------------------------------------------------------------------- #
+#                             Transition Statistics                            #
+# ---------------------------------------------------------------------------- #
+
+def calculate_contiguous_sequence_lengths(
+    transitions: list[Transition],
+    time_threshold: timedelta,
+):
+    """
+    Calculate lengths of contiguous transition sequences.
+    Transitions are considered contiguous if the time gap between consecutive transitions
+    is less than the specified threshold.
+    """
+    if not transitions:
+        return []
+
+    sequence_lengths = []
+    current_length = 1
+
+    for i in range(1, len(transitions)):
+        prev_transition = transitions[i - 1]
+        curr_transition = transitions[i]
+
+        # Check if transitions are contiguous based on timestamp
+        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold):
+            current_length += 1
+        else:
+            sequence_lengths.append(current_length)
+            current_length = 1
+
+    # Add the last sequence
+    sequence_lengths.append(current_length)
+
+    return sequence_lengths
+
+
+def are_transitions_contiguous(
+    prev_transition: Transition,
+    curr_transition: Transition,
+    time_threshold: timedelta,
+):
+    """
+    Determine if two transitions are contiguous based on timestamp proximity.
+    """
+    # Check if both transitions have timestamps
+    prev_timestamp = prev_transition.end_time
+    curr_timestamp = curr_transition.start_time
+
+    if prev_timestamp is None or curr_timestamp is None:
+        return False
+
+    # Calculate time difference
+    time_diff = curr_timestamp - prev_timestamp
+    return time_diff <= time_threshold
+
+
+def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
+    return_dict = {
+        'Total Sequences': len(sequence_lengths),
+        'Average Sequence Length': np.mean(sequence_lengths),
+        'Min Sequence Length': np.min(sequence_lengths),
+        'Max Sequence Length': np.max(sequence_lengths),
+    }
+    # Add percentiles
+    for p in cfg.transition_percentiles:
+        percentile_value = np.percentile(sequence_lengths, p * 100)
+        return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
+    return return_dict
+
+
 def make_transition_statistics_table(
     cfg: ReportConfig,
     transitions: list[Transition],
@@ -427,7 +441,7 @@ def make_transition_statistics_table(
     app_state: AppState,
     start_time: datetime,
     end_time: datetime,
-) -> None:
+):
     """
     Generate transition statistics table and save to file.
     """
@@ -483,6 +497,162 @@ def make_transition_statistics_table(
     (output_path / 'transition_statistics.txt').write_text(table_str, encoding='utf-8')
 
 
+# ---------------------------------------------------------------------------- #
+#                                Zone Violation                                #
+# ---------------------------------------------------------------------------- #
+
+def make_zone_violations_table(
+    cfg: ReportConfig,
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+):
+    """
+    Generate zone violations statistics table and save to file.
+    """
+
+    log.info("Generating zone violation statistics...")
+
+    # Prepare table data
+    table_data: list[list[str]] = [
+        ['start time of report gen.', str(start_time)],
+        ['end time of report gen.', str(end_time)],
+    ]
+
+    headers = [
+        'Metric',
+        'Value',
+    ]
+
+    def add_zone_violation_rows(violation_type: str):
+        metric_prefix = f'{violation_type}_zone_violation'
+        try:
+            yz_df = app_state.metrics.read(
+                metric=metric_prefix,
+                start_time=start_time,
+                end_time=end_time,
+                prefix_match=True,
+            )
+
+            if not yz_df.empty:
+                # Process each column that starts with metric_name
+                metric_columns = [col for col in yz_df.columns if col.startswith(metric_prefix)]
+
+                for col in metric_columns:
+                    num_violations = int((yz_df[col] > 0).sum())
+                    tag = col.removeprefix(metric_prefix)
+                    table_data.append([f'Num {tag} violations', str(num_violations)])
+
+                    avg_violation = yz_df[col].mean()
+                    table_data.append([f'Avg {tag} violation level', str(avg_violation)])
+
+        except Exception as e:
+            log.warning(f"Could not read {metric_prefix} metric: {e}")
+
+    add_zone_violation_rows('yellow')
+    add_zone_violation_rows('red')
+
+    # Generate table and save
+    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
+    (output_path / 'zone_violation_statistics.txt').write_text(table_str, encoding='utf-8')
+
+
+# ---------------------------------------------------------------------------- #
+#                             Violation Distribution Plots                     #
+# ---------------------------------------------------------------------------- #
+
+def make_violation_plots(
+    cfg: ReportConfig,
+    output_path: Path,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+):
+    """
+    Generate violation distribution plots for each tag.
+    """
+
+    if not cfg.violation_plot_enabled:
+        return
+
+    log.info("Generating violation distribution plots...")
+
+    show_mean = cfg.violation_plot_show_mean
+    percentiles = cfg.violation_plot_percentiles
+    num_bins = cfg.violation_plot_num_bins
+
+    def get_violation_data(violation_type: str):
+        """Get violation data for yellow or red violations."""
+        metric_prefix = f'{violation_type}_zone_violation'
+        try:
+            return app_state.metrics.read(
+                metric=metric_prefix,
+                start_time=start_time,
+                end_time=end_time,
+                prefix_match=True,
+            )
+        except Exception as e:
+            log.warning(f"Could not read {metric_prefix} metric: {e}")
+            return pd.DataFrame()
+
+    # Get violation data
+    yellow_df = get_violation_data('yellow')
+    red_df = get_violation_data('red')
+
+    if yellow_df.empty and red_df.empty:
+        log.info("No violation data found, skipping violation plots")
+        return
+
+    # Extract unique tags from column names
+    yellow_tags = set()
+    red_tags = set()
+
+    if not yellow_df.empty:
+        yellow_tags = {
+            col.removeprefix('yellow_zone_violation_')
+            for col in yellow_df.columns
+        }
+
+    if not red_df.empty:
+        red_tags = {
+            col.removeprefix('red_zone_violation_')
+            for col in red_df.columns
+        }
+
+    # Get all unique tags
+    all_tags = yellow_tags.union(red_tags)
+
+    for tag in all_tags:
+        # Create tag-specific output directory
+        tag_output_path = output_path / tag
+        tag_output_path.mkdir(parents=True, exist_ok=True)
+
+        # Get data for this tag
+        yellow_col = f'yellow_zone_violation_{tag}'
+        red_col = f'red_zone_violation_{tag}'
+
+        yellow_violations = (
+            yellow_df[yellow_col] if yellow_col in yellow_df.columns
+            else pd.Series(dtype=float)
+        )
+        red_violations = (
+            red_df[red_col] if red_col in red_df.columns
+            else pd.Series(dtype=float)
+        )
+
+        # Generate the plot
+        plot_violation_distribution(
+            yellow_violations=yellow_violations,
+            red_violations=red_violations,
+            tag=tag,
+            save_path=tag_output_path / f'{tag}_violation_distribution.png',
+            show_mean=show_mean,
+            percentiles=percentiles,
+            bins=num_bins,
+        )
+
+
 def generate_report(
     cfg: ReportConfig,
     data: list[pd.DataFrame],
@@ -491,7 +661,7 @@ def generate_report(
     start_time: datetime,
     end_time: datetime,
     transitions: list[Transition] | None = None,
-) -> None:
+):
 
     output_path = Path(cfg.output_dir)
     if output_path.exists():
@@ -512,7 +682,22 @@ def generate_report(
         end_time,
     )
 
-    # Generate transition statistics if transitions are provided
+    make_zone_violations_table(
+        cfg,
+        output_path,
+        app_state,
+        start_time,
+        end_time,
+    )
+
+    make_violation_plots(
+        cfg,
+        output_path / 'plots',
+        app_state,
+        start_time,
+        end_time,
+    )
+
     if transitions:
         make_transition_statistics_table(
             cfg,
