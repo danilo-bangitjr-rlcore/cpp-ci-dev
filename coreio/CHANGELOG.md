@@ -1,5 +1,25 @@
 # Changelog
 
+## [0.9.0](https://github.com/rlcoretech/core-rl/compare/0.8.0...v0.9.0) (2025-09-18)
+
+
+### Features
+
+* **coreio:** use pg dialect for int and real dtypes in ingress ([5df1438](https://github.com/rlcoretech/core-rl/commit/5df14383d58f44673b814bd0436b2610a494bcd2))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+
+
+### Bug Fixes
+
+* adding some try/except blocks ([7ba1715](https://github.com/rlcoretech/core-rl/commit/7ba171507040de33bb7de85813aa9aab4f13669f))
+* **PROD-843:** CoreIO try/except blocks ([4a42c62](https://github.com/rlcoretech/core-rl/commit/4a42c62107717e74f28f882ee63489730da490f4))
+* remove test code ([200c58c](https://github.com/rlcoretech/core-rl/commit/200c58c5ad595b4a95026d33fcc1e0126c7bd9d0))
+
+
+### Performance Improvements
+
+* **coreio:** prefer long-lived connections with healthchecking over reconnects on CRUD ([987d3de](https://github.com/rlcoretech/core-rl/commit/987d3de826ec59760fecc7210f1906ee2f3bb597))
+
 ## [0.8.0](https://github.com/rlcoretech/core-rl/compare/0.7.0...v0.8.0) (2025-09-17)
 
 
