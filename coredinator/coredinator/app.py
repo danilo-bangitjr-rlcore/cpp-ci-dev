@@ -17,6 +17,7 @@ from coredinator.web.coreio_manager import router as coreio_manager
 # Structured logger for application events
 logger = get_logger(__name__)
 
+version = "0.0.1"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -60,8 +61,6 @@ def create_app(base_path: Path) -> FastAPI:
         allow_headers=["*"],
     )
 
-    version = "0.0.1"
-
     @app.middleware("http")
     async def add_core_rl_version(request: Request, call_next: Callable):
         logger.debug(
@@ -100,6 +99,14 @@ def create_app(base_path: Path) -> FastAPI:
 
 
 if __name__ == "__main__":
-    base_path, main_port = parse_args()
+    base_path, main_port, log_file, log_level, console_output, reload = parse_args()
+
+    # Initialize structured logging
+    setup_structured_logging(
+        log_file_path=log_file,
+        log_level=log_level,
+        console_output=console_output,
+    )
+
     app = create_app(base_path)
-    uvicorn.run(app, host="0.0.0.0", port=main_port, reload=False)
+    uvicorn.run(app, host="0.0.0.0", port=main_port, reload=reload)
