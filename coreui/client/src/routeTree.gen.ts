@@ -14,10 +14,10 @@ import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
-import { Route as AgentsAgentNameRouteImport } from './routes/agents/$agent-name'
-import { Route as AgentsAgentNameIndexRouteImport } from './routes/agents/$agent-name/index'
-import { Route as AgentsAgentNameMonitorRouteImport } from './routes/agents/$agent-name/monitor'
-import { Route as AgentsAgentNameGeneralSettingsRouteImport } from './routes/agents/$agent-name/general-settings'
+import { Route as AgentsConfigNameRouteImport } from './routes/agents/$config-name'
+import { Route as AgentsConfigNameIndexRouteImport } from './routes/agents/$config-name/index'
+import { Route as AgentsConfigNameMonitorRouteImport } from './routes/agents/$config-name/monitor'
+import { Route as AgentsConfigNameGeneralSettingsRouteImport } from './routes/agents/$config-name/general-settings'
 
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
@@ -44,26 +44,26 @@ const AgentsIndexRoute = AgentsIndexRouteImport.update({
   path: '/agents/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentsAgentNameRoute = AgentsAgentNameRouteImport.update({
-  id: '/agents/$agent-name',
-  path: '/agents/$agent-name',
+const AgentsConfigNameRoute = AgentsConfigNameRouteImport.update({
+  id: '/agents/$config-name',
+  path: '/agents/$config-name',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AgentsAgentNameIndexRoute = AgentsAgentNameIndexRouteImport.update({
+const AgentsConfigNameIndexRoute = AgentsConfigNameIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AgentsAgentNameRoute,
+  getParentRoute: () => AgentsConfigNameRoute,
 } as any)
-const AgentsAgentNameMonitorRoute = AgentsAgentNameMonitorRouteImport.update({
+const AgentsConfigNameMonitorRoute = AgentsConfigNameMonitorRouteImport.update({
   id: '/monitor',
   path: '/monitor',
-  getParentRoute: () => AgentsAgentNameRoute,
+  getParentRoute: () => AgentsConfigNameRoute,
 } as any)
-const AgentsAgentNameGeneralSettingsRoute =
-  AgentsAgentNameGeneralSettingsRouteImport.update({
+const AgentsConfigNameGeneralSettingsRoute =
+  AgentsConfigNameGeneralSettingsRouteImport.update({
     id: '/general-settings',
     path: '/general-settings',
-    getParentRoute: () => AgentsAgentNameRoute,
+    getParentRoute: () => AgentsConfigNameRoute,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -71,11 +71,11 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/tags': typeof TagsRoute
-  '/agents/$agent-name': typeof AgentsAgentNameRouteWithChildren
+  '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents': typeof AgentsIndexRoute
-  '/agents/$agent-name/general-settings': typeof AgentsAgentNameGeneralSettingsRoute
-  '/agents/$agent-name/monitor': typeof AgentsAgentNameMonitorRoute
-  '/agents/$agent-name/': typeof AgentsAgentNameIndexRoute
+  '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
+  '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
+  '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -83,9 +83,9 @@ export interface FileRoutesByTo {
   '/opc-navigation': typeof OpcNavigationRoute
   '/tags': typeof TagsRoute
   '/agents': typeof AgentsIndexRoute
-  '/agents/$agent-name/general-settings': typeof AgentsAgentNameGeneralSettingsRoute
-  '/agents/$agent-name/monitor': typeof AgentsAgentNameMonitorRoute
-  '/agents/$agent-name': typeof AgentsAgentNameIndexRoute
+  '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
+  '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
+  '/agents/$config-name': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -93,11 +93,11 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/tags': typeof TagsRoute
-  '/agents/$agent-name': typeof AgentsAgentNameRouteWithChildren
+  '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
-  '/agents/$agent-name/general-settings': typeof AgentsAgentNameGeneralSettingsRoute
-  '/agents/$agent-name/monitor': typeof AgentsAgentNameMonitorRoute
-  '/agents/$agent-name/': typeof AgentsAgentNameIndexRoute
+  '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
+  '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
+  '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -106,11 +106,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/opc-navigation'
     | '/tags'
-    | '/agents/$agent-name'
+    | '/agents/$config-name'
     | '/agents'
-    | '/agents/$agent-name/general-settings'
-    | '/agents/$agent-name/monitor'
-    | '/agents/$agent-name/'
+    | '/agents/$config-name/general-settings'
+    | '/agents/$config-name/monitor'
+    | '/agents/$config-name/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -118,20 +118,20 @@ export interface FileRouteTypes {
     | '/opc-navigation'
     | '/tags'
     | '/agents'
-    | '/agents/$agent-name/general-settings'
-    | '/agents/$agent-name/monitor'
-    | '/agents/$agent-name'
+    | '/agents/$config-name/general-settings'
+    | '/agents/$config-name/monitor'
+    | '/agents/$config-name'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/opc-navigation'
     | '/tags'
-    | '/agents/$agent-name'
+    | '/agents/$config-name'
     | '/agents/'
-    | '/agents/$agent-name/general-settings'
-    | '/agents/$agent-name/monitor'
-    | '/agents/$agent-name/'
+    | '/agents/$config-name/general-settings'
+    | '/agents/$config-name/monitor'
+    | '/agents/$config-name/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -139,7 +139,7 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
   TagsRoute: typeof TagsRoute
-  AgentsAgentNameRoute: typeof AgentsAgentNameRouteWithChildren
+  AgentsConfigNameRoute: typeof AgentsConfigNameRouteWithChildren
   AgentsIndexRoute: typeof AgentsIndexRoute
 }
 
@@ -180,59 +180,58 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agents/$agent-name': {
-      id: '/agents/$agent-name'
-      path: '/agents/$agent-name'
-      fullPath: '/agents/$agent-name'
-      preLoaderRoute: typeof AgentsAgentNameRouteImport
+    '/agents/$config-name': {
+      id: '/agents/$config-name'
+      path: '/agents/$config-name'
+      fullPath: '/agents/$config-name'
+      preLoaderRoute: typeof AgentsConfigNameRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/agents/$agent-name/': {
-      id: '/agents/$agent-name/'
+    '/agents/$config-name/': {
+      id: '/agents/$config-name/'
       path: '/'
-      fullPath: '/agents/$agent-name/'
-      preLoaderRoute: typeof AgentsAgentNameIndexRouteImport
-      parentRoute: typeof AgentsAgentNameRoute
+      fullPath: '/agents/$config-name/'
+      preLoaderRoute: typeof AgentsConfigNameIndexRouteImport
+      parentRoute: typeof AgentsConfigNameRoute
     }
-    '/agents/$agent-name/monitor': {
-      id: '/agents/$agent-name/monitor'
+    '/agents/$config-name/monitor': {
+      id: '/agents/$config-name/monitor'
       path: '/monitor'
-      fullPath: '/agents/$agent-name/monitor'
-      preLoaderRoute: typeof AgentsAgentNameMonitorRouteImport
-      parentRoute: typeof AgentsAgentNameRoute
+      fullPath: '/agents/$config-name/monitor'
+      preLoaderRoute: typeof AgentsConfigNameMonitorRouteImport
+      parentRoute: typeof AgentsConfigNameRoute
     }
-    '/agents/$agent-name/general-settings': {
-      id: '/agents/$agent-name/general-settings'
+    '/agents/$config-name/general-settings': {
+      id: '/agents/$config-name/general-settings'
       path: '/general-settings'
-      fullPath: '/agents/$agent-name/general-settings'
-      preLoaderRoute: typeof AgentsAgentNameGeneralSettingsRouteImport
-      parentRoute: typeof AgentsAgentNameRoute
+      fullPath: '/agents/$config-name/general-settings'
+      preLoaderRoute: typeof AgentsConfigNameGeneralSettingsRouteImport
+      parentRoute: typeof AgentsConfigNameRoute
     }
   }
 }
 
-interface AgentsAgentNameRouteChildren {
-  AgentsAgentNameGeneralSettingsRoute: typeof AgentsAgentNameGeneralSettingsRoute
-  AgentsAgentNameMonitorRoute: typeof AgentsAgentNameMonitorRoute
-  AgentsAgentNameIndexRoute: typeof AgentsAgentNameIndexRoute
+interface AgentsConfigNameRouteChildren {
+  AgentsConfigNameGeneralSettingsRoute: typeof AgentsConfigNameGeneralSettingsRoute
+  AgentsConfigNameMonitorRoute: typeof AgentsConfigNameMonitorRoute
+  AgentsConfigNameIndexRoute: typeof AgentsConfigNameIndexRoute
 }
 
-const AgentsAgentNameRouteChildren: AgentsAgentNameRouteChildren = {
-  AgentsAgentNameGeneralSettingsRoute: AgentsAgentNameGeneralSettingsRoute,
-  AgentsAgentNameMonitorRoute: AgentsAgentNameMonitorRoute,
-  AgentsAgentNameIndexRoute: AgentsAgentNameIndexRoute,
+const AgentsConfigNameRouteChildren: AgentsConfigNameRouteChildren = {
+  AgentsConfigNameGeneralSettingsRoute: AgentsConfigNameGeneralSettingsRoute,
+  AgentsConfigNameMonitorRoute: AgentsConfigNameMonitorRoute,
+  AgentsConfigNameIndexRoute: AgentsConfigNameIndexRoute,
 }
 
-const AgentsAgentNameRouteWithChildren = AgentsAgentNameRoute._addFileChildren(
-  AgentsAgentNameRouteChildren,
-)
+const AgentsConfigNameRouteWithChildren =
+  AgentsConfigNameRoute._addFileChildren(AgentsConfigNameRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   OpcNavigationRoute: OpcNavigationRoute,
   TagsRoute: TagsRoute,
-  AgentsAgentNameRoute: AgentsAgentNameRouteWithChildren,
+  AgentsConfigNameRoute: AgentsConfigNameRouteWithChildren,
   AgentsIndexRoute: AgentsIndexRoute,
 }
 export const routeTree = rootRouteImport

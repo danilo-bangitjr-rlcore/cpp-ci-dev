@@ -6,17 +6,19 @@ import {
 } from '@tanstack/react-router';
 import {
   AgentNotFound,
-  useAgentExists,
+  useConfigExists,
 } from '../../components/agent-components';
+import { useAgentNameQuery } from '../../utils/useAgentQueries';
 
-export const Route = createFileRoute('/agents/$agent-name')({
+export const Route = createFileRoute('/agents/$config-name')({
   component: RouteComponent,
 });
 
 function RouteComponent() {
-  const params = useParams({ from: '/agents/$agent-name' });
-  const agentName = params['agent-name'];
-  const { data, isLoading, error } = useAgentExists(agentName);
+  const params = useParams({ from: '/agents/$config-name' });
+  const configName = params['config-name'];
+  const { data, isLoading, error } = useConfigExists(configName);
+  const { data: agentName } = useAgentNameQuery(configName);
   const exists = data ?? false;
   const errorMessage = error?.message ?? null;
 
@@ -47,7 +49,7 @@ function RouteComponent() {
   if (exists === false) {
     return (
       <div className="flex-1 p-2 bg-gray-50 rounded">
-        <AgentNotFound agentName={agentName} />
+        <AgentNotFound configName={configName} />
       </div>
     );
   }
@@ -56,11 +58,11 @@ function RouteComponent() {
   return (
     <div className="flex-1 p-2 bg-gray-50 rounded">
       <Link
-        to="/agents/$agent-name"
-        params={{ 'agent-name': agentName }}
+        to="/agents/$config-name"
+        params={{ 'config-name': configName }}
         className="block text-3xl font-bold text-gray-800 hover:text-blue-600 transition-colors duration-200 mb-6"
       >
-        {agentName}
+        {agentName || configName}
       </Link>
       <Outlet />
     </div>

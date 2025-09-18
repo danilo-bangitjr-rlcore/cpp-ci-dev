@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 import { HomeIcon } from '../components/icons/HomeIcon';
+import { useAgentNameQuery } from '../utils/useAgentQueries';
 
 const baseNavItems = [
   {
@@ -31,24 +32,25 @@ const headerItems = [
 ];
 
 function useAgentContextNav() {
-  const match = useMatch({ from: '/agents/$agent-name', shouldThrow: false });
-  const agentName = match?.params?.['agent-name'];
-  if (!agentName) return [];
+  const match = useMatch({ from: '/agents/$config-name', shouldThrow: false });
+  const configName = match?.params?.['config-name'];
+  const { data: agentName } = useAgentNameQuery(configName);
+  if (!configName) return [];
   return [
     {
-      label: agentName,
-      to: '/agents/$agent-name',
-      params: { 'agent-name': agentName },
+      label: agentName || configName,
+      to: '/agents/$config-name',
+      params: { 'config-name': configName },
       children: [
         {
           label: 'General Settings',
-          to: '/agents/$agent-name/general-settings',
-          params: { 'agent-name': agentName },
+          to: '/agents/$config-name/general-settings',
+          params: { 'config-name': configName },
         },
         {
           label: 'Monitor',
-          to: '/agents/$agent-name/monitor',
-          params: { 'agent-name': agentName },
+          to: '/agents/$config-name/monitor',
+          params: { 'config-name': configName },
         },
       ],
     },
