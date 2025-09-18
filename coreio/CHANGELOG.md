@@ -1,5 +1,32 @@
 # Changelog
 
+## [0.10.0](https://github.com/rlcoretech/core-rl/compare/v0.9.0...v0.10.0) (2025-09-18)
+
+
+### Features
+
+* coreio logs to file too ([eec5a57](https://github.com/rlcoretech/core-rl/commit/eec5a570ddb72b4d76d27691d4a686a5812ae14c))
+* **coreio:** use pg dialect for int and real dtypes in ingress ([5df1438](https://github.com/rlcoretech/core-rl/commit/5df14383d58f44673b814bd0436b2610a494bcd2))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+
+
+### Bug Fixes
+
+* adding a bunch of debug logs ([08c0e65](https://github.com/rlcoretech/core-rl/commit/08c0e6562528cfa47b3a9437a312b6c00fcfff81))
+* adding some try/except blocks ([7ba1715](https://github.com/rlcoretech/core-rl/commit/7ba171507040de33bb7de85813aa9aab4f13669f))
+* **coreio:** lock our asyncua version due to 1.1.8 bug ([e78078f](https://github.com/rlcoretech/core-rl/commit/e78078f87dff1ddf7c72af6c4eb9382672607b71))
+* **coreio:** loosen up asyncua watchdog intervall ([31bc03c](https://github.com/rlcoretech/core-rl/commit/31bc03cf96daf01f85fd2cd8d6bcebc9abbc9620))
+* logging to file is always debug level ([67915d2](https://github.com/rlcoretech/core-rl/commit/67915d2d2282891ced2c090b7f2563f4c771d0c1))
+* **PROD-843:** CoreIO try/except blocks ([4a42c62](https://github.com/rlcoretech/core-rl/commit/4a42c62107717e74f28f882ee63489730da490f4))
+* reducing logs in zmq ([6684f17](https://github.com/rlcoretech/core-rl/commit/6684f1767babb3841459212977dcd707ae96e4d3))
+* remove test code ([200c58c](https://github.com/rlcoretech/core-rl/commit/200c58c5ad595b4a95026d33fcc1e0126c7bd9d0))
+* removed async context managers, as those were for short lived clients, and we use long lived clients now ([532bd05](https://github.com/rlcoretech/core-rl/commit/532bd0542a24d839fc1c6dcf4ed347785b75f2e7))
+
+
+### Performance Improvements
+
+* **coreio:** prefer long-lived connections with healthchecking over reconnects on CRUD ([987d3de](https://github.com/rlcoretech/core-rl/commit/987d3de826ec59760fecc7210f1906ee2f3bb597))
+
 ## [0.9.0](https://github.com/rlcoretech/core-rl/compare/0.8.0...v0.9.0) (2025-09-18)
 
 
