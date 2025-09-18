@@ -1,6 +1,7 @@
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any
+
+from asyncua.server.address_space import NodeData
 
 from coreio.communication.opc_communication import OPC_Connection_IO
 from coreio.communication.sql_communication import SQL_Manager
@@ -42,7 +43,7 @@ async def handle_read_event(
         logger.warning(f"Dropping {event} because it is stale")
         return
 
-    nodes_name_val: dict[str, Any] = {}
+    nodes_name_val: dict[str, NodeData] = {}
 
     for opc_conn in opc_connections.values():
         try:
