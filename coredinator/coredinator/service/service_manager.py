@@ -97,3 +97,11 @@ class ServiceManager:
     def can_stop_service(self, service_id: ServiceID):
         """Check if a service can be safely stopped (no dependent bundles)."""
         return len(self._service_owners[service_id]) == 0
+
+    def add_service_owner(self, service_id: ServiceID, owner_id: ServiceBundleID):
+        """Add an owner to a service for tracking purposes."""
+        self._service_owners[service_id].add(owner_id)
+
+    def remove_service_owner(self, service_id: ServiceID, owner_id: ServiceBundleID):
+        """Remove an owner from a service."""
+        self._service_owners[service_id].discard(owner_id)

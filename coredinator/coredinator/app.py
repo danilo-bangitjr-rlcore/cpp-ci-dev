@@ -12,6 +12,7 @@ from fastapi.responses import RedirectResponse
 from coredinator.agent.agent_manager import AgentManager
 from coredinator.service.service_manager import ServiceManager
 from coredinator.web.agent_manager import router as agent_manager
+from coredinator.web.coreio_manager import router as coreio_manager
 
 # For debugging while running the server
 _log = logging.getLogger("uvicorn.error")
@@ -39,6 +40,8 @@ def parse_args():
 base_path, main_port = parse_args()
 app = FastAPI(lifespan=lifespan)
 service_manager = ServiceManager()
+app.state.service_manager = service_manager
+app.state.base_path = base_path
 app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
 
 app.add_middleware(
@@ -70,6 +73,7 @@ async def health():
 
 
 app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
+app.include_router(coreio_manager, prefix="/api/io", tags=["CoreIO"])
 
 
 if __name__ == "__main__":

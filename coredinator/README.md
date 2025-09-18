@@ -97,6 +97,16 @@ curl -X POST "http://localhost:7000/api/agents/start" \
   -d '{"config_path": "/path/to/config.yaml"}'
 ```
 
+**Start an Agent with Shared CoreIO:**
+```bash
+curl -X POST "http://localhost:7000/api/agents/start" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_path": "/path/to/config.yaml",
+    "coreio_id": "shared-service-id"
+  }'
+```
+
 **Check Agent Status:**
 ```bash
 curl -X GET "http://localhost:7000/api/agents/{agent_id}/status"
@@ -106,6 +116,58 @@ curl -X GET "http://localhost:7000/api/agents/{agent_id}/status"
 ```bash
 curl -X POST "http://localhost:7000/api/agents/{agent_id}/stop"
 ```
+
+## Service Sharing
+
+Coredinator supports sharing CoreIO services between multiple agents to optimize resource usage and enable coordinated scenarios. When starting an agent, you can optionally specify a `coreio_id` to share a CoreIO instance with other agents.
+
+### Usage
+
+**Start Multiple Agents with Shared CoreIO:**
+
+```bash
+# Start first agent with shared CoreIO
+curl -X POST "http://localhost:7000/api/agents/start" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_path": "/path/to/config1.yaml",
+    "coreio_id": "shared-coreio-instance"
+  }'
+
+# Start second agent sharing the same CoreIO
+curl -X POST "http://localhost:7000/api/agents/start" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_path": "/path/to/config2.yaml",
+    "coreio_id": "shared-coreio-instance"
+  }'
+```
+
+**Start Agent with Independent Services (Default):**
+
+```bash
+# Without coreio_id, agent gets its own CoreIO instance
+curl -X POST "http://localhost:7000/api/agents/start" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config_path": "/path/to/config.yaml"
+  }'
+```
+
+### Request Schema
+
+The `/api/agents/start` endpoint accepts the following parameters:
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `config_path` | `string` | Yes | Path to the agent's YAML configuration file |
+| `coreio_id` | `string` | No | Optional ID for sharing CoreIO service with other agents |
+
+### Service Lifecycle
+
+- **Shared Services**: When multiple agents share a CoreIO service, stopping one agent will not affect the shared service if other agents are still using it
+- **Reference Counting**: The system tracks which agents are using each service and only stops services when no agents are using them
+- **Independent CoreRL**: Each agent always gets its own CoreRL service regardless of CoreIO sharing
 
 ## TEP Demo: AgentManager demo routes
 

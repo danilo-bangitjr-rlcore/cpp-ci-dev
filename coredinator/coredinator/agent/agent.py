@@ -32,6 +32,7 @@ class Agent(ServiceBundle):
         self._id = id
         self._config_path = config_path
         self._service_manager = service_manager
+        self._agent_state = ServiceState.STOPPED
 
         # Create service IDs
         self._corerl_service_id = ServiceID(f"{id}-corerl")
@@ -66,10 +67,13 @@ class Agent(ServiceBundle):
         return {self._corerl_service_id, self._coreio_service_id}
 
     def start(self):
+        self._agent_state = ServiceState.STARTING
         self._coreio_service.start()
         self._corerl_service.start()
+        self._agent_state = ServiceState.RUNNING
 
     def stop(self, grace_seconds: float = 5.0):
+        self._agent_state = ServiceState.STOPPED
         self._service_manager.unregister_bundle(self.id, grace_seconds)
 
 
@@ -85,8 +89,14 @@ class Agent(ServiceBundle):
     def status(self):
         corerl_status = self._corerl_service.status()
         coreio_status = self._coreio_service.status()
-        statuses = [corerl_status, coreio_status]
-        state = self._get_joint_status([s.state for s in statuses])
+
+        state = (
+            # If agent has been explicitly stopped, report as stopped regardless of shared services
+            ServiceState.STOPPED
+            if self._agent_state == ServiceState.STOPPED
+            # Otherwise, for running/starting agents, use the joint status of services
+            else self._get_joint_status([corerl_status.state, coreio_status.state])
+        )
 
         service_statuses = {
             "corerl": corerl_status,

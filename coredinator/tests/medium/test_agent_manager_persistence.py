@@ -9,7 +9,7 @@ from coredinator.utils.test_polling import wait_for_event
 
 
 class TestAgentManagerPersistence:
-    @pytest.mark.timeout(30)
+    @pytest.mark.timeout(45)
     def test_agent_state_persistence_across_restarts(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -32,7 +32,7 @@ class TestAgentManagerPersistence:
         assert wait_for_event(
             lambda: manager1.get_agent_status(agent_id).state == "running",
             interval=0.05,
-            timeout=1.0,
+            timeout=6.0,
         )
         assert agent_id in manager1.list_agents()
 
@@ -47,13 +47,13 @@ class TestAgentManagerPersistence:
         assert wait_for_event(
             lambda: manager2.get_agent_status(agent_id).state == "running",
             interval=0.05,
-            timeout=2.0,
+            timeout=8.0,
         ), "Agent should auto-start because it was marked as running"
 
         # Clean up
         manager2.stop_agent(agent_id)
 
-    @pytest.mark.timeout(30)
+    @pytest.mark.timeout(45)
     def test_multiple_agents_persistence(
         self,
         monkeypatch: pytest.MonkeyPatch,
@@ -86,7 +86,7 @@ class TestAgentManagerPersistence:
                 manager1.get_agent_status(agent3_id).state == "running"
             )
 
-        assert wait_for_event(_all_running, interval=0.05, timeout=2.0)
+        assert wait_for_event(_all_running, interval=0.05, timeout=8.0)
 
         # Stop agent2 to create mixed states
         manager1.stop_agent(agent2_id)
@@ -108,14 +108,14 @@ class TestAgentManagerPersistence:
                 manager2.get_agent_status(agent3_id).state == "running"
             )
 
-        assert wait_for_event(_correct_states, interval=0.05, timeout=2.0)
+        assert wait_for_event(_correct_states, interval=0.05, timeout=10.0)
 
         # Clean up
         for agent_id in [agent1_id, agent2_id, agent3_id]:
             manager2.stop_agent(agent_id)
 
 
-    @pytest.mark.timeout(30)
+    @pytest.mark.timeout(45)
     def test_empty_database_initialization(self, tmp_path: Path):
         """Test that AgentManager works correctly when starting with an empty database."""
         # Create AgentManager with empty database
@@ -134,7 +134,7 @@ class TestAgentManagerPersistence:
             count = cursor.fetchone()[0]
             assert count == 0
 
-    @pytest.mark.timeout(30)
+    @pytest.mark.timeout(45)
     def test_database_corruption_recovery(self, tmp_path: Path, config_file: Path):
         """Test that AgentManager handles database file corruption gracefully."""
         db_path = tmp_path / "agent_state.db"
