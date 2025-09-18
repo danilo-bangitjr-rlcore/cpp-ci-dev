@@ -1,5 +1,4 @@
 import argparse
-import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -10,34 +9,48 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from coredinator.agent.agent_manager import AgentManager
+from coredinator.logging_config import get_logger, setup_structured_logging
 from coredinator.service.service_manager import ServiceManager
 from coredinator.web.agent_manager import router as agent_manager
 from coredinator.web.coreio_manager import router as coreio_manager
 
-# For debugging while running the server
-_log = logging.getLogger("uvicorn.error")
-_log.setLevel(logging.INFO)
-
-logger = logging.getLogger("uvicorn")
+# Structured logger for application events
+logger = get_logger(__name__)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("CoreRL server is starting up.")
+    logger.info(
+        "CoreRL server starting up",
+        base_path=str(app.state.base_path),
+        port=main_port,
+        version=version,
+    )
     yield
-    logger.info("CoreRL server is shutting down.")
-
-
+    logger.info("CoreRL server shutting down")
 def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
     parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
     parser.add_argument("--port", type=int, default=7000, help="Port to run the service on (default: 7000)")
+    parser.add_argument("--log-file", type=Path, help="Path to log file for structured logging with rotation")
+    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
+                       help="Logging level (default: INFO)")
+    parser.add_argument("--no-console", action="store_true", help="Disable console logging output")
+    parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     args = parser.parse_args()
 
-    return args.base_path, args.port
+    return args.base_path, args.port, args.log_file, args.log_level, not args.no_console, args.reload
 
 
-base_path, main_port = parse_args()
+base_path, main_port, log_file, log_level, console_output, reload = parse_args()
+
+# Initialize structured logging
+setup_structured_logging(
+    log_file_path=log_file,
+    log_level=log_level,
+    console_output=console_output,
+)
+
 app = FastAPI(lifespan=lifespan)
 service_manager = ServiceManager()
 app.state.service_manager = service_manager
@@ -57,8 +70,24 @@ version = "0.0.0"
 
 @app.middleware("http")
 async def add_core_rl_version(request: Request, call_next: Callable):
+    logger.debug(
+        "Processing request",
+        method=request.method,
+        url=str(request.url),
+        client_host=request.client.host if request.client else None,
+    )
+
     response = await call_next(request)
     response.headers["X-CoreRL-Version"] = version
+
+    logger.debug(
+        "Request completed",
+        method=request.method,
+        url=str(request.url),
+        status_code=response.status_code,
+        version=version,
+    )
+
     return response
 
 
@@ -69,7 +98,8 @@ async def redirect():
 
 @app.get("/api/healthcheck")
 async def health():
-    ...
+    logger.debug("Health check requested")
+    return {"status": "healthy", "version": version}
 
 
 app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
@@ -78,5 +108,5 @@ app.include_router(coreio_manager, prefix="/api/io", tags=["CoreIO"])
 
 if __name__ == "__main__":
     # Re-parse args for __main__ execution
-    _, main_port = parse_args()
-    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=main_port, reload=True)
+    _, main_port, log_file, log_level, console_output, reload = parse_args()
+    uvicorn.run("coredinator.app:app", host="0.0.0.0", port=main_port, reload=reload)

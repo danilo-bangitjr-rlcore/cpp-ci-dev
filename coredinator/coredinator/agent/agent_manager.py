@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any, Concatenate, cast
 
 from coredinator.agent.agent import Agent, AgentID, AgentStatus
+from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceState
 from coredinator.service.service_manager import ServiceManager
 
@@ -24,10 +25,17 @@ def db_recovery_decorator[**P, R](
 
 class AgentManager:
     def __init__(self, base_path: Path, service_manager: ServiceManager):
+        self._logger = get_logger(__name__)
         self._agents: dict[AgentID, Agent] = {}
         self._base_path = base_path
         self._db_path = base_path / "agent_state.db"
         self._service_manager = service_manager
+
+        self._logger.info(
+            "Initializing AgentManager",
+            base_path=str(base_path),
+            db_path=str(self._db_path),
+        )
 
         # Initialize database
         self._init_database()
@@ -45,6 +53,14 @@ class AgentManager:
         coreio_service_id: ServiceID | None = None,
     ) -> AgentID:
         agent_id = AgentID(config_path.stem)
+
+        self._logger.info(
+            "Starting agent",
+            agent_id=agent_id,
+            config_path=str(config_path),
+            coreio_service_id=coreio_service_id,
+        )
+
         if agent_id not in self._agents:
             self._agents[agent_id] = agent_factory(
                 id=agent_id,
@@ -64,15 +80,37 @@ class AgentManager:
         coreio_process_id = process_ids[1]
         self._update_agent_state(agent_id, "running", config_path, corerl_process_id, coreio_process_id)
 
+        self._logger.info(
+            "Agent started successfully",
+            agent_id=agent_id,
+            corerl_pid=corerl_process_id,
+            coreio_pid=coreio_process_id,
+        )
+
         return agent_id
 
     def stop_agent(self, agent_id: AgentID):
+        self._logger.info(
+            "Stopping agent",
+            agent_id=agent_id,
+        )
+
         if agent_id in self._agents:
             self._agents[agent_id].stop()
 
             # Update database to mark agent as stopped
             config_path = self._agents[agent_id]._config_path
             self._update_agent_state(agent_id, "stopped", config_path, None, None)
+
+            self._logger.info(
+                "Agent stopped successfully",
+                agent_id=agent_id,
+            )
+        else:
+            self._logger.warning(
+                "Attempted to stop non-existent agent",
+                agent_id=agent_id,
+            )
 
     def get_agent_status(self, agent_id: AgentID):
         if agent_id in self._agents:
@@ -88,6 +126,11 @@ class AgentManager:
     # -- Serialization --
     # -------------------
     def _init_database(self, retries: int = 1):
+        self._logger.info(
+            "Initializing agent state database",
+            db_path=str(self._db_path),
+            retries_remaining=retries,
+        )
         try:
             with sqlite3.connect(self._db_path) as conn:
                 cursor = conn.cursor()
@@ -103,15 +146,32 @@ class AgentManager:
 
                 conn.commit()
         except sqlite3.DatabaseError:
+            self._logger.warning(
+                "Database initialization failed",
+                db_path=str(self._db_path),
+                retries_remaining=retries - 1,
+            )
             if retries == 0:
+                self._logger.error(
+                    "Database initialization failed permanently",
+                    db_path=str(self._db_path),
+                )
                 raise
 
+            self._logger.info(
+                "Removing corrupted database and retrying",
+                db_path=str(self._db_path),
+            )
             self._db_path.unlink(missing_ok=True)
             time.sleep(1)
             self._init_database(retries - 1)
 
     @db_recovery_decorator
     def _load_agents_from_database(self):
+        self._logger.info(
+            "Loading agents from database",
+            db_path=str(self._db_path),
+        )
         with sqlite3.connect(self._db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(
@@ -124,6 +184,15 @@ class AgentManager:
                 agent_id = AgentID(agent_id_str)
                 config_path = Path(config_path_str)
 
+                self._logger.info(
+                    "Loading agent from database",
+                    agent_id=agent_id,
+                    operating_mode=operating_mode,
+                    config_path=str(config_path),
+                    corerl_pid=corerl_process_id,
+                    coreio_pid=coreio_process_id,
+                )
+
                 # Create agent instance
                 self._agents[agent_id] = Agent(
                     id=agent_id,
@@ -134,6 +203,12 @@ class AgentManager:
 
                 # Start agent if it was marked as running
                 if operating_mode == "running":
+                    self._logger.info(
+                        "Attempting to reattach to existing processes",
+                        agent_id=agent_id,
+                        corerl_pid=corerl_process_id,
+                        coreio_pid=coreio_process_id,
+                    )
                     # Try to reattach to existing processes first
                     corerl_success, coreio_success = self._agents[agent_id].reattach_processes(
                         corerl_process_id,
@@ -142,11 +217,23 @@ class AgentManager:
 
                     # If both processes were successfully reattached, no need to restart
                     if corerl_success and coreio_success:
+                        self._logger.info(
+                            "Successfully reattached to existing processes",
+                            agent_id=agent_id,
+                            corerl_pid=corerl_process_id,
+                            coreio_pid=coreio_process_id,
+                        )
                         # Set agent state to RUNNING when processes are successfully reattached
                         self._agents[agent_id]._agent_state = ServiceState.RUNNING
                         continue
 
                     # Otherwise, start the agent (which will start any missing services)
+                    self._logger.info(
+                        "Process reattachment failed, starting fresh agent",
+                        agent_id=agent_id,
+                        corerl_reattached=corerl_success,
+                        coreio_reattached=coreio_success,
+                    )
                     self._agents[agent_id].start()
 
     @db_recovery_decorator
@@ -158,6 +245,14 @@ class AgentManager:
         corerl_process_id: int | None = None,
         coreio_process_id: int | None = None,
     ):
+        self._logger.info(
+            "Updating agent state in database",
+            agent_id=agent_id,
+            operating_mode=operating_mode,
+            config_path=str(config_path),
+            corerl_pid=corerl_process_id,
+            coreio_pid=coreio_process_id,
+        )
         with sqlite3.connect(self._db_path) as conn:
             cursor = conn.cursor()
             cursor.execute(

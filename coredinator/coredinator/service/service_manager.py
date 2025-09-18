@@ -1,6 +1,7 @@
 from collections import defaultdict
 from collections.abc import Callable
 
+from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceBundle, ServiceBundleID, ServiceID, ServiceLike
 
 
@@ -12,20 +13,34 @@ class ServiceManager:
     """
 
     def __init__(self):
+        self._logger = get_logger(__name__)
         self._services: dict[ServiceID, ServiceLike] = {}
         # Track which bundles own which services (many-to-many relationship)
         self._service_owners: defaultdict[ServiceID, set[ServiceBundleID]] = defaultdict(set)
         self._bundle_services: defaultdict[ServiceBundleID, set[ServiceID]] = defaultdict(set)
 
     def register_service(self, service: ServiceLike) -> None:
+        self._logger.info(
+            "Registering service",
+            service_id=service.id,
+            service_type=type(service).__name__,
+        )
         self._services[service.id] = service
 
     def get_service(self, service_id: ServiceID) -> ServiceLike | None:
         return self._services.get(service_id)
 
     def remove_service(self, service_id: ServiceID) -> ServiceLike | None:
+        self._logger.info(
+            "Removing service",
+            service_id=service_id,
+        )
         service = self._services.pop(service_id, None)
         if service is None:
+            self._logger.warning(
+                "Attempted to remove non-existent service",
+                service_id=service_id,
+            )
             return None
 
         self._service_owners.pop(service_id, None)
@@ -45,6 +60,10 @@ class ServiceManager:
         if existing_service is not None:
             return existing_service
 
+        self._logger.info(
+            "Creating new service via factory",
+            service_id=service_id,
+        )
         service = service_factory()
         self.register_service(service)
         return service
@@ -53,6 +72,12 @@ class ServiceManager:
         """Register a service bundle and its service dependencies."""
         bundle_id = bundle.id
         required_services = bundle.get_required_services()
+
+        self._logger.info(
+            "Registering service bundle",
+            bundle_id=bundle_id,
+            required_services=list(required_services),
+        )
 
         self._bundle_services[bundle_id] = required_services
 
@@ -64,8 +89,14 @@ class ServiceManager:
 
         Returns list of services that were actually stopped.
         """
+        self._logger.info(
+            "Unregistering service bundle",
+            bundle_id=bundle_id,
+            grace_seconds=grace_seconds,
+        )
         stopped_services: list[ServiceID] = []
         bundle_services = self._bundle_services.pop(bundle_id, set())
+
         for service_id in bundle_services:
             owners = self._service_owners[service_id]
             owners.discard(bundle_id)
@@ -75,8 +106,17 @@ class ServiceManager:
 
             service = self.get_service(service_id)
             if service is None:
+                self._logger.warning(
+                    "Service not found during cleanup",
+                    service_id=service_id,
+                )
                 continue
 
+            self._logger.info(
+                "Stopping orphaned service",
+                service_id=service_id,
+                grace_seconds=grace_seconds,
+            )
             service.stop(grace_seconds)
             stopped_services.append(service_id)
 

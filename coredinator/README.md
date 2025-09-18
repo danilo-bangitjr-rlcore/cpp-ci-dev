@@ -19,6 +19,29 @@ Per-agent services --- such as corerl and coreio --- are managed as a bundle cal
 uv sync
 ```
 
+### Running with Structured Logging
+
+Coredinator includes comprehensive structured logging with file rotation. Basic usage:
+
+```bash
+# Run with default console logging
+uv run python -m coredinator.app --base-path /path/to/executables
+
+# Run with file logging and rotation
+uv run python -m coredinator.app --base-path /path/to/executables --log-file /path/to/logs/coredinator.log
+
+# Run with debug level logging
+uv run python -m coredinator.app --base-path /path/to/executables --log-file /path/to/logs/coredinator.log --log-level DEBUG
+
+# Run with file logging only (no console output)
+uv run python -m coredinator.app --base-path /path/to/executables --log-file /path/to/logs/coredinator.log --no-console
+
+# Run with auto-reload enabled (useful for development)
+uv run python -m coredinator.app --base-path /path/to/executables --reload
+```
+
+Log files will automatically rotate when they reach 10MB (keeping 5 backup files by default) and output structured JSON logs for easy parsing and analysis.
+
 2. Run the service:
 ```bash
 uv run python coredinator/app.py --base-path /path/to/executables
@@ -29,6 +52,11 @@ The service will start on `http://localhost:7000` with interactive API documenta
 Optionally, you can specify a custom port:
 ```bash
 uv run python coredinator/app.py --base-path /path/to/executables --port 9000
+```
+
+For development with auto-reload:
+```bash
+uv run python coredinator/app.py --base-path /path/to/executables --reload
 ```
 
 ### Configuration

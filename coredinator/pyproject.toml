@@ -12,6 +12,7 @@ dependencies = [
     "lib-utils",
     "backoff>=2.2.1",
     "psutil>=6.0.0",
+    "structlog>=24.0.0",
 ]
 readme = "README.md"
 
