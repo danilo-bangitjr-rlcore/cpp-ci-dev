@@ -7,6 +7,10 @@
         "coreio": {
             "release-type": "python",
             "changelog-path": "CHANGELOG.md"
+        },
+        "coredinator": {
+            "release-type": "python",
+            "changelog-path": "CHANGELOG.md"
         }
     }
 }
