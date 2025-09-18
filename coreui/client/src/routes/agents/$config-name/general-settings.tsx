@@ -8,10 +8,10 @@ export const Route = createFileRoute('/agents/$config-name/general-settings')({
 function RouteComponent() {
   const params = useParams({ from: '/agents/$config-name/general-settings' });
   const configName = params['config-name'];
+  console.log('Config Name:', configName); // Debugging line
 
   return (
     <div>
-      <div>General settings for {configName}!</div>
       <GeneralSettings />
     </div>
   );

@@ -8,15 +8,30 @@ interface TimeState {
 }
 
 export default function GeneralSettings() {
-  const [observationPeriod, setObservationPeriod] = useState<TimeState>({ hours: 0, minutes: 0, seconds: 0 });
-  const [actionPeriod, setActionPeriod] = useState<TimeState>({ hours: 0, minutes: 0, seconds: 0 });
-  const [effectHorizon, setEffectHorizon] = useState<TimeState>({ hours: 0, minutes: 0, seconds: 0 });
+  const [observationPeriod, setObservationPeriod] = useState<TimeState>({
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [actionPeriod, setActionPeriod] = useState<TimeState>({
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [effectHorizon, setEffectHorizon] = useState<TimeState>({
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
 
   const convertToIsoDuration = (time: TimeState): string => {
     const hours = time.hours > 0 ? `${time.hours}H` : '';
     const minutes = time.minutes > 0 ? `${time.minutes}M` : '';
     const seconds = time.seconds > 0 ? `${time.seconds}S` : '';
-    return `PT${hours}${minutes}${seconds}` || 'PT0S';
+    if (`${hours}${minutes}${seconds}` === '') {
+      return 'PT0S';
+    }
+    return `PT${hours}${minutes}${seconds}`;
   };
 
   const handleSubmit = () => {
