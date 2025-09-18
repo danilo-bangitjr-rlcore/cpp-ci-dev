@@ -24,6 +24,17 @@ log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------- #
+#                            Report Output Utilities                           #
+# ---------------------------------------------------------------------------- #
+
+
+def save_as_txt(table_data: list[list[str]], output_path: Path, name: str):
+    """Save table data as formatted TXT file."""
+    txt_path = output_path / f'{name}.txt'
+    table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
+    txt_path.write_text(table_str, encoding='utf-8')
+
+# ---------------------------------------------------------------------------- #
 #                                Tag Statistics                                #
 # ---------------------------------------------------------------------------- #
 
@@ -53,7 +64,7 @@ def make_stat_table(
                 row.append(str(round(value, 2)))
             table_data.append(row)
     table_data.insert(0, headers)
-    table_str = tabulate(table_data, headers='firstrow', tablefmt='grid')
+    save_as_txt(table_data, output_path, 'sensor_report')
     (output_path / 'sensor_report.txt').write_text(table_str, encoding='utf-8')
 
 
@@ -105,7 +116,7 @@ def make_cross_correlation_table(
             row = [stage.name, tag_1, tag_2, cc, lag]
             table.append(row)  # type: ignore
 
-    table_str = tabulate(table, headers='firstrow', tablefmt='grid')
+    save_as_txt(table, output_path, 'cross_correlation')
     (output_path / 'cross_correlation.txt').write_text(table_str, encoding='utf-8')
 
 
@@ -360,8 +371,8 @@ def make_goal_violations_table(
             ])
 
     # Generate table and save
-    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
-    (output_path / 'goal_violations.txt').write_text(table_str, encoding='utf-8')
+    full_table_data = [headers, *table_data]
+    save_as_txt(full_table_data, output_path, 'goal_violations')
 
 
 # ---------------------------------------------------------------------------- #
@@ -493,8 +504,8 @@ def make_transition_statistics_table(
         table_data.append([k, str(v)])
 
     # Generate table and save
-    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
-    (output_path / 'transition_statistics.txt').write_text(table_str, encoding='utf-8')
+    full_table_data = [headers, *table_data]
+    save_as_txt(full_table_data, output_path, 'transition_statistics')
 
 
 # ---------------------------------------------------------------------------- #
@@ -554,8 +565,8 @@ def make_zone_violations_table(
     add_zone_violation_rows('red')
 
     # Generate table and save
-    table_str = tabulate(table_data, headers=headers, tablefmt='grid')
-    (output_path / 'zone_violation_statistics.txt').write_text(table_str, encoding='utf-8')
+    full_table_data = [headers, *table_data]
+    save_as_txt(full_table_data, output_path, 'zone_violation_statistics')
 
 
 # ---------------------------------------------------------------------------- #
