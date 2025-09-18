@@ -35,12 +35,13 @@ class SQL_Manager:
         nodes_to_persist: dict[str, NodeData],
         warn_extra_cols: bool = True,
     ):
-
+        logger.debug(f"Initializing SQL_Manager for table {cfg.db.schema}.{table_name}")
         self.engine = get_sql_engine(db_data=cfg.db, db_name=cfg.db.db_name)
         self.schema = cfg.db.schema
         self.table_name = table_name
         self.time_column_name = "time"
 
+        logger.debug(f"Setting up column mapper for {len(nodes_to_persist)} nodes")
         column_names = [node.name for node in nodes_to_persist.values()]
         self.column_mapper = ColumnMapper(column_names)
         self.nodes_to_persist = {
@@ -48,14 +49,16 @@ class SQL_Manager:
             for key, node in nodes_to_persist.items()
         }
 
+        logger.debug(f"About to ensure DB schema for {self.schema}.{self.table_name}")
         self._ensure_db_schema()
         if warn_extra_cols:
+            logger.debug("About to check for extra columns in database")
             self._check_for_extra_columns()
 
 
     def _ensure_db_schema(self):
         """Ensure database table exists with required columns, create table/columns if necessary."""
-
+        logger.debug(f"Checking if table {self.schema}.{self.table_name} exists")
         if table_exists(self.engine, self.table_name, schema=self.schema):
             logger.info(f"Table {self.schema}.{self.table_name} already exists!")
             logger.info("Validating table columns...")
@@ -69,7 +72,7 @@ class SQL_Manager:
 
     def _ensure_column_exists(self, node: NodeData):
         """Ensure column exists with expected (or compatible) type, create if necessary."""
-
+        logger.debug(f"Checking if column {node.name} exists in table")
         if column_exists(self.engine, table_name=self.table_name, column_name=node.name, schema=self.schema):
             self._check_column_type(node)
         else:
@@ -78,7 +81,7 @@ class SQL_Manager:
 
     def _check_column_type(self,  node: NodeData):
         """Check expected vs existing column type. Raise error if incompatible."""
-
+        logger.debug(f"Validating column type for {node.name}")
         expected_type = self._get_sqlalchemy_type(node)
         existing_type = get_column_type(self.engine, self.table_name, node.name, self.schema)
 
@@ -102,7 +105,7 @@ class SQL_Manager:
 
     def _create_column_from_node(self, node: NodeData):
         """Adds column to tsdb table based on NodeData"""
-
+        logger.debug(f"About to create column {node.name} in table {self.schema}.{self.table_name}")
         with TryConnectContextManager(self.engine) as connection:
             tsdb_type = self._get_tsdb_type(node)
             column = SQLColumn(name=node.name, type=tsdb_type, nullable=True)
@@ -111,7 +114,7 @@ class SQL_Manager:
 
     def _create_table_sql(self):
         """Sets up query to create tsdb hypertable"""
-
+        logger.debug(f"Building create table SQL for {self.schema}.{self.table_name}")
         columns: list[SQLColumn] = [SQLColumn(name="time", type="TIMESTAMP WITH TIME ZONE", nullable=False)]
         for node in self.nodes_to_persist.values():
             tsdb_type = self._get_tsdb_type(node)
@@ -129,7 +132,7 @@ class SQL_Manager:
 
     def _check_for_extra_columns(self):
         """Check for database columns not present in the current tag configuration."""
-
+        logger.debug(f"Checking for extra columns in {self.schema}.{self.table_name}")
         existing_col_names = [col["name"] for col in get_all_columns(self.engine, self.table_name, schema=self.schema)]
         expected_col_names = [node.name for node in self.nodes_to_persist.values()] + [self.time_column_name]
 
@@ -164,7 +167,7 @@ class SQL_Manager:
     # and values are their corresponding values.
     def write_to_sql(self, data: dict[str, Any], timestamp: str | None):
         """Write data to the tsdb table with the given timestamp."""
-
+        logger.debug(f"About to write {len(data)} data points to {self.schema}.{self.table_name}")
         if not self.engine:
             logger.error("SQL engine is not initialized")
             return
@@ -173,6 +176,7 @@ class SQL_Manager:
             logger.warning("No data provided to write_to_sql")
             return
 
+        logger.debug("Sanitizing column names for SQL write")
         # Ensure all keys in input data are sanitized
         column_mapper = ColumnMapper(list(data.keys()))
         sanitized_data = {column_mapper.name_to_pg[k]: v for k, v in data.items()}
@@ -188,6 +192,7 @@ class SQL_Manager:
         filtered_data[SanitizedName('timestamp')] = timestamp or now_iso()
 
         try:
+            logger.debug(f"About to execute SQL insert for {len(filtered_data)} columns")
             with TryConnectContextManager(self.engine, backoff_seconds=10, max_tries=99) as connection:
                 col_names_to_write = [col for col in filtered_data.keys() if col != "timestamp"]
                 sql = self._insert_sql(col_names_to_write)

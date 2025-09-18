@@ -38,15 +38,20 @@ class OPC_Connection_IO(OPC_Connection):
 
     async def init(self, cfg: OPCConnectionConfig):
         self.connection_id = cfg.connection_id
+        logger.debug(f"Starting initialization for {self.connection_id}")
         self.opc_client = Client(cfg.opc_conn_url)
         self._connected = False
 
+        logger.debug(f"Setting application uri for {self.connection_id}")
         self.opc_client.application_uri = cfg.application_uri
 
+        logger.debug(f"Setting security policy for {self.connection_id}")
         await self._set_security_policy(cfg.security_policy)
+        logger.debug(f"Setting auth mode for {self.connection_id}")
         await self._set_auth_mode(cfg.authentication_mode)
 
         # Test connection
+        logger.debug(f"Ensuring connection for {self.connection_id}")
         await self.ensure_connected()
 
         return self
@@ -54,6 +59,7 @@ class OPC_Connection_IO(OPC_Connection):
     async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
         assert self.opc_client is not None
 
+        logger.debug(f"Security policy for {self.connection_id} is {policy}" )
         match policy:
             case OPCSecurityPolicyBasic256SHA256Config():
                 mode = (
@@ -61,6 +67,10 @@ class OPC_Connection_IO(OPC_Connection):
                     if policy.mode is OPCMessageSecurityMode.sign
                     else ua.MessageSecurityMode.SignAndEncrypt
                 )
+                logger.debug(f"Setting security in opc client"
+                             f" client cert path {policy.client_cert_path}, client key path {policy.client_key_path},"
+                             f" server cert path {policy.server_cert_path}")
+
                 await self.opc_client.set_security(
                     SecurityPolicyBasic256Sha256,
                     certificate=policy.client_cert_path,
@@ -77,9 +87,11 @@ class OPC_Connection_IO(OPC_Connection):
 
     async def _set_auth_mode(self, auth_mode: OPCAuthModeConfig):
         assert self.opc_client is not None
+        logger.debug(f"Auth mode for {self.connection_id} is {auth_mode}")
 
         match auth_mode:
             case OPCAuthModeUsernamePasswordConfig():
+                logger.debug(f"Setting user and password in opc client for {self.connection_id}")
                 self.opc_client.set_user(auth_mode.username)
                 self.opc_client.set_password(auth_mode.password)
 
@@ -99,6 +111,7 @@ class OPC_Connection_IO(OPC_Connection):
     ) -> Callable[Concatenate[OPC_Connection_IO, P], Awaitable[R]]:
         async def wrapper(self: OPC_Connection_IO, *args: P.args, **kwargs: P.kwargs) -> R:
             try:
+                logger.debug(f"Checking connection for {self.connection_id} from wrapper")
                 await self.ensure_connected()
             except Exception as exc:
                 logger.warning(f"Failed to establish healthy connection for {self.connection_id}: {exc}")
@@ -111,6 +124,7 @@ class OPC_Connection_IO(OPC_Connection):
     @backoff.on_exception(backoff.expo, Exception, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def ensure_connected(self):
         try:
+            logger.debug(f"About to establish persistent connection to {self.connection_id}")
             await self.ensure_connected_no_backoff()
             logger.info(f"Successfully established persistent connection to {self.connection_id}")
 
@@ -148,6 +162,7 @@ class OPC_Connection_IO(OPC_Connection):
         logger.info(f"Registering OPC node with id '{node_id}'")
         node = self.opc_client.get_node(node_id)
         var_type = await node.read_data_type_as_variant_type()
+        logger.debug(f"Variant type for {node_id} is {var_type}")
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type, name=name)
 
@@ -172,6 +187,7 @@ class OPC_Connection_IO(OPC_Connection):
         data_values = []
 
         for node in nodes_to_write:
+            logger.debug(f"Parsing {node.node_id} in {self.connection_id}, about to write...")
             if node.node_id not in self.registered_nodes:
                 logger.warning(f"Node {node.node_id} is unknown")
                 continue
@@ -205,12 +221,15 @@ class OPC_Connection_IO(OPC_Connection):
                 # (and that they align with the server).
                 dt = ua.uatypes.DateTime.now(UTC) # this is a load bearing timestamp
                 data_value = ua.DataValue(ua.Variant(write_val, var_type), SourceTimestamp=dt)
+
+                logger.debug(f"Added to write list {node.node_id} in {self.connection_id}, about to write...")
                 nodes.append(node_entry.node)
                 data_values.append(data_value)
             except (TypeError, ValueError) as e:
                 logger.warning(f"Failed to convert value {node.value} to {var_type} for node {node.node_id}: {e}")
 
         if len(nodes) > 0:
+            logger.debug(f"About to write values in {self.connection_id}")
             await self.opc_client.write_values(nodes, data_values)
 
     @ensure_healthy_connection
@@ -220,6 +239,7 @@ class OPC_Connection_IO(OPC_Connection):
         opc_nodes_to_read = [node.node for node in nodes_to_read.values()]
         read_values = [None] * len(opc_nodes_to_read)
         try:
+            logger.debug(f"Reading values in {self.connection_id}")
             read_values = await self.opc_client.read_values(opc_nodes_to_read)
         except Exception as exc:
             logger.error(f"Error on bulk read, returning [Nones]:\n{exc!s}")
@@ -227,6 +247,7 @@ class OPC_Connection_IO(OPC_Connection):
         return read_values
 
     async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]) -> dict[str, Any]:
+        logger.debug(f"About to read {len(nodes_to_read)} named nodes from {self.connection_id}")
         read_values = await self._read_opcua_nodes(nodes_to_read)
 
         nodes_name_val = {}
