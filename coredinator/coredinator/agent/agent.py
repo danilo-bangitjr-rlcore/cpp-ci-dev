@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NewType
 
-from coredinator.service.protocols import ServiceID, ServiceState
+from coredinator.service.protocols import ServiceBundle, ServiceBundleID, ServiceID, ServiceState
 from coredinator.service.service import ServiceStatus
 from coredinator.service.service_manager import ServiceManager
 from coredinator.services import CoreIOService, CoreRLService
@@ -20,15 +20,22 @@ class AgentStatus:
     service_statuses: dict[str, ServiceStatus] = field(default_factory=dict)
 
 
-class Agent:
-    def __init__(self, id: AgentID, config_path: Path, base_path: Path, service_manager: ServiceManager):
+class Agent(ServiceBundle):
+    def __init__(
+        self,
+        id: AgentID,
+        config_path: Path,
+        base_path: Path,
+        service_manager: ServiceManager,
+        coreio_service_id: ServiceID | None = None,
+    ):
         self._id = id
         self._config_path = config_path
         self._service_manager = service_manager
 
         # Create service IDs
         self._corerl_service_id = ServiceID(f"{id}-corerl")
-        self._coreio_service_id = ServiceID(f"{id}-coreio")
+        self._coreio_service_id = coreio_service_id or ServiceID(f"{id}-coreio")
 
         # Get or create services using the service manager
         self._corerl_service = self._service_manager.get_or_register_service(
@@ -48,17 +55,31 @@ class Agent:
             ),
         )
 
+        # Register this agent as a service bundle
+        self._service_manager.register_bundle(self)
+
     @property
     def id(self):
-        return ServiceID(self._id)
+        return ServiceBundleID(self._id)
+
+    def get_required_services(self):
+        return {self._corerl_service_id, self._coreio_service_id}
 
     def start(self):
         self._coreio_service.start()
         self._corerl_service.start()
 
     def stop(self, grace_seconds: float = 5.0):
-        self._corerl_service.stop(grace_seconds)
-        self._coreio_service.stop(grace_seconds)
+        self._service_manager.unregister_bundle(self.id, grace_seconds)
+
+
+    def __del__(self):
+        """Ensure agent is properly unregistered on deletion."""
+        try:
+            self._service_manager.unregister_bundle(self.id)
+        except Exception:
+            # Ignore errors during cleanup to avoid issues in destructor
+            pass
 
 
     def status(self):
