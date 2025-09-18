@@ -3,6 +3,7 @@ import sympy as sy
 
 from corerl.utils.sympy import (
     _get_tag_names,
+    _handle_parentheses,
     _is_balanced_braces,
     _preprocess_expression_string,
     _preprocess_tag_names,
@@ -139,3 +140,11 @@ def test_is_balanced():
 
     res = _is_balanced_braces("{{{{{}")
     assert not res
+
+def test_handling_parentheses():
+    sympy_expr = "{d} + (({a} == 1) != {b}) + 1 == 0"
+    assert is_expression(sympy_expr)
+    processed_expression = _preprocess_expression_string(sympy_expr)
+    processed_expression = _handle_parentheses(processed_expression)
+    expected_expr = "Eq(d + (Ne((Eq(a, 1)), b)) + 1, 0)"
+    assert processed_expression == expected_expr

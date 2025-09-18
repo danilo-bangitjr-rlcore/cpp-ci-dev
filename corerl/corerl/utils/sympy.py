@@ -44,6 +44,47 @@ def _preprocess_expression_string(input_string: str) -> str:
     return result
 
 
+def _handle_equalities(input_string: str) -> str:
+    """
+    Handle == and != by replacing them with Eq and Ne functions before sympify
+    """
+    if " == " in input_string:
+        parts = input_string.split(" == ")
+        if len(parts) == 2:
+            return f"Eq({parts[0]}, {parts[1]})"
+    elif " != " in input_string:
+        parts = input_string.split(" != ")
+        if len(parts) == 2:
+            return f"Ne({parts[0]}, {parts[1]})"
+
+    return input_string
+
+
+def _handle_parentheses(input_string: str) -> str:
+    """
+    Parses sympy expressions chunk by chunk where chunks are delimited by parentheses
+    """
+    stack = []
+    output_string = ""
+    for char in input_string:
+        if char == "(":
+            stack.append("")
+        elif char == ")":
+            assert len(stack) > 0, f"Invalid use of parentheses in sympy expression: {input_string}"
+            processed_segment = _handle_equalities(stack.pop())
+            if len(stack) > 0:
+                stack[-1] += f"({processed_segment})"
+            else:
+                output_string += f"({processed_segment})"
+        elif len(stack) > 0:
+            stack[-1] += char
+        else:
+            output_string += char
+
+    assert len(stack) == 0, f'Unmatched opening parenthesis in sympy expression: {input_string}'
+    return _handle_equalities(output_string)
+
+
 def to_sympy(input_string: str) -> tuple[sy.Expr, Callable[..., float], list[str]]:
     """
     The input string might look something like:
@@ -60,15 +101,7 @@ def to_sympy(input_string: str) -> tuple[sy.Expr, Callable[..., float], list[str
 
     processed_expression = _preprocess_expression_string(input_string)
 
-    # Handle == and != by replacing them with Eq and Ne functions before sympify
-    if " == " in processed_expression:
-        parts = processed_expression.split(" == ")
-        if len(parts) == 2:
-            processed_expression = f"Eq({parts[0]}, {parts[1]})"
-    elif " != " in processed_expression:
-        parts = processed_expression.split(" != ")
-        if len(parts) == 2:
-            processed_expression = f"Ne({parts[0]}, {parts[1]})"
+    processed_expression = _handle_parentheses(processed_expression)
 
     expression: Any = sy.sympify(processed_expression)
 
