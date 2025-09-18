@@ -30,6 +30,8 @@ class OPC_Connection(ABC):
         self.opc_client: Client | None = None
         self.registered_nodes: dict[str, NodeData] = {}
         self._context_active = False
+        self.connection_id = ""
+        self._connected = False
 
     # -------------------- #
     # --- Init methods --- #
@@ -50,18 +52,18 @@ class OPC_Connection(ABC):
     async def ensure_connected_no_backoff(self):
         assert self.opc_client is not None, 'OPC client is not initialized'
 
-        if not self._connected:
+        if self._connected is False:
             await self.opc_client.connect()
             self._connected = True
 
         try:
             await self.opc_client.check_connection()
 
-        except Exception:
-            connection_id = getattr(self, "connection_id", "(no connection id)")
-            logger.error(f"Problem connecting to OPC server in {connection_id}")
-            self._connected = False
-            raise
+        except Exception as e:
+            logger.warning(f"Retrying connection to {self.connection_id}.\n{e!s}")
+            await self.opc_client.connect()
+            await self.opc_client.check_connection()
+            self._connected = True
 
         return self.opc_client
 
