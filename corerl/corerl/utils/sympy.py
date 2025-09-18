@@ -81,6 +81,7 @@ def _handle_parentheses(input_string: str) -> str:
         else:
             output_string += char
 
+    assert len(stack) == 0, f'Unmatched opening parenthesis in sympy expression: {input_string}'
     return _handle_equalities(output_string)
 
 
