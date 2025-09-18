@@ -73,3 +73,5 @@ class CoreIOConfig:
     coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()
     tags: list[TagConfigAdapter] = list_()
+    logging_level: str = "INFO"
+    logging_file: str | None = None
