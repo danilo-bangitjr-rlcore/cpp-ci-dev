@@ -1,3 +1,6 @@
+defaults:
+  - ./coreio_tags.yaml
+
 log_path: "outputs/scrubber_agent_logs"
 
 infra:
@@ -19,7 +22,7 @@ interaction:
   obs_period: 00:05:00
   update_period: 00:00:30
   action_period: 01:00:00
-  warmup_period: 03:00:00
+  warmup_period: 12:00:00
   state_age_tol: 00:15:00
   update_warmup: 500 # number of updates before interacting
   historical_batch_size: 51840 # 180 days @ 5 minute obs period
@@ -33,10 +36,13 @@ interaction:
 
 event_bus:
   enabled: True
-  cli_connection: "tcp://localhost:5556"
+  cli_connection: "tcp://localhost:5557"
 
 coreio:
-  coreio_origin: "tcp://localhost:5559"
+  coreio_origin: "tcp://localhost:5561"
+  data_ingress:
+    enabled: True
+    ingress_period: 00:00:10
   opc_connections:
     - connection_id: matrikon
       opc_conn_url: "opc.tcp://localhost:62000"
@@ -50,11 +56,24 @@ coreio:
       authentication_mode:
         username: "admin"
         password: "scrubber4matrikon"
+    - connection_id: opcua
+      opc_conn_url: "opc.tcp://insqlsrv5:48031"
+      application_uri: "urn:telegraf"
+      security_policy:
+        policy: basic256_sha256
+        mode: sign_and_encrypt
+        # client_cert_path: "C:\\RLCore\\services\\telegraf\\config\\telegraf_cert.pem"
+        # client_key_path: "C:\\RLCore\\services\\telegraf\\config\\telegraf_key.pem"
+        client_cert_path: "../../telegraf/config/telegraf_cert.pem"
+        client_key_path: "../../telegraf/config/telegraf_key.pem"
+        server_cert_path: "../certs/aveva_server_cert.der"
+      authentication_mode: anonymous
 
 env:
   name: dep_async_env
   db:
-    table_name: scrubber4_tz
+    table_name: scrubber4_tz_wide
+    wide_format: true
 
 agent:
   name: greedy_ac
@@ -100,12 +119,6 @@ pipeline:
       - tags: [AIC3730_OUT, AIC3731_OUT]
         directions: min
         weights: [0.5455, 1.355]
-
-  imputer:
-    name: per-tag
-    default:
-      name: copy
-      imputation_horizon: 2
 
   state_constructor:
     defaults:
