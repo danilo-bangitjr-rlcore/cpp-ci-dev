@@ -6,11 +6,12 @@ import colorlog
 
 
 def setup_logging(level: int | str = logging.INFO, log_file: str = '') -> logging.Logger:
-    # Create logger
+    # Create logger - set to DEBUG to allow all messages to flow to handlers
+    # Individual handlers will then filter based on their own levels
     logger = logging.getLogger()
-    logger.setLevel(level)
+    logger.setLevel(logging.DEBUG)
 
-    # Console handler with color
+    # Console handler with color - uses passed-in level for user control
     console_handler = colorlog.StreamHandler()
     console_handler.setLevel(level)
     console_formatter = colorlog.ColoredFormatter(
@@ -28,10 +29,10 @@ def setup_logging(level: int | str = logging.INFO, log_file: str = '') -> loggin
     console_handler.setFormatter(console_formatter)
     logger.addHandler(console_handler)
 
-    # File handler with rotation to limit size to 1 MB
+    # File handler with rotation - always logs at DEBUG level for comprehensive file logging
     os.makedirs('outputs/coreio', exist_ok=True)
     file_handler = RotatingFileHandler(f'outputs/coreio/coreio_{log_file}.log', maxBytes=1024*1024, backupCount=5)
-    file_handler.setLevel(level)
+    file_handler.setLevel(logging.DEBUG)
     file_formatter = logging.Formatter('%(levelname)s: %(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
