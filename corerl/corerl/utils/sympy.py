@@ -70,7 +70,7 @@ def _handle_parentheses(input_string: str) -> str:
         if char == "(":
             stack.append("")
         elif char == ")":
-            assert len(stack) > 0, f"Invalid use of paretheses in sympy expression: {input_string}"
+            assert len(stack) > 0, f"Invalid use of parentheses in sympy expression: {input_string}"
             processed_segment = _handle_equalities(stack.pop())
             if len(stack) > 0:
                 stack[-1] += f"({processed_segment})"
