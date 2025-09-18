@@ -27,8 +27,7 @@ async def handle_write_event(event: IOEvent, opc_connections: dict[str, OPC_Conn
             continue
 
         try:
-            async with opc_conn:
-                await opc_conn.write_opcua_nodes(payload)
+            await opc_conn.write_opcua_nodes(payload)
         except Exception as exc:
             logger.error(f"Failed to write nodes to OPC: {exc!s}")
 
@@ -47,8 +46,7 @@ async def handle_read_event(
 
     for opc_conn in opc_connections.values():
         try:
-            async with opc_conn:
-                nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
+            nodes_name_val = nodes_name_val | await opc_conn.read_nodes_named(opc_conn.registered_nodes)
         except Exception as exc:
             logger.error(f"Failed to read nodes from OPC: {exc!s}")
 

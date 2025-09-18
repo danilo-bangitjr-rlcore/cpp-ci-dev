@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Sequence
+from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC
-from typing import Any, assert_never
+from typing import Any, Concatenate, assert_never
 
 import backoff
 from asyncua import Client, ua
@@ -89,12 +89,55 @@ class OPC_Connection_IO(OPC_Connection):
             case _:
                 assert_never(auth_mode)
 
+    # ------------------------- #
+    # --- Connection Health --- #
+    # ------------------------- #
+
+    @staticmethod
+    def ensure_healthy_connection[**P, R](
+        func: Callable[Concatenate[OPC_Connection_IO, P], Awaitable[R]],
+    ) -> Callable[Concatenate[OPC_Connection_IO, P], Awaitable[R]]:
+        async def wrapper(self: OPC_Connection_IO, *args: P.args, **kwargs: P.kwargs) -> R:
+            try:
+                await self.ensure_connected()
+            except Exception as exc:
+                logger.warning(f"Failed to establish healthy connection for {self.connection_id}: {exc}")
+                self._connected = False
+                raise
+
+            return await func(self, *args, **kwargs)
+        return wrapper
+
+    @backoff.on_exception(backoff.expo, Exception, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
+    async def ensure_connected(self):
+        try:
+            await self.ensure_connected_no_backoff()
+            logger.info(f"Successfully established persistent connection to {self.connection_id}")
+
+        except Exception as exc:
+            logger.error(f"Failed to establish persistent connection to {self.connection_id}: {exc}")
+            raise
+
+    async def cleanup(self) -> OPC_Connection_IO:
+        if self.opc_client is None:
+            logger.debug(f"OPC client for {self.connection_id} is already None")
+            return self
+
+        try:
+            await self.opc_client.disconnect()
+            self._connected = False
+            logger.info(f"Successfully cleaned up connection {self.connection_id}")
+
+        except Exception as exc:
+            logger.error(f"Error cleaning up connection {self.connection_id}: {exc}")
+
+        return self
+
     # ------------------ #
     # --- IO Methods --- #
     # ------------------ #
-    # All of these use @requires_context
 
-    @OPC_Connection.requires_context
+    @ensure_healthy_connection
     @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def register_node(self, node_id: str, name: str):
         assert self.opc_client is not None, 'OPC client is not initialized'
@@ -108,7 +151,7 @@ class OPC_Connection_IO(OPC_Connection):
 
         self.registered_nodes[node_id] = NodeData(node=node, var_type=var_type, name=name)
 
-    @OPC_Connection.requires_context
+    @ensure_healthy_connection
     async def register_cfg_nodes(self, tag_configs: Sequence[TagConfigAdapter]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         for tag_cfg in tag_configs:
@@ -118,7 +161,7 @@ class OPC_Connection_IO(OPC_Connection):
             await self.register_node(tag_cfg.node_identifier, tag_cfg.name)
 
 
-    @OPC_Connection.requires_context
+    @ensure_healthy_connection
     @backoff.on_exception(backoff.expo, BadNodeIdUnknown, max_value=MAX_BACKOFF_SECONDS, on_backoff=log_backoff)
     async def write_opcua_nodes(self, nodes_to_write: Sequence[OPCUANodeWriteValue]):
         assert self.opc_client is not None, 'OPC client is not initialized'
@@ -170,7 +213,7 @@ class OPC_Connection_IO(OPC_Connection):
         if len(nodes) > 0:
             await self.opc_client.write_values(nodes, data_values)
 
-    @OPC_Connection.requires_context
+    @ensure_healthy_connection
     async def _read_opcua_nodes(self, nodes_to_read: dict[str, NodeData]):
         assert self.opc_client is not None, 'OPC client is not initialized'
         assert nodes_to_read.keys() <= self.registered_nodes.keys(), "Not all nodes_to_read are in our registered_nodes"
@@ -183,7 +226,6 @@ class OPC_Connection_IO(OPC_Connection):
 
         return read_values
 
-    @OPC_Connection.requires_context
     async def read_nodes_named(self, nodes_to_read: dict[str, NodeData]) -> dict[str, Any]:
         read_values = await self._read_opcua_nodes(nodes_to_read)
 

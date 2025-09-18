@@ -91,6 +91,10 @@ async def coreio_loop(cfg: MainConfigAdapter):
     except Exception:
         logger.exception("CoreIO error occurred")
     finally:
+        logger.info("Cleaning up OPC connections")
+        for opc_conn in opc_connections.values():
+            await opc_conn.cleanup()
+
         zmq_communication.cleanup()
         if ingress_stop_event:
             ingress_stop_event.set()
