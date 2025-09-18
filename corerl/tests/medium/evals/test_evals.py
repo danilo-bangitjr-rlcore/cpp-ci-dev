@@ -8,6 +8,7 @@ from lib_utils.time import now_iso
 from sqlalchemy import Engine
 
 from corerl.eval.evals.static import StaticEvalsTable
+from tests.infrastructure.config import load_config
 
 
 def test_db_eval_writer(tsdb_engine: Engine, evals_table: StaticEvalsTable):
@@ -127,3 +128,116 @@ def test_db_evals_read_by_eval(tsdb_engine: Engine, evals_table: StaticEvalsTabl
         assert state_v_df.iloc[i]["time"] == pd.Timestamp(start_time + (i * delta))
         assert state_v_df.iloc[i]["agent_step"] == i
         assert state_v_df.iloc[i]["value"] == {"state_v": [i*j for j in range(samples)]}
+
+
+# ============================================================================
+# Integration Edge Cases Tests
+# ============================================================================
+
+
+def test_connection_failure_recovery(tsdb_engine: Engine, evals_table: StaticEvalsTable):
+    """
+    Test behavior when database connection is lost and recovered.
+
+    Verifies that connection disposal doesn't cause crashes and that
+    SQLAlchemy can automatically re-establish connections.
+    """
+    # Write some data successfully first
+    evals_table.write(0, "test_eval", {"data": "initial"})
+    evals_table.flush()
+
+    assert table_exists(tsdb_engine, "evals")
+    initial_df = evals_table.read("test_eval")
+    assert len(initial_df) == 1
+
+    # Writes should still succeed when buffered
+    evals_table.write(1, "test_eval", {"data": "buffered_write"})
+
+    # Simulate connection issues by disposing the engine connection pool
+    tsdb_engine.dispose()
+
+    # This should either succeed or fail gracefully without crashing
+    evals_table.read("test_eval")
+
+    # SQLAlchemy should automatically reconnect
+    final_df = evals_table.read("test_eval")
+    assert len(final_df) >= 1
+
+
+def test_buffered_writer_consistency(evals_table: StaticEvalsTable):
+    """
+    Test that buffered writes maintain consistency during failures.
+
+    Verifies that batch writes either succeed completely or fail atomically,
+    never leaving the database in a partial/inconsistent state.
+    """
+    # Write initial data successfully
+    evals_table.write(0, "consistency_test", {"value": "initial"})
+    evals_table.flush()
+
+    initial_df = evals_table.read("consistency_test")
+    assert len(initial_df) == 1
+    assert initial_df.iloc[0]["value"] == {"value": "initial"}
+
+    # Start a batch of writes that should be atomic
+    evals_table.write(1, "consistency_test", {"value": "batch1"})
+    evals_table.write(2, "consistency_test", {"value": "batch2"})
+    evals_table.write(3, "consistency_test", {"value": "batch3"})
+
+    # Simulate connection failure before flush
+    evals_table.engine.dispose()
+
+    final_df = evals_table.read("consistency_test")
+
+    # Should have either 1 (just initial) or 4 (all data) records
+    # Never 2 or 3 records (partial batch would indicate inconsistency)
+    assert len(final_df) in [1, 4], f"Inconsistent state: {len(final_df)} records found"
+
+
+def test_engine_disposal_and_recreation(
+    tsdb_engine: Engine,
+    tsdb_tmp_db_name: str,
+    basic_config_path: str,
+):
+    """
+    Test engine disposal and recreation scenarios.
+
+    Verifies that multiple StaticEvalsTable instances can be created with
+    the same configuration and that data persists across engine recreation.
+    """
+    port = tsdb_engine.url.port
+    assert port is not None
+
+    basic_config = load_config(
+        basic_config_path,
+        overrides={
+            "evals.db_name": tsdb_tmp_db_name,
+            "evals.port": port,
+        },
+    )
+
+    table1 = StaticEvalsTable(basic_config.evals)
+
+    table1.write(0, "disposal_test", {"data": "first_instance"})
+    table1.flush()
+
+    df1 = table1.read("disposal_test")
+    assert len(df1) == 1
+
+    table1.close()
+
+    # Create a new instance with same config (engine recreation)
+    table2 = StaticEvalsTable(basic_config.evals)
+
+    # New instance should be able to read existing data
+    df2 = table2.read("disposal_test")
+    assert len(df2) == 1
+    assert df2.iloc[0]["value"] == {"data": "first_instance"}
+
+    table2.write(1, "disposal_test", {"data": "second_instance"})
+    table2.flush()
+
+    df3 = table2.read("disposal_test")
+    assert len(df3) == 2
+
+    table2.close()
