@@ -7,10 +7,10 @@ from lib_sql.inspection import table_exists
 from lib_utils.time import now_iso
 from sqlalchemy import Engine
 
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.static import StaticEvalsTable
 
 
-def test_db_eval_writer(tsdb_engine: Engine, evals_table: EvalsTable):
+def test_db_eval_writer(tsdb_engine: Engine, evals_table: StaticEvalsTable):
     eval_out = {"Q": [1, 2, 3]}
     evals_table.write(
         agent_step=0,
@@ -18,7 +18,7 @@ def test_db_eval_writer(tsdb_engine: Engine, evals_table: EvalsTable):
         value=eval_out,
         timestamp=now_iso(),
     )
-    evals_table.blocking_sync()
+    evals_table.flush()
 
     # ensure evals table exists
     assert table_exists(tsdb_engine, 'evals')
@@ -36,7 +36,7 @@ def test_db_eval_writer(tsdb_engine: Engine, evals_table: EvalsTable):
         assert "Q" in val
         assert val["Q"] == [1,2,3]
 
-def test_db_evals_read_by_time(tsdb_engine: Engine, evals_table: EvalsTable):
+def test_db_evals_read_by_time(tsdb_engine: Engine, evals_table: StaticEvalsTable):
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -51,7 +51,7 @@ def test_db_evals_read_by_time(tsdb_engine: Engine, evals_table: EvalsTable):
             timestamp=curr_time.isoformat(),
         )
         curr_time += delta
-    evals_table.blocking_sync()
+    evals_table.flush()
 
     # ensure evals table exists
     assert table_exists(tsdb_engine, 'evals')
@@ -67,7 +67,7 @@ def test_db_evals_read_by_time(tsdb_engine: Engine, evals_table: EvalsTable):
         assert state_v_df.iloc[i - start_ind]["time"] == pd.Timestamp(start_time + (i * delta))
         assert state_v_df.iloc[i - start_ind]["value"] == {"state_v": [i*j for j in range(samples)]}
 
-def test_db_evals_read_by_step(tsdb_engine: Engine, evals_table: EvalsTable):
+def test_db_evals_read_by_step(tsdb_engine: Engine, evals_table: StaticEvalsTable):
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -82,7 +82,7 @@ def test_db_evals_read_by_step(tsdb_engine: Engine, evals_table: EvalsTable):
             timestamp=curr_time.isoformat(),
         )
         curr_time += delta
-    evals_table.blocking_sync()
+    evals_table.flush()
 
     # ensure evals table exists
     assert table_exists(tsdb_engine, 'evals')
@@ -98,7 +98,7 @@ def test_db_evals_read_by_step(tsdb_engine: Engine, evals_table: EvalsTable):
         assert state_v_df.iloc[i - start_step]["agent_step"] == i
         assert state_v_df.iloc[i - start_step]["value"] == {"state_v": [i*j for j in range(samples)]}
 
-def test_db_evals_read_by_eval(tsdb_engine: Engine, evals_table: EvalsTable):
+def test_db_evals_read_by_eval(tsdb_engine: Engine, evals_table: StaticEvalsTable):
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -113,7 +113,7 @@ def test_db_evals_read_by_eval(tsdb_engine: Engine, evals_table: EvalsTable):
             timestamp=curr_time.isoformat(),
         )
         curr_time += delta
-    evals_table.blocking_sync()
+    evals_table.flush()
 
     # ensure evals table exists
     assert table_exists(tsdb_engine, 'evals')

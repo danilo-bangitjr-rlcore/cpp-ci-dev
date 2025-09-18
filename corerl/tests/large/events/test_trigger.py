@@ -8,7 +8,7 @@ from test.infrastructure.networking import get_free_port
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import RLEventType
@@ -40,7 +40,7 @@ def test_no_trigger(
     app_state = AppState(
         cfg=main_cfg,
         metrics=create_metrics_writer(main_cfg.metrics),
-        evals=EvalsTable(main_cfg.evals),
+        evals=create_evals_writer(main_cfg.evals),
         event_bus=event_bus,
     )
 
@@ -79,7 +79,7 @@ def test_trigger(
     app_state = AppState(
         cfg=main_cfg,
         metrics=create_metrics_writer(main_cfg.metrics),
-        evals=EvalsTable(main_cfg.evals),
+        evals=create_evals_writer(main_cfg.evals),
         event_bus=event_bus,
     )
 

@@ -12,7 +12,7 @@ from corerl.agent.greedy_ac import GreedyACConfig
 from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
-from corerl.eval.evals import EvalDBConfig
+from corerl.eval.evals.base import EvalDBConfig
 from corerl.eval.metrics.base import MetricsDBConfig
 from corerl.interaction.factory import InteractionConfig
 from corerl.messages.factory import EventBusConfig

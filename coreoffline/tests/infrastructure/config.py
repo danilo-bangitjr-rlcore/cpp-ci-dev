@@ -2,7 +2,7 @@
 import pytest
 from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.evals import EvalDBConfig
+from corerl.eval.evals.base import EvalDBConfig
 from corerl.eval.metrics.base import MetricsDBConfig
 from lib_config.loader import direct_load_config
 from sqlalchemy import Engine

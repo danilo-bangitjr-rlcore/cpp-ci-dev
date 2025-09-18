@@ -3,7 +3,7 @@ from sqlalchemy import Engine
 
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.db.data_writer import DataWriter
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from tests.infrastructure.config import load_config
 
@@ -80,6 +80,6 @@ def evals_table(
         'evals.db_name': tsdb_tmp_db_name,
         'evals.port': port,
     })
-    table = EvalsTable(basic_config.evals)
+    table = create_evals_writer(basic_config.evals)
     yield table
     table.close()

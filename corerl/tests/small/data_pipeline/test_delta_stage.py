@@ -7,7 +7,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
@@ -20,7 +20,7 @@ def test_one_delta_tag_one_pf():
     app_state = AppState(
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )
 
@@ -56,7 +56,7 @@ def test_one_delta_tag_multiple_pfs():
     app_state = AppState(
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )
     pipeline = Pipeline(app_state, cfg.pipeline)
