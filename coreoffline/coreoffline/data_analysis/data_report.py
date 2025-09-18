@@ -526,7 +526,7 @@ def make_zone_violations_table(
     ]
 
     def add_zone_violation_rows(violation_type: str):
-        metric_prefix = f'{violation_type}_zone_violation'
+        metric_prefix = f'{violation_type}_zone_violation_'
         try:
             yz_df = app_state.metrics.read(
                 metric=metric_prefix,
@@ -542,10 +542,10 @@ def make_zone_violations_table(
                 for col in metric_columns:
                     num_violations = int((yz_df[col] > 0).sum())
                     tag = col.removeprefix(metric_prefix)
-                    table_data.append([f'Num {tag} violations', str(num_violations)])
+                    table_data.append([f'Num {tag} {violation_type} violations', str(num_violations)])
 
                     avg_violation = yz_df[col].mean()
-                    table_data.append([f'Avg {tag} violation level', str(avg_violation)])
+                    table_data.append([f'Avg {tag} {violation_type} violation level', str(avg_violation)])
 
         except Exception as e:
             log.warning(f"Could not read {metric_prefix} metric: {e}")
