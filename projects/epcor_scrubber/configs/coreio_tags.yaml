@@ -1,0 +1,153 @@
+coreio:
+  tags:
+  - name: AIC3730_SPRL
+    connection_id: matrikon
+    node_identifier: "ns=3;i=14"
+
+  - name: AIC3731_SPRL
+    connection_id: matrikon
+    node_identifier: "ns=3;i=15"
+
+  - name: FIC3734_SPRL
+    connection_id: matrikon
+    node_identifier: "ns=3;i=17"
+
+  - name: PDIC3738_SPRL
+    connection_id: matrikon
+    node_identifier: "ns=3;i=16"
+
+  - name: RLCORE_OPCUA_WD
+    connection_id: matrikon
+    node_identifier: "ns=3;i=13"
+
+  - name: FI_0871
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FI_0871"
+
+  - name: AIC3730_MODE
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3730_MODE"
+
+  - name: AIC3730_SP
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3730_SP"
+
+  - name: AIC3730_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3730_PV"
+
+  - name: AIC3730_OUT
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3730_OUT"
+
+  - name: AIC3731_MODE
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3731_MODE"
+
+  - name: AIC3731_SP
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3731_SP"
+
+  - name: AIC3731_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3731_PV"
+
+  - name: AIC3731_OUT
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AIC3731_OUT"
+
+  - name: PDIC3738_MODE
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.PDIC3738_MODE"
+
+  - name: PDIC3738_SP
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.PDIC3738_SP"
+
+  - name: PDIC3738_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.PDIC3738_PV"
+
+  - name: PDIC3738_OUT
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.PDIC3738_OUT"
+
+  - name: PI0169
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.PI0169"
+
+  - name: LI3734
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.LI3734"
+
+  - name: FI0872
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FI0872"
+
+  - name: AI0879A
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AI0879A"
+
+  - name: AI0879B
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AI0879B"
+
+  - name: AI0879C
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AI0879C"
+
+  - name: ARC0879C_OUT
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.ARC0879C_OUT"
+
+  - name: TI0880
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.TI0880"
+
+  - name: AI0897B
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.AI0897B"
+
+  - name: FIC3734_MODE
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FIC3734_MODE"
+
+  - name: FIC3734_SP
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FIC3734_SP"
+
+  - name: FIC3734_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FIC3734_PV"
+
+  - name: FIC3734_OUT
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FIC3734_OUT"
+
+  - name: FV3735_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.FV3735_PV"
+
+  - name: M3739_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.M3739_PV"
+
+  - name: M3730A_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.M3730A_PV"
+
+  - name: M3730B_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.M3730B_PV"
+
+  - name: M3731A_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.M3731A_PV"
+
+  - name: M3731B_PV
+    connection_id: opcua
+    node_identifier: "ns=3;s=4165:GBWWTP_RLCore.M3731B_PV"
+
+  - name: WATCHDOG
+    connection_id: opcua
+    node_identifier: "ns=3;s=4175:GBWWTP_RLCoreFB.RLCORE_OPCUA_WDF"
