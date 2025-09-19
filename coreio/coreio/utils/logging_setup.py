@@ -15,7 +15,7 @@ def get_log_file_name(cfg: CoreIOConfig):
         origin_suffix = cfg.coreio_origin.split(":")[-1]
     else:
         origin_suffix = cfg.coreio_origin or ""
-    
+
     return f"outputs/coreio/coreio_{origin_suffix}.log"
 
 def setup_logging(level: int | str = logging.INFO, log_file: str = "outputs/coreio/coreio.log") -> logging.Logger:
