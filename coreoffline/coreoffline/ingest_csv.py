@@ -25,7 +25,6 @@ def load_dataset(cfg: LoadDataConfig):
             continue
 
         print(f'Processing column: {col} ({i} / {n_cols} total columns)')
-        assert df[col].dtype.is_float()
         for row in df.select(['Date', col]).iter_rows():
             t_str, v = row
             t = datetime.datetime.strptime(t_str, '%Y-%m-%d %H:%M:%S')
@@ -34,7 +33,11 @@ def load_dataset(cfg: LoadDataConfig):
             if v is None:
                 continue
 
-            writer.write(t, tag, float(v))
+            try:
+                writer.write(t, tag, float(v))
+
+            except Exception as exc:
+                raise ValueError(f'Tried to cast {v} to float for column {col} but failed.') from exc
 
     writer.close()
 
