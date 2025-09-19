@@ -20,7 +20,10 @@ def test_initial_status_stopped(
     """
     Test that the initial status of an AgentProcess is stopped.
     """
-    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
+    manager = AgentManager(
+        base_path=dist_with_fake_executable,
+        service_manager=ServiceManager(base_path=dist_with_fake_executable),
+    )
 
     agent_id = AgentID("agent")
     s = manager.get_agent_status(agent_id)
@@ -42,7 +45,10 @@ def test_start_and_running_status(
     # Default behavior is long-running process. Ensure environment is set.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
+    manager = AgentManager(
+        base_path=dist_with_fake_executable,
+        service_manager=ServiceManager(base_path=dist_with_fake_executable),
+    )
     agent_id = manager.start_agent(config_file)
 
     # Wait for agent to start
@@ -71,7 +77,10 @@ def test_stop_transitions_to_stopped(
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
+    manager = AgentManager(
+        base_path=dist_with_fake_executable,
+        service_manager=ServiceManager(base_path=dist_with_fake_executable),
+    )
     agent_id = manager.start_agent(config_file)
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
 
@@ -95,7 +104,10 @@ def test_failed_status_when_process_exits_nonzero(
     # Configure the fake agent to exit with failure immediately.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
 
-    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
+    manager = AgentManager(
+        base_path=dist_with_fake_executable,
+        service_manager=ServiceManager(base_path=dist_with_fake_executable),
+    )
     agent_id = manager.start_agent(config_file)
 
     # Wait for process to exit with failure
@@ -112,7 +124,10 @@ def test_start_is_idempotent(
     Test that starting an AgentProcess is idempotent when already running.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
+    manager = AgentManager(
+        base_path=dist_with_fake_executable,
+        service_manager=ServiceManager(base_path=dist_with_fake_executable),
+    )
     agent_id = manager.start_agent(config_file)
 
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)
@@ -136,7 +151,10 @@ def test_agent_fails_when_child_service_fails(
     Test that an AgentProcess status is failed if one of its child services fails.
     """
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager(base_path=dist_with_fake_executable, service_manager=ServiceManager())
+    manager = AgentManager(
+        base_path=dist_with_fake_executable,
+        service_manager=ServiceManager(base_path=dist_with_fake_executable),
+    )
     agent_id = manager.start_agent(config_file)
 
     assert wait_for_event(lambda: manager.get_agent_status(agent_id).state == "running", interval=0.05, timeout=1.0)

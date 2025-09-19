@@ -16,7 +16,7 @@ class TestAgentSharedServices:
         """
         Test that Agent registers itself with ServiceManager.
         """
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
         agent = Agent(  # noqa: F841  # Agent must stay in scope for ServiceManager registration
             id=AgentID("test-agent"),
             config_path=config_file,
@@ -42,7 +42,7 @@ class TestAgentSharedServices:
         """
         monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
         agent = Agent(
             id=AgentID("test-agent"),
             config_path=config_file,
@@ -78,7 +78,7 @@ class TestSharedServiceIntegration:
         Test complete shared service lifecycle with real Agent instances.
         """
         monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
 
         # Create first agent with standard service IDs
         agent1 = Agent(
@@ -138,7 +138,7 @@ class TestSharedServiceIntegration:
         """
         Test that agents properly clean up when destroyed.
         """
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
 
         # Create agent in a scope
         agent_id = AgentID("cleanup-test")
@@ -167,7 +167,7 @@ class TestSharedServiceIntegration:
         Test that ServiceManager operations are properly atomic.
         """
         monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(
             id=AgentID("atomic-test"),
@@ -206,7 +206,7 @@ class TestSharedServiceIntegration:
         Test process reattachment functionality with shared services.
         """
         monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(
             id=AgentID("reattach-test"),
@@ -240,7 +240,7 @@ class TestSharedServiceIntegration:
         Test agent status aggregation from multiple services.
         """
         monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(
             id=AgentID("status-test"),
@@ -269,7 +269,7 @@ class TestSharedServiceIntegration:
         """
         Test that errors in __del__ are properly handled.
         """
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(
             id=AgentID("error-test"),

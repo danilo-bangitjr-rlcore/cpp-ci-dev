@@ -48,7 +48,7 @@ def parse_args():
 def create_app(base_path: Path) -> FastAPI:
     """Factory function to create FastAPI app with given base_path."""
     app = FastAPI(lifespan=lifespan)
-    service_manager = ServiceManager()
+    service_manager = ServiceManager(base_path=base_path)
     app.state.service_manager = service_manager
     app.state.base_path = base_path
     app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
