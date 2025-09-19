@@ -48,6 +48,7 @@ def load_dataset(cfg: LoadDataConfig):
             continue
 
         print(f'Processing column: {col} ({i} / {n_cols} total columns)')
+        assert df[col].dtype.is_float()
         for row in df.select(['Date', col]).iter_rows():
             t_str, v = row
             t = datetime.datetime.strptime(t_str, '%Y-%m-%d %H:%M:%S')
