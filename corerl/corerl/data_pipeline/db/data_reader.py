@@ -499,6 +499,8 @@ class TagStats:
     max: float | None
     avg: float | None
     var: float | None
+    count: int | None = None
+    percentiles: dict[float, float] | None = None
 
 
 def _parse_jsonb(col: str, attribute: str = "val", type_str: str = "float") -> str:
