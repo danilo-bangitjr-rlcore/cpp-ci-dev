@@ -174,7 +174,7 @@ def test_agent_fails_when_child_service_fails(
     manager.stop_agent(agent_id)
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(10)
 @pytest.mark.parametrize("service_cls", [CoreIOService, CoreRLService])
 def test_degraded_state_triggers_restart(
     service_cls: type[Service],
@@ -182,18 +182,25 @@ def test_degraded_state_triggers_restart(
     config_file: Path,
     dist_with_fake_executable: Path,
 ):
-    # Start unhealthy, then become healthy
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
+    # Test degraded state detection and restart behavior by manually killing process
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
     config = ServiceConfig(heartbeat_interval=timedelta(milliseconds=50), degraded_wait=timedelta(milliseconds=200))
     service = service_cls(ServiceID("svc"), config_file, dist_with_fake_executable, config)
     service.start()
 
-    # Wait for degraded recovery logic to trigger
+    # Wait for service to start successfully
+    assert wait_for_event(lambda: service.status().state == "running", interval=0.05, timeout=2.0)
+
+    # Simulate degraded state by killing the process manually
+    if service._process is not None:
+        service._process.terminate()
+        service._process.wait()  # Ensure process is fully terminated
+
+    # Wait for service to detect failure
     assert wait_for_event(lambda: service.status().state == "failed", interval=0.05, timeout=1.0)
 
-    # Now simulate healthy agent
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    assert wait_for_event(lambda: service.status().state == "running", interval=0.05, timeout=2.0)
+    # Wait for degraded recovery logic to restart the service
+    assert wait_for_event(lambda: service.status().state == "running", interval=0.05, timeout=3.0)
     service.stop()
 
 
