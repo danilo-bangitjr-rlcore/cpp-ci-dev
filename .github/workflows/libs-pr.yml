@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
         matrix:
-            lib: [lib_agent, lib_config, lib_defs, lib_sql, lib_utils, rl_env]
+            lib: [lib_agent, lib_config, lib_defs, lib_progress, lib_sql, lib_utils, rl_env]
     defaults:
       run:
         working-directory: libs/${{ matrix.lib }}
