@@ -113,12 +113,25 @@ def test_track_with_no_total():
     result = list(track(items, logger_instance=mock_logger))
     assert result == items
 
+    # Tuple also supports len()
+    items_tuple = (1, 2, 3)
+    result = list(track(items_tuple, logger_instance=mock_logger))
+    assert result == [1, 2, 3]
+
+
+def test_track_with_generator():
+    """Test track function with generator (unknown total)."""
+    mock_logger = Mock(spec=logging.Logger)
+
     # Generator that doesn't support len()
     def gen():
         yield from [1, 2, 3]
 
     result = list(track(gen(), logger_instance=mock_logger))
     assert result == [1, 2, 3]
+
+    # Should have logged progress (without total/ETA)
+    assert mock_logger.info.call_count >= 1
 
 
 def test_eta_calculation():
@@ -164,6 +177,25 @@ def test_progress_tracker_with_metrics():
     assert "loss: 0.500" in call_args
     assert "accuracy: 0.850" in call_args
     assert "lr: 1.00e-03" in call_args
+
+
+def test_progress_tracker_unknown_total():
+    """Test progress tracking with unknown total."""
+    mock_logger = Mock(spec=logging.Logger)
+
+    tracker = ProgressTracker(
+        total=None,
+        desc="Unknown total test",
+        update_interval=2,
+        logger_instance=mock_logger,
+    )
+
+    # Update a few times
+    tracker.update()
+    mock_logger.info.assert_not_called()  # Not at interval yet
+
+    tracker.update()
+    mock_logger.info.assert_called()
 
 
 def test_format_metrics():
