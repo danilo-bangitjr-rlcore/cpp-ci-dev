@@ -1,7 +1,10 @@
 import logging
 import time
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from types import TracebackType
+from typing import TypeVar
+
+T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
@@ -117,22 +120,22 @@ class ProgressTracker:
 
 
 def track(
-    iterable: Iterable,
+    iterable: Iterable[T],
     desc: str = "",
     total: int | None = None,
     update_interval: int = 1,
     logger_instance: logging.Logger | None = None,
     *,
-    metrics_callback: Callable[[object], dict[str, float]] | None = None,
-) -> Iterable:
-    """Track progress over an iterable with logging output."""
-    if total is None:
-        try:
-            total = len(iterable)  # type: ignore
-        except TypeError:
-            # Iterable doesn't support len(), convert to list
-            iterable = list(iterable)
-            total = len(iterable)
+    metrics_callback: Callable[[T], dict[str, float]] | None = None,
+) -> Iterator[T]:
+    """Track progress over a sequence or iterable with logging output.
+
+    For sequences (list, tuple, etc.), shows progress with total count and ETA.
+    For general iterables (generators, etc.), shows count and elapsed time only.
+    """
+    # Try to get total if not provided and sequence supports len()
+    if total is None and isinstance(iterable, Sequence):
+        total = len(iterable)
 
     with ProgressTracker(
         total=total,
