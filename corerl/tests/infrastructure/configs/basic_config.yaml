@@ -16,6 +16,14 @@ evals:
   enabled: true
 
 pipeline:
+  oddity_filter:
+    defaults:
+      - name: 'conditional'
+        condition:
+          - name: 'sympy'
+            expression: "0.5 * {tag-1} == 2"
+        filtered_tags: ["tag-2"]
+
   tags:
   # meta tags
   - name: reward
@@ -26,9 +34,6 @@ pipeline:
   # observations
   - name: tag-1
     is_endogenous: False
-    filter:
-      - name: sympy
-        expression: "0.5 * {tag-1} == 2"
     preprocess:
       - name: identity
     state_constructor:
