@@ -32,13 +32,13 @@ def setup_logging(level: int | str = logging.INFO, log_file: str = '') -> loggin
     # File handler with rotation - always logs at DEBUG level for comprehensive file logging
     os.makedirs('outputs/coreio', exist_ok=True)
     file_handler = RotatingFileHandler(f'outputs/coreio/coreio_{log_file}.log', maxBytes=1024*1024, backupCount=5)
-    file_handler.setLevel(logging.DEBUG)
+    file_handler.setLevel(level)
     file_formatter = logging.Formatter('%(levelname)s: %(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
 
     # Set specific logger levels
-    logging.getLogger("asyncua").setLevel(level)
-    logging.getLogger("asyncuagds").setLevel(level)
+    logging.getLogger("asyncua").setLevel(logging.WARN)
+    logging.getLogger("asyncuagds").setLevel(logging.WARN)
 
     return logging.getLogger(__name__)
