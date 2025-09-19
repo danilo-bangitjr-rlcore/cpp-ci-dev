@@ -28,3 +28,11 @@ packages = ["lib_progress"]
 
 [tool.ruff]
 extend = "../../standards/python/ruff.toml"
+
+[tool.pyright]
+extends='../../standards/python/pyright.toml'
+include = ['.']
+exclude = [
+    '.venv/',
+]
+venvPath = '.'
