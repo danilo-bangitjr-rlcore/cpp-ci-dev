@@ -33,6 +33,7 @@ extend = "../../standards/python/ruff.toml"
 extends='../../standards/python/pyright.toml'
 include = ['.']
 exclude = [
+    'example.py',
     '.venv/',
 ]
 venvPath = '.'
