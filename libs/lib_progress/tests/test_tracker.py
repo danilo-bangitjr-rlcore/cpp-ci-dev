@@ -223,7 +223,7 @@ def test_track_with_metrics_callback():
 
     items = [{"quality": 0.9}, {"quality": 0.8}, {"quality": 0.95}]
 
-    def extract_metrics(item):
+    def extract_metrics(item: dict[str, float]):
         return {"quality": item["quality"]}
 
     result = list(track(
