@@ -43,6 +43,7 @@ jobs:
             src: coredinator
 
       - uses: dciborow/action-pylint@0.1.0
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review
