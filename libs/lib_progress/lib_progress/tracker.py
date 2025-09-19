@@ -68,7 +68,7 @@ class ProgressTracker:
         self.logger.info(progress_msg)
 
     @staticmethod
-    def _format_metrics(metrics: dict[str, float]) -> str:
+    def _format_metrics(metrics: dict[str, float]):
         """Format metrics dictionary for readable output."""
         formatted_pairs = []
         for key, value in metrics.items():
@@ -82,7 +82,7 @@ class ProgressTracker:
         return ", ".join(formatted_pairs)
 
     @staticmethod
-    def _format_time(seconds: float) -> str:
+    def _format_time(seconds: float):
         """Format time duration in human readable format."""
         if seconds < 60:
             return f"{seconds:.1f}s"
