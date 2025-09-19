@@ -1,7 +1,7 @@
 [project]
 name = "lib_progress"
 version = "0.0.0"
-description = "Fast, lightweight progress tracking using logging,"
+description = "Fast, lightweight progress tracking using logging."
 requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = []
