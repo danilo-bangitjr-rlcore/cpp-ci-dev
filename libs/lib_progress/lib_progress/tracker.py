@@ -11,7 +11,7 @@ class ProgressTracker:
 
     def __init__(
         self,
-        total: int,
+        total: int | None,
         desc: str = "",
         update_interval: int = 1,
         logger_instance: logging.Logger | None = None,
@@ -35,7 +35,8 @@ class ProgressTracker:
         if metrics is not None:
             self.current_metrics.update(metrics)
 
-        if self.completed % self.update_interval == 0 or self.completed >= self.total:
+        if (self.completed % self.update_interval == 0 or
+            (self.total is not None and self.completed >= self.total)):
             self._log_progress()
 
     def _log_progress(self):
@@ -43,8 +44,10 @@ class ProgressTracker:
         current_time = time.time()
         elapsed = current_time - self.start_time
 
-        # Calculate ETA based on average time per iteration
-        if self.completed > 0:
+        elapsed_str = self._format_time(elapsed)
+
+        if self.total is not None and self.completed > 0:
+            # Calculate ETA based on average time per iteration
             avg_time_per_iter = elapsed / self.completed
             remaining_iters = self.total - self.completed
             eta = remaining_iters * avg_time_per_iter
@@ -52,11 +55,14 @@ class ProgressTracker:
         else:
             eta_str = "unknown"
 
-        elapsed_str = self._format_time(elapsed)
+        if self.total is None:
+            total_str = 'unknown'
+        else:
+            total_str = str(self.total)
 
         prefix = f"{self.desc}: " if self.desc else ""
         progress_msg = (
-            f"{prefix}{self.completed}/{self.total} "
+            f"{prefix}{self.completed}/{total_str} "
             f"elapsed: {elapsed_str}, eta: {eta_str}"
         )
 
@@ -105,8 +111,8 @@ class ProgressTracker:
         exc_tb: TracebackType | None,
     ):
         """Exit context manager and log final status."""
-        if self.completed < self.total:
-            # Log final progress if not already at 100%
+        if self.total is None or self.completed < self.total:
+            # Log final progress if total is unknown or not at 100%
             self._log_progress()
 
 
