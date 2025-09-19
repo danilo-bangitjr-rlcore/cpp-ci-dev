@@ -1,5 +1,5 @@
 import datetime
-from logging import getLogger
+import logging
 from pathlib import Path
 
 import polars as pl
@@ -8,7 +8,7 @@ from lib_config.config import MISSING, config, post_processor
 from lib_config.loader import load_config
 from pydantic import Field
 
-logger = getLogger('cenovus')
+log = logging.getLogger(__name__)
 
 
 @config()
@@ -40,7 +40,7 @@ def load_dataset(cfg: LoadDataConfig):
     df = pl.read_csv(cfg.csv_path, null_values=['', 'null', 'None', 'inf'])
 
     n_cols = len(df.columns)
-    for i, col in enumerate(reversed(df.columns)):
+    for i, col in enumerate(df.columns):
         if col in {'Date', ''}:
             continue
 
