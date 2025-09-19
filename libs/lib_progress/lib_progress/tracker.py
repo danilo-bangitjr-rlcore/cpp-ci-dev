@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 
 
 class ProgressTracker:
-    """Tracks progress and outputs status via logging ."""
+    """Tracks progress and outputs status via logging."""
 
     def __init__(
         self,
