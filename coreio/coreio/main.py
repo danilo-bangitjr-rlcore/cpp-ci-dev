@@ -13,13 +13,15 @@ from coreio.communication.zmq_communication import ZMQ_Communication
 from coreio.utils.config_schemas import MainConfigAdapter
 from coreio.utils.event_handlers import handle_read_event, handle_write_event
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
-from coreio.utils.logging_setup import setup_logging
+from coreio.utils.logging_setup import get_log_file_name, setup_logging
 from coreio.utils.opc_utils import concat_opc_nodes, initialize_opc_connections
 
 
 @load_config(MainConfigAdapter)
 async def coreio_loop(cfg: MainConfigAdapter):
-    logger = setup_logging(cfg.coreio.logging_level, cfg.coreio.logging_file or cfg.coreio.coreio_origin.split(":")[-1])
+    log_file = get_log_file_name(cfg.coreio)
+    logger = setup_logging(cfg.coreio.log_level, log_file)
+    logger.info(f"Initialized logger with log file: {log_file}")
     logger.info("Starting OPC Connections")
 
     # Temporary flag to keep reading opc details from pipeline in old config versions
