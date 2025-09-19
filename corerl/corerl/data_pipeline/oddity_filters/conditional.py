@@ -53,9 +53,11 @@ class ConditionalFilter(BaseOddityFilter):
         self.excluded_tags = cfg.excluded_tags
 
     def __call__(self, pf: PipelineFrame, tag: str, ts: object | None, update_stats: bool = True):
+        # Only filter tags in self.filtered_tags or that aren't in self.excluded tags
         if tag in self.excluded_tags or (isinstance(self.filtered_tags, list) and tag not in self.filtered_tags):
             return pf, ts
 
+        # Preparing data to be passed to the list of transforms in the condition
         tag_data = pf.data.get([tag], None)
         assert tag_data is not None
 
@@ -65,6 +67,7 @@ class ConditionalFilter(BaseOddityFilter):
             tag=tag,
         )
 
+        # Typing magic to ensure the second argument passed to transform() is an object | None
         sub_ts: list[object | None]
         if ts is not None and isinstance(ts, list):
             sub_ts = ts
@@ -74,8 +77,10 @@ class ConditionalFilter(BaseOddityFilter):
         for i, transform in enumerate(self.condition_transforms):
             carry, sub_ts[i] = transform(carry, sub_ts[i])
 
+        # Get the boolean mask output by the transforms and filter out the rows where the mask is True
         result = carry.transform_data
         n_cols = len(result.columns)
+        # Ensure the boolean mask is a single column
         if n_cols > 1:
             logger.warning(f"Conditional filter for {tag} resulted in {n_cols} columns")
             return pf, sub_ts
