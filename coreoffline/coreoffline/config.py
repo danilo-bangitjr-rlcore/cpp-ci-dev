@@ -93,6 +93,10 @@ class LoadDataConfig:
     action_tags: list[str] = Field(default_factory=list)
     input_tags: list[str] = Field(default_factory=list)
 
+    # Percentile configuration for tag generation
+    operating_range_percentiles: tuple[float, float] = (0.1, 99.9)
+    expected_range_percentiles: tuple[float, float] = (5.0, 95.0)
+
     # Database configuration
     data_writer: TagDBConfig = Field(default_factory=TagDBConfig)
 
