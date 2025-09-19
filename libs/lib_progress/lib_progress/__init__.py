@@ -1,5 +1,5 @@
 """Fast, lightweight progress tracking using logging instead of progress bars."""
 
-from .tracker import ProgressTracker, track
+from lib_progress.tracker import ProgressTracker, format_time, track
 
-__all__ = ["ProgressTracker", "track"]
+__all__ = ["ProgressTracker", "format_time", "track"]

@@ -4,7 +4,7 @@ import logging
 import time
 from unittest.mock import Mock
 
-from lib_progress import ProgressTracker, track
+from lib_progress import ProgressTracker, format_time, track
 
 
 def test_progress_tracker_basic_functionality():
@@ -92,16 +92,16 @@ def test_track_function():
 def test_format_time():
     """Test time formatting utility."""
     # Test seconds
-    assert ProgressTracker._format_time(5.5) == "5.5s"
-    assert ProgressTracker._format_time(45.2) == "45.2s"
+    assert format_time(5.5) == "5.5s"
+    assert format_time(45.2) == "45.2s"
 
     # Test minutes
-    assert ProgressTracker._format_time(65) == "1m05s"
-    assert ProgressTracker._format_time(125) == "2m05s"
+    assert format_time(65) == "1m05s"
+    assert format_time(125) == "2m05s"
 
     # Test hours
-    assert ProgressTracker._format_time(3665) == "1h01m"
-    assert ProgressTracker._format_time(7325) == "2h02m"
+    assert format_time(3665) == "1h01m"
+    assert format_time(7325) == "2h02m"
 
 
 def test_track_with_no_total():

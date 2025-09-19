@@ -47,14 +47,14 @@ class ProgressTracker:
         current_time = time.time()
         elapsed = current_time - self.start_time
 
-        elapsed_str = self._format_time(elapsed)
+        elapsed_str = format_time(elapsed)
 
         if self.total is not None and self.completed > 0:
             # Calculate ETA based on average time per iteration
             avg_time_per_iter = elapsed / self.completed
             remaining_iters = self.total - self.completed
             eta = remaining_iters * avg_time_per_iter
-            eta_str = self._format_time(eta)
+            eta_str = format_time(eta)
         else:
             eta_str = "unknown"
 
@@ -89,19 +89,6 @@ class ProgressTracker:
             else:
                 formatted_pairs.append(f"{key}: {value}")
         return ", ".join(formatted_pairs)
-
-    @staticmethod
-    def _format_time(seconds: float):
-        """Format time duration in human readable format."""
-        if seconds < 60:
-            return f"{seconds:.1f}s"
-        if seconds < 3600:
-            minutes = int(seconds // 60)
-            secs = int(seconds % 60)
-            return f"{minutes}m{secs:02d}s"
-        hours = int(seconds // 3600)
-        minutes = int((seconds % 3600) // 60)
-        return f"{hours}h{minutes:02d}m"
 
     def __enter__(self):
         """Enter context manager."""
@@ -147,3 +134,16 @@ def track(
             yield item
             metrics = metrics_callback(item) if metrics_callback else None
             tracker.update(metrics=metrics)
+
+
+def format_time(seconds: float):
+    """Format time duration in human readable format."""
+    if seconds < 60:
+        return f"{seconds:.1f}s"
+    if seconds < 3600:
+        minutes = int(seconds // 60)
+        secs = int(seconds % 60)
+        return f"{minutes}m{secs:02d}s"
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    return f"{hours}h{minutes:02d}m"
