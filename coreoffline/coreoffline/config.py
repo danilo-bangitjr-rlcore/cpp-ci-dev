@@ -3,6 +3,7 @@ from pathlib import Path
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import StageCode
+from corerl.data_pipeline.db.data_writer import TagDBConfig
 from lib_config.config import MISSING, computed, config, post_processor
 from pydantic import Field
 
@@ -80,3 +81,25 @@ class ReportConfig:
 class OfflineMainConfig(MainConfig):
     offline_training: OfflineTrainingConfig = Field(default_factory=OfflineTrainingConfig)
     report: ReportConfig = Field(default_factory=ReportConfig)
+
+
+@config()
+class LoadDataConfig:
+    # CSV file configuration
+    csv_path: Path = MISSING
+
+    # Tag configuration
+    reward_tags: list[str] = Field(default_factory=list)
+    action_tags: list[str] = Field(default_factory=list)
+    input_tags: list[str] = Field(default_factory=list)
+
+    # Database configuration
+    data_writer: TagDBConfig = Field(default_factory=TagDBConfig)
+
+    @post_processor
+    def _validate(self, cfg: 'LoadDataConfig'):
+        required_tags = ['reward_tags', 'action_tags', 'input_tags']
+        for tag_type in required_tags:
+            tags = getattr(self, tag_type)
+            if not isinstance(tags, list):
+                raise ValueError(f"{tag_type} must be a list")

@@ -1,36 +1,13 @@
 import datetime
 import logging
-from pathlib import Path
 
 import polars as pl
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
-from lib_config.config import MISSING, config, post_processor
+from corerl.data_pipeline.db.data_writer import DataWriter
 from lib_config.loader import load_config
-from pydantic import Field
+
+from coreoffline.config import LoadDataConfig
 
 log = logging.getLogger(__name__)
-
-
-@config()
-class LoadDataConfig:
-    # CSV file configuration
-    csv_path: Path = MISSING
-
-    # Tag configuration
-    reward_tags: list[str] = Field(default_factory=list)
-    action_tags: list[str] = Field(default_factory=list)
-    input_tags: list[str] = Field(default_factory=list)
-
-    # Database configuration
-    data_writer: TagDBConfig = Field(default_factory=TagDBConfig)
-
-    @post_processor
-    def _validate(self, cfg: 'LoadDataConfig'):
-        required_tags = ['reward_tags', 'action_tags', 'input_tags']
-        for tag_type in required_tags:
-            tags = getattr(self, tag_type)
-            if not isinstance(tags, list):
-                raise ValueError(f"{tag_type} must be a list")
 
 
 def load_dataset(cfg: LoadDataConfig):
