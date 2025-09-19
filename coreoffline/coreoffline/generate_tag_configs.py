@@ -8,6 +8,7 @@ from coreoffline.config import LoadDataConfig
 
 def build_tag_config(
     tag: TagStats,
+    is_action: bool,
     operating_percentiles: tuple[float, float],
     expected_percentiles: tuple[float, float],
 ):
@@ -35,11 +36,17 @@ def build_tag_config(
     # Include count as a comment
     count_comment = f"  # non-null values: {tag.count:,}" if tag.count is not None else ""
 
-    return f"""
-- name: {tag.tag}{count_comment}
-  operating_range: {operating_range}
-  expected_range: {expected_range}
-"""
+    # Build config lines with proper indentation
+    lines = [
+        f"  - name: {tag.tag}{count_comment}",
+        f"    operating_range: {operating_range}",
+        f"    expected_range: {expected_range}",
+    ]
+
+    if is_action:
+        lines.append("    type: ai_setpoint")
+
+    return lines
 
 
 def generate(cfg: LoadDataConfig):
@@ -66,21 +73,23 @@ def generate(cfg: LoadDataConfig):
         for tag_name in to_generate
     ]
 
-    tab = '  '
     with Path('tags.yaml').open('w', encoding='utf-8') as f:
-        f.write('tags:')
+        f.write('tags:\n')
         for tag in stats:
             # in exceptional cases, there is only np.nan data recorded for a tag
             # so both tag.min and tag.max are None. We should just skip these tags
             if tag.min is None:
                 continue
 
+            is_action = tag.tag in cfg.action_tags
+
             tag_cfg = build_tag_config(
                 tag,
+                is_action,
                 operating_percentiles,
                 expected_percentiles,
             )
-            f.writelines(f"{tab}{line}\n" for line in tag_cfg.splitlines())
+            f.writelines(f"{line}\n" for line in tag_cfg)
             f.write('\n')
 
 
