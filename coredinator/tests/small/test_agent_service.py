@@ -11,7 +11,7 @@ from coredinator.service.service import Service, ServiceConfig
 from coredinator.service.service_manager import ServiceManager
 from coredinator.services.coreio import CoreIOService
 from coredinator.services.corerl import CoreRLService
-from tests.utils.utilities import (
+from tests.utils.state_verification import (
     assert_agent_manager_state,
     assert_service_state,
 )

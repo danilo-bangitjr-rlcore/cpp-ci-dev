@@ -3,8 +3,8 @@ from pathlib import Path
 import pytest
 import requests
 
-from coredinator.test_utils import CoredinatorService
-from tests.utils.utilities import CoredinatorAPIClient
+from tests.utils.api_client import CoredinatorAPIClient
+from tests.utils.service_fixtures import CoredinatorService
 
 
 @pytest.mark.timeout(25)

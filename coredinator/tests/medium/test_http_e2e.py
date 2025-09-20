@@ -8,7 +8,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from coredinator.app import create_app
-from tests.utils.utilities import (
+from tests.utils.state_verification import (
     assert_agent_testclient_state,
     assert_all_agents_testclient_state,
 )

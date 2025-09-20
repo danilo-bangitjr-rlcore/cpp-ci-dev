@@ -7,7 +7,8 @@ from typing import NewType
 from coredinator.service.protocols import ServiceBundle, ServiceBundleID, ServiceID, ServiceState
 from coredinator.service.service import ServiceStatus
 from coredinator.service.service_manager import ServiceManager
-from coredinator.services import CoreIOService, CoreRLService
+from coredinator.services.coreio import CoreIOService
+from coredinator.services.corerl import CoreRLService
 
 AgentID = NewType("AgentID", str)
 

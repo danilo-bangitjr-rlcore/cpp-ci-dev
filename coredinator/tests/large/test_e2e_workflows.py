@@ -11,12 +11,11 @@ import psutil
 import pytest
 import requests
 
-from coredinator.test_utils import CoredinatorService, wait_for_service_healthy
 from coredinator.utils.process import terminate_process_tree
-from tests.utils.utilities import (
-    CoredinatorAPIClient,
-    assert_all_agents_state,
-    create_test_configs,
+from tests.utils.api_client import CoredinatorAPIClient
+from tests.utils.config_helpers import create_test_configs
+from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
+from tests.utils.service_health import (
     verify_agent_services_running,
     verify_agents_independent,
     verify_service_sharing,
@@ -24,6 +23,7 @@ from tests.utils.utilities import (
     verify_shared_service_access,
     wait_for_agent_services_running,
 )
+from tests.utils.state_verification import assert_all_agents_state
 
 
 @pytest.mark.timeout(15)
