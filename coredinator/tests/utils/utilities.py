@@ -1,0 +1,222 @@
+from typing import Literal
+
+import requests
+
+from coredinator.utils.test_polling import wait_for_event
+
+# Type aliases for better code readability
+AgentState = Literal["running", "stopped", "failed", "starting"]
+
+
+# ============================================================================
+# Agent State Verification Utilities
+# ============================================================================
+
+def get_service_process_ids(base_url: str, agent_id: str) -> dict[str, int | None]:
+    response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+    if response.status_code != 200:
+        return {"corerl": None, "coreio": None}
+
+    agent_status = response.json()
+    service_statuses = agent_status.get("service_statuses", {})
+
+    corerl_id = f"{agent_id}-corerl"
+    coreio_id = f"{agent_id}-coreio"
+
+    corerl_pid = None
+    coreio_pid = None
+
+    if corerl_id in service_statuses:
+        service_info = service_statuses[corerl_id]
+        if service_info.get("process_ids"):
+            corerl_pid = service_info["process_ids"][0]
+
+    if coreio_id in service_statuses:
+        service_info = service_statuses[coreio_id]
+        if service_info.get("process_ids"):
+            coreio_pid = service_info["process_ids"][0]
+
+    return {"corerl": corerl_pid, "coreio": coreio_pid}
+
+
+def verify_service_statuses(agent_status: dict[str, Any], expected_services: list[str]) -> None:
+    service_statuses = agent_status.get("service_statuses", {})
+
+    for service in expected_services:
+        assert service in service_statuses, f"Agent should have {service} service"
+        assert service_statuses[service]["state"] == "running", f"{service} service should be running"
+
+
+def verify_agents_independent(
+    api_client: CoredinatorAPIClient,
+    agent1_id: str,
+    agent2_id: str,
+) -> None:
+    agent1_status = api_client.get_agent_status(agent1_id)
+    agent2_status = api_client.get_agent_status(agent2_id)
+
+    agent1_coreio_id = agent1_status["service_statuses"]["coreio"]["id"]
+    agent2_coreio_id = agent2_status["service_statuses"]["coreio"]["id"]
+
+    assert agent1_coreio_id != agent2_coreio_id, \
+        f"Agents should have independent CoreIO services, but both have: {agent1_coreio_id}"
+
+
+def verify_shared_service_access(
+    api_client: CoredinatorAPIClient,
+    agent_id: str,
+    shared_service_name: str = "coreio",
+) -> None:
+    agent_status = api_client.get_agent_status(agent_id)
+    agent_services = agent_status.get("service_statuses", {})
+
+    assert shared_service_name in agent_services, \
+        f"Agent {agent_id} should still have access to {shared_service_name} service"
+    assert agent_services[shared_service_name]["state"] == "running", \
+        f"Agent {agent_id}'s {shared_service_name} service should still be running"
+
+
+# ============================================================================
+# Config File Creation Utilities
+# ============================================================================
+
+def create_test_configs(base_path: Path, config_names: list[str]) -> dict[str, Path]:
+    configs = {}
+    for name in config_names:
+        config_path = base_path / f"{name}_config.yaml"
+        if name in ["backwash", "coag"]:
+            config_path.write_text(f"agent_type: {name}\nprocess_params: {{}}\n")
+        else:
+            config_path.write_text("dummy: true\n")
+        configs[name] = config_path
+    return configs
+
+def wait_for_agent_http_state(
+    base_url: str,
+    agent_id: str,
+    expected_state: AgentState,
+    timeout: float = 2.0,
+    interval: float = 0.1,
+) -> bool:
+    def _check_agent_state():
+        # Let HTTP and JSON errors propagate - they indicate real problems
+        response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+        if response.status_code != 200:
+            return False
+        return response.json().get("state") == expected_state
+
+    return wait_for_event(_check_agent_state, interval=interval, timeout=timeout)
+
+
+def assert_agent_http_state(
+    base_url: str,
+    agent_id: str,
+    expected_state: AgentState,
+    timeout: float = 2.0,
+) -> None:
+    assert wait_for_agent_http_state(base_url, agent_id, expected_state, timeout), \
+        f"Agent {agent_id} did not reach state '{expected_state}' within {timeout}s"
+
+
+def get_agent_service_health(base_url: str, agent_id: str) -> dict[str, bool]:
+    response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+    if response.status_code != 200:
+        return {"corerl": False, "coreio": False}
+
+    agent_status = response.json()
+    service_statuses = agent_status.get("service_statuses", {})
+
+    # Note: service_statuses uses short keys "corerl" and "coreio"
+    corerl_healthy = service_statuses.get("corerl", {}).get("state") == "running"
+    coreio_healthy = service_statuses.get("coreio", {}).get("state") == "running"
+
+    return {"corerl": corerl_healthy, "coreio": coreio_healthy}
+
+
+def verify_agent_services_running(base_url: str, agent_id: str) -> bool:
+    health = get_agent_service_health(base_url, agent_id)
+    return health["corerl"] and health["coreio"]
+
+
+def assert_agent_services_healthy(base_url: str, agent_id: str) -> None:
+    assert verify_agent_services_running(base_url, agent_id), \
+        f"Agent {agent_id} services are not healthy"
+
+
+def wait_for_agent_services_running(
+    base_url: str,
+    agent_id: str,
+    timeout: float = 5.0,
+    interval: float = 0.1,
+) -> bool:
+    return wait_for_event(
+        lambda: verify_agent_services_running(base_url, agent_id),
+        interval=interval,
+        timeout=timeout,
+    )
+
+
+# ============================================================================
+# Service Sharing Verification Utilities
+# ============================================================================
+
+def verify_service_sharing(
+    base_url: str,
+    agent1_id: str,
+    agent2_id: str,
+) -> bool:
+    response1 = requests.get(f"{base_url}/api/agents/{agent1_id}/status")
+    response2 = requests.get(f"{base_url}/api/agents/{agent2_id}/status")
+
+    if response1.status_code != 200 or response2.status_code != 200:
+        return False
+
+    agent1_status = response1.json()
+    agent2_status = response2.json()
+
+    # Both agents should be running
+    if agent1_status.get("state") != "running" or agent2_status.get("state") != "running":
+        return False
+
+    # For service sharing tests, check if both agents have CoreIO services running
+    service1_statuses = agent1_status.get("service_statuses", {})
+    service2_statuses = agent2_status.get("service_statuses", {})
+
+    # Both should have running CoreIO services (even if shared, they both access it)
+    coreio1_running = service1_statuses.get("coreio", {}).get("state") == "running"
+    coreio2_running = service2_statuses.get("coreio", {}).get("state") == "running"
+
+    return coreio1_running and coreio2_running
+
+
+# ============================================================================
+# Multi-Agent Test Utilities
+# ============================================================================
+
+def wait_for_all_agents_state(
+    base_url: str,
+    agent_ids: list[str],
+    expected_state: AgentState,
+    timeout: float = 5.0,
+    interval: float = 0.1,
+) -> bool:
+    def _all_agents_in_state():
+        for agent_id in agent_ids:
+            response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+            if response.status_code != 200:
+                return False
+            if response.json().get("state") != expected_state:
+                return False
+        return True
+
+    return wait_for_event(_all_agents_in_state, interval=interval, timeout=timeout)
+
+
+def assert_all_agents_state(
+    base_url: str,
+    agent_ids: list[str],
+    expected_state: AgentState,
+    timeout: float = 5.0,
+) -> None:
+    assert wait_for_all_agents_state(base_url, agent_ids, expected_state, timeout), \
+        f"Not all agents {agent_ids} reached state '{expected_state}' within {timeout}s"

@@ -13,23 +13,13 @@ import requests
 
 from coredinator.test_utils import CoredinatorService, wait_for_service_healthy
 from coredinator.utils.process import terminate_process_tree
-from coredinator.utils.test_polling import wait_for_event
-
-
-def get_agent_service_health(base_url: str, agent_id: str):
-    """Check if an agent's services are healthy by querying agent status."""
-    response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
-    if response.status_code != 200:
-        return {"corerl": False, "coreio": False}
-
-    agent_status = response.json()
-    service_statuses = agent_status.get("service_statuses", {})
-
-    # Note: service_statuses uses short keys "corerl" and "coreio", not full service IDs
-    corerl_healthy = service_statuses.get("corerl", {}).get("state") == "running"
-    coreio_healthy = service_statuses.get("coreio", {}).get("state") == "running"
-
-    return {"corerl": corerl_healthy, "coreio": coreio_healthy}
+from tests.utils.utilities import (
+    assert_agent_http_state,
+    assert_all_agents_state,
+    verify_agent_services_running,
+    verify_service_sharing,
+    wait_for_agent_services_running,
+)
 
 
 def get_service_process_ids(base_url: str, agent_id: str):
@@ -59,37 +49,6 @@ def get_service_process_ids(base_url: str, agent_id: str):
             coreio_pid = service_info["process_ids"][0]
 
     return {"corerl": corerl_pid, "coreio": coreio_pid}
-
-
-def verify_agent_services_running(base_url: str, agent_id: str) -> bool:
-    health = get_agent_service_health(base_url, agent_id)
-    return health["corerl"] and health["coreio"]
-
-
-def verify_service_sharing(base_url: str, agent1_id: str, agent2_id: str, shared_service_id: str) -> bool:
-    response1 = requests.get(f"{base_url}/api/agents/{agent1_id}/status")
-    response2 = requests.get(f"{base_url}/api/agents/{agent2_id}/status")
-
-    if response1.status_code != 200 or response2.status_code != 200:
-        return False
-
-    agent1_status = response1.json()
-    agent2_status = response2.json()
-
-    # Both agents should be running
-    if agent1_status.get("state") != "running" or agent2_status.get("state") != "running":
-        return False
-
-    # For service sharing tests, we check if both agents have CoreIO services running
-    # The actual sharing is verified at the service manager level, not visible in agent status
-    service1_statuses = agent1_status.get("service_statuses", {})
-    service2_statuses = agent2_status.get("service_statuses", {})
-
-    # Both should have running CoreIO services (even if shared, they both access it)
-    coreio1_running = service1_statuses.get("coreio", {}).get("state") == "running"
-    coreio2_running = service2_statuses.get("coreio", {}).get("state") == "running"
-
-    return coreio1_running and coreio2_running
 
 
 @pytest.mark.timeout(15)
@@ -134,10 +93,7 @@ def test_microservice_failure_recovery(
     assert response.status_code == 200, f"Failed to start agent: {response.text}"
 
     # Wait for agent services to be running
-    def _agent_services_running():
-        return verify_agent_services_running(base_url, agent_id)
-
-    assert wait_for_event(_agent_services_running, interval=0.1, timeout=5.0), "Agent services should be running"
+    assert wait_for_agent_services_running(base_url, agent_id, timeout=5.0), "Agent services should be running"
 
     # Verify agent reports as running with healthy services
     response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
@@ -168,12 +124,7 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
     assert response.status_code == 200, f"Failed to start agent: {response.text}"
 
     # Wait for agent to be running before simulating coredinator failure
-    def _agent_running():
-        response = requests.get(f"{coredinator_service.base_url}/api/agents/{agent_id}/status")
-        return response.status_code == 200 and response.json().get("state") == "running"
-
-    assert wait_for_event(_agent_running, interval=0.1, timeout=2.0), \
-        "Agent should be running before coredinator failure test"
+    assert_agent_http_state(coredinator_service.base_url, agent_id, "running", timeout=2.0)
 
     # Kill coredinator process to simulate failure
     proc_obj = psutil.Process(coredinator_service.process_id)
@@ -260,15 +211,7 @@ def test_agent_shared_coreio_service(
     agent3_id = response3.json()
 
     # Wait for agents to be running
-    def _all_agents_running():
-        for agent_id in [agent1_id, agent2_id, agent3_id]:
-            response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
-            if response.status_code != 200 or response.json().get("state") != "running":
-                return False
-        return True
-
-    assert wait_for_event(_all_agents_running, interval=0.1, timeout=5.0), \
-        "All agents should be running"
+    assert_all_agents_state(base_url, [agent1_id, agent2_id, agent3_id], "running", timeout=5.0)
 
     # Verify all agents have healthy services
     assert verify_agent_services_running(base_url, agent1_id), "Agent1 services should be running"
@@ -276,8 +219,7 @@ def test_agent_shared_coreio_service(
     assert verify_agent_services_running(base_url, agent3_id), "Agent3 services should be running"
 
     # Verify agent2 and agent3 share the same CoreIO service
-    shared_coreio_id = "shared-coreio-test"
-    assert verify_service_sharing(base_url, agent2_id, agent3_id, shared_coreio_id), \
+    assert verify_service_sharing(base_url, agent2_id, agent3_id), \
         "Agent2 and Agent3 should share the CoreIO service"
 
     # Verify agent1 has independent services (they're not sharing actual service instances)
@@ -298,12 +240,7 @@ def test_agent_shared_coreio_service(
     assert response.status_code == 200, f"Failed to stop agent2: {response.text}"
 
     # Verify agent3 still running with same CoreIO PID
-    def _agent3_still_running():
-        response = requests.get(f"{base_url}/api/agents/{agent3_id}/status")
-        return response.status_code == 200 and response.json().get("state") == "running"
-
-    assert wait_for_event(_agent3_still_running, interval=0.1, timeout=2.0), \
-        "Agent3 should still be running after agent2 stops"
+    assert_agent_http_state(base_url, agent3_id, "running", timeout=2.0)
 
     # Verify CoreIO service is still shared and agent3 continues running
     assert verify_agent_services_running(base_url, agent3_id), \
@@ -342,12 +279,7 @@ def test_agent_start_backward_compatibility(
     assert returned_id == agent_id
 
     # Wait for agent to be running
-    def _agent_running():
-        response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
-        return response.status_code == 200 and response.json().get("state") == "running"
-
-    assert wait_for_event(_agent_running, interval=0.1, timeout=3.0), \
-        "Agent should be running"
+    assert_agent_http_state(base_url, agent_id, "running", timeout=3.0)
 
     # Verify agent has its own unique service instances by using the health check
     assert verify_agent_services_running(base_url, agent_id), "Agent services should be running"
@@ -365,11 +297,7 @@ def test_agent_start_backward_compatibility(
     assert response.status_code == 200
 
     # Verify agent stops properly
-    def _agent_stopped():
-        response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
-        return response.status_code == 200 and response.json().get("state") == "stopped"
-
-    assert wait_for_event(_agent_stopped, interval=0.1, timeout=3.0), "Agent should stop cleanly"
+    assert_agent_http_state(base_url, agent_id, "stopped", timeout=3.0)
 
 
 @pytest.mark.timeout(30)
@@ -441,15 +369,7 @@ def test_drayton_valley_workflow(
     coag_id = coag_response.json()
 
     # Wait for both agents to be running
-    def _both_agents_running():
-        backwash_status = requests.get(f"{base_url}/api/agents/{backwash_id}/status")
-        coag_status = requests.get(f"{base_url}/api/agents/{coag_id}/status")
-        return (
-            backwash_status.status_code == 200 and backwash_status.json().get("state") == "running"
-            and coag_status.status_code == 200 and coag_status.json().get("state") == "running"
-        )
-
-    assert wait_for_event(_both_agents_running, interval=0.1, timeout=5.0), "Both agents should be running"
+    assert_all_agents_state(base_url, [backwash_id, coag_id], "running", timeout=5.0)
 
     # Verify CoreIO now has multiple owners (API + agents)
     coreio_status_response = requests.get(f"{base_url}/api/io/{shared_coreio_id}/status")
@@ -464,7 +384,7 @@ def test_drayton_valley_workflow(
     assert verify_agent_services_running(base_url, coag_id), "Coag agent services should be running"
 
     # Verify both agents share the same CoreIO service
-    assert verify_service_sharing(base_url, backwash_id, coag_id, shared_coreio_id), \
+    assert verify_service_sharing(base_url, backwash_id, coag_id), \
         "Both agents should share the same CoreIO service"
 
     # Check individual agent status
@@ -482,18 +402,9 @@ def test_drayton_valley_workflow(
     stop_response = requests.post(f"{base_url}/api/agents/{backwash_id}/stop")
     assert stop_response.status_code == 200, f"Failed to stop backwash agent: {stop_response.text}"
 
-    # Verify backwash is stopped but coag still running with same CoreIO PID
-    def _backwash_stopped_coag_running():
-        backwash_status = requests.get(f"{base_url}/api/agents/{backwash_id}/status")
-        coag_status = requests.get(f"{base_url}/api/agents/{coag_id}/status")
-        return (
-            backwash_status.status_code == 200 and backwash_status.json().get("state") == "stopped"
-            and coag_status.status_code == 200 and coag_status.json().get("state") == "running"
-        )
-
-    assert wait_for_event(_backwash_stopped_coag_running, interval=0.1, timeout=2.0), (
-        "Backwash should be stopped while coag remains running"
-    )
+    # Verify backwash is stopped but coag still running
+    assert_agent_http_state(base_url, backwash_id, "stopped", timeout=2.0)
+    assert_agent_http_state(base_url, coag_id, "running", timeout=2.0)
 
     # Verify CoreIO service continues running and coag agent still has access
     assert verify_agent_services_running(base_url, coag_id), \
@@ -519,17 +430,7 @@ def test_drayton_valley_workflow(
     assert stop_response.status_code == 200, f"Failed to stop coag agent: {stop_response.text}"
 
     # Verify both agents are stopped
-    def _both_agents_stopped():
-        backwash_status = requests.get(f"{base_url}/api/agents/{backwash_id}/status")
-        coag_status = requests.get(f"{base_url}/api/agents/{coag_id}/status")
-        return (
-            backwash_status.status_code == 200 and backwash_status.json().get("state") == "stopped"
-            and coag_status.status_code == 200 and coag_status.json().get("state") == "stopped"
-        )
-
-    assert wait_for_event(_both_agents_stopped, interval=0.1, timeout=2.0), (
-        "Both agents should be stopped"
-    )
+    assert_all_agents_state(base_url, [backwash_id, coag_id], "stopped", timeout=2.0)
 
     # Step 6: Verify CoreIO is still running independently (only API owner remains)
     coreio_status_response = requests.get(f"{base_url}/api/io/{shared_coreio_id}/status")
