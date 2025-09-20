@@ -1,8 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-from coredinator.agent.agent_manager import AgentManager
-from coredinator.service.service_manager import ServiceManager
+from tests.utils.factories import create_agent_manager, create_dummy_config
 
 
 class TestAgentManagerPersistenceEdgeCases:
@@ -31,7 +30,7 @@ class TestAgentManagerPersistenceEdgeCases:
         # AgentManager should fail on startup
         # TODO: consider gracefully marking agent as failed in this case
         try:
-            AgentManager(base_path=tmp_path, service_manager=ServiceManager(base_path=tmp_path))
+            create_agent_manager(tmp_path)
         except Exception as e:
             # Should be an informative error about missing config
             assert "config" in str(e).lower() or "file" in str(e).lower()
@@ -44,7 +43,7 @@ class TestAgentManagerPersistenceEdgeCases:
         readonly_dir.chmod(0o444)  # Read-only
 
         try:
-            AgentManager(base_path=tmp_path, service_manager=ServiceManager(base_path=tmp_path))
+            create_agent_manager(tmp_path)
         except Exception as e:
             # Should be a clear error about permissions or database creation
             assert any(word in str(e).lower() for word in ["permission", "database", "create", "write"])
@@ -62,9 +61,9 @@ class TestAgentManagerPersistenceEdgeCases:
         """Test that calling start_agent multiple times doesn't create duplicate database entries."""
 
         config = tmp_path / "test.yaml"
-        config.write_text("dummy: true\n")
+        create_dummy_config(config)
 
-        manager = AgentManager(base_path=tmp_path, service_manager=ServiceManager(base_path=tmp_path))
+        manager = create_agent_manager(tmp_path)
 
         # Start the same agent multiple times
         agent_id1 = manager.start_agent(config)

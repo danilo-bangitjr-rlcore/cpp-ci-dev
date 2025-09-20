@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from coredinator.agent.agent_manager import AgentID, AgentManager
+from coredinator.agent.agent_manager import AgentID
 from coredinator.service.protocols import ServiceID
 from coredinator.service.service import Service, ServiceConfig
-from coredinator.service.service_manager import ServiceManager
 from coredinator.services.coreio import CoreIOService
 from coredinator.services.corerl import CoreRLService
+from tests.utils.factories import create_agent_manager
 from tests.utils.state_verification import (
     assert_agent_manager_state,
     assert_service_state,
@@ -23,10 +23,7 @@ def test_initial_status_stopped(
     """
     Test that the initial status of an AgentProcess is stopped.
     """
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
 
     agent_id = AgentID("agent")
     s = manager.get_agent_status(agent_id)
@@ -45,10 +42,7 @@ def test_start_and_running_status(
     """
     Test that starting an AgentProcess transitions it to running status.
     """
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     # Wait for agent to start
@@ -75,10 +69,7 @@ def test_stop_transitions_to_stopped(
     """
     Test that stopping an AgentProcess transitions it to stopped status.
     """
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
     assert_agent_manager_state(manager, agent_id, "running", timeout=2.0)
 
@@ -102,10 +93,7 @@ def test_failed_status_when_process_exits_nonzero(
     # Configure the fake agent to exit with failure immediately.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
 
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     # Wait for process to exit with failure
@@ -121,10 +109,7 @@ def test_start_is_idempotent(
     """
     Test that starting an AgentProcess is idempotent when already running.
     """
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     assert_agent_manager_state(manager, agent_id, "running", timeout=2.0)
@@ -147,10 +132,7 @@ def test_agent_fails_when_child_service_fails(
     """
     Test that an AgentProcess status is failed if one of its child services fails.
     """
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     assert_agent_manager_state(manager, agent_id, "running", timeout=2.0)

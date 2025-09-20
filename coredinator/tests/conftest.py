@@ -9,6 +9,7 @@ import psutil
 import pytest
 
 from coredinator.utils.process import terminate_process_tree
+from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
 
 
@@ -39,7 +40,7 @@ def long_running_agent_env(monkeypatch: pytest.MonkeyPatch):
 def config_file(tmp_path: Path) -> Path:
     """Fixture to create a temporary configuration file."""
     cfg = tmp_path / "example_config.yaml"
-    cfg.write_text("dummy: true\n")
+    create_dummy_config(cfg)
     return cfg
 
 

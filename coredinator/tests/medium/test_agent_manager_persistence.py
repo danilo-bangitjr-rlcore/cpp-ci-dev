@@ -3,8 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from coredinator.agent.agent_manager import AgentManager
-from coredinator.service.service_manager import ServiceManager
+from tests.utils.factories import create_agent_manager, create_dummy_config
 from tests.utils.polling import wait_for_event
 
 
@@ -21,13 +20,10 @@ class TestAgentManagerPersistence:
 
         # Use dist_with_fake_executable as base_path but our config in tmp_path
         test_config = tmp_path / "test_config.yaml"
-        test_config.write_text("dummy: true\n")
+        create_dummy_config(test_config)
 
         # Phase 1: Start an agent and verify it's running
-        manager1 = AgentManager(
-            base_path=dist_with_fake_executable,
-            service_manager=ServiceManager(base_path=dist_with_fake_executable),
-        )
+        manager1 = create_agent_manager(dist_with_fake_executable)
         agent_id = manager1.start_agent(test_config)
 
         # Wait for agent to start
@@ -40,10 +36,7 @@ class TestAgentManagerPersistence:
 
         # Phase 2: Create new AgentManager (simulating restart)
         # The previous manager's agents should be restored and auto-started
-        manager2 = AgentManager(
-            base_path=dist_with_fake_executable,
-            service_manager=ServiceManager(base_path=dist_with_fake_executable),
-        )
+        manager2 = create_agent_manager(dist_with_fake_executable)
 
         # Verify agent was restored
         assert agent_id in manager2.list_agents()
@@ -73,13 +66,10 @@ class TestAgentManagerPersistence:
         config3 = tmp_path / "agent3.yaml"
 
         for config in [config1, config2, config3]:
-            config.write_text("dummy: true\n")
+            create_dummy_config(config)
 
         # Phase 1: Start multiple agents and set different states
-        manager1 = AgentManager(
-            base_path=dist_with_fake_executable,
-            service_manager=ServiceManager(base_path=dist_with_fake_executable),
-        )
+        manager1 = create_agent_manager(dist_with_fake_executable)
 
         agent1_id = manager1.start_agent(config1)  # Will be running
         agent2_id = manager1.start_agent(config2)  # Will be stopped
@@ -99,10 +89,7 @@ class TestAgentManagerPersistence:
         manager1.stop_agent(agent2_id)
 
         # Phase 2: Restart AgentManager and verify correct restoration
-        manager2 = AgentManager(
-            base_path=dist_with_fake_executable,
-            service_manager=ServiceManager(base_path=dist_with_fake_executable),
-        )
+        manager2 = create_agent_manager(dist_with_fake_executable)
 
         # All agents should be restored
         restored_agents = manager2.list_agents()
@@ -129,7 +116,7 @@ class TestAgentManagerPersistence:
     def test_empty_database_initialization(self, tmp_path: Path):
         """Test that AgentManager works correctly when starting with an empty database."""
         # Create AgentManager with empty database
-        manager = AgentManager(base_path=tmp_path, service_manager=ServiceManager(base_path=tmp_path))
+        manager = create_agent_manager(tmp_path)
 
         # Should start with no agents
         assert manager.list_agents() == []
@@ -152,6 +139,6 @@ class TestAgentManagerPersistence:
         # Create a corrupted database file
         db_path.write_text("This is not a valid SQLite database")
 
-        manager = AgentManager(base_path=tmp_path, service_manager=ServiceManager(base_path=tmp_path))
+        manager = create_agent_manager(tmp_path)
         agents = manager.list_agents()
         assert isinstance(agents, list)
