@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, Protocol
 
 import requests
 
@@ -7,6 +7,19 @@ from coredinator.utils.test_polling import wait_for_event
 
 # Type aliases for better code readability
 AgentState = Literal["running", "stopped", "failed", "starting"]
+
+
+# Type protocols for test client interfaces
+class TestClient(Protocol):
+    def get(self, url: str) -> Any: ...
+
+
+class AgentManager(Protocol):
+    def get_agent_status(self, agent_id: Any) -> Any: ...
+
+
+class Service(Protocol):
+    def status(self) -> Any: ...
 
 
 # ============================================================================
@@ -239,6 +252,113 @@ def verify_service_sharing(
     coreio2_running = service2_statuses.get("coreio", {}).get("state") == "running"
 
     return coreio1_running and coreio2_running
+
+
+# ============================================================================
+# TestClient Agent State Verification Utilities
+# ============================================================================
+
+def wait_for_agent_testclient_state(
+    client: TestClient,
+    agent_id: str,
+    expected_state: AgentState,
+    timeout: float = 2.0,
+    interval: float = 0.05,
+) -> bool:
+    def _check_agent_state():
+        response = client.get(f"/api/agents/{agent_id}/status")
+        if response.status_code != 200:
+            return False
+        return response.json().get("state") == expected_state
+
+    return wait_for_event(_check_agent_state, interval=interval, timeout=timeout)
+
+
+def assert_agent_testclient_state(
+    client: TestClient,
+    agent_id: str,
+    expected_state: AgentState,
+    timeout: float = 2.0,
+) -> None:
+    assert wait_for_agent_testclient_state(client, agent_id, expected_state, timeout), \
+        f"Agent {agent_id} did not reach state '{expected_state}' within {timeout}s"
+
+
+def wait_for_all_agents_testclient_state(
+    client: TestClient,
+    agent_ids: list[str],
+    expected_state: AgentState,
+    timeout: float = 5.0,
+    interval: float = 0.05,
+) -> bool:
+    def _all_agents_in_state():
+        for agent_id in agent_ids:
+            response = client.get(f"/api/agents/{agent_id}/status")
+            if response.status_code != 200:
+                return False
+            if response.json().get("state") != expected_state:
+                return False
+        return True
+
+    return wait_for_event(_all_agents_in_state, interval=interval, timeout=timeout)
+
+
+def assert_all_agents_testclient_state(
+    client: TestClient,
+    agent_ids: list[str],
+    expected_state: AgentState,
+    timeout: float = 5.0,
+) -> None:
+    assert wait_for_all_agents_testclient_state(client, agent_ids, expected_state, timeout), \
+        f"Not all agents {agent_ids} reached state '{expected_state}' within {timeout}s"
+
+
+# ============================================================================
+# Direct Service/Manager State Verification Utilities
+# ============================================================================
+
+def wait_for_agent_manager_state(
+    manager: AgentManager,
+    agent_id: Any,
+    expected_state: AgentState,
+    timeout: float = 2.0,
+    interval: float = 0.05,
+) -> bool:
+    def _check_manager_state():
+        return manager.get_agent_status(agent_id).state == expected_state
+
+    return wait_for_event(_check_manager_state, interval=interval, timeout=timeout)
+
+
+def assert_agent_manager_state(
+    manager: AgentManager,
+    agent_id: Any,
+    expected_state: AgentState,
+    timeout: float = 2.0,
+) -> None:
+    assert wait_for_agent_manager_state(manager, agent_id, expected_state, timeout), \
+        f"Agent {agent_id} did not reach state '{expected_state}' within {timeout}s via manager"
+
+
+def wait_for_service_state(
+    service: Service,
+    expected_state: AgentState,
+    timeout: float = 5.0,
+    interval: float = 0.1,
+) -> bool:
+    def _check_service_state():
+        return service.status().state == expected_state
+
+    return wait_for_event(_check_service_state, interval=interval, timeout=timeout)
+
+
+def assert_service_state(
+    service: Service,
+    expected_state: AgentState,
+    timeout: float = 5.0,
+) -> None:
+    assert wait_for_service_state(service, expected_state, timeout), \
+        f"Service did not reach state '{expected_state}' within {timeout}s"
 
 
 # ============================================================================

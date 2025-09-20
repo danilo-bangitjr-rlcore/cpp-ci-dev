@@ -4,6 +4,7 @@ import pytest
 import requests
 
 from coredinator.test_utils import CoredinatorService
+from tests.utils.utilities import CoredinatorAPIClient
 
 
 @pytest.mark.timeout(25)
@@ -17,41 +18,31 @@ def test_coreio_service_basic_lifecycle(
     Verifies that CoreIO services can be started, queried for status,
     and stopped cleanly through the HTTP API.
     """
-    base_url = coredinator_service.base_url
+    api_client = CoredinatorAPIClient(coredinator_service.base_url)
 
     # Start CoreIO service
-    response = requests.post(
-        f"{base_url}/api/io/start",
-        json={"config_path": str(config_file)},
-    )
-    assert response.status_code == 200
-    data = response.json()
-    service_id = data["service_id"]
+    service_id = api_client.start_coreio_service(str(config_file))
     assert service_id == f"{config_file.stem}-coreio"
-    assert data["status"]["state"] == "running"
 
     # Verify service status
-    response = requests.get(f"{base_url}/api/io/{service_id}/status")
-    assert response.status_code == 200
-    status_data = response.json()
+    status_data = api_client.get_coreio_status(service_id)
     assert status_data["service_id"] == service_id
     assert status_data["status"]["state"] == "running"
     assert len(status_data["owners"]) == 1
     assert not status_data["is_shared"]
 
     # Verify service appears in listing
-    response = requests.get(f"{base_url}/api/io/")
+    response = requests.get(f"{api_client.base_url}/api/io/")
     assert response.status_code == 200
     list_data = response.json()
     assert len(list_data["coreio_services"]) == 1
     assert list_data["coreio_services"][0]["service_id"] == service_id
 
     # Stop CoreIO service
-    response = requests.post(f"{base_url}/api/io/{service_id}/stop")
-    assert response.status_code == 200
+    api_client.stop_coreio_service(service_id)
 
     # Verify service is removed from listing
-    response = requests.get(f"{base_url}/api/io/")
+    response = requests.get(f"{api_client.base_url}/api/io/")
     assert response.status_code == 200
     list_data = response.json()
     assert len(list_data["coreio_services"]) == 0
@@ -68,25 +59,15 @@ def test_coreio_service_custom_id(
     Verifies that custom coreio_id parameter works correctly
     and overrides the default naming convention.
     """
-    base_url = coredinator_service.base_url
+    api_client = CoredinatorAPIClient(coredinator_service.base_url)
     custom_id = "custom-coreio-test"
 
     # Start CoreIO service with custom ID
-    response = requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config_file),
-            "coreio_id": custom_id,
-        },
-    )
-    assert response.status_code == 200
-    data = response.json()
-    assert data["service_id"] == custom_id
+    service_id = api_client.start_coreio_service(str(config_file), coreio_id=custom_id)
+    assert service_id == custom_id
 
     # Verify status endpoint uses custom ID
-    response = requests.get(f"{base_url}/api/io/{custom_id}/status")
-    assert response.status_code == 200
-    status_data = response.json()
+    status_data = api_client.get_coreio_status(custom_id)
     assert status_data["service_id"] == custom_id
 
 
@@ -108,30 +89,16 @@ def test_coreio_service_sharing(
     config2 = config_file.parent / "config2.yaml"
     config2.write_text("dummy: true\n")
 
+    api_client = CoredinatorAPIClient(base_url)
+
     # Start first service with shared ID
-    response1 = requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config_file),
-            "coreio_id": shared_id,
-        },
-    )
-    assert response1.status_code == 200
+    api_client.start_coreio_service(str(config_file), shared_id)
 
     # Start second service with same shared ID
-    response2 = requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config2),
-            "coreio_id": shared_id,
-        },
-    )
-    assert response2.status_code == 200
+    api_client.start_coreio_service(str(config2), shared_id)
 
     # Verify both services share the same CoreIO instance
-    response = requests.get(f"{base_url}/api/io/{shared_id}/status")
-    assert response.status_code == 200
-    status_data = response.json()
+    status_data = api_client.get_coreio_status(shared_id)
     assert status_data["service_id"] == shared_id
     assert status_data["is_shared"]
 
@@ -162,20 +129,10 @@ def test_coreio_service_stop_shared_protection(
     config2 = config_file.parent / "config2.yaml"
     config2.write_text("dummy: true\n")
 
-    requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config_file),
-            "coreio_id": shared_id,
-        },
-    )
-    requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config2),
-            "coreio_id": shared_id,
-        },
-    )
+    api_client = CoredinatorAPIClient(base_url)
+
+    api_client.start_coreio_service(str(config_file), shared_id)
+    api_client.start_coreio_service(str(config2), shared_id)
 
     # Attempt to stop shared service should fail with 409 conflict
     response = requests.post(f"{base_url}/api/io/{shared_id}/stop")
@@ -183,9 +140,8 @@ def test_coreio_service_stop_shared_protection(
     assert "still in use" in response.json()["detail"]
 
     # Verify service is still running
-    response = requests.get(f"{base_url}/api/io/{shared_id}/status")
-    assert response.status_code == 200
-    assert response.json()["status"]["state"] == "running"
+    status_data = api_client.get_coreio_status(shared_id)
+    assert status_data["status"]["state"] == "running"
 
 
 @pytest.mark.timeout(25)
@@ -244,30 +200,18 @@ def test_coreio_service_list_empty_and_multiple(
     config2 = config_file.parent / "config2.yaml"
     config2.write_text("dummy: true\n")
 
+    api_client = CoredinatorAPIClient(base_url)
+
     # Independent service
-    requests.post(
-        f"{base_url}/api/io/start",
-        json={"config_path": str(config_file)},
-    )
+    api_client.start_coreio_service(str(config_file))
 
     # Shared services
     shared_id = "shared-test"
-    requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config2),
-            "coreio_id": shared_id,
-        },
-    )
+    api_client.start_coreio_service(str(config2), shared_id)
+
     config3 = config_file.parent / "config3.yaml"
     config3.write_text("dummy: true\n")
-    requests.post(
-        f"{base_url}/api/io/start",
-        json={
-            "config_path": str(config3),
-            "coreio_id": shared_id,
-        },
-    )
+    api_client.start_coreio_service(str(config3), shared_id)
 
     # Verify listing shows correct services and metadata
     response = requests.get(f"{base_url}/api/io/")
