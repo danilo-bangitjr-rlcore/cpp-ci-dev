@@ -1,8 +1,6 @@
 import sqlite3
 from pathlib import Path
 
-import pytest
-
 from coredinator.agent.agent_manager import AgentManager
 from coredinator.service.service_manager import ServiceManager
 
@@ -57,12 +55,11 @@ class TestAgentManagerPersistenceEdgeCases:
 
     def test_idempotent_start_agent_database_consistency(
         self,
-        monkeypatch: pytest.MonkeyPatch,
+        long_running_agent_env: None,
         tmp_path: Path,
         dist_with_fake_executable: Path,
     ):
         """Test that calling start_agent multiple times doesn't create duplicate database entries."""
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
         config = tmp_path / "test.yaml"
         config.write_text("dummy: true\n")

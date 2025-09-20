@@ -30,6 +30,12 @@ def free_localhost_port():
 
 
 @pytest.fixture()
+def long_running_agent_env(monkeypatch: pytest.MonkeyPatch):
+    """Fixture to configure fake agents to run in long-running mode."""
+    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+
+
+@pytest.fixture()
 def config_file(tmp_path: Path) -> Path:
     """Fixture to create a temporary configuration file."""
     cfg = tmp_path / "example_config.yaml"

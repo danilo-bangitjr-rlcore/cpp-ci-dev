@@ -12,13 +12,12 @@ class TestAgentManagerPersistence:
     @pytest.mark.timeout(45)
     def test_agent_state_persistence_across_restarts(
         self,
-        monkeypatch: pytest.MonkeyPatch,
+        long_running_agent_env: None,
         tmp_path: Path,
         config_file: Path,
         dist_with_fake_executable: Path,
     ):
         """Test that agent states are properly persisted and restored across AgentManager restarts."""
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
         # Use dist_with_fake_executable as base_path but our config in tmp_path
         test_config = tmp_path / "test_config.yaml"
@@ -62,12 +61,11 @@ class TestAgentManagerPersistence:
     @pytest.mark.timeout(45)
     def test_multiple_agents_persistence(
         self,
-        monkeypatch: pytest.MonkeyPatch,
+        long_running_agent_env: None,
         tmp_path: Path,
         dist_with_fake_executable: Path,
     ):
         """Test persistence with multiple agents in different states."""
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
         # Create multiple config files
         config1 = tmp_path / "agent1.yaml"
