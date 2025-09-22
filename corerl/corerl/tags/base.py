@@ -80,18 +80,6 @@ class GlobalTagAttributes:
     the Markov property.
     """
 
-    filter: list[TransformConfig] | None = None
-    """
-    Kind: optional external
-
-    Specifies a pipeline producing a boolean mask from transformations
-    on other tags. If the pipeline produces True for a given timestep,
-    then the value of this tag is converted to NaN.
-
-    Used when certain operating modes, such as maintenance mode, are
-    a clear signal of data degradation.
-    """
-
     trigger: TagTriggerConfig | None = None
     """
     Kind: optional external

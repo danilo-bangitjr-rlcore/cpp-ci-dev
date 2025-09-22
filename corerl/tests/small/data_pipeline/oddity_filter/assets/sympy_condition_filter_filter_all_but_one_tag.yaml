@@ -1,0 +1,26 @@
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+pipeline:
+  oddity_filter:
+    defaults:
+      - name: conditional
+        excluded_tags: ["tag-2"]
+        condition:
+          - name: sympy
+            expression: "{tag-1} == 0"
+  tags:
+    - name: action-1
+      type: ai_setpoint
+      operating_range: [0, 10]
+
+    - name: tag-1
+      operating_range: [0, 1]
+    
+    - name: tag-2
+      operating_range: [0, 1]
+    
+    - name: tag-3
+      operating_range: [0, 10]
