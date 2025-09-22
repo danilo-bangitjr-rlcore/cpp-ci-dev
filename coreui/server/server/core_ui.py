@@ -1,18 +1,27 @@
 import os
 import sys
+from contextlib import asynccontextmanager
 
+import httpx
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
 from server.config_api.config_routes import config_router
+from server.coredinator_api.coredinator_routes import coredinator_router
 from server.opc_api.opc_routes import opc_router
 
 
 class CoreUI:
     def __init__(self, dist_path: str | None = None):
-        self.app = FastAPI()
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            app.state.httpx_client = httpx.AsyncClient()
+            yield # marks the point between startup and shutdown
+            await app.state.httpx_client.aclose()
+
+        self.app = FastAPI(lifespan=lifespan)
 
         self.app.add_middleware(
             CORSMiddleware,
@@ -29,6 +38,7 @@ class CoreUI:
 
         self.app.include_router(opc_router, prefix="/api/v1/opc")
         self.app.include_router(config_router, prefix="/api/v1/config")
+        self.app.include_router(coredinator_router, prefix="/api/v1/coredinator")
 
         if dist_path is None:
             base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
