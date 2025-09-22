@@ -10,7 +10,7 @@ from coreio.communication.opc_communication import OPC_Connection_IO
 from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.communication.zmq_communication import ZMQ_Communication
-from coreio.utils.config_schemas import MainConfigAdapter
+from coreio.utils.config_schemas import InteractionConfigAdapter, MainConfigAdapter, PipelineConfigAdapter
 from coreio.utils.event_handlers import handle_read_event, handle_write_event
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
 from coreio.utils.logging_setup import get_log_file_name, setup_logging
@@ -30,14 +30,22 @@ async def coreio_loop(cfg: MainConfigAdapter):
         opc_connections: dict[str, OPC_Connection_IO] = await initialize_opc_connections(
             cfg.coreio.opc_connections,
             cfg.coreio.tags,
-            cfg.interaction.heartbeat,
         )
     else:
-        logger.debug("Will initialize OPC connections using pipeline.tags (data_ingress disabled)")
+        logger.warning("Running in compatiblity mode, data ingress disabled"
+        "Will initialize OPC connections using pipeline.tags (data_ingress disabled)"
+        "This feature will be deprecated soon")
+
+        assert isinstance(cfg.pipeline, PipelineConfigAdapter), "Please define tags under pipeline.tags"
+
+        heartbeat = None
+        if isinstance(cfg.interaction, InteractionConfigAdapter):
+            heartbeat = cfg.interaction.heartbeat
+
         opc_connections: dict[str, OPC_Connection_IO] = await initialize_opc_connections(
             cfg.coreio.opc_connections,
             cfg.pipeline.tags,
-            cfg.interaction.heartbeat,
+            heartbeat,
         )
 
     all_registered_nodes = None
