@@ -12,15 +12,15 @@ env:
   name: dep_async_env
   db:
     table_name: solar_wide
-    wide_format: True
+    wide_format: True # may remove in coreio, any version
 
-interaction:
-  heartbeat:
-    connection_id: null
-    heartbeat_node_id: null
+interaction: # may remove in coreio 0.11.0 (next version)
+  heartbeat: # may remove in coreio 0.11.0 (next version)
+    connection_id: null # may remove in coreio 0.11.0 (next version)
+    heartbeat_node_id: null # may remove in coreio 0.11.0 (next version)
 
-pipeline:
-  tags: []
+pipeline: # may remove in coreio 0.11.0 (next version)
+  tags: [] # may remove in coreio 0.11.0 (next version)
 
 coreio:
   coreio_origin: "tcp://localhost:5570"

@@ -32,8 +32,8 @@ async def coreio_loop(cfg: MainConfigAdapter):
             cfg.coreio.tags,
         )
     else:
-        logger.warning("Running in compatiblity mode, data ingress disabled"
-        "Will initialize OPC connections using pipeline.tags (data_ingress disabled)"
+        logger.warning("Running in compatiblity mode, data ingress disabled. "
+        "Will initialize OPC connections using pipeline.tags (data_ingress disabled). "
         "This feature will be deprecated soon")
 
         assert isinstance(cfg.pipeline, PipelineConfigAdapter), "Please define tags under pipeline.tags"
