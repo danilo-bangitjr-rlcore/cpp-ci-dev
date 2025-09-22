@@ -9,7 +9,7 @@ infra:
     schema: "solar"
 
 env:
-  name: dep_async_env
+  name: dep_async_env # may remove in coreio, any version
   db:
     table_name: solar_wide
     wide_format: True # may remove in coreio, any version
