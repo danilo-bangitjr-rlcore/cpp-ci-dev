@@ -57,7 +57,7 @@ type OPCAuthModeConfig = Literal[OPCAuthMode.anonymous] | OPCAuthModeUsernamePas
 class OPCConnectionConfig:
     connection_id: str = MISSING
     client_timeout: int = 30 # in seconds
-    client_watchdog_intervall: int = 30 # in seconds
+    client_watchdog_interval: int = 30 # in seconds
     opc_conn_url: str = MISSING
     application_uri: str = ""
     security_policy: OPCSecurityPolicyConfig = MISSING

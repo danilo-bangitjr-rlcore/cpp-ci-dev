@@ -42,7 +42,7 @@ class OPC_Connection_IO(OPC_Connection):
         self.opc_client = Client(
             cfg.opc_conn_url,
             timeout=cfg.client_timeout,
-            watchdog_intervall=cfg.client_watchdog_intervall,
+            watchdog_intervall=cfg.client_watchdog_interval,
         )
 
         self._connected = False
