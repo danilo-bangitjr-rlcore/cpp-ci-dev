@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from lib_config.config import MISSING, config, list_
+from lib_config.config import config, list_
 from pydantic import Field
 
 from coreio.config import CoreIOConfig, TagConfigAdapter
@@ -39,14 +39,13 @@ class HeartbeatConfigAdapter:
 
 @config(allow_extra=True, frozen=True)
 class InteractionConfigAdapter:
-    heartbeat: HeartbeatConfigAdapter = Field(default_factory=HeartbeatConfigAdapter)
-    obs_period: timedelta = MISSING
-    action_period: timedelta = MISSING
+    heartbeat: HeartbeatConfigAdapter | None = Field(default_factory=HeartbeatConfigAdapter)
+    action_period: timedelta | None = None
 
 @config(allow_extra=True, frozen=True)
 class MainConfigAdapter:
     coreio: CoreIOConfig = Field(default_factory=CoreIOConfig)
-    pipeline: PipelineConfigAdapter = Field(default_factory=PipelineConfigAdapter)
-    interaction: InteractionConfigAdapter = Field(default_factory=InteractionConfigAdapter)
     env: AsyncEnvConfigAdapter = Field(default_factory=AsyncEnvConfigAdapter)
     infra: InfraConfigAdapter = Field(default_factory=InfraConfigAdapter)
+    pipeline: PipelineConfigAdapter | None = None
+    interaction: InteractionConfigAdapter | None = None

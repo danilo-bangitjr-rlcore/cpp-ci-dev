@@ -7,7 +7,7 @@ import numpy as np
 import zmq
 from lib_config.loader import load_config
 
-from coreio.utils.config_schemas import MainConfigAdapter
+from coreio.utils.config_schemas import InteractionConfigAdapter, MainConfigAdapter
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType, OPCUANodeWriteValue
 
 logging.basicConfig(
@@ -16,6 +16,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
+ACTION_PERIOD_SECONDS = 2
 
 @load_config(MainConfigAdapter)
 def main(cfg: MainConfigAdapter):
@@ -27,7 +28,11 @@ def main(cfg: MainConfigAdapter):
 
     topic = IOEventTopic.coreio
     node_id = cfg.coreio.tags[0].node_identifier
-    action_period = cfg.interaction.action_period.total_seconds()
+    if isinstance(cfg.interaction, InteractionConfigAdapter) and cfg.interaction.action_period is not None:
+        action_period = cfg.interaction.action_period.total_seconds()
+    else:
+        action_period = ACTION_PERIOD_SECONDS
+
     assert node_id is not None, "No tags in config.yaml"
 
     for i in range(30):
