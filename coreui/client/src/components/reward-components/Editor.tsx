@@ -1,6 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { NodeEditor, type GetSchemes, ClassicPreset } from "rete";
-import { AreaPlugin, AreaExtensions, Zoom } from "rete-area-plugin";
+import { AreaPlugin, AreaExtensions } from "rete-area-plugin";
 import {
   ConnectionPlugin,
   Presets as ConnectionPresets
@@ -22,7 +22,7 @@ import { DockPlugin, DockPresets } from "rete-dock-plugin";
 const socket = new ClassicPreset.Socket("socket");
 
 class NumberNode extends ClassicPreset.Node<
-  {},
+  { value: undefined },
   { value: ClassicPreset.Socket },
   { value: ClassicPreset.InputControl<"number"> }
 > {
@@ -61,6 +61,7 @@ class PriorityNode extends ClassicPreset.Node<
     const left = new ClassicPreset.Input(socket, "threshold");
     const right = new ClassicPreset.Input(socket, "expression");
 
+
     left.addControl(
       new ClassicPreset.InputControl("number", { initial: 0, change })
     );
@@ -85,7 +86,9 @@ class PriorityNode extends ClassicPreset.Node<
     const rightControl = this.inputs.expression
       ?.control as ClassicPreset.InputControl<"number">;
 
+
     const { threshold, expression } = inputs;
+
     const value =
       (threshold ? threshold[0] : leftControl.value || 0) +
       (expression ? expression[0] : rightControl.value || 0);
@@ -181,7 +184,6 @@ export async function createEditor(container: HTMLElement) {
       .filter((n) => n instanceof AddNode || n instanceof PriorityNode)
       .forEach((n) => engine.fetch(n.id));
   }
-
 
   area.area.setZoomHandler(null);
 
