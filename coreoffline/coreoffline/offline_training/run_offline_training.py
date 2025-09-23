@@ -5,7 +5,7 @@ import numpy as np
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
@@ -39,7 +39,7 @@ def main(cfg: OfflineMainConfig):
     app_state = AppState(
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )
 

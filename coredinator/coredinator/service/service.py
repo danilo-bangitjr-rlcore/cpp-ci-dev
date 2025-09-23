@@ -14,7 +14,7 @@ from urllib.request import urlopen
 import psutil
 from lib_utils.errors import fail_gracefully
 
-from coredinator.service.protocols import ServiceID, ServiceState, ServiceStatus
+from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceState, ServiceStatus
 
 
 class ServiceMode(StrEnum):
@@ -95,10 +95,18 @@ class Service:
 
 
     def status(self):
+        # Map internal mode to intended state
+        intended_state = (
+            ServiceIntendedState.RUNNING
+            if self._mode == ServiceMode.STARTED
+            else ServiceIntendedState.STOPPED
+        )
+
         if self._process is None:
             return ServiceStatus(
                 id=self.id,
                 state=ServiceState.STOPPED,
+                intended_state=intended_state,
                 config_path=self._config_path,
             )
 
@@ -106,6 +114,7 @@ class Service:
             return ServiceStatus(
                 id=self.id,
                 state=ServiceState.FAILED,
+                intended_state=intended_state,
                 config_path=self._config_path,
             )
 
@@ -113,6 +122,7 @@ class Service:
         return ServiceStatus(
             id=self.id,
             state=state,
+            intended_state=intended_state,
             config_path=self._config_path,
         )
 
