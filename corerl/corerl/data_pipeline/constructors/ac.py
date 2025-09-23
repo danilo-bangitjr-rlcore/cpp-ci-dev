@@ -18,7 +18,6 @@ from corerl.utils.time import percent_time_elapsed
 class ActionConstructor:
     def __init__(self, app_state: AppState, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         self._app_state = app_state
-        self._tag_cfgs = tag_cfgs
         self.action_tags = ActionConstructor.action_configs(tag_cfgs)
 
         # make sure operating ranges are specified for actions
