@@ -8,11 +8,11 @@ from coreio.config import CoreIOConfig, TagConfigAdapter
 
 @config(allow_extra=True, frozen=True)
 class TagDBConfigAdapter:
-    table_name: str
+    table_name: str = "sensors"
 
 @config(allow_extra=True, frozen=True)
 class AsyncEnvConfigAdapter:
-    db: TagDBConfigAdapter
+    db: TagDBConfigAdapter = Field(default_factory=TagDBConfigAdapter)
 
 @config(allow_extra=True)
 class DBConfigAdapter:
@@ -44,8 +44,8 @@ class InteractionConfigAdapter:
 
 @config(allow_extra=True, frozen=True)
 class MainConfigAdapter:
-    env: AsyncEnvConfigAdapter
     coreio: CoreIOConfig = Field(default_factory=CoreIOConfig)
-    pipeline: PipelineConfigAdapter | None = Field(default_factory=PipelineConfigAdapter)
-    interaction: InteractionConfigAdapter | None = Field(default_factory=InteractionConfigAdapter)
+    env: AsyncEnvConfigAdapter = Field(default_factory=AsyncEnvConfigAdapter)
     infra: InfraConfigAdapter = Field(default_factory=InfraConfigAdapter)
+    pipeline: PipelineConfigAdapter | None = None
+    interaction: InteractionConfigAdapter | None = None
