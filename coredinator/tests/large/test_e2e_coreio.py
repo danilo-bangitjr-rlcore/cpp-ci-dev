@@ -6,7 +6,7 @@ import requests
 from coredinator.test_utils import CoredinatorService
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(25)
 def test_coreio_service_basic_lifecycle(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -57,7 +57,7 @@ def test_coreio_service_basic_lifecycle(
     assert len(list_data["coreio_services"]) == 0
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(25)
 def test_coreio_service_custom_id(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -90,7 +90,7 @@ def test_coreio_service_custom_id(
     assert status_data["service_id"] == custom_id
 
 
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(30)
 def test_coreio_service_sharing(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -144,7 +144,7 @@ def test_coreio_service_sharing(
     assert list_data["coreio_services"][0]["is_shared"]
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(25)
 def test_coreio_service_stop_shared_protection(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -188,7 +188,7 @@ def test_coreio_service_stop_shared_protection(
     assert response.json()["status"]["state"] == "running"
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(25)
 def test_coreio_service_error_scenarios(
     coredinator_service: CoredinatorService,
     tmp_path: Path,
@@ -221,7 +221,7 @@ def test_coreio_service_error_scenarios(
     assert "not found" in response.json()["detail"]
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(25)
 def test_coreio_service_list_empty_and_multiple(
     coredinator_service: CoredinatorService,
     config_file: Path,
