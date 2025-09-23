@@ -2,11 +2,18 @@
     "packages": {
         "corerl": {
             "release-type": "python",
-            "changelog-path": "CHANGELOG.md"
+            "changelog-path": "CHANGELOG.md",
+            "component": "corerl"
         },
         "coreio": {
             "release-type": "python",
-            "changelog-path": "CHANGELOG.md"
+            "changelog-path": "CHANGELOG.md",
+            "component": "coreio"
+        },
+        "coredinator": {
+            "release-type": "python",
+            "changelog-path": "CHANGELOG.md",
+            "component": "coredinator"
         }
     }
 }

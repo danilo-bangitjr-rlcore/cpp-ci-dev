@@ -53,7 +53,6 @@
       equal: false
   action_constructor: null
   state_constructor: null
-  filter: null
 - name: outlet_h2s
   agg: avg
   node_identifier: null
@@ -71,7 +70,6 @@
   - name: 'nuke'
   action_constructor: null
   state_constructor: null
-  filter: null
 - name: ph_pumpspeed
   agg: avg
   node_identifier: null
@@ -132,7 +130,6 @@
     passthrough: false
   action_constructor: null
   state_constructor: null
-  filter: null
 - name: orp_pumpspeed
   agg: avg
   node_identifier: null
@@ -154,4 +151,3 @@
     factor: -1.0
   action_constructor: null
   state_constructor: null
-  filter: null

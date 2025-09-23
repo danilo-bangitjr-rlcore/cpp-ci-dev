@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.150.0](https://github.com/rlcoretech/core-rl/compare/v0.149.0...v0.150.0) (2025-09-18)
+
+
+### Features
+
+* **PROD-889:** update metrics logging to specify filter name in transition filtering ([df1ccc0](https://github.com/rlcoretech/core-rl/commit/df1ccc061f12b9fce7fbb87d519ad105a2b369f8))
+* **PROD-890:** parse sympy expressions based on parenthesis ordering ([bcb0d6f](https://github.com/rlcoretech/core-rl/commit/bcb0d6f3897228ca22daa5a0d4beb5392557c8fd))
+* **PROD-890:** Parsing Sympy Expressions In Correct Order Based On Parentheses ([d437865](https://github.com/rlcoretech/core-rl/commit/d43786544af5afaa41116be9b84eff4c2cb017e9))
+
+
+### Bug Fixes
+
+* zone_violation metrics include tag and will be logged int offline mode ([4b0b70f](https://github.com/rlcoretech/core-rl/commit/4b0b70ff1b9fbc2a63f745bf84a4ea9e192d71a8))
+
 ## [0.149.0](https://github.com/rlcoretech/core-rl/compare/v0.148.0...v0.149.0) (2025-09-17)
 
 

@@ -2,24 +2,20 @@ import os
 
 import jax.numpy as jnp
 from lib_config.errors import ConfigValidationErrors
-from lib_config.loader import direct_load_config
 
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from corerl.tags.setpoint import SetpointTagConfig
+from tests.infrastructure.config import create_config_with_overrides
 
 
 def test_nominal_setpoint_norm():
-    config_path = os.path.join(
-        os.path.dirname(__file__),
-        'assets/nominal_setpoint.yaml',
-    )
-    cfg = direct_load_config(MainConfig, config_name=config_path)
+    config_path = os.path.join(os.path.dirname(__file__), 'assets/nominal_setpoint.yaml')
+    cfg = create_config_with_overrides(base_config_path=config_path)
     assert not isinstance(cfg, ConfigValidationErrors)
     assert isinstance(cfg.pipeline.tags[0], SetpointTagConfig)
     assert cfg.pipeline.tags[0].nominal_setpoint == 0.4
@@ -28,7 +24,7 @@ def test_nominal_setpoint_norm():
     app_state = AppState[DummyEventBus](
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=event_bus,
     )
     pipeline = Pipeline(app_state, cfg.pipeline)

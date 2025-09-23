@@ -56,6 +56,8 @@ type OPCAuthModeConfig = Literal[OPCAuthMode.anonymous] | OPCAuthModeUsernamePas
 @config(frozen=True)
 class OPCConnectionConfig:
     connection_id: str = MISSING
+    client_timeout: int = 30 # in seconds
+    client_watchdog_interval: int = 30 # in seconds
     opc_conn_url: str = MISSING
     application_uri: str = ""
     security_policy: OPCSecurityPolicyConfig = MISSING
@@ -73,3 +75,5 @@ class CoreIOConfig:
     coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()
     tags: list[TagConfigAdapter] = list_()
+    log_level: str = "INFO"
+    log_file: str | None = None

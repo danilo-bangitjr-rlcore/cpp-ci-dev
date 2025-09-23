@@ -18,7 +18,13 @@ export const API_ENDPOINTS = {
       `${API_BASE_URL}/v1/config/raw/${configName}/agent_name`,
     mutate_raw_config: `${API_BASE_URL}/v1/config/raw/configs`,
     // TEMPORARY PLACEHOLDER FOR TAGS -- HARD CODED CONFIG NAME
-    tags: `${API_BASE_URL}/v1/config/main_backwash/tags`,
+    tags: `${API_BASE_URL}/v1/config/raw/main_backwash/tags`,
+    delete_raw_tag: (configName: string, tagIndex: number) =>
+      `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
+    add_raw_tag: (configName: string) =>
+      `${API_BASE_URL}/v1/config/raw/${configName}/tags`,
+    update_raw_tag: (configName: string, tagIndex: number) =>
+      `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
   },
 } as const;
 

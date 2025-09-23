@@ -1,4 +1,5 @@
 {
-  "corerl": "0.149.0",
-  "coreio": "0.8.0"
+  "corerl": "0.150.0",
+  "coreio": "0.10.0",
+  "coredinator": "0.1.0"
 }

@@ -22,7 +22,7 @@ logger = logging.getLogger()
 async def initialize_opc_connections(
         cfg_opc_connections: list[OPCConnectionConfig],
         cfg_tags: list[TagConfigAdapter],
-        cfg_heartbeat: HeartbeatConfigAdapter,
+        cfg_heartbeat: HeartbeatConfigAdapter | None = None,
 ) -> dict[str, OPC_Connection_IO]:
 
     opc_connections: dict[str, OPC_Connection_IO] = {}
@@ -32,16 +32,21 @@ async def initialize_opc_connections(
         opc_conn = await OPC_Connection_IO().init(opc_conn_cfg)
         opc_connections[opc_conn_cfg.connection_id] = opc_conn
 
-        async with opc_conn:
-            await opc_conn.register_cfg_nodes(cfg_tags)
+        logger.debug(f"Registering nodes for {opc_conn_cfg.connection_id}")
+        await opc_conn.register_cfg_nodes(cfg_tags)
 
-        # Register heartbeat_id separately
-        if cfg_heartbeat.connection_id == opc_conn_cfg.connection_id:
-            heartbeat_id = cfg_heartbeat.heartbeat_node_id
+        if isinstance(cfg_heartbeat, HeartbeatConfigAdapter):
+            logger.info("Only if data ingress is disabled, we need to register heartbeat separately."
+                         "If data ingress is enabled, then it should be included in the data ingress tags",
+                         )
+            if cfg_heartbeat.connection_id == opc_conn_cfg.connection_id:
+                heartbeat_id = cfg_heartbeat.heartbeat_node_id
 
-            if heartbeat_id is not None:
-                async with opc_conn:
+                if heartbeat_id is not None:
+                    logger.debug(f"Registering heartbeat for {cfg_heartbeat.connection_id}")
                     await opc_conn.register_node(heartbeat_id, "heartbeat")
+                else:
+                    logger.debug(f"No heartbeat found for {cfg_heartbeat.connection_id}")
 
     return opc_connections
 
@@ -51,8 +56,10 @@ def concat_opc_nodes(
         skip_heartbeat: bool = False,
         heartbeat_name: str = "heartbeat",
 ) -> dict[str, NodeData]:
+    logger.debug("Concatenating all the opc nodes across all opc connections")
     all_registered_nodes: dict[str, NodeData] = {}
     for connection_id, opc_conn in opc_connections.items():
+        logger.debug(f"Reading registered nodes from {connection_id}")
         for node_id, node in opc_conn.registered_nodes.items():
             if skip_heartbeat and node.name == heartbeat_name:
                 continue

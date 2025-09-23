@@ -22,7 +22,10 @@ jobs:
   # -- Style --
   # -----------
   coredinator-style-n-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: coredinator
@@ -34,15 +37,13 @@ jobs:
         with:
           subrepo: coredinator
 
-      - name: set up path
-        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
-
       # linting
       - uses: astral-sh/ruff-action@v1
         with:
             src: coredinator
 
       - uses: dciborow/action-pylint@0.1.0
+        if: ${{ matrix.os == 'ubuntu-latest' }}
         with:
           github_token: ${{ secrets.github_token }}
           reporter: github-pr-review

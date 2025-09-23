@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.base import EvalsWriterProtocol
 from corerl.eval.metrics.base import MetricsWriterProtocol
 from corerl.messages.event_bus import DummyEventBus, EventBus
 
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class AppState[AppEventBus: (EventBus, DummyEventBus)]:
     cfg: MainConfig
-    evals: EvalsTable
+    evals: EvalsWriterProtocol
     metrics: MetricsWriterProtocol
     event_bus: AppEventBus
     agent_step: int = 0

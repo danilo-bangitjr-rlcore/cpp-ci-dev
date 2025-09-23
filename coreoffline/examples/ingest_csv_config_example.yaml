@@ -1,0 +1,52 @@
+# Example configuration file for load_data.py
+# All data loading configuration in one place
+
+# CSV file path (required)
+csv_path: ~/Cenovus_data_V2.csv
+
+# Tag configuration
+reward_tags:
+  - Lab_afterfilters_common_inlet_turbidity_y
+  # Uncomment additional reward tags as needed:
+  # - Outlet Oil and Grease Concentration
+  # - Outlet Hardness
+  # - Silica_Out_y
+
+action_tags:
+  - 40_Lime_slurry_tank_volumetric_feeder_ratio_PV
+  - 43_MGO_slurry_tank_volumetric_feeder_ratio_PV
+  - 49_Coagulant_ratio_PV
+  - 46_Flocculant_polymer_ratio_A_PV
+  - 47_Flocculant_polymer_ratio_B_PV
+
+input_tags:
+  - Lab_inlet_hardness_y
+  - Lab_outlet_hardness_y
+  - Lab_inlet_turbidity_y
+  - Lab_outlet_turbidity_y
+  - Silica_In_y
+  - Silica_Out_y
+  - Lab_outlet_hardness_Silica_ICP
+  - Outlet Oil and Grease Concentration
+  - Reaction Zone pH_y
+  - Bed Profile - Tap 1_y
+  - Bed Profile - Tap 2_y
+  - Bed Profile - Tap 3_y
+  - Bed Profile - Central Mix Zone_y
+  - Bed Profile - Reaction Zone_y
+  - 04_WLS_PW_In_Flowrate_tperhr_PV
+  - 48_Flocculant_polymer_flowrate_Am3_hr_to_WLS_PV
+  - 61_Flocculant_PumpFlowrate_MODE
+  - 62_Flocculant_PumpFlowrate_MODE
+
+# Database configuration (with defaults)
+data_writer:
+  db_name: postgres
+  table_schema: cenovus
+  table_name: sensors
+  username: postgres
+  password: password
+  ip: localhost
+  port: 5432
+  drivername: postgresql+psycopg2
+  wide_format: True

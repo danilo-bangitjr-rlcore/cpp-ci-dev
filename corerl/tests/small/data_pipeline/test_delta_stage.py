@@ -1,40 +1,43 @@
 import numpy as np
 import pandas as pd
-from lib_config.loader import direct_load_config
 from test.infrastructure.utils.pandas import dfs_close
 
-from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
+from tests.infrastructure.config import create_config_with_overrides
+from tests.sdk.factories import PipelineFrameFactory
 
 
 def test_one_delta_tag_one_pf():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
-    assert isinstance(cfg, MainConfig)
+    cfg = create_config_with_overrides(base_config_path='tests/small/data_pipeline/test_delta_stage.yaml')
 
     app_state = AppState(
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )
 
     delta_stage = DeltaizeTags(cfg.pipeline.tags, cfg.pipeline.delta, app_state)
-    df = pd.DataFrame({
-        "tag_1": [1, 1, 1, 1],
-        "tag_2": [1, 2, 4, 3],
-        "action_1": [0, 0, 0, 0],
-        "reward": [1, 1, 1, 1],
-    })
-    dates = pd.DatetimeIndex(["7/13/2023 10:00", "7/13/2023 10:05", "7/13/2023 10:20", "7/13/2023 10:25"])
-    df.index = dates
 
-    pf = PipelineFrame(df, DataMode.ONLINE)
+    dates = pd.DatetimeIndex(["7/13/2023 10:00", "7/13/2023 10:05", "7/13/2023 10:20", "7/13/2023 10:25"])
+    pf = PipelineFrameFactory.build(
+        data={
+            "tag_1": [1, 1, 1, 1],
+            "tag_2": [1, 2, 4, 3],
+            "action_1": [0, 0, 0, 0],
+            "reward": [1, 1, 1, 1],
+        },
+        data_mode=DataMode.ONLINE,
+    )
+    # Override the default datetime index with the specific dates for this test
+    pf.data.index = dates
+
     out = delta_stage(pf)
 
     # Delta transform produces leading NaN if the temporal state was empty
@@ -50,26 +53,28 @@ def test_one_delta_tag_one_pf():
     assert dfs_close(out.data, expected)
 
 def test_one_delta_tag_multiple_pfs():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
-    assert isinstance(cfg, MainConfig)
+    cfg = create_config_with_overrides(base_config_path='tests/small/data_pipeline/test_delta_stage.yaml')
 
     app_state = AppState(
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )
     pipeline = Pipeline(app_state, cfg.pipeline)
 
-    df_1 = pd.DataFrame({
-        "tag_1": [1],
-        "tag_2": [1],
-        "action_1": [0],
-        "reward": [1],
-    }, index=pd.DatetimeIndex(["7/13/2023 10:00"]))
+    pf_1 = PipelineFrameFactory.build(
+        data={
+            "tag_1": [1],
+            "tag_2": [1],
+            "action_1": [0],
+            "reward": [1],
+        },
+    )
+    pf_1.data.index = pd.DatetimeIndex(["7/13/2023 10:00"])
 
     got_1 = pipeline(
-        df_1,
+        pf_1.data,
         data_mode=DataMode.ONLINE,
     )
 
@@ -83,15 +88,18 @@ def test_one_delta_tag_multiple_pfs():
 
     assert dfs_close(got_1.df, expected_1)
 
-    df_2 = pd.DataFrame({
-        "tag_1": [1],
-        "tag_2": [2],
-        "action_1": [0],
-        "reward": [1],
-    }, index=pd.DatetimeIndex(["7/13/2023 10:05"]))
+    pf_2 = PipelineFrameFactory.build(
+        data={
+            "tag_1": [1],
+            "tag_2": [2],
+            "action_1": [0],
+            "reward": [1],
+        },
+    )
+    pf_2.data.index = pd.DatetimeIndex(["7/13/2023 10:05"])
 
     got_2 = pipeline(
-        df_2,
+        pf_2.data,
         data_mode=DataMode.ONLINE,
     )
 
@@ -106,15 +114,18 @@ def test_one_delta_tag_multiple_pfs():
 
     assert dfs_close(got_2.df, expected_2)
 
-    df_3 = pd.DataFrame({
-        "tag_1": [1],
-        "tag_2": [4],
-        "action_1": [0],
-        "reward": [1],
-    }, index=pd.DatetimeIndex(["7/13/2023 10:20"]))
+    pf_3 = PipelineFrameFactory.build(
+        data={
+            "tag_1": [1],
+            "tag_2": [4],
+            "action_1": [0],
+            "reward": [1],
+        },
+    )
+    pf_3.data.index = pd.DatetimeIndex(["7/13/2023 10:20"])
 
     got_3 = pipeline(
-        df_3,
+        pf_3.data,
         data_mode=DataMode.ONLINE,
     )
 
@@ -128,15 +139,18 @@ def test_one_delta_tag_multiple_pfs():
 
     assert dfs_close(got_3.df, expected_3)
 
-    df_4 = pd.DataFrame({
-        "tag_1": [1],
-        "tag_2": [3],
-        "action_1": [0],
-        "reward": [1],
-    }, index=pd.DatetimeIndex(["7/13/2023 10:25"]))
+    pf_4 = PipelineFrameFactory.build(
+        data={
+            "tag_1": [1],
+            "tag_2": [3],
+            "action_1": [0],
+            "reward": [1],
+        },
+    )
+    pf_4.data.index = pd.DatetimeIndex(["7/13/2023 10:25"])
 
     got_4 = pipeline(
-        df_4,
+        pf_4.data,
         data_mode=DataMode.ONLINE,
     )
 

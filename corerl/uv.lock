@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "coreio"
-version = "0.6.0"
+version = "0.8.0"
 source = { editable = "../coreio" }
 dependencies = [
     { name = "asyncua" },
@@ -315,7 +315,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.147.0"
+version = "0.149.0"
 source = { editable = "." }
 dependencies = [
     { name = "coreio" },
@@ -378,13 +378,13 @@ requires-dist = [
     { name = "psycopg2-binary", specifier = "~=2.9" },
     { name = "pydantic", specifier = "~=2.9" },
     { name = "pyyaml", specifier = "~=6.0" },
-    { name = "pyzmq", specifier = "~=27.1.0" },
+    { name = "pyzmq", specifier = "~=27.1" },
     { name = "scikit-learn", specifier = "~=1.5" },
     { name = "scipy", specifier = "~=1.13" },
     { name = "sqlalchemy", specifier = "~=2.0" },
     { name = "sqlalchemy-utils", specifier = "~=0.41" },
     { name = "sympy", specifier = "~=1.14" },
-    { name = "tabulate", specifier = "~=0.9.0" },
+    { name = "tabulate", specifier = "~=0.9" },
 ]
 
 [package.metadata.requires-dev]
@@ -1034,11 +1034,11 @@ requires-dist = [
     { name = "distrax", marker = "extra == 'jax'", specifier = ">=0.1.5" },
     { name = "dm-haiku", marker = "extra == 'jax'", specifier = ">=0.0.14" },
     { name = "flax", marker = "extra == 'jax'", specifier = ">=0.10.6" },
-    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.7.0" },
+    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.8.0" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "optax", marker = "extra == 'jax'", specifier = ">=0.2.4" },
     { name = "pydantic", specifier = ">=2.11.5" },
-    { name = "pyzmq", specifier = "~=27.1.0" },
+    { name = "pyzmq", specifier = "~=27.1" },
 ]
 provides-extras = ["jax", "opc"]
 

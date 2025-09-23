@@ -1,6 +1,6 @@
 import pytest
 from corerl.config import MainConfig
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
@@ -17,6 +17,6 @@ def dummy_app_state() -> AppState:
     return AppState(
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )

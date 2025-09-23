@@ -1,81 +1,103 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import NamedTuple
 
 import pandas as pd
-from lib_config.config import config
 from lib_sql.connection import TryConnectContextManager
+from lib_sql.engine import get_sql_engine
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
+from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
+from lib_sql.writers.static_schema_sql_writer import StaticSchemaSqlWriter
+from lib_utils.errors import fail_gracefully
 from lib_utils.time import now_iso
-from pydantic import Field
 from sqlalchemy import text
 
-from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig, WatermarkSyncConfig
+from corerl.eval.evals.base import EvalDBConfig
 
 log = logging.getLogger(__name__)
 
 
-class _EvalPoint(NamedTuple):
-    time: str
-    agent_step: int
-    evaluator: str
-    value: object # jsonb
+class StaticEvalsTable:
+    """Evals table implementation using StaticSchemaSqlWriter with fixed schema."""
 
+    # ============================================================================
+    # Initialization & Configuration
+    # ============================================================================
 
-@config()
-class EvalDBConfig(BufferedWriterConfig):
-    table_name: str = 'evals'
-    enabled: bool = False
-    watermark_cfg: WatermarkSyncConfig = Field(
-        default_factory=lambda: WatermarkSyncConfig('watermark', 1, 256),
-    )
-
-
-class EvalsTable(BufferedWriter[_EvalPoint]):
-    def __init__(
-        self,
-        cfg: EvalDBConfig,
-    ):
-        super().__init__(cfg)
+    def __init__(self, cfg: EvalDBConfig):
         self.cfg = cfg
 
-    def _create_table_sql(self):
-        return create_tsdb_table_query(
-            schema=self.cfg.table_schema,
-            table=self.cfg.table_name,
-            columns=[
-                SQLColumn(name='time', type='TIMESTAMP WITH TIME ZONE', nullable=False),
-                SQLColumn(name='agent_step', type='INTEGER', nullable=False),
-                SQLColumn(name='evaluator', type='TEXT', nullable=False),
-                SQLColumn(name='value', type='jsonb', nullable=False),
-            ],
-            partition_column='evaluator',
-            index_columns=['evaluator'],
+        self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)
+        log.info(f"Created engine for database {cfg.db_name}")
+
+        def table_factory(schema: str, table: str, columns: list[SQLColumn]):
+            return create_tsdb_table_query(
+                schema=schema,
+                table=table,
+                columns=columns,
+                partition_column="evaluator",
+                index_columns=["evaluator"],
+            )
+
+        initial_columns = [
+            SQLColumn(name="time", type="TIMESTAMP WITH TIME ZONE", nullable=False),
+            SQLColumn(name="agent_step", type="INTEGER", nullable=False),
+            SQLColumn(name="evaluator", type="TEXT", nullable=False),
+            SQLColumn(name="value", type="jsonb", nullable=False),
+        ]
+
+        static_writer = StaticSchemaSqlWriter(
+            engine=self.engine,
+            table_name=cfg.table_name,
+            columns=initial_columns,
+            table_creation_factory=table_factory,
+            schema=cfg.table_schema,
         )
+
+        self._writer = BufferedSqlWriter(
+            inner=static_writer,
+            low_watermark=cfg.low_watermark,
+            high_watermark=cfg.high_watermark,
+            enabled=True,
+        )
+
+    @fail_gracefully()
+    def close(self):
+        self._writer.close()
+        # Dispose of the engine to close all connections before dropping the database
+        # This is required in SQLAlchemy 2.0 to prevent "database is being accessed by other users" errors
+        self.engine.dispose()
+
+    # ============================================================================
+    # Public Write API
+    # ============================================================================
 
     def write(self, agent_step: int, evaluator: str, value: object, timestamp: str | None = None):
-        if not self.cfg.enabled:
-            return
+        timestamp = timestamp or now_iso()
 
-        value = value if isinstance(value, str) else json.dumps(value)
-        point = _EvalPoint(
-            time=timestamp or now_iso(),
-            agent_step=agent_step,
-            evaluator=evaluator,
-            value=value,
+        # Convert value to JSON string if not already a string
+        json_value = value if isinstance(value, str) else json.dumps(value)
+
+        return self._writer.write(
+            {
+                "time": datetime.fromisoformat(timestamp),
+                "agent_step": agent_step,
+                "evaluator": evaluator,
+                "value": json_value,
+            },
         )
 
-        try:
-            self._write(point)
-        except Exception:
-            log.exception(f'Failed to write evaluation output: {evaluator} {value}')
+    def flush(self) -> None:
+        self._writer.flush()
+
+    # ============================================================================
+    # Public Read API
+    # ============================================================================
 
     def _execute_read(self, stmt: str) -> pd.DataFrame:
         assert self.engine is not None
         with TryConnectContextManager(self.engine) as connection:
             return pd.read_sql(sql=text(stmt), con=connection)
-
 
     def _read_by_eval(self, evaluator: str) -> pd.DataFrame:
         stmt = f"""
@@ -166,8 +188,8 @@ class EvalsTable(BufferedWriter[_EvalPoint]):
         start_time: datetime | None = None,
         end_time: datetime | None = None,
     ) -> pd.DataFrame:
-        # Make sure all EvalPoint objects in buffer have been written to DB
-        self.blocking_sync()
+        # Make sure all points in buffer have been written to DB
+        self.flush()
 
         if start_time is not None or end_time is not None:
             return self._read_by_time(evaluator, start_time, end_time)

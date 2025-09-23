@@ -16,7 +16,6 @@ from pandas import DataFrame
 from corerl.data_pipeline.all_the_time import AllTheTimeTC
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
-from corerl.data_pipeline.constructors.conditional_filter import ConditionalFilter
 from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
@@ -126,7 +125,6 @@ class Pipeline:
             if isinstance(tag, BoundedTag) and tag.operating_range is not None
         }
         self.tag_trigger = TagTrigger(app_state, self.tags)
-        self.conditional_filter = ConditionalFilter(self.tags)
         self.transition_creator = AllTheTimeTC(cfg.transition_creator)
         self.transition_filter = TransitionFilter(app_state, cfg.transition_filter)
         self.outlier_detectors = OddityFilterConstructor(self.tags, app_state, cfg.oddity_filter)
@@ -155,7 +153,6 @@ class Pipeline:
             StageCode.DELTA:      self.delta_tags,
             StageCode.VIRTUAL:    self.virtual_tags,
             StageCode.INIT:       lambda pf: pf,
-            StageCode.FILTER:     self.conditional_filter,
             StageCode.TRIGGER:    self.tag_trigger,
             StageCode.PREPROCESS: self.preprocessor,
             StageCode.BOUNDS:     lambda pf: invoke_stage_per_tag(pf, self.bound_checkers),
@@ -174,7 +171,6 @@ class Pipeline:
             StageCode.DELTA,
             StageCode.VIRTUAL,
             StageCode.INIT,
-            StageCode.FILTER,
             StageCode.TRIGGER,
             StageCode.PREPROCESS,
             StageCode.BOUNDS,

@@ -1,0 +1,434 @@
+infra:
+  db: # Can be the same for BESS1 and BESS2
+    drivername: "postgresql+psycopg2"
+    username: "postgres"
+    password: "scrubber4data"
+    ip: "localhost"
+    port: 5432
+    db_name: "postgres"
+    schema: "solar"
+
+env:
+  name: dep_async_env # may remove in coreio, any version
+  db:
+    table_name: solar_wide
+    wide_format: True # may remove in coreio, any version
+
+interaction: # may remove in coreio 0.11.0 (next version)
+  heartbeat: # may remove in coreio 0.11.0 (next version)
+    connection_id: null # may remove in coreio 0.11.0 (next version)
+    heartbeat_node_id: null # may remove in coreio 0.11.0 (next version)
+
+pipeline: # may remove in coreio 0.11.0 (next version)
+  tags: [] # may remove in coreio 0.11.0 (next version)
+
+coreio:
+  coreio_origin: "tcp://localhost:5570"
+  opc_connections:
+    - connection_id: solar_matrikon
+      opc_conn_url: "opc.tcp://localhost:62000"
+      application_uri: "urn:agent"
+      security_policy:
+        policy: basic256_sha256
+        mode: sign_and_encrypt
+        # Copy pasted from scrubber
+        client_cert_path: "config\\databroker_client_cert.pem"
+        client_key_path: "config\\databroker_client_key.pem"
+        server_cert_path: "config\\databroker_server_cert.der"
+      authentication_mode:
+        username: "admin"
+        password: "scrubber4matrikon"
+    - connection_id: opcua
+      opc_conn_url: "opc.tcp://insqlsrv5:48031"
+      application_uri: "urn:telegraf"
+      security_policy:
+        policy: basic256_sha256
+        mode: sign_and_encrypt
+        # Copy pasted from scrubber
+        client_cert_path: "config\\aveva_client_cert.pem"
+        client_key_path: "config\\aveva_client_key.pem"
+        server_cert_path: "config\\aveva_server_cert.der"
+      authentication_mode: "anonymous"
+  data_ingress:
+    enabled: True
+    ingress_period: 00:00:10
+  tags:
+    - name: ELS_SLR_BESS1_SOC_SP_MAT
+      connection_id: solar_matrikon
+      node_identifier: "ns=3;i=6"
+
+    - name: ELS_SLR_BESS1_DIS_RATE_KW_SP_MAT
+      connection_id: solar_matrikon
+      node_identifier: "ns=3;i=7"
+
+    - name: ELS_SLR_BESS1_WD_MAT
+      connection_id: solar_matrikon
+      node_identifier: "ns=3;i=8"
+
+    - name: ELS_SLR_BESS2_SOC_SP_MAT
+      connection_id: solar_matrikon
+      node_identifier: "ns=3;i=18"
+
+    - name: ELS_SLR_BESS2_DIS_RATE_KW_SP_MAT
+      connection_id: solar_matrikon
+      node_identifier: "ns=3;i=19"
+
+    - name: ELS_SLR_BESS2_WD_MAT
+      connection_id: solar_matrikon
+      node_identifier: "ns=3;i=9"
+
+    - name: ELS_SITE_MET_POA
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.SITE_AESOMetPOA_Value"
+
+    - name: ELS_SITE_MET_BOP_TEMP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.SITE_AESOMetBackTemperature_Value"
+
+    - name: ELS_SITE_MET_OUT_TEMP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.SITE_AESOMetTemperature_Value"
+
+    - name: ELS_SLR_ENG_IMPORT_COST_SP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_ImportCost_Value"
+
+    - name: ELS_SLR_ENG_EXPORT_FEE_SP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_ExportFee_Value"
+
+    - name: ELS_SLR_ENG_BATT_COST_SP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BatteryCost_Value"
+
+    - name: Current_AIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOLoad"
+
+    - name: Forecast_AIL_1
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOLoadHour1"
+
+    - name: Forecast_AIL_2
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOLoadHour2"
+
+    - name: Forecast_AIL_3
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOLoadHour3"
+
+    - name: Actual_Posted_Pool_Price
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPrice"
+
+    - name: Forecast_Pool_Price_1
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceHour1"
+
+    - name: Forecast_Pool_Price_2
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceHour2"
+
+    - name: Forecast_Pool_Price_3
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceHour3"
+
+    - name: ELS_HLP_P001_MS
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.HLP_P-001_Status"
+
+    - name: ELS_HLP_P002_MS
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.HLP_P-002_Status"
+
+    - name: ELS_HLP_P003_MS
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.HLP_P-003_Status"
+
+    - name: ELS_HLP_P004_MS
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.HLP_P-004_Status"
+
+    - name: EL_LLP_P1_MS_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.LLP_P-001_Status"
+
+    - name: EL_LLP_P2_MS_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.LLP_P-002_Status"
+
+    - name: EL_LLP_P3_MS_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.LLP_P-003_Status"
+
+    - name: EL_LLP_P4_MS_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.LLP_P-004_Status"
+
+    - name: EL_LLP_P5_MS_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.LLP_P-005_Status"
+
+    - name: ELS_SLR_BESS1_CTRL_MODE
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1ControlMode_Value"
+
+    - name: ELS_SLR_PS1000_1A_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-1AAvailability_Value"
+
+    - name: ELS_SLR_PS1000_1B_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-1BAvailability_Value"
+
+    - name: ELS_SLR_BESS1_SOC_SP_OP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1ChargeSetpoint_Setpoint_Value"
+
+    - name: ELS_SLR_BESS1_SOC_SP_AI
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1ChargeModel_Value"
+
+    - name: ELS_SLR_BESS1_SOC_SP_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1ChargeSetpoint_ReadbackValue"
+
+    - name: ELS_SLR_BESS1_SOC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1Charge_Value"
+
+    - name: ELS_SLR_PS1000_1A_SOC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-1ACharge"
+
+    - name: ELS_SLR_PS1000_1B_SOC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-1BCharge"
+
+    - name: ELS_SLR_BESS1_GRID_MODE_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1GridMode_Readback"
+
+    - name: ELS_SLR_BESS1_ENG_OUT_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS1_EnergyExported"
+
+    - name: ELS_SLR_BESS1_ENG_IN_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS1_EnergyImported"
+
+    - name: ELS_SLR_BESS1_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS1_RealPowerBidirectional"
+
+    - name: ELS_SLR_BESS1_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS1_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_BESS1_DIS_CTRL_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1DischargeMode_Readback"
+
+    - name: ELS_SLR_BESS1_DIS_RATE_KW_SP_AI
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1DischargeRateModel_Value"
+
+    - name: ELS_SLR_BESS1_DIS_RATE_KW_SP_OP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1DischargeRate_Setpoint_Value"
+
+    - name: ELS_SLR_BESS1_DIS_RATE_KW_SP_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1DischargeRate_Readback_Value"
+
+    - name: ELS_SLR_WTP1_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_WTP1_RealPowerBidirectional"
+
+    - name: ELS_SLR_WTP1_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_WTP1_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_WTP1_ENG_IN_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_WTP1_EnergyImported"
+
+    - name: ELS_SLR_SOLAR1_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_SOLAR1_RealPowerBidirectional"
+
+    - name: ELS_SLR_SOLAR1_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_SOLAR1_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_SOLAR1_ENG_OUT_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_SOLAR1_EnergyExported"
+
+    - name: ELS_SLR_INV1_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_SOLAR1Inverter1Status_Value"
+
+    - name: ELS_SLR_INV3_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_SOLAR1Inverter3Status_Value"
+
+    - name: ELS_SLR_SOLAR1_LIMIT_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_SOLAR1CurtailLimit_Value"
+
+    - name: ELS_SLR_ELSP72_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP72_RealPowerBidirectional"
+
+    - name: ELS_SLR_ELSP72_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP72_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_ELSP72_ENG_IN_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP72_EnergyImported"
+
+    - name: ELS_SLR_ELSP72_ENG_OUT_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP72_EnergyExported"
+
+    - name: ELS_SLR_ELSP72_MAJORITY_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_ELSP72Majority_Value"
+
+    - name: ELS_SLR_ELSP72_POWER_PEAK_SP_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS1PeakSetpoint_Readback_Value"
+
+    - name: ELS_SLR_BESS2_CTRL_MODE
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2ControlMode_Value"
+
+    - name: ELS_SLR_PS1000_2A_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-2AAvailability_Value"
+
+    - name: ELS_SLR_PS1000_2B_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-2BAvailability_Value"
+
+    - name: ELS_SLR_BESS2_SOC_SP_AI
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2ChargeModel_Value"
+
+    - name: ELS_SLR_BESS2_SOC_SP_OP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2ChargeSetpoint_Setpoint_Value"
+
+    - name: ELS_SLR_BESS2_SOC_SP_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2ChargeSetpoint_ReadbackValue"
+
+    - name: ELS_SLR_BESS2_SOC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2Charge_Value"
+
+    - name: ELS_SLR_PS1000_2A_SOC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-2ACharge"
+
+    - name: ELS_SLR_PS1000_2B_SOC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_PS1000-2BCharge"
+
+    - name: ELS_SLR_BESS2_GRID_MODE_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2GridMode_Readback"
+
+    - name: ELS_SLR_BESS2_ENG_OUT_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS2_EnergyExported"
+
+    - name: ELS_SLR_BESS2_ENG_IN_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS2_EnergyImported"
+
+    - name: ELS_SLR_BESS2_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS2_RealPowerBidirectional"
+
+    - name: ELS_SLR_BESS2_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_BESS2_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_BESS2_DIS_CTRL_STAT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2DischargeMode_Readback"
+
+    - name: ELS_SLR_BESS2_DIS_RATE_KW_SP_AI
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2DischargeRateModel_Value"
+
+    - name: ELS_SLR_BESS2_DIS_RATE_KW_SP_OP
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2DischargeRate_Setpoint_Value"
+
+    - name: ELS_SLR_BESS2_DIS_RATE_KW_SP_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2DischargeRate_Readback_Value"
+
+    - name: ELS_SLR_WTP2_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_WTP2_RealPowerBidirectional"
+
+    - name: ELS_SLR_WTP2_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_WTP2_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_WTP2_ENG_IN_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_WTP2_EnergyImported"
+
+    - name: ELS_SLR_SOLAR2_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_SOLAR2_RealPowerBidirectional"
+
+    - name: ELS_SLR_SOLAR2_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_SOLAR2_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_SOLAR2_ENG_OUT_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_SOLAR2_EnergyExported"
+
+    - name: ELS_SLR_INV2_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_SOLAR2Inverter2Status_Value"
+
+    - name: ELS_SLR_INV4_AVAIL
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_SOLAR2Inverter4Status_Value"
+
+    - name: ELS_SLR_SOLAR2_LIMIT_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_SOLAR2CurtailLimit_Value"
+
+    - name: ELS_SLR_ELSP12_KW
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP12_RealPowerBidirectional"
+
+    - name: ELS_SLR_ELSP12_KVAR
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP12_ReactivePowerBidirectional"
+
+    - name: ELS_SLR_ELSP12_ENG_IN_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP12_EnergyImported"
+
+    - name: ELS_SLR_ELSP12_ENG_OUT_TOT
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_ELSP12_EnergyExported"
+
+    - name: ELS_SLR_ELSP12_MAJORITY_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_ELSP12Majority_Value"
+
+    - name: ELS_SLR_ELSP12_POWER_PEAK_SP_LGC
+      connection_id: opcua
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_BESS2PeakSetpoint_Readback_Value"
