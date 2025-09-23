@@ -17,6 +17,7 @@ from coreoffline.behaviour_cloning.data import (
 )
 from coreoffline.behaviour_cloning.evaluation import calculate_sign_accuracy
 from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
+from coreoffline.behaviour_cloning.plotting import create_prediction_scatter_plots
 from coreoffline.config import OfflineMainConfig
 from coreoffline.data_loading import load_offline_transitions
 
@@ -133,6 +134,18 @@ def main(cfg: OfflineMainConfig):
     log.info(
         "Done training MLP Regression model." +
         f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
+    )
+
+    action_tag = get_ai_setpoint_tag_name(cfg)
+
+    create_prediction_scatter_plots(
+        y_true=all_y_true,
+        y_pred_linear=all_y_pred_linear,
+        y_pred_deep=all_y_pred_mlp,
+        linear_metrics=linear_metrics,
+        deep_metrics=deep_metrics,
+        action_tag=action_tag,
+        output_dir=cfg.save_path,
     )
 
 
