@@ -2,7 +2,6 @@ import datetime
 
 import pandas as pd
 import pytest
-from lib_config.loader import direct_load_config
 from test.infrastructure.networking import get_free_port
 
 from corerl.config import MainConfig
@@ -13,32 +12,26 @@ from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
+from tests.infrastructure.config import ConfigBuilder, create_config_with_overrides
 
 
 @pytest.fixture(scope="function")
 def main_cfg():
-    cfg = direct_load_config(
-        MainConfig,
-        config_name='tests/large/events/assets/trigger.yaml',
+    return create_config_with_overrides(
+        base_config_path='tests/large/events/assets/trigger.yaml',
+        overrides={'event_bus.enabled': True},
     )
-    assert isinstance(cfg, MainConfig)
-
-    cfg.event_bus.enabled = True
-    return cfg
 
 
-def test_no_trigger(
-    main_cfg: MainConfig,
-):
+def test_no_trigger(main_cfg: MainConfig):
     port = get_free_port('localhost')
-    main_cfg.event_bus.cli_connection = f'tcp://localhost:{port}'
-    event_bus = EventBus(
-        main_cfg.event_bus,
-    )
+    cfg = ConfigBuilder(main_cfg).with_override('event_bus.cli_connection', f'tcp://localhost:{port}').build()
+
+    event_bus = EventBus(cfg.event_bus)
     event_bus.start()
 
     app_state = AppState(
-        cfg=main_cfg,
+        cfg=cfg,
         metrics=create_metrics_writer(main_cfg.metrics),
         evals=create_evals_writer(main_cfg.evals),
         event_bus=event_bus,
@@ -66,14 +59,11 @@ def test_no_trigger(
 
     event_bus.cleanup()
 
-def test_trigger(
-    main_cfg: MainConfig,
-):
+def test_trigger(main_cfg: MainConfig):
     port = get_free_port('localhost')
-    main_cfg.event_bus.cli_connection = f'tcp://localhost:{port}'
-    event_bus = EventBus(
-        main_cfg.event_bus,
-    )
+    cfg = ConfigBuilder(main_cfg).with_override('event_bus.cli_connection', f'tcp://localhost:{port}').build()
+
+    event_bus = EventBus(cfg.event_bus)
     event_bus.start()
 
     app_state = AppState(

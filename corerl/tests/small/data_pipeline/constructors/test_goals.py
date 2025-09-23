@@ -4,7 +4,6 @@ from typing import Any
 import numpy as np
 import pandas as pd
 import pytest
-from lib_config.loader import direct_load_config
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.constructors.goals import GoalConstructor
@@ -12,27 +11,25 @@ from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
+from tests.infrastructure.config import create_config_with_overrides
 
 
 @pytest.fixture
 def cfg():
-    return direct_load_config(
-        MainConfig,
-        config_name='tests/small/data_pipeline/constructors/assets/reward_config.yaml',
+    return create_config_with_overrides(
+        base_config_path='tests/small/data_pipeline/constructors/assets/reward_config.yaml',
     )
 
 @pytest.fixture
 def cfg_with_oob():
-    return direct_load_config(
-        MainConfig,
-        config_name='tests/small/data_pipeline/constructors/assets/oob_reward_config.yaml',
+    return create_config_with_overrides(
+        base_config_path='tests/small/data_pipeline/constructors/assets/oob_reward_config.yaml',
     )
 
 @pytest.fixture
 def only_optimization_cfg():
-    return direct_load_config(
-        MainConfig,
-        config_name='tests/small/data_pipeline/constructors/assets/only_optimization_config.yaml',
+    return create_config_with_overrides(
+        base_config_path='tests/small/data_pipeline/constructors/assets/only_optimization_config.yaml',
     )
 
 @pytest.fixture

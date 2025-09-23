@@ -1,9 +1,7 @@
 import numpy as np
 import pandas as pd
-from lib_config.loader import direct_load_config
 from test.infrastructure.utils.pandas import dfs_close
 
-from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.pipeline import Pipeline
@@ -11,11 +9,11 @@ from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
+from tests.infrastructure.config import create_config_with_overrides
 
 
 def test_one_delta_tag_one_pf():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
-    assert isinstance(cfg, MainConfig)
+    cfg = create_config_with_overrides(base_config_path='tests/small/data_pipeline/test_delta_stage.yaml')
 
     app_state = AppState(
         cfg=cfg,
@@ -50,8 +48,7 @@ def test_one_delta_tag_one_pf():
     assert dfs_close(out.data, expected)
 
 def test_one_delta_tag_multiple_pfs():
-    cfg = direct_load_config(MainConfig, config_name='tests/small/data_pipeline/test_delta_stage.yaml')
-    assert isinstance(cfg, MainConfig)
+    cfg = create_config_with_overrides(base_config_path='tests/small/data_pipeline/test_delta_stage.yaml')
 
     app_state = AppState(
         cfg=cfg,

@@ -3,7 +3,6 @@ from typing import Any
 
 import pandas as pd
 import pytest
-from lib_config.loader import direct_load_config
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
@@ -14,20 +13,22 @@ from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
+from tests.infrastructure.config import create_config_with_overrides
 
 
 @pytest.fixture
 def cfg():
-    return direct_load_config(
-        MainConfig,
-        config_name='tests/small/data_pipeline/assets/zone.yaml',
+    return create_config_with_overrides(
+        base_config_path='tests/small/data_pipeline/assets/zone.yaml',
+        overrides={
+            'metrics.enabled': False,
+            'evals.enabled': False,
+        },
     )
 
 
 @pytest.fixture
 def app_state(cfg: MainConfig):
-    cfg.metrics.enabled = False
-    cfg.evals.enabled = False
     return AppState(
         cfg=cfg,
         evals=create_evals_writer(cfg.evals),
