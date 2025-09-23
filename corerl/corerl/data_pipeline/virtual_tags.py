@@ -26,12 +26,4 @@ class VirtualTagComputer:
 
             pf.data[tag] = lmda(*dep_values)
 
-            if len(pf.data[tag]) > 0:
-                val = float(pf.data[tag].values[0])
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric="VIRTUAL-" + tag,
-                    value=val,
-                )
-
         return pf

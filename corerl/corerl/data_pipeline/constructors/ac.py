@@ -10,14 +10,16 @@ from lib_utils.maybe import Maybe
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
+from corerl.tags.delta import DeltaTagConfig
 from corerl.tags.setpoint import SetpointTagConfig, get_action_bounds
-from corerl.tags.tag_config import TagConfig
+from corerl.tags.tag_config import ComputedTag, TagConfig
 from corerl.utils.time import percent_time_elapsed
 
 
 class ActionConstructor:
     def __init__(self, app_state: AppState, tag_cfgs: list[TagConfig], prep_stage: Preprocessor):
         self._app_state = app_state
+        self._tag_cfgs = tag_cfgs
         self.action_tags = ActionConstructor.action_configs(tag_cfgs)
 
         # make sure operating ranges are specified for actions
@@ -35,6 +37,7 @@ class ActionConstructor:
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         # denormalize all tags before computing action bounds
         raw_data = self.denormalize_tags(pf.data)
+        self._log_virtual_and_delta_tags(raw_data)
 
         a_los: list[dict[str, float]] = []
         a_his: list[dict[str, float]] = []
@@ -132,3 +135,26 @@ class ActionConstructor:
         """
         cfgs = [tag for tag in tag_cfgs if tag.type == TagType.ai_setpoint]
         return sorted(cfgs, key=lambda tag: tag.name)
+
+    def _log_virtual_and_delta_tags(self, raw_data: pd.DataFrame):
+        """
+        Log denormalized virtual and delta tags after outliers have been filtered and NaNs have been imputed
+        """
+        for tag_cfg in self._tag_cfgs:
+            if isinstance(tag_cfg, DeltaTagConfig):
+                if len(raw_data[tag_cfg.name]) > 0:
+                    val = float(raw_data[tag_cfg.name].values[-1])
+                    self._app_state.metrics.write(
+                        agent_step=self._app_state.agent_step,
+                        metric="DELTA-" + tag_cfg.name,
+                        value=val,
+                    )
+
+            if isinstance(tag_cfg, ComputedTag) and tag_cfg.is_computed:
+                if len(raw_data[tag_cfg.name]) > 0:
+                    val = float(raw_data[tag_cfg.name].values[-1])
+                    self._app_state.metrics.write(
+                        agent_step=self._app_state.agent_step,
+                        metric="VIRTUAL-" + tag_cfg.name,
+                        value=val,
+                    )

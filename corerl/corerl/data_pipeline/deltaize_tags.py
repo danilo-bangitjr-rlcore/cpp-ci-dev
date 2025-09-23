@@ -28,14 +28,6 @@ class DeltaizeTags(Constructor):
         for tag_name, transformed_part in zip(tag_names, transformed_parts, strict=True):
             pf.data[tag_name] = transformed_part
 
-            if len(pf.data[tag_name]) > 0:
-                val = pf.data[tag_name].values[0]
-                self._app_state.metrics.write(
-                    agent_step=self._app_state.agent_step,
-                    metric="DELTA-" + tag_name,
-                    value=val,
-                )
-
         return pf
 
     def _get_relevant_configs(self, tag_cfgs: Sequence[TagConfig]) -> dict[str, list[TransformConfig]]:
