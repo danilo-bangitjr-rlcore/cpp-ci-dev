@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import AgentCard from './AgentCard';
 import AddAgentCard from './AddAgentCard';
-import { useDeleteAgentMutation } from '../../utils/useAgentMutations';
 import {
   useConfigListQuery,
   useAgentNamesQueries,
@@ -15,11 +14,7 @@ export interface Agent {
 
 const AgentsOverviewContainer: React.FC = () => {
   // Temporary mock state for agent statuses
-  const [statusMap, setStatusMap] = useState<Record<string, Agent['status']>>(
-    {}
-  );
-
-  const deleteAgentMutation = useDeleteAgentMutation();
+  const [statusMap] = useState<Record<string, Agent['status']>>({});
 
   const {
     data: configNames = [],
@@ -42,16 +37,6 @@ const AgentsOverviewContainer: React.FC = () => {
     } as Agent;
   });
 
-  const handleUpdateAgent = (updated: Agent) => {
-    setStatusMap((prev) => ({ ...prev, [updated.configName]: updated.status }));
-  };
-
-  const handleDeleteAgent = (agent: Agent) => {
-    if (window.confirm(`Are you sure you want to delete ${agent.agentName}?`)) {
-      deleteAgentMutation.mutate(agent.configName);
-    }
-  };
-
   if (isLoading) return <div className="p-6">Loading agents...</div>;
   if (hasError)
     return <div className="p-6 text-red-600">Failed to load agents</div>;
@@ -61,12 +46,7 @@ const AgentsOverviewContainer: React.FC = () => {
       <h1 className="text-2xl font-bold mb-6">Agents Overview</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {agents.map((agent) => (
-          <AgentCard
-            key={agent.configName}
-            agent={agent}
-            onAgentChange={handleUpdateAgent}
-            onDelete={() => handleDeleteAgent(agent)}
-          />
+          <AgentCard key={agent.configName} agent={agent} />
         ))}
         <AddAgentCard />
       </div>
