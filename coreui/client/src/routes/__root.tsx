@@ -25,6 +25,7 @@ const baseNavItems = [
   { label: 'OPC Navigation', to: '/opc-navigation' },
   { label: 'About', to: '/about' },
   { label: 'Tags', to: '/tags' },
+  { label: 'Reward', to: '/reward' }
 ];
 
 const headerItems = [
