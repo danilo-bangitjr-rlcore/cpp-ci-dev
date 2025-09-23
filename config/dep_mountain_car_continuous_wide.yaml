@@ -16,6 +16,8 @@ agent:
 
 coreio:
   coreio_origin: "tcp://localhost:5558"
+  log_level: INFO
+  log_file: outputs/coreio/coreio_mountain_car_wide.log
   opc_connections:
     - connection_id: mountain_car_opc_connection
       opc_conn_url: opc.tcp://admin@localhost:4840
