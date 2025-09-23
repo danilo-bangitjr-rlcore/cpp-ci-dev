@@ -7,9 +7,10 @@ from lib_config.loader import direct_load_config
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.state import AppState
+from tests.sdk.factories import PipelineFrameFactory
 
 
 def test_sympy_condition_filter_filter_all(dummy_app_state: AppState):
@@ -22,17 +23,13 @@ def test_sympy_condition_filter_filter_all(dummy_app_state: AppState):
 
     oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, dummy_app_state, cfg.pipeline.oddity_filter)
 
-    raw_obs = pd.DataFrame(
-        {
+    pf = PipelineFrameFactory.build(
+        data={
             "action-1": [1, 2, 3, 4, np.nan, 6, 7],
             "tag-1": [0, 1, 0, np.nan, 1, 1, 0],
             "tag-2": [1, 1, 0, np.nan, 0, 1, 0],
             "tag-3": [8, np.nan, 6, np.nan, 4, 3, 2],
         },
-    )
-
-    pf = PipelineFrame(
-        data=raw_obs,
         data_mode=DataMode.ONLINE,
     )
 
@@ -59,17 +56,13 @@ def test_sympy_condition_filter_filter_one(dummy_app_state: AppState):
 
     oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, dummy_app_state, cfg.pipeline.oddity_filter)
 
-    raw_obs = pd.DataFrame(
-        {
+    pf = PipelineFrameFactory.build(
+        data={
             "action-1": [1, 2, 3, 4, np.nan, 6, 7],
             "tag-1": [0, 1, 0, np.nan, 1, 1, 0],
             "tag-2": [1, 1, 0, np.nan, 0, 1, 0],
             "tag-3": [8, np.nan, 6, np.nan, 4, 3, 2],
         },
-    )
-
-    pf = PipelineFrame(
-        data=raw_obs,
         data_mode=DataMode.ONLINE,
     )
 
@@ -96,17 +89,13 @@ def test_sympy_condition_filter_filter_all_but_one(dummy_app_state: AppState):
 
     oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, dummy_app_state, cfg.pipeline.oddity_filter)
 
-    raw_obs = pd.DataFrame(
-        {
+    pf = PipelineFrameFactory.build(
+        data={
             "action-1": [1, 2, 3, 4, np.nan, 6, 7],
             "tag-1": [0, 1, 0, np.nan, 1, 1, 0],
             "tag-2": [1, 1, 0, np.nan, 0, 1, 0],
             "tag-3": [8, np.nan, 6, np.nan, 4, 3, 2],
         },
-    )
-
-    pf = PipelineFrame(
-        data=raw_obs,
         data_mode=DataMode.ONLINE,
     )
 

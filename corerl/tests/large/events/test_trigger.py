@@ -1,6 +1,3 @@
-import datetime
-
-import pandas as pd
 import pytest
 from test.infrastructure.networking import get_free_port
 
@@ -13,6 +10,7 @@ from corerl.messages.event_bus import EventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from tests.infrastructure.config import ConfigBuilder, create_config_with_overrides
+from tests.sdk.factories import PipelineFrameFactory
 
 
 @pytest.fixture(scope="function")
@@ -39,20 +37,17 @@ def test_no_trigger(main_cfg: MainConfig):
 
     pipeline = Pipeline(app_state, main_cfg.pipeline)
 
-    start = datetime.datetime.now(datetime.UTC)
-    Δ = datetime.timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(4)]
-    idx = pd.DatetimeIndex(dates)
-
-    df = pd.DataFrame({
-        'action-0': [1, 2, 3, 4],
-        'tag-0': [1, 1, 1, 1],
-        'reward': [0, 1, 2, 3],
-        'terminated': [False, False, False, False],
-        'truncated': [False, False, False, False],
-    }, index=idx)
-    pipeline(df, data_mode=DataMode.ONLINE)
+    pf = PipelineFrameFactory.build(
+        data={
+            'action-0': [1, 2, 3, 4],
+            'tag-0': [1, 1, 1, 1],
+            'reward': [0, 1, 2, 3],
+            'terminated': [False, False, False, False],
+            'truncated': [False, False, False, False],
+        },
+        data_mode=DataMode.ONLINE,
+    )
+    pipeline(pf.data, data_mode=DataMode.ONLINE)
 
     event = event_bus.recv_event()
     assert event is None
@@ -75,20 +70,17 @@ def test_trigger(main_cfg: MainConfig):
 
     pipeline = Pipeline(app_state, main_cfg.pipeline)
 
-    start = datetime.datetime.now(datetime.UTC)
-    Δ = datetime.timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(4)]
-    idx = pd.DatetimeIndex(dates)
-
-    df = pd.DataFrame({
-        'action-0': [1, 2, 3, 4],
-        'tag-0': [1, 1, 1, 2],
-        'reward': [0, 1, 2, 3],
-        'terminated': [False, False, False, False],
-        'truncated': [False, False, False, False],
-    }, index=idx)
-    pipeline(df, data_mode=DataMode.ONLINE)
+    pf = PipelineFrameFactory.build(
+        data={
+            'action-0': [1, 2, 3, 4],
+            'tag-0': [1, 1, 1, 2],
+            'reward': [0, 1, 2, 3],
+            'terminated': [False, False, False, False],
+            'truncated': [False, False, False, False],
+        },
+        data_mode=DataMode.ONLINE,
+    )
+    pipeline(pf.data, data_mode=DataMode.ONLINE)
 
     event = event_bus.recv_event()
     assert event is not None

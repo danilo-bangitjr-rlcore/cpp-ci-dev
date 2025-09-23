@@ -1,11 +1,8 @@
-from datetime import UTC, datetime, timedelta
-from typing import Any
-
 import pandas as pd
 import pytest
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.zones import ZoneDiscourager, ZoneViolationEvent
 from corerl.eval.evals.factory import create_evals_writer
@@ -14,6 +11,7 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from tests.infrastructure.config import create_config_with_overrides
+from tests.sdk.factories import PipelineFrameFactory
 
 
 @pytest.fixture
@@ -53,32 +51,17 @@ def test_zones1(
 
     zone_discourager = ZoneDiscourager(app_state, cfg.pipeline.tags, pipeline.preprocessor)
 
-    start = datetime.now(UTC)
-    Δ = timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(3)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-0', 'tag-1', 'tag-2']
-    df = pd.DataFrame(
-        data=[
-            # tag-0 red zone full violation (note no yellow zone specified)
-            # tag-1 red zone full violation
-            # tag-1 yellow zone full violation
-            # tag-2 yellow zone full violation
-            [10.,   0.,    0.],
-            # tag-1 yellow zone full violation
-            [4,     9,     7],
-            # tag-2 yellow zone partial violation
-            [4,     6,     0.25],
-        ],
-        columns=cols,
-        index=idx,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-0': [10., 4, 4],
+            'tag-1': [0., 9, 6],
+            'tag-2': [0., 7, 0.25],
+        },
+        data_mode=data_mode,
     )
 
-    pf = PipelineFrame(df, data_mode=data_mode)
     pf = pipeline.preprocessor(pf)
-    pf.rewards = pd.DataFrame({ 'reward': [-1.] * 3 }, index=idx)
+    pf.rewards = pd.DataFrame({ 'reward': [-1.] * 3 }, index=pf.data.index)
 
     pf = zone_discourager(pf)
     emitted_events = app_state.event_bus.get_last_events()
@@ -119,7 +102,7 @@ def test_zones1(
         )
 
     expected_rewards = pd.DataFrame(
-        index=idx,
+        index=pf.data.index,
         columns=['reward'],
         data=[
             [-8],

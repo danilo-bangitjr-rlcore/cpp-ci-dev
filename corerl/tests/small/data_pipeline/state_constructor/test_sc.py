@@ -15,28 +15,26 @@ from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
 from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import BasicTagConfig
+from tests.sdk.factories import PipelineFrameFactory
 
 
 @pytest.fixture
 def test_pf():
-    raw_obs = pd.DataFrame({
-        'tag_1': [1, 2, 3],
-        'tag_2': [1, 2, 3],
-        'action': [0, 0, 0],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag_1': [1, 2, 3],
+            'tag_2': [1, 2, 3],
+            'action': [0, 0, 0],
+        },
         data_mode=DataMode.REFRESH,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    # Match the datetime index from the main DataFrame
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1],
+    }, index=pf.data.index)
     return pf
 
 def test_sc1(test_pf: PipelineFrame, dummy_app_state: AppState):
@@ -75,23 +73,19 @@ def test_sc1(test_pf: PipelineFrame, dummy_app_state: AppState):
     assert dfs_close(pf.data, expected_data)
 
 def test_norm_sc(dummy_app_state: AppState):
-    obs = pd.DataFrame({
-        'tag-1': [0, 1, 2, 3, 4],
-        'action': [0, 0, 0, 0, 0],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-1': [0, 1, 2, 3, 4],
+            'action': [0, 0, 0, 0, 0],
+        },
         data_mode=DataMode.OFFLINE,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1, 1, 1],
+    }, index=pf.data.index)
 
     sc = StateConstructor(
         dummy_app_state,
@@ -183,23 +177,19 @@ def test_sc_integration1(dummy_app_state: AppState):
     normalized traces and the raw value of the tag *and* the normalized value
     of the tag (because add_raw does not consume any prior values).
     """
-    raw_obs = pd.DataFrame({
-        'tag-1': [0, 1, 2, 3, 4, 5],
-        'action': [0, 1, 0, 1, 0, 1],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-1': [0, 1, 2, 3, 4, 5],
+            'action': [0, 1, 0, 1, 0, 1],
+        },
         data_mode=DataMode.OFFLINE,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0, 0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1, 1, 1, 1],
+    }, index=pf.data.index)
 
     sc = StateConstructor(
         dummy_app_state,
@@ -244,23 +234,19 @@ def test_sc_integration2(dummy_app_state: AppState):
     expected state constructor pattern. Expected outcome is that we obtain
     normalized traces and the raw value of the tag.
     """
-    raw_obs = pd.DataFrame({
-        'tag-1': [0, 1, 2, 3, 4, 5],
-        'action': [0, 0, 0, 0, 0, 0],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-1': [0, 1, 2, 3, 4, 5],
+            'action': [0, 0, 0, 0, 0, 0],
+        },
         data_mode=DataMode.OFFLINE,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0, 0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1, 1, 1, 1],
+    }, index=pf.data.index)
 
     sc = StateConstructor(
         dummy_app_state,
@@ -323,23 +309,19 @@ def test_sc_integration3(dummy_app_state: AppState):
     expected state constructor pattern. Expected outcome is that we obtain
     normalized traces *and* the normalized value.
     """
-    raw_obs = pd.DataFrame({
-        'tag-1': [0, 1, 2, 3, 4, 5],
-        'action': [0, 0, 0, 0, 0, 1],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-1': [0, 1, 2, 3, 4, 5],
+            'action': [0, 0, 0, 0, 0, 1],
+        },
         data_mode=DataMode.OFFLINE,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0, 0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1, 1, 1, 1],
+    }, index=pf.data.index)
 
     sc = StateConstructor(
         dummy_app_state,
@@ -384,23 +366,19 @@ def test_sc_integration4(dummy_app_state: AppState):
     expected state constructor pattern. Expected outcome is that we obtain
     normalized traces *and* the normalized value.
     """
-    raw_obs = pd.DataFrame({
-        'tag-1': [0, 1, 2, 3, 4, 5],
-        'action': [0, 0, 0, 0, 0, 1],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0, 0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-1': [0, 1, 2, 3, 4, 5],
+            'action': [0, 0, 0, 0, 0, 1],
+        },
         data_mode=DataMode.OFFLINE,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0, 0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1, 1, 1, 1],
+    }, index=pf.data.index)
 
     sc = StateConstructor(
         dummy_app_state,
@@ -449,25 +427,21 @@ def test_sc_decision_point_detection(dummy_app_state: AppState):
     and the action period to both produce valid decision points
     and the sc transforms non-action tags.
     """
-    raw_obs = pd.DataFrame({
-        'tag-1': [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
-        'tag-action': [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-    })
-
-    raw_action = pd.DataFrame(raw_obs['tag-action'])
-    action_lo = pd.DataFrame({
-        'tag-action-lo': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'tag-action-hi': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag-1': [np.nan, 0, 1, 2, 3, 4, 5, np.nan, 1, 2],
+            'tag-action': [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+        },
         data_mode=DataMode.OFFLINE,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+
+    raw_action = pd.DataFrame(pf.data['tag-action'])
+    pf.action_lo = pd.DataFrame({
+        'tag-action-lo': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'tag-action-hi': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+    }, index=pf.data.index)
 
     # stub out action construction
     pf.actions = raw_action
@@ -510,24 +484,20 @@ def test_sc_decision_point_detection(dummy_app_state: AppState):
 
 
 def test_per_tag_overrides(dummy_app_state: AppState):
-    raw_obs = pd.DataFrame({
-        'tag_1': [1, 2, 3],
-        'tag_2': [1, 2, 3],
-        'action': [0, 0, 0],
-    })
-    action_lo = pd.DataFrame({
-        'action-lo': [0, 0, 0],
-    })
-    action_hi = pd.DataFrame({
-        'action-hi': [1, 1, 1],
-    })
-
-    pf = PipelineFrame(
-        data=raw_obs,
+    pf = PipelineFrameFactory.build(
+        data={
+            'tag_1': [1, 2, 3],
+            'tag_2': [1, 2, 3],
+            'action': [0, 0, 0],
+        },
         data_mode=DataMode.REFRESH,
     )
-    pf.action_lo = action_lo
-    pf.action_hi = action_hi
+    pf.action_lo = pd.DataFrame({
+        'action-lo': [0, 0, 0],
+    }, index=pf.data.index)
+    pf.action_hi = pd.DataFrame({
+        'action-hi': [1, 1, 1],
+    }, index=pf.data.index)
 
     sc = StateConstructor(
         dummy_app_state,

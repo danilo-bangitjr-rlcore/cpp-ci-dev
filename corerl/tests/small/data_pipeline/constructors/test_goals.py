@@ -1,6 +1,3 @@
-from datetime import UTC, datetime, timedelta
-from typing import Any
-
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,6 +9,7 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
 from tests.infrastructure.config import create_config_with_overrides
+from tests.sdk.factories import PipelineFrameFactory
 
 
 @pytest.fixture
@@ -55,34 +53,14 @@ def test_goal1(cfg: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
 
         stages.append(stage)
 
-    start = datetime.now(UTC)
-    Δ = timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(10)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-0', 'tag-1', 'tag-2', 'tag-3']
-    df = pd.DataFrame(
-        data=[
-            # priority 1 - tag-0 up to 9
-            [0,     0,     0,     0],
-            [4,     3,     7,     1],
-            [8,     8,     2,     7],
-            # priority 2 - tag-1 up to 8 AND tag-2 down to 2
-            [10,    5,     3,     6],
-            [10,    8,     3,     1],
-            # priority 1 because we dipped below tag-0 thresh
-            # even though we now satisfy priority 2
-            [5,     9,     1,     3],
-            [8.1,   9,     3,     4],
-            # priority 3 - optimize tag-3
-            [9.1,   9,     1,     4],
-            [10,    9,     0,     2],
-            [9,     10,    1,     1],
-        ],
-        columns=cols,
-        index=idx,
-    )
+    df = PipelineFrameFactory.build(
+        data={
+            'tag-0': [0, 4, 8, 10, 10, 5, 8.1, 9.1, 10, 9],
+            'tag-1': [0, 3, 8, 5, 8, 9, 9, 9, 9, 10],
+            'tag-2': [0, 7, 2, 3, 3, 1, 3, 1, 0, 1],
+            'tag-3': [0, 1, 7, 6, 1, 3, 4, 4, 2, 1],
+        },
+    ).data
 
     pr = pipeline(df, stages=stages)
     pf = PipelineFrame(pr.df, pr.data_mode)
@@ -91,7 +69,7 @@ def test_goal1(cfg: MainConfig, pipeline: Pipeline, dummy_app_state: AppState):
     out = rc(pf)
 
     expected_rewards = pd.DataFrame(
-        index=idx,
+        index=df.index,
         columns=['reward'],
         data=[
             # priority 1 - [-1, -0.75]
@@ -131,35 +109,14 @@ def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline, dumm
 
         stages.append(stage)
 
-    start = datetime.now(UTC)
-    dt = timedelta(minutes=5)
-
-    dates = [start + i * dt for i in range(12)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-0', 'tag-1', 'tag-2', 'tag-3']
-    df = pd.DataFrame(
-        data=[
-            # priority 1 - tag-0 up to 5
-            [0,     0,     0,     0],
-            [2.5,   3,     7,     1],
-            [4.9,   8,     2,     7],
-            # priority 2 - tag-0 up to 8 AND tag-1 down to 2
-            [5,     5,     3,     6],
-            [6,     3,     3,     1],
-            [7,     2,     3,     1],
-            [8,     -0.1,  3,     1], # tag-1 below operating range of 0, assume violation percent of 0
-            # priority 3 - tag-1 down to 1 OR tag-2 down to 1
-            [8,     1.1,   1.1,     3],
-            [8,     1.5,   -4,    4], # tag-2 below operating range of 0, assume violation percent of 100
-            # priority 4 - optimize tag-3
-            [8,     1.5,   0.5,   4],
-            [8,     1.5,   0.5,   2],
-            [8,     1.5,   0.5,   1],
-        ],
-        columns=cols,
-        index=idx,
-    )
+    df = PipelineFrameFactory.build(
+        data={
+            'tag-0': [0, 2.5, 4.9, 5, 6, 7, 8, 8, 8, 8, 8, 8],
+            'tag-1': [0, 3, 8, 5, 3, 2, -0.1, 1.1, 1.5, 1.5, 1.5, 1.5],
+            'tag-2': [0, 7, 2, 3, 3, 3, 3, 1.1, -4, 0.5, 0.5, 0.5],
+            'tag-3': [0, 1, 7, 6, 1, 1, 1, 3, 4, 4, 2, 1],
+        },
+    ).data
 
     pr = pipeline(df, stages=stages)
     pf = PipelineFrame(pr.df, pr.data_mode)
@@ -168,7 +125,7 @@ def test_ignore_oob_goal_tags(cfg_with_oob: MainConfig, pipeline: Pipeline, dumm
     out = rc(pf)
 
     expected_rewards = pd.DataFrame(
-        index=idx,
+        index=df.index,
         columns=['reward'],
         data=[
             # priority 1
@@ -213,29 +170,14 @@ def test_only_optimization(only_optimization_cfg: MainConfig, dummy_app_state: A
 
         stages.append(stage)
 
-    start = datetime.now(UTC)
-    Δ = timedelta(minutes=5)
-
-    dates = [start + i * Δ for i in range(10)]
-    idx = pd.DatetimeIndex(dates)
-
-    cols: Any = ['tag-0', 'tag-1', 'tag-2', 'tag-3']
-    df = pd.DataFrame(
-        data=[
-            [0,     0,     0,     0],
-            [4,     3,     7,     1],
-            [8,     8,     2,     3],
-            [10,    5,     3,     5],
-            [10,    8,     3,     1],
-            [5,     9,     1,     3],
-            [8.1,   9,     3,     4],
-            [9.1,   9,     1,     4],
-            [10,    9,     0,     2],
-            [9,     10,    1,     1],
-        ],
-        columns=cols,
-        index=idx,
-    )
+    df = PipelineFrameFactory.build(
+        data={
+            'tag-0': [0, 4, 8, 10, 10, 5, 8.1, 9.1, 10, 9],
+            'tag-1': [0, 3, 8, 5, 8, 9, 9, 9, 9, 10],
+            'tag-2': [0, 7, 2, 3, 3, 1, 3, 1, 0, 1],
+            'tag-3': [0, 1, 3, 5, 1, 3, 4, 4, 2, 1],
+        },
+    ).data
 
     pr = pipeline(df, stages=stages)
     pf = PipelineFrame(pr.df, pr.data_mode)
@@ -244,7 +186,7 @@ def test_only_optimization(only_optimization_cfg: MainConfig, dummy_app_state: A
     out = rc(pf)
 
     expected_rewards = pd.DataFrame(
-        index=idx,
+        index=df.index,
         columns=['reward'],
         data=[
             [0],
