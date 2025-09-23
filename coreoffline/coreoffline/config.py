@@ -7,6 +7,8 @@ from corerl.data_pipeline.db.data_writer import TagDBConfig
 from lib_config.config import MISSING, computed, config, post_processor
 from pydantic import Field
 
+from coreoffline.behaviour_cloning.models import MLPConfig
+
 
 @config()
 class OfflineTrainingConfig:
@@ -76,11 +78,17 @@ class ReportConfig:
     def _contiguous_time_threshold(cls, cfg: 'OfflineMainConfig'):
         return cfg.interaction.obs_period
 
+@config()
+class BehaviourCloningConfig:
+    k_folds: int = 5
+    mlp: MLPConfig = Field(default_factory=MLPConfig)
+
 
 @config()
 class OfflineMainConfig(MainConfig):
     offline_training: OfflineTrainingConfig = Field(default_factory=OfflineTrainingConfig)
     report: ReportConfig = Field(default_factory=ReportConfig)
+    behaviour_clone: BehaviourCloningConfig = Field(default_factory=BehaviourCloningConfig)
 
 
 @config()
