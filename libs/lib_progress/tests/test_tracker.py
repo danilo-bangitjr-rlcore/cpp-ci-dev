@@ -1,10 +1,8 @@
-"""Test progress tracking functionality."""
-
 import logging
 import time
 from unittest.mock import Mock
 
-from lib_progress import ProgressTracker, format_time, track
+from lib_progress.tracker import ProgressTracker, format_time, track
 
 
 def test_progress_tracker_basic_functionality():

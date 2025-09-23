@@ -1,10 +1,8 @@
-"""Example usage of lib_progress."""
-
 import logging
 import random
 import time
 
-from lib_progress import ProgressTracker, track
+from lib_progress.tracker import ProgressTracker, track
 
 # Configure logging to see the output
 logging.basicConfig(level=logging.INFO, format='%(message)s')
