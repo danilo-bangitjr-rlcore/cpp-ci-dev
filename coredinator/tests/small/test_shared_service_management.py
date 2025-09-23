@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from coredinator.service.protocols import ServiceBundleID, ServiceID
 from coredinator.service.service_manager import ServiceManager
 
@@ -14,13 +16,12 @@ class MockServiceBundle:
 
 
 class TestServiceManagerOwnership:
-    """Test ownership tracking in ServiceManager."""
-
-    def test_service_manager_tracks_ownership(self):
+    def test_service_manager_tracks_ownership(self, tmp_path: Path):
         """
         Test that ServiceManager properly tracks service ownership.
         """
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(tmp_path)
+
         # Create a test bundle
         bundle = MockServiceBundle(
             ServiceBundleID("test-bundle"),
@@ -38,11 +39,11 @@ class TestServiceManagerOwnership:
             ServiceID("service-2"),
         }
 
-    def test_multiple_bundles_sharing_service(self):
+    def test_multiple_bundles_sharing_service(self, tmp_path: Path):
         """
         Test that multiple bundles can share the same service.
         """
-        service_manager = ServiceManager()
+        service_manager = ServiceManager(tmp_path)
         # Create two test bundles that share a service
         bundle1 = MockServiceBundle(
             ServiceBundleID("bundle-1"),

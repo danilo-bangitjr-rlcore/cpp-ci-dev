@@ -1,8 +1,15 @@
 from collections import defaultdict
 from collections.abc import Callable
+from pathlib import Path
 
 from coredinator.logging_config import get_logger
-from coredinator.service.protocols import ServiceBundle, ServiceBundleID, ServiceID, ServiceLike
+from coredinator.service.persistence import ServicePersistenceLayer
+from coredinator.service.protocols import (
+    ServiceBundle,
+    ServiceBundleID,
+    ServiceID,
+    ServiceLike,
+)
 
 
 class ServiceManager:
@@ -12,12 +19,26 @@ class ServiceManager:
     Services are reference-counted by bundles that depend on them.
     """
 
-    def __init__(self):
+    def __init__(self, base_path: Path):
         self._logger = get_logger(__name__)
         self._services: dict[ServiceID, ServiceLike] = {}
         # Track which bundles own which services (many-to-many relationship)
         self._service_owners: defaultdict[ServiceID, set[ServiceBundleID]] = defaultdict(set)
         self._bundle_services: defaultdict[ServiceBundleID, set[ServiceID]] = defaultdict(set)
+
+        # Service persistence setup
+        self._base_path = base_path
+        self._service_persistence = ServicePersistenceLayer(base_path / "service_state.db")
+
+        # Load existing services from persistence
+        self._load_persisted_state()
+
+    def _load_persisted_state(self) -> None:
+        """Load services from persistence layer."""
+        # Load services
+        services = self._service_persistence.load_services(self._base_path)
+        for service in services:
+            self._services[service.id] = service
 
     def register_service(self, service: ServiceLike) -> None:
         self._logger.info(
@@ -26,6 +47,7 @@ class ServiceManager:
             service_type=type(service).__name__,
         )
         self._services[service.id] = service
+        self._service_persistence.persist_service(service, self._base_path)
 
     def get_service(self, service_id: ServiceID) -> ServiceLike | None:
         return self._services.get(service_id)
@@ -46,6 +68,8 @@ class ServiceManager:
         self._service_owners.pop(service_id, None)
         for bundle_services in self._bundle_services.values():
             bundle_services.discard(service_id)
+
+        self._service_persistence.remove_service(service_id)
 
         return service
 
@@ -84,6 +108,11 @@ class ServiceManager:
         for service_id in required_services:
             self._service_owners[service_id].add(bundle_id)
 
+            # Persist updated service for existing services
+            service = self.get_service(service_id)
+            if service is not None:
+                self._service_persistence.persist_service(service, self._base_path)
+
     def unregister_bundle(self, bundle_id: ServiceBundleID, grace_seconds: float = 5.0):
         """Unregister a service bundle and stop services that no longer have owners.
 
@@ -102,6 +131,10 @@ class ServiceManager:
             owners.discard(bundle_id)
 
             if owners:
+                # Service still has owners, just update service in database
+                service = self.get_service(service_id)
+                if service is not None:
+                    self._service_persistence.persist_service(service, self._base_path)
                 continue
 
             service = self.get_service(service_id)
@@ -119,6 +152,9 @@ class ServiceManager:
             )
             service.stop(grace_seconds)
             stopped_services.append(service_id)
+
+            # Persist updated service state after stopping
+            self._service_persistence.persist_service(service, self._base_path)
 
         return stopped_services
 
@@ -145,3 +181,9 @@ class ServiceManager:
     def remove_service_owner(self, service_id: ServiceID, owner_id: ServiceBundleID):
         """Remove an owner from a service."""
         self._service_owners[service_id].discard(owner_id)
+
+    def update_service_state(self, service_id: ServiceID):
+        """Update the persisted state of a service after lifecycle changes."""
+        service = self.get_service(service_id)
+        if service is not None:
+            self._service_persistence.persist_service(service, self._base_path)

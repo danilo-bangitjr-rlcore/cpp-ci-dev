@@ -8,7 +8,14 @@ from typing import NewType, Protocol
 ServiceID = NewType("ServiceID", str)
 
 
+class ServiceIntendedState(StrEnum):
+    """Desired operational state of a service."""
+    RUNNING = "running"
+    STOPPED = "stopped"
+
+
 class ServiceState(StrEnum):
+    """Current observed state of a service."""
     STARTING = "starting"
     RUNNING = "running"
     STOPPING = "stopping"
@@ -20,6 +27,7 @@ class ServiceState(StrEnum):
 class ServiceStatus:
     id: ServiceID
     state: ServiceState
+    intended_state: ServiceIntendedState
     config_path: Path | None
 
 
