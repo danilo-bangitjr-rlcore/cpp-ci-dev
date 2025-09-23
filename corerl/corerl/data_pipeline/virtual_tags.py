@@ -36,7 +36,7 @@ def log_virtual_tags(
     pf: PipelineFrame,
 ):
     """
-    Log denormalized delta tags after outliers have been filtered and NaNs have been imputed
+    Log denormalized virtual tags after outliers have been filtered and NaNs have been imputed
     """
     raw_data = prep_stage.inverse(pf.data)
     for tag_cfg in tag_cfgs:
