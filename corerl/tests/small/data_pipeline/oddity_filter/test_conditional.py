@@ -4,15 +4,15 @@ import numpy as np
 import pandas as pd
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
+from test.infrastructure.app_state import make_dummy_app_state
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
-from corerl.state import AppState
 
 
-def test_sympy_condition_filter_filter_all(dummy_app_state: AppState):
+def test_sympy_condition_filter_filter_all():
     config_path = os.path.join(
         os.path.dirname(__file__),
         'assets/sympy_condition_filter.yaml',
@@ -20,7 +20,9 @@ def test_sympy_condition_filter_filter_all(dummy_app_state: AppState):
     cfg = direct_load_config(MainConfig, config_name=config_path)
     assert not isinstance(cfg, ConfigValidationErrors)
 
-    oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, dummy_app_state, cfg.pipeline.oddity_filter)
+    app_state = make_dummy_app_state(cfg)
+
+    oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, app_state, cfg.pipeline.oddity_filter)
 
     raw_obs = pd.DataFrame(
         {
@@ -49,7 +51,7 @@ def test_sympy_condition_filter_filter_all(dummy_app_state: AppState):
 
     assert dfs_close(pf.data, expected_data)
 
-def test_sympy_condition_filter_filter_one(dummy_app_state: AppState):
+def test_sympy_condition_filter_filter_one():
     config_path = os.path.join(
         os.path.dirname(__file__),
         'assets/sympy_condition_filter_filter_one_tag.yaml',
@@ -57,7 +59,9 @@ def test_sympy_condition_filter_filter_one(dummy_app_state: AppState):
     cfg = direct_load_config(MainConfig, config_name=config_path)
     assert not isinstance(cfg, ConfigValidationErrors)
 
-    oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, dummy_app_state, cfg.pipeline.oddity_filter)
+    app_state = make_dummy_app_state(cfg)
+
+    oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, app_state, cfg.pipeline.oddity_filter)
 
     raw_obs = pd.DataFrame(
         {
@@ -86,7 +90,7 @@ def test_sympy_condition_filter_filter_one(dummy_app_state: AppState):
 
     assert dfs_close(pf.data, expected_data)
 
-def test_sympy_condition_filter_filter_all_but_one(dummy_app_state: AppState):
+def test_sympy_condition_filter_filter_all_but_one():
     config_path = os.path.join(
         os.path.dirname(__file__),
         'assets/sympy_condition_filter_filter_all_but_one_tag.yaml',
@@ -94,7 +98,9 @@ def test_sympy_condition_filter_filter_all_but_one(dummy_app_state: AppState):
     cfg = direct_load_config(MainConfig, config_name=config_path)
     assert not isinstance(cfg, ConfigValidationErrors)
 
-    oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, dummy_app_state, cfg.pipeline.oddity_filter)
+    app_state = make_dummy_app_state(cfg)
+
+    oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, app_state, cfg.pipeline.oddity_filter)
 
     raw_obs = pd.DataFrame(
         {
@@ -111,7 +117,6 @@ def test_sympy_condition_filter_filter_all_but_one(dummy_app_state: AppState):
     )
 
     pf = oddity_filter(pf)
-    print(pf.data.to_string())
 
     expected_data = pd.DataFrame(
         {

@@ -1,10 +1,10 @@
-
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
+from test.infrastructure.app_state import make_dummy_app_state
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, Step, Transition
@@ -38,13 +38,14 @@ def test_state_action_dim(
 
 
 def test_pipeline1(
-    dummy_app_state: AppState,
     basic_config: MainConfig,
     fake_pipeline_data: pd.DataFrame,
 ):
+    app_state = make_dummy_app_state(basic_config)
+
     df = fake_pipeline_data
     idx = df.index
-    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
+    pipeline = Pipeline(app_state, basic_config.pipeline)
     got = pipeline(df, data_mode=DataMode.ONLINE)
 
     cols = ['tag-1', 'action-1-hi', 'action-1-lo', 'tag-2_trace-0.1']
