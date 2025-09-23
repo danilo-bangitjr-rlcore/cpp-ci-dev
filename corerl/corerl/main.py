@@ -16,7 +16,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
@@ -62,7 +62,7 @@ def retryable_main(cfg: MainConfig):
         app_state = AppState[DummyEventBus](
             cfg=cfg,
             metrics=create_metrics_writer(cfg.metrics),
-            evals=EvalsTable(cfg.evals),
+            evals=create_evals_writer(cfg.evals),
             event_bus=event_bus,
         )
     else:
@@ -70,7 +70,7 @@ def retryable_main(cfg: MainConfig):
         app_state = AppState[EventBus](
             cfg=cfg,
             metrics=create_metrics_writer(cfg.metrics),
-            evals=EvalsTable(cfg.evals),
+            evals=create_evals_writer(cfg.evals),
             event_bus=event_bus,
         )
 
@@ -84,7 +84,7 @@ def retryable_main(cfg: MainConfig):
         column_desc,
     )
 
-    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.evals.background_sync())
+    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.evals.flush())
     register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
     interaction = init_interaction(

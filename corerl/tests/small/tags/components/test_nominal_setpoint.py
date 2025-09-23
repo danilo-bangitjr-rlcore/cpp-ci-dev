@@ -7,7 +7,7 @@ from lib_config.loader import direct_load_config
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
@@ -28,7 +28,7 @@ def test_nominal_setpoint_norm():
     app_state = AppState[DummyEventBus](
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         event_bus=event_bus,
     )
     pipeline = Pipeline(app_state, cfg.pipeline)

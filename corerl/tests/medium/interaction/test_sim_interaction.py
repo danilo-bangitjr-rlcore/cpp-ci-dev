@@ -8,7 +8,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.factory import init_async_env
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.interaction.factory import init_interaction
 from corerl.interaction.sim_interaction import SimInteraction
@@ -28,7 +28,7 @@ def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     # build global objects
     event_bus = DummyEventBus()
     metrics = create_metrics_writer(cfg.metrics)
-    evals = EvalsTable(cfg.evals)
+    evals = create_evals_writer(cfg.evals)
 
     app_state = AppState(
         cfg=cfg,

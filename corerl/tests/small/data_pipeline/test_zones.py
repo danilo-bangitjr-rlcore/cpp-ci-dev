@@ -9,7 +9,7 @@ from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.data_pipeline.zones import ZoneDiscourager, ZoneViolationEvent
-from corerl.eval.evals import EvalsTable
+from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.messages.events import RLEventType
@@ -30,7 +30,7 @@ def app_state(cfg: MainConfig):
     cfg.evals.enabled = False
     return AppState(
         cfg=cfg,
-        evals=EvalsTable(cfg.evals),
+        evals=create_evals_writer(cfg.evals),
         metrics=create_metrics_writer(cfg.metrics),
         event_bus=DummyEventBus(),
     )
