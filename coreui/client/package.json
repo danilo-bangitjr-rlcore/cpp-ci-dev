@@ -19,7 +19,16 @@
     "@tanstack/react-router-devtools": "^1.131.27",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "tailwindcss": "^4.1.12"
+    "tailwindcss": "^4.1.12",
+    "rete": "^2.0.6",
+    "rete-engine": "^2.1.1",
+    "rete-react-plugin": "^2.1.0",
+    "rete-render-utils": "^2.0.3",
+    "rete-connection-plugin": "^2.0.5",
+    "rete-auto-arrange-plugin": "^2.0.2",
+    "rete-dock-plugin": "^2.0.4",
+    "rete-context-menu-plugin": "^2.0.6",
+    "styled-components": "^6.1.19"
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
