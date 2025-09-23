@@ -7,7 +7,7 @@ export const Route = createFileRoute('/reward')({
 })
 
 function RouteComponent() {
-  const [ref, editor] = useRete(createEditor)
+  const [ref] = useRete(createEditor)
   return (
     <div className='RouteComponent'>
      <div ref={ref} className="rete" style={{ height: "100vh", width: "100vw" }}></div>
