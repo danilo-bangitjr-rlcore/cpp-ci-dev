@@ -63,4 +63,3 @@ def log_delta_tags(
                     metric="DELTA-" + tag_cfg.name,
                     value=val,
                 )
-
