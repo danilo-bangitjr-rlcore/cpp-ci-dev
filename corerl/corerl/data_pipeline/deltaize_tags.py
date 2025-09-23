@@ -6,10 +6,12 @@ from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
 from corerl.data_pipeline.constructors.constructor import Constructor
+from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.delta import DeltaConfig
 from corerl.state import AppState
+from corerl.tags.delta import DeltaTagConfig
 from corerl.tags.tag_config import TagConfig
 
 
@@ -41,3 +43,24 @@ class DeltaizeTags(Constructor):
     def columns(self):
         pf = self._probe_fake_data()
         return list(pf.data.columns)
+
+def log_delta_tags(
+    app_state: AppState,
+    prep_stage: Preprocessor,
+    tag_cfgs: list[TagConfig],
+    pf: PipelineFrame,
+):
+    """
+    Log denormalized delta tags after outliers have been filtered and NaNs have been imputed
+    """
+    raw_data = prep_stage.inverse(pf.data)
+    for tag_cfg in tag_cfgs:
+        if isinstance(tag_cfg, DeltaTagConfig):
+            if len(raw_data[tag_cfg.name]) > 0:
+                val = float(raw_data[tag_cfg.name].values[-1])
+                app_state.metrics.write(
+                    agent_step=app_state.agent_step,
+                    metric="DELTA-" + tag_cfg.name,
+                    value=val,
+                )
+

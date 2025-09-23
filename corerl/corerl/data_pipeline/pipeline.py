@@ -5,7 +5,7 @@ import logging
 from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cached_property, partial
 from typing import Any, Literal, Self
 
 import numpy as np
@@ -22,7 +22,7 @@ from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
-from corerl.data_pipeline.deltaize_tags import DeltaizeTags
+from corerl.data_pipeline.deltaize_tags import DeltaizeTags, log_delta_tags
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.pipeline_config import PipelineConfig
@@ -30,7 +30,7 @@ from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.virtual_tags import VirtualTagComputer
+from corerl.data_pipeline.virtual_tags import VirtualTagComputer, log_virtual_tags
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.state import AppState
 from corerl.tags.components.bounds import BoundedTag
@@ -183,6 +183,14 @@ class Pipeline:
             StageCode.TC,
             StageCode.TF,
         )
+
+        # Turn on logging of delta and virtual tags
+        for logging_func in (log_delta_tags, log_virtual_tags):
+            self.register_hook(
+                DataMode.ONLINE,
+                StageCode.IMPUTER,
+                partial(logging_func, app_state, self.preprocessor, cfg.tags),
+            )
 
     def _construct_config(self, cfg: PipelineConfig) -> PipelineConfig:
         construct_default_sc_configs(cfg.state_constructor, cfg.tags)

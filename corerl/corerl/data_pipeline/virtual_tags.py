@@ -1,3 +1,4 @@
+from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
 from corerl.tags.components.computed import ComputedTag
@@ -27,3 +28,23 @@ class VirtualTagComputer:
             pf.data[tag] = lmda(*dep_values)
 
         return pf
+
+def log_virtual_tags(
+    app_state: AppState,
+    prep_stage: Preprocessor,
+    tag_cfgs: list[TagConfig],
+    pf: PipelineFrame,
+):
+    """
+    Log denormalized delta tags after outliers have been filtered and NaNs have been imputed
+    """
+    raw_data = prep_stage.inverse(pf.data)
+    for tag_cfg in tag_cfgs:
+        if isinstance(tag_cfg, ComputedTag) and tag_cfg.is_computed:
+            if len(raw_data[tag_cfg.name]) > 0:
+                val = float(raw_data[tag_cfg.name].values[-1])
+                app_state.metrics.write(
+                    agent_step=app_state.agent_step,
+                    metric="VIRTUAL-" + tag_cfg.name,
+                    value=val,
+                )
