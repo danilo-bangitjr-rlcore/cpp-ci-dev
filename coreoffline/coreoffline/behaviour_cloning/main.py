@@ -17,7 +17,7 @@ from coreoffline.behaviour_cloning.data import (
 )
 from coreoffline.behaviour_cloning.evaluation import calculate_per_action_metrics
 from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
-from coreoffline.behaviour_cloning.plotting import create_prediction_scatter_plots
+from coreoffline.behaviour_cloning.plotting import create_single_action_scatter_plot
 from coreoffline.config import OfflineMainConfig
 from coreoffline.data_loading import load_offline_transitions
 
@@ -128,13 +128,13 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
     )
 
-    create_prediction_scatter_plots(
-        y_true=all_y_true,
-        y_pred_linear=all_y_pred_linear,
-        y_pred_deep=all_y_pred_mlp,
+    create_single_action_scatter_plot(
+        y_true=all_y_true[:, 0],  # Extract single action column
+        y_pred_linear=all_y_pred_linear[:, 0],  # Extract single action column
+        y_pred_deep=all_y_pred_mlp[:, 0],  # Extract single action column
+        action_name=single_action_name,
         linear_metrics=linear_metrics,
         deep_metrics=deep_metrics,
-        action_tag=single_action_name,
         output_dir=app_state.cfg.save_path,
     )
 
