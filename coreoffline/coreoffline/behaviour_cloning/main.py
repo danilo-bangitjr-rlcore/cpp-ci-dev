@@ -26,12 +26,19 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def get_ai_setpoint_tag_name(cfg: OfflineMainConfig) -> str:
-    """Extract the name of the ai_setpoint tag from the configuration."""
+def get_ai_setpoint_tag_names(cfg: OfflineMainConfig) -> list[str]:
+    """Extract all ai_setpoint tag names from the configuration."""
     ai_setpoint_tags = [tag.name for tag in cfg.pipeline.tags if tag.type == TagType.ai_setpoint]
 
     if not ai_setpoint_tags:
         raise ValueError("No ai_setpoint tag found in configuration")
+
+    return ai_setpoint_tags
+
+
+def get_ai_setpoint_tag_name(cfg: OfflineMainConfig) -> str:
+    """Extract the name of the ai_setpoint tag from the configuration."""
+    ai_setpoint_tags = get_ai_setpoint_tag_names(cfg)
 
     if len(ai_setpoint_tags) > 1:
         log.warning(f"Multiple ai_setpoint tags found: {ai_setpoint_tags}. Using the first one: {ai_setpoint_tags[0]}")
