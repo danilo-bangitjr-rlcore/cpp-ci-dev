@@ -4,13 +4,13 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 from coreio.utils.io_events import IOEvent, IOEventType, OPCUANodeWriteValue
-from lib_config.loader import direct_load_config
 from pandas import DataFrame
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv, clip_action, sanitize_actions
 from corerl.tags.setpoint import SetpointTagConfig
+from tests.infrastructure.config import create_config_with_overrides
 
 # -------------------------
 # -- Single action tests --
@@ -30,8 +30,7 @@ def single_tag_minimal_cfg():
         os.path.dirname(__file__),
         'test_deployment_async_env_single_tag.yaml',
     )
-
-    return direct_load_config(MainConfig, config_name=config_path)
+    return create_config_with_overrides(base_config_path=config_path)
 
 @pytest.fixture
 def multi_tag_minimal_cfg():
@@ -39,8 +38,7 @@ def multi_tag_minimal_cfg():
         os.path.dirname(__file__),
         'test_deployment_async_env_multi_tag.yaml',
     )
-
-    return direct_load_config(MainConfig, config_name=config_path)
+    return create_config_with_overrides(base_config_path=config_path)
 
 @pytest.fixture
 def deployment_env(

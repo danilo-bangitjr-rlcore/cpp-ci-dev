@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TagsRouteImport } from './routes/tags'
+import { Route as RewardRouteImport } from './routes/reward'
 import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -22,6 +23,11 @@ import { Route as AgentsConfigNameGeneralSettingsRouteImport } from './routes/ag
 const TagsRoute = TagsRouteImport.update({
   id: '/tags',
   path: '/tags',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const RewardRoute = RewardRouteImport.update({
+  id: '/reward',
+  path: '/reward',
   getParentRoute: () => rootRouteImport,
 } as any)
 const OpcNavigationRoute = OpcNavigationRouteImport.update({
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
+  '/reward': typeof RewardRoute
   '/tags': typeof TagsRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents': typeof AgentsIndexRoute
@@ -81,6 +88,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
+  '/reward': typeof RewardRoute
   '/tags': typeof TagsRoute
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
+  '/reward': typeof RewardRoute
   '/tags': typeof TagsRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/opc-navigation'
+    | '/reward'
     | '/tags'
     | '/agents/$config-name'
     | '/agents'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/opc-navigation'
+    | '/reward'
     | '/tags'
     | '/agents'
     | '/agents/$config-name/general-settings'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/opc-navigation'
+    | '/reward'
     | '/tags'
     | '/agents/$config-name'
     | '/agents/'
@@ -138,6 +150,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
+  RewardRoute: typeof RewardRoute
   TagsRoute: typeof TagsRoute
   AgentsConfigNameRoute: typeof AgentsConfigNameRouteWithChildren
   AgentsIndexRoute: typeof AgentsIndexRoute
@@ -150,6 +163,13 @@ declare module '@tanstack/react-router' {
       path: '/tags'
       fullPath: '/tags'
       preLoaderRoute: typeof TagsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reward': {
+      id: '/reward'
+      path: '/reward'
+      fullPath: '/reward'
+      preLoaderRoute: typeof RewardRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/opc-navigation': {
@@ -230,6 +250,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   OpcNavigationRoute: OpcNavigationRoute,
+  RewardRoute: RewardRoute,
   TagsRoute: TagsRoute,
   AgentsConfigNameRoute: AgentsConfigNameRouteWithChildren,
   AgentsIndexRoute: AgentsIndexRoute,

@@ -3,9 +3,10 @@ from pathlib import Path
 
 import pytest
 from lib_config.config import MISSING
-from lib_config.loader import config_to_dict, direct_load_config
+from lib_config.loader import config_to_dict
 
 from corerl.config import MainConfig
+from tests.infrastructure.config import create_config_with_overrides
 
 
 def get_bsuite_configs():
@@ -60,7 +61,7 @@ def walk_no_missing(part: object, key_path: str = ""):
     ],
 )
 def test_main_configs(config_name: str):
-    config = direct_load_config(MainConfig, config_name=config_name)
+    config = create_config_with_overrides(base_config_path=config_name)
     assert isinstance(config, MainConfig)
 
     # walk through config, ensure that there are no MISSING symbols or uninterpolated values

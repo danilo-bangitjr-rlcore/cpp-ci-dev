@@ -8,8 +8,9 @@ from test.infrastructure.app_state import make_dummy_app_state
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
+from tests.sdk.factories import PipelineFrameFactory
 
 
 def test_sympy_condition_filter_filter_all():
@@ -24,17 +25,13 @@ def test_sympy_condition_filter_filter_all():
 
     oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, app_state, cfg.pipeline.oddity_filter)
 
-    raw_obs = pd.DataFrame(
-        {
+    pf = PipelineFrameFactory.build(
+        data={
             "action-1": [1, 2, 3, 4, np.nan, 6, 7],
             "tag-1": [0, 1, 0, np.nan, 1, 1, 0],
             "tag-2": [1, 1, 0, np.nan, 0, 1, 0],
             "tag-3": [8, np.nan, 6, np.nan, 4, 3, 2],
         },
-    )
-
-    pf = PipelineFrame(
-        data=raw_obs,
         data_mode=DataMode.ONLINE,
     )
 
@@ -63,17 +60,13 @@ def test_sympy_condition_filter_filter_one():
 
     oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, app_state, cfg.pipeline.oddity_filter)
 
-    raw_obs = pd.DataFrame(
-        {
+    pf = PipelineFrameFactory.build(
+        data={
             "action-1": [1, 2, 3, 4, np.nan, 6, 7],
             "tag-1": [0, 1, 0, np.nan, 1, 1, 0],
             "tag-2": [1, 1, 0, np.nan, 0, 1, 0],
             "tag-3": [8, np.nan, 6, np.nan, 4, 3, 2],
         },
-    )
-
-    pf = PipelineFrame(
-        data=raw_obs,
         data_mode=DataMode.ONLINE,
     )
 
@@ -102,17 +95,13 @@ def test_sympy_condition_filter_filter_all_but_one():
 
     oddity_filter = OddityFilterConstructor(cfg.pipeline.tags, app_state, cfg.pipeline.oddity_filter)
 
-    raw_obs = pd.DataFrame(
-        {
+    pf = PipelineFrameFactory.build(
+        data={
             "action-1": [1, 2, 3, 4, np.nan, 6, 7],
             "tag-1": [0, 1, 0, np.nan, 1, 1, 0],
             "tag-2": [1, 1, 0, np.nan, 0, 1, 0],
             "tag-3": [8, np.nan, 6, np.nan, 4, 3, 2],
         },
-    )
-
-    pf = PipelineFrame(
-        data=raw_obs,
         data_mode=DataMode.ONLINE,
     )
 
