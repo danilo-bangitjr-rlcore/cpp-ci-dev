@@ -1,4 +1,4 @@
-"""Test utilities for coredinator testing."""
+"""Service management and fixtures for coredinator testing."""
 
 import subprocess
 import time
@@ -25,6 +25,18 @@ def wait_for_service_healthy(
     sleep_interval: float = 0.1,
     process: subprocess.Popen | None = None,
 ) -> None:
+    """
+    Wait for coredinator service to become healthy.
+
+    Args:
+        base_url: Service base URL
+        max_attempts: Maximum number of health check attempts
+        sleep_interval: Time between health check attempts
+        process: Optional process object for error reporting
+
+    Raises:
+        RuntimeError: If service fails to become healthy
+    """
     for _ in range(max_attempts):
         time.sleep(sleep_interval)
         try:

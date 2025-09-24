@@ -8,7 +8,10 @@ import pytest
 from fastapi.testclient import TestClient
 
 from coredinator.app import create_app
-from coredinator.utils.test_polling import wait_for_event
+from tests.utils.state_verification import (
+    assert_agent_testclient_state,
+    assert_all_agents_testclient_state,
+)
 
 
 @pytest.fixture()
@@ -68,11 +71,7 @@ def test_agent_start_status_stop_e2e(app_client: TestClient, config_file: Path):
     assert agent_id == config_file.stem
 
     # Wait for agent to start
-    def _agent_running():
-        status = app_client.get(f"/api/agents/{agent_id}/status")
-        return status.status_code == 200 and status.json().get("state") == "running"
-
-    assert wait_for_event(_agent_running, interval=0.05, timeout=2.0)
+    assert_agent_testclient_state(app_client, agent_id, "running", timeout=2.0)
 
     # Verify status details
     status = app_client.get(f"/api/agents/{agent_id}/status")
@@ -91,11 +90,7 @@ def test_agent_start_status_stop_e2e(app_client: TestClient, config_file: Path):
     assert stop.status_code == 200
 
     # Wait for agent to stop
-    def _agent_stopped():
-        status = app_client.get(f"/api/agents/{agent_id}/status")
-        return status.status_code == 200 and status.json().get("state") == "stopped"
-
-    assert wait_for_event(_agent_stopped, interval=0.05, timeout=1.0)
+    assert_agent_testclient_state(app_client, agent_id, "stopped", timeout=1.0)
 
 
 @pytest.mark.timeout(15)
@@ -115,13 +110,7 @@ def test_two_agents_independent_lifecycle(app_client: TestClient, tmp_path: Path
     assert id1 == cfg1.stem and id2 == cfg2.stem and id1 != id2
 
     # Wait for both agents to be running
-    def _both_running():
-        s1 = app_client.get(f"/api/agents/{id1}/status")
-        s2 = app_client.get(f"/api/agents/{id2}/status")
-        return (s1.status_code == 200 and s1.json().get("state") == "running" and
-                s2.status_code == 200 and s2.json().get("state") == "running")
-
-    assert wait_for_event(_both_running, interval=0.05, timeout=2.0)
+    assert_all_agents_testclient_state(app_client, [id1, id2], "running", timeout=2.0)
 
     # Listing contains both
     listing = app_client.get("/api/agents/")
@@ -134,24 +123,15 @@ def test_two_agents_independent_lifecycle(app_client: TestClient, tmp_path: Path
     assert stop1.status_code == 200
 
     # Wait for first agent to stop while second remains running
-    def _first_stopped_second_running():
-        s1 = app_client.get(f"/api/agents/{id1}/status")
-        s2 = app_client.get(f"/api/agents/{id2}/status")
-        return (s1.status_code == 200 and s1.json().get("state") == "stopped" and
-                s2.status_code == 200 and s2.json().get("state") == "running")
-
-    assert wait_for_event(_first_stopped_second_running, interval=0.05, timeout=1.0)
+    assert_agent_testclient_state(app_client, id1, "stopped", timeout=1.0)
+    assert_agent_testclient_state(app_client, id2, "running", timeout=0.1)
 
     # Stop second agent
     stop2 = app_client.post(f"/api/agents/{id2}/stop")
     assert stop2.status_code == 200
 
     # Wait for second agent to stop
-    def _second_stopped():
-        s2 = app_client.get(f"/api/agents/{id2}/status")
-        return s2.status_code == 200 and s2.json().get("state") == "stopped"
-
-    assert wait_for_event(_second_stopped, interval=0.05, timeout=1.0)
+    assert_agent_testclient_state(app_client, id2, "stopped", timeout=1.0)
 
 
 # ----------
@@ -205,11 +185,7 @@ def test_start_idempotent_via_http(app_client: TestClient, config_file: Path):
     assert agent_id_1 == agent_id_2 == config_file.stem
 
     # Wait for agent to be running
-    def _agent_running():
-        s = app_client.get(f"/api/agents/{agent_id_1}/status")
-        return s.status_code == 200 and s.json().get("state") == "running"
-
-    assert wait_for_event(_agent_running, interval=0.05, timeout=2.0)
+    assert_agent_testclient_state(app_client, agent_id_1, "running", timeout=2.0)
 
 
 @pytest.mark.timeout(10)
@@ -227,11 +203,7 @@ def test_stop_idempotent_and_unknown_ok(app_client: TestClient, config_file: Pat
     assert stop_unknown.status_code == 200
 
     # Wait for agent to be stopped
-    def _agent_stopped():
-        status = app_client.get(f"/api/agents/{agent_id}/status")
-        return status.status_code == 200 and status.json().get("state") == "stopped"
-
-    assert wait_for_event(_agent_stopped, interval=0.05, timeout=1.0)
+    assert_agent_testclient_state(app_client, agent_id, "stopped", timeout=1.0)
 
 
 @pytest.mark.timeout(5)
@@ -261,11 +233,7 @@ def test_failed_agent_status_when_child_exits_nonzero(
     agent_id = start.json()
 
     # Wait for agent to fail
-    def _agent_failed():
-        status = app_client.get(f"/api/agents/{agent_id}/status")
-        return status.status_code == 200 and status.json().get("state") == "failed"
-
-    assert wait_for_event(_agent_failed, interval=0.1, timeout=4.0)
+    assert_agent_testclient_state(app_client, agent_id, "failed", timeout=4.0)
 
 
 @pytest.mark.timeout(5)
@@ -291,25 +259,13 @@ def test_list_persists_ids_after_stop(app_client: TestClient, tmp_path: Path):
     id2 = app_client.post("/api/agents/start", json={"config_path": str(cfg2)}).json()
 
     # Wait for both agents to start
-    def _both_running():
-        s1 = app_client.get(f"/api/agents/{id1}/status")
-        s2 = app_client.get(f"/api/agents/{id2}/status")
-        return (s1.status_code == 200 and s1.json().get("state") == "running" and
-                s2.status_code == 200 and s2.json().get("state") == "running")
-
-    assert wait_for_event(_both_running, interval=0.05, timeout=2.0)
+    assert_all_agents_testclient_state(app_client, [id1, id2], "running", timeout=2.0)
 
     app_client.post(f"/api/agents/{id1}/stop")
     app_client.post(f"/api/agents/{id2}/stop")
 
     # Wait for both agents to stop
-    def _both_stopped():
-        s1 = app_client.get(f"/api/agents/{id1}/status")
-        s2 = app_client.get(f"/api/agents/{id2}/status")
-        return (s1.status_code == 200 and s1.json().get("state") == "stopped" and
-                s2.status_code == 200 and s2.json().get("state") == "stopped")
-
-    assert wait_for_event(_both_stopped, interval=0.05, timeout=1.0)
+    assert_all_agents_testclient_state(app_client, [id1, id2], "stopped", timeout=1.0)
 
     listing = app_client.get("/api/agents/").json()
     assert id1 in listing and id2 in listing

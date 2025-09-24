@@ -8,8 +8,8 @@ from pathlib import Path
 import psutil
 import pytest
 
-from coredinator.test_utils import CoredinatorService, wait_for_service_healthy
 from coredinator.utils.process import terminate_process_tree
+from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
 
 
 @pytest.fixture()

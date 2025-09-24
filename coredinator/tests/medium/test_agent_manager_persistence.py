@@ -5,7 +5,7 @@ import pytest
 
 from coredinator.agent.agent_manager import AgentManager
 from coredinator.service.service_manager import ServiceManager
-from coredinator.utils.test_polling import wait_for_event
+from tests.utils.polling import wait_for_event
 
 
 class TestAgentManagerPersistence:
