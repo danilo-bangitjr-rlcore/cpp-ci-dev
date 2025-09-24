@@ -10,13 +10,12 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_config.loader import load_config
 from lib_defs.config_defs.tag_config import TagType
-from sklearn.metrics import mean_absolute_error
 
 from coreoffline.behaviour_cloning.data import (
     ModelData,
     prepare_features_and_targets,
 )
-from coreoffline.behaviour_cloning.evaluation import calculate_sign_accuracy
+from coreoffline.behaviour_cloning.evaluation import calculate_per_action_metrics
 from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
 from coreoffline.behaviour_cloning.plotting import create_prediction_scatter_plots
 from coreoffline.config import OfflineMainConfig
@@ -76,8 +75,13 @@ def run_cross_validation(
 
 def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
     assert isinstance(app_state.cfg, OfflineMainConfig)
+
+    # Get action names for the single action we're working with
+    action_names = [get_ai_setpoint_tag_name(app_state.cfg)]
+
     data = prepare_features_and_targets(
         transitions,
+        action_names=action_names,
     )
 
     # Linear Regression
@@ -88,10 +92,14 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         data,
         n_splits=app_state.cfg.behaviour_clone.k_folds,
     )
-    linear_metrics = {
-        'mae': mean_absolute_error(all_y_true, all_y_pred_linear),
-        'sign_acc': calculate_sign_accuracy(all_y_true, all_y_pred_linear),
-    }
+    linear_per_action_metrics = calculate_per_action_metrics(
+        all_y_true,
+        all_y_pred_linear,
+        data.action_names,
+    )
+    # Extract metrics for the single action for backward compatibility
+    single_action_name = data.action_names[0]
+    linear_metrics = linear_per_action_metrics[single_action_name]
     log.info(
         "Done training Linear Regression model." +
         f"Mean MAE: {linear_metrics['mae']}, Mean sign acc: {linear_metrics['sign_acc']}",
@@ -108,16 +116,17 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         data,
         n_splits=app_state.cfg.behaviour_clone.k_folds,
     )
-    deep_metrics = {
-        'mae': mean_absolute_error(all_y_true, all_y_pred_mlp),
-        'sign_acc': calculate_sign_accuracy(all_y_true, all_y_pred_mlp),
-    }
+    deep_per_action_metrics = calculate_per_action_metrics(
+        all_y_true,
+        all_y_pred_mlp,
+        data.action_names,
+    )
+    # Extract metrics for the single action for backward compatibility
+    deep_metrics = deep_per_action_metrics[single_action_name]
     log.info(
         "Done training MLP Regression model." +
         f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
     )
-
-    action_tag = get_ai_setpoint_tag_name(app_state.cfg)
 
     create_prediction_scatter_plots(
         y_true=all_y_true,
@@ -125,7 +134,7 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         y_pred_deep=all_y_pred_mlp,
         linear_metrics=linear_metrics,
         deep_metrics=deep_metrics,
-        action_tag=action_tag,
+        action_tag=single_action_name,
         output_dir=app_state.cfg.save_path,
     )
 
