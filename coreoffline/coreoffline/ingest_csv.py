@@ -1,36 +1,13 @@
 import datetime
 import logging
-from pathlib import Path
 
 import polars as pl
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
-from lib_config.config import MISSING, config, post_processor
+from corerl.data_pipeline.db.data_writer import DataWriter
 from lib_config.loader import load_config
-from pydantic import Field
+
+from coreoffline.config import LoadDataConfig
 
 log = logging.getLogger(__name__)
-
-
-@config()
-class LoadDataConfig:
-    # CSV file configuration
-    csv_path: Path = MISSING
-
-    # Tag configuration
-    reward_tags: list[str] = Field(default_factory=list)
-    action_tags: list[str] = Field(default_factory=list)
-    input_tags: list[str] = Field(default_factory=list)
-
-    # Database configuration
-    data_writer: TagDBConfig = Field(default_factory=TagDBConfig)
-
-    @post_processor
-    def _validate(self, cfg: 'LoadDataConfig'):
-        required_tags = ['reward_tags', 'action_tags', 'input_tags']
-        for tag_type in required_tags:
-            tags = getattr(self, tag_type)
-            if not isinstance(tags, list):
-                raise ValueError(f"{tag_type} must be a list")
 
 
 def load_dataset(cfg: LoadDataConfig):
@@ -48,7 +25,6 @@ def load_dataset(cfg: LoadDataConfig):
             continue
 
         print(f'Processing column: {col} ({i} / {n_cols} total columns)')
-        assert df[col].dtype.is_float()
         for row in df.select(['Date', col]).iter_rows():
             t_str, v = row
             t = datetime.datetime.strptime(t_str, '%Y-%m-%d %H:%M:%S')
@@ -57,7 +33,11 @@ def load_dataset(cfg: LoadDataConfig):
             if v is None:
                 continue
 
-            writer.write(t, tag, float(v))
+            try:
+                writer.write(t, tag, float(v))
+
+            except Exception as exc:
+                raise ValueError(f'Tried to cast {v} to float for column {col} but failed.') from exc
 
     writer.close()
 

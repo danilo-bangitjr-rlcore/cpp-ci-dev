@@ -374,8 +374,21 @@ class DataReader:
                 params=params,
             )
 
+    def get_tag_stats(self, tag_name: str, percentiles: list[float] | None = None):
+        """Get tag statistics including specified percentiles.
 
-    def get_tag_stats(self, tag_name: str):
+        Args:
+            tag_name: Name of the tag to get statistics for
+            percentiles: List of percentile values (0-100) to calculate.
+                        If None, defaults to [0.1, 99.9, 5.0, 95.0] for backward compatibility.
+        """
+        if percentiles is None:
+            # Default percentiles for backward compatibility
+            percentiles = [0.1, 99.9, 5.0, 95.0]
+
+        # Convert percentiles to fractions for SQL PERCENTILE_CONT function
+        percentile_fractions = [p / 100.0 for p in percentiles]
+
         if self.wide_format:
             with TryConnectContextManager(self.engine) as connection:
                 check_query = f"""
@@ -389,13 +402,24 @@ class DataReader:
                 if not result:
                     raise ValueError(f"Column '{tag_name}' does not exist in the database")
 
+            # Build dynamic percentile SQL
+            percentile_clauses = [
+                f"PERCENTILE_CONT({fraction}) WITHIN GROUP (ORDER BY \"{tag_name}\") "
+                f"as percentile_{str(p).replace('.', '_')}"
+                for p, fraction in zip(percentiles, percentile_fractions, strict=True)
+            ]
+            percentile_sql = ",\n                  ".join(percentile_clauses)
+
             q = f"""
                 SELECT
                   MIN("{tag_name}") as min,
                   MAX("{tag_name}") as max,
                   AVG("{tag_name}") as avg,
-                  VARIANCE("{tag_name}") as var
+                  VARIANCE("{tag_name}") as var,
+                  COUNT("{tag_name}") as count,
+                  {percentile_sql}
                 FROM :table
+                WHERE "{tag_name}" IS NOT NULL
             """
             df = self.query(q)
         else:
@@ -411,23 +435,41 @@ class DataReader:
                 if not result:
                     raise ValueError(f"Tag '{tag_name}' does not exist in the database")
 
-            q = """
+            # Build dynamic percentile SQL for narrow format
+            percentile_clauses = [
+                f"PERCENTILE_CONT({fraction}) WITHIN GROUP (ORDER BY :val) "
+                f"as percentile_{str(p).replace('.', '_')}"
+                for p, fraction in zip(percentiles, percentile_fractions, strict=True)
+            ]
+            percentile_sql = ",\n                  ".join(percentile_clauses)
+
+            q = f"""
                 SELECT
                   MIN(:val) as min,
                   MAX(:val) as max,
                   AVG(:val) as avg,
-                  VARIANCE(:val) as var
+                  VARIANCE(:val) as var,
+                  COUNT(:val) as count,
+                  {percentile_sql}
                 FROM :table
-                WHERE name=:tag
+                WHERE name=:tag AND :val IS NOT NULL
             """
             df = self.query(q, {"tag": tag_name})
 
+        # Build percentiles dictionary from results
+        percentiles_dict = {
+            p: df[f"percentile_{str(p).replace('.', '_')}"].item() for p in percentiles
+        }
+
+        # Create TagStats with backward compatibility
         return TagStats(
             tag=tag_name,
             min=df["min"].item(),
             max=df["max"].item(),
             avg=df["avg"].item(),
             var=df["var"].item(),
+            count=int(df["count"].item()),
+            percentiles=percentiles_dict,
         )
 
     def get_time_stats(self):
@@ -457,6 +499,8 @@ class TagStats:
     max: float | None
     avg: float | None
     var: float | None
+    count: int | None = None
+    percentiles: dict[float, float] | None = None
 
 
 def _parse_jsonb(col: str, attribute: str = "val", type_str: str = "float") -> str:
