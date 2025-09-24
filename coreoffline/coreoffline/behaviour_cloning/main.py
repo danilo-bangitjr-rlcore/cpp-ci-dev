@@ -2,6 +2,7 @@ import logging
 import random
 
 import numpy as np
+from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
@@ -66,35 +67,8 @@ def run_cross_validation(
     return all_y_true, all_y_pred
 
 
-@load_config(OfflineMainConfig)
-def main(cfg: OfflineMainConfig):
-    """Main function for finding the best observation period."""
-    # set the random seeds
-    seed = cfg.seed
-    np.random.seed(seed)
-    random.seed(seed)
-
-    # Create AppState for metrics logging
-    app_state = AppState(
-        cfg=cfg,
-        metrics=create_metrics_writer(cfg.metrics),
-        evals=create_evals_writer(cfg.evals),
-        event_bus=DummyEventBus(),
-    )
+def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
     assert isinstance(app_state.cfg, OfflineMainConfig)
-
-    pipeline = Pipeline(app_state, cfg.pipeline)
-    pr, _ = load_offline_transitions(app_state, pipeline)
-    if pr is None:
-        log.info("No Pipereturn, exiting...")
-        return
-
-    transitions = pr.transitions
-
-    if not transitions:
-        log.info("No Transitions, exiting...")
-        return
-
     data = prepare_features_and_targets(
         transitions,
     )
@@ -136,7 +110,7 @@ def main(cfg: OfflineMainConfig):
         f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
     )
 
-    action_tag = get_ai_setpoint_tag_name(cfg)
+    action_tag = get_ai_setpoint_tag_name(app_state.cfg)
 
     create_prediction_scatter_plots(
         y_true=all_y_true,
@@ -145,8 +119,37 @@ def main(cfg: OfflineMainConfig):
         linear_metrics=linear_metrics,
         deep_metrics=deep_metrics,
         action_tag=action_tag,
-        output_dir=cfg.save_path,
+        output_dir=app_state.cfg.save_path,
     )
+
+
+@load_config(OfflineMainConfig)
+def main(cfg: OfflineMainConfig):
+    """Main function for finding the best observation period."""
+    # set the random seeds
+    seed = cfg.seed
+    np.random.seed(seed)
+    random.seed(seed)
+
+    # Create AppState for metrics logging
+    app_state = AppState(
+        cfg=cfg,
+        metrics=create_metrics_writer(cfg.metrics),
+        evals=create_evals_writer(cfg.evals),
+        event_bus=DummyEventBus(),
+    )
+
+    pipeline = Pipeline(app_state, cfg.pipeline)
+    pr, _ = load_offline_transitions(app_state, pipeline)
+    if pr is None:
+        log.info("No Pipereturn, exiting...")
+        return
+
+    if not pr.transitions:
+        log.info("No Transitions, exiting...")
+        return
+
+    run_behaviour_cloning(app_state, pr.transitions)
 
 
 if __name__ == "__main__":
