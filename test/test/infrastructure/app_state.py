@@ -7,11 +7,7 @@ from corerl.state import AppState
 from lib_config.loader import direct_load_config
 
 
-@pytest.fixture()
-def dummy_app_state() -> AppState:
-    cfg = direct_load_config(MainConfig, config_name='../config/dep_mountain_car_continuous.yaml')
-    assert isinstance(cfg, MainConfig)
-
+def make_dummy_app_state(cfg: MainConfig):
     cfg.metrics.enabled = False
     cfg.evals.enabled = False
     return AppState(
@@ -20,3 +16,10 @@ def dummy_app_state() -> AppState:
         evals=create_evals_writer(cfg.evals),
         event_bus=DummyEventBus(),
     )
+
+@pytest.fixture()
+def dummy_app_state() -> AppState:
+    cfg = direct_load_config(MainConfig, config_name='../config/dep_mountain_car_continuous.yaml')
+    assert isinstance(cfg, MainConfig)
+
+    return make_dummy_app_state(cfg)

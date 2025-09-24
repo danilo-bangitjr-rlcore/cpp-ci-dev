@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from lib_config.config import config, list_, post_processor
+from lib_utils.maybe import Maybe
 
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
@@ -10,6 +11,7 @@ from corerl.data_pipeline.transforms import SympyConfig, TransformConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.state import AppState
+from corerl.tags.components.opc import OPCTag
 from corerl.utils.sympy import to_sympy
 
 if TYPE_CHECKING:
@@ -53,8 +55,16 @@ class ConditionalFilter(BaseOddityFilter):
         self.excluded_tags = cfg.excluded_tags
 
     def __call__(self, pf: PipelineFrame, tag: str, ts: object | None, update_stats: bool = True):
-        # Only filter tags in self.filtered_tags or that aren't in self.excluded tags
-        if tag in self.excluded_tags or (isinstance(self.filtered_tags, list) and tag not in self.filtered_tags):
+        tag_cfg = (
+            Maybe.find(lambda cfg: cfg.name == tag, self._app_state.cfg.pipeline.tags)
+            .is_instance(OPCTag)
+            .unwrap()
+        )
+
+        # Only filter OPC tags in self.filtered_tags or that aren't in self.excluded tags
+        if (tag_cfg is None or
+            tag in self.excluded_tags or
+            (self.filtered_tags != 'all' and tag not in self.filtered_tags)):
             return pf, ts
 
         # Preparing data to be passed to the list of transforms in the condition
