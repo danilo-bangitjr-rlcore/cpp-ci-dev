@@ -83,7 +83,7 @@ def prepare_features_and_targets(
     assert y.ndim == 2, f"Expected y to have 2 dimensions, got {y.ndim}"
 
     log.info(
-        f"State dimension: {X.shape[1]}, Target dimension: {y.shape[1]})",
+        f"State dimension: {X.shape[1]}, Target dimension: {y.shape[1]}",
     )
 
     return ModelData(X=X, y=y, ts=ts)
