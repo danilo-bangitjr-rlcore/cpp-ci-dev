@@ -3,12 +3,15 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import UTC
-from typing import Any, Concatenate, assert_never
+from pathlib import Path
+from typing import Any, Concatenate, assert_never, cast
 
 import backoff
 from asyncua import Client, ua
 from asyncua.crypto.security_policies import SecurityPolicyBasic256Sha256
 from asyncua.ua.uaerrors import BadNodeIdUnknown
+from cryptography import x509
+from cryptography.x509.oid import ExtensionOID
 from lib_utils.opc.opc_communication import NodeData, OPC_Connection, log_backoff
 
 from coreio.config import (
@@ -47,8 +50,7 @@ class OPC_Connection_IO(OPC_Connection):
 
         self._connected = False
 
-        logger.debug(f"Setting application uri for {self.connection_id}")
-        self.opc_client.application_uri = cfg.application_uri
+        self._set_application_uri(cfg)
 
         logger.debug(f"Setting security policy for {self.connection_id}")
         await self._set_security_policy(cfg.security_policy)
@@ -60,6 +62,22 @@ class OPC_Connection_IO(OPC_Connection):
         await self.ensure_connected()
 
         return self
+
+    def _set_application_uri(self, cfg: OPCConnectionConfig):
+        logger.info(f"Setting application uri for {self.connection_id}")
+        assert self.opc_client is not None, "OPC client is not initialized"
+        if cfg.application_uri is not None:
+            self.opc_client.application_uri = cfg.application_uri
+            return
+
+        logger.info("No uri found in cfg, attempting to read from cert")
+        if isinstance(cfg.security_policy, OPCSecurityPolicyBasic256SHA256Config):
+            client_uri = get_application_uri_from_cert(cfg.security_policy.client_cert_path)
+            if client_uri is not None:
+                self.opc_client.application_uri = client_uri
+                return
+
+        logger.error(f"Client URI not found for {self.connection_id}... Continuing execution")
 
     async def _set_security_policy(self, policy: OPCSecurityPolicyConfig):
         assert self.opc_client is not None
@@ -260,3 +278,33 @@ class OPC_Connection_IO(OPC_Connection):
             nodes_name_val[node.name] = read_value
 
         return nodes_name_val
+
+def get_application_uri_from_cert(cert_path: Path):
+    """Extract application URI from certificate's SAN extension"""
+    # Load certificate
+    with open(cert_path, 'rb') as f:
+        cert_data = f.read()
+
+    # Handle both PEM and DER formats
+    try:
+        cert = x509.load_pem_x509_certificate(cert_data)
+    except ValueError:
+        cert = x509.load_der_x509_certificate(cert_data)
+
+    try:
+        # Get Subject Alternative Name extension
+        san = cast(
+            x509.SubjectAlternativeName,
+            cert.extensions.get_extension_for_oid(ExtensionOID.SUBJECT_ALTERNATIVE_NAME).value,
+        )
+
+        # Extract URI values
+        uris = san.get_values_for_type(x509.UniformResourceIdentifier)
+
+        # Return first URI (typically the application URI)
+        if uris:
+            return uris[0]
+        return None
+
+    except x509.ExtensionNotFound:
+        return None

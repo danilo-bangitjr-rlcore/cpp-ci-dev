@@ -59,7 +59,7 @@ class OPCConnectionConfig:
     client_timeout: int = 30 # in seconds
     client_watchdog_interval: int = 30 # in seconds
     opc_conn_url: str = MISSING
-    application_uri: str = ""
+    application_uri: str | None = None
     security_policy: OPCSecurityPolicyConfig = MISSING
     authentication_mode: OPCAuthModeConfig = MISSING
 
