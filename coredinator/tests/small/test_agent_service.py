@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from datetime import timedelta
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
 from coredinator.agent.agent_manager import AgentID
+from coredinator.service import service as service_module
 from coredinator.service.protocols import ServiceID
 from coredinator.service.service import Service, ServiceConfig
 from coredinator.services.coreio import CoreIOService
@@ -15,6 +17,56 @@ from tests.utils.state_verification import (
     assert_agent_manager_state,
     assert_service_state,
 )
+
+
+def _service_for_spawn(monkeypatch: pytest.MonkeyPatch) -> Service:
+    service = Service(ServiceID("svc"), Path("exe"), Path("cfg"))
+    service._ensure_executable = lambda: Path("exe")
+    service._ensure_config = lambda: Path("cfg")
+    service._keep_alive = lambda: None
+    monkeypatch.setattr(service_module.psutil, "Process", lambda pid: SimpleNamespace(pid=pid))
+    return service
+
+
+def test_service_start_sets_windows_creationflags(monkeypatch: pytest.MonkeyPatch):
+    captured_kwargs: list[dict[str, object]] = []
+
+    def fake_popen(args: list[str], **kwargs: object) -> SimpleNamespace:
+        captured_kwargs.append(kwargs)
+        return SimpleNamespace(pid=1234)
+
+    monkeypatch.setattr(service_module, "Popen", fake_popen)
+    monkeypatch.setattr(service_module, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(service_module, "DETACHED_PROCESS", 0x00000008, raising=False)
+    monkeypatch.setattr(service_module, "CREATE_NEW_PROCESS_GROUP", 0x00000200, raising=False)
+
+    service = _service_for_spawn(monkeypatch)
+    service.start()
+
+    assert captured_kwargs
+    kwargs = captured_kwargs[0]
+    expected_flags = service_module.DETACHED_PROCESS | service_module.CREATE_NEW_PROCESS_GROUP
+    assert kwargs["creationflags"] == expected_flags
+    assert kwargs["start_new_session"] is True
+
+
+def test_service_start_omits_creationflags_on_non_windows(monkeypatch: pytest.MonkeyPatch):
+    captured_kwargs: list[dict[str, object]] = []
+
+    def fake_popen(args: list[str], **kwargs: object) -> SimpleNamespace:
+        captured_kwargs.append(kwargs)
+        return SimpleNamespace(pid=5678)
+
+    monkeypatch.setattr(service_module, "Popen", fake_popen)
+    monkeypatch.setattr(service_module, "os", SimpleNamespace(name="posix"))
+
+    service = _service_for_spawn(monkeypatch)
+    service.start()
+
+    assert captured_kwargs
+    kwargs = captured_kwargs[0]
+    assert "creationflags" not in kwargs
+    assert kwargs["start_new_session"] is True
 
 
 def test_initial_status_stopped(

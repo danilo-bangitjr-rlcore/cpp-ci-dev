@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import threading
 import time
 from dataclasses import dataclass
@@ -8,8 +9,15 @@ from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
 from subprocess import DEVNULL, Popen, TimeoutExpired
+from typing import Any
 from urllib.error import URLError
 from urllib.request import urlopen
+
+if sys.platform == "win32":
+    from subprocess import CREATE_NEW_PROCESS_GROUP, DETACHED_PROCESS
+else:
+    CREATE_NEW_PROCESS_GROUP = 0
+    DETACHED_PROCESS = 0
 
 import psutil
 from lib_utils.errors import fail_gracefully
@@ -68,13 +76,19 @@ class Service:
         cfg = self._ensure_config()
 
         args = self._build_args(exe, cfg)
-        popen = Popen(
-            args,
-            stdin=DEVNULL,
-            stdout=DEVNULL,
-            stderr=DEVNULL,
-            start_new_session=True,  # Detach from parent process
-        )
+        popen_kwargs: dict[str, Any] = {
+            "stdin": DEVNULL,
+            "stdout": DEVNULL,
+            "stderr": DEVNULL,
+            "start_new_session": True,  # Detach from parent process
+        }
+
+        if os.name == "nt":
+            creationflags = DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+            if creationflags:
+                popen_kwargs["creationflags"] = creationflags
+
+        popen = Popen(args, **popen_kwargs)
         self._process = psutil.Process(popen.pid)
         self._keep_alive()
 
