@@ -56,7 +56,7 @@ class LinearRegressor(BaseRegressor):
         log.info(f"Linear Regression - Training Loss: {train_loss:.6f}, Test Loss: {test_loss:.6f}")
 
     def predict(self, X: np.ndarray):
-        return self.model.predict(X)
+        return np.clip(self.model.predict(X), 0, 1)
 
 
 # ---------------------------------------------------------------------------- #
@@ -89,7 +89,7 @@ def mlp_forward(params: list, x: jax.Array) -> jax.Array:
 
     # Linear output layer
     w, b = params[-1]
-    return x @ w + b
+    return jnp.clip(x @ w + b, 0, 1)
 
 
 def mae_loss(params: list, x: jax.Array, y: jax.Array) -> jax.Array:
