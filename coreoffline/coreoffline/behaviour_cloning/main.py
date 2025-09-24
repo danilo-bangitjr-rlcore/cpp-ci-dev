@@ -35,16 +35,6 @@ def get_ai_setpoint_tag_names(cfg: OfflineMainConfig) -> list[str]:
     return ai_setpoint_tags
 
 
-def get_ai_setpoint_tag_name(cfg: OfflineMainConfig) -> str:
-    """Extract the name of the ai_setpoint tag from the configuration."""
-    ai_setpoint_tags = get_ai_setpoint_tag_names(cfg)
-
-    if len(ai_setpoint_tags) > 1:
-        log.warning(f"Multiple ai_setpoint tags found: {ai_setpoint_tags}. Using the first one: {ai_setpoint_tags[0]}")
-
-    return ai_setpoint_tags[0]
-
-
 def run_cross_validation(
     model: BaseRegressor,
     data: ModelData,
@@ -76,8 +66,9 @@ def run_cross_validation(
 def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
     assert isinstance(app_state.cfg, OfflineMainConfig)
 
-    # Get action names for the single action we're working with
-    action_names = [get_ai_setpoint_tag_name(app_state.cfg)]
+    # Get all action names from configuration
+    action_names = get_ai_setpoint_tag_names(app_state.cfg)
+    log.info(f"Training models for {len(action_names)} actions: {action_names}")
 
     data = prepare_features_and_targets(
         transitions,
@@ -97,13 +88,9 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         all_y_pred_linear,
         data.action_names,
     )
-    # Extract metrics for the single action for backward compatibility
-    single_action_name = data.action_names[0]
-    linear_metrics = linear_per_action_metrics[single_action_name]
-    log.info(
-        "Done training Linear Regression model." +
-        f"Mean MAE: {linear_metrics['mae']}, Mean sign acc: {linear_metrics['sign_acc']}",
-    )
+    log.info("Done training Linear Regression model.")
+    for action_name, metrics in linear_per_action_metrics.items():
+        log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
     # Deep Learning
     log.info("Training MLP model...")
@@ -121,22 +108,22 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         all_y_pred_mlp,
         data.action_names,
     )
-    # Extract metrics for the single action for backward compatibility
-    deep_metrics = deep_per_action_metrics[single_action_name]
-    log.info(
-        "Done training MLP Regression model." +
-        f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
-    )
+    log.info("Done training MLP Regression model.")
+    for action_name, metrics in deep_per_action_metrics.items():
+        log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
-    create_single_action_scatter_plot(
-        y_true=all_y_true[:, 0],  # Extract single action column
-        y_pred_linear=all_y_pred_linear[:, 0],  # Extract single action column
-        y_pred_deep=all_y_pred_mlp[:, 0],  # Extract single action column
-        action_name=single_action_name,
-        linear_metrics=linear_metrics,
-        deep_metrics=deep_metrics,
-        output_dir=app_state.cfg.save_path,
-    )
+    # Generate plots for each action
+    log.info(f"Generating plots for {len(data.action_names)} actions...")
+    for i, action_name in enumerate(data.action_names):
+        create_single_action_scatter_plot(
+            y_true=all_y_true[:, i],
+            y_pred_linear=all_y_pred_linear[:, i],
+            y_pred_deep=all_y_pred_mlp[:, i],
+            action_name=action_name,
+            linear_metrics=linear_per_action_metrics[action_name],
+            deep_metrics=deep_per_action_metrics[action_name],
+            output_dir=app_state.cfg.save_path,
+        )
 
 
 @load_config(OfflineMainConfig)
