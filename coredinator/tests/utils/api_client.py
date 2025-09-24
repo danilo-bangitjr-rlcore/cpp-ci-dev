@@ -4,7 +4,8 @@ from typing import Any
 
 import requests
 
-from .types import AgentState
+from tests.utils.state_verification import assert_agent_http_state, wait_for_agent_http_state
+from tests.utils.types import AgentState
 
 
 class CoredinatorAPIClient:
@@ -69,12 +70,8 @@ class CoredinatorAPIClient:
 
     def wait_for_agent_state(self, agent_id: str, expected_state: AgentState, timeout: float = 2.0) -> bool:
         """Wait for agent to reach expected state."""
-        # Import here to avoid circular imports
-        from .state_verification import wait_for_agent_http_state
         return wait_for_agent_http_state(self.base_url, agent_id, expected_state, timeout)
 
     def assert_agent_state(self, agent_id: str, expected_state: AgentState, timeout: float = 2.0) -> None:
         """Assert that agent reaches expected state within timeout."""
-        # Import here to avoid circular imports
-        from .state_verification import assert_agent_http_state
         assert_agent_http_state(self.base_url, agent_id, expected_state, timeout)
