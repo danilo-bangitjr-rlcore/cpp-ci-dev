@@ -1,5 +1,42 @@
 # Changelog
 
+## [0.11.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.10.0...coreio-v0.11.0) (2025-09-24)
+
+
+### Features
+
+* coreio logs to file too ([eec5a57](https://github.com/rlcoretech/core-rl/commit/eec5a570ddb72b4d76d27691d4a686a5812ae14c))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+
+
+### Bug Fixes
+
+* add back defaults to data ingress table (sensors) ([ecea0a0](https://github.com/rlcoretech/core-rl/commit/ecea0a0c942478524f85f89a05d073fd4bfbb41e))
+* adding a bunch of debug logs ([08c0e65](https://github.com/rlcoretech/core-rl/commit/08c0e6562528cfa47b3a9437a312b6c00fcfff81))
+* adding some try/except blocks ([7ba1715](https://github.com/rlcoretech/core-rl/commit/7ba171507040de33bb7de85813aa9aab4f13669f))
+* asyncua's typo ([b3105ba](https://github.com/rlcoretech/core-rl/commit/b3105bab2b1fca14a80c58a2fbe4faea2956be09))
+* better logging file naming ([ca1b667](https://github.com/rlcoretech/core-rl/commit/ca1b667caf3c1029b7c9b29ebf199511a626c9c1))
+* better logging file naming ([12e2508](https://github.com/rlcoretech/core-rl/commit/12e250811c2683955edc51a069a4487ecf92a565))
+* cleanup config schema ([56308b2](https://github.com/rlcoretech/core-rl/commit/56308b276b8ae7ae3c1f29f054b98602698f71be))
+* Copilot's comments ([a9ca6a5](https://github.com/rlcoretech/core-rl/commit/a9ca6a53d378f863fded4b81ca21389f6bd735e2))
+* Copilot's comments ([35c6db6](https://github.com/rlcoretech/core-rl/commit/35c6db6a63bd0e50796824026ce34d9e79fdb804))
+* **coreio:** lock our asyncua version due to 1.1.8 bug ([e78078f](https://github.com/rlcoretech/core-rl/commit/e78078f87dff1ddf7c72af6c4eb9382672607b71))
+* **coreio:** loosen up asyncua watchdog intervall ([31bc03c](https://github.com/rlcoretech/core-rl/commit/31bc03cf96daf01f85fd2cd8d6bcebc9abbc9620))
+* correct logging levels ([2abac75](https://github.com/rlcoretech/core-rl/commit/2abac758d616b18367e73b7513149b7ff4689cda))
+* correct logging levels ([ce3c407](https://github.com/rlcoretech/core-rl/commit/ce3c4076e34119051979d1710f423f05c1fb7167))
+* logging to file is always debug level ([67915d2](https://github.com/rlcoretech/core-rl/commit/67915d2d2282891ced2c090b7f2563f4c771d0c1))
+* **PROD-843:** CoreIO try/except blocks ([4a42c62](https://github.com/rlcoretech/core-rl/commit/4a42c62107717e74f28f882ee63489730da490f4))
+* **PROD-894:** CoreIO logging ([545ce54](https://github.com/rlcoretech/core-rl/commit/545ce54741cde353edb5386c1ed92d0d3bf277ab))
+* **PROD-896:** Clean CoreIO's Config ([a424681](https://github.com/rlcoretech/core-rl/commit/a424681f86a111175d7fbb2751d9d235110816cf))
+* reducing logs in zmq ([6684f17](https://github.com/rlcoretech/core-rl/commit/6684f1767babb3841459212977dcd707ae96e4d3))
+* remove test code ([200c58c](https://github.com/rlcoretech/core-rl/commit/200c58c5ad595b4a95026d33fcc1e0126c7bd9d0))
+* removed async context managers, as those were for short lived clients, and we use long lived clients now ([532bd05](https://github.com/rlcoretech/core-rl/commit/532bd0542a24d839fc1c6dcf4ed347785b75f2e7))
+
+
+### Performance Improvements
+
+* **coreio:** prefer long-lived connections with healthchecking over reconnects on CRUD ([987d3de](https://github.com/rlcoretech/core-rl/commit/987d3de826ec59760fecc7210f1906ee2f3bb597))
+
 ## [0.10.0](https://github.com/rlcoretech/core-rl/compare/v0.9.0...v0.10.0) (2025-09-18)
 
 

@@ -1,5 +1,57 @@
 # Changelog
 
+## [0.151.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.150.0...corerl-v0.151.0) (2025-09-24)
+
+
+### Features
+
+* ability to generate test split in load_offline_transitions ([8060e5f](https://github.com/rlcoretech/core-rl/commit/8060e5f291c738a41b76acfcc72d175ccda62007))
+* add method to get matching columns for metrics ([20190cc](https://github.com/rlcoretech/core-rl/commit/20190cc2a5102deef30f8e2606320064af912877))
+* change _read_by_metric method to retrieve metrics with optional prefix matching ([a796ee7](https://github.com/rlcoretech/core-rl/commit/a796ee7a3c03d764b9a2d912dbe98dacd3097b19))
+* **corerl:** allow independent config of AE missingtol ([cd2867d](https://github.com/rlcoretech/core-rl/commit/cd2867d03adf87338f07f18dd98fcc23798d9fdd))
+* **corerl:** support logical or/and sympy expressions ([ef92cff](https://github.com/rlcoretech/core-rl/commit/ef92cff688d4fd70da15b18ea8342988d4361a94))
+* enhance _read_by_metric to support prefix matching for metrics ([c38d3e7](https://github.com/rlcoretech/core-rl/commit/c38d3e77bffcc63cb70277a111761653ae016908))
+* enhance read_by_steo method to support dynamic column selection with prefix matching ([d657392](https://github.com/rlcoretech/core-rl/commit/d6573924edec2d9f68d095047966031ce19d1bf0))
+* enhance read_by_steo method to support prefix matching for metrics ([1e30186](https://github.com/rlcoretech/core-rl/commit/1e301869fa5a5d814ae60be9bf6ffebd45e97446))
+* enhance read_by_time method to support dynamic column selection with prefix matching ([6ddbbb2](https://github.com/rlcoretech/core-rl/commit/6ddbbb2b27dff17c0568a6eeafa19a487944a93e))
+* enhance read_by_time method to support prefix matching for metrics ([929737a](https://github.com/rlcoretech/core-rl/commit/929737a69b348c648c63b1fc394ff71121db8633))
+* initial config GET api ([6651d7f](https://github.com/rlcoretech/core-rl/commit/6651d7fd376222ec8c05fe911462ed19a08012f9))
+* **PROD-724:** Ensure Sympy Goal.thresh Is In Goal.tag Operating Range ([f8963b9](https://github.com/rlcoretech/core-rl/commit/f8963b973cdb7d5704dd53cffcf7f4c326ef1aaf))
+* **PROD-725:** Ensure Goals/JointGoals are self-consistent and don't violate red zones ([8098cbf](https://github.com/rlcoretech/core-rl/commit/8098cbffbb047f10bdfe324fd08707a219fc3c18))
+* **PROD-727:** yellow zone vs operating range checks ([6f9778e](https://github.com/rlcoretech/core-rl/commit/6f9778eed7cac96ef904a89a8776f30bbbce8241))
+* **PROD-728:** additional yellow vs red zone checks ([19233f9](https://github.com/rlcoretech/core-rl/commit/19233f9f9d2726380340919433e0cd9d6a9495ce))
+* **PROD-730:** red zone reflex checks ([5d8f1a6](https://github.com/rlcoretech/core-rl/commit/5d8f1a6c81dbd2c35c943590e5ee5bb98096f5ed))
+* **PROD-731:** Check computed tags can be within their operating range ([ebbc7d4](https://github.com/rlcoretech/core-rl/commit/ebbc7d41ced5e319654af71dd6eaa02f8b89ea62))
+* **PROD-830:** Opc navigation backend (part 1) ([#1097](https://github.com/rlcoretech/core-rl/issues/1097)) ([3b5ffd4](https://github.com/rlcoretech/core-rl/commit/3b5ffd44296068831a8d4d29e1c8b84477cb258a))
+* **PROD-839:** add transition statistics generation to report ([9529f72](https://github.com/rlcoretech/core-rl/commit/9529f72d353fbd1fa1d50905690316531d285f83))
+* **PROD-839:** make_transition_statistics_table adds transition_filtered via metrics ([6f2b398](https://github.com/rlcoretech/core-rl/commit/6f2b398fd60667194b0b152d857cdbf8eeb1f380))
+* **PROD-839:** update TransitionFilter to include app_state and log filtered transitions ([a0d90d7](https://github.com/rlcoretech/core-rl/commit/a0d90d73fb8e2393849c0855962ab351c43547a5))
+* **PROD-840:** add calculation and statistics for goal violation periods ([6a92bc2](https://github.com/rlcoretech/core-rl/commit/6a92bc2d4ce72601143bef367f74b7107e514cbe))
+* **PROD-840:** add goal violations table generation in report ([aa201ee](https://github.com/rlcoretech/core-rl/commit/aa201ee14d1226f7d90f7570f7208513a2ee7a96))
+* **PROD-884:** Conditional filter is now an oddity detector ([c90bc86](https://github.com/rlcoretech/core-rl/commit/c90bc863f5df4270305779e041d8bacff19e0533))
+* **PROD-884:** Moved Conditional Filter Pipeline Stage To Oddity Detection Stage ([db54ec5](https://github.com/rlcoretech/core-rl/commit/db54ec54e72424596c0d60ecc912ee90b9c47c8c))
+* **PROD-889:** update metrics logging to specify filter name in transition filtering ([df1ccc0](https://github.com/rlcoretech/core-rl/commit/df1ccc061f12b9fce7fbb87d519ad105a2b369f8))
+* **PROD-890:** parse sympy expressions based on parenthesis ordering ([bcb0d6f](https://github.com/rlcoretech/core-rl/commit/bcb0d6f3897228ca22daa5a0d4beb5392557c8fd))
+* **PROD-890:** Parsing Sympy Expressions In Correct Order Based On Parentheses ([d437865](https://github.com/rlcoretech/core-rl/commit/d43786544af5afaa41116be9b84eff4c2cb017e9))
+* update read method to include prefix_match parameter ([06e0fec](https://github.com/rlcoretech/core-rl/commit/06e0fec88448311e6e9b601471223346aa1917db))
+* update read method to pass in prefix matchin ([6dfe83d](https://github.com/rlcoretech/core-rl/commit/6dfe83db1056a89fb5822ba72975455d05c33e55))
+
+
+### Bug Fixes
+
+* **corerl:** add schema to data_reader queries ([db5eeba](https://github.com/rlcoretech/core-rl/commit/db5eebab7736e43474fad73ad8ae51577679f6dc))
+* **corerl:** add schema to data_reader queries ([1a7307c](https://github.com/rlcoretech/core-rl/commit/1a7307cb1754f93f1329db3051e380a94cdbf684))
+* **corerl:** timeseries data should not use time as primary key ([e3ba87a](https://github.com/rlcoretech/core-rl/commit/e3ba87a35b9dfa8ffabc8225f4ae656f39897b66))
+* offline tests ([67caf35](https://github.com/rlcoretech/core-rl/commit/67caf3558ce401ccde7745fe4733d7dc7d66877b))
+* **PROD-815:** update offline_analysis ([402310c](https://github.com/rlcoretech/core-rl/commit/402310c618909bc75519033e7857674179eb5ae6))
+* **PROD-845:** don't generate sympy permutation inputs if tags aren't SafetyZonedTags ([96bfd91](https://github.com/rlcoretech/core-rl/commit/96bfd91fcc648962ca4dc6a77f834e85e0b6b247))
+* **PROD-949:** conditional filter should only filter opc tags ([6977cfa](https://github.com/rlcoretech/core-rl/commit/6977cfa6671a162d829f52a3633be1b0ce21232c))
+* **PROD-949:** conditional filter should only filter OPC tags ([71c18ed](https://github.com/rlcoretech/core-rl/commit/71c18ed76e1b1ccf8f105fb30dd3ab5f90b242b5))
+* **PROD-950:** move virtual and delta tag metrics logging to action constructor ([07293f4](https://github.com/rlcoretech/core-rl/commit/07293f4b9fcffe72d4257dd75ed084905c75e0ef))
+* remove return type annotation from split_dataframe_into_chunks function ([cba5d1b](https://github.com/rlcoretech/core-rl/commit/cba5d1b4bf61de61e8a68522e6d88b23da8017e7))
+* rename _ensemble method to _contiguous_time_threshold ([0f7a6cf](https://github.com/rlcoretech/core-rl/commit/0f7a6cffb83abbe9dcbd3b80faedf5a5bc1245c9))
+* zone_violation metrics include tag and will be logged int offline mode ([4b0b70f](https://github.com/rlcoretech/core-rl/commit/4b0b70ff1b9fbc2a63f745bf84a4ea9e192d71a8))
+
 ## [0.150.0](https://github.com/rlcoretech/core-rl/compare/v0.149.0...v0.150.0) (2025-09-18)
 
 
