@@ -83,7 +83,7 @@ def create_single_action_scatter_plot(
 
     # Create output directory if provided
     if output_dir:
-        output_path = Path(output_dir) / "plots"
+        output_path = Path(output_dir) / "plots" / "behaviour_clone"
         output_path.mkdir(parents=True, exist_ok=True)
         filename = output_path / filename
 

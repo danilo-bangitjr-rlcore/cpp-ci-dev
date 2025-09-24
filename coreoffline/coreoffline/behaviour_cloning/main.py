@@ -122,7 +122,7 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
             action_name=action_name,
             linear_metrics=linear_per_action_metrics[action_name],
             deep_metrics=deep_per_action_metrics[action_name],
-            output_dir=app_state.cfg.save_path,
+            output_dir=app_state.cfg.report.output_dir,
         )
 
 
