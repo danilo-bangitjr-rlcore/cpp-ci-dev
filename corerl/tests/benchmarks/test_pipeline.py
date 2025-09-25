@@ -29,6 +29,19 @@ def test_pipeline_benchmark(
     benchmark: Any,
     dummy_app_state: AppState,
     basic_config: MainConfig,
+    fake_clean_pipeline_data: pd.DataFrame,
+):
+    pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
+
+    def _inner(pipeline: Pipeline, df: pd.DataFrame):
+        pipeline(df)
+
+    benchmark(_inner, pipeline, fake_clean_pipeline_data)
+
+def test_pipeline_benchmark_nans(
+    benchmark: Any,
+    dummy_app_state: AppState,
+    basic_config: MainConfig,
     fake_pipeline_data: pd.DataFrame,
 ):
     pipeline = Pipeline(dummy_app_state, basic_config.pipeline)
@@ -37,7 +50,6 @@ def test_pipeline_benchmark(
         pipeline(df)
 
     benchmark(_inner, pipeline, fake_pipeline_data)
-
 
 def test_pipeline_benchmark_single_row(
     benchmark: Any,
