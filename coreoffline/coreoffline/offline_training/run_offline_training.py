@@ -1,25 +1,18 @@
 import logging
-import random
 
-import numpy as np
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.evals.factory import create_evals_writer
-from corerl.eval.metrics.factory import create_metrics_writer
-from corerl.messages.event_bus import DummyEventBus
-from corerl.state import AppState
 from corerl.tags.validate_tag_configs import validate_tag_configs
 from lib_config.loader import load_config
 
 from coreoffline.config import OfflineMainConfig
+from coreoffline.core.setup import create_standard_setup
 from coreoffline.data_loading import (
     load_offline_transitions,
     offline_rl_from_buffer,
 )
 from coreoffline.offline_training.utils import get_all_offline_recommendations
 
-logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
@@ -31,19 +24,9 @@ def main(cfg: OfflineMainConfig):
     validate_tag_configs(cfg)
     save_path = cfg.save_path
 
-    # set the random seeds
-    seed = cfg.seed
-    np.random.seed(seed)
-    random.seed(seed)
+    # Use create_standard_setup for standardized setup
+    app_state, pipeline = create_standard_setup(cfg)
 
-    app_state = AppState[DummyEventBus, OfflineMainConfig](
-        cfg=cfg,
-        metrics=create_metrics_writer(cfg.metrics),
-        evals=create_evals_writer(cfg.evals),
-        event_bus=DummyEventBus(),
-    )
-
-    pipeline = Pipeline(app_state, cfg.pipeline)
     assert isinstance(cfg.env, AsyncEnvConfig)
 
     column_desc = pipeline.column_descriptions
