@@ -59,7 +59,7 @@ def retryable_main(cfg: MainConfig):
     # build global objects
     if cfg.is_simulation:
         event_bus = DummyEventBus()
-        app_state = AppState[DummyEventBus](
+        app_state = AppState[DummyEventBus, MainConfig](
             cfg=cfg,
             metrics=create_metrics_writer(cfg.metrics),
             evals=create_evals_writer(cfg.evals),
@@ -67,7 +67,7 @@ def retryable_main(cfg: MainConfig):
         )
     else:
         event_bus = EventBus(cfg.event_bus)
-        app_state = AppState[EventBus](
+        app_state = AppState[EventBus, MainConfig](
             cfg=cfg,
             metrics=create_metrics_writer(cfg.metrics),
             evals=create_evals_writer(cfg.evals),

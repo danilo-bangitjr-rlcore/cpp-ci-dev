@@ -4,6 +4,7 @@ import jax.numpy as jnp
 from lib_config.errors import ConfigValidationErrors
 
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
@@ -21,7 +22,7 @@ def test_nominal_setpoint_norm():
     assert cfg.pipeline.tags[0].nominal_setpoint == 0.4
 
     event_bus = DummyEventBus()
-    app_state = AppState[DummyEventBus](
+    app_state = AppState[DummyEventBus, MainConfig](
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
         evals=create_evals_writer(cfg.evals),

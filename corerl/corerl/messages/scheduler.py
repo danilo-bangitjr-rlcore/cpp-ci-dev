@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import logging
 import threading
 import time
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import zmq
 from lib_utils.messages.clock import Clock
@@ -9,6 +12,9 @@ from lib_utils.messages.clock import Clock
 from corerl.messages.event_bus import EventBus
 from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
 from corerl.state import AppState
+
+if TYPE_CHECKING:
+    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
 
@@ -18,10 +24,11 @@ def start_scheduler_thread(app_state: AppState):
         target=scheduler_task,
         args=(app_state, ),
         daemon=True,
-        name= "corerl_interaction_scheduler",
+        name="corerl_interaction_scheduler",
     )
     scheduler_thread.start()
     return scheduler_thread
+
 
 def create_scheduler_clock(
         event_type: RLEventType,
@@ -33,7 +40,8 @@ def create_scheduler_clock(
     """
     return Clock(RLEvent, RLEventTopic.corerl_scheduler, event_type, period, offset)
 
-def scheduler_task(app_state: AppState[EventBus]):
+
+def scheduler_task(app_state: AppState[EventBus, MainConfig]):
     """
     Thread worker that emits ZMQ messages using our messages Event class.
     Responsible for emitting the step events based on configured observation windows.
@@ -77,4 +85,3 @@ def scheduler_task(app_state: AppState[EventBus]):
                 # exit, break from loop
                 break
             raise
-
