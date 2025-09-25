@@ -36,16 +36,16 @@ def test_service_start_sets_windows_creationflags(monkeypatch: pytest.MonkeyPatc
         return SimpleNamespace(pid=1234)
 
     monkeypatch.setattr(service_module, "Popen", fake_popen)
-    monkeypatch.setattr(service_module, "os", SimpleNamespace(name="nt"))
-    monkeypatch.setattr(service_module, "DETACHED_PROCESS", 0x00000008, raising=False)
-    monkeypatch.setattr(service_module, "CREATE_NEW_PROCESS_GROUP", 0x00000200, raising=False)
+    monkeypatch.setattr(service_module, "IS_WINDOWS", True, raising=False)
+    fake_subprocess = SimpleNamespace(DETACHED_PROCESS=0x00000008, CREATE_NEW_PROCESS_GROUP=0x00000200)
+    monkeypatch.setattr(service_module, "subprocess", fake_subprocess, raising=False)
 
     service = _service_for_spawn(monkeypatch)
     service.start()
 
     assert captured_kwargs
     kwargs = captured_kwargs[0]
-    expected_flags = service_module.DETACHED_PROCESS | service_module.CREATE_NEW_PROCESS_GROUP
+    expected_flags = fake_subprocess.DETACHED_PROCESS | fake_subprocess.CREATE_NEW_PROCESS_GROUP
     assert kwargs["creationflags"] == expected_flags
     assert kwargs["start_new_session"] is True
 
@@ -58,7 +58,7 @@ def test_service_start_omits_creationflags_on_non_windows(monkeypatch: pytest.Mo
         return SimpleNamespace(pid=5678)
 
     monkeypatch.setattr(service_module, "Popen", fake_popen)
-    monkeypatch.setattr(service_module, "os", SimpleNamespace(name="posix"))
+    monkeypatch.setattr(service_module, "IS_WINDOWS", False, raising=False)
 
     service = _service_for_spawn(monkeypatch)
     service.start()
