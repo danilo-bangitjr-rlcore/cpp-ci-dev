@@ -72,7 +72,6 @@ def main(cfg: OfflineMainConfig):
         metrics=create_metrics_writer(cfg.metrics),
         event_bus=DummyEventBus(),
     )
-    assert isinstance(app_state.cfg, OfflineMainConfig)  # for typing
 
     pipeline = Pipeline(app_state, cfg.pipeline)
     log.info("Loading dataset...")
