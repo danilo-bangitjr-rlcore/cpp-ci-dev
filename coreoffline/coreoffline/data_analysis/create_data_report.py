@@ -10,13 +10,12 @@ from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
-from corerl.utils.pandas import split_dataframe_into_chunks
 from lib_agent.buffer.datatypes import DataMode
 from lib_config.loader import load_config
 
 from coreoffline.config import OfflineMainConfig
 from coreoffline.data_analysis.data_report import generate_report
-from coreoffline.data_loading import load_data_chunks, load_entire_dataset
+from coreoffline.data_loading import load_data_chunks
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
@@ -75,9 +74,6 @@ def main(cfg: OfflineMainConfig):
 
     pipeline = Pipeline(app_state, cfg.pipeline)
     log.info("Loading dataset...")
-
-    data = load_entire_dataset(cfg)
-    data_chunks = split_dataframe_into_chunks(data, 10_000)
 
     log.info("Loaded Dataset")
     capture = StageDataCapture(pipeline)
