@@ -5,12 +5,12 @@ from pathlib import Path
 
 import pytest
 
-from coredinator.agent.agent_manager import AgentID, AgentManager
+from coredinator.agent.agent_manager import AgentID
 from coredinator.service.protocols import ServiceID
 from coredinator.service.service import Service, ServiceConfig
-from coredinator.service.service_manager import ServiceManager
 from coredinator.services.coreio import CoreIOService
 from coredinator.services.corerl import CoreRLService
+from tests.utils.factories import create_agent_manager
 from tests.utils.state_verification import (
     assert_agent_manager_state,
     assert_service_state,
@@ -23,10 +23,7 @@ def test_initial_status_stopped(
     """
     Test that the initial status of an AgentProcess is stopped.
     """
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
 
     agent_id = AgentID("agent")
     s = manager.get_agent_status(agent_id)
@@ -38,20 +35,14 @@ def test_initial_status_stopped(
 
 @pytest.mark.timeout(10)
 def test_start_and_running_status(
-    monkeypatch: pytest.MonkeyPatch,
+    long_running_agent_env: None,
     config_file: Path,
     dist_with_fake_executable: Path,
 ):
     """
     Test that starting an AgentProcess transitions it to running status.
     """
-    # Default behavior is long-running process. Ensure environment is set.
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     # Wait for agent to start
@@ -71,19 +62,14 @@ def test_start_and_running_status(
 
 @pytest.mark.timeout(10)
 def test_stop_transitions_to_stopped(
-    monkeypatch: pytest.MonkeyPatch,
+    long_running_agent_env: None,
     config_file: Path,
     dist_with_fake_executable: Path,
 ):
     """
     Test that stopping an AgentProcess transitions it to stopped status.
     """
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
     assert_agent_manager_state(manager, agent_id, "running", timeout=2.0)
 
@@ -107,10 +93,7 @@ def test_failed_status_when_process_exits_nonzero(
     # Configure the fake agent to exit with failure immediately.
     monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "exit-1")
 
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     # Wait for process to exit with failure
@@ -119,18 +102,14 @@ def test_failed_status_when_process_exits_nonzero(
 
 @pytest.mark.timeout(10)
 def test_start_is_idempotent(
-    monkeypatch: pytest.MonkeyPatch,
+    long_running_agent_env: None,
     config_file: Path,
     dist_with_fake_executable: Path,
 ):
     """
     Test that starting an AgentProcess is idempotent when already running.
     """
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     assert_agent_manager_state(manager, agent_id, "running", timeout=2.0)
@@ -146,18 +125,14 @@ def test_start_is_idempotent(
 
 @pytest.mark.timeout(10)
 def test_agent_fails_when_child_service_fails(
-    monkeypatch: pytest.MonkeyPatch,
+    long_running_agent_env: None,
     config_file: Path,
     dist_with_fake_executable: Path,
 ):
     """
     Test that an AgentProcess status is failed if one of its child services fails.
     """
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
-    manager = AgentManager(
-        base_path=dist_with_fake_executable,
-        service_manager=ServiceManager(base_path=dist_with_fake_executable),
-    )
+    manager = create_agent_manager(dist_with_fake_executable)
     agent_id = manager.start_agent(config_file)
 
     assert_agent_manager_state(manager, agent_id, "running", timeout=2.0)
@@ -181,12 +156,11 @@ def test_agent_fails_when_child_service_fails(
 @pytest.mark.parametrize("service_cls", [CoreIOService, CoreRLService])
 def test_degraded_state_triggers_restart(
     service_cls: type[Service],
-    monkeypatch: pytest.MonkeyPatch,
+    long_running_agent_env: None,
     config_file: Path,
     dist_with_fake_executable: Path,
 ):
     # Test degraded state detection and restart behavior by manually killing process
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
     config = ServiceConfig(heartbeat_interval=timedelta(milliseconds=50), degraded_wait=timedelta(milliseconds=200))
     service = service_cls(ServiceID("svc"), config_file, dist_with_fake_executable, config)
     service.start()
@@ -209,14 +183,14 @@ def test_degraded_state_triggers_restart(
 
 @pytest.mark.timeout(15)
 def test_healthcheck_fails_when_unhealthy(
+    long_running_agent_env: None,
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,
     dist_with_fake_executable: Path,
     free_localhost_port: int,
 ):
     """Test that unhealthy healthcheck makes service state failed."""
-    # Configure agent to run but be unhealthy
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    # Configure agent to be unhealthy
     monkeypatch.setenv("FAKE_AGENT_HEALTHCHECK", "unhealthy")
 
     # Enable healthcheck with a dynamically allocated port
@@ -240,14 +214,14 @@ def test_healthcheck_fails_when_unhealthy(
 
 @pytest.mark.timeout(15)
 def test_healthcheck_succeeds_when_healthy(
+    long_running_agent_env: None,
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,
     dist_with_fake_executable: Path,
     free_localhost_port: int,
 ):
     """Test that healthy healthcheck makes service state running."""
-    # Configure agent to run and be healthy
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    # Configure agent to be healthy
     monkeypatch.setenv("FAKE_AGENT_HEALTHCHECK", "healthy")
 
     # Enable healthcheck with a dynamically allocated port
@@ -271,14 +245,14 @@ def test_healthcheck_succeeds_when_healthy(
 
 @pytest.mark.timeout(15)
 def test_healthcheck_disabled_ignores_endpoint(
+    long_running_agent_env: None,
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,
     dist_with_fake_executable: Path,
     free_localhost_port: int,
 ):
     """Test that disabled healthcheck ignores endpoint health."""
-    # Configure agent to run but be unhealthy
-    monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
+    # Configure agent to be unhealthy
     monkeypatch.setenv("FAKE_AGENT_HEALTHCHECK", "unhealthy")
 
     # Disable healthcheck

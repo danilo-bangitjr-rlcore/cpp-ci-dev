@@ -35,12 +35,11 @@ class TestAgentSharedServices:
 
     @pytest.mark.timeout(10)
     def test_agent_stop_uses_service_manager(
-        self, monkeypatch: pytest.MonkeyPatch, config_file: Path, dist_with_fake_executable: Path,
+        self, long_running_agent_env: None, config_file: Path, dist_with_fake_executable: Path,
     ):
         """
         Test that Agent.stop() delegates to ServiceManager properly.
         """
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
 
         service_manager = ServiceManager(dist_with_fake_executable)
         agent = Agent(
@@ -72,12 +71,11 @@ class TestSharedServiceIntegration:
 
     @pytest.mark.timeout(15)
     def test_shared_service_lifecycle_with_real_agents(
-        self, monkeypatch: pytest.MonkeyPatch, config_file: Path, dist_with_fake_executable: Path,
+        self, long_running_agent_env: None, config_file: Path, dist_with_fake_executable: Path,
     ) -> None:
         """
         Test complete shared service lifecycle with real Agent instances.
         """
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
         service_manager = ServiceManager(dist_with_fake_executable)
 
         # Create first agent with standard service IDs
@@ -161,12 +159,11 @@ class TestSharedServiceIntegration:
 
     @pytest.mark.timeout(10)
     def test_service_manager_atomic_operations(
-        self, monkeypatch: pytest.MonkeyPatch, config_file: Path, dist_with_fake_executable: Path,
+        self, long_running_agent_env: None, config_file: Path, dist_with_fake_executable: Path,
     ) -> None:
         """
         Test that ServiceManager operations are properly atomic.
         """
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
         service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(
@@ -200,12 +197,11 @@ class TestSharedServiceIntegration:
 
     @pytest.mark.timeout(10)
     def test_process_reattachment_with_shared_services(
-        self, monkeypatch: pytest.MonkeyPatch, config_file: Path, dist_with_fake_executable: Path,
+        self, long_running_agent_env: None, config_file: Path, dist_with_fake_executable: Path,
     ) -> None:
         """
         Test process reattachment functionality with shared services.
         """
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
         service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(
@@ -234,12 +230,11 @@ class TestSharedServiceIntegration:
 
     @pytest.mark.timeout(10)
     def test_agent_status_aggregation(
-        self, monkeypatch: pytest.MonkeyPatch, config_file: Path, dist_with_fake_executable: Path,
+        self, long_running_agent_env: None, config_file: Path, dist_with_fake_executable: Path,
     ) -> None:
         """
         Test agent status aggregation from multiple services.
         """
-        monkeypatch.setenv("FAKE_AGENT_BEHAVIOR", "long")
         service_manager = ServiceManager(dist_with_fake_executable)
 
         agent = Agent(

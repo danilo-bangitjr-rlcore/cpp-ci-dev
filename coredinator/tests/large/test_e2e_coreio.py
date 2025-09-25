@@ -4,6 +4,7 @@ import pytest
 import requests
 
 from tests.utils.api_client import CoredinatorAPIClient
+from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService
 
 
@@ -87,7 +88,7 @@ def test_coreio_service_sharing(
 
     # Create additional config files for testing
     config2 = config_file.parent / "config2.yaml"
-    config2.write_text("dummy: true\n")
+    create_dummy_config(config2)
 
     api_client = CoredinatorAPIClient(base_url)
 
@@ -127,7 +128,7 @@ def test_coreio_service_stop_shared_protection(
 
     # Start two services with shared CoreIO
     config2 = config_file.parent / "config2.yaml"
-    config2.write_text("dummy: true\n")
+    create_dummy_config(config2)
 
     api_client = CoredinatorAPIClient(base_url)
 
@@ -198,7 +199,7 @@ def test_coreio_service_list_empty_and_multiple(
 
     # Start multiple services with different configurations
     config2 = config_file.parent / "config2.yaml"
-    config2.write_text("dummy: true\n")
+    create_dummy_config(config2)
 
     api_client = CoredinatorAPIClient(base_url)
 
@@ -210,7 +211,7 @@ def test_coreio_service_list_empty_and_multiple(
     api_client.start_coreio_service(str(config2), shared_id)
 
     config3 = config_file.parent / "config3.yaml"
-    config3.write_text("dummy: true\n")
+    create_dummy_config(config3)
     api_client.start_coreio_service(str(config3), shared_id)
 
     # Verify listing shows correct services and metadata
