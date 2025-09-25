@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -162,8 +163,9 @@ def test_start_with_missing_executables_returns_400(
 ):
     # The base_path is the same as dist_with_fake_executable passed to --base-path
     base_path = dist_with_fake_executable
-    for name in ("coreio-1.0.0", "corerl-1.0.0"):
-        p = base_path / name
+    for base_name in ("coreio-1.0.0", "corerl-1.0.0"):
+        executable_name = f"{base_name}.exe" if os.name == "nt" else base_name
+        p = base_path / executable_name
         try:
             p.unlink()
         except FileNotFoundError:
