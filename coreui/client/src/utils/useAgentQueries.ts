@@ -1,7 +1,16 @@
-import { useQuery, useQueries } from '@tanstack/react-query';
+import {
+  useQuery,
+  useQueries,
+  useMutation,
+  useQueryClient,
+} from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
 
-// Config API functions
+// Mock state storage - in real implementation this would be handled by the backend
+const mockAgentStates = new Map<string, 'running' | 'stopped'>();
+const mockIOStates = new Map<string, 'running' | 'stopped'>();
+
+// Config API functions (unchanged)
 const fetchConfigList = async (): Promise<string[]> => {
   const response = await get(API_ENDPOINTS.configs.list_raw);
   if (!response.ok) {
@@ -69,5 +78,101 @@ export const useAgentNameQuery = (configName?: string) => {
     queryKey: ['agentName', configName],
     queryFn: () => fetchAgentName(configName!),
     enabled: !!configName,
+  });
+};
+
+export const useAgentStatusQuery = (configName: string) => {
+  return useQuery({
+    queryKey: ['agent-status', configName],
+    queryFn: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Get current state from mock storage or default to 'stopped'
+      const currentState = mockAgentStates.get(configName) ?? 'stopped';
+
+      return {
+        state: currentState,
+        version: '1.0.0',
+        uptime: currentState === 'running' ? '5 hours' : '0 minutes',
+      };
+    },
+    enabled: true,
+  });
+};
+
+export const useAgentToggleMutation = (configName: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      configName,
+      action,
+    }: {
+      configName: string;
+      action: 'start' | 'stop';
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Update mock state
+      const newState = action === 'start' ? 'running' : 'stopped';
+      mockAgentStates.set(configName, newState);
+
+      return {
+        success: true,
+        message: `Agent ${configName} ${action}ed successfully`,
+        state: newState,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['agent-status', configName],
+      });
+    },
+  });
+};
+
+export const useIOStatusQuery = (configName: string) => {
+  return useQuery({
+    queryKey: ['io-status', configName],
+    queryFn: async () => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const currentState = mockIOStates.get(configName) ?? 'stopped';
+
+      return {
+        state: currentState,
+      };
+    },
+    enabled: true,
+  });
+};
+
+export const useIOToggleMutation = (configName: string) => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({
+      configName,
+      action,
+    }: {
+      configName: string;
+      action: 'start' | 'stop';
+    }) => {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      const newState = action === 'start' ? 'running' : 'stopped';
+      mockIOStates.set(configName, newState);
+
+      return {
+        success: true,
+        message: `I/O service ${configName} ${action}ed successfully`,
+        state: newState,
+      };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['io-status', configName],
+      });
+    },
   });
 };
