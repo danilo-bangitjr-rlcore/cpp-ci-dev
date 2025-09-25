@@ -15,11 +15,13 @@ from corerl.messages.event_bus import DummyEventBus, EventBus
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
+
 logger = logging.getLogger(__name__)
 
+
 @dataclass
-class AppState[AppEventBus: (EventBus, DummyEventBus)]:
-    cfg: MainConfig
+class AppState[AppEventBus: (EventBus, DummyEventBus), AppMainConfig: MainConfig]:
+    cfg: AppMainConfig
     evals: EvalsWriterProtocol
     metrics: MetricsWriterProtocol
     event_bus: AppEventBus

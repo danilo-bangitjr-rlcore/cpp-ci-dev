@@ -36,7 +36,7 @@ def main(cfg: OfflineMainConfig):
     np.random.seed(seed)
     random.seed(seed)
 
-    app_state = AppState(
+    app_state = AppState[DummyEventBus, OfflineMainConfig](
         cfg=cfg,
         metrics=create_metrics_writer(cfg.metrics),
         evals=create_evals_writer(cfg.evals),

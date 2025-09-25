@@ -43,7 +43,7 @@ def pipeline(cfg: MainConfig, app_state: AppState):
 @pytest.mark.parametrize('data_mode', [DataMode.OFFLINE, DataMode.ONLINE])
 def test_zones1(
     cfg: MainConfig,
-    app_state: AppState[DummyEventBus],
+    app_state: AppState[DummyEventBus, MainConfig],
     pipeline: Pipeline,
     data_mode: DataMode,
 ):
