@@ -1,8 +1,8 @@
 import { createFileRoute } from '@tanstack/react-router';
 import { useRete } from 'rete-react-plugin';
-import { createEditor } from '../components/reward-components/Editor';
+import { createEditor } from '../../../components/reward-components/Editor';
 
-export const Route = createFileRoute('/reward')({
+export const Route = createFileRoute('/agents/$config-name/reward')({
   component: RouteComponent,
 });
 

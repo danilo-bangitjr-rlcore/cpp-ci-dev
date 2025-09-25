@@ -24,8 +24,6 @@ const baseNavItems = [
   },
   { label: 'OPC Navigation', to: '/opc-navigation' },
   { label: 'About', to: '/about' },
-  { label: 'Tags', to: '/tags' },
-  { label: 'Reward', to: '/reward' },
 ];
 
 const headerItems = [
@@ -46,6 +44,16 @@ function useAgentContextNav() {
         {
           label: 'General Settings',
           to: '/agents/$config-name/general-settings',
+          params: { 'config-name': configName },
+        },
+        {
+          label: 'Observation Tags',
+          to: '/agents/$config-name/tags',
+          params: { 'config-name': configName },
+        },
+        {
+          label: 'Reward Configuration',
+          to: '/agents/$config-name/reward',
           params: { 'config-name': configName },
         },
         {

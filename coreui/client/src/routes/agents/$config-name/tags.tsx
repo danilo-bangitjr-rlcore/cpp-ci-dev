@@ -1,13 +1,13 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ObsCard } from '../components/obs-card-components/ObsCard';
-import { TrashIcon } from '../components/icons/TrashIcon';
-import { useTagConfigs } from '../utils/useTagConfigs';
+import { ObsCard } from '../../../components/obs-card-components/ObsCard';
+import { TrashIcon } from '../../../components/icons/TrashIcon';
+import { useTagConfigs } from '../../../utils/useTagConfigs';
 
-export const Route = createFileRoute('/tags')({
-  component: Tags,
+export const Route = createFileRoute('/agents/$config-name/tags')({
+  component: ObsTags,
 });
 
-function Tags() {
+function ObsTags() {
   const {
     configs,
     isPending,
