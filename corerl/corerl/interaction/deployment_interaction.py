@@ -137,7 +137,10 @@ class DeploymentInteraction:
         self.load_historical_chunk()
         self._agent.log_buffer_sizes()
         # and then perform warmup updates
-        for _ in range(self._cfg.update_warmup):
+        logger.info("Beginning agent pretraining...")
+        for i in range(self._cfg.update_warmup):
+            if i % 10 == 0:
+                logger.info(f"\tUpdate {i}/{self._cfg.update_warmup}")
             self._agent.update()
 
     def _init_heartbeat(self):
@@ -365,6 +368,7 @@ class DeploymentInteraction:
         if end_time - start_time < self.obs_period:
             return
 
+        logger.info(f"Reading data from {start_time} to {end_time}...")
         chunk_data = self._env.data_reader.batch_aggregated_read(
             names=self._env.tag_names,
             start_time=start_time,
@@ -372,8 +376,8 @@ class DeploymentInteraction:
             bucket_width=self.obs_period,
             tag_aggregations=self._env.tag_aggs,
         )
-        logger.info(f"Loading chunk data from {chunk_data.index[0]} to {chunk_data.index[-1]}")
 
+        logger.info(f"Loading data from {chunk_data.index[0]} to {chunk_data.index[-1]} into pipeline...")
         pipeline_out = self._pipeline(
             data=chunk_data,
             data_mode=DataMode.OFFLINE,
