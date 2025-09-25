@@ -353,6 +353,7 @@ class GreedyAC(BaseAgent):
 
         self.critic_buffer.feed(jax_transitions, pr.data_mode)
         recent_actor_idxs = self._actor_buffer.feed(jax_transitions, pr.data_mode)
+        self.log_buffer_sizes()
 
         # ---------------------------------- ingress actor loss metic --------------------------------- #
         if len(recent_actor_idxs) > 0:
@@ -583,6 +584,18 @@ class GreedyAC(BaseAgent):
             "policy": [self._actor_buffer.size],
         }
 
+    def log_buffer_sizes(self):
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric="BUFFER-CRITIC-size",
+            value=self.critic_buffer.size,
+        )
+
+        self._app_state.metrics.write(
+            agent_step=self._app_state.agent_step,
+            metric="BUFFER-ACTOR-size",
+            value=self._actor_buffer.size,
+        )
 
 def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
     """
