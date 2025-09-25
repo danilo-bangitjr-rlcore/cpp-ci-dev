@@ -131,6 +131,7 @@ class MaskedAutoencoder(BaseImputer):
         self._params = self._net.init(init_rng, jnp.ones(in_shape))
         self._optim = optax.adam(learning_rate=imputer_cfg.train_cfg.stepsize)
         self._opt_state = self._optim.init(self._params)
+        assert not np.isnan(self._cfg.prop_missing_tol)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         ts = dict_u.assign_default(pf.temporal_state, StageCode.IMPUTER, MaskedAETemporalState)

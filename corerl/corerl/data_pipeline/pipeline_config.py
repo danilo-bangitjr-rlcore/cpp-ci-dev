@@ -37,7 +37,7 @@ class PipelineConfig:
 
     # stage-wide configs
     delta: DeltaStageConfig = Field(default_factory=DeltaStageConfig)
-    imputer: ImputerStageConfig = Field(default_factory=PerTagImputerConfig)
+    imputer: ImputerStageConfig = Field(default_factory=MaskedAEConfig)
     oddity_filter: GlobalOddityFilterConfig = Field(default_factory=GlobalOddityFilterConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
     transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
@@ -48,11 +48,6 @@ class PipelineConfig:
     @classmethod
     def _max_data_gap(cls, cfg: MainConfig):
         return 2 * cfg.interaction.obs_period
-
-    @post_processor
-    def _enable_autoencoder_imputer(self, cfg: MainConfig):
-        if cfg.feature_flags.autoencoder_imputer:
-            self.imputer = MaskedAEConfig()
 
     @post_processor
     def _cascade_dependencies(self, cfg: MainConfig):
