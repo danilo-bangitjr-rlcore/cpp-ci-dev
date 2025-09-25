@@ -135,6 +135,7 @@ class DeploymentInteraction:
     def _pretrain(self):
         # load first historical chunk
         self.load_historical_chunk()
+        self._agent.log_buffer_sizes()
         # and then perform warmup updates
         for _ in range(self._cfg.update_warmup):
             self._agent.update()
