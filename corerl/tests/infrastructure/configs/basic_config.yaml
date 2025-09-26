@@ -1,6 +1,3 @@
-feature_flags:
-  autoencoder_imputer: False
-
 interaction:
   name: sim_interaction
   obs_period: 00:05:00

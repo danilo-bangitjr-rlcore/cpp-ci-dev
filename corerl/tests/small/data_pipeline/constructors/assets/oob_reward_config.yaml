@@ -58,5 +58,3 @@ pipeline:
   - name: tag-3
     operating_range: [0, 5]
 
-feature_flags:
-  autoencoder_imputer: false
