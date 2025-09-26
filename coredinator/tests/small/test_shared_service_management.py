@@ -1,7 +1,28 @@
 from pathlib import Path
 
+import pytest
+
+from coredinator.app import create_app
 from coredinator.service.protocols import ServiceBundleID, ServiceID
 from coredinator.service.service_manager import ServiceManager
+
+
+def test_create_app_creates_base_path(tmp_path: Path):
+    base_path = tmp_path / "nested" / "services"
+    assert not base_path.exists()
+
+    app = create_app(base_path)
+
+    assert base_path.is_dir()
+    assert app.state.base_path == base_path.resolve()
+
+
+def test_create_app_rejects_file_base_path(tmp_path: Path):
+    file_path = tmp_path / "not_a_dir"
+    file_path.write_text("data")
+
+    with pytest.raises(ValueError):
+        create_app(file_path)
 
 
 class MockServiceBundle:
@@ -16,6 +37,23 @@ class MockServiceBundle:
 
 
 class TestServiceManagerOwnership:
+    def test_service_manager_creates_base_path(self, tmp_path: Path):
+        nested_path = tmp_path / "nested" / "services"
+        assert not nested_path.exists()
+
+        service_manager = ServiceManager(nested_path)
+
+        assert nested_path.is_dir()
+        # ensure manager still functional after creating directory
+        assert service_manager.list_services() == []
+
+    def test_service_manager_rejects_file_base_path(self, tmp_path: Path):
+        file_path = tmp_path / "not_a_dir"
+        file_path.write_text("data")
+
+        with pytest.raises(ValueError):
+            ServiceManager(file_path)
+
     def test_service_manager_tracks_ownership(self, tmp_path: Path):
         """
         Test that ServiceManager properly tracks service ownership.
