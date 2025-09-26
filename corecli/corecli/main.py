@@ -6,6 +6,11 @@ import click
 from rich.console import Console
 from rich.logging import RichHandler
 
+from corecli.agent import agent
+from corecli.config import config
+from corecli.coredinator import coredinator
+from corecli.dev import dev
+
 console = Console()
 logging.basicConfig(
     level=logging.INFO,
@@ -18,38 +23,53 @@ log = logging.getLogger(__name__)
 
 
 @click.group()
-@click.option('--verbose', '-v', is_flag=True, help='Enable verbose output')
+@click.option("--verbose", "-v", is_flag=True, help="Enable verbose output")
+@click.option("--quiet", "-q", is_flag=True, help="Suppress non-essential output")
+@click.option("--config-dir", help="Override default config directory")
+@click.option("--coredinator-url", help="Override default coredinator URL")
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool) -> None:
-    """CoreCLI - Command line tools"""
+def cli(ctx: click.Context, verbose: bool, quiet: bool, config_dir: str | None, coredinator_url: str | None) -> None:
+    """
+    CoreCLI - Command line tools for the engineering team.
+    """
     ctx.ensure_object(dict)
-    ctx.obj['verbose'] = verbose
+    ctx.obj["verbose"] = verbose
+    ctx.obj["quiet"] = quiet
+    ctx.obj["config_dir"] = config_dir
+    ctx.obj["coredinator_url"] = coredinator_url
 
-    if verbose:
+    if quiet:
+        logging.getLogger().setLevel(logging.WARNING)
+    elif verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         log.debug("Verbose mode enabled")
 
-
-@cli.command()
-@click.option('--name', '-n', default='Developer', help='Name to greet')
-@click.pass_context
-def hello(ctx: click.Context, name: str) -> None:
-    console.print(f"👋 Hello, {name}!", style="bold green")
-    console.print("Welcome to CoreCLI - your development companion!")
-
-    if ctx.obj.get('verbose'):
-        console.print(f"[dim]Debug: Greeting user '{name}'[/dim]")
+    if config_dir:
+        log.debug(f"Using config directory: {config_dir}")
+    if coredinator_url:
+        log.debug(f"Using coredinator URL: {coredinator_url}")
 
 
 @cli.command()
 def version() -> None:
+    """
+    Show the version of corecli.
+    """
     from corecli import __version__
+
     console.print(f"CoreCLI version: {__version__}", style="bold blue")
+
+
+# Register command groups
+cli.add_command(dev)
+cli.add_command(coredinator)
+cli.add_command(agent)
+cli.add_command(config)
 
 
 def main() -> Any:
     return cli()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
