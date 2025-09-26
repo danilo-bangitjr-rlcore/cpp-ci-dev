@@ -1,12 +1,19 @@
 import json
+import tempfile
 import threading
 import time
+from collections.abc import Generator
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
+from click.testing import CliRunner as ClickCliRunner
+from test.infrastructure.networking import get_free_port
 
 from corecli.main import cli
+from corecli.utils.coredinator import is_coredinator_running, wait_for_coredinator_stop
+from tests.utils.cli import CliRunner
+from tests.utils.waiting import wait_for_event
 
 
 class _TestHandler(BaseHTTPRequestHandler):
@@ -89,10 +96,64 @@ def http_server_url():
 
 
 @pytest.fixture
-def runner() -> CliRunner:
-    return CliRunner()
+def runner() -> ClickCliRunner:
+    return ClickCliRunner()
 
 
 @pytest.fixture
 def cli_app():
     return cli
+
+
+@pytest.fixture
+def running_coredinator(
+    free_port: int,
+    corecli_runner: CliRunner,
+    coredinator_log_file: Path,
+    coredinator_base_path: Path,
+) -> Generator[int]:
+    start_result = corecli_runner.start_coredinator(free_port, coredinator_log_file, coredinator_base_path)
+    assert start_result.returncode == 0, f"Start command failed: {start_result.stderr}"
+
+    wait_for_event(
+        lambda: is_coredinator_running(free_port),
+        timeout=30.0,
+        description=f"coredinator to start on port {free_port}",
+    )
+
+    yield free_port
+
+    # Cleanup
+    corecli_runner.stop_coredinator(free_port)
+    wait_for_coredinator_stop(free_port, timeout=10.0)
+
+
+@pytest.fixture
+def free_port() -> int:
+    return get_free_port("localhost")
+
+
+@pytest.fixture
+def monorepo_root() -> Path:
+    return Path(__file__).parent.parent.parent
+
+
+@pytest.fixture
+def corecli_runner(monorepo_root: Path) -> CliRunner:
+    return CliRunner(monorepo_root)
+
+
+@pytest.fixture
+def temp_log_dir():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield Path(temp_dir)
+
+
+@pytest.fixture
+def coredinator_log_file(temp_log_dir: Path) -> Path:
+    return temp_log_dir / "coredinator.log"
+
+
+@pytest.fixture
+def coredinator_base_path(tmp_path: Path) -> Path:
+    return tmp_path / "coredinator_data"
