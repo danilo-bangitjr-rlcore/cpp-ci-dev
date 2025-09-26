@@ -1,9 +1,9 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from types import TracebackType
 from typing import Any
-import asyncio
 
 import backoff
 from asyncua import Client, Node, ua

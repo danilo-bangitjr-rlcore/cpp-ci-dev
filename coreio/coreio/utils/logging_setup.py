@@ -18,8 +18,11 @@ class StderrToFile:
         # Write to original stderr (console)
         self.original_stderr.write(text)
         # Also write to file
-        with open(self.log_file_path, 'a', encoding='utf-8') as f:
-            f.write(text)
+        try:
+            with open(self.log_file_path, 'a', encoding='utf-8') as f:
+                f.write(text)
+        except Exception:
+            pass
 
     def flush(self) -> None:
         self.original_stderr.flush()
