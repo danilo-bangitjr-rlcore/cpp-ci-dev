@@ -81,9 +81,6 @@ class FeatureFlags:
     # 2025-05-26
     normalize_return: bool = False
 
-    # 2025-06-06
-    autoencoder_imputer: bool = True
-
     # 2025-06-11
     nominal_setpoint_bias: bool = True
 

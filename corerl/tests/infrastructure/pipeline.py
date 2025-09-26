@@ -39,3 +39,23 @@ def fake_pipeline_data():
         columns=cols,
         index=idx,
     )
+
+@pytest.fixture
+def fake_clean_pipeline_data():
+    start = datetime.datetime.now(datetime.UTC)
+    Δ = datetime.timedelta(minutes=5)
+    idx = make_time_index(start, 7, Δ)
+    cols = ['tag-1', 'tag-2', 'reward', 'action-1']
+    return pd.DataFrame(
+        data=[
+            [0,      0,        0,    0],
+            [0,      2,        3,    1],
+            [1,      4,        0,    0],
+            [2,      6,        0,    1],
+            [3,      8,        0,    0],
+            [4,      10,       1,    1],
+            [5,      12,       0,    0],
+        ],
+        columns=cols,
+        index=idx,
+    )
