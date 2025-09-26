@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.1](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.0...coreio-v0.11.1) (2025-09-26)
+
+
+### Bug Fixes
+
+* **PROD-837:** Client URI from Client Certificate ([f33fcde](https://github.com/rlcoretech/core-rl/commit/f33fcde48afe07d83b5742eb9d8055e3aa8c04a7))
+
 ## [0.11.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.10.0...coreio-v0.11.0) (2025-09-24)
 
 

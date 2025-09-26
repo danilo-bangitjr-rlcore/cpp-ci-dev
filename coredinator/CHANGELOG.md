@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.2.1](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.2.0...coredinator-v0.2.1) (2025-09-26)
+
+
+### Bug Fixes
+
+* **coredinator:** improve windows service daemon capabilities ([d19985e](https://github.com/rlcoretech/core-rl/commit/d19985ee3fa4009bd3eb4809d6605a24fe57384a))
+* **coredinator:** remove circular import issues ([8dc0616](https://github.com/rlcoretech/core-rl/commit/8dc06164db63ca074aed255445f469d3944ca57e))
+* **coredinator:** use more reliable windows detection ([b782263](https://github.com/rlcoretech/core-rl/commit/b782263eea43d8996598f25f1080667db7c6dc03))
+
 ## [0.2.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.1.0...coredinator-v0.2.0) (2025-09-24)
 
 
