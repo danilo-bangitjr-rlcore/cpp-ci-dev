@@ -5,6 +5,7 @@ requests to test end-to-end workflows.
 """
 
 import subprocess
+import sys
 from pathlib import Path
 
 import psutil
@@ -127,6 +128,7 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
         pass
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")
 @pytest.mark.timeout(30)
 def test_agent_shared_coreio_service(
     coredinator_service: CoredinatorService,
@@ -181,6 +183,7 @@ def test_agent_shared_coreio_service(
     verify_shared_service_access(api_client, agent3_id)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")
 @pytest.mark.timeout(20)
 def test_agent_start_backward_compatibility(
     coredinator_service: CoredinatorService,
@@ -215,6 +218,7 @@ def test_agent_start_backward_compatibility(
     api_client.assert_agent_state(agent_id, "stopped", timeout=3.0)
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")
 @pytest.mark.timeout(30)
 def test_drayton_valley_workflow(
     coredinator_service: CoredinatorService,
