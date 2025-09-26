@@ -58,8 +58,17 @@ def start_coredinator(
         .or_else(coredinator_exe.parent.parent)
     )
 
-    command = [
-        "python",
+    command = []
+    if coredinator_exe.suffix == ".py":
+        venv_path = coredinator_exe.parent.parent / ".venv"
+        command = [
+            "uv",
+            "run",
+            "--python",
+            str(venv_path / "bin" / "python"),
+        ]
+
+    command += [
         str(coredinator_exe),
         "--base-path",
         str(resolved_base_path),
