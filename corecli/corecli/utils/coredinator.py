@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 from pathlib import Path
@@ -45,6 +46,8 @@ def start_coredinator(
     base_path: Path | None = None,
     log_file: Path | None = None,
 ) -> int:
+    log = logging.getLogger(__name__)
+
     if is_coredinator_running(port):
         pid_maybe = get_coredinator_pid(port)
         raise RuntimeError(
@@ -52,11 +55,13 @@ def start_coredinator(
         )
 
     coredinator_exe = find_coredinator_executable()
+    log.debug(f"Found coredinator executable: {coredinator_exe}")
 
     resolved_base_path = (
         Maybe(base_path)
         .or_else(coredinator_exe.parent.parent)
     )
+    log.debug(f"Resolved base path: {resolved_base_path}")
 
     command = []
     if coredinator_exe.suffix == ".py":
@@ -76,11 +81,21 @@ def start_coredinator(
         str(port),
     ]
 
-    return start_daemon_process(
-        command=command,
-        cwd=coredinator_exe.parent,
-        log_file=log_file,
-    )
+    log.debug(f"Starting coredinator with command: {command}")
+    log.debug(f"Working directory: {coredinator_exe.parent}")
+    log.debug(f"Log file: {log_file}")
+
+    try:
+        return start_daemon_process(
+            command=command,
+            cwd=coredinator_exe.parent,
+            log_file=log_file,
+        )
+    except Exception as e:
+        log.error(f"Failed to start coredinator daemon: {e}")
+        log.error(f"Command was: {command}")
+        log.error(f"Working directory was: {coredinator_exe.parent}")
+        raise
 
 
 def stop_coredinator(port: int = 8000, timeout: float = 10.0) -> bool:

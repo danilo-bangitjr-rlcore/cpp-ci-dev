@@ -23,7 +23,7 @@ class CliRunner:
         cmd = [str(self.cli_binary), *args]
         return subprocess.run(cmd, cwd=cwd, capture_output=True, text=True, check=check)
 
-    def start_coredinator(self, port: int, log_file: Path, base_path: Path, check: bool = True):
+    def start_coredinator(self, port: int, log_file: Path, base_path: Path, check: bool = False):
         args = ["coredinator", "start", "--port", str(port), "--log-file", str(log_file), "--base-path", str(base_path)]
         return self.run_command(*args, check=check)
 

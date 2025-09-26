@@ -12,6 +12,7 @@ from test.infrastructure.networking import get_free_port
 
 from corecli.main import cli
 from corecli.utils.coredinator import is_coredinator_running, wait_for_coredinator_stop
+from corecli.utils.daemon import read_log_file_safely
 from tests.utils.cli import CliRunner
 from tests.utils.waiting import wait_for_event
 
@@ -113,7 +114,19 @@ def running_coredinator(
     coredinator_base_path: Path,
 ) -> Generator[int]:
     start_result = corecli_runner.start_coredinator(free_port, coredinator_log_file, coredinator_base_path)
-    assert start_result.returncode == 0, f"Start command failed: {start_result.stderr}"
+
+    if start_result.returncode != 0:
+        error_details = [
+            f"Start command failed with exit code {start_result.returncode}",
+            f"STDOUT: {start_result.stdout}",
+            f"STDERR: {start_result.stderr}",
+        ]
+
+        # Get log file contents using our utility function
+        log_info = read_log_file_safely(coredinator_log_file)
+        error_details.append(log_info)
+
+        pytest.fail("\n".join(error_details))
 
     wait_for_event(
         lambda: is_coredinator_running(free_port),

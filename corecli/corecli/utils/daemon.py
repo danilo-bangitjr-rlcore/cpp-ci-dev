@@ -8,6 +8,22 @@ import psutil
 from lib_utils.maybe import Maybe
 
 
+def read_log_file_safely(log_file: Path | None) -> str:
+    if not log_file:
+        return "No log file specified"
+
+    if not log_file.exists():
+        return f"Log file does not exist: {log_file}"
+
+    try:
+        log_contents = log_file.read_text()
+        if log_contents.strip():
+            return f"Log file contents:\n{log_contents}"
+        return "Log file is empty"
+    except Exception as e:
+        return f"Could not read log file {log_file}: {e}"
+
+
 def start_daemon_process(
     command: list[str],
     cwd: Path | None = None,
@@ -45,7 +61,12 @@ def start_daemon_process(
         time.sleep(0.1)
 
         if process.poll() is not None:
-            raise subprocess.CalledProcessError(process.returncode, command)
+            # Process failed immediately - get error details with log context
+            error_details = f"Command {command} failed with exit code {process.returncode}"
+            log_info = read_log_file_safely(log_file)
+            error_details += f"\n{log_info}"
+
+            raise subprocess.CalledProcessError(process.returncode, command, output=error_details)
 
         return process.pid
 
