@@ -9,27 +9,17 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TagsRouteImport } from './routes/tags'
-import { Route as RewardRouteImport } from './routes/reward'
 import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as AgentsConfigNameRouteImport } from './routes/agents/$config-name'
 import { Route as AgentsConfigNameIndexRouteImport } from './routes/agents/$config-name/index'
+import { Route as AgentsConfigNameTagsRouteImport } from './routes/agents/$config-name/tags'
+import { Route as AgentsConfigNameRewardRouteImport } from './routes/agents/$config-name/reward'
 import { Route as AgentsConfigNameMonitorRouteImport } from './routes/agents/$config-name/monitor'
 import { Route as AgentsConfigNameGeneralSettingsRouteImport } from './routes/agents/$config-name/general-settings'
 
-const TagsRoute = TagsRouteImport.update({
-  id: '/tags',
-  path: '/tags',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RewardRoute = RewardRouteImport.update({
-  id: '/reward',
-  path: '/reward',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const OpcNavigationRoute = OpcNavigationRouteImport.update({
   id: '/opc-navigation',
   path: '/opc-navigation',
@@ -60,6 +50,16 @@ const AgentsConfigNameIndexRoute = AgentsConfigNameIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AgentsConfigNameRoute,
 } as any)
+const AgentsConfigNameTagsRoute = AgentsConfigNameTagsRouteImport.update({
+  id: '/tags',
+  path: '/tags',
+  getParentRoute: () => AgentsConfigNameRoute,
+} as any)
+const AgentsConfigNameRewardRoute = AgentsConfigNameRewardRouteImport.update({
+  id: '/reward',
+  path: '/reward',
+  getParentRoute: () => AgentsConfigNameRoute,
+} as any)
 const AgentsConfigNameMonitorRoute = AgentsConfigNameMonitorRouteImport.update({
   id: '/monitor',
   path: '/monitor',
@@ -76,23 +76,23 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
-  '/reward': typeof RewardRoute
-  '/tags': typeof TagsRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
+  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
-  '/reward': typeof RewardRoute
-  '/tags': typeof TagsRoute
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
+  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRoutesById {
@@ -100,12 +100,12 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/opc-navigation': typeof OpcNavigationRoute
-  '/reward': typeof RewardRoute
-  '/tags': typeof TagsRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
+  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRouteTypes {
@@ -114,35 +114,35 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/opc-navigation'
-    | '/reward'
-    | '/tags'
     | '/agents/$config-name'
     | '/agents'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
+    | '/agents/$config-name/reward'
+    | '/agents/$config-name/tags'
     | '/agents/$config-name/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/opc-navigation'
-    | '/reward'
-    | '/tags'
     | '/agents'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
+    | '/agents/$config-name/reward'
+    | '/agents/$config-name/tags'
     | '/agents/$config-name'
   id:
     | '__root__'
     | '/'
     | '/about'
     | '/opc-navigation'
-    | '/reward'
-    | '/tags'
     | '/agents/$config-name'
     | '/agents/'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
+    | '/agents/$config-name/reward'
+    | '/agents/$config-name/tags'
     | '/agents/$config-name/'
   fileRoutesById: FileRoutesById
 }
@@ -150,28 +150,12 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
-  RewardRoute: typeof RewardRoute
-  TagsRoute: typeof TagsRoute
   AgentsConfigNameRoute: typeof AgentsConfigNameRouteWithChildren
   AgentsIndexRoute: typeof AgentsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tags': {
-      id: '/tags'
-      path: '/tags'
-      fullPath: '/tags'
-      preLoaderRoute: typeof TagsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reward': {
-      id: '/reward'
-      path: '/reward'
-      fullPath: '/reward'
-      preLoaderRoute: typeof RewardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/opc-navigation': {
       id: '/opc-navigation'
       path: '/opc-navigation'
@@ -214,6 +198,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsConfigNameIndexRouteImport
       parentRoute: typeof AgentsConfigNameRoute
     }
+    '/agents/$config-name/tags': {
+      id: '/agents/$config-name/tags'
+      path: '/tags'
+      fullPath: '/agents/$config-name/tags'
+      preLoaderRoute: typeof AgentsConfigNameTagsRouteImport
+      parentRoute: typeof AgentsConfigNameRoute
+    }
+    '/agents/$config-name/reward': {
+      id: '/agents/$config-name/reward'
+      path: '/reward'
+      fullPath: '/agents/$config-name/reward'
+      preLoaderRoute: typeof AgentsConfigNameRewardRouteImport
+      parentRoute: typeof AgentsConfigNameRoute
+    }
     '/agents/$config-name/monitor': {
       id: '/agents/$config-name/monitor'
       path: '/monitor'
@@ -234,12 +232,16 @@ declare module '@tanstack/react-router' {
 interface AgentsConfigNameRouteChildren {
   AgentsConfigNameGeneralSettingsRoute: typeof AgentsConfigNameGeneralSettingsRoute
   AgentsConfigNameMonitorRoute: typeof AgentsConfigNameMonitorRoute
+  AgentsConfigNameRewardRoute: typeof AgentsConfigNameRewardRoute
+  AgentsConfigNameTagsRoute: typeof AgentsConfigNameTagsRoute
   AgentsConfigNameIndexRoute: typeof AgentsConfigNameIndexRoute
 }
 
 const AgentsConfigNameRouteChildren: AgentsConfigNameRouteChildren = {
   AgentsConfigNameGeneralSettingsRoute: AgentsConfigNameGeneralSettingsRoute,
   AgentsConfigNameMonitorRoute: AgentsConfigNameMonitorRoute,
+  AgentsConfigNameRewardRoute: AgentsConfigNameRewardRoute,
+  AgentsConfigNameTagsRoute: AgentsConfigNameTagsRoute,
   AgentsConfigNameIndexRoute: AgentsConfigNameIndexRoute,
 }
 
@@ -250,8 +252,6 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   OpcNavigationRoute: OpcNavigationRoute,
-  RewardRoute: RewardRoute,
-  TagsRoute: TagsRoute,
   AgentsConfigNameRoute: AgentsConfigNameRouteWithChildren,
   AgentsIndexRoute: AgentsIndexRoute,
 }
