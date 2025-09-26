@@ -42,7 +42,7 @@ popd
 pushd coreio
 uv venv
 call .venv\Scripts\activate.bat
-uv sync --no-dev
+uv sync
 uv pip install pyinstaller
 pyinstaller --name "%COREIO_ARTIFACT_NAME%" --onefile coreio/main.py
 call deactivate
