@@ -130,3 +130,75 @@ def test_find_negative():
     got = m.unwrap()
 
     assert got is None
+
+
+def test_expect_with_string_message():
+    m = Maybe[int](None)
+
+    with pytest.raises(Exception) as excinfo:
+        m.expect('badness')
+
+    assert 'badness' in str(excinfo.value)
+
+
+def test_expect_with_exception_instance():
+    m = Maybe[int](None)
+    class MyErr(Exception):
+        pass
+
+    err = MyErr('boom')
+
+    with pytest.raises(MyErr):
+        m.expect(err)
+
+
+def test_flat_from_try_success():
+    def inner() -> Maybe[int]:
+        return Maybe(33)
+
+    got = Maybe.flat_from_try(inner).unwrap()
+    assert got == 33
+
+
+def test_flat_from_try_inner_none():
+    def inner() -> Maybe[int]:
+        return Maybe(None)
+
+    got = Maybe.flat_from_try(inner).unwrap()
+    assert got is None
+
+
+def test_flat_from_try_exception():
+    class MyErr(Exception):
+        pass
+
+    def inner() -> Maybe[int]:
+        raise MyErr('boom')
+    res = Maybe.flat_from_try(inner)
+    assert res.unwrap() is None
+
+
+def test_find_instance_returns_some_for_matching_type():
+    class A:
+        pass
+
+    class B:
+        pass
+
+    items = [B(), A(), B()]
+
+    maybe_a = Maybe.find_instance(A, items)
+
+    assert maybe_a.is_some()
+    assert isinstance(maybe_a.unwrap(), A)
+
+
+def test_find_instance_returns_none_when_no_match():
+    class A:
+        pass
+
+    items = [1, 2, 3]
+
+    maybe_a = Maybe.find_instance(A, items)
+
+    assert maybe_a.is_none()
