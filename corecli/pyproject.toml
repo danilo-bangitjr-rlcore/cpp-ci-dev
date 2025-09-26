@@ -1,0 +1,70 @@
+[project]
+name = "corecli"
+version = "0.1.0"
+description = "Command line tools for the RL development team"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "click>=8.1.7",
+    "colorlog>=6.9.0",
+    "lib-config",
+    "lib-utils",
+    "pydantic>=2.11.5",
+    "rich>=13.9.4",
+]
+
+[dependency-groups]
+dev = [
+    "pylint>=3.3.7",
+    "pyright>=1.1.401",
+    "pytest>=8.4.0",
+    "pytest-xdist>=3.7.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-coverage>=0.0",
+    "ruff>=0.11.12",
+    "test",
+    "uv>=0.7",
+]
+
+[project.scripts]
+corecli = "corecli.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["corecli"]
+
+[tool.uv.sources]
+test = { path = "../test", editable = true }
+lib-config = { path = "../libs/lib_config", editable = true }
+lib-utils = { path = "../libs/lib_utils", editable = true }
+
+[tool.pyright]
+extends='../standards/python/pyright.toml'
+include = ['.']
+exclude = [
+    '.venv/',
+]
+venvPath = '.'
+
+[tool.ruff]
+extend = "../standards/python/ruff.toml"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+version_scheme = "pep440"
+version_provider = "pep621"
+update_changelog_on_bump = true
+major_version_zero = true
+
+[tool.coverage.run]
+omit = ["tests/*"]
+concurrency = ["thread", "multiprocessing"]
