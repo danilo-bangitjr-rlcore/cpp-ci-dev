@@ -12,7 +12,7 @@ dependencies = [
     "lib-utils",
     "backoff~=2.2",
     "psutil~=7.0",
-    "structlog~=24.0",
+    "structlog~=25.4",
 ]
 readme = "README.md"
 
