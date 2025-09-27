@@ -83,7 +83,8 @@ class Service:
         if IS_WINDOWS:
             detached_process = getattr(subprocess, "DETACHED_PROCESS", 0)
             create_new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-            creationflags = detached_process | create_new_process_group
+            create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            creationflags = detached_process | create_new_process_group | create_no_window
             if creationflags:
                 popen_kwargs["creationflags"] = creationflags
 
@@ -193,7 +194,21 @@ class Service:
         if self._process is None:
             return False
 
-        return self._process.is_running() and self._process.status() != psutil.STATUS_ZOMBIE
+        try:
+            if not self._process.is_running():
+                return False
+
+            status = self._process.status()
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return False
+
+        # Check for terminated states based on platform
+        if IS_WINDOWS and status == psutil.STATUS_DEAD:
+            return False
+        if status == psutil.STATUS_ZOMBIE:
+            return False
+
+        return True
 
     def _build_args(self, exe: Path, cfg: Path) -> list[str]:
         return [str(exe), "--config-name", str(cfg)]
@@ -233,11 +248,19 @@ class Service:
         self._keep_alive_thread = t
 
 
+def _terminate_process_gracefully(process: psutil.Process, grace_seconds: float) -> None:
+    try:
+        process.terminate()
+        process.wait(timeout=grace_seconds)
+    except TimeoutExpired:
+        process.kill()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        pass
+
+
 @fail_gracefully()
 def stop_process(proc: psutil.Process, grace_seconds: float = 5.0) -> None:
     for child in proc.children(recursive=True):
-        child.terminate()
-        try:
-            child.wait(timeout=grace_seconds)
-        except TimeoutExpired:
-            child.kill()
+        _terminate_process_gracefully(child, grace_seconds)
+
+    _terminate_process_gracefully(proc, grace_seconds)

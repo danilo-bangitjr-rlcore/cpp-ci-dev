@@ -230,6 +230,9 @@ def test_failed_agent_status_when_child_exits_nonzero(
     cfg = tmp_path / "bad_agent.yaml"
     cfg.write_text("x: y\n")
 
+    # Use a short heartbeat interval for fast failure detection
+    monkeypatch.setenv("COREDINATOR_HEARTBEAT_INTERVAL", "0.2")
+
     start = app_client.post("/api/agents/start", json={"config_path": str(cfg)})
     assert start.status_code == 200
     agent_id = start.json()
