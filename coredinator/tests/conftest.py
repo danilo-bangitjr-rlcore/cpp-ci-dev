@@ -9,7 +9,7 @@ import psutil
 import pytest
 from PyInstaller.__main__ import run as pyinstaller_run
 
-from coredinator.utils.process import terminate_process_tree
+from coredinator.utils.process import find_processes_by_name_patterns, terminate_process_tree
 from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
 
@@ -157,3 +157,13 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
     except psutil.NoSuchProcess:
         # Process was already terminated (e.g., by test code)
         pass
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_lingering_processes():
+    """Session-scoped fixture to clean up any lingering coreio/corerl processes at the end of tests."""
+    yield
+
+    processes = find_processes_by_name_patterns(["coreio", "corerl", "fake_agent"])
+    for proc in processes:
+        terminate_process_tree(proc, timeout=2.0)
