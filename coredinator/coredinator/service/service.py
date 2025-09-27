@@ -135,7 +135,7 @@ class Service:
         log.info("Service process cleanup completed", service_id=self.id, pid=process_id)
 
     def restart(self):
-        current_pid = self._process.pid if self._process else "None"
+        current_pid = self._process.pid if self._process else None
         log.info("Service restart requested", service_id=self.id, mode=self._mode, current_pid=current_pid)
         # Only restart if we're supposed to be running
         if self._mode != ServiceMode.STARTED:
@@ -144,7 +144,7 @@ class Service:
         log.info("Service performing restart sequence", service_id=self.id, stopping_pid=current_pid)
         self.stop()
         self.start()
-        new_pid = self._process.pid if self._process else "None"
+        new_pid = self._process.pid if self._process else None
         log.info("Service restart sequence completed", service_id=self.id, old_pid=current_pid, new_pid=new_pid)
 
     def status(self):
@@ -269,6 +269,49 @@ class Service:
     # -------------
     # -- Private --
     # -------------
+    def _get_current_pid(self) -> int | None:
+        return self._process.pid if self._process else None
+
+    def _monitor_exit(self) -> None:
+        monitor_pid = self._get_current_pid()
+        log.debug("Service monitor thread exiting", service_id=self.id, was_monitoring_pid=monitor_pid)
+        self._keep_alive_thread = None
+
+    def _monitor_service_stopped(self) -> None:
+        monitor_pid = self._get_current_pid()
+        log.info(
+            "Service monitor thread stopping - service mode is STOPPED",
+            service_id=self.id,
+            was_monitoring_pid=monitor_pid,
+        )
+        self._keep_alive_thread = None
+
+    def _monitor_service_recovered(self) -> None:
+        current_pid = self._get_current_pid()
+        log.info("Service recovered - process is running again", service_id=self.id, pid=current_pid)
+
+    def _monitor_service_degraded(self) -> datetime:
+        failed_pid = self._get_current_pid()
+        log.warning(
+            "Service entered degraded state - process not running",
+            service_id=self.id,
+            failed_pid=failed_pid,
+        )
+        return datetime.now()
+
+    def _monitor_check_restart_needed(self, degraded_start: datetime) -> bool:
+        elapsed = datetime.now() - degraded_start
+        if elapsed >= self.config.degraded_wait:
+            elapsed_seconds = elapsed.total_seconds()
+            log.warning(
+                "Service triggering restart after degraded state",
+                service_id=self.id,
+                elapsed_seconds=round(elapsed_seconds, 1),
+            )
+            self.restart()
+            return True
+        return False
+
     def _keep_alive(self):
         if self._keep_alive_thread is not None and self._keep_alive_thread.is_alive():
             log.debug("Service background monitor already running", service_id=self.id)
@@ -277,54 +320,31 @@ class Service:
         log.info("Service starting background monitor thread", service_id=self.id)
 
         def monitor():
-            current_pid = self._process.pid if self._process else "None"
+            current_pid = self._get_current_pid()
             log.info("Service background monitor thread started", service_id=self.id, monitoring_pid=current_pid)
             degraded_start: datetime | None = None
             while True:
                 # Wait for the heartbeat interval or until we receive a stop signal
                 if self._stop_event.wait(timeout=self.config.heartbeat_interval.total_seconds()):
                     # Stop event was set - time to exit
-                    monitor_pid = self._process.pid if self._process else "None"
-                    log.debug("Service monitor thread exiting", service_id=self.id, was_monitoring_pid=monitor_pid)
-                    self._keep_alive_thread = None
+                    self._monitor_exit()
                     return
 
                 if self._mode == ServiceMode.STOPPED:
-                    monitor_pid = self._process.pid if self._process else "None"
-                    log.info(
-                        "Service monitor thread stopping - service mode is STOPPED",
-                        service_id=self.id,
-                        was_monitoring_pid=monitor_pid,
-                    )
-                    self._keep_alive_thread = None
+                    self._monitor_service_stopped()
                     return
 
                 if self._mode == ServiceMode.STARTED and self.is_running():
                     if degraded_start is not None:
-                        current_pid = self._process.pid if self._process else "None"
-                        log.info("Service recovered - process is running again", service_id=self.id, pid=current_pid)
+                        self._monitor_service_recovered()
                     degraded_start = None
                     continue
 
                 if degraded_start is None:
-                    failed_pid = self._process.pid if self._process else "None"
-                    log.warning(
-                        "Service entered degraded state - process not running",
-                        service_id=self.id,
-                        failed_pid=failed_pid,
-                    )
-                    degraded_start = datetime.now()
+                    degraded_start = self._monitor_service_degraded()
 
                 if degraded_start is not None:
-                    elapsed = datetime.now() - degraded_start
-                    if elapsed >= self.config.degraded_wait:
-                        elapsed_seconds = elapsed.total_seconds()
-                        log.warning(
-                            "Service triggering restart after degraded state",
-                            service_id=self.id,
-                            elapsed_seconds=round(elapsed_seconds, 1),
-                        )
-                        self.restart()
+                    if self._monitor_check_restart_needed(degraded_start):
                         degraded_start = None
 
         t = threading.Thread(target=monitor, daemon=True)
