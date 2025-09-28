@@ -26,6 +26,7 @@ The core writer is at the bottom of the composition stack and is responsible for
 
 - **`DynamicSchemaSqlWriter`**: This writer inspects the keys of incoming Python `dict` objects and ensures corresponding columns exist in the target database table. If a key does not have a matching column, it issues an `ALTER TABLE ADD COLUMN` statement. This is useful for development and scenarios where the data schema may evolve, but it carries performance overhead due to the continuous schema checks.
 - **`StaticSchemaSqlWriter`**: A writer for when the table schema is fixed and known ahead of time. It does not perform any schema inspection or modification, resulting in better performance than its dynamic counterpart.
+- **`NormalizedNarrowSqlWriter`**: A specialized writer for PostgreSQL that stores data in a normalized "narrow" format. It uses two tables: one for metric names (`metric_lookup`) and another for the data (`data_table`), which stores `(timestamp, metric_id, value)`. This design is efficient for high-volume time-series data but is specific to PostgreSQL due to its use of `ON CONFLICT DO NOTHING`.
 
 ## Composition Examples
 
@@ -71,3 +72,23 @@ In this simpler pipeline:
 1. The application calls `transform.write()` with complete row data.
 2. The `transform` buffers the rows.
 3. Upon flushing, the `transform` passes the batch to the `core_writer`, which inserts them into the database without performing schema checks.
+
+### Example 3: Transform -> Core (Normalized Narrow)
+
+This pattern is ideal for high-volume, time-series metric data where you want to avoid wide tables with many columns. It uses the `NormalizedNarrowSqlWriter` to store data efficiently.
+
+```python
+# Pseudocode for writer composition
+core_writer = NormalizedNarrowSqlWriter(engine, "ts_data")
+transform = BufferedSqlWriter(core_writer)
+
+# Application can now write rows directly to the transform
+transform.write({"timestamp": "2023-01-01T12:00:00", "metric": "cpu_usage", "value": 0.75})
+transform.write({"timestamp": "2023-01-01T12:00:00", "metric": "memory_usage", "value": 0.55})
+```
+
+In this pipeline:
+1. The application calls `transform.write()` with complete row data, including a timestamp, metric name, and value.
+2. The `transform` buffers the rows.
+3. Upon flushing, the `transform` passes the batch to the `core_writer`.
+4. The `core_writer` interns the metric names into IDs in a lookup table and inserts the `(timestamp, metric_id, value)` tuples into the main data table.
