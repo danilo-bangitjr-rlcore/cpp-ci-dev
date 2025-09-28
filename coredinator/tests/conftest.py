@@ -12,6 +12,7 @@ from PyInstaller.__main__ import run as pyinstaller_run
 from coredinator.utils.process import find_processes_by_name_patterns, terminate_process_tree
 from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
+from tests.utils.timeout_multiplier import apply_timeout_multiplier, get_timeout_multiplier
 
 FAKE_AGENT_BASENAMES: tuple[str, str] = ("coreio-1.0.0", "corerl-1.0.0")
 
@@ -70,6 +71,16 @@ def free_localhost_port():
     sock.close()
 
     return port
+
+
+@pytest.fixture()
+def platform_timeout_multiplier():
+    return get_timeout_multiplier()
+
+
+@pytest.fixture()
+def adjusted_timeout():
+    return apply_timeout_multiplier
 
 
 @pytest.fixture()
@@ -153,7 +164,7 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
     # Attempt clean shutdown - handle case where process was already terminated
     try:
         proc = psutil.Process(process.pid)
-        terminate_process_tree(proc, timeout=5.0)
+        terminate_process_tree(proc, timeout=apply_timeout_multiplier(5.0))
     except psutil.NoSuchProcess:
         # Process was already terminated (e.g., by test code)
         pass
@@ -166,4 +177,4 @@ def cleanup_lingering_processes():
 
     processes = find_processes_by_name_patterns(["coreio", "corerl", "fake_agent"])
     for proc in processes:
-        terminate_process_tree(proc, timeout=2.0)
+        terminate_process_tree(proc, timeout=apply_timeout_multiplier(2.0))

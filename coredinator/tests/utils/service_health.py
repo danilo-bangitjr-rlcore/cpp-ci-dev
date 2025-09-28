@@ -12,7 +12,7 @@ if TYPE_CHECKING:
 
 def get_service_process_ids(base_url: str, agent_id: str) -> dict[str, int | None]:
     """Get process IDs for agent services."""
-    response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+    response = requests.get(f"{base_url}/api/agents/{agent_id}/status", timeout=10.0)
     if response.status_code != 200:
         return {"corerl": None, "coreio": None}
 
@@ -90,7 +90,7 @@ def verify_shared_service_access(
 
 def get_agent_service_health(base_url: str, agent_id: str) -> dict[str, bool]:
     """Get health status of agent services."""
-    response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+    response = requests.get(f"{base_url}/api/agents/{agent_id}/status", timeout=10.0)
     if response.status_code != 200:
         return {"corerl": False, "coreio": False}
 
@@ -136,8 +136,8 @@ def verify_service_sharing(
     agent2_id: str,
 ) -> bool:
     """Verify that two agents are sharing services properly."""
-    response1 = requests.get(f"{base_url}/api/agents/{agent1_id}/status")
-    response2 = requests.get(f"{base_url}/api/agents/{agent2_id}/status")
+    response1 = requests.get(f"{base_url}/api/agents/{agent1_id}/status", timeout=10.0)
+    response2 = requests.get(f"{base_url}/api/agents/{agent2_id}/status", timeout=10.0)
 
     if response1.status_code != 200 or response2.status_code != 200:
         return False

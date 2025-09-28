@@ -7,8 +7,12 @@ def terminate_process_tree(proc: psutil.Process, timeout: float = 5.0, poll_inte
     """
     Terminate a process and all its children, then wait for termination.
     """
-    for child in proc.children(recursive=True):
-        safe_terminate_process(child)
+    try:
+        for child in proc.children(recursive=True):
+            safe_terminate_process(child)
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        # Process is already gone, nothing to do
+        pass
 
     safe_terminate_process(proc)
     return wait_for_termination(proc, timeout, poll_interval)

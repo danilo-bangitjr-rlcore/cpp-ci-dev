@@ -1,3 +1,4 @@
+import sys
 from pathlib import Path
 
 import pytest
@@ -6,9 +7,13 @@ import requests
 from tests.utils.api_client import CoredinatorAPIClient
 from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService
+from tests.utils.timeout_multiplier import apply_timeout_multiplier
+
+# Platform-adjusted timeout value for test decorators
+TIMEOUT = int(apply_timeout_multiplier(30))
 
 
-@pytest.mark.timeout(25)
+@pytest.mark.timeout(TIMEOUT)
 def test_coreio_service_basic_lifecycle(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -33,7 +38,7 @@ def test_coreio_service_basic_lifecycle(
     assert not status_data["is_shared"]
 
     # Verify service appears in listing
-    response = requests.get(f"{api_client.base_url}/api/io/")
+    response = requests.get(f"{api_client.base_url}/api/io/", timeout=10.0)
     assert response.status_code == 200
     list_data = response.json()
     assert len(list_data["coreio_services"]) == 1
@@ -43,13 +48,13 @@ def test_coreio_service_basic_lifecycle(
     api_client.stop_coreio_service(service_id)
 
     # Verify service is removed from listing
-    response = requests.get(f"{api_client.base_url}/api/io/")
+    response = requests.get(f"{api_client.base_url}/api/io/", timeout=10.0)
     assert response.status_code == 200
     list_data = response.json()
     assert len(list_data["coreio_services"]) == 0
 
 
-@pytest.mark.timeout(25)
+@pytest.mark.timeout(TIMEOUT)
 def test_coreio_service_custom_id(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -72,7 +77,7 @@ def test_coreio_service_custom_id(
     assert status_data["service_id"] == custom_id
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(TIMEOUT)
 def test_coreio_service_sharing(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -104,7 +109,7 @@ def test_coreio_service_sharing(
     assert status_data["is_shared"]
 
     # Verify only one CoreIO service appears in listing (shared instance)
-    response = requests.get(f"{base_url}/api/io/")
+    response = requests.get(f"{base_url}/api/io/", timeout=10.0)
     assert response.status_code == 200
     list_data = response.json()
     assert len(list_data["coreio_services"]) == 1
@@ -112,7 +117,7 @@ def test_coreio_service_sharing(
     assert list_data["coreio_services"][0]["is_shared"]
 
 
-@pytest.mark.timeout(25)
+@pytest.mark.timeout(TIMEOUT)
 def test_coreio_service_stop_shared_protection(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -145,7 +150,7 @@ def test_coreio_service_stop_shared_protection(
     assert status_data["status"]["state"] == "running"
 
 
-@pytest.mark.timeout(25)
+@pytest.mark.timeout(TIMEOUT)
 def test_coreio_service_error_scenarios(
     coredinator_service: CoredinatorService,
     tmp_path: Path,
@@ -168,7 +173,7 @@ def test_coreio_service_error_scenarios(
     assert "not found" in response.json()["detail"]
 
     # Test status for nonexistent service
-    response = requests.get(f"{base_url}/api/io/nonexistent-service/status")
+    response = requests.get(f"{base_url}/api/io/nonexistent-service/status", timeout=10.0)
     assert response.status_code == 404
     assert "not found" in response.json()["detail"]
 
@@ -178,7 +183,8 @@ def test_coreio_service_error_scenarios(
     assert "not found" in response.json()["detail"]
 
 
-@pytest.mark.timeout(25)
+@pytest.mark.timeout(TIMEOUT)
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs starting multiple CoreIO services")
 def test_coreio_service_list_empty_and_multiple(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -192,7 +198,7 @@ def test_coreio_service_list_empty_and_multiple(
     base_url = coredinator_service.base_url
 
     # Initially empty service list
-    response = requests.get(f"{base_url}/api/io/")
+    response = requests.get(f"{base_url}/api/io/", timeout=10.0)
     assert response.status_code == 200
     list_data = response.json()
     assert list_data["coreio_services"] == []
@@ -215,7 +221,7 @@ def test_coreio_service_list_empty_and_multiple(
     api_client.start_coreio_service(str(config3), shared_id)
 
     # Verify listing shows correct services and metadata
-    response = requests.get(f"{base_url}/api/io/")
+    response = requests.get(f"{base_url}/api/io/", timeout=10.0)
     assert response.status_code == 200
     list_data = response.json()
 

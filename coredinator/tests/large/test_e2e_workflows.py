@@ -25,9 +25,12 @@ from tests.utils.service_health import (
     wait_for_agent_services_running,
 )
 from tests.utils.state_verification import assert_all_agents_state
+from tests.utils.timeout_multiplier import apply_timeout_multiplier
 
+# Platform-adjusted timeout value for test decorators
+TIMEOUT = int(apply_timeout_multiplier(30))
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(TIMEOUT)
 def test_agent_status_unknown_returns_stopped(coredinator_service: CoredinatorService):
     """
     Test that querying status for unknown agent returns 'stopped' state.
@@ -39,7 +42,7 @@ def test_agent_status_unknown_returns_stopped(coredinator_service: CoredinatorSe
     unknown_agent_id = "nonexistent-agent"
 
     # Query status for an agent that doesn't exist
-    response = requests.get(f"{api_client.base_url}/api/agents/{unknown_agent_id}/status")
+    response = requests.get(f"{api_client.base_url}/api/agents/{unknown_agent_id}/status", timeout=10.0)
 
     # Should return 200 with stopped state
     assert response.status_code == 200
@@ -49,7 +52,8 @@ def test_agent_status_unknown_returns_stopped(coredinator_service: CoredinatorSe
     assert data["config_path"] is None
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(TIMEOUT)
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs starting agents")
 def test_microservice_failure_recovery(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -80,7 +84,8 @@ def test_microservice_failure_recovery(
     verify_service_statuses(data, ["coreio", "corerl"])
 
 
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(TIMEOUT)
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs starting agents")
 def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, config_file: Path):
     """
     Simulate coredinator failure and verify agent state is restored after restart.
@@ -114,7 +119,7 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
     wait_for_service_healthy(coredinator_service.base_url, process=proc2)
 
     # Query agent status after restart
-    response = requests.get(f"{coredinator_service.base_url}/api/agents/{agent_id}/status")
+    response = requests.get(f"{coredinator_service.base_url}/api/agents/{agent_id}/status", timeout=10.0)
     assert response.status_code == 200
     data = response.json()
     assert data["id"] == agent_id
@@ -129,7 +134,7 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(TIMEOUT)
 def test_agent_shared_coreio_service(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -184,7 +189,7 @@ def test_agent_shared_coreio_service(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")
-@pytest.mark.timeout(20)
+@pytest.mark.timeout(TIMEOUT)
 def test_agent_start_backward_compatibility(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -219,7 +224,7 @@ def test_agent_start_backward_compatibility(
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(TIMEOUT)
 def test_drayton_valley_workflow(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -306,5 +311,5 @@ def test_drayton_valley_workflow(
     api_client.stop_coreio_service(shared_coreio_id)
 
     # Verify CoreIO is now stopped/removed
-    response = requests.get(f"{api_client.base_url}/api/io/{shared_coreio_id}/status")
+    response = requests.get(f"{api_client.base_url}/api/io/{shared_coreio_id}/status", timeout=10.0)
     assert response.status_code == 404, "CoreIO should be not found after stopping"

@@ -21,7 +21,7 @@ def wait_for_agent_http_state(
     """Wait for agent to reach expected state via HTTP API."""
     def _check_agent_state():
         # Let HTTP and JSON errors propagate - they indicate real problems
-        response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+        response = requests.get(f"{base_url}/api/agents/{agent_id}/status", timeout=10.0)
         if response.status_code != 200:
             return False
         return response.json().get("state") == expected_state
@@ -41,7 +41,7 @@ def assert_agent_http_state(
     def _check_agent_state():
         nonlocal last_state
         try:
-            response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+            response = requests.get(f"{base_url}/api/agents/{agent_id}/status", timeout=10.0)
         except Exception as e:
             last_state = f"error: {e}"
             return False
@@ -70,7 +70,7 @@ def wait_for_all_agents_state(
     """Wait for all agents to reach expected state via HTTP API."""
     def _all_agents_in_state():
         for agent_id in agent_ids:
-            response = requests.get(f"{base_url}/api/agents/{agent_id}/status")
+            response = requests.get(f"{base_url}/api/agents/{agent_id}/status", timeout=10.0)
             if response.status_code != 200:
                 return False
             if response.json().get("state") != expected_state:
@@ -92,7 +92,7 @@ def assert_all_agents_state(
     def _all_agents_in_state():
         for aid in agent_ids:
             try:
-                response = requests.get(f"{base_url}/api/agents/{aid}/status")
+                response = requests.get(f"{base_url}/api/agents/{aid}/status", timeout=10.0)
             except Exception as e:
                 last_states[aid] = f"error: {e}"
                 return False

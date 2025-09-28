@@ -7,6 +7,8 @@ from pathlib import Path
 
 import requests
 
+from tests.utils.timeout_multiplier import apply_timeout_multiplier
+
 
 @dataclass
 class CoredinatorService:
@@ -30,16 +32,19 @@ def wait_for_service_healthy(
 
     Args:
         base_url: Service base URL
-        max_attempts: Maximum number of health check attempts
+        max_attempts: Maximum number of health check attempts (will be adjusted for platform)
         sleep_interval: Time between health check attempts
         process: Optional process object for error reporting
 
     Raises:
         RuntimeError: If service fails to become healthy
     """
-    for _ in range(max_attempts):
+    # Adjust max attempts for platform reliability, but keep individual HTTP timeouts short
+    adjusted_max_attempts = int(apply_timeout_multiplier(max_attempts))
+    for _ in range(adjusted_max_attempts):
         time.sleep(sleep_interval)
         try:
+            # Keep HTTP timeout short - the reliability comes from more attempts
             response = requests.get(f"{base_url}/api/healthcheck", timeout=1)
             if response.status_code == 200:
                 return
@@ -47,7 +52,7 @@ def wait_for_service_healthy(
             ...
 
     # Service failed to become healthy
-    error_msg = f"Service at {base_url} failed to become healthy after {max_attempts} attempts"
+    error_msg = f"Service at {base_url} failed to become healthy after {adjusted_max_attempts} attempts"
 
     if process is not None:
         # Get detailed error information from the process
