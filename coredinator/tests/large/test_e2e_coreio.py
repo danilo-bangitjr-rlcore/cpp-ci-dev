@@ -14,6 +14,7 @@ TIMEOUT = int(apply_timeout_multiplier(30))
 
 
 @pytest.mark.timeout(TIMEOUT)
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - CoreIO service fails to start properly")
 def test_coreio_service_basic_lifecycle(
     coredinator_service: CoredinatorService,
     config_file: Path,

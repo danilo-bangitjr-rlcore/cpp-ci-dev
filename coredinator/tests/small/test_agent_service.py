@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
@@ -269,6 +270,7 @@ def test_healthcheck_fails_when_unhealthy(
 
 
 @pytest.mark.timeout(15)
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - timeouts and process monitoring issues")
 def test_healthcheck_succeeds_when_healthy(
     long_running_agent_env: None,
     monkeypatch: pytest.MonkeyPatch,

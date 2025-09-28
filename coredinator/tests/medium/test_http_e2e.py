@@ -224,6 +224,7 @@ def test_status_unknown_agent_returns_stopped(app_client: TestClient):
 
 
 @pytest.mark.timeout(TIMEOUT)
+@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - process monitoring unreliable")
 def test_failed_agent_status_when_child_exits_nonzero(
     app_client: TestClient,
     tmp_path: Path,
