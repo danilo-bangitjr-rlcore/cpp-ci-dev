@@ -31,22 +31,24 @@ def fake_agent_binary(tmp_path_factory: pytest.TempPathFactory) -> Path:
     spec_dir = build_root / "spec"
     src = Path(__file__).resolve().parent / "fixtures" / "fake_agent.py"
 
-    pyinstaller_run(
-        [
-            "--noconfirm",
-            "--clean",
-            "--onefile",
-            "--name",
-            "fake_agent",
-            "--distpath",
-            str(dist_dir),
-            "--workpath",
-            str(work_dir),
-            "--specpath",
-            str(spec_dir),
-            str(src),
-        ],
-    )
+    pyinstaller_args = [
+        "--noconfirm",
+        "--clean",
+        "--onefile",
+        "--name",
+        "fake_agent",
+        "--distpath",
+        str(dist_dir),
+        "--workpath",
+        str(work_dir),
+        "--specpath",
+        str(spec_dir),
+    ]
+    if os.name == "nt":
+        pyinstaller_args.append("--noconsole")
+    pyinstaller_args.append(str(src))
+
+    pyinstaller_run(pyinstaller_args)
 
     executable_name = _platform_executable_name("fake_agent")
     executable_path = dist_dir / executable_name

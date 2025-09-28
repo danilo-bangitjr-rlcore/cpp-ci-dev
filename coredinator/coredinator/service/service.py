@@ -84,7 +84,7 @@ class Service:
             "stdin": DEVNULL,
             "stdout": DEVNULL,
             "stderr": DEVNULL,
-            "start_new_session": True,  # Detach from parent process
+            "start_new_session": True,
         }
 
         if IS_WINDOWS:
@@ -92,8 +92,7 @@ class Service:
             create_new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
             create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
             creationflags = detached_process | create_new_process_group | create_no_window
-            if creationflags:
-                popen_kwargs["creationflags"] = creationflags
+            popen_kwargs["creationflags"] = creationflags
 
         popen = Popen(args, **popen_kwargs)
         self._process = psutil.Process(popen.pid)
