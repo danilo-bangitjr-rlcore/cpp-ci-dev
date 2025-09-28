@@ -8,7 +8,7 @@ from sqlalchemy.engine import Engine
 
 from lib_sql.inspection import table_exists
 from lib_sql.utils import create_tsdb_table_query
-from lib_sql.writers.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
+from lib_sql.writers.core.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
 
 pytest_plugins = [
     "test.infrastructure.networking",

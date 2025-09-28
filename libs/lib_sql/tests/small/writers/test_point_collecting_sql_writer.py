@@ -4,7 +4,7 @@ from typing import NamedTuple
 
 import pytest
 
-from lib_sql.writers.point_collecting_sql_writer import PointCollectingSqlWriter
+from lib_sql.writers.collectors.point_collecting_sql_writer import PointCollectingSqlWriter
 from lib_sql.writers.sql_writer import SqlWriter
 
 

@@ -6,8 +6,8 @@ import pandas as pd
 from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
-from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
-from lib_sql.writers.static_schema_sql_writer import StaticSchemaSqlWriter
+from lib_sql.writers.core.static_schema_sql_writer import StaticSchemaSqlWriter
+from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 from lib_utils.errors import fail_gracefully
 from lib_utils.time import now_iso
 from sqlalchemy import text

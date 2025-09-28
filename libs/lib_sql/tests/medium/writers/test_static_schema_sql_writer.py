@@ -6,7 +6,7 @@ from sqlalchemy.engine import Engine
 
 from lib_sql.inspection import table_exists
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
-from lib_sql.writers.static_schema_sql_writer import StaticSchemaSqlWriter
+from lib_sql.writers.core.static_schema_sql_writer import StaticSchemaSqlWriter
 
 pytest_plugins = [
     "test.infrastructure.networking",

@@ -8,9 +8,9 @@ import pytest
 from sqlalchemy import Connection, Engine, text
 
 from lib_sql.inspection import column_exists, table_exists
-from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
-from lib_sql.writers.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
-from lib_sql.writers.point_collecting_sql_writer import PointCollectingSqlWriter
+from lib_sql.writers.collectors.point_collecting_sql_writer import PointCollectingSqlWriter
+from lib_sql.writers.core.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
+from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 
 pytest_plugins = [
     "test.infrastructure.networking",
