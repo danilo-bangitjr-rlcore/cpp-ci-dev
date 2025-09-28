@@ -125,6 +125,8 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
 
     port = free_localhost_port
     base_url = f"http://localhost:{port}"
+    log_file = dist_with_fake_executable.parent / "coredinator.log"
+    log_file.parent.mkdir(parents=True, exist_ok=True)
 
     # Start coredinator using the documented approach from README with custom port
     cmd = [
@@ -138,6 +140,8 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
         str(port),
     ]
 
+    cmd.extend(["--log-file", str(log_file)])
+
     # Set environment for subprocess
     env = dict(os.environ, FAKE_AGENT_BEHAVIOR="long")
     cwd = Path(__file__).parent.parent  # Run from coredinator package root
@@ -146,12 +150,12 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
         cmd,
         env=env,
         cwd=cwd,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
     )
 
     # Wait for service to start (try healthcheck)
-    wait_for_service_healthy(base_url, process=process)
+    wait_for_service_healthy(base_url, process=process, log_file=log_file)
 
     service_info = CoredinatorService(
         base_url=base_url,
@@ -159,6 +163,7 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
         command=cmd,
         env=env,
         cwd=cwd,
+        log_file=log_file,
     )
 
     yield service_info

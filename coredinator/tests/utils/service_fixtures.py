@@ -19,6 +19,7 @@ class CoredinatorService:
     command: list[str]
     env: dict[str, str]
     cwd: Path
+    log_file: Path | None = None
 
 
 def wait_for_service_healthy(
@@ -26,6 +27,7 @@ def wait_for_service_healthy(
     max_attempts: int = 30,
     sleep_interval: float = 0.1,
     process: subprocess.Popen | None = None,
+    log_file: Path | None = None,
 ) -> None:
     """
     Wait for coredinator service to become healthy.
@@ -35,6 +37,7 @@ def wait_for_service_healthy(
         max_attempts: Maximum number of health check attempts (will be adjusted for platform)
         sleep_interval: Time between health check attempts
         process: Optional process object for error reporting
+        log_file: Optional path to service log file for diagnostics
 
     Raises:
         RuntimeError: If service fails to become healthy
@@ -61,13 +64,16 @@ def wait_for_service_healthy(
             stdout, stderr = process.communicate(timeout=5)
             error_msg = (
                 f"Coredinator service failed to start on {base_url}\n"
-                f"stdout: {stdout.decode()}\n"
-                f"stderr: {stderr.decode()}"
+                f"stdout: {stdout.decode() if stdout else ''}\n"
+                f"stderr: {stderr.decode() if stderr else ''}"
             )
         except subprocess.TimeoutExpired:
             process.kill()
             error_msg += "\nProcess did not terminate gracefully and was killed"
         except Exception as e:
             error_msg += f"\nError getting process output: {e}"
+
+    if log_file is not None:
+        error_msg += f"\nSee log file for details: {log_file}"
 
     raise RuntimeError(error_msg) from None

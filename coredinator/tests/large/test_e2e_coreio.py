@@ -1,4 +1,3 @@
-import sys
 from pathlib import Path
 
 import pytest
@@ -14,7 +13,6 @@ TIMEOUT = int(apply_timeout_multiplier(30))
 
 
 @pytest.mark.timeout(TIMEOUT)
-@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - CoreIO service fails to start properly")
 def test_coreio_service_basic_lifecycle(
     coredinator_service: CoredinatorService,
     config_file: Path,
@@ -69,7 +67,6 @@ def test_coreio_service_custom_id(
     api_client = CoredinatorAPIClient(coredinator_service.base_url)
     custom_id = "custom-coreio-test"
 
-    # Start CoreIO service with custom ID
     service_id = api_client.start_coreio_service(str(config_file), coreio_id=custom_id)
     assert service_id == custom_id
 
@@ -185,7 +182,6 @@ def test_coreio_service_error_scenarios(
 
 
 @pytest.mark.timeout(TIMEOUT)
-@pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs starting multiple CoreIO services")
 def test_coreio_service_list_empty_and_multiple(
     coredinator_service: CoredinatorService,
     config_file: Path,
