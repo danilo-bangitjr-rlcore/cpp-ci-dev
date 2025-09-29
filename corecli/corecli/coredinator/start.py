@@ -17,7 +17,11 @@ log = logging.getLogger(__name__)
 
 @click.command()
 @click.option("--port", default=8000, help="Port to start coredinator on")
-@click.option("--base-path", type=click.Path(exists=True, path_type=Path), help="Path to microservice executables")
+@click.option(
+    "--base-path",
+    type=click.Path(path_type=Path, file_okay=False, resolve_path=True),
+    help="Path to microservice executables",
+)
 @click.option("--log-file", type=click.Path(path_type=Path), help="Log file for coredinator output")
 @click.option("--timeout", default=30.0, help="Seconds to wait for startup")
 @click.pass_context
@@ -36,6 +40,9 @@ def start(
 ) -> None:
     """Start the coredinator service as a daemon process."""
     console.print(f"🚀 Starting coredinator on port {port}...", style="blue")
+
+    if base_path is not None and base_path.exists() and not base_path.is_dir():
+        raise click.BadParameter("Base path must be a directory.", param_hint="--base-path")
 
     # Start the daemon
     pid = start_coredinator(

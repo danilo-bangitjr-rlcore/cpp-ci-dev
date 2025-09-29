@@ -46,13 +46,27 @@ def parse_args():
 
 
 # pyright: reportUnusedFunction=false
+def _prepare_base_path(base_path: Path | str) -> Path:
+    if not isinstance(base_path, Path):
+        base_path = Path(base_path)
+
+    resolved = base_path.resolve()
+    if resolved.exists() and not resolved.is_dir():
+        raise ValueError(f"Base path must be a directory: {resolved}")
+
+    resolved.mkdir(parents=True, exist_ok=True)
+    return resolved
+
+
 def create_app(base_path: Path) -> FastAPI:
     """Factory function to create FastAPI app with given base_path."""
+    prepared_base_path = _prepare_base_path(base_path)
+
     app = FastAPI(lifespan=lifespan)
-    service_manager = ServiceManager(base_path=base_path)
+    service_manager = ServiceManager(base_path=prepared_base_path)
     app.state.service_manager = service_manager
-    app.state.base_path = base_path
-    app.state.agent_manager = AgentManager(base_path=base_path, service_manager=service_manager)
+    app.state.base_path = prepared_base_path
+    app.state.agent_manager = AgentManager(base_path=prepared_base_path, service_manager=service_manager)
 
     app.add_middleware(
         CORSMiddleware,

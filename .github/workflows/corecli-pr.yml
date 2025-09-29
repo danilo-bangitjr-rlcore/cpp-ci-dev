@@ -33,10 +33,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - name: Setup
+      - name: Setup CoreCLI
         uses: ./.github/actions/setup
         with:
           subrepo: corecli
+
+      - name: Setup Coredinator dependencies
+        run: |
+          cd ../coredinator
+          uv sync --all-extras --dev --frozen
 
       # linting
       - uses: astral-sh/ruff-action@v1

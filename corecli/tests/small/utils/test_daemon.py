@@ -6,7 +6,7 @@ import psutil
 import pytest
 
 from corecli.utils.daemon import stop_process_gracefully, wait_for_event
-from tests.utils.utils import cleanup_process, start_test_daemon
+from tests.small.utils.utils import cleanup_process, start_test_daemon
 
 
 class TestWaitForEvent:

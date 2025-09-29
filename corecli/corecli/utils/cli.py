@@ -2,6 +2,7 @@
 
 import functools
 import logging
+import traceback
 from collections.abc import Callable
 from typing import Any
 
@@ -32,9 +33,14 @@ def handle_exceptions(
                             ctx.tap(lambda c: c.exit(1))
                             return None
 
-                # Log and display unhandled errors
+                # Log and display unhandled errors with full traceback
                 log.exception(f"Unexpected error in {func.__name__}")
-                console.print(f"❌ Unexpected error: {e}", style="bold red")
+
+                # Print detailed error information to help with debugging
+                console.print(f"❌ Unexpected error in {func.__name__}: {e}", style="bold red")
+                console.print("Full traceback:", style="red")
+                console.print(traceback.format_exc(), style="red")
+
                 ctx.tap(lambda c: c.exit(1)).or_else(lambda: click.Abort())
 
         return wrapper

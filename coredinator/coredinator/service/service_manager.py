@@ -27,6 +27,11 @@ class ServiceManager:
         self._bundle_services: defaultdict[ServiceBundleID, set[ServiceID]] = defaultdict(set)
 
         # Service persistence setup
+        if base_path.exists() and not base_path.is_dir():
+            raise ValueError(f"Base path must be a directory: {base_path}")
+
+        base_path.mkdir(parents=True, exist_ok=True)
+
         self._base_path = base_path
         self._service_persistence = ServicePersistenceLayer(base_path / "service_state.db")
 
