@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.152.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.151.0...corerl-v0.152.0) (2025-09-26)
+
+
+### Features
+
+* **corerl:** add quality of life logging statements for agent pretraining ([a52ebce](https://github.com/rlcoretech/core-rl/commit/a52ebceafd1467a8124d8ae0fbbc109217eba5d8))
+* **corerl:** log buffer size on ingress and after loading historical data ([78aba8c](https://github.com/rlcoretech/core-rl/commit/78aba8c919ef4cc3546036c2701768936dffcfbf))
+* **test:** add separate pipeline benchmark for data with nans ([6d9098e](https://github.com/rlcoretech/core-rl/commit/6d9098e91b066da5db05deef46dd2cebefd06a04))
+
 ## [0.151.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.150.0...corerl-v0.151.0) (2025-09-24)
 
 

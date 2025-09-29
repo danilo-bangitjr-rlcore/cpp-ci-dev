@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any, overload
 
@@ -186,7 +185,6 @@ class Maybe[T]:
         try:
             return Maybe(f())
         except e:
-            logging.exception('Maybe.from_try caught an exception')
             return Maybe(None)
 
 
@@ -198,7 +196,6 @@ class Maybe[T]:
         try:
             return f()
         except e:
-            logging.exception('Maybe.flat_from_try caught an exception')
             return Maybe(None)
 
 

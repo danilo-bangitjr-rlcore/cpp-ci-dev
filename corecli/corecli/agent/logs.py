@@ -13,8 +13,11 @@ def logs(ctx: click.Context, config_path_or_agent_id: str, follow: bool, tail: i
     """
     # Implementation will be added later
     click.echo(f"🚧 Showing logs for agent: {config_path_or_agent_id}")
+
     if follow:
         click.echo("📝 Following logs...")
-    if level:
+
+    if level is not None:
         click.echo(f"🔍 Filtering by level: {level}")
+
     click.echo(f"📊 Showing last {tail} lines")

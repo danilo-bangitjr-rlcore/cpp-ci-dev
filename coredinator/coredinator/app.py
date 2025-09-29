@@ -1,4 +1,5 @@
 import argparse
+import os
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -90,7 +91,12 @@ def create_app(base_path: Path) -> FastAPI:
     @app.get("/api/healthcheck")
     async def health():
         logger.debug("Health check requested")
-        return {"status": "healthy", "version": version}
+        return {
+            "status": "healthy",
+            "process_id": os.getpid(),
+            "service": "coredinator",
+            "version": version,
+        }
 
     app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])
     app.include_router(coreio_manager, prefix="/api/io", tags=["CoreIO"])

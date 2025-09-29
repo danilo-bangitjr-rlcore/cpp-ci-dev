@@ -7,7 +7,6 @@ seed: 1
 is_simulation: False
 
 feature_flags:
-  autoencoder_imputer: false
   wide_metrics: true
 
 infra:
