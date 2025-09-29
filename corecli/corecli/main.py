@@ -38,15 +38,19 @@ def cli(ctx: click.Context, verbose: bool, quiet: bool, config_dir: str | None, 
     ctx.obj["config_dir"] = config_dir
     ctx.obj["coredinator_url"] = coredinator_url
 
+    # Configure logging based on verbosity
     if quiet:
         logging.getLogger().setLevel(logging.WARNING)
-    elif verbose:
+
+    if verbose:
         logging.getLogger().setLevel(logging.DEBUG)
         log.debug("Verbose mode enabled")
 
-    if config_dir:
+    # Log configuration
+    if config_dir is not None:
         log.debug(f"Using config directory: {config_dir}")
-    if coredinator_url:
+
+    if coredinator_url is not None:
         log.debug(f"Using coredinator URL: {coredinator_url}")
 
 
