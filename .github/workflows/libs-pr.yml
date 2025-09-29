@@ -5,19 +5,25 @@ on:
   pull_request:
     paths:
       - "libs/**"
+      - ".github/workflows/libs-pr.yml"
   merge_group:
     paths:
       - "libs/**"
+      - ".github/workflows/libs-pr.yml"
 
 jobs:
   # -----------
   # -- Style --
   # -----------
   libs-style-n-test:
-    runs-on: ubuntu-latest
     strategy:
-        matrix:
-            lib: [lib_agent, lib_config, lib_defs, lib_progress, lib_sql, lib_utils, rl_env]
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        lib: [lib_agent, lib_config, lib_defs, lib_progress, lib_sql, lib_utils, rl_env]
+        exclude:
+          - os: windows-latest
+            lib: lib_sql
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: libs/${{ matrix.lib }}
@@ -29,10 +35,6 @@ jobs:
         with:
           subrepo: libs/${{ matrix.lib }}
 
-      - name: set up path
-        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
-
-      # linting
       - uses: astral-sh/ruff-action@v1
         with:
             src: libs/${{ matrix.lib }}
