@@ -104,7 +104,7 @@ log "After popd from coredinator: $(pwd)"
 
 mkdir -p dist
 if [ -f "./corerl/dist/${CORERL_ARTIFACT_NAME}" ]; then
-    mv "./corerl/dist/${CORERL_ARTIFACT_NAME}" "dist/${CORERL_ARTIFACT_NAME}"
+    mv ./corerl/dist/${CORERL_ARTIFACT_NAME} "dist/${CORERL_ARTIFACT_NAME}"
     log "Created: dist/${CORERL_ARTIFACT_NAME}"
 else
     log "Error: corerl/dist/${CORERL_ARTIFACT_NAME} not found"
@@ -112,7 +112,7 @@ else
 fi
 
 if [ -f "./coreio/dist/${COREIO_ARTIFACT_NAME}" ]; then
-    mv "./coreio/dist/${COREIO_ARTIFACT_NAME}" "dist/${COREIO_ARTIFACT_NAME}"
+    mv ./coreio/dist/${COREIO_ARTIFACT_NAME} "dist/${COREIO_ARTIFACT_NAME}"
     log "Created: dist/${COREIO_ARTIFACT_NAME}"
 else
     log "Error: coreio/dist/${COREIO_ARTIFACT_NAME} not found"

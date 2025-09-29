@@ -25,121 +25,29 @@
 #   docker push ghcr.io/rlcoretech/corerl-preprod:BUILD_NUMBER
 
 name: Build Pre-Production Artifacts
+
 on:
   workflow_dispatch:
 
-env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ghcr.io/rlcoretech/corerl-preprod
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write
-      contents: read
-      packages: write 
-      attestations: write
-    steps:
-      - name: Generate a token
-        id: generate-token
-        uses: actions/create-github-app-token@v1
-        with:
-          app-id: ${{ vars.APP_ID }}
-          private-key: ${{ secrets.APP_PRIVATE_KEY }}
-
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ steps.generate-token.outputs.token }}
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v6
-        with:
-          python-version: 3.13.0
-
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Set build number
-        id: build-number
-        run: |
-          echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
-
-      - name: Build Linux executables (dev)
-        run: |
-          .github/workflows/scripts/build_linux_executables.sh --dev --build-number "$BUILD_NUMBER"
-      
-      - name: Load artifact names
-        id: load-artifacts
-        run: |
-          source dist/artifacts.env
-          echo "CORERL_ARTIFACT=$CORERL_ARTIFACT" >> $GITHUB_ENV
-          echo "COREIO_ARTIFACT=$COREIO_ARTIFACT" >> $GITHUB_ENV
-          echo "COREDINATOR_ARTIFACT=$COREDINATOR_ARTIFACT" >> $GITHUB_ENV
-          echo "CORERL_VERSION=$CORERL_VERSION" >> $GITHUB_ENV
-          echo "COREIO_VERSION=$COREIO_VERSION" >> $GITHUB_ENV
-          echo "COREDINATOR_VERSION=$COREDINATOR_VERSION" >> $GITHUB_ENV
-      
-      - name: Upload Linux executables
-        uses: actions/upload-artifact@v4
-        with:
-          name: preprod-corerl-linux-executables
-          path: ./dist/
-          retention-days: 1
-
-      - name: Setup metadata for docker image
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{env.IMAGE_NAME}}
-          tags: |
-            type=raw,value=latest
-            type=raw,value=${{ env.CORERL_VERSION }}-rc.${{ github.run_number }}
-          labels: |
-            org.opencontainers.image.vendor=RL Core Technologies
-            org.opencontainers.image.source=https://github.com/${{ github.repository }}
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v2
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ vars.TEMP_JASMINE_GHCR_USERNAME }}
-          password: ${{ secrets.TEMP_JASMINE_GHCR_PAT }}
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Set up SSH Agent
-        uses: webfactory/ssh-agent@v0.7.0
-        with:
-          ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
-
-      - name: Build Docker Image
-        id: build_push
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          ssh: default=${{ env.SSH_AUTH_SOCK }}
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          file: .github/workflows/scripts/Dockerfile.preprod
-          build-args: |
-            CORERL_ARTIFACT=${{ env.CORERL_ARTIFACT }}
-            COREIO_ARTIFACT=${{ env.COREIO_ARTIFACT }}
-            COREDINATOR_ARTIFACT=${{ env.COREDINATOR_ARTIFACT }}
-            CORERL_VERSION=${{ env.CORERL_VERSION }}
-            COREIO_VERSION=${{ env.COREIO_VERSION }}
-            COREDINATOR_VERSION=${{ env.COREDINATOR_VERSION }}
-
-      - name: Generate artifact attestation
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-name: ${{env.IMAGE_NAME}}
-          subject-digest: ${{ steps.build_push.outputs.digest }}
-          push-to-registry: true
+    uses: ./.github/workflows/build-docker-reusable.yml
+    with:
+      environment: preprod
+      image_suffix: -preprod
+      retention_days: 1
+      push_image: true
+      build_dev: true
+      dockerfile: .github/workflows/scripts/Dockerfile.preprod
+    secrets:
+      APP_ID: ${{ vars.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      GHCR_USERNAME: ${{ vars.TEMP_JASMINE_GHCR_USERNAME }}
+      GHCR_PAT: ${{ secrets.TEMP_JASMINE_GHCR_PAT }}
+      DEPLOY_KEY: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
