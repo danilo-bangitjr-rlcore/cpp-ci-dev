@@ -1,10 +1,31 @@
 import logging
+import sys
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import colorlog
 
 from coreio.config import CoreIOConfig
+
+
+class StderrToFile:
+    """Captures stderr output and writes it to both console and file."""
+    def __init__(self, log_file_path: str):
+        self.log_file_path = log_file_path
+        self.original_stderr = sys.stderr
+
+    def write(self, text: str) -> None:
+        # Write to original stderr (console)
+        self.original_stderr.write(text)
+        # Also write to file
+        try:
+            with open(self.log_file_path, 'a', encoding='utf-8') as f:
+                f.write(text)
+        except Exception:
+            print("ERROR: Error opening log file")
+
+    def flush(self) -> None:
+        self.original_stderr.flush()
 
 
 def get_log_file_name(cfg: CoreIOConfig):
@@ -50,6 +71,9 @@ def setup_logging(level: int | str = logging.INFO, log_file: str = "outputs/core
     file_formatter = logging.Formatter('%(levelname)s: %(asctime)s %(message)s', datefmt='%Y-%m-%d %H:%M:%S')
     file_handler.setFormatter(file_formatter)
     logger.addHandler(file_handler)
+
+    # Redirect stderr to also write to log file (for uncaught exceptions)
+    sys.stderr = StderrToFile(log_file)
 
     # Set specific logger levels
     logging.getLogger("asyncua").setLevel(logging.WARNING)

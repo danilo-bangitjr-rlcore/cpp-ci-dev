@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -65,6 +66,9 @@ class OPC_Connection(ABC):
 
         except Exception as e:
             logger.warning(f"Retrying connection to {self.connection_id}.\n{e!s}")
+            self._connected = False
+            await self.opc_client.disconnect()
+            await asyncio.sleep(0.1)
             await self.opc_client.connect()
             await self.opc_client.check_connection()
             self._connected = True

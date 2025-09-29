@@ -52,7 +52,7 @@ wheels = [
 
 [[package]]
 name = "asyncua"
-version = "1.1.8"
+version = "1.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -64,9 +64,9 @@ dependencies = [
     { name = "sortedcontainers" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/47/a141ba533ab4a361238f94ffd3b357dd198cf99a446e91dcbb9175b152c6/asyncua-1.1.8.tar.gz", hash = "sha256:4a348e2b9bdfa7869edaef2d7f1b08920140d01ab79f336744b06e4c692e509d", size = 1050529, upload-time = "2025-09-05T18:23:44.525Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/43/f4/6bf43e3820dd0cb0749d3bcb4ed66d6d654778bcae2e6e405fe848c1a83d/asyncua-1.1.6.tar.gz", hash = "sha256:da0fff57477ce9bd50cd48ab3aca5fc4dbfa4917127664a3e04422aaab7a4b51", size = 1048783, upload-time = "2025-04-08T11:45:03.867Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/3f/0d/2f8fc320a12b6c8b972568a588ae57f4db7e9f7e7f53d02a24d0cebb17d7/asyncua-1.1.8-py3-none-any.whl", hash = "sha256:40c57151b93537beb77cb3f1a0190d75cef5326e8c40978de28b69e5b41e6ede", size = 1129163, upload-time = "2025-09-05T18:23:42.628Z" },
+    { url = "https://files.pythonhosted.org/packages/de/85/4360f25f41c5b576f56120d71dd7c1f27ccdbbee22a844fc66329c486145/asyncua-1.1.6-py3-none-any.whl", hash = "sha256:6c94b9aa71f957abf5fc3eb76fc7359029097b44099c2b396e9e3e625671401f", size = 1127829, upload-time = "2025-04-08T11:45:00.949Z" },
 ]
 
 [[package]]
@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "coreio"
-version = "0.8.0"
+version = "0.11.0"
 source = { editable = "../coreio" }
 dependencies = [
     { name = "asyncua" },
@@ -289,9 +289,9 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "asyncua", specifier = ">=1.1.6" },
-    { name = "backoff", specifier = ">=2.2.1" },
-    { name = "colorlog", specifier = ">=6.9.0" },
+    { name = "asyncua", specifier = "==1.1.6" },
+    { name = "backoff", specifier = "~=2.2" },
+    { name = "colorlog", specifier = "~=6.9" },
     { name = "lib-config", editable = "../libs/lib_config" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "lib-sql", editable = "../libs/lib_sql" },
@@ -315,7 +315,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.149.0"
+version = "0.151.0"
 source = { editable = "." }
 dependencies = [
     { name = "coreio" },

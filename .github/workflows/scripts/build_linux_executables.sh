@@ -78,7 +78,7 @@ pushd coreio > /dev/null
 log "Inside coreio directory: $(pwd)"
 uv venv
 source .venv/bin/activate
-uv sync --no-dev
+uv sync
 uv pip install pyinstaller
 pyinstaller --name "$COREIO_ARTIFACT_NAME" --onefile coreio/main.py
 deactivate
