@@ -4,6 +4,9 @@ import time
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
+from click.testing import CliRunner
+
+from corecli.main import cli
 
 
 class _TestHandler(BaseHTTPRequestHandler):
@@ -80,13 +83,6 @@ def http_server_url():
         server.shutdown()
         server.server_close()
         thread.join(timeout=1)
-import pytest
-from click.testing import CliRunner
-
-try:
-    from corecli.main import cli  # type: ignore
-except Exception:  # pragma: no cover - keep tests runnable when deps missing
-    cli = None
 
 
 @pytest.fixture
