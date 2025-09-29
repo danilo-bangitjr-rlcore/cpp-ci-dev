@@ -22,7 +22,7 @@ class StderrToFile:
             with open(self.log_file_path, 'a', encoding='utf-8') as f:
                 f.write(text)
         except Exception:
-            pass
+            print("ERROR: Error opening log file")
 
     def flush(self) -> None:
         self.original_stderr.flush()
