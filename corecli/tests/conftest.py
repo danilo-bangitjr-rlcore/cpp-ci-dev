@@ -10,7 +10,7 @@ from corecli.main import cli
 
 
 class _TestHandler(BaseHTTPRequestHandler):
-    def do_GET(self):
+    def do_GET(self) -> None:
         if self.path == "/ok":
             payload = {"foo": "bar", "n": 1}
             data = json.dumps(payload).encode()
@@ -43,6 +43,9 @@ class _TestHandler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(data)))
             self.end_headers()
             self.wfile.write(data)
+        elif self.path == "/server-error":
+            self.send_response(500)
+            self.end_headers()
         else:
             self.send_response(404)
             self.end_headers()
