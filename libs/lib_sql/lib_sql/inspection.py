@@ -60,6 +60,53 @@ def table_count(engine: Engine, table_name: str, schema: str | None = None) -> i
         return int(result) if result is not None else 0
 
 
+def table_size_mb(engine: Engine, table_name: str, schema: str | None = None) -> float:
+    """Return total on-disk size of a table (including indexes) in megabytes."""
+    with engine.connect() as conn:
+        size_bytes = None
+
+        default_schema = schema or "public"
+        # first: try to get TSDB to parse hypertable and all child tables
+        try:
+            hypertable_query = text(
+                """
+                SELECT (
+                    hypertable_detailed_size(
+                        to_regclass(format('%I.%I', :schema_name, :table_name))
+                    )
+                ).total_bytes
+                """,
+            )
+            size_bytes = conn.execute(
+                hypertable_query,
+                {"schema_name": default_schema, "table_name": table_name},
+            ).scalar()
+        except SQLAlchemyError:
+            conn.rollback()
+            size_bytes = None
+
+        # if that failed, then just ask PostgreSQL for the table size
+        # Note that in TSDB, this will only get the size of the metadata
+        # in the hypertable. It will not capture actual data size.
+        if size_bytes is None:
+            if schema:
+                query = text(
+                    """
+                    SELECT pg_total_relation_size(format('%I.%I', :schema, :table_name))
+                    """,
+                )
+                size_bytes = conn.execute(query, {"schema": schema, "table_name": table_name}).scalar()
+            else:
+                query = text(
+                    """
+                    SELECT pg_total_relation_size(format('%I', :table_name))
+                    """,
+                )
+                size_bytes = conn.execute(query, {"table_name": table_name}).scalar()
+
+    return float(size_bytes or 0) / (1024 * 1024)
+
+
 def get_table_schema(engine: Engine, table_name: str, schema: str | None = None) -> list[ColumnInfo]:
     with engine.connect() as conn:
         result = conn.execute(
