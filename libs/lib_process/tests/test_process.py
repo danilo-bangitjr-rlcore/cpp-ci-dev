@@ -280,3 +280,18 @@ def test_wait_for_termination_already_dead():
     time.sleep(0.1)
 
     assert process.wait_for_termination(timeout=1.0)
+
+
+# ============================================================================
+# Process Creation
+# ============================================================================
+
+
+def test_start_in_background_creates_detached_process():
+    """
+    Process.start_in_background creates a detached process that continues after parent exits
+    """
+    process = Process.start_in_background([sys.executable, "-c", "import time; time.sleep(0.5)"])
+
+    assert process.is_running()
+    process.terminate_tree(timeout=2.0)

@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import subprocess
+import sys
 import time
+from subprocess import DEVNULL, Popen
+from typing import Any
 
 import psutil
 from lib_utils.errors import fail_gracefully
+
+IS_WINDOWS = sys.platform.startswith("win")
 
 
 class Process:
@@ -17,6 +23,25 @@ class Process:
     @staticmethod
     def from_pid(pid: int) -> Process:
         return Process(psutil.Process(pid))
+
+    @staticmethod
+    def start_in_background(args: list[str]) -> Process:
+        popen_kwargs: dict[str, Any] = {
+            "stdin": DEVNULL,
+            "stdout": DEVNULL,
+            "stderr": DEVNULL,
+            "start_new_session": True,
+        }
+
+        if IS_WINDOWS:
+            detached_process = getattr(subprocess, "DETACHED_PROCESS", 0)
+            create_new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
+            create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            creationflags = detached_process | create_new_process_group | create_no_window
+            popen_kwargs["creationflags"] = creationflags
+
+        popen = Popen(args, **popen_kwargs)
+        return Process.from_pid(popen.pid)
 
     # ============================================================================
     # Properties
