@@ -5,8 +5,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
-from urllib.error import URLError
-from urllib.request import urlopen
 
 from lib_process.process import Process
 from lib_utils.errors import fail_gracefully
@@ -14,6 +12,7 @@ from lib_utils.errors import fail_gracefully
 from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceState, ServiceStatus
 from coredinator.service.service_monitor import ServiceMonitor
+from coredinator.utils.healthcheck import check_http_health
 
 log = get_logger(__name__)
 
@@ -192,12 +191,11 @@ class Service(ABC):
         if not self.config.healthcheck_enabled:
             return True
 
-        try:
-            url = f"http://{self.config.host}:{self.config.port}/api/healthcheck"
-            with urlopen(url, timeout=self.config.healthcheck_timeout.total_seconds()) as response:
-                return response.status == 200
-        except (URLError, OSError):
-            return False
+        return check_http_health(
+            self.config.host,
+            self.config.port,
+            self.config.healthcheck_timeout,
+        )
 
     def _is_process_running(self) -> bool:
         if self._process is None:
