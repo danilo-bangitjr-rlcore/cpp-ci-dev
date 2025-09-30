@@ -29,6 +29,9 @@ This library wraps `psutil.Process` with a more intuitive API that:
 ### Properties
 - `psutil` - Access underlying `psutil.Process` object when needed
 
+### Utility Functions
+- `find_processes_by_name_patterns(patterns)` - Find all processes matching any of the given name patterns (case-insensitive)
+
 ## Usage
 
 ```python
@@ -50,6 +53,13 @@ else:
 # Get all children without exception handling
 for child in process.children():
     print(f"Child PID: {child.psutil.pid}")
+
+# Find all processes matching patterns
+from lib_process import find_processes_by_name_patterns
+
+python_processes = find_processes_by_name_patterns(["python", "pytest"])
+for proc in python_processes:
+    print(f"Found: {proc.psutil.name()} (PID {proc.psutil.pid})")
 ```
 
 ## Design Philosophy
