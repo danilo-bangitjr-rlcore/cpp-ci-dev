@@ -6,14 +6,12 @@ from coredinator.utils.executable import find_service_executable
 
 class CoreRLService(Service):
     def __init__(self, id: ServiceID, config_path: Path, base_path: Path, config: ServiceConfig | None = None):
-        executable_path = self._find_executable(base_path)
         super().__init__(
             id=id,
-            executable_path=executable_path,
+            base_path=base_path,
             config_path=config_path,
             config=config,
         )
 
-    @staticmethod
-    def _find_executable(base_path: Path) -> Path:
-        return find_service_executable(base_path, "corerl")
+    def _find_executable(self) -> Path:
+        return find_service_executable(self._base_path, "corerl")

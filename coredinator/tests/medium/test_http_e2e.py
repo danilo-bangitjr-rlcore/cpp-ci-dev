@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 import sys
 import time
 from pathlib import Path
@@ -160,25 +159,37 @@ def test_start_with_missing_config_returns_400(app_client: TestClient):
 
 
 @pytest.mark.timeout(TIMEOUT)
-def test_start_with_missing_executables_returns_400(
+def test_start_with_missing_executables_returns_failed_state(
     app_client: TestClient,
     tmp_path: Path,
     dist_with_fake_executable: Path,
 ):
+    """
+    Test that starting an agent with missing executables results in failed service state.
+
+    With deferred executable discovery, services can be instantiated even when
+    executables are missing. The start() call will discover the missing executable
+    and transition to FAILED state gracefully.
+    """
     # The base_path is the same as dist_with_fake_executable passed to --base-path
     base_path = dist_with_fake_executable
-    for base_name in ("coreio-1.0.0", "corerl-1.0.0"):
-        executable_name = f"{base_name}.exe" if os.name == "nt" else base_name
-        p = base_path / executable_name
-        try:
-            p.unlink()
-        except FileNotFoundError:
-            pass
+
+    # Delete all executables (platform-agnostic) to simulate missing executables
+    for executable_file in base_path.glob("*coreio*"):
+        executable_file.unlink()
+    for executable_file in base_path.glob("*corerl*"):
+        executable_file.unlink()
 
     cfg = tmp_path / "agent_missing_exec.yaml"
     cfg.write_text("a: 1\n")
     r = app_client.post("/api/agents/start", json={"config_path": str(cfg)})
-    assert r.status_code == 400
+    assert r.status_code == 200
+
+    agent_id = r.json()
+    status_r = app_client.get(f"/api/agents/{agent_id}/status")
+    assert status_r.status_code == 200
+    status = status_r.json()
+    assert status["state"] == "failed"
 
 
 @pytest.mark.timeout(TIMEOUT)

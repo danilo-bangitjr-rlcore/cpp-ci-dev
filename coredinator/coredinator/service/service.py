@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import timedelta
 from pathlib import Path
@@ -27,17 +28,22 @@ class ServiceConfig:
     healthcheck_enabled: bool = False
 
 
-class Service:
-    def __init__(self, id: ServiceID, executable_path: Path, config_path: Path, config: ServiceConfig | None = None):
+class Service(ABC):
+    def __init__(self, id: ServiceID, base_path: Path, config_path: Path, config: ServiceConfig | None = None):
         self._intended_state = ServiceIntendedState.STOPPED
         self.config = config if config is not None else ServiceConfig()
 
         self.id = id
-        self._exe_path: Path = executable_path
+        self._base_path: Path = base_path
         self._config_path: Path = config_path
 
         self._process: Process | None = None
         self._monitor: ServiceMonitor | None = None
+
+    @abstractmethod
+    def _find_executable(self) -> Path:
+        pass
+
 
     # ------------
     # -- Public --
@@ -59,8 +65,8 @@ class Service:
             log.info("Service already running, skipping start", service_id=self.id)
             return
 
-        log.info("Service preparing to launch process", service_id=self.id)
-        exe = self._ensure_executable()
+        exe_path = self._find_executable()
+        exe = self._ensure_executable(exe_path)
         cfg = self._ensure_config()
 
         args = self._build_args(exe, cfg)
@@ -158,13 +164,13 @@ class Service:
     # -----------------
     # -- Validations --
     # -----------------
-    def _ensure_executable(self):
-        if not self._exe_path.exists():
-            raise FileNotFoundError(f"Service executable not found at {self._exe_path}")
-        if not os.access(self._exe_path, os.X_OK):
-            raise PermissionError(f"Service executable is not executable: {self._exe_path}")
+    def _ensure_executable(self, exe_path: Path):
+        if not exe_path.exists():
+            raise FileNotFoundError(f"Service executable not found at {exe_path}")
+        if not os.access(exe_path, os.X_OK):
+            raise PermissionError(f"Service executable is not executable: {exe_path}")
 
-        return self._exe_path
+        return exe_path
 
     def _ensure_config(self):
         if not self._config_path.exists():
