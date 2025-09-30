@@ -8,20 +8,13 @@ def terminate_process_tree(proc: psutil.Process, timeout: float = 5.0, poll_inte
     Terminate a process and all its children, then wait for termination.
     """
     try:
-        # Terminate all children first
         for child in proc.children(recursive=True):
-            try:
-                child.terminate()
-            except (psutil.NoSuchProcess, psutil.AccessDenied):
-                pass
-
-        # Terminate the main process
-        proc.terminate()
+            safe_terminate_process(child)
     except (psutil.NoSuchProcess, psutil.AccessDenied):
-        # Process might already be dead
+        # Process is already gone, nothing to do
         pass
 
-    # Wait for termination
+    safe_terminate_process(proc)
     return wait_for_termination(proc, timeout, poll_interval)
 
 
@@ -32,39 +25,96 @@ def wait_for_termination(proc: psutil.Process, timeout: float = 5.0, poll_interv
     """
     deadline = time.time() + timeout
     while time.time() < deadline:
-        try:
-            # Check if process is no longer running
-            if not proc.is_running():
-                return True
-
-            # If process is zombie, it's effectively terminated
-            status = proc.status()
-            if status == psutil.STATUS_ZOMBIE:
-                return True
-
-        except psutil.NoSuchProcess:
+        if not safe_is_process_running(proc):
             return True
-        except psutil.AccessDenied:
-            # Process might be terminating, give it a moment
-            time.sleep(poll_interval)
-            continue
+
+        status = safe_get_process_status(proc)
+        if status is None:
+            return True
+        if status == psutil.STATUS_ZOMBIE:
+            return True
 
         time.sleep(poll_interval)
 
-    # Timeout reached - try force kill as last resort
-    try:
-        if proc.is_running() and proc.status() != psutil.STATUS_ZOMBIE:
-            proc.kill()
-            # Give it a moment to die
+    if safe_is_process_running(proc):
+        status = safe_get_process_status(proc)
+        if status is not None and status != psutil.STATUS_ZOMBIE:
+            safe_kill_process(proc)
             time.sleep(0.1)
-            return not proc.is_running() or proc.status() == psutil.STATUS_ZOMBIE
-    except (psutil.NoSuchProcess, psutil.AccessDenied):
-        return True
-    except Exception:
-        pass
 
-    # Final check
+    return not safe_is_process_running(proc) or safe_get_process_status(proc) == psutil.STATUS_ZOMBIE
+
+
+def safe_get_process_name(proc: psutil.Process) -> str | None:
+    """
+    Get process name safely, returning None if process is inaccessible.
+    """
     try:
-        return not proc.is_running() or proc.status() == psutil.STATUS_ZOMBIE
+        return proc.name()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return None
+
+
+def safe_is_process_running(proc: psutil.Process) -> bool:
+    """
+    Check if process is running safely, returning False if process is inaccessible.
+    """
+    try:
+        return proc.is_running()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return False
+
+
+def safe_get_process_status(proc: psutil.Process) -> str | None:
+    """
+    Get process status safely, returning None if process is inaccessible.
+    """
+    try:
+        return proc.status()
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return None
+
+
+def safe_terminate_process(proc: psutil.Process) -> bool:
+    """
+    Terminate process safely (SIGTERM), returning True if successful or process was already gone.
+    """
+    try:
+        proc.terminate()
+        return True
     except (psutil.NoSuchProcess, psutil.AccessDenied):
         return True
+
+
+def safe_kill_process(proc: psutil.Process) -> bool:
+    """
+    Kill process safely (SIGKILL), returning True if successful or process was already gone.
+    """
+    try:
+        proc.kill()
+        return True
+    except (psutil.NoSuchProcess, psutil.AccessDenied):
+        return True
+
+
+def safe_iter_processes() -> list[psutil.Process]:
+    """
+    Iterate over all processes safely, filtering out inaccessible ones.
+    """
+    try:
+        return [proc for proc in psutil.process_iter() if safe_get_process_name(proc) is not None]
+    except Exception:
+        return []
+
+
+def find_processes_by_name_patterns(name_patterns: list[str]) -> list[psutil.Process]:
+    """
+    Find processes matching any of the given name patterns.
+    """
+    matching_processes = []
+    for proc in safe_iter_processes():
+        name = safe_get_process_name(proc)
+        if name and any(pattern in name.lower() for pattern in name_patterns):
+            matching_processes.append(proc)
+
+    return matching_processes

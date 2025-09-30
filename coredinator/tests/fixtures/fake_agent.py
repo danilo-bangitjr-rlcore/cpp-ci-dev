@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import json
 import os
 import signal
+import socket
 import sys
 import threading
 import time
-
-import uvicorn
-from fastapi import FastAPI
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 
 def _parse_args(argv: list[str]) -> dict[str, str | None]:
@@ -30,52 +30,51 @@ def _install_sigterm_exit():
     signal.signal(signal.SIGTERM, handler)
 
 
-def _create_app():
-    """Create FastAPI app with healthcheck endpoint."""
-    app = FastAPI()
+class _HealthcheckHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        if self.path != "/api/healthcheck":
+            self.send_error(404)
+            return
 
-    @app.get("/api/healthcheck")
-    async def _():
-        # Check if we should return unhealthy (check each time, not just at startup)
-        import os
-        if os.environ.get("FAKE_AGENT_HEALTHCHECK", "healthy") == "unhealthy":
-            from fastapi import HTTPException
-            raise HTTPException(status_code=500, detail="Service is unhealthy")
-        return {"status": "ok"}
+        status = os.environ.get("FAKE_AGENT_HEALTHCHECK", "healthy")
+        if status == "unhealthy":
+            body = json.dumps({"detail": "Service is unhealthy"})
+            self.send_response(500)
+        else:
+            body = json.dumps({"status": "ok"})
+            self.send_response(200)
 
-    return app
+        encoded = body.encode("utf-8")
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(encoded)))
+        self.end_headers()
+        self.wfile.write(encoded)
 
-
-def _run_server():
-    """Run FastAPI server in background thread."""
-    import socket
-
-    app = _create_app()
-    if app is None:
+    def log_message(self, format: str, *args: object) -> None:
+        # Suppress default logging to keep tests quiet.
         return
 
-    # Find an available port
+
+def _start_server() -> HTTPServer:
+    """Start lightweight HTTP server providing the fake agent healthcheck."""
+
     port = int(os.environ.get("FAKE_AGENT_PORT", "0"))
     if port == 0:
-        # Find a free port
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('127.0.0.1', 0))
+            s.bind(("127.0.0.1", 0))
             port = s.getsockname()[1]
 
-    # Write the port to a file so tests can read it
+    server = HTTPServer(("127.0.0.1", port), _HealthcheckHandler)
+
+    # Persist the chosen port for tests to read if requested
     port_file = os.environ.get("FAKE_AGENT_PORT_FILE")
     if port_file:
-        with open(port_file, "w") as f:
-            f.write(str(port))
+        with open(port_file, "w", encoding="utf-8") as f:
+            f.write(str(server.server_address[1]))
 
-    config = uvicorn.Config(
-        app,
-        host="127.0.0.1",
-        port=port,
-        log_level="critical",  # Suppress logs during tests
-    )
-    server = uvicorn.Server(config)
-    server.run()
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return server
 
 
 def main(argv: list[str]) -> int:
@@ -89,15 +88,17 @@ def main(argv: list[str]) -> int:
 
     _install_sigterm_exit()
 
-    # Start FastAPI server in background thread (only for long-running mode)
-    server_thread = threading.Thread(target=_run_server, daemon=True)
-    server_thread.start()
+    # Start lightweight HTTP server in background thread (only for long-running mode)
+    server = _start_server()
 
     # Stay alive until killed; sleep in small increments to react to signals.
     try:
         while True:
             time.sleep(0.1)
     except SystemExit as e:
+        if server is not None:
+            server.shutdown()
+            server.server_close()
         return int(e.code) if e.code is not None else 0
 
 
