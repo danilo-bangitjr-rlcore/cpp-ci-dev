@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from lib_utils.list import filter_instance
 from pydantic import BaseModel
 
 from coredinator.logging_config import get_logger
@@ -154,11 +155,7 @@ def coreio_list(request: Request):
     all_services = service_manager.list_services()
     all_service_objects = [service_manager.get_service(service_id) for service_id in all_services]
 
-    coreio_service_objects = [
-        service
-        for service in all_service_objects
-        if service is not None and hasattr(service, "__class__") and service.__class__.__name__ == "CoreIOService"
-    ]
+    coreio_service_objects = filter_instance(CoreIOService, all_service_objects)
 
     coreio_services: list[dict[str, Any]] = []
     for service in coreio_service_objects:
