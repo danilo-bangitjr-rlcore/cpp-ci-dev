@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import NewType
 
-from coredinator.service.protocols import ServiceBundle, ServiceBundleID, ServiceID, ServiceState
+from coredinator.service.protocols import ServiceID, ServiceState
 from coredinator.service.service import ServiceStatus
 from coredinator.service.service_manager import ServiceManager
 from coredinator.services.coreio import CoreIOService
@@ -21,7 +21,7 @@ class AgentStatus:
     service_statuses: dict[str, ServiceStatus] = field(default_factory=dict)
 
 
-class Agent(ServiceBundle):
+class Agent:
     def __init__(
         self,
         id: AgentID,
@@ -57,16 +57,6 @@ class Agent(ServiceBundle):
             ),
         )
 
-        # Register this agent as a service bundle
-        self._service_manager.register_bundle(self)
-
-    @property
-    def id(self):
-        return ServiceBundleID(self._id)
-
-    def get_required_services(self):
-        return {self._corerl_service_id, self._coreio_service_id}
-
     def start(self):
         self._agent_state = ServiceState.STARTING
         self._coreio_service.start()
@@ -75,16 +65,9 @@ class Agent(ServiceBundle):
 
     def stop(self, grace_seconds: float = 5.0):
         self._agent_state = ServiceState.STOPPED
-        self._service_manager.unregister_bundle(self.id, grace_seconds)
-
-
-    def __del__(self):
-        """Ensure agent is properly unregistered on deletion."""
-        try:
-            self._service_manager.unregister_bundle(self.id)
-        except Exception:
-            # Ignore errors during cleanup to avoid issues in destructor
-            pass
+        corerl_service = self._service_manager.get_service(self._corerl_service_id)
+        if corerl_service is not None:
+            corerl_service.stop(grace_seconds)
 
 
     def status(self):
@@ -130,8 +113,6 @@ class Agent(ServiceBundle):
 
         # Each service returns exactly one element (int or None)
         return [corerl_pids[0], coreio_pids[0]]
-
-
 
     def reattach_processes(self, corerl_pid: int | None, coreio_pid: int | None) -> tuple[bool, bool]:
         """Reattach to existing CoreRL and CoreIO processes.
