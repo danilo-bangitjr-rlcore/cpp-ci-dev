@@ -3,6 +3,7 @@ from __future__ import annotations
 import time
 
 import psutil
+from lib_utils.errors import fail_gracefully
 
 
 class Process:
@@ -55,17 +56,13 @@ class Process:
     # Lifecycle Management
     # ============================================================================
 
+    @fail_gracefully()
     def terminate(self):
-        try:
-            self._proc.terminate()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
+        self._proc.terminate()
 
+    @fail_gracefully()
     def kill(self):
-        try:
-            self._proc.kill()
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            pass
+        self._proc.kill()
 
     def terminate_tree(self, timeout: float = 5.0, poll_interval: float = 0.1) -> bool:
         for child in self.children():
