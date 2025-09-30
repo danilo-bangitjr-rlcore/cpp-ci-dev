@@ -1,7 +1,7 @@
-import glob
 from pathlib import Path
 
 from coredinator.service.service import Service, ServiceConfig, ServiceID
+from coredinator.utils.executable import find_service_executable
 
 
 class CoreIOService(Service):
@@ -16,8 +16,4 @@ class CoreIOService(Service):
 
     @staticmethod
     def _find_executable(base_path: Path) -> Path:
-        exe_pattern = str(base_path / "**/*coreio-*")
-        matches = glob.glob(exe_pattern, recursive=True)
-        if not matches:
-            raise FileNotFoundError(f"No coreio executable found in {base_path} matching '**/*coreio-*'")
-        return Path(matches[0])
+        return find_service_executable(base_path, "coreio")

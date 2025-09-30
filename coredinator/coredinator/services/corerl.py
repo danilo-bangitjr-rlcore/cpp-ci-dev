@@ -1,7 +1,7 @@
-import glob
 from pathlib import Path
 
 from coredinator.service.service import Service, ServiceConfig, ServiceID
+from coredinator.utils.executable import find_service_executable
 
 
 class CoreRLService(Service):
@@ -16,8 +16,4 @@ class CoreRLService(Service):
 
     @staticmethod
     def _find_executable(base_path: Path) -> Path:
-        exe_pattern = str(base_path / "**/*corerl-*")
-        matches = glob.glob(exe_pattern, recursive=True)
-        if not matches:
-            raise FileNotFoundError(f"No corerl executable found in {base_path} matching '**/*corerl-*'")
-        return Path(matches[0])
+        return find_service_executable(base_path, "corerl")
