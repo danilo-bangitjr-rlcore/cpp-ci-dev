@@ -82,26 +82,14 @@ class Service:
     def stop(self, grace_seconds: float = 5.0) -> None:
         log.info("Stopping service", service_id=self.id)
         self._mode = ServiceMode.STOPPED
-        self._stop_event.set()  # Signal the monitor thread to stop
+        self._stop_event.set()
 
-        # Wait for background thread to finish if it's running
         thread = self._keep_alive_thread
         if thread is not None and thread.is_alive():
-            # Check if we're trying to join the current thread (which would cause RuntimeError)
+            thread.join(timeout=1.0)
 
-            current_thread = threading.current_thread()
-            if thread is current_thread:
-                log.debug("Service cannot join current thread, skipping wait", service_id=self.id)
-                # Clear thread reference and let it exit naturally
-                self._keep_alive_thread = None
-            else:
-                log.debug("Service waiting for background thread to finish", service_id=self.id)
-                # Give the thread a moment to see the stop signal and exit
-                thread.join(timeout=1.0)
-                if thread.is_alive():
-                    log.warning("Service background thread did not finish in time", service_id=self.id)
-                else:
-                    log.debug("Service background thread finished", service_id=self.id)
+            if thread.is_alive():
+                log.warning("Service background thread did not finish in time", service_id=self.id)
 
         if not self._process:
             return
@@ -137,7 +125,7 @@ class Service:
             return ServiceStatus(
                 id=self.id,
                 state=ServiceState.STOPPED,
-                intended_state=intended_state,
+                intended_state=self._intended_state,
                 config_path=self._config_path,
             )
 
@@ -145,7 +133,7 @@ class Service:
             return ServiceStatus(
                 id=self.id,
                 state=ServiceState.FAILED,
-                intended_state=intended_state,
+                intended_state=self._intended_state,
                 config_path=self._config_path,
             )
 
@@ -153,7 +141,7 @@ class Service:
         return ServiceStatus(
             id=self.id,
             state=state,
-            intended_state=intended_state,
+            intended_state=self._intended_state,
             config_path=self._config_path,
         )
 
