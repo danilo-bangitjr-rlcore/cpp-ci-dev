@@ -1,15 +1,11 @@
 from __future__ import annotations
 
 import os
-import subprocess
-import sys
 import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
 from pathlib import Path
-from subprocess import DEVNULL, Popen
-from typing import Any
 from urllib.error import URLError
 from urllib.request import urlopen
 
@@ -20,8 +16,6 @@ from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceState, ServiceStatus
 
 log = get_logger(__name__)
-
-IS_WINDOWS = sys.platform.startswith("win")
 
 
 class ServiceMode(StrEnum):
@@ -79,23 +73,9 @@ class Service:
 
         args = self._build_args(exe, cfg)
         log.debug("Service command args", service_id=self.id, args_preview=args[:2])  # Log first two args for security
-        popen_kwargs: dict[str, Any] = {
-            "stdin": DEVNULL,
-            "stdout": DEVNULL,
-            "stderr": DEVNULL,
-            "start_new_session": True,
-        }
 
-        if IS_WINDOWS:
-            detached_process = getattr(subprocess, "DETACHED_PROCESS", 0)
-            create_new_process_group = getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-            create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
-            creationflags = detached_process | create_new_process_group | create_no_window
-            popen_kwargs["creationflags"] = creationflags
-
-        popen = Popen(args, **popen_kwargs)
-        self._process = Process.from_pid(popen.pid)
-        log.info("Service started process", service_id=self.id, pid=popen.pid)
+        self._process = Process.start_in_background(args)
+        log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid)
         self._keep_alive()
 
     @fail_gracefully()
