@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.2](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.1...coreio-v0.11.2) (2025-10-01)
+
+
+### Bug Fixes
+
+* add error in Except ([6cb648f](https://github.com/rlcoretech/core-rl/commit/6cb648f66cb45dbf16ead44c566d3034364a9db4))
+* **CoreIO:** PROD-968 Fixes and improvements ([1f38596](https://github.com/rlcoretech/core-rl/commit/1f38596241b14ca681601e7057aa40c646083d49))
+
 ## [0.11.1](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.0...coreio-v0.11.1) (2025-09-26)
 
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.152.1](https://github.com/rlcoretech/core-rl/compare/corerl-v0.152.0...corerl-v0.152.1) (2025-10-01)
+
+
+### Bug Fixes
+
+* **CoreIO:** PROD-968 Fixes and improvements ([1f38596](https://github.com/rlcoretech/core-rl/commit/1f38596241b14ca681601e7057aa40c646083d49))
+* remove ae imputer from configs ([28d1387](https://github.com/rlcoretech/core-rl/commit/28d1387e508a8f438bedfd619a80ebff2846630e))
+
 ## [0.152.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.151.0...corerl-v0.152.0) (2025-09-26)
 
 
