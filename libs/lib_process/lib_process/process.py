@@ -65,31 +65,51 @@ class Process:
         self._proc.kill()
 
     def terminate_tree(self, timeout: float = 5.0, poll_interval: float = 0.1) -> bool:
-        for child in self.children():
+        children = self.children()
+
+        for child in children:
             child.terminate()
 
         self.terminate()
 
-        return self.wait_for_termination(timeout, poll_interval)
+        return self.wait_for_termination(timeout, poll_interval, children)
 
     def kill_tree(self, timeout: float = 5.0, poll_interval: float = 0.1) -> bool:
-        for child in self.children():
+        children = self.children()
+
+        for child in children:
             child.kill()
 
         self.kill()
 
-        return self.wait_for_termination(timeout, poll_interval)
+        return self.wait_for_termination(timeout, poll_interval, children)
 
-    def wait_for_termination(self, timeout: float = 5.0, poll_interval: float = 0.1) -> bool:
+    def wait_for_termination(
+        self,
+        timeout: float = 5.0,
+        poll_interval: float = 0.1,
+        children: list[Process] | None = None,
+    ) -> bool:
+        children = children or []
         deadline = time.time() + timeout
+
         while time.time() < deadline:
-            if not self.is_running() or self.is_zombie():
+            parent_done = not self.is_running() or self.is_zombie()
+            children_done = all(not c.is_running() or c.is_zombie() for c in children)
+
+            if parent_done and children_done:
                 return True
 
             time.sleep(poll_interval)
+
+        survivors = [c for c in children if c.is_running() and not c.is_zombie()]
+        for survivor in survivors:
+            survivor.kill()
 
         if self.is_running() and not self.is_zombie():
             self.kill()
             time.sleep(0.1)
 
-        return not self.is_running() or self.is_zombie()
+        parent_done = not self.is_running() or self.is_zombie()
+        children_done = all(not c.is_running() or c.is_zombie() for c in children)
+        return parent_done and children_done
