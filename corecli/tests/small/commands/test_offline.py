@@ -56,3 +56,26 @@ def test_train_requires_config():
 
     assert result.exit_code != 0
     assert "Missing option" in result.output or "Error" in result.output
+
+
+def test_bclone_command_exists():
+    """Test that bclone command is registered.
+
+    Note: This is a smoke test that only verifies the command exists and
+    shows help. Full integration testing is handled in coreoffline tests.
+    """
+    runner = CliRunner()
+    result = runner.invoke(cli, ["offline", "bclone", "--help"])
+
+    assert result.exit_code == 0
+    assert "Run behaviour cloning training on offline data" in result.output
+    assert "--config" in result.output
+
+
+def test_bclone_requires_config():
+    """Test that bclone requires --config option."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["offline", "bclone"])
+
+    assert result.exit_code != 0
+    assert "Missing option" in result.output or "Error" in result.output
