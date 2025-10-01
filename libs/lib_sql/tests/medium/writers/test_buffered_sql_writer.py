@@ -3,8 +3,8 @@ from __future__ import annotations
 import time
 from collections.abc import Callable, Sequence
 
-from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
 from lib_sql.writers.sql_writer import SqlWriter
+from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 
 
 def wait_for_event(pred: Callable[[], bool], interval: float, timeout: float):

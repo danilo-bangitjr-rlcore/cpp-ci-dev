@@ -8,9 +8,9 @@ from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
 from lib_sql.inspection import get_all_columns
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
-from lib_sql.writers.buffered_sql_writer import BufferedSqlWriter
-from lib_sql.writers.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
-from lib_sql.writers.point_collecting_sql_writer import PointCollectingSqlWriter
+from lib_sql.writers.collectors.point_collecting_sql_writer import PointCollectingSqlWriter
+from lib_sql.writers.core.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
+from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 from lib_utils.dict import flatten_tree
 from lib_utils.time import now_iso
 from sqlalchemy import text
