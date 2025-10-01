@@ -14,8 +14,8 @@ from coreoffline.utils.behaviour_cloning.evaluation import calculate_per_action_
 from coreoffline.utils.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
 from coreoffline.utils.behaviour_cloning.plotting import create_single_action_scatter_plot
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.setup import create_standard_setup
 from coreoffline.utils.data_loading import load_offline_transitions
+from coreoffline.utils.setup import create_standard_setup
 
 log = logging.getLogger(__name__)
 

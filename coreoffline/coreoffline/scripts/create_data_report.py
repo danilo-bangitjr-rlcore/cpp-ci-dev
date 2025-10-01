@@ -5,10 +5,10 @@ from lib_agent.buffer.datatypes import DataMode
 from lib_config.loader import load_config
 
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.pipeline_utils import StageDataCapture
-from coreoffline.utils.setup import create_standard_setup
 from coreoffline.utils.data_analysis.data_report import generate_report
 from coreoffline.utils.data_loading import load_data_chunks
+from coreoffline.utils.pipeline_utils import StageDataCapture
+from coreoffline.utils.setup import create_standard_setup
 
 log = logging.getLogger(__name__)
 
