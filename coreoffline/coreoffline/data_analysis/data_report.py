@@ -7,7 +7,7 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
-from corerl.data_pipeline.datatypes import StageCode, Transition
+from corerl.data_pipeline.datatypes import StageCode
 from corerl.environment.reward.config import Optimization
 from corerl.eval.raw_data import raw_data_eval_for_tag
 from corerl.state import AppState
@@ -18,7 +18,6 @@ from coreoffline.data_analysis.plotting import (
     make_distribution_plots,
     plot_violation_distribution,
 )
-from coreoffline.data_analysis.transition_report import make_transition_statistics_table
 from coreoffline.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)
@@ -554,7 +553,6 @@ def generate_report(
     app_state: AppState,
     start_time: datetime,
     end_time: datetime,
-    transitions: list[Transition] | None = None,
 ):
 
     output_path = Path(cfg.output_dir)
@@ -591,13 +589,3 @@ def generate_report(
         start_time,
         end_time,
     )
-
-    if transitions:
-        make_transition_statistics_table(
-            cfg,
-            transitions,
-            output_path,
-            app_state,
-            start_time,
-            end_time,
-        )

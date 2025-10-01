@@ -33,15 +33,12 @@ def main(cfg: OfflineMainConfig):
     )
     start_time = datetime.now()
 
-    transitions = []
     for chunk in data_chunks:
-        pr = pipeline(
+        pipeline(
             data=chunk,
             data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
         )
-        if pr.transitions is not None:
-            transitions += pr.transitions
 
     end_time = datetime.now()
 
@@ -56,7 +53,6 @@ def main(cfg: OfflineMainConfig):
         app_state,
         start_time,
         end_time,
-        transitions,
     )
 
 
