@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 
 from coredinator.agent.agent_manager import AgentManager
+from coredinator.event_bus.event_bus_manager import EventBusManager
 from coredinator.logging_config import get_logger, setup_structured_logging
 from coredinator.service.service_manager import ServiceManager
 from coredinator.web.agent_manager import router as agent_manager
@@ -28,8 +29,15 @@ async def lifespan(app: FastAPI):
         port=main_port,
         version=version,
     )
+
+    app.state.event_bus_manager.start()
+    logger.info("Event bus started")
+
     yield
+
     logger.info("CoreRL server shutting down")
+    app.state.event_bus_manager.stop()
+    logger.info("Event bus stopped")
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
@@ -64,7 +72,9 @@ def create_app(base_path: Path) -> FastAPI:
 
     app = FastAPI(lifespan=lifespan)
     service_manager = ServiceManager(base_path=prepared_base_path)
+    event_bus_manager = EventBusManager()
     app.state.service_manager = service_manager
+    app.state.event_bus_manager = event_bus_manager
     app.state.base_path = prepared_base_path
     app.state.agent_manager = AgentManager(base_path=prepared_base_path, service_manager=service_manager)
 
@@ -103,13 +113,18 @@ def create_app(base_path: Path) -> FastAPI:
         return RedirectResponse(url="/docs")
 
     @app.get("/api/healthcheck")
-    async def health():
+    async def health(request: Request):
         logger.debug("Health check requested")
+        event_bus_healthy = request.app.state.event_bus_manager.is_healthy()
         return {
-            "status": "healthy",
+            "status": "healthy" if event_bus_healthy else "degraded",
             "process_id": os.getpid(),
             "service": "coredinator",
             "version": version,
+            "event_bus": {
+                "status": "running" if event_bus_healthy else "stopped",
+                "config": request.app.state.event_bus_manager.get_config(),
+            },
         }
 
     app.include_router(agent_manager, prefix="/api/agents", tags=["Agent"])

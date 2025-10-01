@@ -75,6 +75,7 @@ Optional configuration:
 3. **Process Management**: Robust lifecycle management with graceful shutdown
 4. **API-First**: RESTful interface for programmatic control
 5. **Fault Tolerance**: Recovery mechanisms and error handling
+6. **Event-Driven Communication**: ZeroMQ-based event bus for decoupled inter-service messaging
 
 ### System Components
 
@@ -85,6 +86,9 @@ Optional configuration:
 ├─────────────────┤
 │  AgentManager   │
 │  (Orchestrator) │
+├─────────────────┤
+│  Event Bus      │
+│  (ZMQ XPUB/XSUB)│
 ├─────────────────┤
 │   Database      │
 │   (SQLite)      │
@@ -98,6 +102,7 @@ Optional configuration:
 
 - **AgentManager**: Core orchestration logic for agent lifecycle management
 - **REST API**: HTTP endpoints for internal communication across microservices
+- **Event Bus**: ZeroMQ proxy enabling publish-subscribe messaging between services
 - **Service Protocols**: Standardized interfaces for service communication
 - **Database Layer**: Persistent storage for agent state and configuration
 
@@ -218,6 +223,82 @@ The `/api/agents/start` endpoint accepts the following parameters:
 - **Shared Services**: When multiple agents share a CoreIO service (by specifying the same `coreio_id`), they all use the same service instance.
 - **Service Starting**: Starting an agent will start all dependent services (CoreRL → CoreIO) if they are not already running. Service starts are idempotent.
 - **Independent CoreRL**: Each agent always gets its own CoreRL service regardless of CoreIO sharing.
+
+## Event Bus
+
+Coredinator runs a ZeroMQ-based event bus using XPUB/XSUB proxy architecture. This enables decoupled publish-subscribe communication between services without requiring direct point-to-point connections.
+
+### Architecture
+
+The event bus consists of a central proxy that runs in a background thread:
+
+- **XSUB socket** (default: `tcp://*:5559`): Publishers connect here to send events
+- **XPUB socket** (default: `tcp://*:5560`): Subscribers connect here to receive events
+
+The proxy automatically forwards messages from publishers to subscribers based on topic subscriptions. All communication happens asynchronously in a dedicated thread, ensuring the main coredinator service remains non-blocking.
+
+### Publisher Usage
+
+Services that want to publish events should connect a ZMQ `PUB` socket to the proxy's XSUB endpoint:
+
+```python
+import zmq
+
+context = zmq.Context()
+socket = context.socket(zmq.PUB)
+socket.connect("tcp://localhost:5559")
+
+# Publish message on topic "agent.started"
+socket.send_multipart([b"agent.started", b'{"agent_id": "abc123"}'])
+```
+
+### Subscriber Usage
+
+Services that want to receive events should connect a ZMQ `SUB` socket to the proxy's XPUB endpoint and subscribe to desired topics:
+
+```python
+import zmq
+
+context = zmq.Context()
+socket = context.socket(zmq.SUB)
+socket.connect("tcp://localhost:5560")
+
+# Subscribe to all agent events
+socket.setsockopt_string(zmq.SUBSCRIBE, "agent.")
+
+while True:
+    topic, message = socket.recv_multipart()
+    print(f"Received: {topic.decode()} - {message.decode()}")
+```
+
+### Event Bus Health
+
+The event bus status is included in the `/api/healthcheck` endpoint response:
+
+```json
+{
+  "status": "healthy",
+  "process_id": 12345,
+  "service": "coredinator",
+  "version": "0.0.1",
+  "event_bus": {
+    "status": "running",
+    "config": {
+      "xsub_addr": "tcp://*:5559",
+      "xpub_addr": "tcp://*:5560",
+      "publisher_endpoint": "tcp://localhost:5559",
+      "subscriber_endpoint": "tcp://localhost:5560"
+    }
+  }
+}
+```
+
+### Benefits
+
+- **Decoupling**: Services only need to know the proxy address, not each other
+- **Scalability**: Multiple publishers and subscribers can connect without coordination
+- **Flexibility**: New services can join or leave without affecting existing services
+- **Non-blocking**: Proxy runs in background thread, no impact on main service
 
 ## TEP Demo: AgentManager demo routes
 
