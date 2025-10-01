@@ -1,0 +1,156 @@
+import logging
+import random
+
+import numpy as np
+from corerl.data_pipeline.datatypes import Transition
+from corerl.data_pipeline.pipeline import Pipeline
+from corerl.eval.evals.factory import create_evals_writer
+from corerl.eval.metrics.factory import create_metrics_writer
+from corerl.messages.event_bus import DummyEventBus
+from corerl.state import AppState
+from lib_config.loader import load_config
+from lib_defs.config_defs.tag_config import TagType
+from sklearn.metrics import mean_absolute_error
+
+from coreoffline.behaviour_cloning.data import (
+    ModelData,
+    prepare_features_and_targets,
+)
+from coreoffline.behaviour_cloning.evaluation import calculate_sign_accuracy
+from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
+from coreoffline.behaviour_cloning.plotting import create_prediction_scatter_plots
+from coreoffline.config import OfflineMainConfig
+from coreoffline.data_loading import load_offline_transitions
+
+logging.basicConfig(level=logging.INFO)
+log = logging.getLogger(__name__)
+
+
+def get_ai_setpoint_tag_name(cfg: OfflineMainConfig) -> str:
+    """Extract the name of the ai_setpoint tag from the configuration."""
+    ai_setpoint_tags = [tag.name for tag in cfg.pipeline.tags if tag.type == TagType.ai_setpoint]
+
+    if not ai_setpoint_tags:
+        raise ValueError("No ai_setpoint tag found in configuration")
+
+    if len(ai_setpoint_tags) > 1:
+        log.warning(f"Multiple ai_setpoint tags found: {ai_setpoint_tags}. Using the first one: {ai_setpoint_tags[0]}")
+
+    return ai_setpoint_tags[0]
+
+
+def run_cross_validation(
+    model: BaseRegressor,
+    data: ModelData,
+    n_splits: int,
+):
+    """Run cross validation using k-fold splits from ModelData."""
+    all_y_true = []
+    all_y_pred = []
+
+    for train_data, test_data in data.k_fold_split(n_splits):
+        model.fit(
+            train_data.X,
+            train_data.y,
+            X_test=test_data.X,
+            y_test=test_data.y,
+        )
+        y_pred = model.predict(test_data.X)
+
+        all_y_true.append(test_data.y)
+        all_y_pred.append(y_pred)
+
+    # Combine all predictions and targets
+    all_y_true = np.vstack(all_y_true)
+    all_y_pred = np.vstack(all_y_pred)
+
+    return all_y_true, all_y_pred
+
+
+def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
+    assert isinstance(app_state.cfg, OfflineMainConfig)
+    data = prepare_features_and_targets(
+        transitions,
+    )
+
+    # Linear Regression
+    log.info("Training Linear Regression model...")
+    mlp = LinearRegressor(app_state)
+    all_y_true, all_y_pred_linear = run_cross_validation(
+        mlp,
+        data,
+        n_splits=app_state.cfg.behaviour_clone.k_folds,
+    )
+    linear_metrics = {
+        'mae': mean_absolute_error(all_y_true, all_y_pred_linear),
+        'sign_acc': calculate_sign_accuracy(all_y_true, all_y_pred_linear),
+    }
+    log.info(
+        "Done training Linear Regression model." +
+        f"Mean MAE: {linear_metrics['mae']}, Mean sign acc: {linear_metrics['sign_acc']}",
+    )
+
+    # Deep Learning
+    log.info("Training MLP model...")
+    mlp = MLPRegressor(
+        app_state.cfg.behaviour_clone.mlp,
+        app_state,
+    )
+    all_y_true, all_y_pred_mlp = run_cross_validation(
+        mlp,
+        data,
+        n_splits=app_state.cfg.behaviour_clone.k_folds,
+    )
+    deep_metrics = {
+        'mae': mean_absolute_error(all_y_true, all_y_pred_mlp),
+        'sign_acc': calculate_sign_accuracy(all_y_true, all_y_pred_mlp),
+    }
+    log.info(
+        "Done training MLP Regression model." +
+        f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
+    )
+
+    action_tag = get_ai_setpoint_tag_name(app_state.cfg)
+
+    create_prediction_scatter_plots(
+        y_true=all_y_true,
+        y_pred_linear=all_y_pred_linear,
+        y_pred_deep=all_y_pred_mlp,
+        linear_metrics=linear_metrics,
+        deep_metrics=deep_metrics,
+        action_tag=action_tag,
+        output_dir=app_state.cfg.save_path,
+    )
+
+
+@load_config(OfflineMainConfig)
+def main(cfg: OfflineMainConfig):
+    """Main function for finding the best observation period."""
+    # set the random seeds
+    seed = cfg.seed
+    np.random.seed(seed)
+    random.seed(seed)
+
+    # Create AppState for metrics logging
+    app_state = AppState(
+        cfg=cfg,
+        metrics=create_metrics_writer(cfg.metrics),
+        evals=create_evals_writer(cfg.evals),
+        event_bus=DummyEventBus(),
+    )
+
+    pipeline = Pipeline(app_state, cfg.pipeline)
+    pr, _ = load_offline_transitions(app_state, pipeline)
+    if pr is None:
+        log.info("No Pipereturn, exiting...")
+        return
+
+    if not pr.transitions:
+        log.info("No Transitions, exiting...")
+        return
+
+    run_behaviour_cloning(app_state, pr.transitions)
+
+
+if __name__ == "__main__":
+    main()
