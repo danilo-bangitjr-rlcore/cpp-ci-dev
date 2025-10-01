@@ -3,10 +3,11 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
+from lib_utils.list import filter_instance
 from pydantic import BaseModel
 
 from coredinator.logging_config import get_logger
-from coredinator.service.protocols import ServiceBundleID, ServiceID
+from coredinator.service.protocols import ServiceID
 from coredinator.service.service_manager import ServiceManager
 from coredinator.services.coreio import CoreIOService
 from coredinator.utils.http import convert_to_http_exception
@@ -47,16 +48,12 @@ def _start_coreio(service_manager: ServiceManager, cfg: Path, coreio_id: Service
     if coreio_id is None:
         coreio_id = ServiceID(f"{cfg.stem}-coreio")
 
-    # Create a unique owner ID for this API call (using config path as identifier)
-    api_owner_id = ServiceBundleID(f"coreio-api-{cfg.name}")
 
     request_start = time.perf_counter()
-
     log.info(
         "CoreIO start request received",
         service_id=coreio_id,
         config_path=str(cfg),
-        owner_id=api_owner_id,
     )
 
     base_path = request.app.state.base_path
@@ -75,15 +72,6 @@ def _start_coreio(service_manager: ServiceManager, cfg: Path, coreio_id: Service
             config_path=cfg,
             base_path=base_path,
         ),
-    )
-
-    # Register this API call as an owner of the service
-    service_manager.add_service_owner(coreio_id, api_owner_id)
-    log.info(
-        "Registered CoreIO service owner",
-        service_id=coreio_id,
-        owner_id=api_owner_id,
-        total_owners=len(service_manager.get_service_owners(coreio_id)),
     )
 
     start_elapsed_start = time.perf_counter()
@@ -130,24 +118,6 @@ def coreio_stop(coreio_id: ServiceID, request: Request):
         log.warning("CoreIO stop failed: service not found", service_id=coreio_id)
         raise HTTPException(status_code=404, detail=f"CoreIO service with ID '{coreio_id}' not found")
 
-    # Check if service can be safely stopped (not shared by other API calls)
-    if service_manager.is_service_shared(coreio_id):
-        owners = list(service_manager.get_service_owners(coreio_id))
-        log.warning(
-            "CoreIO stop blocked: service is shared",
-            service_id=coreio_id,
-            owners=owners,
-        )
-        raise HTTPException(
-            status_code=409,
-            detail=f"Cannot stop CoreIO service '{coreio_id}' - still in use by: {list(owners)}",
-        )
-
-    # Remove all ownership and stop the service
-    owners = list(service_manager.get_service_owners(coreio_id))
-    for owner_id in owners:
-        service_manager.remove_service_owner(coreio_id, owner_id)
-
     service.stop()
     service_manager.remove_service(coreio_id)
 
@@ -155,8 +125,6 @@ def coreio_stop(coreio_id: ServiceID, request: Request):
     log.info(
         "CoreIO service stopped",
         service_id=coreio_id,
-        removed_owner_count=len(owners),
-        removed_owners=owners,
         elapsed_seconds=stop_elapsed,
     )
 
@@ -173,24 +141,9 @@ def coreio_status(coreio_id: ServiceID, request: Request):
         log.warning("CoreIO status failed: service not found", service_id=coreio_id)
         raise HTTPException(status_code=404, detail=f"CoreIO service with ID '{coreio_id}' not found")
 
-    owners = list(service_manager.get_service_owners(coreio_id))
-    is_shared = service_manager.is_service_shared(coreio_id)
-    status = service.status()
-
-    log.info(
-        "CoreIO status evaluated",
-        service_id=coreio_id,
-        state=status.state.value,
-        intended=status.intended_state.value,
-        owner_count=len(owners),
-        is_shared=is_shared,
-    )
-
     return {
         "service_id": coreio_id,
-        "status": status,
-        "owners": owners,
-        "is_shared": is_shared,
+        "status": service.status(),
     }
 
 
@@ -202,31 +155,21 @@ def coreio_list(request: Request):
     all_services = service_manager.list_services()
     all_service_objects = [service_manager.get_service(service_id) for service_id in all_services]
 
-    # Simple filter without lib_utils to test basic functionality
-    coreio_service_objects = [
-        service for service in all_service_objects
-        if service is not None and hasattr(service, '__class__') and service.__class__.__name__ == 'CoreIOService'
-    ]
+    coreio_service_objects = filter_instance(CoreIOService, all_service_objects)
 
     coreio_services: list[dict[str, Any]] = []
     for service in coreio_service_objects:
         service_id = service.id
-        owners = list(service_manager.get_service_owners(service_id))
-        is_shared = service_manager.is_service_shared(service_id)
         coreio_services.append(
             {
                 "service_id": service_id,
                 "status": service.status(),
-                "owners": owners,
-                "is_shared": is_shared,
             },
         )
 
-    shared_count = sum(1 for svc in coreio_services if svc["is_shared"])
     log.info(
         "CoreIO services listed",
         total_services=len(coreio_services),
-        shared_services=shared_count,
     )
 
     return {"coreio_services": coreio_services}

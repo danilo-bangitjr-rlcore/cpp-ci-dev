@@ -108,9 +108,13 @@ Optional configuration:
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/api/agents/start` | Start a new agent with configuration |
-| `POST` | `/api/agents/{agent_id}/stop` | Stop a running agent |
+| `POST` | `/api/agents/{agent_id}/stop` | Stop a running agent (stops CoreRL only) |
 | `GET` | `/api/agents/{agent_id}/status` | Get agent status information |
 | `GET` | `/api/agents/` | List all managed agents |
+| `POST` | `/api/coreio/start` | Start a CoreIO service instance |
+| `POST` | `/api/coreio/{coreio_id}/stop` | Stop a CoreIO service instance |
+| `GET` | `/api/coreio/{coreio_id}/status` | Get CoreIO service status |
+| `GET` | `/api/coreio/` | List all CoreIO services |
 | `GET` | `/api/healthcheck` | Service health check |
 | `POST` | `/api/agents/demo/tep/start` | Start a TEP demo agent with a demo configuration |
 | `POST` | `/api/agents/demo/tep/{agent_id}/stop` | Stop a running TEP demo agent |
@@ -145,9 +149,26 @@ curl -X GET "http://localhost:7000/api/agents/{agent_id}/status"
 curl -X POST "http://localhost:7000/api/agents/{agent_id}/stop"
 ```
 
+**Stop a CoreIO Service:**
+```bash
+curl -X POST "http://localhost:7000/api/coreio/{coreio_id}/stop"
+```
+
+**Check CoreIO Service Status:**
+```bash
+curl -X GET "http://localhost:7000/api/coreio/{coreio_id}/status"
+```
+
+**List All CoreIO Services:**
+```bash
+curl -X GET "http://localhost:7000/api/coreio/"
+```
+
 ## Service Sharing
 
 Coredinator supports sharing CoreIO services between multiple agents to optimize resource usage and enable coordinated scenarios. When starting an agent, you can optionally specify a `coreio_id` to share a CoreIO instance with other agents.
+
+**Important:** CoreIO services have independent lifecycles from agents. Stopping an agent only stops its CoreRL service, not the CoreIO service. You must explicitly stop CoreIO services using the CoreIO API endpoints.
 
 ### Usage
 
@@ -193,9 +214,10 @@ The `/api/agents/start` endpoint accepts the following parameters:
 
 ### Service Lifecycle
 
-- **Shared Services**: When multiple agents share a CoreIO service, stopping one agent will not affect the shared service if other agents are still using it
-- **Reference Counting**: The system tracks which agents are using each service and only stops services when no agents are using them
-- **Independent CoreRL**: Each agent always gets its own CoreRL service regardless of CoreIO sharing
+- **Agent Stopping**: Stopping an agent only stops its CoreRL service. CoreIO services must be stopped independently via the CoreIO API.
+- **Shared Services**: When multiple agents share a CoreIO service (by specifying the same `coreio_id`), they all use the same service instance.
+- **Service Starting**: Starting an agent will start all dependent services (CoreRL → CoreIO) if they are not already running. Service starts are idempotent.
+- **Independent CoreRL**: Each agent always gets its own CoreRL service regardless of CoreIO sharing.
 
 ## TEP Demo: AgentManager demo routes
 

@@ -76,20 +76,3 @@ class ServiceLike(Protocol):
         Returns True if successfully reattached, False otherwise.
         """
         ...
-
-
-# Define a unique identifier for service bundles
-ServiceBundleID = NewType("ServiceBundleID", str)
-
-
-class ServiceBundle(Protocol):
-    """Protocol for objects that can own and depend on services."""
-
-    @property
-    def id(self) -> ServiceBundleID:
-        """Unique identifier for this service bundle."""
-        ...
-
-    def get_required_services(self) -> set[ServiceID]:
-        """Return set of service IDs this bundle depends on."""
-        ...

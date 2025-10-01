@@ -141,14 +141,17 @@ def test_agent_shared_coreio_service(
     dist_with_fake_executable: Path,
 ):
     """
-    Test that multiple agents can share a CoreIO service instance when coreio_id is provided.
+    Test that multiple agents can reuse the same CoreIO service instance.
 
-    This test validates the new service sharing feature by:
-    1. Starting agent1 normally (independent services)
-    2. Starting agent2 and agent3 with shared CoreIO service
+    This test validates service reuse by:
+    1. Starting agent1 normally (gets its own CoreIO service)
+    2. Starting agent2 and agent3 with the same coreio_id (reuse the same CoreIO instance)
     3. Verifying agent2/agent3 share same CoreIO PID but have different CoreRL PIDs
-    4. Stopping agent2 and confirming agent3 continues with shared CoreIO
+    4. Stopping agent2 and confirming agent3 continues unaffected
     5. Ensuring agent1 remains completely independent throughout
+
+    Note: Stopping an agent only stops its CoreRL service. CoreIO services persist
+    until explicitly stopped via the CoreIO API.
     """
     api_client = CoredinatorAPIClient(coredinator_service.base_url)
     shared_coreio_id = "shared-coreio-test"
@@ -176,11 +179,11 @@ def test_agent_shared_coreio_service(
     # Verify agent1 has independent services by checking service IDs
     verify_agents_independent(api_client, agent1_id, agent2_id)
 
-    # Stop agent2 - shared CoreIO should continue running for agent3
+    # Stop agent2 - CoreIO continues running (agents only stop their CoreRL service)
     api_client.stop_agent(agent2_id)
     api_client.assert_agent_state(agent3_id, "running", timeout=2.0)
 
-    # Verify CoreIO service is still shared and agent3 continues running
+    # Verify CoreIO service continues running and agent3 continues unaffected
     assert verify_agent_services_running(api_client.base_url, agent3_id), \
         "Agent3 should still have running services after agent2 stops"
 
@@ -231,17 +234,15 @@ def test_drayton_valley_workflow(
     dist_with_fake_executable: Path,
 ):
     """
-    Test the Drayton Valley workflow with independent CoreIO service.
+    Test CoreIO lifecycle management via the CoreIO API.
 
-    This test demonstrates the Drayton Valley workflow where:
-    1. CoreIO service is started independently via the CoreIO API
-    2. Two agents (backwash and coag) connect to the existing CoreIO instance
-    3. Agent status can be checked independently
-    4. Agents can be stopped without affecting the independent CoreIO service
-    5. The CoreIO service persists until explicitly stopped via the CoreIO API
+    This test demonstrates:
+    1. CoreIO service can be started independently via the CoreIO API
+    2. Multiple agents can connect to a pre-existing CoreIO instance
+    3. Stopping agents leaves CoreIO running (agents only stop their CoreRL service)
+    4. CoreIO must be explicitly stopped via the CoreIO API
 
-    NOTE: This demonstrates independent CoreIO service management.
-    For agent-managed service sharing, see test_agent_shared_coreio_service.
+    This validates that CoreIO has an independent lifecycle from agents.
     """
     api_client = CoredinatorAPIClient(coredinator_service.base_url)
     shared_coreio_id = "drayton-valley-coreio"
@@ -256,7 +257,6 @@ def test_drayton_valley_workflow(
     # Verify CoreIO is running independently
     coreio_status = api_client.get_coreio_status(shared_coreio_id)
     assert coreio_status["status"]["state"] == "running"
-    assert len(coreio_status["owners"]) == 1  # Only API owner
 
     # Step 2: Start agents connecting to existing CoreIO service
     backwash_id = api_client.start_agent(str(configs["backwash"]), coreio_id=shared_coreio_id)
@@ -265,11 +265,9 @@ def test_drayton_valley_workflow(
     # Wait for both agents to be running
     assert_all_agents_state(api_client.base_url, [backwash_id, coag_id], "running", timeout=5.0)
 
-    # Verify CoreIO now has multiple owners (API + agents)
+    # Verify CoreIO is still running
     coreio_status = api_client.get_coreio_status(shared_coreio_id)
     assert coreio_status["status"]["state"] == "running"
-    assert len(coreio_status["owners"]) > 1  # API owner + agent owners
-    assert coreio_status["is_shared"]
 
     # Verify both agents are running with healthy services
     assert verify_agent_services_running(api_client.base_url, backwash_id), "Backwash agent services should be running"
@@ -288,7 +286,7 @@ def test_drayton_valley_workflow(
     assert coag_status["state"] == "running"
     assert coag_status["id"] == coag_id
 
-    # Step 4: Stop backwash agent - CoreIO should remain running
+    # Step 4: Stop backwash agent - CoreIO continues running (agents only stop CoreRL)
     api_client.stop_agent(backwash_id)
     api_client.assert_agent_state(backwash_id, "stopped", timeout=2.0)
     api_client.assert_agent_state(coag_id, "running", timeout=2.0)
@@ -297,17 +295,15 @@ def test_drayton_valley_workflow(
     assert verify_agent_services_running(api_client.base_url, coag_id), \
         "Coag should still have running services after backwash stops"
 
-    # Step 5: Stop coag agent - CoreIO should still remain running (owned by API)
+    # Step 5: Stop coag agent - CoreIO still remains running
     api_client.stop_agent(coag_id)
     assert_all_agents_state(api_client.base_url, [backwash_id, coag_id], "stopped", timeout=2.0)
 
-    # Step 6: Verify CoreIO is still running independently (only API owner remains)
+    # Step 6: Verify CoreIO continues running (agents don't stop CoreIO)
     coreio_status = api_client.get_coreio_status(shared_coreio_id)
     assert coreio_status["status"]["state"] == "running"
-    assert len(coreio_status["owners"]) == 1  # Only API owner remains
-    assert not coreio_status["is_shared"]  # No longer shared
 
-    # Step 7: Finally stop CoreIO via API
+    # Step 7: Explicitly stop CoreIO via the CoreIO API
     api_client.stop_coreio_service(shared_coreio_id)
 
     # Verify CoreIO is now stopped/removed

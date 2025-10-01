@@ -25,6 +25,10 @@ def find_instance[T, U](inst: type[U], li: Iterable[T]) -> U | None:
     return None
 
 
+def filter_instance[T, U](inst: type[U], li: Iterable[T]) -> list[U]:
+    return [item for item in li if isinstance(item, inst)]
+
+
 def flatten(li: Iterable[Any]) -> list[Any]:
     out = []
 
