@@ -11,7 +11,8 @@ from lib_agent.buffer.datatypes import DataMode
 
 from coreoffline.config import OfflineMainConfig
 from coreoffline.core.pipeline_utils import StageDataCapture
-from coreoffline.data_analysis.data_report import ReportConfig, generate_report
+from coreoffline.data_analysis import data_report, transition_report
+from coreoffline.data_analysis.data_report import ReportConfig
 
 
 def test_stage_data_capture(
@@ -52,12 +53,11 @@ def test_stage_data_capture(
     pd.testing.assert_frame_equal(init_captured, test_dataframe, check_dtype=False)
 
 
-def test_generate_report_smoke_test(
+def test_data_report_smoke_test(
         tmp_path: Path,
-        transitions_with_timestamps: list[Transition],
         dummy_app_state: AppState,
     ):
-    """Smoke test for generate_report to ensure it terminates with mixed nan/non-nan data"""
+    """Smoke test for data report generation to ensure it terminates with mixed nan/non-nan data"""
 
     # Create test dataframes with mixed nan and non-nan values
     test_data_1 = pd.DataFrame({
@@ -76,7 +76,7 @@ def test_generate_report_smoke_test(
 
     # Create report config
     report_cfg = ReportConfig(
-        output_dir=tmp_path / "smoke_test_report",
+        output_dir=tmp_path / "data_report",
         stages=[StageCode.INIT, StageCode.SC],
         stat_table_enabled=True,
         hist_enabled=True,
@@ -90,11 +90,49 @@ def test_generate_report_smoke_test(
     stages = [StageCode.INIT, StageCode.SC]
     start = dt.datetime.now()
     end = start + dt.timedelta(minutes=6)
+
     # This should not raise any exceptions - we don't care about the output
-    generate_report(report_cfg, data_list, stages, dummy_app_state, start, end, transitions=transitions_with_timestamps)
+    data_report.generate_report(report_cfg, data_list, stages, dummy_app_state, start, end)
 
     # Verify that output directory was created (basic sanity check)
-    assert (tmp_path / "smoke_test_report").exists()
+    assert (tmp_path / "data_report").exists()
 
-    # Verify that transition statistics file was created since we passed transitions
-    assert (tmp_path / "smoke_test_report" / "transition_statistics.txt").exists()
+    # Verify that sensor report was created
+    assert (tmp_path / "data_report" / "sensor_report.txt").exists()
+
+
+def test_transition_report_smoke_test(
+        tmp_path: Path,
+        transitions_with_timestamps: list[Transition],
+        dummy_app_state: AppState,
+    ):
+    """Smoke test for transition report generation to ensure it terminates correctly"""
+
+    # Create report config
+    report_cfg = ReportConfig(
+        output_dir=tmp_path / "transition_report",
+        stages=[StageCode.INIT, StageCode.SC],
+        stat_table_enabled=False,
+        hist_enabled=False,
+        cross_corr_enabled=False,
+        contiguous_time_threshold=dt.timedelta(minutes=1),
+    )
+
+    start = dt.datetime(2023, 7, 13, 9, 59, tzinfo=dt.UTC)
+    end = dt.datetime(2023, 7, 13, 10, 5, tzinfo=dt.UTC)
+
+    # This should not raise any exceptions
+    transition_report.generate_report(
+        report_cfg,
+        dummy_app_state,
+        start,
+        end,
+        transitions_with_timestamps,
+    )
+
+    # Verify that output directory was created
+    assert (tmp_path / "transition_report").exists()
+
+    # Verify that transition statistics file was created
+    assert (tmp_path / "transition_report" / "transition_statistics.txt").exists()
+    assert (tmp_path / "transition_report" / "transition_statistics.csv").exists()
