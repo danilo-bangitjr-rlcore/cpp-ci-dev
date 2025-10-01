@@ -6,13 +6,13 @@ from corerl.state import AppState
 from lib_config.loader import load_config
 from lib_defs.config_defs.tag_config import TagType
 
-from coreoffline.behaviour_cloning.data import (
+from coreoffline.utils.behaviour_cloning.data import (
     ModelData,
     prepare_features_and_targets,
 )
-from coreoffline.behaviour_cloning.evaluation import calculate_per_action_metrics
-from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
-from coreoffline.behaviour_cloning.plotting import create_single_action_scatter_plot
+from coreoffline.utils.behaviour_cloning.evaluation import calculate_per_action_metrics
+from coreoffline.utils.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
+from coreoffline.utils.behaviour_cloning.plotting import create_single_action_scatter_plot
 from coreoffline.utils.config import OfflineMainConfig
 from coreoffline.utils.setup import create_standard_setup
 from coreoffline.utils.data_loading import load_offline_transitions

@@ -7,7 +7,7 @@ from corerl.data_pipeline.db.data_writer import TagDBConfig
 from lib_config.config import MISSING, computed, config, post_processor
 from pydantic import Field
 
-from coreoffline.behaviour_cloning.models import MLPConfig
+from coreoffline.utils.behaviour_cloning.models import MLPConfig
 
 
 @config()
