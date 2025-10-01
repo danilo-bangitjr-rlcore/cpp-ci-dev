@@ -12,7 +12,6 @@ from coreoffline.core.setup import create_standard_setup
 from coreoffline.data_analysis.data_report import generate_report
 from coreoffline.data_loading import load_data_chunks
 
-logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
