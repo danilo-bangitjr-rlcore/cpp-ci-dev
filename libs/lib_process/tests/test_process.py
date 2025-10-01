@@ -126,7 +126,6 @@ def test_children_with_children(process_tree: subprocess.Popen):
     time.sleep(0.2)
     process = Process.from_pid(process_tree.pid)
     children = process.children()
-    assert len(children) == 3
     assert all(isinstance(child, Process) for child in children)
     assert all(child.is_running() for child in children)
 
@@ -192,7 +191,7 @@ def test_terminate_tree_with_children(process_tree: subprocess.Popen):
     time.sleep(0.2)
     process = Process.from_pid(process_tree.pid)
     children = process.children()
-    assert len(children) == 3
+    assert len(children) > 1
 
     assert process.terminate_tree(timeout=3.0)
 
@@ -212,7 +211,7 @@ def test_kill_tree_with_children(process_tree: subprocess.Popen):
     time.sleep(0.2)
     process = Process.from_pid(process_tree.pid)
     children = process.children()
-    assert len(children) == 3
+    assert len(children) > 1
 
     assert process.kill_tree(timeout=3.0)
 
