@@ -29,7 +29,7 @@ def test_writer(tsdb_engine: Engine):
     writer = NormalizedNarrowSqlWriter(
         engine=tsdb_engine,
         data_table_name="test_narrow_data",
-        lookup_table_name="test_narrow_metrics",
+        lookup_table_name="test_narrow_metadata",
         schema="public",
     )
     yield writer
@@ -48,7 +48,7 @@ def writer_factory(tsdb_engine: Engine):
 
     def _create_writer(base_name: str = "test", schema: str = "public"):
         data_table = f"{base_name}_data_{len(created_writers)}"
-        lookup_table = f"{base_name}_metrics_{len(created_writers)}"
+        lookup_table = f"{base_name}_metadata_{len(created_writers)}"
         writer = NormalizedNarrowSqlWriter(
             engine=tsdb_engine,
             data_table_name=data_table,
@@ -196,7 +196,7 @@ def test_basic_write_operations(
 
     # Verify single write results using utility function
     written_data = get_written_metrics(
-        tsdb_engine, "public", "test_narrow_data", "test_narrow_metrics",
+        tsdb_engine, "public", "test_narrow_data", "test_narrow_metadata",
     )
     assert len(written_data) == 1
     row = written_data[0]
@@ -212,7 +212,7 @@ def test_basic_write_operations(
 
     # Verify all data using utility function
     all_written_data = get_written_metrics(
-        tsdb_engine, "public", "test_narrow_data", "test_narrow_metrics",
+        tsdb_engine, "public", "test_narrow_data", "test_narrow_metadata",
     )
     assert len(all_written_data) == len(sample_metric_data)
 
@@ -480,7 +480,7 @@ def test_special_characters_in_metric_names(
     test_writer.write_many(special_char_metrics)
 
     # Verify all metrics are stored correctly
-    lookup_data = get_metric_lookup_data(tsdb_engine, "public", "test_narrow_metrics")
+    lookup_data = get_metric_lookup_data(tsdb_engine, "public", "test_narrow_metadata")
     stored_metrics = {row[1] for row in lookup_data}
     expected_metrics = {item["metric"] for item in special_char_metrics}
 

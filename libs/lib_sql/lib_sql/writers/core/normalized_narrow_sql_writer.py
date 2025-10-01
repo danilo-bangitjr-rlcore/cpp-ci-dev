@@ -59,7 +59,7 @@ class NormalizedNarrowSqlWriter(SqlWriter):
     ):
         self.engine = engine
         self.data_table_name = data_table_name
-        self.lookup_table_name = lookup_table_name or f"{data_table_name}_metrics"
+        self.lookup_table_name = lookup_table_name or f"{data_table_name}_metadata"
         self.schema = schema
         self.time_column = time_column
         self.chunk_time_interval = chunk_time_interval
