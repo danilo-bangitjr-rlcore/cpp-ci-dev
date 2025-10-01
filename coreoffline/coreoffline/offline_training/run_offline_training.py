@@ -6,7 +6,7 @@ from corerl.tags.validate_tag_configs import validate_tag_configs
 from lib_config.loader import load_config
 
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.core.setup import create_standard_setup
+from coreoffline.utils.setup import create_standard_setup
 from coreoffline.utils.data_loading import (
     load_offline_transitions,
     offline_rl_from_buffer,
