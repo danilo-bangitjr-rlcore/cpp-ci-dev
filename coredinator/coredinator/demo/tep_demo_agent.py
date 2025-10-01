@@ -66,8 +66,8 @@ class TEPDemoAgent(Agent):
         )
 
     def get_process_ids(self) -> list[int | None]:
-        return (
-            super().get_process_ids()
-            + self._tep_service.get_process_ids()
-            + self._uaserver_service.get_process_ids()
-        )
+        return [
+            *super().get_process_ids(),
+            self._tep_service.get_pid(),
+            self._uaserver_service.get_pid(),
+        ]

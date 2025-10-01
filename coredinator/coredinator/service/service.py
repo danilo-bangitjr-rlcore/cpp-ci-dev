@@ -150,12 +150,15 @@ class Service(ABC):
             config_path=self._config_path,
         )
 
+    def get_pid(self) -> int | None:
+        """Get process ID of the service, or None if not running."""
+        if self._process is not None:
+            return self._process.psutil.pid
+        return None
+
     def get_process_ids(self) -> list[int | None]:
         """Get process ID of the main process for this service."""
-        if self._process is not None:
-            return [self._process.psutil.pid]
-
-        return [None]
+        return [self.get_pid()]
 
     def reattach_process(self, pid: int) -> bool:
         """

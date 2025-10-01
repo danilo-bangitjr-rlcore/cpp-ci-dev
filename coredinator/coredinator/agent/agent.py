@@ -108,11 +108,7 @@ class Agent:
 
     def get_process_ids(self) -> list[int | None]:
         """Get process IDs as a 2-element list: [corerl_pid, coreio_pid]."""
-        corerl_pids = self._corerl_service.get_process_ids()
-        coreio_pids = self._coreio_service.get_process_ids()
-
-        # Each service returns exactly one element (int or None)
-        return [corerl_pids[0], coreio_pids[0]]
+        return [self._corerl_service.get_pid(), self._coreio_service.get_pid()]
 
     def reattach_processes(self, corerl_pid: int | None, coreio_pid: int | None) -> tuple[bool, bool]:
         """Reattach to existing CoreRL and CoreIO processes.

@@ -66,6 +66,10 @@ class ServiceLike(Protocol):
     def status(self) -> ServiceStatus:
         ...
 
+    def get_pid(self) -> int | None:
+        """Get process ID of the service, or None if not running."""
+        ...
+
     def get_process_ids(self) -> list[int | None]:
         """Get process IDs of all running processes for this service."""
         ...
