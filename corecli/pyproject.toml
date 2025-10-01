@@ -7,6 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     "click>=8.1.7",
     "colorlog>=6.9.0",
+    "coreoffline",
     "lib-config",
     "lib-utils",
     "pydantic>=2.11.5",
@@ -38,6 +39,7 @@ packages = ["corecli"]
 
 [tool.uv.sources]
 test = { path = "../test", editable = true }
+coreoffline = { path = "../coreoffline", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 
