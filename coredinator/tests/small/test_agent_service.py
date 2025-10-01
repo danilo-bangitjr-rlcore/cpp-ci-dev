@@ -17,6 +17,10 @@ from tests.utils.state_verification import (
     assert_agent_manager_state,
     assert_service_state,
 )
+from tests.utils.timeout_multiplier import apply_timeout_multiplier
+
+# Platform-adjusted timeout value for test decorators
+TIMEOUT = int(apply_timeout_multiplier(15))
 
 
 def _service_for_spawn(monkeypatch: pytest.MonkeyPatch) -> Service:
@@ -85,7 +89,7 @@ def test_initial_status_stopped(
     assert s.service_statuses == {}
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_start_and_running_status(
     long_running_agent_env: None,
     config_file: Path,
@@ -112,7 +116,7 @@ def test_start_and_running_status(
     assert manager.get_agent_status(agent_id).state == "stopped"
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_stop_transitions_to_stopped(
     long_running_agent_env: None,
     config_file: Path,
@@ -133,7 +137,7 @@ def test_stop_transitions_to_stopped(
     assert manager.get_agent_status(agent_id).state == "stopped"
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(TIMEOUT)
 def test_failed_status_when_process_exits_nonzero(
     monkeypatch: pytest.MonkeyPatch,
     config_file: Path,

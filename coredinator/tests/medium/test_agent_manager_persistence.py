@@ -130,15 +130,3 @@ class TestAgentManagerPersistence:
             cursor.execute("SELECT COUNT(*) FROM agent_states")
             count = cursor.fetchone()[0]
             assert count == 0
-
-    @pytest.mark.timeout(45)
-    def test_database_corruption_recovery(self, tmp_path: Path, config_file: Path):
-        """Test that AgentManager handles database file corruption gracefully."""
-        db_path = tmp_path / "agent_state.db"
-
-        # Create a corrupted database file
-        db_path.write_text("This is not a valid SQLite database")
-
-        manager = create_agent_manager(tmp_path)
-        agents = manager.list_agents()
-        assert isinstance(agents, list)

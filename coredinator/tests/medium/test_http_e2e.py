@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 import time
 from pathlib import Path
@@ -12,6 +13,10 @@ from tests.utils.state_verification import (
     assert_agent_testclient_state,
     assert_all_agents_testclient_state,
 )
+from tests.utils.timeout_multiplier import apply_timeout_multiplier
+
+# Platform-adjusted timeout value for test decorators
+TIMEOUT = int(apply_timeout_multiplier(15))
 
 
 @pytest.fixture()
@@ -49,7 +54,7 @@ def app_client(monkeypatch: pytest.MonkeyPatch, dist_with_fake_executable: Path)
 
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_root_redirect_and_version_header(app_client: TestClient):
     # Root should redirect to /docs
     r = app_client.get("/", follow_redirects=False)
@@ -61,7 +66,7 @@ def test_root_redirect_and_version_header(app_client: TestClient):
     assert r.headers["X-CoreRL-Version"] != ""
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_agent_start_status_stop_e2e(app_client: TestClient, config_file: Path):
     # Start the agent via HTTP
     start = app_client.post("/api/agents/start", json={"config_path": str(config_file)})
@@ -93,7 +98,7 @@ def test_agent_start_status_stop_e2e(app_client: TestClient, config_file: Path):
     assert_agent_testclient_state(app_client, agent_id, "stopped", timeout=1.0)
 
 
-@pytest.mark.timeout(15)
+@pytest.mark.timeout(TIMEOUT)
 def test_two_agents_independent_lifecycle(app_client: TestClient, tmp_path: Path):
     # Create two distinct config files
     cfg1 = tmp_path / "agent_one.yaml"
@@ -139,7 +144,7 @@ def test_two_agents_independent_lifecycle(app_client: TestClient, tmp_path: Path
 # ----------
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(TIMEOUT)
 def test_agents_list_empty_initially(app_client: TestClient):
     r = app_client.get("/api/agents/")
     assert r.status_code == 200
@@ -147,14 +152,14 @@ def test_agents_list_empty_initially(app_client: TestClient):
     assert "X-CoreRL-Version" in r.headers
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(TIMEOUT)
 def test_start_with_missing_config_returns_400(app_client: TestClient):
     bad_path = "/this/path/does/not/exist.yaml"
     r = app_client.post("/api/agents/start", json={"config_path": bad_path})
     assert r.status_code == 400
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(TIMEOUT)
 def test_start_with_missing_executables_returns_400(
     app_client: TestClient,
     tmp_path: Path,
@@ -162,8 +167,9 @@ def test_start_with_missing_executables_returns_400(
 ):
     # The base_path is the same as dist_with_fake_executable passed to --base-path
     base_path = dist_with_fake_executable
-    for name in ("coreio-1.0.0", "corerl-1.0.0"):
-        p = base_path / name
+    for base_name in ("coreio-1.0.0", "corerl-1.0.0"):
+        executable_name = f"{base_name}.exe" if os.name == "nt" else base_name
+        p = base_path / executable_name
         try:
             p.unlink()
         except FileNotFoundError:
@@ -175,7 +181,7 @@ def test_start_with_missing_executables_returns_400(
     assert r.status_code == 400
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_start_idempotent_via_http(app_client: TestClient, config_file: Path):
     r1 = app_client.post("/api/agents/start", json={"config_path": str(config_file)})
     r2 = app_client.post("/api/agents/start", json={"config_path": str(config_file)})
@@ -188,7 +194,7 @@ def test_start_idempotent_via_http(app_client: TestClient, config_file: Path):
     assert_agent_testclient_state(app_client, agent_id_1, "running", timeout=2.0)
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_stop_idempotent_and_unknown_ok(app_client: TestClient, config_file: Path):
     start = app_client.post("/api/agents/start", json={"config_path": str(config_file)})
     assert start.status_code == 200
@@ -206,7 +212,7 @@ def test_stop_idempotent_and_unknown_ok(app_client: TestClient, config_file: Pat
     assert_agent_testclient_state(app_client, agent_id, "stopped", timeout=1.0)
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(TIMEOUT)
 def test_status_unknown_agent_returns_stopped(app_client: TestClient):
     unknown = "does-not-exist"
     r = app_client.get(f"/api/agents/{unknown}/status")
@@ -217,7 +223,7 @@ def test_status_unknown_agent_returns_stopped(app_client: TestClient):
     assert body["config_path"] is None
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_failed_agent_status_when_child_exits_nonzero(
     app_client: TestClient,
     tmp_path: Path,
@@ -228,6 +234,9 @@ def test_failed_agent_status_when_child_exits_nonzero(
     cfg = tmp_path / "bad_agent.yaml"
     cfg.write_text("x: y\n")
 
+    # Use a short heartbeat interval for fast failure detection
+    monkeypatch.setenv("COREDINATOR_HEARTBEAT_INTERVAL", "0.2")
+
     start = app_client.post("/api/agents/start", json={"config_path": str(cfg)})
     assert start.status_code == 200
     agent_id = start.json()
@@ -236,7 +245,7 @@ def test_failed_agent_status_when_child_exits_nonzero(
     assert_agent_testclient_state(app_client, agent_id, "failed", timeout=4.0)
 
 
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(TIMEOUT)
 def test_cors_preflight_allows_origin(app_client: TestClient):
     headers = {
         "Origin": "https://example.com",
@@ -249,7 +258,7 @@ def test_cors_preflight_allows_origin(app_client: TestClient):
     assert "GET" in r.headers.get("access-control-allow-methods", "")
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_list_persists_ids_after_stop(app_client: TestClient, tmp_path: Path):
     cfg1 = tmp_path / "first.yaml"
     cfg2 = tmp_path / "second.yaml"
@@ -271,7 +280,7 @@ def test_list_persists_ids_after_stop(app_client: TestClient, tmp_path: Path):
     assert id1 in listing and id2 in listing
 
 
-@pytest.mark.timeout(10)
+@pytest.mark.timeout(TIMEOUT)
 def test_same_stem_config_results_in_same_agent_id(app_client: TestClient, tmp_path: Path):
     # Two different directories, same filename
     d1 = tmp_path / "a"
