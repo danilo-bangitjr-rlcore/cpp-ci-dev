@@ -11,8 +11,8 @@ from corerl.state import AppState
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import DataMode
 
-from coreoffline.config import OfflineMainConfig
-from coreoffline.data_loading import load_data_chunks
+from coreoffline.utils.config import OfflineMainConfig
+from coreoffline.utils.data_loading import load_data_chunks
 
 log = logging.getLogger(__name__)
 

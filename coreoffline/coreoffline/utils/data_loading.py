@@ -13,7 +13,7 @@ from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import exclude_from_chunks, split_into_chunks
 from lib_agent.buffer.datatypes import DataMode
 
-from coreoffline.config import OfflineMainConfig
+from coreoffline.utils.config import OfflineMainConfig
 
 log = logging.getLogger(__name__)
 

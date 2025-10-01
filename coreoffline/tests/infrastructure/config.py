@@ -7,7 +7,7 @@ from corerl.eval.metrics.base import MetricsDBConfig
 from lib_config.loader import direct_load_config
 from sqlalchemy import Engine
 
-from coreoffline.config import OfflineMainConfig
+from coreoffline.utils.config import OfflineMainConfig
 
 
 @pytest.fixture()

@@ -19,8 +19,8 @@ from lib_defs.config_defs.tag_config import TagType
 from lib_sql.inspection import table_exists
 from sqlalchemy import Engine
 
-from coreoffline.config import OfflineMainConfig
-from coreoffline.data_loading import load_offline_transitions, offline_rl_from_buffer
+from coreoffline.utils.config import OfflineMainConfig
+from coreoffline.utils.data_loading import load_offline_transitions, offline_rl_from_buffer
 
 
 def make_step(

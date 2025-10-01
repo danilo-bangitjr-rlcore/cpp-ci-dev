@@ -7,7 +7,7 @@ import pandas as pd
 from corerl.data_pipeline.datatypes import StageCode
 from corerl.eval.raw_data import length_of_chunks
 
-from coreoffline.config import ReportConfig
+from coreoffline.utils.config import ReportConfig
 from coreoffline.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)

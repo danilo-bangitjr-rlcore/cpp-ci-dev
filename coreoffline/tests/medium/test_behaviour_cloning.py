@@ -2,7 +2,7 @@ from corerl.data_pipeline.datatypes import Transition
 from corerl.state import AppState
 
 from coreoffline.behaviour_cloning.main import run_behaviour_cloning
-from coreoffline.config import OfflineMainConfig
+from coreoffline.utils.config import OfflineMainConfig
 
 
 def test_run_behaviour_cloning_smoke_test(

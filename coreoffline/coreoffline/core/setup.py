@@ -8,7 +8,7 @@ from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 
-from coreoffline.config import OfflineMainConfig
+from coreoffline.utils.config import OfflineMainConfig
 
 
 def create_standard_setup(cfg: OfflineMainConfig) -> tuple[AppState, Pipeline]:

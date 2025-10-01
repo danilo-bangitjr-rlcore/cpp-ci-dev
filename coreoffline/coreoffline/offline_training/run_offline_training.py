@@ -5,9 +5,9 @@ from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.tags.validate_tag_configs import validate_tag_configs
 from lib_config.loader import load_config
 
-from coreoffline.config import OfflineMainConfig
+from coreoffline.utils.config import OfflineMainConfig
 from coreoffline.core.setup import create_standard_setup
-from coreoffline.data_loading import (
+from coreoffline.utils.data_loading import (
     load_offline_transitions,
     offline_rl_from_buffer,
 )

@@ -5,7 +5,7 @@ import numpy as np
 from corerl.state import AppState
 
 from coreoffline.behaviour_cloning.models import BatchGenerator, MLPConfig, MLPRegressor
-from coreoffline.config import OfflineMainConfig
+from coreoffline.utils.config import OfflineMainConfig
 
 
 class TestBatchGenerator:
