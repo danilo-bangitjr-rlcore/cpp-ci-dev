@@ -1,7 +1,7 @@
 from corerl.data_pipeline.datatypes import Transition
 from corerl.state import AppState
 
-from coreoffline.behaviour_cloning.main import run_behaviour_cloning
+from coreoffline.scripts.behaviour_clone import run_behaviour_cloning
 from coreoffline.utils.config import OfflineMainConfig
 
 
