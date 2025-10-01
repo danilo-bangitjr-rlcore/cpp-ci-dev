@@ -11,7 +11,7 @@ from coreoffline.utils.data_loading import (
     load_offline_transitions,
     offline_rl_from_buffer,
 )
-from coreoffline.offline_training.utils import get_all_offline_recommendations
+from coreoffline.utils.offline_training.utils import get_all_offline_recommendations
 
 log = logging.getLogger(__name__)
 
