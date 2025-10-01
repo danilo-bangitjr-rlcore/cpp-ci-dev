@@ -1,4 +1,5 @@
 import asyncio
+import sys
 from typing import Any
 
 import pytest
@@ -17,8 +18,28 @@ def opc_port():
     return get_free_port('localhost')
 
 async def run_subprocess_with_streaming(name: str, *args: str) -> dict[str, Any]:
+    if not args:
+        msg = "run_subprocess_with_streaming requires at least one argument"
+        raise ValueError(msg)
+
+    target, *rest = args
+    coverage_cmd = [
+        sys.executable,
+        "-m",
+        "coverage",
+        "run",
+        "--parallel-mode",
+    ]
+
+    if target.endswith(".py"):
+        # Treat the target as a script path
+        command = [*coverage_cmd, target, *rest]
+    else:
+        # Treat the target as a module path
+        command = [*coverage_cmd, "-m", target, *rest]
+
     proc = await asyncio.create_subprocess_exec(
-        *args,
+        *command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.STDOUT,
     )
@@ -57,8 +78,7 @@ async def test_communication_write_only(opc_port: int):
 
         task_coreio = asyncio.create_task(run_subprocess_with_streaming(
             "coreio",
-            "python",
-            "coreio/main.py",
+            "coreio.main",
             "--config-name",
             "../config/coreio_test_config.yaml",
             f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
@@ -70,8 +90,7 @@ async def test_communication_write_only(opc_port: int):
 
         task_dummy_agent = asyncio.create_task(run_subprocess_with_streaming(
             "dummy_agent",
-            "python",
-            "coreio/dummy_agent.py",
+            "coreio.dummy_agent",
             "--config-name",
             "../config/coreio_test_config.yaml",
             "interaction.action_period=00:00:00.02",
@@ -116,8 +135,7 @@ async def test_communication(tsdb_engine: Engine, tsdb_tmp_db_name: str, opc_por
 
         task_coreio = asyncio.create_task(run_subprocess_with_streaming(
             "coreio",
-            "python",
-            "coreio/main.py",
+            "coreio.main",
             "--config-name",
             "../config/coreio_test_config.yaml",
             f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
@@ -132,8 +150,7 @@ async def test_communication(tsdb_engine: Engine, tsdb_tmp_db_name: str, opc_por
 
         task_dummy_agent = asyncio.create_task(run_subprocess_with_streaming(
             "dummy_agent",
-            "python",
-            "coreio/dummy_agent.py",
+            "coreio.dummy_agent",
             "--config-name",
             "../config/coreio_test_config.yaml",
             "interaction.action_period=00:00:00.02",

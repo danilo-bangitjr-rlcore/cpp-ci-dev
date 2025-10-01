@@ -72,6 +72,15 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: "pip"
+    directory: "/libs/lib_instrumentation"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
     directory: "/libs/lib_sql"
     schedule:
       interval: "daily"
