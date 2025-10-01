@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.2](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.2.1...coredinator-v0.2.2) (2025-10-01)
+
+
+### Bug Fixes
+
+* **coredinator:** cleanup stop_process ([f7e3421](https://github.com/rlcoretech/core-rl/commit/f7e3421f17ec31ff92666b180a4da45590253a4b))
+* **coredinator:** ensure base_path exists ([b504751](https://github.com/rlcoretech/core-rl/commit/b50475114b269607df0afdf74d7c37e08358c340))
+* **coredinator:** return process_id and service name from healthcheck ([57a5775](https://github.com/rlcoretech/core-rl/commit/57a577571387760c6f7df19b52a230d39154cb45))
+* **coredinator:** significantly improve process handling and logging for windows ([4dc276f](https://github.com/rlcoretech/core-rl/commit/4dc276fbe8242ada36b497156275c8c8addfa64c))
+
 ## [0.2.1](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.2.0...coredinator-v0.2.1) (2025-09-26)
 
 
