@@ -81,9 +81,7 @@ def main(cfg: OfflineMainConfig):
     end_time = datetime.now()
 
     # Extract captured dataframes
-    data = []
-    for stage in cfg.report.stages:
-        data.append(capture.get_concatenated_data(stage))
+    data = [capture.get_concatenated_data(stage) for stage in cfg.report.stages]
 
     log.info("Generating report from captured stage data...")
     generate_report(
