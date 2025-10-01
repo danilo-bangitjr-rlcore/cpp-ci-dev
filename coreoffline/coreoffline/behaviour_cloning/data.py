@@ -12,8 +12,17 @@ log = logging.getLogger(__name__)
 class ModelData:
     """Container for model training data."""
     X: np.ndarray  # Feature matrix (n_samples, n_features)
-    y: np.ndarray  # Target matrix (n_samples, 1)
+    y: np.ndarray  # Target matrix (n_samples, n_targets)
     ts: np.ndarray  # Timestamps array (n_samples,)
+    action_names: list[str]  # Names of actions corresponding to y columns
+
+    def __post_init__(self):
+        """Validate that action_names length matches target dimensions."""
+        if len(self.action_names) != self.target_dim:
+            raise ValueError(
+                f"Length of action_names ({len(self.action_names)}) must match "
+                f"target dimensions ({self.target_dim})",
+            )
 
     @property
     def n_samples(self) -> int:
@@ -43,17 +52,20 @@ class ModelData:
                 X=self.X[train_idx],
                 y=self.y[train_idx],
                 ts=self.ts[train_idx],
+                action_names=self.action_names,
             )
             test_data = ModelData(
                 X=self.X[test_idx],
                 y=self.y[test_idx],
                 ts=self.ts[test_idx],
+                action_names=self.action_names,
             )
             yield train_data, test_data
 
 
 def prepare_features_and_targets(
     transitions: list[Transition],
+    action_names: list[str] | None = None,
 ):
     """
     Extract states and targets from transitions for regression.
@@ -82,8 +94,12 @@ def prepare_features_and_targets(
     y = y.reshape(y.shape[0], -1)
     assert y.ndim == 2, f"Expected y to have 2 dimensions, got {y.ndim}"
 
+    # Generate default action names if not provided
+    if action_names is None:
+        action_names = [f"action_{i}" for i in range(y.shape[1])]
+
     log.info(
         f"State dimension: {X.shape[1]}, Target dimension: {y.shape[1]}",
     )
 
-    return ModelData(X=X, y=y, ts=ts)
+    return ModelData(X=X, y=y, ts=ts, action_names=action_names)

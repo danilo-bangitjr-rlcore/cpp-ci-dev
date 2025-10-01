@@ -10,15 +10,14 @@ from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_config.loader import load_config
 from lib_defs.config_defs.tag_config import TagType
-from sklearn.metrics import mean_absolute_error
 
 from coreoffline.behaviour_cloning.data import (
     ModelData,
     prepare_features_and_targets,
 )
-from coreoffline.behaviour_cloning.evaluation import calculate_sign_accuracy
+from coreoffline.behaviour_cloning.evaluation import calculate_per_action_metrics
 from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
-from coreoffline.behaviour_cloning.plotting import create_prediction_scatter_plots
+from coreoffline.behaviour_cloning.plotting import create_single_action_scatter_plot
 from coreoffline.config import OfflineMainConfig
 from coreoffline.data_loading import load_offline_transitions
 
@@ -26,17 +25,14 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
-def get_ai_setpoint_tag_name(cfg: OfflineMainConfig) -> str:
-    """Extract the name of the ai_setpoint tag from the configuration."""
+def get_ai_setpoint_tag_names(cfg: OfflineMainConfig) -> list[str]:
+    """Extract all ai_setpoint tag names from the configuration."""
     ai_setpoint_tags = [tag.name for tag in cfg.pipeline.tags if tag.type == TagType.ai_setpoint]
 
     if not ai_setpoint_tags:
         raise ValueError("No ai_setpoint tag found in configuration")
 
-    if len(ai_setpoint_tags) > 1:
-        log.warning(f"Multiple ai_setpoint tags found: {ai_setpoint_tags}. Using the first one: {ai_setpoint_tags[0]}")
-
-    return ai_setpoint_tags[0]
+    return ai_setpoint_tags
 
 
 def run_cross_validation(
@@ -69,8 +65,14 @@ def run_cross_validation(
 
 def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
     assert isinstance(app_state.cfg, OfflineMainConfig)
+
+    # Get all action names from configuration
+    action_names = get_ai_setpoint_tag_names(app_state.cfg)
+    log.info(f"Training models for {len(action_names)} actions: {action_names}")
+
     data = prepare_features_and_targets(
         transitions,
+        action_names=action_names,
     )
 
     # Linear Regression
@@ -81,14 +83,14 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         data,
         n_splits=app_state.cfg.behaviour_clone.k_folds,
     )
-    linear_metrics = {
-        'mae': mean_absolute_error(all_y_true, all_y_pred_linear),
-        'sign_acc': calculate_sign_accuracy(all_y_true, all_y_pred_linear),
-    }
-    log.info(
-        "Done training Linear Regression model." +
-        f"Mean MAE: {linear_metrics['mae']}, Mean sign acc: {linear_metrics['sign_acc']}",
+    linear_per_action_metrics = calculate_per_action_metrics(
+        all_y_true,
+        all_y_pred_linear,
+        data.action_names,
     )
+    log.info("Done training Linear Regression model.")
+    for action_name, metrics in linear_per_action_metrics.items():
+        log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
     # Deep Learning
     log.info("Training MLP model...")
@@ -101,26 +103,27 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         data,
         n_splits=app_state.cfg.behaviour_clone.k_folds,
     )
-    deep_metrics = {
-        'mae': mean_absolute_error(all_y_true, all_y_pred_mlp),
-        'sign_acc': calculate_sign_accuracy(all_y_true, all_y_pred_mlp),
-    }
-    log.info(
-        "Done training MLP Regression model." +
-        f"Mean MAE: {deep_metrics['mae']}, Mean sign acc: {deep_metrics['sign_acc']}",
+    deep_per_action_metrics = calculate_per_action_metrics(
+        all_y_true,
+        all_y_pred_mlp,
+        data.action_names,
     )
+    log.info("Done training MLP Regression model.")
+    for action_name, metrics in deep_per_action_metrics.items():
+        log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
-    action_tag = get_ai_setpoint_tag_name(app_state.cfg)
-
-    create_prediction_scatter_plots(
-        y_true=all_y_true,
-        y_pred_linear=all_y_pred_linear,
-        y_pred_deep=all_y_pred_mlp,
-        linear_metrics=linear_metrics,
-        deep_metrics=deep_metrics,
-        action_tag=action_tag,
-        output_dir=app_state.cfg.save_path,
-    )
+    # Generate plots for each action
+    log.info(f"Generating plots for {len(data.action_names)} actions...")
+    for i, action_name in enumerate(data.action_names):
+        create_single_action_scatter_plot(
+            y_true=all_y_true[:, i],
+            y_pred_linear=all_y_pred_linear[:, i],
+            y_pred_deep=all_y_pred_mlp[:, i],
+            action_name=action_name,
+            linear_metrics=linear_per_action_metrics[action_name],
+            deep_metrics=deep_per_action_metrics[action_name],
+            output_dir=app_state.cfg.report.output_dir,
+        )
 
 
 @load_config(OfflineMainConfig)
