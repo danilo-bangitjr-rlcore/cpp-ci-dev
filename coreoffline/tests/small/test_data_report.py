@@ -3,7 +3,7 @@ from math import isclose
 import numpy as np
 import pandas as pd
 
-from coreoffline.data_analysis.data_report import correlate, cross_correlation, standardize
+from coreoffline.utils.data_analysis.data_report import correlate, cross_correlation, standardize
 
 # --------------------------- standardization tests -------------------------- #
 

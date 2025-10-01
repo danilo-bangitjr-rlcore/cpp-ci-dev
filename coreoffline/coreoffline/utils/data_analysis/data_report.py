@@ -14,11 +14,11 @@ from corerl.state import AppState
 from tabulate import tabulate
 
 from coreoffline.utils.config import ReportConfig
-from coreoffline.data_analysis.plotting import (
+from coreoffline.utils.data_analysis.plotting import (
     make_distribution_plots,
     plot_violation_distribution,
 )
-from coreoffline.data_analysis.utils import get_tags
+from coreoffline.utils.data_analysis.utils import get_tags
 
 log = logging.getLogger(__name__)
 
