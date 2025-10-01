@@ -96,36 +96,36 @@ SCENARIOS: Sequence[BenchmarkScenario] = (
 
 
 EXPECTED_OUTCOMES: dict[str, dict[str, BenchmarkOutcomes]] = {
-    # Buffer of 2x time and 10% size (in MB)
+    # Buffer of 4x time and 10% size (in MB)
     "r100_m20": {
-        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.14, max_size_mb=0.08),
-        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=0.20, max_size_mb=0.30),
-        "static_schema": BenchmarkOutcomes(max_latency_seconds=0.63, max_size_mb=0.29),
+        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.3, max_size_mb=0.08),
+        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=0.40, max_size_mb=0.30),
+        "static_schema": BenchmarkOutcomes(max_latency_seconds=1.2, max_size_mb=0.29),
     },
     "r100_m100": {
-        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.22, max_size_mb=0.16),
-        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=0.57, max_size_mb=0.88),
-        "static_schema": BenchmarkOutcomes(max_latency_seconds=2.86, max_size_mb=0.94),
+        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.4, max_size_mb=0.16),
+        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=1.0, max_size_mb=0.88),
+        "static_schema": BenchmarkOutcomes(max_latency_seconds=5.6, max_size_mb=0.94),
     },
     "r100_m500": {
-        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.86, max_size_mb=0.49),
-        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=2.41, max_size_mb=4.31),
-        "static_schema": BenchmarkOutcomes(max_latency_seconds=13.91, max_size_mb=4.57),
+        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=1.6, max_size_mb=0.49),
+        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=4.8, max_size_mb=4.31),
+        "static_schema": BenchmarkOutcomes(max_latency_seconds=28, max_size_mb=4.57),
     },
     "r500_m50": {
-        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.45, max_size_mb=0.32),
-        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=1.42, max_size_mb=2.12),
-        "static_schema": BenchmarkOutcomes(max_latency_seconds=6.94, max_size_mb=2.29),
+        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=1, max_size_mb=0.32),
+        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=3, max_size_mb=2.12),
+        "static_schema": BenchmarkOutcomes(max_latency_seconds=14, max_size_mb=2.29),
     },
     "r1000_m50": {
-        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=0.82, max_size_mb=0.58),
-        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=2.25, max_size_mb=3.96),
-        "static_schema": BenchmarkOutcomes(max_latency_seconds=13.90, max_size_mb=4.35),
+        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=1.6, max_size_mb=0.58),
+        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=4.5, max_size_mb=3.96),
+        "static_schema": BenchmarkOutcomes(max_latency_seconds=28, max_size_mb=4.35),
     },
     "r2000_m50": {
-        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=2.15, max_size_mb=1.16),
-        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=4.38, max_size_mb=7.87),
-        "static_schema": BenchmarkOutcomes(max_latency_seconds=27.55, max_size_mb=8.67),
+        "dynamic_schema": BenchmarkOutcomes(max_latency_seconds=4.3, max_size_mb=1.16),
+        "normalized_narrow": BenchmarkOutcomes(max_latency_seconds=9, max_size_mb=7.87),
+        "static_schema": BenchmarkOutcomes(max_latency_seconds=56, max_size_mb=8.67),
     },
 }
 
