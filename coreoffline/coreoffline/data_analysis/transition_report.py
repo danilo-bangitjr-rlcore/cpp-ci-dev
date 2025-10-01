@@ -1,5 +1,6 @@
 
 
+import shutil
 from datetime import datetime, timedelta
 from pathlib import Path
 
@@ -139,3 +140,26 @@ def make_transition_statistics_table(
     full_table_data = [headers, *table_data]
     save_as_txt(full_table_data, output_path, 'transition_statistics')
     save_as_csv(full_table_data, output_path, 'transition_statistics')
+
+
+def generate_report(
+    cfg: ReportConfig,
+    app_state: AppState,
+    start_time: datetime,
+    end_time: datetime,
+    transitions: list[Transition],
+):
+
+    output_path = Path(cfg.output_dir)
+    if output_path.exists():
+        log.warning(f'Output path {output_path} already exists. Deleting...')
+        shutil.rmtree(output_path)
+    output_path.mkdir(parents=True)
+    make_transition_statistics_table(
+        cfg,
+        transitions,
+        output_path,
+        app_state,
+        start_time,
+        end_time,
+    )
