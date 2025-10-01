@@ -79,3 +79,26 @@ def test_bclone_requires_config():
 
     assert result.exit_code != 0
     assert "Missing option" in result.output or "Error" in result.output
+
+
+def test_data_report_command_exists():
+    """Test that data-report command is registered.
+
+    Note: This is a smoke test that only verifies the command exists and
+    shows help. Full integration testing is handled in coreoffline tests.
+    """
+    runner = CliRunner()
+    result = runner.invoke(cli, ["offline", "data-report", "--help"])
+
+    assert result.exit_code == 0
+    assert "Generate data analysis report from pipeline stages" in result.output
+    assert "--config" in result.output
+
+
+def test_data_report_requires_config():
+    """Test that data-report requires --config option."""
+    runner = CliRunner()
+    result = runner.invoke(cli, ["offline", "data-report"])
+
+    assert result.exit_code != 0
+    assert "Missing option" in result.output or "Error" in result.output
