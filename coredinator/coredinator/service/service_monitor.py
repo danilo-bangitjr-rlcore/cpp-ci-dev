@@ -35,10 +35,11 @@ class ServiceMonitor:
     def stop_monitoring(self):
         self._stop_event.set()
 
-        if self._thread is not None and self._thread.is_alive():
-            self._thread.join(timeout=1.0)
+        thread = self._thread
+        if thread is not None and thread.is_alive():
+            thread.join(timeout=1.0)
 
-            if self._thread.is_alive():
+            if thread.is_alive():
                 log.warning("Service monitor thread did not finish in time", service_id=self._service.id)
 
 
