@@ -15,6 +15,7 @@ class ModelData:
     y: np.ndarray  # Target matrix (n_samples, n_targets)
     ts: np.ndarray  # Timestamps array (n_samples,)
     action_names: list[str]  # Names of actions corresponding to y columns
+    baseline_y: np.ndarray  # Previous actions matrix (n_samples, n_targets)
 
     def __post_init__(self):
         """Validate that action_names length matches target dimensions."""
@@ -53,12 +54,14 @@ class ModelData:
                 y=self.y[train_idx],
                 ts=self.ts[train_idx],
                 action_names=self.action_names,
+                baseline_y=self.baseline_y[train_idx],
             )
             test_data = ModelData(
                 X=self.X[test_idx],
                 y=self.y[test_idx],
                 ts=self.ts[test_idx],
                 action_names=self.action_names,
+                baseline_y=self.baseline_y[test_idx],
             )
             yield train_data, test_data
 
@@ -73,14 +76,17 @@ def prepare_features_and_targets(
     states = []
     targets = []
     time_stamps = []
+    previous_actions = []
 
     for transition in transitions:
         state = transition.state
         curr_action = transition.action
+        prev_action = transition.prior.action  # Get previous action from prior step
 
         states.append(np.array(state))
         time_stamps.append(transition.steps[0].timestamp)
         targets.append(np.array(curr_action))
+        previous_actions.append(np.array(prev_action))
 
     if len(states) == 0:
         msg = "No valid state-action pairs found"
@@ -89,10 +95,13 @@ def prepare_features_and_targets(
     X = np.array(states)
     y = np.array(targets)
     ts = np.array(time_stamps)
+    prev_a = np.array(previous_actions)
 
     # Ensure y has 2 dimensions and handle multi-dimensional actions by flattening
     y = y.reshape(y.shape[0], -1)
+    prev_a = prev_a.reshape(prev_a.shape[0], -1)
     assert y.ndim == 2, f"Expected y to have 2 dimensions, got {y.ndim}"
+    assert prev_a.ndim == 2, f"Expected prev_a to have 2 dimensions, got {prev_a.ndim}"
 
     # Generate default action names if not provided
     if action_names is None:
@@ -102,4 +111,4 @@ def prepare_features_and_targets(
         f"State dimension: {X.shape[1]}, Target dimension: {y.shape[1]}",
     )
 
-    return ModelData(X=X, y=y, ts=ts, action_names=action_names)
+    return ModelData(X=X, y=y, ts=ts, action_names=action_names, baseline_y=prev_a)

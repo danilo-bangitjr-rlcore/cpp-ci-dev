@@ -12,11 +12,12 @@ def create_single_action_scatter_plot(
     y_pred_linear: np.ndarray,
     y_pred_deep: np.ndarray,
     action_name: str,
+    baseline_metrics: dict[str, float],
     linear_metrics: dict[str, float],
     deep_metrics: dict[str, float],
     output_dir: str | Path | None = None,
 ):
-    """Create scatter plot comparing linear and deep learning models for a single action."""
+    """Create scatter plot comparing linear and deep learning models."""
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6))
 
     # Common axis limits for both plots
@@ -74,7 +75,10 @@ def create_single_action_scatter_plot(
     ax2.set_xlim(min_val, max_val)
     ax2.set_ylim(min_val, max_val)
 
-    fig.suptitle(f"Model Comparison - {action_name}", fontsize=14, fontweight="bold")
+    # Add baseline metrics to overall figure title
+    baseline_metrics_text = " | ".join([f"{name}: {value:.6f}" for name, value in baseline_metrics.items()])
+    fig.suptitle(f"Model Comparison - {action_name}\nBaseline (Copy Forward): {baseline_metrics_text}",
+                fontsize=14, fontweight="bold")
     plt.tight_layout()
 
     # Save plot with action-specific filename

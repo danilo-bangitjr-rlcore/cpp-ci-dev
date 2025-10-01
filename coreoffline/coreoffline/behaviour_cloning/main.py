@@ -63,6 +63,30 @@ def run_cross_validation(
     return all_y_true, all_y_pred
 
 
+def run_baseline_cross_validation(data: ModelData, n_splits: int):
+    """Run cross validation for copy-forward baseline."""
+    all_y_true = []
+    all_y_pred = []
+
+    for _, test_data in data.k_fold_split(n_splits):
+        # Copy-forward baseline: use previous actions as predictions
+        y_pred = np.clip(test_data.baseline_y, 0, 1)
+
+        all_y_true.append(test_data.y)
+        all_y_pred.append(y_pred)
+
+    # Combine all predictions and targets
+    all_y_true = np.vstack(all_y_true)
+    all_y_pred = np.vstack(all_y_pred)
+
+    # Calculate and log losses
+    train_loss = np.mean((np.clip(data.baseline_y, 0, 1) - data.y) ** 2)
+    test_loss = np.mean((all_y_pred - all_y_true) ** 2)
+    log.info(f"Copy Forward - Training Loss: {train_loss:.6f}, Test Loss: {test_loss:.6f}")
+
+    return all_y_true, all_y_pred
+
+
 def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
     assert isinstance(app_state.cfg, OfflineMainConfig)
 
@@ -74,6 +98,21 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         transitions,
         action_names=action_names,
     )
+
+    # Copy Forward Baseline
+    log.info("Training Copy Forward baseline model...")
+    all_y_true, all_y_pred_baseline = run_baseline_cross_validation(
+        data,
+        n_splits=app_state.cfg.behaviour_clone.k_folds,
+    )
+    baseline_per_action_metrics = calculate_per_action_metrics(
+        all_y_true,
+        all_y_pred_baseline,
+        data.action_names,
+    )
+    log.info("Copy Forward baseline.")
+    for action_name, metrics in baseline_per_action_metrics.items():
+        log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
     # Linear Regression
     log.info("Training Linear Regression model...")
@@ -120,6 +159,7 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
             y_pred_linear=all_y_pred_linear[:, i],
             y_pred_deep=all_y_pred_mlp[:, i],
             action_name=action_name,
+            baseline_metrics=baseline_per_action_metrics[action_name],
             linear_metrics=linear_per_action_metrics[action_name],
             deep_metrics=deep_per_action_metrics[action_name],
             output_dir=app_state.cfg.report.output_dir,
