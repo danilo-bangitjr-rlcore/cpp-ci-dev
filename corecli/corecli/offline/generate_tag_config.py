@@ -24,7 +24,7 @@ def generate_tag_config(config: str, overrides: tuple[str, ...]) -> None:
     """
     # Set up sys.argv for lib_config to parse
     # lib_config expects: [script_name, --config-name=path, key=value, key=value, ...]
-    sys.argv = ["generate_tag_config", f"--config-name={config}"] + list(overrides)
+    sys.argv = ["generate_tag_config", f"--config-name={config}", *overrides]
 
     # Import and call the original script's main function
     # The @load_config decorator will handle config loading from sys.argv
