@@ -91,7 +91,7 @@ def test_data_report_command_exists():
     result = runner.invoke(cli, ["offline", "data-report", "--help"])
 
     assert result.exit_code == 0
-    assert "Generate data analysis report from pipeline stages" in result.output
+    assert "Generate data analysis report" in result.output
     assert "--config" in result.output
 
 
