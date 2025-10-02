@@ -14,7 +14,7 @@ from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
 from tests.utils.timeout_multiplier import apply_timeout_multiplier, get_timeout_multiplier
 
-FAKE_AGENT_BASENAMES: tuple[str, str] = ("coreio-1.0.0", "corerl-1.0.0")
+FAKE_AGENT_BASENAMES: tuple[str, str] = ("windows-coreio-v1.0.0", "windows-corerl-v1.0.0")
 
 
 def _platform_executable_name(base_name: str) -> str:
