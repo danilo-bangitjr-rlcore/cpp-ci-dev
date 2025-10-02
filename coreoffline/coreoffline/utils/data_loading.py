@@ -59,7 +59,7 @@ def load_data_chunks(
     exclude_periods: list[tuple[dt.datetime, dt.datetime]] | None = None,
 ):
     """
-    Returns a generator that yields chunks of data and the total number of chunks.
+    Returns a tuple containing a generator that yields data chunks (as DataFrames) and the total number of chunks.
     """
     data_reader = get_data_reader(cfg)
     start_time, end_time = get_time_range(data_reader, start_time, end_time)
