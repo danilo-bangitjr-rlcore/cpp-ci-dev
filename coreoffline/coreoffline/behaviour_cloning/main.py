@@ -1,12 +1,7 @@
 import logging
-import random
 
 import numpy as np
 from corerl.data_pipeline.datatypes import Transition
-from corerl.data_pipeline.pipeline import Pipeline
-from corerl.eval.evals.factory import create_evals_writer
-from corerl.eval.metrics.factory import create_metrics_writer
-from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_config.loader import load_config
 from lib_defs.config_defs.tag_config import TagType
@@ -19,9 +14,9 @@ from coreoffline.behaviour_cloning.evaluation import calculate_per_action_metric
 from coreoffline.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
 from coreoffline.behaviour_cloning.plotting import create_single_action_scatter_plot
 from coreoffline.config import OfflineMainConfig
+from coreoffline.core.setup import create_standard_setup
 from coreoffline.data_loading import load_offline_transitions
 
-logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)
 
 
@@ -169,20 +164,8 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
 @load_config(OfflineMainConfig)
 def main(cfg: OfflineMainConfig):
     """Main function for finding the best observation period."""
-    # set the random seeds
-    seed = cfg.seed
-    np.random.seed(seed)
-    random.seed(seed)
+    app_state, pipeline = create_standard_setup(cfg)
 
-    # Create AppState for metrics logging
-    app_state = AppState(
-        cfg=cfg,
-        metrics=create_metrics_writer(cfg.metrics),
-        evals=create_evals_writer(cfg.evals),
-        event_bus=DummyEventBus(),
-    )
-
-    pipeline = Pipeline(app_state, cfg.pipeline)
     pr, _ = load_offline_transitions(app_state, pipeline)
     if pr is None:
         log.info("No Pipereturn, exiting...")
