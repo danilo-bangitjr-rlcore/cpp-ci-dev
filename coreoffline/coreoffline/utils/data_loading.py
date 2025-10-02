@@ -80,17 +80,19 @@ def load_data_chunks(
     num_chunks = len(time_chunks)
 
     def chunk_generator():
-        for chunk_start, chunk_end in time_chunks:
-            chunk_data = data_reader.batch_aggregated_read(
-                names=tag_names,
-                start_time=chunk_start,
-                end_time=chunk_end,
-                bucket_width=obs_period,
-                aggregation=cfg.env.db.data_agg,
-            )
-            if not chunk_data.empty:
-                yield chunk_data
-        data_reader.close()
+        try:
+            for chunk_start, chunk_end in time_chunks:
+                chunk_data = data_reader.batch_aggregated_read(
+                    names=tag_names,
+                    start_time=chunk_start,
+                    end_time=chunk_end,
+                    bucket_width=obs_period,
+                    aggregation=cfg.env.db.data_agg,
+                )
+                if not chunk_data.empty:
+                    yield chunk_data
+        finally:
+            data_reader.close()
 
     return chunk_generator(), num_chunks
 
