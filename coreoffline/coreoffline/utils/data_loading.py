@@ -12,6 +12,7 @@ from corerl.state import AppState
 from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import exclude_from_chunks, split_into_chunks
 from lib_agent.buffer.datatypes import DataMode
+from lib_progress.tracker import track
 
 from coreoffline.utils.config import OfflineMainConfig
 
@@ -146,14 +147,19 @@ def load_offline_transitions(app_state: AppState, pipeline: Pipeline):
     # Pass offline data through data pipeline chunk by chunk to produce transitions
     out = None
 
-    data_chunks, _ = load_data_chunks(
+    data_chunks, num_chunks = load_data_chunks(
         cfg=app_state.cfg,
         start_time=offline_cfg.offline_start_time,
         end_time=offline_cfg.offline_end_time,
         exclude_periods=exclude_periods,
     )
 
-    for chunk_data in data_chunks:
+    for chunk_data in track(
+        data_chunks,
+        desc="Loading data by chunk",
+        total=num_chunks,
+        update_interval=5,
+    ):
         chunk_pr = pipeline(
             data=chunk_data,
             data_mode=DataMode.OFFLINE,
