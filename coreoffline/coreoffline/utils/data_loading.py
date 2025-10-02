@@ -12,7 +12,7 @@ from corerl.state import AppState
 from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import exclude_from_chunks, split_into_chunks
 from lib_agent.buffer.datatypes import DataMode
-from lib_progress.tracker import track
+from lib_progress.tracker import ProgressTracker, track
 
 from coreoffline.utils.config import OfflineMainConfig
 
@@ -124,11 +124,14 @@ def offline_rl_from_buffer(agent: GreedyAC, steps: int = 100):
         log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
 
     q_losses: list[float] = []
-    for step in range(steps):
-        critic_loss = agent.update()
-        q_losses += critic_loss
-        if step % 10 == 0 or step == steps - 1:
-            log.info(f"Offline agent training step {step}/{steps}, last loss: {q_losses[-1]}")
+
+    with ProgressTracker(total=steps, desc='Offline agent training', update_interval=10) as tracker:
+        for _ in range(steps):
+            critic_loss = agent.update()
+            q_losses += critic_loss
+            tracker.update(
+                metrics={"q_loss": float(q_losses[-1])},
+            )
 
     return q_losses
 
