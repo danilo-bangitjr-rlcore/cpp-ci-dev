@@ -5,11 +5,11 @@ import stat
 import subprocess
 from pathlib import Path
 
-import psutil
 import pytest
+from lib_process.process import Process
+from lib_process.process_list import find_processes_by_name_patterns
 from PyInstaller.__main__ import run as pyinstaller_run
 
-from coredinator.utils.process import find_processes_by_name_patterns, terminate_process_tree
 from tests.utils.factories import create_dummy_config
 from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
 from tests.utils.timeout_multiplier import apply_timeout_multiplier, get_timeout_multiplier
@@ -168,20 +168,16 @@ def coredinator_service(dist_with_fake_executable: Path, free_localhost_port: in
 
     yield service_info
 
-    # Attempt clean shutdown - handle case where process was already terminated
-    try:
-        proc = psutil.Process(process.pid)
-        terminate_process_tree(proc, timeout=apply_timeout_multiplier(5.0))
-    except psutil.NoSuchProcess:
-        # Process was already terminated (e.g., by test code)
-        pass
+    proc = Process.from_pid(process.pid)
+    proc.terminate_tree(timeout=5.0)
 
 
 @pytest.fixture(scope="session", autouse=True)
 def cleanup_lingering_processes():
     """Session-scoped fixture to clean up any lingering coreio/corerl processes at the end of tests."""
+
     yield
 
     processes = find_processes_by_name_patterns(["coreio", "corerl", "fake_agent"])
     for proc in processes:
-        terminate_process_tree(proc, timeout=apply_timeout_multiplier(2.0))
+        proc.terminate_tree(timeout=apply_timeout_multiplier(2.0))

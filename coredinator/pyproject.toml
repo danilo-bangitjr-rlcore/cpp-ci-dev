@@ -9,6 +9,7 @@ dependencies = [
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
     "lib-config",
+    "lib-process",
     "lib-utils",
     "backoff~=2.2",
     "psutil~=7.0",
@@ -42,6 +43,7 @@ packages = ["coredinator"]
 [tool.uv.sources]
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
+lib-process = { path = "../libs/lib_process", editable = true }
 
 # ----------
 # -- Ruff --

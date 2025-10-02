@@ -90,6 +90,15 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: "pip"
+    directory: "/libs/lib_process"
+    schedule:
+      interval: "daily"
+    groups:
+      all-pip:
+        applies-to: version-updates
+        patterns:
+          - "*"
+  - package-ecosystem: "pip"
     directory: "/libs/rl_env"
     schedule:
       interval: "daily"

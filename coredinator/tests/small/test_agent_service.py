@@ -4,7 +4,9 @@ from datetime import timedelta
 from pathlib import Path
 from types import SimpleNamespace
 
+import psutil
 import pytest
+from lib_process.process import Process
 
 from coredinator.agent.agent_manager import AgentID
 from coredinator.service import service as service_module
@@ -28,7 +30,10 @@ def _service_for_spawn(monkeypatch: pytest.MonkeyPatch) -> Service:
     service._ensure_executable = lambda: Path("exe")
     service._ensure_config = lambda: Path("cfg")
     service._keep_alive = lambda: None
-    monkeypatch.setattr(service_module.psutil, "Process", lambda pid: SimpleNamespace(pid=pid))
+    fake_process = SimpleNamespace(
+        pid=0, is_running=lambda: True, status=lambda: psutil.STATUS_RUNNING, children=lambda recursive: [],
+    )
+    monkeypatch.setattr(Process, "from_pid", staticmethod(lambda pid: Process(fake_process)))  # type: ignore
     return service
 
 
@@ -227,7 +232,7 @@ def test_degraded_state_triggers_restart(
     # Simulate degraded state by killing the process manually
     if service._process is not None:
         service._process.terminate()
-        service._process.wait()  # Ensure process is fully terminated
+        service._process.wait_for_termination(timeout=5.0)
 
     # Wait for service to detect failure
     assert_service_state(service, "failed", timeout=2.0)

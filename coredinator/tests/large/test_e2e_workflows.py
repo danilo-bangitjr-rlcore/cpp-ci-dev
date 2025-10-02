@@ -11,8 +11,8 @@ from pathlib import Path
 import psutil
 import pytest
 import requests
+from lib_process.process import Process
 
-from coredinator.utils.process import terminate_process_tree
 from tests.utils.api_client import CoredinatorAPIClient
 from tests.utils.config_helpers import create_test_configs
 from tests.utils.service_fixtures import CoredinatorService, wait_for_service_healthy
@@ -104,7 +104,7 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
 
     # Kill coredinator process to simulate failure
     proc_obj = psutil.Process(coredinator_service.process_id)
-    assert terminate_process_tree(proc_obj, timeout=5.0), "Coredinator did not terminate in time"
+    assert Process(proc_obj).terminate_tree(timeout=5.0), "Coredinator did not terminate in time"
 
     # Restart coredinator service using the same configuration
     proc2 = subprocess.Popen(
@@ -126,11 +126,7 @@ def test_coredinator_failure_recovery(coredinator_service: CoredinatorService, c
     assert data["state"] in ("running", "stopped")
 
     # Cleanup the restarted process
-    try:
-        proc_obj = psutil.Process(proc2.pid)
-        terminate_process_tree(proc_obj, timeout=5.0)
-    except (psutil.NoSuchProcess, NameError):
-        pass
+    Process.from_pid(proc2.pid).terminate_tree(timeout=5.0)
 
 
 @pytest.mark.skipif(sys.platform == "win32", reason="Flaky on Windows - hangs on network requests")

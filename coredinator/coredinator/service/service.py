@@ -13,12 +13,11 @@ from typing import Any
 from urllib.error import URLError
 from urllib.request import urlopen
 
-import psutil
+from lib_process.process import Process
 from lib_utils.errors import fail_gracefully
 
 from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceState, ServiceStatus
-from coredinator.utils.process import safe_get_process_status, safe_is_process_running, terminate_process_tree
 
 log = get_logger(__name__)
 
@@ -49,7 +48,7 @@ class Service:
         self._exe_path: Path = executable_path
         self._config_path: Path = config_path
 
-        self._process: psutil.Process | None = None
+        self._process: Process | None = None
         self._keep_alive_thread: threading.Thread | None = None
         self._stop_event: threading.Event = threading.Event()
 
@@ -95,7 +94,7 @@ class Service:
             popen_kwargs["creationflags"] = creationflags
 
         popen = Popen(args, **popen_kwargs)
-        self._process = psutil.Process(popen.pid)
+        self._process = Process.from_pid(popen.pid)
         log.info("Service started process", service_id=self.id, pid=popen.pid)
         self._keep_alive()
 
@@ -127,14 +126,14 @@ class Service:
         if not self._process:
             return
 
-        process_id = self._process.pid
+        process_id = self._process.psutil.pid
         log.info("Service stopping process", service_id=self.id, pid=process_id)
-        stop_process(self._process, grace_seconds)
+        self._process.terminate_tree(timeout=grace_seconds)
         self._process = None
         log.info("Service process cleanup completed", service_id=self.id, pid=process_id)
 
     def restart(self):
-        current_pid = self._process.pid if self._process else None
+        current_pid = self._process.psutil.pid if self._process else None
         log.info("Service restart requested", service_id=self.id, mode=self._mode, current_pid=current_pid)
         # Only restart if we're supposed to be running
         if self._mode != ServiceMode.STARTED:
@@ -143,7 +142,7 @@ class Service:
         log.info("Service performing restart sequence", service_id=self.id, stopping_pid=current_pid)
         self.stop()
         self.start()
-        new_pid = self._process.pid if self._process else None
+        new_pid = self._process.psutil.pid if self._process else None
         log.info("Service restart sequence completed", service_id=self.id, old_pid=current_pid, new_pid=new_pid)
 
     def status(self):
@@ -162,16 +161,7 @@ class Service:
                 config_path=self._config_path,
             )
 
-        if not safe_is_process_running(self._process):
-            return ServiceStatus(
-                id=self.id,
-                state=ServiceState.FAILED,
-                intended_state=intended_state,
-                config_path=self._config_path,
-            )
-
-        status = safe_get_process_status(self._process)
-        if status == psutil.STATUS_ZOMBIE:
+        if not self._process.is_running() or self._process.is_zombie():
             return ServiceStatus(
                 id=self.id,
                 state=ServiceState.FAILED,
@@ -190,7 +180,7 @@ class Service:
     def get_process_ids(self) -> list[int | None]:
         """Get process ID of the main process for this service."""
         if self._process is not None:
-            return [self._process.pid]
+            return [self._process.psutil.pid]
 
         return [None]
 
@@ -200,20 +190,12 @@ class Service:
 
         Returns True if successfully reattached, False otherwise.
         """
-        try:
-            proc = psutil.Process(pid)
-        except (psutil.NoSuchProcess, psutil.AccessDenied):
-            return False
+        proc = Process.from_pid(pid)
+        if proc.is_running() and not proc.is_zombie():
+            self._process = proc
+            return True
 
-        if not safe_is_process_running(proc):
-            return False
-
-        status = safe_get_process_status(proc)
-        if status is None or status == psutil.STATUS_ZOMBIE:
-            return False
-
-        self._process = proc
-        return True
+        return False
 
     # -----------------
     # -- Validations --
@@ -247,20 +229,7 @@ class Service:
         if self._process is None:
             return False
 
-        if not safe_is_process_running(self._process):
-            return False
-
-        status = safe_get_process_status(self._process)
-        if status is None:
-            return False
-
-        # Check for terminated states based on platform
-        if IS_WINDOWS and status == psutil.STATUS_DEAD:
-            return False
-        if status == psutil.STATUS_ZOMBIE:
-            return False
-
-        return True
+        return self._process.is_running() and not self._process.is_zombie()
 
     def _build_args(self, exe: Path, cfg: Path) -> list[str]:
         return [str(exe), "--config-name", str(cfg)]
@@ -269,7 +238,7 @@ class Service:
     # -- Private --
     # -------------
     def _get_current_pid(self) -> int | None:
-        return self._process.pid if self._process else None
+        return self._process.psutil.pid if self._process else None
 
     def _monitor_exit(self) -> None:
         monitor_pid = self._get_current_pid()
@@ -349,16 +318,3 @@ class Service:
         t = threading.Thread(target=monitor, daemon=True)
         t.start()
         self._keep_alive_thread = t
-
-
-@fail_gracefully()
-def stop_process(proc: psutil.Process, grace_seconds: float = 5.0) -> None:
-    try:
-        pid = proc.pid
-        log.info("Stopping process tree", pid=pid, grace_seconds=grace_seconds)
-        terminate_process_tree(proc, timeout=grace_seconds)
-        log.info("Process tree termination completed", pid=pid)
-    except psutil.NoSuchProcess:
-        log.info("Process no longer exists - already terminated")
-    except Exception as e:
-        log.warning("Exception during process termination", error=str(e))
