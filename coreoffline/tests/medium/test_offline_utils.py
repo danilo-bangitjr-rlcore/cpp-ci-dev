@@ -20,7 +20,8 @@ from lib_sql.inspection import table_exists
 from sqlalchemy import Engine
 
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.data_loading import load_offline_transitions, offline_rl_from_buffer
+from coreoffline.utils.data_loading import load_offline_transitions
+from coreoffline.utils.offline_training.utils import offline_rl_from_buffer
 
 
 def make_step(

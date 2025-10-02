@@ -10,6 +10,7 @@ from corerl.eval import agent as agent_eval
 from corerl.state import AppState
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import DataMode
+from lib_progress.tracker import ProgressTracker
 
 from coreoffline.utils.config import OfflineMainConfig
 from coreoffline.utils.data_loading import load_data_chunks
@@ -110,3 +111,22 @@ def get_latest_state(pipe_return: PipelineReturn):
         dp=jnp.ones((1,)),
         last_a=jnp.asarray(pipe_return.actions.iloc[-1]),
     )
+
+
+def offline_rl_from_buffer(agent: GreedyAC, steps: int = 100):
+    log.info("Starting offline agent training...")
+
+    for buffer_name, size_list in agent.get_buffer_sizes().items():
+        log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
+
+    q_losses: list[float] = []
+    metrics = {"q_loss": 0.0}
+
+    with ProgressTracker(total=steps, desc='Offline agent training', update_interval=10) as tracker:
+        for _ in range(steps):
+            critic_loss = agent.update()
+            q_losses += critic_loss
+            metrics["q_loss"] = float(q_losses[-1])
+            tracker.update(metrics=metrics)
+
+    return q_losses
