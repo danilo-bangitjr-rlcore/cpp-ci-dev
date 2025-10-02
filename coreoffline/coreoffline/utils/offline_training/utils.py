@@ -50,7 +50,7 @@ def get_offline_recommendations(
     assert isinstance(app_state.cfg, OfflineMainConfig)
     state = None
 
-    data_chunks = load_data_chunks(
+    data_chunks, _ = load_data_chunks(
         cfg=app_state.cfg,
         start_time=start,
         end_time=end,
