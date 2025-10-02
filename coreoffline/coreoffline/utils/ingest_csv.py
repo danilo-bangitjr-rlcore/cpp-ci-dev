@@ -5,7 +5,7 @@ import polars as pl
 from corerl.data_pipeline.db.data_writer import DataWriter
 from lib_config.loader import load_config
 
-from coreoffline.config import LoadDataConfig
+from coreoffline.utils.config import LoadDataConfig
 
 log = logging.getLogger(__name__)
 

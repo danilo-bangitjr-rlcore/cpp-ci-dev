@@ -6,8 +6,8 @@ import numpy as np
 from corerl.data_pipeline.datatypes import Transition
 from corerl.state import AppState
 
-from coreoffline.config import ReportConfig
-from coreoffline.data_analysis.data_report import log, save_as_csv, save_as_txt
+from coreoffline.utils.config import ReportConfig
+from coreoffline.utils.data_analysis.data_report import log, save_as_csv, save_as_txt
 
 
 def are_transitions_contiguous(

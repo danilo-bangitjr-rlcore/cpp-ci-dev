@@ -9,10 +9,10 @@ from corerl.state import AppState
 from corerl.utils.pandas import split_dataframe_into_chunks
 from lib_agent.buffer.datatypes import DataMode
 
-from coreoffline.config import OfflineMainConfig
-from coreoffline.core.pipeline_utils import StageDataCapture
-from coreoffline.data_analysis import data_report, transition_report
-from coreoffline.data_analysis.data_report import ReportConfig
+from coreoffline.utils.config import OfflineMainConfig
+from coreoffline.utils.data_analysis import data_report, transition_report
+from coreoffline.utils.data_analysis.data_report import ReportConfig
+from coreoffline.utils.pipeline_utils import StageDataCapture
 
 
 def test_stage_data_capture(

@@ -4,11 +4,10 @@ from datetime import datetime
 from lib_agent.buffer.datatypes import DataMode
 from lib_config.loader import load_config
 
-from coreoffline.config import OfflineMainConfig
-from coreoffline.core.pipeline_utils import StageDataCapture
-from coreoffline.core.setup import create_standard_setup
-from coreoffline.data_analysis.data_report import generate_report
-from coreoffline.data_loading import load_data_chunks
+from coreoffline.utils.config import OfflineMainConfig
+from coreoffline.utils.data_analysis.transition_report import generate_report
+from coreoffline.utils.data_loading import load_data_chunks
+from coreoffline.utils.setup import create_standard_setup
 
 log = logging.getLogger(__name__)
 
@@ -19,7 +18,6 @@ def main(cfg: OfflineMainConfig):
     Assuming offline data has already been written to TimescaleDB
     """
     app_state, pipeline = create_standard_setup(cfg)
-    capture = StageDataCapture(pipeline)
 
     # Single pipeline execution through all stages
     log.info("Running pipeline with stage capture hooks...")
@@ -33,26 +31,25 @@ def main(cfg: OfflineMainConfig):
     )
     start_time = datetime.now()
 
+    transitions = []
     for chunk in data_chunks:
-        pipeline(
+        pr = pipeline(
             data=chunk,
             data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
         )
+        if pr.transitions is not None:
+            transitions += pr.transitions
 
     end_time = datetime.now()
-
-    # Extract captured dataframes
-    data = [capture.get_concatenated_data(stage) for stage in cfg.report.stages]
 
     log.info("Generating report from captured stage data...")
     generate_report(
         cfg.report,
-        data,
-        cfg.report.stages,
         app_state,
         start_time,
         end_time,
+        transitions,
     )
 
 

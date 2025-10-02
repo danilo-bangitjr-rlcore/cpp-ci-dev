@@ -3,7 +3,7 @@ from pathlib import Path
 from corerl.data_pipeline.db.data_reader import DataReader, TagStats
 from lib_config.loader import load_config
 
-from coreoffline.config import LoadDataConfig
+from coreoffline.utils.config import LoadDataConfig
 
 
 def build_tag_config(
