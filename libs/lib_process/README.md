@@ -12,6 +12,9 @@ This library wraps `psutil.Process` with a more intuitive API that:
 
 ## Core Features
 
+### Process Creation
+- `Process.start_in_background(args)` - Start a detached background process with stdin/stdout/stderr redirected to DEVNULL (cross-platform, handles Windows creationflags)
+
 ### Process Lifecycle
 - `terminate()` - Send SIGTERM to process
 - `kill()` - Send SIGKILL to process
@@ -30,14 +33,18 @@ This library wraps `psutil.Process` with a more intuitive API that:
 - `psutil` - Access underlying `psutil.Process` object when needed
 
 ### Utility Functions
-- `find_processes_by_name_patterns(patterns)` - Find all processes matching any of the given name patterns (case-insensitive)
+- `find_processes_by_name_patterns(patterns)` - Find all processes matching any of the given name patterns (case-insensitive, from `lib_process.process_list`)
 
 ## Usage
 
 ```python
 from lib_process.process import Process
 
-# Create from PID
+# Start a background process (detached, no stdin/stdout/stderr)
+process = Process.start_in_background(["python", "-m", "myapp", "--config", "config.yaml"])
+print(f"Started process with PID: {process.psutil.pid}")
+
+# Create from existing PID
 process = Process.from_pid(12345)
 
 # Check status without exception handling
@@ -55,7 +62,7 @@ for child in process.children():
     print(f"Child PID: {child.psutil.pid}")
 
 # Find all processes matching patterns
-from lib_process import find_processes_by_name_patterns
+from lib_process.process_list import find_processes_by_name_patterns
 
 python_processes = find_processes_by_name_patterns(["python", "pytest"])
 for proc in python_processes:
