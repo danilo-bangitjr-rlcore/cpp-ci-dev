@@ -5,6 +5,7 @@ from corerl.data_pipeline.datatypes import Transition
 from corerl.state import AppState
 from lib_config.loader import load_config
 from lib_defs.config_defs.tag_config import TagType
+from lib_progress.tracker import track
 
 from coreoffline.utils.behaviour_cloning.data import (
     ModelData,
@@ -39,7 +40,7 @@ def run_cross_validation(
     all_y_true = []
     all_y_pred = []
 
-    for train_data, test_data in data.k_fold_split(n_splits):
+    for train_data, test_data in track(data.k_fold_split(n_splits), total=n_splits):
         model.fit(
             train_data.X,
             train_data.y,
