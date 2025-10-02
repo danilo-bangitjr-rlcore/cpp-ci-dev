@@ -11,6 +11,7 @@ env:
 jobs:
   build-linux-executables:
     runs-on: ubuntu-latest
+    if: startsWith(github.event.release.tag_name, 'corerl-')
     steps:
       - name: Generate a token
         id: generate-token
@@ -45,6 +46,7 @@ jobs:
 
   build-windows-executables:
     runs-on: windows-latest
+    if: startsWith(github.event.release.tag_name, 'corerl-')
     steps:
       - name: Generate a token
         id: generate-token
