@@ -4,7 +4,6 @@ from datetime import timedelta
 from math import ceil
 
 import numpy as np
-from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
@@ -12,6 +11,7 @@ from corerl.state import AppState
 from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import exclude_from_chunks, split_into_chunks
 from lib_agent.buffer.datatypes import DataMode
+from lib_progress.tracker import track
 
 from coreoffline.utils.config import OfflineMainConfig
 
@@ -59,7 +59,7 @@ def load_data_chunks(
     exclude_periods: list[tuple[dt.datetime, dt.datetime]] | None = None,
 ):
     """
-    Generator that yields chunks of data from the database.
+    Returns a generator that yields chunks of data and the total number of chunks.
     """
     data_reader = get_data_reader(cfg)
     start_time, end_time = get_time_range(data_reader, start_time, end_time)
@@ -75,19 +75,25 @@ def load_data_chunks(
     # Filter out excluded periods if configured
     if exclude_periods:
         time_chunks = exclude_from_chunks(time_chunks, exclude_periods)
+    time_chunks = list(time_chunks)
+    num_chunks = len(time_chunks)
 
-    for chunk_start, chunk_end in time_chunks:
-        chunk_data = data_reader.batch_aggregated_read(
-            names=tag_names,
-            start_time=chunk_start,
-            end_time=chunk_end,
-            bucket_width=obs_period,
-            aggregation=cfg.env.db.data_agg,
-        )
-        if not chunk_data.empty:
-            yield chunk_data
+    def chunk_generator():
+        try:
+            for chunk_start, chunk_end in time_chunks:
+                chunk_data = data_reader.batch_aggregated_read(
+                    names=tag_names,
+                    start_time=chunk_start,
+                    end_time=chunk_end,
+                    bucket_width=obs_period,
+                    aggregation=cfg.env.db.data_agg,
+                )
+                if not chunk_data.empty:
+                    yield chunk_data
+        finally:
+            data_reader.close()
 
-    data_reader.close()
+    return chunk_generator(), num_chunks
 
 
 def load_entire_dataset(
@@ -112,23 +118,7 @@ def load_entire_dataset(
     return out
 
 
-def offline_rl_from_buffer(agent: GreedyAC, steps: int = 100):
-    log.info("Starting offline agent training...")
-
-    for buffer_name, size_list in agent.get_buffer_sizes().items():
-        log.info(f"Agent {buffer_name} replay buffer size(s): {size_list}")
-
-    q_losses: list[float] = []
-    for step in range(steps):
-        critic_loss = agent.update()
-        q_losses += critic_loss
-        if step % 10 == 0 or step == steps - 1:
-            log.info(f"Offline agent training step {step}/{steps}, last loss: {q_losses[-1]}")
-
-    return q_losses
-
-
-def load_offline_transitions(app_state: AppState,pipeline: Pipeline):
+def load_offline_transitions(app_state: AppState, pipeline: Pipeline):
     """
     Load offline transitions from database through the data pipeline.
     """
@@ -142,14 +132,19 @@ def load_offline_transitions(app_state: AppState,pipeline: Pipeline):
     # Pass offline data through data pipeline chunk by chunk to produce transitions
     out = None
 
-    data_chunks = load_data_chunks(
+    data_chunks, num_chunks = load_data_chunks(
         cfg=app_state.cfg,
         start_time=offline_cfg.offline_start_time,
         end_time=offline_cfg.offline_end_time,
         exclude_periods=exclude_periods,
     )
 
-    for chunk_data in data_chunks:
+    for chunk_data in track(
+        data_chunks,
+        desc="Loading data by chunk",
+        total=num_chunks,
+        update_interval=5,
+    ):
         chunk_pr = pipeline(
             data=chunk_data,
             data_mode=DataMode.OFFLINE,

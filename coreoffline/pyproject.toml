@@ -7,6 +7,7 @@ authors = []
 dependencies = [
     "corerl",
     "matplotlib~=3.8",
+    "lib-progress",
 ]
 readme = "README.md"
 
@@ -43,6 +44,7 @@ lib-config = { path = "../libs/lib_config", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-defs = { path = "../libs/lib_defs", editable = true }
+lib-progress = { path = "../libs/lib_progress", editable = true }
 corerl = { path = "../corerl", editable = true }
 
 # ----------

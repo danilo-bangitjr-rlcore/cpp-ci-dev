@@ -3,6 +3,7 @@ from datetime import datetime
 
 from lib_agent.buffer.datatypes import DataMode
 from lib_config.loader import load_config
+from lib_progress.tracker import track
 
 from coreoffline.utils.config import OfflineMainConfig
 from coreoffline.utils.data_analysis.transition_report import generate_report
@@ -23,7 +24,7 @@ def main(cfg: OfflineMainConfig):
     log.info("Running pipeline with stage capture hooks...")
 
     exclude_periods = cfg.offline_training.eval_periods if cfg.offline_training.remove_eval_from_train else None
-    data_chunks = load_data_chunks(
+    data_chunks, num_chunks = load_data_chunks(
         cfg=app_state.cfg,
         start_time=cfg.offline_training.offline_start_time,
         end_time=cfg.offline_training.offline_end_time,
@@ -32,7 +33,12 @@ def main(cfg: OfflineMainConfig):
     start_time = datetime.now()
 
     transitions = []
-    for chunk in data_chunks:
+    for chunk in track(
+        data_chunks,
+        desc="Running data through pipeline",
+        total=num_chunks,
+        update_interval=5,
+    ):
         pr = pipeline(
             data=chunk,
             data_mode=DataMode.OFFLINE,

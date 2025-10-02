@@ -12,6 +12,7 @@ import optax
 from corerl.state import AppState
 from lib_agent.network.networks import LinearConfig, TorsoConfig, torso_builder
 from lib_config.config import config
+from lib_progress.tracker import ProgressTracker
 from pydantic import Field
 from sklearn.linear_model import LinearRegression
 
@@ -198,16 +199,25 @@ class MLPRegressor(BaseRegressor):
         self._init_net(X_jax, y_jax)
 
         batch_generator = BatchGenerator(X_jax, y_jax, self._cfg.batch_size)
-        for epoch in range(self._cfg.epochs):
-            epoch_key, self._rng = jax.random.split(self._rng, 2)
-            train_loss, self._rng = self._train_epoch(batch_generator, epoch_key)
 
-            test_key, self._rng = jax.random.split(self._rng, 2)
-            batch_keys = jax.random.split(test_key, X_test_jax.shape[0])
-            test_loss = self._batch_mae_loss(self._params, batch_keys, X_test_jax, y_test_jax)
+        with ProgressTracker(total=self._cfg.epochs, desc="Training MLP", update_interval=50) as tracker:
+            for epoch in range(self._cfg.epochs):
+                epoch_key, self._rng = jax.random.split(self._rng, 2)
+                train_loss, self._rng = self._train_epoch(batch_generator, epoch_key)
 
-            self._app_state.metrics.write(epoch, "dl_train_loss", train_loss)
-            self._app_state.metrics.write(epoch, "dl_test_loss", test_loss)
+                test_key, self._rng = jax.random.split(self._rng, 2)
+                batch_keys = jax.random.split(test_key, X_test_jax.shape[0])
+                test_loss = self._batch_mae_loss(self._params, batch_keys, X_test_jax, y_test_jax)
+
+                self._app_state.metrics.write(epoch, "dl_train_loss", train_loss)
+                self._app_state.metrics.write(epoch, "dl_test_loss", test_loss)
+
+                tracker.update(
+                    metrics={
+                        "train_loss": float(train_loss),
+                        "test_loss": float(test_loss),
+                    },
+                )
 
     def predict(self, X: np.ndarray) -> np.ndarray:
         assert self._net is not None, "Must initialize network first. Please call fit()"
