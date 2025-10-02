@@ -39,6 +39,7 @@ class Service(ABC):
 
         self._process: Process | None = None
         self._monitor: ServiceMonitor | None = None
+        self._failed: bool = False
 
     @abstractmethod
     def _find_executable(self) -> Path:
@@ -61,19 +62,26 @@ class Service(ABC):
     def start(self):
         log.info("Service start requested", service_id=self.id)
         self._intended_state = ServiceIntendedState.RUNNING
+        self._failed = False
         if self.is_running():
             log.info("Service already running, skipping start", service_id=self.id)
             return
 
-        exe_path = self._find_executable()
-        exe = self._ensure_executable(exe_path)
-        cfg = self._ensure_config()
+        try:
+            exe_path = self._find_executable()
+            exe = self._ensure_executable(exe_path)
+            cfg = self._ensure_config()
 
-        args = self._build_args(exe, cfg)
-        log.debug("Service command args", service_id=self.id, args_preview=args[:2])  # Log first two args for security
+            args = self._build_args(exe, cfg)
+            log.debug("Service command args", service_id=self.id, args_preview=args[:2])
 
-        self._process = Process.start_in_background(args)
-        log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid)
+            self._process = Process.start_in_background(args)
+            log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid)
+
+        except Exception:
+            log.exception("Service failed to start", service_id=self.id)
+            self._failed = True
+            raise
 
         # Start background monitoring
         if self._monitor is None:
@@ -84,6 +92,7 @@ class Service(ABC):
     def stop(self, grace_seconds: float = 5.0) -> None:
         log.info("Stopping service", service_id=self.id)
         self._intended_state = ServiceIntendedState.STOPPED
+        self._failed = False
 
         # Stop monitoring
         if self._monitor is not None:
@@ -118,9 +127,10 @@ class Service(ABC):
 
     def status(self):
         if self._process is None:
+            state = ServiceState.FAILED if self._failed else ServiceState.STOPPED
             return ServiceStatus(
                 id=self.id,
-                state=ServiceState.STOPPED,
+                state=state,
                 intended_state=self._intended_state,
                 config_path=self._config_path,
             )
