@@ -61,6 +61,15 @@ def main(cfg: OfflineMainConfig):
         end_time,
     )
 
+    log.info("=" * 80)
+    log.info("Data report generation complete!")
+    output_dir = cfg.report.output_dir.resolve()
+    log.info(f"📁 Artifacts saved to: {output_dir}")
+    log.info("📋 Reports: sensor_report, cross_correlation, goal_violations, "
+             "zone_violation_statistics (txt/csv)")
+    log.info("📊 Plots: distribution plots and violation plots in 'plots/' subdirectory")
+    log.info("=" * 80)
+
 
 if __name__ == "__main__":
     main()

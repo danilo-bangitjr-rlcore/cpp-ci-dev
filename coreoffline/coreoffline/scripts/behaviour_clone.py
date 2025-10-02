@@ -1,4 +1,5 @@
 import logging
+from pathlib import Path
 
 import numpy as np
 from corerl.data_pipeline.datatypes import Transition
@@ -160,6 +161,13 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
             deep_metrics=deep_per_action_metrics[action_name],
             output_dir=app_state.cfg.report.output_dir,
         )
+
+    log.info("=" * 80)
+    log.info("Behaviour cloning complete!")
+    log.info(f"📊 Generated {len(data.action_names)} scatter plot(s)")
+    output_path = Path(app_state.cfg.report.output_dir) / 'plots' / 'behaviour_clone'
+    log.info(f"📁 Artifacts saved to: {output_path.resolve()}")
+    log.info("=" * 80)
 
 
 @load_config(OfflineMainConfig)

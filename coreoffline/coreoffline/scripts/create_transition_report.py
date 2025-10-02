@@ -58,6 +58,12 @@ def main(cfg: OfflineMainConfig):
         transitions,
     )
 
+    log.info("=" * 80)
+    log.info("Transition report generation complete!")
+    log.info(f"📁 Artifacts saved to: {cfg.report.output_dir.resolve()}")
+    log.info("📋 Reports: transition_statistics (txt/csv)")
+    log.info("=" * 80)
+
 
 if __name__ == "__main__":
     main()

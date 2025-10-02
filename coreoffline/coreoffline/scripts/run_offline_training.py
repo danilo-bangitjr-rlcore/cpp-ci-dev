@@ -44,6 +44,11 @@ def main(cfg: OfflineMainConfig):
     agent.close()
     agent.save(save_path / 'agent')
 
+    log.info("=" * 80)
+    log.info("Offline training complete!")
+    log.info(f"📁 Trained agent saved to: {(save_path / 'agent').resolve()}")
+    log.info("=" * 80)
+
 
 if __name__ == "__main__":
     main()

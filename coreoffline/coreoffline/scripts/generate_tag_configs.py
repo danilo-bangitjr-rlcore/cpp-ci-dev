@@ -99,7 +99,11 @@ def main(cfg: LoadDataConfig):
     print("Generating tag configurations from database statistics...")
 
     generate(cfg)
-    print("Tag configuration generation completed successfully!")
+
+    print("=" * 80)
+    print("Tag configuration generation complete!")
+    print(f"📁 Artifact saved to: {Path('tags.yaml').resolve()}")
+    print("=" * 80)
 
 
 if __name__ == '__main__':
