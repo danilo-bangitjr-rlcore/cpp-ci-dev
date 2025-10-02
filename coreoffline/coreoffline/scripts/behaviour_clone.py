@@ -79,7 +79,7 @@ def run_baseline_cross_validation(data: ModelData, n_splits: int):
     # Calculate and log losses
     train_loss = np.mean((np.clip(data.baseline_y, 0, 1) - data.y) ** 2)
     test_loss = np.mean((all_y_pred - all_y_true) ** 2)
-    log.info(f"Copy Forward - Training Loss: {train_loss:.6f}, Test Loss: {test_loss:.6f}")
+    log.info(f"  Training Loss: {train_loss:.6f}, Test Loss: {test_loss:.6f}")
 
     return all_y_true, all_y_pred
 
@@ -89,15 +89,15 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
 
     # Get all action names from configuration
     action_names = get_ai_setpoint_tag_names(app_state.cfg)
-    log.info(f"Training models for {len(action_names)} actions: {action_names}")
+    log.info(f"Training models for {len(action_names)} action(s): {action_names}")
 
     data = prepare_features_and_targets(
         transitions,
         action_names=action_names,
     )
 
-    # Copy Forward Baseline
-    log.info("Training Copy Forward baseline model...")
+    # Baseline model (copy-forward)
+    log.info("Training baseline (copy-forward) model...")
     all_y_true, all_y_pred_baseline = run_baseline_cross_validation(
         data,
         n_splits=app_state.cfg.behaviour_clone.k_folds,
@@ -107,12 +107,12 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         all_y_pred_baseline,
         data.action_names,
     )
-    log.info("Copy Forward baseline.")
+    log.info("Baseline training complete")
     for action_name, metrics in baseline_per_action_metrics.items():
         log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
-    # Linear Regression
-    log.info("Training Linear Regression model...")
+    # Linear regression model
+    log.info("Training linear regression model...")
     mlp = LinearRegressor(app_state)
     all_y_true, all_y_pred_linear = run_cross_validation(
         mlp,
@@ -124,11 +124,11 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         all_y_pred_linear,
         data.action_names,
     )
-    log.info("Done training Linear Regression model.")
+    log.info("Linear regression training complete")
     for action_name, metrics in linear_per_action_metrics.items():
         log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
-    # Deep Learning
+    # MLP model
     log.info("Training MLP model...")
     mlp = MLPRegressor(
         app_state.cfg.behaviour_clone.mlp,
@@ -144,7 +144,7 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
         all_y_pred_mlp,
         data.action_names,
     )
-    log.info("Done training MLP Regression model.")
+    log.info("MLP training complete")
     for action_name, metrics in deep_per_action_metrics.items():
         log.info(f"  {action_name}: MAE={metrics['mae']:.6f}, Sign Acc={metrics['sign_acc']:.6f}")
 
@@ -173,16 +173,23 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
 @load_config(OfflineMainConfig)
 def main(cfg: OfflineMainConfig):
     """Main function for finding the best observation period."""
+    log.info("=" * 80)
+    log.info("Starting behaviour cloning")
+    log.info("=" * 80)
+
     app_state, pipeline = create_standard_setup(cfg)
 
+    log.info("Loading offline transitions...")
     pr, _ = load_offline_transitions(app_state, pipeline)
     if pr is None:
-        log.info("No Pipereturn, exiting...")
+        log.info("No pipeline output found, exiting")
         return
 
     if not pr.transitions:
-        log.info("No Transitions, exiting...")
+        log.info("No transitions found, exiting")
         return
+
+    log.info(f"Loaded {len(pr.transitions)} transition(s)")
 
     run_behaviour_cloning(app_state, pr.transitions)
 

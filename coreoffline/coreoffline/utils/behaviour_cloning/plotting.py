@@ -93,4 +93,3 @@ def create_single_action_scatter_plot(
 
     plt.savefig(filename, dpi=150, bbox_inches="tight")
     plt.close()
-    print(f"Saved plot for {action_name}: {filename}")
