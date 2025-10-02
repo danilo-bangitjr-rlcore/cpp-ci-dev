@@ -44,9 +44,13 @@ if $DEV_BUILD; then
         log "Error: --build-number required with --dev"
         exit 1
     fi
-    CORERL_ARTIFACT_NAME="${CORERL_ARTIFACT_NAME}-dev${BUILD_NUMBER}"
-    COREIO_ARTIFACT_NAME="${COREIO_ARTIFACT_NAME}-dev${BUILD_NUMBER}"
-    COREDINATOR_ARTIFACT_NAME="${COREDINATOR_ARTIFACT_NAME}-dev${BUILD_NUMBER}"
+    CORERL_ARTIFACT_NAME="${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}-rc.${BUILD_NUMBER}"
+    COREIO_ARTIFACT_NAME="${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}-rc.${BUILD_NUMBER}"
+    COREDINATOR_ARTIFACT_NAME="${COREDINATOR_ARTIFACT_NAME}-v${COREDINATOR_VERSION}-rc.${BUILD_NUMBER}"
+else
+    CORERL_ARTIFACT_NAME="${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}"
+    COREIO_ARTIFACT_NAME="${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}"
+    COREDINATOR_ARTIFACT_NAME="${COREDINATOR_ARTIFACT_NAME}-v${COREDINATOR_VERSION}"
 fi
 
 log "CoreRL version: $CORERL_VERSION"
@@ -100,36 +104,42 @@ log "After popd from coredinator: $(pwd)"
 
 mkdir -p dist
 if [ -f "./corerl/dist/${CORERL_ARTIFACT_NAME}" ]; then
-    mv ./corerl/dist/${CORERL_ARTIFACT_NAME} "dist/${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}"
-    log "Created: dist/${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}"
+    mv ./corerl/dist/${CORERL_ARTIFACT_NAME} "dist/${CORERL_ARTIFACT_NAME}"
+    log "Created: dist/${CORERL_ARTIFACT_NAME}"
 else
     log "Error: corerl/dist/${CORERL_ARTIFACT_NAME} not found"
     exit 1
 fi
 
 if [ -f "./coreio/dist/${COREIO_ARTIFACT_NAME}" ]; then
-    mv ./coreio/dist/${COREIO_ARTIFACT_NAME} "dist/${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}"
-    log "Created: dist/${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}"
+    mv ./coreio/dist/${COREIO_ARTIFACT_NAME} "dist/${COREIO_ARTIFACT_NAME}"
+    log "Created: dist/${COREIO_ARTIFACT_NAME}"
 else
     log "Error: coreio/dist/${COREIO_ARTIFACT_NAME} not found"
     exit 1
 fi
 
 if [ -f "./coredinator/dist/${COREDINATOR_ARTIFACT_NAME}" ]; then
-    mv ./coredinator/dist/${COREDINATOR_ARTIFACT_NAME} "dist/${COREDINATOR_ARTIFACT_NAME}-v${COREDINATOR_VERSION}"
-    log "Created: dist/${COREDINATOR_ARTIFACT_NAME}-v${COREDINATOR_VERSION}"
+    mv ./coredinator/dist/${COREDINATOR_ARTIFACT_NAME} "dist/${COREDINATOR_ARTIFACT_NAME}"
+    log "Created: dist/${COREDINATOR_ARTIFACT_NAME}"
 else
     log "Error: coredinator/dist/${COREDINATOR_ARTIFACT_NAME} not found"
     exit 1
 fi
 
 # Log the artifacts
-echo "CORERL_ARTIFACT=${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}" >> dist/artifacts.env
-echo "COREIO_ARTIFACT=${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}" >> dist/artifacts.env
-echo "COREDINATOR_ARTIFACT=${COREDINATOR_ARTIFACT_NAME}-v${COREDINATOR_VERSION}" >> dist/artifacts.env
+echo "CORERL_ARTIFACT=${CORERL_ARTIFACT_NAME}" >> dist/artifacts.env
+echo "COREIO_ARTIFACT=${COREIO_ARTIFACT_NAME}" >> dist/artifacts.env
+echo "COREDINATOR_ARTIFACT=${COREDINATOR_ARTIFACT_NAME}" >> dist/artifacts.env
+
+echo "CORERL_VERSION=${CORERL_VERSION}" >> dist/artifacts.env
+echo "COREIO_VERSION=${COREIO_VERSION}" >> dist/artifacts.env
+echo "COREDINATOR_VERSION=${COREDINATOR_VERSION}" >> dist/artifacts.env
+
+
 
 log "Build completed successfully!"
 log "Executables:"
-log "  - dist/${CORERL_ARTIFACT_NAME}-v${CORERL_VERSION}"
-log "  - dist/${COREIO_ARTIFACT_NAME}-v${COREIO_VERSION}"
-log "  - dist/${COREDINATOR_ARTIFACT_NAME}-v${COREDINATOR_VERSION}"
+log "  - dist/${CORERL_ARTIFACT_NAME}"
+log "  - dist/${COREIO_ARTIFACT_NAME}"
+log "  - dist/${COREDINATOR_ARTIFACT_NAME}"
