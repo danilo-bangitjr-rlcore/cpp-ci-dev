@@ -1,9 +1,12 @@
+import logging
 from pathlib import Path
 
 from corerl.data_pipeline.db.data_reader import DataReader, TagStats
 from lib_config.loader import load_config
 
 from coreoffline.utils.config import LoadDataConfig
+
+log = logging.getLogger(__name__)
 
 
 def build_tag_config(
@@ -96,10 +99,17 @@ def generate(cfg: LoadDataConfig):
 @load_config(LoadDataConfig)
 def main(cfg: LoadDataConfig):
     """Main function that generates tag configs using the configuration."""
-    print("Generating tag configurations from database statistics...")
+    log.info("=" * 80)
+    log.info("Starting tag configuration generation")
+    log.info("=" * 80)
 
+    log.info("Generating tag configurations from database statistics...")
     generate(cfg)
-    print("Tag configuration generation completed successfully!")
+
+    log.info("=" * 80)
+    log.info("Tag configuration generation complete!")
+    log.info(f"📁 Artifact saved to: {Path('tags.yaml').resolve()}")
+    log.info("=" * 80)
 
 
 if __name__ == '__main__':

@@ -19,20 +19,27 @@ def main(cfg: OfflineMainConfig):
     """
     Assuming offline data has already been written to TimescaleDB
     """
+    log.info("=" * 80)
+    log.info("Starting data report generation")
+    log.info("=" * 80)
+
     app_state, pipeline = create_standard_setup(cfg)
     capture = StageDataCapture(pipeline)
 
     # Single pipeline execution through all stages
-    log.info("Running pipeline with stage capture hooks...")
+    start_time = cfg.offline_training.offline_start_time
+    end_time = cfg.offline_training.offline_end_time
+    log.info(f"Processing data from {start_time} to {end_time}")
+    log.info("Running pipeline with stage capture...")
 
     exclude_periods = cfg.offline_training.eval_periods if cfg.offline_training.remove_eval_from_train else None
     data_chunks, num_chunks = load_data_chunks(
         cfg=app_state.cfg,
-        start_time=cfg.offline_training.offline_start_time,
-        end_time=cfg.offline_training.offline_end_time,
+        start_time=start_time,
+        end_time=end_time,
         exclude_periods=exclude_periods,
     )
-    start_time = datetime.now()
+    report_gen_start = datetime.now()
 
     for chunk in track(
         data_chunks,
@@ -46,7 +53,7 @@ def main(cfg: OfflineMainConfig):
             reset_temporal_state=False,
         )
 
-    end_time = datetime.now()
+    report_gen_end = datetime.now()
 
     # Extract captured dataframes
     data = [capture.get_concatenated_data(stage) for stage in cfg.report.stages]
@@ -57,9 +64,18 @@ def main(cfg: OfflineMainConfig):
         data,
         cfg.report.stages,
         app_state,
-        start_time,
-        end_time,
+        report_gen_start,
+        report_gen_end,
     )
+
+    log.info("=" * 80)
+    log.info("Data report generation complete!")
+    output_dir = cfg.report.output_dir.resolve()
+    log.info(f"📁 Artifacts saved to: {output_dir}")
+    log.info("📋 Reports: sensor_report, cross_correlation, goal_violations, "
+             "zone_violation_statistics (txt/csv)")
+    log.info("📊 Plots: distribution plots and violation plots in 'plots/' subdirectory")
+    log.info("=" * 80)
 
 
 if __name__ == "__main__":
