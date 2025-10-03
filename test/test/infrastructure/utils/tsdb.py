@@ -29,21 +29,9 @@ def wait_for_postgres_ready(container: Container, timeout: int = 60, check_inter
                 time.sleep(check_interval)
                 continue
 
-            # Check PostgreSQL logs for ready signal
-            logs = container.logs(tail=50).decode('utf-8')
-
-            # Look for PostgreSQL ready indicators in logs
-            ready_indicators = [
-                'database system is ready to accept connections',
-                'PostgreSQL init process complete',
-                'listening on IPv4 address',
-            ]
-
-            if any(indicator in logs for indicator in ready_indicators):
-                # Double-check with a simple connection test via container exec
-                result = container.exec_run('pg_isready -h localhost -p 5432 -U postgres')
-                if result.exit_code == 0:
-                    return True
+            result = container.exec_run('pg_isready -h localhost -p 5432 -U postgres')
+            if result.exit_code == 0:
+                return True
 
         except Exception:
             pass
