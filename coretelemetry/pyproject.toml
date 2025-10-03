@@ -40,7 +40,7 @@ dev = [
 
 [tool.ruff]
 extend = "../standards/python/ruff.toml"
-src=["server"]
+src=["coretelemetry"]
 
 # -------------
 # -- Pyright --
