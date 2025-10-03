@@ -1,7 +1,14 @@
+from datetime import datetime
 from pathlib import Path
 
 import yaml
+from lib_sql.connection import TryConnectContextManager
+from lib_sql.engine import get_sql_engine
+from lib_sql.inspection import column_exists, table_exists
 from pydantic.dataclasses import dataclass as pydantic_dataclass
+from sqlalchemy import text
+
+MAX_RESULT_ROWS = 5000
 
 
 @pydantic_dataclass
@@ -14,6 +21,69 @@ class DBConfig:
     db_name: str = 'postgres'
     schema: str = 'public'
 
+class MetricsReader:
+    def __init__(self, db_cfg : DBConfig):
+        self.db_cfg = DBConfig
+        self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
+
+
+    def read_single_column(
+        self,
+        table_name: str,
+        column_name: str,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
+    ):
+        if not table_exists(self.engine, table_name, schema=self.db_cfg.schema):
+            raise ValueError(f"Table {table_name} not found in DB")
+
+        if not column_exists(self.engine, table_name, column_name, schema=self.db_cfg.schema):
+            raise ValueError(f"Column {column_name} not found in {table_name} not found in DB")
+
+        base_query = """
+        SELECT
+            time,
+            :column_name
+        FROM :table_name
+        """
+
+        params = {"column_name": column_name, "table_name": table_name}
+
+        if start_time is None and end_time is None:
+            base_query += "ORDER BY time DESC LIMIT 1;"
+        else:
+            base_query += "WHERE "
+            conditions = []
+
+            if start_time is not None:
+                conditions.append("time >= :start_time::timestamptz")
+                params["start_time"] = start_time.isoformat()
+
+            if end_time is not None:
+                conditions.append("time <= :end_time::timestamptz")
+                params["end_time"] = end_time.isoformat()
+
+            base_query += " AND ".join(conditions)
+            base_query += " ORDER BY time DESC;"
+
+        select_query = text(base_query).bindparams(**params)
+
+        with TryConnectContextManager(self.engine) as connection:
+            result = connection.execute(select_query).fetchall()
+
+        if not result:
+            raise ValueError(
+                f"No data found in table '{table_name}' for column '{column_name}' for time range"
+                f"from {start_time or ""} to {end_time or ""} ",
+            )
+
+        if len(result) > MAX_RESULT_ROWS:
+            raise ValueError(
+                f"Result exceeded maximum length of {MAX_RESULT_ROWS} rows",
+            )
+
+        return result
+
 
 class TelemetryManager:
 
@@ -21,6 +91,7 @@ class TelemetryManager:
         self.db_config = DBConfig()
         self.config_path = Path("clean/")
         self.metrics_table_cache: dict[str, str] = {}
+        self.metrics_reader: MetricsReader | None = None
 
     # Configuration methods
     def get_db_config(self) -> DBConfig:
@@ -64,15 +135,15 @@ class TelemetryManager:
         self,
         agent_id: str,
         metric: str,
-        from_date: str,
-        to: str,
+        start_time: str,
+        end_time: str,
     ) -> dict:
         # Placeholder implementation - will be replaced with actual SQL queries
         return {
             "agent_id": agent_id,
             "metric": metric,
-            "from_date": from_date,
-            "to": to,
+            "start_time": start_time,
+            "end_time": end_time,
             "data": [],
         }
 

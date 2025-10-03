@@ -32,8 +32,8 @@ async def health_check():
 async def get_telemetry(
     agent_id: str,
     metric: str,
-    from_date: str,
-    to: str,
+    start_time: str,
+    end_time: str,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
 ):
     """
@@ -42,13 +42,13 @@ async def get_telemetry(
     Args:
         agent_id: The ID of the agent
         metric: The name of the metric to retrieve
-        from_date: Start date for the telemetry data (query param 'from')
-        to: End date for the telemetry data
+        start_time: Start date/time for the telemetry data (query param 'start_time')
+        end_time: End date/time for the telemetry data (query param 'end_time')
 
     Returns:
         Telemetry data for the specified parameters
     """
-    return await manager.get_telemetry_data(agent_id, metric, from_date, to)
+    return await manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
 @app.get("/api/v1/config/db")
 async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
