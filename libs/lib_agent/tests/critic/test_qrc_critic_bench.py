@@ -32,7 +32,7 @@ def _create_test_critic(ensemble_size: int, state_dim: int, action_dim: int):
         action_regularization_epsilon=0.1,
         l2_regularization=1.0,
         nominal_setpoint_updates=100,
-        use_state_layer_norm=True,
+        use_all_layer_norm=True,
         rolling_reset_config=RollingResetConfig(reset_period=10000, warm_up_steps=1000),
     )
     return QRCCritic(config, seed=42, state_dim=state_dim, action_dim=action_dim)
