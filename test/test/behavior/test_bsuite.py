@@ -9,6 +9,11 @@ from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
+from test.behavior.nonstationary_world.cases import (
+    AllNonstationaryTest,
+    DownstreamSensorStepTest,
+    UpstreamSensorStepTest,
+)
 from test.behavior.pertubation.cases import (
     MultiActionSaturationPerturbationTest,
     SaturationPerturbationTest,
@@ -80,6 +85,9 @@ TEST_CASES = [
     StandStillMountainCarPerturbationTest(),
     StickyMCARSaturationTest(),
     WindyRoomTest(),
+    AllNonstationaryTest(),
+    UpstreamSensorStepTest(),
+    DownstreamSensorStepTest(),
 ]
 
 
