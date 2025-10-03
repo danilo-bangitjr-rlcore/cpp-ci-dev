@@ -40,6 +40,9 @@ coreoffline/
 
 The `scripts/` directory contains executable Python modules for different offline workflows. All scripts use configuration files (YAML) to specify their behavior. The structure of these configs can be found in `coreoffline/utils/config.py`.
 
+### Assumptions
+Running scripts in `coreoffline/` asssumes that data has already been ingested into timescale-db.The Ingestion process can vary from project to project, but an example script is provided in `examples/ingest_csv.py`.
+
 ### `behaviour_clone.py`
 
 Trains behavior cloning models to imitate historical actions using supervised learning.
