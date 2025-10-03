@@ -10,11 +10,25 @@ import { API_ENDPOINTS, get } from './api';
 // Define the agent status response type
 type AgentStatusResponse = {
   state: string;
-  configPath: string;
-  serviceStatuses: Record<string, string>;
+  config_path: string;
+  service_statuses: {
+    [key: string]: ServiceStatus[];
+  };
   id: string;
-  version: string;
-  uptime: string;
+  version?: string;
+  uptime?: string;
+};
+
+type ServiceStatus = {
+  id: string;
+  state: string;
+  intended_state: string;
+  config_path: string;
+};
+
+type IOStatusResponse = {
+  service_id: string;
+  status: ServiceStatus;
 };
 
 // Mock state storage - in real implementation this would be handled by the backend
@@ -51,6 +65,15 @@ const fetchAgentName = async (configName: string): Promise<string> => {
   return data.agent_name;
 };
 
+const fetchIOStatus = async (ioName: string): Promise<IOStatusResponse> => {
+  const response = await get(API_ENDPOINTS.coredinator.io_status(ioName));
+  if (!response.ok) {
+    throw new Error(`Failed to fetch I/O status for ${ioName}`);
+  }
+  const data: IOStatusResponse = await response.json();
+  return data;
+};
+
 // Shared agent status fetch function
 const fetchAgentStatus = async (
   configName: string
@@ -61,16 +84,11 @@ const fetchAgentStatus = async (
   if (!response.ok) {
     throw new Error(`Failed to fetch status for agent ${configName}`);
   }
-  const data: {
-    state: string;
-    config_path: string;
-    service_statuses: Record<string, string>;
-    id: string;
-  } = await response.json();
+  const data: AgentStatusResponse = await response.json();
   return {
     state: data.state,
-    configPath: data.config_path,
-    serviceStatuses: data.service_statuses,
+    config_path: data.config_path,
+    service_statuses: data.service_statuses,
     id: data.id,
     version: '1.0.0',
     uptime: data.state === 'running' ? '5 hours' : '0 minutes',
@@ -119,12 +137,12 @@ export const useAgentNameQuery = (configName?: string) => {
 };
 
 // Hook for fetching single agent status
-export const useAgentStatusQuery = (configName: string) => {
+export const useAgentStatusQuery = (configName: string, isPolling: boolean) => {
   return useQuery({
     queryKey: ['agent-status', configName],
     queryFn: () => fetchAgentStatus(configName),
     enabled: !!configName,
-    refetchInterval: 60000, // Poll every 1 minute
+    refetchInterval: isPolling ? 60000 : false, // Poll every 1 minute if isPolling is true
     staleTime: 30000, // Data considered fresh for 30s
   });
 };
@@ -178,19 +196,16 @@ export const useAgentToggleMutation = (configName: string) => {
   });
 };
 
-export const useIOStatusQuery = (configName: string) => {
+export const useIOStatusQuery = (ioName: string) => {
   return useQuery({
-    queryKey: ['io-status', configName],
+    queryKey: ['io-status', ioName],
     queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const currentState = mockIOStates.get(configName) ?? 'stopped';
-
-      return {
-        state: currentState,
-      };
+      const data = await fetchIOStatus(ioName);
+      return data;
     },
     enabled: true,
+    refetchInterval: 60000,
+    staleTime: 30000, // Data considered fresh for 30s
   });
 };
 
