@@ -26,6 +26,10 @@ export const API_ENDPOINTS = {
     update_raw_tag: (configName: string, tagIndex: number) =>
       `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
   },
+  coredinator: {
+    agent_status: (agentId: string) =>
+      `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/status`,
+  },
 } as const;
 
 // Utility functions for HTTP requests

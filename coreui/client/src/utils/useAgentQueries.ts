@@ -3,8 +3,19 @@ import {
   useQueries,
   useMutation,
   useQueryClient,
+  type UseQueryOptions,
 } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
+
+// Define the agent status response type
+type AgentStatusResponse = {
+  state: string;
+  configPath: string;
+  serviceStatuses: Record<string, string>;
+  id: string;
+  version: string;
+  uptime: string;
+};
 
 // Mock state storage - in real implementation this would be handled by the backend
 const mockAgentStates = new Map<string, 'running' | 'stopped'>();
@@ -38,6 +49,32 @@ const fetchAgentName = async (configName: string): Promise<string> => {
   }
   const data: { agent_name: string } = await response.json();
   return data.agent_name;
+};
+
+// Shared agent status fetch function
+const fetchAgentStatus = async (
+  configName: string
+): Promise<AgentStatusResponse> => {
+  const response = await get(
+    API_ENDPOINTS.coredinator.agent_status(configName)
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch status for agent ${configName}`);
+  }
+  const data: {
+    state: string;
+    config_path: string;
+    service_statuses: Record<string, string>;
+    id: string;
+  } = await response.json();
+  return {
+    state: data.state,
+    configPath: data.config_path,
+    serviceStatuses: data.service_statuses,
+    id: data.id,
+    version: '1.0.0',
+    uptime: data.state === 'running' ? '5 hours' : '0 minutes',
+  };
 };
 
 // Hook for fetching config list
@@ -81,22 +118,32 @@ export const useAgentNameQuery = (configName?: string) => {
   });
 };
 
+// Hook for fetching single agent status
 export const useAgentStatusQuery = (configName: string) => {
   return useQuery({
     queryKey: ['agent-status', configName],
-    queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+    queryFn: () => fetchAgentStatus(configName),
+    enabled: !!configName,
+    refetchInterval: 60000, // Poll every 1 minute
+    staleTime: 30000, // Data considered fresh for 30s
+  });
+};
 
-      // Get current state from mock storage or default to 'stopped'
-      const currentState = mockAgentStates.get(configName) ?? 'stopped';
-
-      return {
-        state: currentState,
-        version: '1.0.0',
-        uptime: currentState === 'running' ? '5 hours' : '0 minutes',
-      };
-    },
-    enabled: true,
+// Hook for fetching multiple agent statuses
+export const useAgentStatusQueries = (
+  configNames: string[],
+  isPolling: boolean = true
+) => {
+  return useQueries({
+    queries: configNames.map(
+      (configName): UseQueryOptions<AgentStatusResponse, Error> => ({
+        queryKey: ['agent-status', configName],
+        queryFn: () => fetchAgentStatus(configName),
+        enabled: true,
+        refetchInterval: isPolling ? 60000 : false, // Only poll when isPolling is true
+        staleTime: 30000, // Data considered fresh for 30s
+      })
+    ),
   });
 };
 
