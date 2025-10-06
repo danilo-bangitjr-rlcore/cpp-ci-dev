@@ -113,5 +113,27 @@ async def set_config_path(
     return {"message": "Configuration path updated successfully", "config_path": str(updated_path)}
 
 if __name__ == "__main__":
+    import argparse
+
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8001)
+
+    parser = argparse.ArgumentParser(description="CoreTelemetry API")
+    parser.add_argument(
+        "--config-path",
+        type=str,
+        default="clean/",
+        help="Path to the configuration directory (default: clean/)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=8001,
+        help="Port to run the server on (default: 8001)",
+    )
+    args = parser.parse_args()
+
+    # Set the config path from command line args
+    manager = get_telemetry_manager()
+    manager.set_config_path(Path(args.config_path))
+
+    uvicorn.run(app, host="0.0.0.0", port=args.port)
