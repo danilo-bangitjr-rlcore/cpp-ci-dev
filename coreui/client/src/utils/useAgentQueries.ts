@@ -1,14 +1,12 @@
 import {
   useQuery,
   useQueries,
-  useMutation,
-  useQueryClient,
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
 
 // Define the agent status response type
-type AgentStatusResponse = {
+export type AgentStatusResponse = {
   state: string;
   config_path: string;
   service_statuses: {
@@ -30,10 +28,6 @@ type IOStatusResponse = {
   service_id: string;
   status: ServiceStatus;
 };
-
-// Mock state storage - in real implementation this would be handled by the backend
-const mockAgentStates = new Map<string, 'running' | 'stopped'>();
-const mockIOStates = new Map<string, 'running' | 'stopped'>();
 
 // Config API functions (unchanged)
 const fetchConfigList = async (): Promise<string[]> => {
@@ -165,37 +159,6 @@ export const useAgentStatusQueries = (
   });
 };
 
-export const useAgentToggleMutation = (configName: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      configName,
-      action,
-    }: {
-      configName: string;
-      action: 'start' | 'stop';
-    }) => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Update mock state
-      const newState = action === 'start' ? 'running' : 'stopped';
-      mockAgentStates.set(configName, newState);
-
-      return {
-        success: true,
-        message: `Agent ${configName} ${action}ed successfully`,
-        state: newState,
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['agent-status', configName],
-      });
-    },
-  });
-};
-
 export const useIOStatusQuery = (ioName: string) => {
   return useQuery({
     queryKey: ['io-status', ioName],
@@ -209,32 +172,3 @@ export const useIOStatusQuery = (ioName: string) => {
   });
 };
 
-export const useIOToggleMutation = (configName: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      configName,
-      action,
-    }: {
-      configName: string;
-      action: 'start' | 'stop';
-    }) => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const newState = action === 'start' ? 'running' : 'stopped';
-      mockIOStates.set(configName, newState);
-
-      return {
-        success: true,
-        message: `I/O service ${configName} ${action}ed successfully`,
-        state: newState,
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['io-status', configName],
-      });
-    },
-  });
-};

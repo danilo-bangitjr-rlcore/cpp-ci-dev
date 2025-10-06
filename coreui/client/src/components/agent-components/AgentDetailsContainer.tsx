@@ -3,9 +3,12 @@ import { Link, useParams } from '@tanstack/react-router';
 import DetailsCard from '../DetailsCard';
 import {
   useAgentStatusQuery,
+  type AgentStatusResponse,
+} from '../../utils/useAgentQueries';
+import {
   useAgentToggleMutation,
   useIOToggleMutation,
-} from '../../utils/useAgentQueries';
+} from '../../utils/useAgentMutations';
 
 type ServiceStatus = {
   id?: string;
@@ -14,13 +17,35 @@ type ServiceStatus = {
   config_path?: string;
 };
 
-function getServiceStatus(statusObj: unknown): ServiceStatus {
+type AgentData = {
+  agentId: string;
+  configPath: string;
+  corerl: ServiceStatus;
+  coreio: ServiceStatus;
+};
+
+function extractServiceStatus(statusObj: unknown): ServiceStatus {
   if (!statusObj) return {};
   if (Array.isArray(statusObj)) return statusObj[0] || {};
   return statusObj as ServiceStatus;
 }
 
-function getMetadata(service: ServiceStatus) {
+function extractAgentData(agentStatusData: AgentStatusResponse | undefined): AgentData | null {
+  if (!agentStatusData) return null;
+
+  return {
+    agentId: agentStatusData.id || '',
+    configPath: agentStatusData.config_path || '',
+    corerl: extractServiceStatus(agentStatusData.service_statuses?.corerl),
+    coreio: extractServiceStatus(agentStatusData.service_statuses?.coreio),
+  };
+}
+
+function getServiceState(service: ServiceStatus): 'running' | 'stopped' {
+  return service.state === 'running' ? 'running' : 'stopped';
+}
+
+function getServiceMetadata(service: ServiceStatus) {
   return [
     { label: 'Service ID', value: service.id || 'N/A' },
     { label: 'Intended State', value: service.intended_state || 'N/A' },
@@ -42,67 +67,84 @@ const AgentDetailsContainer: React.FC = () => {
     data: agentStatusData,
     isLoading: isLoadingStatus,
     refetch: refetchStatus,
+    error: statusError,
   } = useAgentStatusQuery(configName, isPolling);
 
-  const agentToggleMutation = useAgentToggleMutation(configName);
-  const ioToggleMutation = useIOToggleMutation(configName);
+  const agentData = extractAgentData(agentStatusData);
 
-  const corerl = getServiceStatus(agentStatusData?.service_statuses?.corerl);
-  const coreio = getServiceStatus(agentStatusData?.service_statuses?.coreio);
+  const agentToggleMutation = useAgentToggleMutation(
+    agentData?.configPath || configName,
+    agentData?.agentId || ''
+  );
+  
+  const ioToggleMutation = useIOToggleMutation(
+    agentData?.configPath || configName,
+    agentData?.coreio?.id || ''
+  );
 
-  const getState = (service: ServiceStatus) =>
-    service.state === 'running' || service.state === 'stopped'
-      ? service.state
-      : 'stopped';
-
-  const agentState = getState(corerl);
-  const ioState = getState(coreio);
-
-  const isAgentLoading = isLoadingStatus || agentToggleMutation.isPending;
-  const isIOLoading = isLoadingStatus || ioToggleMutation.isPending;
-
-  const handleToggleAgentStatus = async () => {
+  const handleToggleAgent = async () => {
+    if (!agentData) return;
+    
+    const currentState = getServiceState(agentData.corerl);
+    const action = currentState === 'running' ? 'stop' : 'start';
+    
     try {
-      await agentToggleMutation.mutateAsync({
-        configName,
-        action: agentState === 'running' ? 'stop' : 'start',
-      });
+      await agentToggleMutation.mutateAsync({ action });
+      refetchStatus();
     } catch (error) {
       console.error('Failed to toggle agent status:', error);
     }
   };
 
-  const handleToggleIOStatus = async () => {
+  const handleToggleIO = async () => {
+    if (!agentData) return;
+    
+    const currentState = getServiceState(agentData.coreio);
+    const action = currentState === 'running' ? 'stop' : 'start';
+    
     try {
-      await ioToggleMutation.mutateAsync({
-        configName,
-        action: ioState === 'running' ? 'stop' : 'start',
-      });
+      await ioToggleMutation.mutateAsync({ action });
+      refetchStatus();
     } catch (error) {
       console.error('Failed to toggle I/O status:', error);
     }
   };
 
-  const handleRefresh = () => {
-    refetchStatus();
-  };
-
-  const agentName = agentStatusData?.id || configName;
-  const ioName = coreio.id || 'I/O Service';
-
-  if (isLoadingStatus && !agentStatusData) {
+  if (isLoadingStatus && !agentData) {
     return <div className="p-6">Loading agent details...</div>;
   }
+
+  if (statusError) {
+    return (
+      <div className="p-6 text-red-600">
+        Error loading agent details: {statusError.message}
+        <button
+          onClick={() => refetchStatus()}
+          className="ml-4 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!agentData) {
+    return <div className="p-6">No agent data available</div>;
+  }
+
+  const agentName = agentData.agentId || configName;
+  const ioName = agentData.coreio.id || 'I/O Service';
 
   return (
     <div className="space-y-4">
       <div className="flex justify-center items-center mb-4">
         <div className="flex items-center space-x-2">
           <button
-            onClick={handleRefresh}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            onClick={() => refetchStatus()}
+            disabled={isLoadingStatus}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Refresh Status
+            {isLoadingStatus ? 'Refreshing...' : 'Refresh Status'}
           </button>
           <button
             onClick={() => setIsPolling(!isPolling)}
@@ -117,21 +159,37 @@ const AgentDetailsContainer: React.FC = () => {
         </div>
       </div>
 
+      {(agentToggleMutation.error || ioToggleMutation.error) && (
+        <div className="mx-auto max-w-md p-4 bg-red-50 border border-red-200 rounded-lg">
+          <h4 className="text-sm font-medium text-red-800 mb-2">Recent Errors:</h4>
+          {agentToggleMutation.error && (
+            <p className="text-sm text-red-700 mb-1">
+              Agent: {agentToggleMutation.error.message}
+            </p>
+          )}
+          {ioToggleMutation.error && (
+            <p className="text-sm text-red-700">
+              I/O: {ioToggleMutation.error.message}
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="flex flex-row gap-6 flex-wrap justify-center p-10">
         <DetailsCard
           entityName={agentName}
-          state={agentState}
-          onToggleStatus={handleToggleAgentStatus}
-          isLoading={isAgentLoading}
-          metadata={getMetadata(corerl)}
+          state={getServiceState(agentData.corerl)}
+          onToggleStatus={handleToggleAgent}
+          isLoading={agentToggleMutation.isPending}
+          metadata={getServiceMetadata(agentData.corerl)}
           metadataTitle="Agent Metadata"
         />
         <DetailsCard
           entityName={ioName}
-          state={ioState}
-          onToggleStatus={handleToggleIOStatus}
-          isLoading={isIOLoading}
-          metadata={getMetadata(coreio)}
+          state={getServiceState(agentData.coreio)}
+          onToggleStatus={handleToggleIO}
+          isLoading={ioToggleMutation.isPending}
+          metadata={getServiceMetadata(agentData.coreio)}
           metadataTitle="I/O Metadata"
         />
       </div>

@@ -31,6 +31,12 @@ export const API_ENDPOINTS = {
       `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/status`,
     io_status: (ioId: string) =>
       `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/status`,
+    start_agent: `${API_BASE_URL}/v1/coredinator/api/agents/start`,
+    stop_agent: (agentId: string) =>
+      `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/stop`,
+    start_io: `${API_BASE_URL}/v1/coredinator/api/io/start`,
+    stop_io: (ioId: string) =>
+      `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/stop`,
   },
 } as const;
 
