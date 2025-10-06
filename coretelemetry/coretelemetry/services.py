@@ -91,6 +91,14 @@ class SqlReader:
 
         return result
 
+    def test_connection(self) -> bool:
+        try:
+            with TryConnectContextManager(self.engine, max_tries=1, backoff_seconds=0) as connection:
+                connection.execute(text("SELECT 1"))
+            return True
+        except Exception:
+            return False
+
 
 class TelemetryManager:
 
@@ -119,6 +127,11 @@ class TelemetryManager:
     def refresh(self):
         self.sql_reader = None
         self.metrics_table_cache = {}
+
+    def test_db_connection(self) -> bool:
+        if self.sql_reader is None:
+            self.sql_reader = SqlReader(self.db_config)
+        return self.sql_reader.test_connection()
 
     # Private helper methods
     def _get_metrics_table_name(self, agent_id: str) -> str:

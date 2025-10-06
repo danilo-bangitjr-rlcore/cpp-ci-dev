@@ -78,6 +78,20 @@ async def set_db_config(
     updated_config = manager.set_db_config(config)
     return {"message": "Database configuration updated successfully", "config": updated_config}
 
+class DBTestResponse(BaseModel):
+    connected: bool
+
+@app.get("/api/v1/config/db/test", response_model=DBTestResponse)
+async def test_db_connection(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
+    """
+    Test database connectivity.
+
+    Returns:
+        Connection status
+    """
+    is_connected = manager.test_db_connection()
+    return {"connected": is_connected}
+
 class ConfigPathResponse(BaseModel):
     config_path: str
 
