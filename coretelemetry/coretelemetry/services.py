@@ -21,7 +21,7 @@ class DBConfig:
     db_name: str = 'postgres'
     schema: str = 'public'
 
-class MetricsReader:
+class SqlReader:
     def __init__(self, db_cfg : DBConfig):
         self.db_cfg = DBConfig
         self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
@@ -31,9 +31,15 @@ class MetricsReader:
         self,
         table_name: str,
         column_name: str,
-        start_time: datetime | None = None,
-        end_time: datetime | None = None,
+        start_time: datetime | str | None = None,
+        end_time: datetime | str | None = None,
     ):
+        if isinstance(start_time, datetime):
+            start_time = start_time.isoformat()
+
+        if isinstance(end_time, datetime):
+            end_time = end_time.isoformat()
+
         if not table_exists(self.engine, table_name, schema=self.db_cfg.schema):
             raise ValueError(f"Table {table_name} not found in DB")
 
@@ -57,11 +63,11 @@ class MetricsReader:
 
             if start_time is not None:
                 conditions.append("time >= :start_time::timestamptz")
-                params["start_time"] = start_time.isoformat()
+                params["start_time"] = start_time
 
             if end_time is not None:
                 conditions.append("time <= :end_time::timestamptz")
-                params["end_time"] = end_time.isoformat()
+                params["end_time"] = end_time
 
             base_query += " AND ".join(conditions)
             base_query += " ORDER BY time DESC;"
@@ -91,7 +97,7 @@ class TelemetryManager:
         self.db_config = DBConfig()
         self.config_path = Path("clean/")
         self.metrics_table_cache: dict[str, str] = {}
-        self.metrics_reader: MetricsReader | None = None
+        self.sql_reader: SqlReader | None = None
 
     # Configuration methods
     def get_db_config(self) -> DBConfig:
@@ -107,6 +113,11 @@ class TelemetryManager:
     def set_config_path(self, path: Path) -> Path:
         self.config_path = path
         return self.config_path
+
+    # TODO: Needs an endpoint
+    def refresh(self):
+        self.sql_reader = None
+        self.metrics_table_cache = {}
 
     # Private helper methods
     def _get_metrics_table_name(self, agent_id: str) -> str:
@@ -135,10 +146,16 @@ class TelemetryManager:
         self,
         agent_id: str,
         metric: str,
-        start_time: str,
-        end_time: str,
+        start_time: str | None,
+        end_time: str | None,
     ) -> dict:
-        # Placeholder implementation - will be replaced with actual SQL queries
+
+        if self.sql_reader is None:
+            self.sql_reader = SqlReader(self.db_config)
+
+        table_name = self._get_metrics_table_name(agent_id)
+        data = self.sql_reader.read_single_column(table_name, metric, start_time, end_time)
+
         return {
             "agent_id": agent_id,
             "metric": metric,
@@ -148,6 +165,8 @@ class TelemetryManager:
         }
 
     async def get_available_metrics(self, agent_id: str) -> list[str]:
+        if self.sql_reader is None:
+            self.sql_reader = SqlReader(self.db_config)
         # Placeholder implementation
         return []
 
