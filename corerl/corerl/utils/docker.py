@@ -5,9 +5,3 @@ def container_exists(client: DockerClient, name: str) -> bool:
     containers = client.containers.list(all=True)
     container_names = [c.name for c in containers]
     return name in container_names
-
-def stop_container(client: DockerClient, name: str):
-    if not container_exists(client, name):
-        return
-    container = client.containers.get(name)
-    container.stop()
