@@ -7,7 +7,6 @@ from lib_config.config import config
 from lib_sql.engine import get_sql_engine
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
 
-from corerl.tags.components.opc import Agg
 from corerl.utils.buffered_sql_writer import BufferedWriter, BufferedWriterConfig
 
 logger = logging.getLogger(__name__)
@@ -15,7 +14,6 @@ logger = logging.getLogger(__name__)
 @config()
 class TagDBConfig(BufferedWriterConfig):
     table_name: str = "sensors"
-    data_agg: Agg = Agg.avg
     wide_format: bool = False
 
 
