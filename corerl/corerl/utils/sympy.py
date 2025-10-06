@@ -234,12 +234,3 @@ def is_valid_expression(term: Any) -> bool:
 
     except Exception:
         return False
-
-
-def eval_expression(expr: sy.Expr, tag_values: dict[str, float]) -> float:
-    subs_values = {}
-    for key, value in tag_values.items():
-        subs_values[_preprocess_tag_names(key)] = value
-
-    result = sy.N(expr.subs(subs_values))
-    return float(result)
