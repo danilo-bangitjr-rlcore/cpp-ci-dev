@@ -17,7 +17,6 @@ from corerl.state import AppState
 @pytest.fixture
 def dummy_agent(dummy_app_state: AppState, basic_config: MainConfig):
     tags = basic_config.pipeline.tags
-    state_tags = StateConstructor.state_configs(tags)
     action_tags = ActionConstructor.action_configs(tags)
 
     state_constructor = StateConstructor(dummy_app_state, tags, basic_config.pipeline.state_constructor)
@@ -25,7 +24,6 @@ def dummy_agent(dummy_app_state: AppState, basic_config: MainConfig):
     state_cols = state_constructor.columns
     action_cols = action_constructor.columns
     col_desc = ColumnDescriptions(
-        state_tags=state_tags,
         action_tags=action_tags,
         state_cols=state_cols,
         action_cols=action_cols,
