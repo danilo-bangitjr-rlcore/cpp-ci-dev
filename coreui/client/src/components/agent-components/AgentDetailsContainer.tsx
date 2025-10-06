@@ -24,7 +24,10 @@ const AgentDetailsContainer: React.FC = () => {
 
   const agentToggleMutation = useAgentToggleMutation(configName);
 
-  const agentState = agentStatusData?.state ?? 'stopped';
+  const agentState =
+    agentStatusData?.state === 'running' || agentStatusData?.state === 'stopped'
+      ? agentStatusData.state
+      : 'stopped';
   const isAgentLoading = isLoadingAgentStatus || agentToggleMutation.isPending;
 
   // I/O status and controls
@@ -33,7 +36,10 @@ const AgentDetailsContainer: React.FC = () => {
 
   const ioToggleMutation = useIOToggleMutation(configName);
 
-  const ioState = ioStatusData?.state ?? 'stopped';
+  const ioState =
+    ioStatusData?.state === 'running' || ioStatusData?.state === 'stopped'
+      ? ioStatusData.state
+      : 'stopped';
   const isIOLoading = isLoadingIOStatus || ioToggleMutation.isPending;
 
   const handleToggleAgentStatus = async () => {
