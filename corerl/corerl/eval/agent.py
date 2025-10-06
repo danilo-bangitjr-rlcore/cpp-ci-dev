@@ -259,16 +259,6 @@ def online_q_values_and_act_prob(
             value=qs_measure.model_dump_json(),
         )
 
-def offline_q_values_and_act_prob(
-    app_state: AppState,
-    agent: GreedyAC,
-    state: jax.Array,
-) -> tuple[jax.Array, jax.Array, jax.Array]:
-    """
-    Returns the actor's probability density and the critic's Q values over each action dimension
-    """
-    return q_values_and_act_prob(app_state, agent, state)
-
 def q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
