@@ -42,6 +42,10 @@ coreio:
     connection_id: mountain_car_opc_connection
     node_identifier: "ns=2;s=tag-1"
 
+  - name: heartbeat
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=heartbeat"
+
 env:
   name: dep_async_env
 
@@ -54,6 +58,8 @@ event_bus:
 
 metrics:
   enabled: True
+  table_name: "metrics_wide"
+  narrow_format: False
 
 # -----------
 # -- Agent --
