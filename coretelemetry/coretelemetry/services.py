@@ -33,6 +33,7 @@ class SqlReader:
         column_name: str,
         start_time: datetime | str | None = None,
         end_time: datetime | str | None = None,
+        time_col: bool = True,
     ):
         if isinstance(start_time, datetime):
             start_time = start_time.isoformat()
@@ -46,9 +47,9 @@ class SqlReader:
         if not column_exists(self.engine, table_name, column_name, schema=self.db_cfg.schema):
             raise ValueError(f"Column {column_name} not found in {table_name} not found in DB")
 
-        base_query = """
+        base_query = f"""
         SELECT
-            time,
+            {"time, " if time_col else ""}
             :column_name
         FROM :table_name
         """
@@ -161,14 +162,14 @@ class TelemetryManager:
             "metric": metric,
             "start_time": start_time,
             "end_time": end_time,
-            "data": [],
+            "data": data,
         }
 
-    async def get_available_metrics(self, agent_id: str) -> list[str]:
+    async def get_available_metrics(self, agent_id: str) -> dict:
         if self.sql_reader is None:
             self.sql_reader = SqlReader(self.db_config)
         # Placeholder implementation
-        return []
+        return {"agent_id": agent_id, "data": []}
 
 
 # Create singleton instance
