@@ -1,11 +1,10 @@
 from datetime import datetime
 from typing import Annotated
 
-from sqlalchemy import ForeignKey, ForeignKeyConstraint, String
-from sqlalchemy.dialects.mysql import LONGBLOB
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
-from sqlalchemy.types import JSON, DateTime, PickleType
+from sqlalchemy.types import JSON, DateTime
 
 timestamp = Annotated[
     datetime,
@@ -16,7 +15,6 @@ timestamp = Annotated[
 
 
 class Base(DeclarativeBase):
-    # can define type_annotation_map here
     type_annotation_map = {
         dict: JSON,
     }
@@ -29,9 +27,6 @@ class Run(Base):
     hparams: Mapped[list["HParam"]] = relationship(
         back_populates="run", cascade="all, delete-orphan",
     )
-    steps: Mapped[list["Step"]] = relationship(
-        back_populates="run", cascade="all, delete-orphan",
-    )
 
 
 class HParam(Base):
@@ -41,152 +36,3 @@ class HParam(Base):
     val = mapped_column(JSON)
     run_id: Mapped[int] = mapped_column(ForeignKey("runs.run_id"))
     run: Mapped["Run"] = relationship(back_populates="hparams")
-
-
-class Step(Base):
-    __tablename__ = "steps"
-    ts: Mapped[timestamp]
-    run_id: Mapped[int] = mapped_column(ForeignKey("runs.run_id"), primary_key=True)
-    step_num: Mapped[int] = mapped_column(primary_key=True)
-
-    # Object relationships
-    run: Mapped["Run"] = relationship(back_populates="steps")
-    transitions: Mapped[list["SQLTransition"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan",
-    )
-    transition_info: Mapped[list["TransitionInfo"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan",
-    )
-    losses: Mapped[list["Loss"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan",
-    )
-    network_weights: Mapped[list["NetworkWeights"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan",
-    )
-    grad_info: Mapped[list["GradInfo"]] = relationship(
-        back_populates="step", cascade="all, delete-orphan",
-    )
-
-
-class SQLTransition(Base):
-    __tablename__ = "transitions"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-
-    run_id: Mapped[int] = mapped_column(nullable=True)
-    step_num: Mapped[int] = mapped_column(nullable=True)
-
-    # Data
-    state = mapped_column(JSON)
-    action = mapped_column(JSON)
-    reward = mapped_column(JSON)
-    next_state = mapped_column(JSON, nullable=True)
-
-    exclude: Mapped[bool] = mapped_column(default=False)
-
-    # Object relationships
-    transition_info: Mapped[list["TransitionInfo"]] = relationship(
-        back_populates="transition",
-    )
-
-    step: Mapped["Step"] = relationship(back_populates="transitions")
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
-        ),
-    )
-
-
-class Loss(Base):
-    __tablename__ = "losses"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-
-    run_id: Mapped[int] = mapped_column(nullable=True)
-    step_num: Mapped[int] = mapped_column(nullable=True)
-    # Data
-    loss: Mapped[float]
-    type: Mapped[str] = mapped_column(String(100))
-
-    # Relationships
-    step: Mapped["Step"] = relationship(back_populates="losses")
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
-        ),
-    )
-
-
-class TransitionInfo(Base):
-    __tablename__ = "transition_info"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    insert_ts: Mapped[timestamp]
-
-    run_id: Mapped[int] = mapped_column(nullable=True)
-    step_num: Mapped[int] = mapped_column(nullable=True)
-
-    type: Mapped[str] = mapped_column(String(100))
-
-    trans_id: Mapped[int] = mapped_column(ForeignKey("transitions.id"))
-    trans_ts: Mapped[timestamp]
-
-    # Relationships
-    transition: Mapped["SQLTransition"] = relationship(back_populates="transition_info")
-    step: Mapped["Step"] = relationship(back_populates="transition_info")
-
-    __mapper_args__ = {
-        "polymorphic_identity": "transition_info",
-        "polymorphic_on": "type",
-    }
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
-        ),
-    )
-
-
-class NetworkWeights(Base):
-    __tablename__ = "network_weights"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-
-    run_id: Mapped[int] = mapped_column(nullable=True)
-    step_num: Mapped[int] = mapped_column(nullable=True)
-    type: Mapped[str] = mapped_column(String(100))
-
-    # data
-    state_dict = mapped_column(PickleType(impl=LONGBLOB))
-
-    # Relationships
-    step: Mapped["Step"] = relationship(back_populates="network_weights")
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
-        ),
-    )
-
-
-class GradInfo(Base):
-    __tablename__ = "grad_info"
-    id: Mapped[int] = mapped_column(primary_key=True)
-    ts: Mapped[timestamp]
-
-    run_id: Mapped[int] = mapped_column(nullable=True)
-    step_num: Mapped[int] = mapped_column(nullable=True)
-    type: Mapped[str] = mapped_column(String(100))
-
-    # data
-    data = mapped_column(PickleType(impl=LONGBLOB))
-
-    # Relationships
-    step: Mapped["Step"] = relationship(back_populates="grad_info")
-
-    __table_args__ = (
-        ForeignKeyConstraint(
-            ["run_id", "step_num"], ["steps.run_id", "steps.step_num"],
-        ),
-    )
