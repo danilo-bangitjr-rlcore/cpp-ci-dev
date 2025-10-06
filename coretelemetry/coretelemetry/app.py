@@ -8,6 +8,7 @@ from coretelemetry.services import (
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 app = FastAPI(title="CoreTelemetry API")
 
@@ -50,7 +51,7 @@ async def get_telemetry(
     """
     return await manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
-@app.get("/api/v1/config/db")
+@app.get("/api/v1/config/db", response_model=DBConfig)
 async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current database configuration.
@@ -77,9 +78,12 @@ async def set_db_config(
     updated_config = manager.set_db_config(config)
     return {"message": "Database configuration updated successfully", "config": updated_config}
 
-@app.get("/api/v1/config/path")
+class ConfigPathResponse(BaseModel):
+    config_path: str
+
+@app.get("/api/v1/config/path", response_model=ConfigPathResponse)
 async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
-    """ # noqa: B008
+    """
     Get the current configuration path.
 
     Returns:
@@ -87,7 +91,11 @@ async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_mana
     """
     return {"config_path": str(manager.get_config_path())}
 
-@app.post("/api/v1/config/path")
+class ConfigPathUpdateResponse(BaseModel):
+    message: str
+    config_path: str
+
+@app.post("/api/v1/config/path", response_model=ConfigPathUpdateResponse)
 async def set_config_path(
     path: str,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
