@@ -29,7 +29,7 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/api/v1/telemetry/{agent_id}")
+@app.get("/api/v1/telemetry/data/{agent_id}")
 async def get_telemetry(
     agent_id: str,
     metric: str,
@@ -51,7 +51,7 @@ async def get_telemetry(
     """
     return await manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
-@app.get("/api/v1/config/db", response_model=DBConfig)
+@app.get("/api/v1/telemetry/db/config", response_model=DBConfig)
 async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current database configuration.
@@ -61,7 +61,7 @@ async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manage
     """
     return manager.get_db_config()
 
-@app.post("/api/v1/config/db")
+@app.post("/api/v1/telemetry/db/config")
 async def set_db_config(
     config: DBConfig,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
@@ -81,7 +81,7 @@ async def set_db_config(
 class DBTestResponse(BaseModel):
     connected: bool
 
-@app.get("/api/v1/config/db/test", response_model=DBTestResponse)
+@app.get("/api/v1/telemetry/db/test", response_model=DBTestResponse)
 async def test_db_connection(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Test database connectivity.
@@ -95,7 +95,7 @@ async def test_db_connection(manager: TelemetryManager = Depends(get_telemetry_m
 class ConfigPathResponse(BaseModel):
     config_path: str
 
-@app.get("/api/v1/config/path", response_model=ConfigPathResponse)
+@app.get("/api/v1/telemetry/config/path", response_model=ConfigPathResponse)
 async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current configuration path.
@@ -109,7 +109,7 @@ class ConfigPathUpdateResponse(BaseModel):
     message: str
     config_path: str
 
-@app.post("/api/v1/config/path", response_model=ConfigPathUpdateResponse)
+@app.post("/api/v1/telemetry/config/path", response_model=ConfigPathUpdateResponse)
 async def set_config_path(
     path: str,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
