@@ -212,7 +212,7 @@ class GreedyAC(BaseAgent):
             action_regularization=cfg.critic.action_regularization,
             action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
             l2_regularization=1.0,
-            use_state_layer_norm=app_state.cfg.feature_flags.state_layer_norm,
+            use_all_layer_norm=app_state.cfg.feature_flags.all_layer_norm,
             rolling_reset_config=cfg.critic.rolling_reset_config,
         )
 

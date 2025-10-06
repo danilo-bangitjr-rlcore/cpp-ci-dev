@@ -47,7 +47,7 @@ class QRCCritic:
 
         layer_norm_cfg = (
             nets.LayerNormConfig
-            if cfg.use_state_layer_norm
+            if cfg.use_all_layer_norm
             else nets.IdentityConfig
         )
 
@@ -58,21 +58,25 @@ class QRCCritic:
                         # states
                         [
                             nets.LinearConfig(size=128, activation='relu'),
-                            layer_norm_cfg(),
+                            nets.LayerNormConfig(),
                             nets.LinearConfig(size=64, activation='relu'),
-                            layer_norm_cfg(),
+                            nets.LayerNormConfig(),
                             nets.LinearConfig(size=32, activation='crelu'),
-                            layer_norm_cfg(),
+                            nets.LayerNormConfig(),
                         ],
                         # actions
                         [
                             nets.LinearConfig(size=32, activation='relu'),
+                            layer_norm_cfg(),
                             nets.LinearConfig(size=32, activation='crelu'),
+                            layer_norm_cfg(),
                         ],
                     ],
                 ),
                 nets.LinearConfig(size=64, activation='relu'),
+                layer_norm_cfg(),
                 nets.LinearConfig(size=64, activation='relu'),
+                layer_norm_cfg(),
             ],
             skip=False,
         )
