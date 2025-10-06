@@ -91,7 +91,7 @@ jobs:
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: Python Benchmark with pytest-benchmark
+          name: CoreRL Benchmark
           tool: 'pytest'
           output-file-path: corerl/output.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -100,7 +100,7 @@ jobs:
           summary-always: true
           fail-on-alert: true
           alert-comment-cc-users: '@rlcoretech/rlcore-codeowners @andy-rlcore'
-          auto-push: true
+          auto-push: ${{ github.ref == 'refs/heads/master' }}
 
       - uses: actions/upload-artifact@v4
         id: htmlcov-upload-step
