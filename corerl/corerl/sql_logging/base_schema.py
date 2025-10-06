@@ -15,9 +15,7 @@ timestamp = Annotated[
 
 
 class Base(DeclarativeBase):
-    type_annotation_map = {
-        dict: JSON,
-    }
+    pass
 
 
 class Run(Base):
