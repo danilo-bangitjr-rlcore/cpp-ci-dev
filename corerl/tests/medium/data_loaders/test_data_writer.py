@@ -19,7 +19,7 @@ def write_n_random_vals(
         ts = end_time - i * interval
         val = random()
         data_writer.write(timestamp=ts, name=name, val=val)
-        data_writer.blocking_sync()
+        data_writer.flush()
 
 
 def test_writing_datapt(data_reader_writer: tuple[DataReader, DataWriter]):

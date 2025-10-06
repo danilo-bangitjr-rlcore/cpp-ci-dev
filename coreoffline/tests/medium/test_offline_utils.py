@@ -77,7 +77,7 @@ def data_writer(offline_cfg: OfflineMainConfig, test_db_config: TagDBConfig):
 
             data_writer.write(timestamp=step_timestamps[i], name=tag, val=val)
 
-    data_writer.blocking_sync()
+    data_writer.flush()
 
     yield data_writer
 

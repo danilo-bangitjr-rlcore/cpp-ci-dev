@@ -17,7 +17,7 @@ class TestDataReaderLogic:
         writer.write(
             timestamp=end_time, name="test_var", val=0.1,
         )
-        writer.blocking_sync()
+        writer.flush()
         obs_period = timedelta(seconds=1)
         start_time = end_time - obs_period
         df = reader.single_aggregated_read(names=["test_var"], start_time=start_time, end_time=end_time)
@@ -39,7 +39,7 @@ class TestDataReaderLogic:
         writer.write(
             timestamp=end_time, name="test_var", val=0.1,
         )
-        writer.blocking_sync()
+        writer.flush()
         df = reader.single_aggregated_read(names=["test_var"], start_time=start_time, end_time=end_time)
         assert len(df) == 1
         assert df["test_var"].values[0] == 0.1
@@ -56,7 +56,7 @@ class TestDataReaderLogic:
         writer.write(
             timestamp=end_time - obs_period / 2, name="test_var", val=0.9,
         )
-        writer.blocking_sync()
+        writer.flush()
         df = reader.single_aggregated_read(names=["test_var"], start_time=start_time, end_time=end_time)
         assert len(df) == 1
         assert df["test_var"].values[0] == 0.5
@@ -75,7 +75,7 @@ class TestDataReaderLogic:
             writer.write(
                 timestamp=write_time, name="test_var", val=1.0 - i*0.1,
             )
-        writer.blocking_sync()
+        writer.flush()
 
         # in chronological order: [0.1, 0.2], [0.3, 0.4], [0.5, 0.6], [0.7, 0.8], [0.9, 1.0]
         expected_vals = [0.15, 0.35, 0.55, 0.75, 0.95]
@@ -114,7 +114,7 @@ class TestDataReaderLogic:
         writer.write(
             timestamp=start_time - timedelta(seconds=1), name="test_var", val=-0.1,
         )
-        writer.blocking_sync()
+        writer.flush()
 
         # included data should be the same as in the previous test (test_batch_aggregated_read)
         # in chronological order: [0.1, 0.2], [0.3, 0.4], [0.5, 0.6], [0.7, 0.8], [0.9, 1.0]
@@ -152,7 +152,7 @@ class TestDataReaderLogic:
         writer.write(timestamp=end_time, name="bool_var", val=True)
         writer.write(timestamp=end_time - timedelta(seconds=1), name="bool_var", val=False)
 
-        writer.blocking_sync()
+        writer.flush()
 
         df = reader.batch_aggregated_read(
             names=["avg_var", "last_var", "bool_var"],
@@ -184,7 +184,7 @@ class TestDataReaderLogic:
                 timestamp=write_time, name="default_var", val=i*0.1,
             )
 
-        writer.blocking_sync()
+        writer.flush()
 
         df = reader.batch_aggregated_read(
             names=["last_var", "default_var"],
@@ -347,7 +347,7 @@ class TestDataReader:
             for t in test_times:
                 if t != missing_time:
                     data_writer.write(name=name, val=1.0, timestamp=t)
-        data_writer.blocking_sync()
+        data_writer.flush()
 
         result_df = data_reader.batch_aggregated_read(
             names=TestDataReader.sensor_names,
