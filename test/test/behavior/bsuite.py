@@ -11,14 +11,13 @@ import numpy as np
 import pandas as pd
 import psutil
 from corerl.config import MainConfig
-from corerl.sql_logging.sql_logging import add_retention_policy
 from lib_config.loader import direct_load_config
 from lib_sql.inspection import table_exists
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_utils.time import now_iso
 from sqlalchemy import Engine, text
 
-from test.behavior.utils import get_active_branch
+from test.behavior.utils import add_retention_policy, get_active_branch
 
 
 class Behaviour(Enum):
