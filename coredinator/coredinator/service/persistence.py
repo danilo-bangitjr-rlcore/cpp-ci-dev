@@ -3,13 +3,27 @@
 import json
 import sqlite3
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict, cast
 
 import backoff
 
 from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceLike
 from coredinator.services.registry import create_service_instance
+
+
+class ServiceStateRow(TypedDict):
+    service_id: str
+    service_type: str
+    intended_state: str
+    config_path: str
+    base_path: str
+    process_ids: str
+    service_version: str | None
+
+
+def _row_to_dict(db_row: sqlite3.Row) -> ServiceStateRow:
+    return cast(ServiceStateRow, dict(db_row))
 
 
 class ServicePersistenceLayer:
@@ -133,22 +147,24 @@ class ServicePersistenceLayer:
         def _do_persist_service():
             with sqlite3.connect(self._db_path) as conn:
                 cursor = conn.cursor()
+                row: ServiceStateRow = {
+                    "service_id": service.id,
+                    "service_type": service_type,
+                    "intended_state": status.intended_state,
+                    "config_path": config_path,
+                    "base_path": base_path_str,
+                    "process_ids": process_ids_json,
+                    "service_version": version,
+                }
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO service_states
                     (service_id, service_type, intended_state, config_path, base_path,
                      process_ids, service_version, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    VALUES (:service_id, :service_type, :intended_state, :config_path, :base_path,
+                            :process_ids, :service_version, CURRENT_TIMESTAMP)
                     """,
-                    (
-                        service.id,
-                        service_type,
-                        status.intended_state,
-                        config_path,
-                        base_path_str,
-                        process_ids_json,
-                        version,
-                    ),
+                    row,
                 )
                 conn.commit()
 
@@ -172,6 +188,7 @@ class ServicePersistenceLayer:
         def _do_load_services():
             services = []
             with sqlite3.connect(self._db_path) as conn:
+                conn.row_factory = sqlite3.Row
                 cursor = conn.cursor()
                 cursor.execute(
                     """
@@ -181,42 +198,41 @@ class ServicePersistenceLayer:
                     """,
                 )
 
-                for (
-                    service_id, service_type, intended_state,
-                    config_path, base_path_str, process_ids_json, service_version,
-                ) in cursor.fetchall():
-                    service_id = ServiceID(service_id)
-                    config_path = Path(config_path)
-                    loaded_base_path = Path(base_path_str) if base_path_str else (base_path or Path.cwd())
-                    process_ids = json.loads(process_ids_json) if process_ids_json else []
+                for db_row in cursor.fetchall():
+                    row = _row_to_dict(db_row)
+
+                    service_id = ServiceID(row["service_id"])
+                    config_path = Path(row["config_path"])
+                    loaded_base_path = Path(row["base_path"]) if row["base_path"] else (base_path or Path.cwd())
+                    process_ids = json.loads(row["process_ids"]) if row["process_ids"] else []
 
                     self._logger.info(
                         "Loading service from database",
                         service_id=service_id,
-                        service_type=service_type,
-                        intended_state=intended_state,
+                        service_type=row["service_type"],
+                        intended_state=row["intended_state"],
                         config_path=str(config_path),
                         process_ids=process_ids,
-                        version=service_version,
+                        version=row["service_version"],
                     )
 
                     # Create service instance based on type
                     maybe_service = create_service_instance(
-                        service_id, service_type, config_path, loaded_base_path, service_version,
+                        service_id, row["service_type"], config_path, loaded_base_path, row["service_version"],
                     )
                     service = maybe_service.unwrap()
                     if service is None:
                         self._logger.warning(
                             "Failed to create service instance",
                             service_id=service_id,
-                            service_type=service_type,
+                            service_type=row["service_type"],
                         )
                         continue
 
                     services.append(service)
 
                     # Attempt to reattach to existing processes if service was intended to be running
-                    if intended_state == ServiceIntendedState.RUNNING and process_ids:
+                    if row["intended_state"] == ServiceIntendedState.RUNNING and process_ids:
                         self._attempt_service_reattachment(service, process_ids)
             return services
 
