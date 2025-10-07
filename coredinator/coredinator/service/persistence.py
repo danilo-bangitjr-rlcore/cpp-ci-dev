@@ -84,6 +84,7 @@ class ServicePersistenceLayer:
                 config_path TEXT NOT NULL,
                 base_path TEXT NOT NULL,
                 process_ids TEXT,
+                service_version TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
