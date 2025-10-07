@@ -4,25 +4,7 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
-
-// Define the agent status response type
-export type AgentStatusResponse = {
-  state: string;
-  config_path: string;
-  service_statuses: {
-    [key: string]: ServiceStatus[];
-  };
-  id: string;
-  version?: string;
-  uptime?: string;
-};
-
-type ServiceStatus = {
-  id: string;
-  state: string;
-  intended_state: string;
-  config_path: string;
-};
+import type { AgentStatusResponse, ServiceStatus } from '../types/agent-types';
 
 type IOStatusResponse = {
   service_id: string;
@@ -89,6 +71,15 @@ const fetchAgentStatus = async (
   };
 };
 
+const fetchAgentsMissingConfig = async (): Promise<string[]> => {
+  const response = await get(API_ENDPOINTS.coredinator.agents_missing_config);
+  if (!response.ok) {
+    throw new Error('Failed to fetch agents missing config');
+  }
+  const data: { agents: string[] } = await response.json();
+  return data.agents;
+};
+
 // Hook for fetching config list
 export const useConfigListQuery = () => {
   return useQuery({
@@ -136,8 +127,8 @@ export const useAgentStatusQuery = (configName: string, isPolling: boolean) => {
     queryKey: ['agent-status', configName],
     queryFn: () => fetchAgentStatus(configName),
     enabled: !!configName,
-    refetchInterval: isPolling ? 60000 : false, // Poll every 1 minute if isPolling is true
-    staleTime: 30000, // Data considered fresh for 30s
+    refetchInterval: isPolling ? 60000 : false,
+    staleTime: 30000,
   });
 };
 
@@ -152,8 +143,8 @@ export const useAgentStatusQueries = (
         queryKey: ['agent-status', configName],
         queryFn: () => fetchAgentStatus(configName),
         enabled: true,
-        refetchInterval: isPolling ? 60000 : false, // Only poll when isPolling is true
-        staleTime: 30000, // Data considered fresh for 30s
+        refetchInterval: isPolling ? 60000 : false,
+        staleTime: 30000,
       })
     ),
   });
@@ -168,7 +159,15 @@ export const useIOStatusQuery = (ioName: string) => {
     },
     enabled: true,
     refetchInterval: 60000,
-    staleTime: 30000, // Data considered fresh for 30s
+    staleTime: 30000,
   });
 };
 
+export const useAgentsMissingConfigQuery = (isPolling: boolean = true) => {
+  return useQuery({
+    queryKey: ['agents-missing-config'],
+    queryFn: fetchAgentsMissingConfig,
+    refetchInterval: isPolling ? 60000 : false,
+    staleTime: 30000,
+  });
+};

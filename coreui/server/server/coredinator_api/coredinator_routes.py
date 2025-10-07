@@ -1,10 +1,19 @@
 # ruff: noqa: B008
 import json
+import logging
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Body, Request, Response
+from fastapi import APIRouter, Body, HTTPException, Request, Response
 from pydantic import BaseModel
+from server.config_api.config_routes import get_all_clean_configs
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(name)s %(message)s",
+)
+
+logger = logging.getLogger(__name__)
 
 
 class Payload(BaseModel):
@@ -21,6 +30,9 @@ class ValidationErrorResponse(BaseModel):
 
 class NotFoundResponse(BaseModel):
     detail: str
+
+class AgentWithConfigResponse(BaseModel):
+    agents: list[str]
 
 SuccessResponse = str
 InternalServerErrorResponse = str
@@ -91,6 +103,67 @@ async def proxy_request(request: Request, path: str, body: dict | None = None) -
 
 
 # ----------------- Routes -----------------
+@coredinator_router.get(
+    "/agents/missing-config",
+    response_model=AgentWithConfigResponse,
+    responses={
+        200: {
+            "description": "List of agents active in coredinator but missing a clean config.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "agents": ["orphan_agent_1", "orphan_agent_2"],
+                    },
+                },
+            },
+        },
+        500: {"model": InternalServerErrorResponse},
+    },
+    summary="Get Agents Missing Config",
+    description="Retrieve agents that are active in coredinator but do not have a clean configuration available.",
+)
+async def get_agents_missing_config(request: Request):
+    """Get agents active in coredinator but missing a clean config."""
+    try:
+        # Get clean configs
+        clean_configs_response = await get_all_clean_configs()
+
+        # Parse response body properly
+        if hasattr(clean_configs_response, "body"):
+            body = clean_configs_response.body
+            # Convert memoryview to bytes if needed
+            # Solves pyright error: Expression of type 'bytes | memoryview' cannot be assigned to declared type 'bytes'
+            if isinstance(body, memoryview):
+                body = bytes(body)
+            clean_configs_data = json.loads(body)
+        else:
+            clean_configs_data = clean_configs_response
+
+        configs = clean_configs_data.get("configs", []) if isinstance(clean_configs_data, dict) else []
+        clean_configs = set(configs)
+
+        # Get active agents from coredinator
+        client: httpx.AsyncClient = request.app.state.httpx_client
+        resp = await client.get(f"{COREDINATOR_BASE}/api/agents/")
+        content_type = resp.headers.get("content-type", "")
+        coredinator_data = resp.json() if content_type.startswith("application/json") else resp.text
+
+        # Extract agent names
+        if isinstance(coredinator_data, dict) and "agents" in coredinator_data:
+            active_agents = set(coredinator_data["agents"])
+        elif isinstance(coredinator_data, list):
+            active_agents = set(coredinator_data)
+        else:
+            active_agents = set()
+
+        # Return agents missing config
+        return {"agents": sorted(active_agents - clean_configs)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve agents missing config: {e!s}") from e
+
+
+# ----------------- Keep these routes on the bottom since they are a catchall-----------------
 @coredinator_router.api_route(
     "/{path:path}",
     methods=["GET"],
@@ -123,3 +196,4 @@ async def proxy_with_body(
     body: Payload = Body(None, description="Optional JSON body to forward"),
 ):
     return await proxy_request(request, path, body.model_dump() if body else None)
+

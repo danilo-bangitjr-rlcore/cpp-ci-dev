@@ -37,6 +37,7 @@ export const API_ENDPOINTS = {
     start_io: `${API_BASE_URL}/v1/coredinator/api/io/start`,
     stop_io: (ioId: string) =>
       `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/stop`,
+    agents_missing_config: `${API_BASE_URL}/v1/coredinator/agents/missing-config`,
   },
 } as const;
 
