@@ -1,5 +1,3 @@
-"""Service and bundle persistence layers for ServiceManager."""
-
 import json
 import sqlite3
 from pathlib import Path
@@ -27,15 +25,12 @@ def _row_to_dict(db_row: sqlite3.Row) -> ServiceStateRow:
 
 
 class ServicePersistenceLayer:
-    """Handles persistence of service state and configuration."""
-
     def __init__(self, db_path: Path):
         self._logger = get_logger(__name__)
         self._db_path = db_path
         self._init_database()
 
     def _init_database(self, retries: int = 1) -> None:
-        """Initialize the service persistence database."""
         self._logger.info(
             "Initializing service persistence database",
             db_path=str(self._db_path),
@@ -59,7 +54,6 @@ class ServicePersistenceLayer:
         _do_init_database()
 
     def _on_database_init_backoff(self, details: Any):
-        """Handle database initialization backoff - remove corrupted database."""
         self._logger.warning(
             "Service database initialization failed",
             db_path=str(self._db_path),
@@ -72,14 +66,12 @@ class ServicePersistenceLayer:
         self._db_path.unlink(missing_ok=True)
 
     def _on_database_init_giveup(self, details: Any):
-        """Handle final database initialization failure."""
         self._logger.error(
             "Service database initialization failed permanently",
             db_path=str(self._db_path),
         )
 
     def _recover_database_and_log(self, service_id: str | None, operation: str) -> None:
-        """Recover database after error and log the attempt."""
         if service_id:
             self._logger.warning(f"Failed to {operation}", service_id=service_id)
         else:
@@ -87,7 +79,6 @@ class ServicePersistenceLayer:
         self._init_database()
 
     def _create_service_tables(self, cursor: sqlite3.Cursor) -> None:
-        """Create database tables for service persistence."""
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS service_states (
                 service_id TEXT PRIMARY KEY,
@@ -107,7 +98,6 @@ class ServicePersistenceLayer:
         self._migrate_add_version_column(cursor)
 
     def _migrate_add_version_column(self, cursor: sqlite3.Cursor) -> None:
-        """Add service_version column to existing databases if it doesn't exist."""
         cursor.execute("PRAGMA table_info(service_states)")
         columns = [row[1] for row in cursor.fetchall()]
 
@@ -116,7 +106,6 @@ class ServicePersistenceLayer:
             cursor.execute("ALTER TABLE service_states ADD COLUMN service_version TEXT")
 
     def persist_service(self, service: ServiceLike, base_path: Path | None = None) -> None:
-        """Persist service state to database."""
         status = service.status()
         process_ids = service.get_process_ids()
         version = service.get_version()
@@ -171,7 +160,6 @@ class ServicePersistenceLayer:
         _do_persist_service()
 
     def load_services(self, base_path: Path | None = None) -> list[ServiceLike]:
-        """Load services from database and create service instances."""
         self._logger.info(
             "Loading services from persistence database",
             db_path=str(self._db_path),
@@ -243,7 +231,6 @@ class ServicePersistenceLayer:
             return []
 
     def remove_service(self, service_id: ServiceID) -> None:
-        """Remove service from persistence database."""
         self._logger.debug(
             "Removing service from database",
             service_id=service_id,
@@ -265,7 +252,6 @@ class ServicePersistenceLayer:
         _do_remove_service()
 
     def _attempt_service_reattachment(self, service: ServiceLike, process_ids: list[int | None]) -> None:
-        """Attempt to reattach service to existing processes."""
         if not process_ids or all(pid is None for pid in process_ids):
             return
 
