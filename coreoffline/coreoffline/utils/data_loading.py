@@ -86,7 +86,6 @@ def load_data_chunks(
                     start_time=chunk_start,
                     end_time=chunk_end,
                     bucket_width=obs_period,
-                    aggregation=cfg.env.db.data_agg,
                 )
                 if not chunk_data.empty:
                     yield chunk_data
@@ -112,7 +111,6 @@ def load_entire_dataset(
         start_time=start_time,
         end_time=end_time,
         bucket_width=obs_period,
-        aggregation=cfg.env.db.data_agg,
     )
     data_reader.close()
     return out

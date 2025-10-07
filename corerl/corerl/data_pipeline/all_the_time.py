@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Iterable
 from typing import TYPE_CHECKING
 
 import jax.numpy as jnp
@@ -70,10 +69,6 @@ class AllTheTimeTCConfig:
 
 
 type StepInfo = dict[int, deque[Step]]
-
-def get_tags(df: pd.DataFrame, tags: Iterable[str]):
-    data_np = df[list(tags)].to_numpy().astype(np.float32)
-    return jnp.asarray(data_np)
 
 
 def get_n_step_reward(step_q: deque[Step]):

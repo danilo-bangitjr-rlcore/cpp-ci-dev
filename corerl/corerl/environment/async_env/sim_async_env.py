@@ -6,8 +6,6 @@ from typing import SupportsFloat
 import numpy as np
 import pandas as pd
 
-from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.db.data_writer import TagDBConfig
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.factory import init_environment
@@ -20,10 +18,6 @@ logger = logging.getLogger(__name__)
 
 class DummyCoreIOLink(CoreIOLink):
     def __init__(self, coreio_origin: str):
-        ...
-
-class DummyDataReader(DataReader):
-    def __init__(self, db_cfg: TagDBConfig) -> None:
         ...
 
 @dataclass

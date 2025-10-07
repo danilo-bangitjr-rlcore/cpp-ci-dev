@@ -46,8 +46,6 @@ class InfraConfig:
     into the external system.
     """
     db: DBConfig = Field(default_factory=DBConfig)
-    device: str = 'cpu'
-    num_threads: int = 4
 
 
 @config()
@@ -72,9 +70,6 @@ class FeatureFlags:
     # 2025-04-29
     recency_bias_buffer: bool = False
 
-    # 2025-05-04
-    interaction_action_variance: bool = False
-
     # 2025-05-14
     regenerative_optimism: bool = False
 
@@ -83,9 +78,6 @@ class FeatureFlags:
 
     # 2025-06-11
     nominal_setpoint_bias: bool = True
-
-    # 2025-06-22
-    noisy_networks: bool = False
 
     # 2025-06-27
     higher_critic_lr: bool = True
