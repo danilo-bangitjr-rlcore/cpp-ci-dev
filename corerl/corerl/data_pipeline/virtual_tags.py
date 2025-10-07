@@ -29,6 +29,9 @@ class VirtualTagComputer:
 
         return pf
 
+    def reset(self):
+        pass
+
 def log_virtual_tags(
     app_state: AppState,
     prep_stage: Preprocessor,

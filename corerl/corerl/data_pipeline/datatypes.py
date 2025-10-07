@@ -157,8 +157,6 @@ class AbsTransition(NamedTuple):
 
 class StageCode(Enum):
     INIT = auto()
-    SEASONAL = auto()
-    DELTA = auto()
     VIRTUAL = auto()
     TRIGGER = auto()
     BOUNDS = auto()

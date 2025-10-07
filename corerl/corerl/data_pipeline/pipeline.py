@@ -15,6 +15,7 @@ from pandas import DataFrame
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC
 from corerl.data_pipeline.bound_checker import bound_checker_builder
+from corerl.data_pipeline.computed_tags import ComputedTagStage
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
@@ -114,9 +115,12 @@ class Pipeline:
         self.tags = cfg.tags
 
         # initialization all stateful stages
-        self.seasonal_tags = SeasonalTagIncluder(self.tags)
-        self.delta_tags = DeltaizeTags(self.tags, cfg.delta, app_state)
-        self.virtual_tags = VirtualTagComputer(self.tags, app_state)
+        self.computed_tags = ComputedTagStage(
+            self.tags,
+            SeasonalTagIncluder(self.tags),
+            DeltaizeTags(self.tags, cfg.delta, app_state),
+            VirtualTagComputer(self.tags, app_state),
+        )
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
             tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.operating_range_tol)
@@ -148,9 +152,7 @@ class Pipeline:
             data_mode: defaultdict(list) for data_mode in DataMode}
 
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
-            StageCode.SEASONAL:   self.seasonal_tags,
-            StageCode.DELTA:      self.delta_tags,
-            StageCode.VIRTUAL:    self.virtual_tags,
+            StageCode.VIRTUAL:   self.computed_tags,
             StageCode.INIT:       lambda pf: pf,
             StageCode.TRIGGER:    self.tag_trigger,
             StageCode.PREPROCESS: self.preprocessor,
@@ -166,8 +168,6 @@ class Pipeline:
         }
 
         self.default_stages = (
-            StageCode.SEASONAL,
-            StageCode.DELTA,
             StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.TRIGGER,

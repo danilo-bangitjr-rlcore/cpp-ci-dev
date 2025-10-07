@@ -26,7 +26,7 @@ class DeltaizeTags(Constructor):
         super().__init__(tag_cfgs)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        transformed_parts, tag_names = self._transform_tags(pf, StageCode.DELTA)
+        transformed_parts, tag_names = self._transform_tags(pf, StageCode.VIRTUAL)
         for tag_name, transformed_part in zip(tag_names, transformed_parts, strict=True):
             pf.data[tag_name] = transformed_part
 
