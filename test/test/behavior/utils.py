@@ -3,7 +3,7 @@ from typing import Any
 
 import pandas as pd
 from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
-from sqlalchemy import Engine
+from sqlalchemy import Connection, Engine, text
 
 
 def get_offline_data_writer(engine: Engine, infra_overrides: dict[str, object]) -> DataWriter:
@@ -45,3 +45,20 @@ def column_to_sql_tups(column: pd.Series) -> list[tuple[Any, ...]]:
     df = column.to_frame()
     df["Tag"] = [tag] * len(df)
     return list(df.itertuples(index=True, name=None))
+
+def get_active_branch(base: Path = Path('.')) -> str:
+    refs = (base / '.git/HEAD').read_text()
+
+    for ref in refs.splitlines():
+        if ref.startswith('ref: '):
+            return ref.partition('refs/heads/')[2]
+
+    raise Exception('Was unable to determine active branch')
+
+
+def add_retention_policy(conn: Connection, table_name: str, schema: str, days: int):
+    try:
+        conn.execute(text(f"SELECT add_retention_policy('{schema}.{table_name}', INTERVAL '{days}d');"))
+        conn.commit()
+    except Exception:
+        ...
