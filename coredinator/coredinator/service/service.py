@@ -29,7 +29,14 @@ class ServiceConfig:
 
 
 class Service(ABC):
-    def __init__(self, id: ServiceID, base_path: Path, config_path: Path, config: ServiceConfig | None = None):
+    def __init__(
+        self,
+        id: ServiceID,
+        base_path: Path,
+        config_path: Path,
+        config: ServiceConfig | None = None,
+        version: str | None = None,
+    ):
         self._intended_state = ServiceIntendedState.STOPPED
         self.config = config if config is not None else ServiceConfig()
 
@@ -40,7 +47,7 @@ class Service(ABC):
         self._process: Process | None = None
         self._monitor: ServiceMonitor | None = None
         self._failed: bool = False
-        self._version: str | None = None
+        self._version: str | None = version
 
     @abstractmethod
     def _find_executable(self) -> Path:
