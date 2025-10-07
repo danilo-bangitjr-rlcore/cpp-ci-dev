@@ -39,6 +39,7 @@ class Service(ABC):
         self._process: Process | None = None
         self._monitor: ServiceMonitor | None = None
         self._failed: bool = False
+        self._version: str | None = None
 
     @abstractmethod
     def _find_executable(self) -> Path:
@@ -68,6 +69,7 @@ class Service(ABC):
 
         try:
             exe_path = self._find_executable()
+            self._extract_version(exe_path)
             exe = self._ensure_executable(exe_path)
             cfg = self._ensure_config()
 
@@ -75,7 +77,7 @@ class Service(ABC):
             log.debug("Service command args", service_id=self.id, args_preview=args[:2])
 
             self._process = Process.start_in_background(args)
-            log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid)
+            log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid, version=self._version)
 
         except Exception:
             log.exception("Service failed to start", service_id=self.id)
@@ -173,6 +175,10 @@ class Service(ABC):
 
         return False
 
+    def get_version(self) -> str | None:
+        """Get the version of the service executable, or None if not started."""
+        return self._version
+
     # -----------------
     # -- Validations --
     # -----------------
@@ -189,6 +195,16 @@ class Service(ABC):
             raise FileNotFoundError(f"Config file not found at {self._config_path}")
 
         return self._config_path
+
+    def _extract_version(self, exe_path: Path) -> None:
+        """Extract version string from executable filename."""
+        from coredinator.utils.semver import parse_version_from_filename
+
+        version_obj = parse_version_from_filename(exe_path.name)
+        if version_obj:
+            self._version = f"{version_obj.major}.{version_obj.minor}.{version_obj.patch}"
+        else:
+            self._version = None
 
     def _is_healthy(self) -> bool:
         if not self.config.healthcheck_enabled:
