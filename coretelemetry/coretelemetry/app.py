@@ -28,6 +28,8 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
+# TODO: Add endpoint for refresh, call it clear cache...
+
 @app.get("/api/v1/telemetry/{agent_id}")
 async def get_telemetry(
     agent_id: str,
