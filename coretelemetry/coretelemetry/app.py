@@ -30,7 +30,7 @@ async def health_check():
 
 # TODO: Add endpoint for refresh, call it clear cache...
 
-@app.get("/api/v1/telemetry/{agent_id}")
+@app.get("/api/v1/telemetry/data/{agent_id}")
 async def get_telemetry(
     agent_id: str,
     metric: str,
@@ -44,8 +44,10 @@ async def get_telemetry(
     Args:
         agent_id: The ID of the agent
         metric: The name of the metric to retrieve
-        start_time: Start date/time for the telemetry data (query param 'start_time', optional)
-        end_time: End date/time for the telemetry data (query param 'end_time', optional)
+        start_time: Start date/time for the telemetry data (query param 'start_time', optional).
+                   If timezone is not specified, UTC is assumed.
+        end_time: End date/time for the telemetry data (query param 'end_time', optional).
+                 If timezone is not specified, UTC is assumed.
 
     Returns:
         Telemetry data for the specified parameters
@@ -56,9 +58,15 @@ async def get_telemetry(
         and result in a 413 error. It is recommended to specify both start_time and end_time
         for time-range queries.
     """
+    # Add UTC timezone if not present
+    if start_time and not start_time.endswith(("+00", "Z", "UTC")) and "+" not in start_time[-6:]:
+        start_time = f"{start_time}+00"
+    if end_time and not end_time.endswith(("+00", "Z", "UTC")) and "+" not in end_time[-6:]:
+        end_time = f"{end_time}+00"
+
     return manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
-@app.get("/api/v1/telemetry/{agent_id}/metrics")
+@app.get("/api/v1/telemetry/data/{agent_id}/metrics")
 async def get_available_metrics(
     agent_id: str,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
@@ -74,7 +82,7 @@ async def get_available_metrics(
     """
     return manager.get_available_metrics(agent_id)
 
-@app.get("/api/v1/config/db", response_model=DBConfig)
+@app.get("/api/v1/telemetry/config/db", response_model=DBConfig)
 async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current database configuration.
@@ -84,7 +92,7 @@ async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manage
     """
     return manager.get_db_config()
 
-@app.post("/api/v1/config/db")
+@app.post("/api/v1/telemetry/config/db")
 async def set_db_config(
     config: DBConfig,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
@@ -101,7 +109,7 @@ async def set_db_config(
     updated_config = manager.set_db_config(config)
     return {"message": "Database configuration updated successfully", "config": updated_config}
 
-@app.get("/api/v1/config/path")
+@app.get("/api/v1/telemetry/config/path")
 async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current configuration path.
@@ -111,7 +119,7 @@ async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_mana
     """
     return {"config_path": str(manager.get_config_path())}
 
-@app.post("/api/v1/config/path")
+@app.post("/api/v1/telemetry/config/path")
 async def set_config_path(
     path: str,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
