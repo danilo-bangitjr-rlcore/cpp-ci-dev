@@ -5,10 +5,16 @@ import yaml
 from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
 from lib_sql.inspection import column_exists, table_exists
+from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from sqlalchemy import text
 
 MAX_RESULT_ROWS = 5000
+
+
+class DataPoint(BaseModel):
+    timestamp: datetime | None
+    value: float
 
 
 @pydantic_dataclass
@@ -34,6 +40,7 @@ class SqlReader:
         start_time: datetime | str | None = None,
         end_time: datetime | str | None = None,
         time_col: bool = True,
+        not_null: bool = True,
     ):
         if isinstance(start_time, datetime):
             start_time = start_time.isoformat()
@@ -47,33 +54,36 @@ class SqlReader:
         if not column_exists(self.engine, table_name, column_name, schema=self.db_cfg.schema):
             raise ValueError(f"Column {column_name} not found in {table_name} not found in DB")
 
-        base_query = f"""
-        SELECT
-            {"time, " if time_col else ""}
-            :column_name
-        FROM :table_name
-        """
+        # Build SELECT clause
+        columns = ["time", column_name] if time_col else [column_name]
+        select_clause = f"SELECT {', '.join(columns)} FROM {table_name}"
 
-        params = {"column_name": column_name, "table_name": table_name}
+        # Build WHERE clause
+        where_conditions = []
+        params = {}
 
-        if start_time is None and end_time is None:
-            base_query += "ORDER BY time DESC LIMIT 1;"
-        else:
-            base_query += "WHERE "
-            conditions = []
+        if not_null:
+            where_conditions.append(f"{column_name} IS NOT NULL")
 
-            if start_time is not None:
-                conditions.append("time >= :start_time::timestamptz")
-                params["start_time"] = start_time
+        if start_time is not None:
+            where_conditions.append("time >= :start_time")
+            params["start_time"] = start_time
 
-            if end_time is not None:
-                conditions.append("time <= :end_time::timestamptz")
-                params["end_time"] = end_time
+        if end_time is not None:
+            where_conditions.append("time <= :end_time")
+            params["end_time"] = end_time
 
-            base_query += " AND ".join(conditions)
-            base_query += " ORDER BY time DESC;"
+        where_clause = f" WHERE {' AND '.join(where_conditions)}" if where_conditions else ""
 
-        select_query = text(base_query).bindparams(**params)
+        # Build ORDER BY and LIMIT
+        order_clause = " ORDER BY time DESC"
+        limit_clause = " LIMIT 1" if start_time is None and end_time is None else ""
+
+        # Combine all parts
+        query = f"{select_clause}{where_clause}{order_clause}{limit_clause};"
+
+        # Prepare and execute
+        select_query = text(query).bindparams(**params) if params else text(query)
 
         with TryConnectContextManager(self.engine) as connection:
             result = connection.execute(select_query).fetchall()
@@ -155,28 +165,22 @@ class TelemetryManager:
 
         return table_name
 
-    # Telemetry data methods (to be implemented)
     async def get_telemetry_data(
         self,
         agent_id: str,
         metric: str,
         start_time: str | None,
         end_time: str | None,
-    ) -> dict:
+    ):
 
         if self.sql_reader is None:
             self.sql_reader = SqlReader(self.db_config)
 
         table_name = self._get_metrics_table_name(agent_id)
-        data = self.sql_reader.read_single_column(table_name, metric, start_time, end_time)
+        raw_data = self.sql_reader.read_single_column(table_name, metric, start_time, end_time)
 
-        return {
-            "agent_id": agent_id,
-            "metric": metric,
-            "start_time": start_time,
-            "end_time": end_time,
-            "data": data,
-        }
+        return [{"timestamp": row[0], "value": float(row[1])} for row in raw_data]
+
 
     async def get_available_metrics(self, agent_id: str) -> dict:
         if self.sql_reader is None:

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from coretelemetry.services import (
+    DataPoint,
     DBConfig,
     TelemetryManager,
     get_telemetry_manager,
@@ -29,12 +30,20 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-@app.get("/api/v1/telemetry/data/{agent_id}")
+class DataResponse(BaseModel):
+    agent_id: str
+    metric: str
+    start_time: str
+    end_time: str
+    data: list[DataPoint]
+
+
+@app.get("/api/v1/telemetry/data/{agent_id}", response_model = DataResponse)
 async def get_telemetry(
     agent_id: str,
     metric: str,
-    start_time: str,
-    end_time: str,
+    start_time: str | None = None,
+    end_time: str | None = None,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
 ):
     """
@@ -43,13 +52,21 @@ async def get_telemetry(
     Args:
         agent_id: The ID of the agent
         metric: The name of the metric to retrieve
-        start_time: Start date/time for the telemetry data (query param 'start_time')
-        end_time: End date/time for the telemetry data (query param 'end_time')
+        start_time: Start date/time for the telemetry data (query param 'start_time', optional)
+        end_time: End date/time for the telemetry data (query param 'end_time', optional)
 
     Returns:
         Telemetry data for the specified parameters
     """
-    return await manager.get_telemetry_data(agent_id, metric, start_time, end_time)
+    data = await manager.get_telemetry_data(agent_id, metric, start_time, end_time)
+    return {
+        "agent_id": agent_id,
+        "metric": metric,
+        "start_time": start_time or "",
+        "end_time": end_time or "",
+        "data": data,
+
+    }
 
 @app.get("/api/v1/telemetry/db/config", response_model=DBConfig)
 async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
