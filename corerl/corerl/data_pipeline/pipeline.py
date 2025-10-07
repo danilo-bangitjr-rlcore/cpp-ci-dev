@@ -15,7 +15,6 @@ from pandas import DataFrame
 
 from corerl.data_pipeline.all_the_time import AllTheTimeTC
 from corerl.data_pipeline.bound_checker import bound_checker_builder
-from corerl.data_pipeline.computed_tags import ComputedTagStage
 from corerl.data_pipeline.constructors.ac import ActionConstructor
 from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
@@ -23,15 +22,16 @@ from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
-from corerl.data_pipeline.deltaize_tags import DeltaizeTags, log_delta_tags
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.pipeline_config import PipelineConfig
-from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.virtual_tags import VirtualTagComputer, log_virtual_tags
+from corerl.data_pipeline.virtual.computed_tags import ComputedTagStage
+from corerl.data_pipeline.virtual.deltaize_tags import DeltaizeTags, log_delta_tags
+from corerl.data_pipeline.virtual.seasonal_tags import SeasonalTagIncluder
+from corerl.data_pipeline.virtual.virtual_tags import VirtualTagComputer, log_virtual_tags
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.state import AppState
 from corerl.tags.components.bounds import BoundedTag
