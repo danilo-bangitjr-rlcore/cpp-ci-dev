@@ -13,6 +13,7 @@ from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceState, ServiceStatus
 from coredinator.service.service_monitor import ServiceMonitor
 from coredinator.utils.healthcheck import check_http_health
+from coredinator.utils.semver import parse_version_from_filename
 
 log = get_logger(__name__)
 
@@ -69,7 +70,7 @@ class Service(ABC):
 
         try:
             exe_path = self._find_executable()
-            self._extract_version(exe_path)
+            self._version = self._extract_version(exe_path)
             exe = self._ensure_executable(exe_path)
             cfg = self._ensure_config()
 
@@ -196,15 +197,11 @@ class Service(ABC):
 
         return self._config_path
 
-    def _extract_version(self, exe_path: Path) -> None:
-        """Extract version string from executable filename."""
-        from coredinator.utils.semver import parse_version_from_filename
-
+    def _extract_version(self, exe_path: Path) -> str | None:
         version_obj = parse_version_from_filename(exe_path.name)
-        if version_obj:
-            self._version = f"{version_obj.major}.{version_obj.minor}.{version_obj.patch}"
-        else:
-            self._version = None
+        if not version_obj:
+            return None
+        return f"{version_obj.major}.{version_obj.minor}.{version_obj.patch}"
 
     def _is_healthy(self) -> bool:
         if not self.config.healthcheck_enabled:
