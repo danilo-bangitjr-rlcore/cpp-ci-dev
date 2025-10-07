@@ -217,6 +217,10 @@ class PipelineFrame:
         return first_index
 
 def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -> JaxTransition:
+    timestamp = None
+    if corerl_transition.start_time is not None:
+        timestamp = int(corerl_transition.start_time.timestamp())
+
     return JaxTransition(
         last_action=corerl_transition.prior.action,
         state=corerl_transition.state,
@@ -232,4 +236,5 @@ def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -
         next_dp=jnp.asarray(corerl_transition.post.dp),
         n_step_reward=jnp.asarray(corerl_transition.n_step_reward),
         n_step_gamma=jnp.asarray(corerl_transition.n_step_gamma),
+        timestamp=timestamp,
     )
