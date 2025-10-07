@@ -30,11 +30,6 @@ class RecencyBiasBufferConfig:
     def _ensemble(cls, cfg: "MainConfig"):
         return cfg.feature_flags.ensemble
 
-    @computed('gamma')
-    @classmethod
-    def _gamma(cls, cfg: 'MainConfig'):
-        return cfg.agent.gamma
-
     @computed('obs_period')
     @classmethod
     def _obs_period(cls, cfg: 'MainConfig'):

@@ -1,7 +1,7 @@
 import logging
 import pickle as pkl
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Literal, NamedTuple
+from typing import TYPE_CHECKING, Literal, NamedTuple
 
 import chex
 import jax
@@ -22,7 +22,7 @@ from lib_agent.critic.critic_utils import (
 from lib_agent.critic.qrc_critic import QRCCritic
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
-from pydantic import Field, TypeAdapter
+from pydantic import Field
 
 from corerl.agent.base import BaseAgent, BaseAgentConfig
 from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
@@ -60,17 +60,20 @@ class GTDCriticConfig:
     @computed('buffer')
     @classmethod
     def _buffer(cls, cfg: 'MainConfig'):
-        default_buffer_type = (
-            RecencyBiasBufferConfig
-            if cfg.feature_flags.recency_bias_buffer else
-            MixedHistoryBufferConfig
-        )
+        if cfg.feature_flags.recency_bias_buffer:
+            return RecencyBiasBufferConfig(
+                obs_period=int(cfg.interaction.obs_period.total_seconds()),
+                gamma=[cfg.agent.gamma],
+                effective_episodes=[100],
+                ensemble=1,
+                ensemble_probability=1.0,
+                id='actor',
+            )
+        buffer_cfg = MixedHistoryBufferConfig(id='actor')
+        buffer_cfg.ensemble = 1
+        buffer_cfg.ensemble_probability = 1
 
-        ta = TypeAdapter(default_buffer_type)
-        default_buffer = default_buffer_type(id='critic')
-        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
-        main_cfg: Any = cfg
-        return ta.validate_python(default_buffer_dict, context=main_cfg)
+        return buffer_cfg
 
 @config()
 class PercentileActorConfig:
@@ -90,19 +93,19 @@ class PercentileActorConfig:
     @computed('buffer')
     @classmethod
     def _buffer(cls, cfg: 'MainConfig'):
-        default_buffer_type = (
-            RecencyBiasBufferConfig
-            if cfg.feature_flags.recency_bias_buffer else
-            MixedHistoryBufferConfig
-        )
-
-        ta = TypeAdapter(default_buffer_type)
-        default_buffer = default_buffer_type(id='actor')
-        default_buffer_dict = ta.dump_python(default_buffer, warnings=False)
-        main_cfg: Any = cfg
-        buffer_cfg = ta.validate_python(default_buffer_dict, context=main_cfg)
-        buffer_cfg.ensemble = 1
-        buffer_cfg.ensemble_probability = 1
+        if cfg.feature_flags.recency_bias_buffer:
+            buffer_cfg = RecencyBiasBufferConfig(
+                obs_period=int(cfg.interaction.obs_period.total_seconds()),
+                gamma=[cfg.agent.gamma],
+                effective_episodes=[100],
+                ensemble=1,
+                ensemble_probability=1.0,
+                id='actor',
+            )
+        else:
+            buffer_cfg = MixedHistoryBufferConfig(id='actor')
+            buffer_cfg.ensemble = 1
+            buffer_cfg.ensemble_probability = 1
 
         return buffer_cfg
 
@@ -224,8 +227,18 @@ class GreedyAC(BaseAgent):
         )
 
         self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
+
         critic_buffer_config = cfg.critic.buffer.to_lib_config()
         critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
+        if critic_buffer_config.name == 'recency_bias_buffer':
+            ensemble_size = cfg.critic.critic_network.ensemble
+            critic_buffer_config.gamma = (
+                list(critic_buffer_config.gamma)[:1] * ensemble_size
+            )
+            critic_buffer_config.effective_episodes = (
+                list(critic_buffer_config.effective_episodes)[:1] * ensemble_size
+            )
+
         self.critic_buffer = build_buffer(critic_buffer_config, JaxTransition)
 
         self.ensemble = len(self.critic._reset_manager.active_indices)
