@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 import pytest
-from coretelemetry.services import DBConfig, SqlReader
+from coretelemetry.utils.sql import DBConfig, SqlReader
 from sqlalchemy import Engine
 
 pytest_plugins = [

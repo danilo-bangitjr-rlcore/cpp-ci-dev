@@ -5,7 +5,8 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
-from coretelemetry.services import DBConfig, SqlReader, TelemetryManager
+from coretelemetry.services import TelemetryManager
+from coretelemetry.utils.sql import DBConfig, SqlReader
 from fastapi import HTTPException
 
 

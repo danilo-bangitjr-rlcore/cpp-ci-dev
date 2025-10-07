@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from coretelemetry.app import app, get_telemetry_manager
-from coretelemetry.services import DBConfig
+from coretelemetry.utils.sql import DBConfig
 from fastapi.testclient import TestClient
 
 pytest_plugins = [

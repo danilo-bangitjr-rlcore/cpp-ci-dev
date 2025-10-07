@@ -1,9 +1,9 @@
-"""Unit tests for SqlReader class with mocked database."""
+"""Unit tests for SqlReader with mocked database."""
 
 from unittest.mock import Mock, patch
 
 import pytest
-from coretelemetry.services import DBConfig, SqlReader
+from coretelemetry.utils.sql import DBConfig, SqlReader
 from pytest import MonkeyPatch
 from sqlalchemy import Engine
 from sqlalchemy.exc import OperationalError
@@ -31,7 +31,7 @@ def mock_db_config() -> DBConfig:
 @pytest.fixture
 def sql_reader(mock_db_config: DBConfig, mock_engine: Mock, monkeypatch: MonkeyPatch) -> SqlReader:
     """SqlReader with mocked engine."""
-    monkeypatch.setattr("coretelemetry.services.get_sql_engine", lambda **kwargs: mock_engine)
+    monkeypatch.setattr("coretelemetry.utils.sql.get_sql_engine", lambda **kwargs: mock_engine)
     return SqlReader(mock_db_config)
 
 class TestBuildQuery:
@@ -136,7 +136,7 @@ class TestTestConnection:
         mock_context_manager.__enter__ = Mock(return_value=mock_connection)
         mock_context_manager.__exit__ = Mock(return_value=False)
 
-        with patch("coretelemetry.services.TryConnectContextManager", return_value=mock_context_manager):
+        with patch("coretelemetry.utils.sql.TryConnectContextManager", return_value=mock_context_manager):
             result = sql_reader.test_connection()
 
         assert result is True
@@ -148,7 +148,7 @@ class TestTestConnection:
         error = OperationalError("Connection failed", params=None, orig=Exception("Connection failed"))
         mock_context_manager.__enter__ = Mock(side_effect=error)
 
-        with patch("coretelemetry.services.TryConnectContextManager", return_value=mock_context_manager):
+        with patch("coretelemetry.utils.sql.TryConnectContextManager", return_value=mock_context_manager):
             result = sql_reader.test_connection()
 
         assert result is False

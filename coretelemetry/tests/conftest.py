@@ -1,10 +1,8 @@
-"""Pytest configuration and fixtures for CoreTelemetry tests."""
-
 from pathlib import Path
 
 import pytest
 import yaml
-from coretelemetry.services import DBConfig
+from coretelemetry.utils.sql import DBConfig
 from sqlalchemy import Engine, text
 
 # Enable pytest plugins for database testing

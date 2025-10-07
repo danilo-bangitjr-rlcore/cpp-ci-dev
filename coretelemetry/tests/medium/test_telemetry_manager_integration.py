@@ -4,7 +4,8 @@ from pathlib import Path
 
 import pytest
 import yaml
-from coretelemetry.services import DBConfig, TelemetryManager
+from coretelemetry.services import TelemetryManager
+from coretelemetry.utils.sql import DBConfig
 from fastapi import HTTPException
 
 pytest_plugins = [
