@@ -24,7 +24,7 @@ class DBConfig:
 
 class SqlReader:
     def __init__(self, db_cfg : DBConfig):
-        self.db_cfg = DBConfig
+        self.db_cfg = db_cfg
         self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
 
     def table_exists(self, table_name: str) -> bool:

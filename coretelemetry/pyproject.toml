@@ -20,6 +20,7 @@ lib-config = { path = "../libs/lib_config", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 corerl = { path = "../corerl", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
+test = { path = "../test", editable = true }
 
 [dependency-groups]
 dev = [
@@ -29,8 +30,10 @@ dev = [
     "pytest-cov>=6.0.0",
     "pytest-xdist>=3.7.0",
     "pytest-mock>=3.14.1",
+    "pytest-timeout>=2.3.1",
     "ruff>=0.11.12",
     "uv>=0.5.24",
+    "test",
 ]
 
 
