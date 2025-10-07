@@ -201,3 +201,15 @@ async def delete_config(
     _config_cache.pop((config_name, subfolder), None)
     return JSONResponse(content={"message": "Config deleted", "name": config_name},
                         status_code=status.HTTP_200_OK)
+
+@handle_exceptions
+async def get_config_path(
+    config_name: str,
+    subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+) -> JSONResponse:
+    configs_dir = _get_configs_dir(subfolder)
+    config_path = configs_dir / f"{config_name}.yaml"
+    if not config_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found")
+    return JSONResponse(content={"config_path": str(config_path.resolve())},
+                        status_code=status.HTTP_200_OK)
