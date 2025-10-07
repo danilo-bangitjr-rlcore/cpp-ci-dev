@@ -90,6 +90,17 @@ class ServicePersistenceLayer:
             )
         """)
 
+        self._migrate_add_version_column(cursor)
+
+    def _migrate_add_version_column(self, cursor: sqlite3.Cursor) -> None:
+        """Add service_version column to existing databases if it doesn't exist."""
+        cursor.execute("PRAGMA table_info(service_states)")
+        columns = [row[1] for row in cursor.fetchall()]
+
+        if "service_version" not in columns:
+            self._logger.info("Migrating database: adding service_version column")
+            cursor.execute("ALTER TABLE service_states ADD COLUMN service_version TEXT")
+
     def persist_service(self, service: ServiceLike, base_path: Path | None = None) -> None:
         """Persist service state to database."""
         status = service.status()
