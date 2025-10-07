@@ -32,7 +32,7 @@ export function LeftNav({ items }: LeftNavProps) {
                     {navItem.icon}
                   </span>
                 )}
-                <span className={isChild ? 'text-sm text-gray-700' : undefined}>
+                <span className={isChild ? 'text-sm text-gray-700' : 'overflow-hidden text-ellipsis whitespace-nowrap'}>
                   {navItem.label}
                 </span>
               </>
