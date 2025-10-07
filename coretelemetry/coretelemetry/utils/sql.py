@@ -1,5 +1,3 @@
-"""SQL utilities for database operations."""
-
 from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
 from lib_sql.inspection import column_exists, get_all_columns, table_exists
