@@ -47,6 +47,12 @@ async def get_telemetry(
 
     Returns:
         Telemetry data for the specified parameters
+
+    Note:
+        If neither start_time nor end_time is specified, returns the latest value only.
+        If only one of start_time or end_time is specified, the query may return too many rows
+        and result in a 413 error. It is recommended to specify both start_time and end_time
+        for time-range queries.
     """
     return manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
