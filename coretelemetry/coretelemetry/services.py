@@ -2,19 +2,14 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
+from fastapi import HTTPException
 from lib_sql.connection import TryConnectContextManager
 from lib_sql.engine import get_sql_engine
-from lib_sql.inspection import column_exists, table_exists
-from pydantic import BaseModel
+from lib_sql.inspection import column_exists, get_all_columns, table_exists
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from sqlalchemy import text
 
 MAX_RESULT_ROWS = 5000
-
-
-class DataPoint(BaseModel):
-    timestamp: datetime | None
-    value: float
 
 
 @pydantic_dataclass
@@ -32,33 +27,24 @@ class SqlReader:
         self.db_cfg = DBConfig
         self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name)
 
+    def table_exists(self, table_name: str) -> bool:
+        return table_exists(self.engine, table_name, schema=self.db_cfg.schema)
 
-    def read_single_column(
+    def column_exists(self, table_name: str, column_name: str) -> bool:
+        return column_exists(self.engine, table_name, column_name, schema=self.db_cfg.schema)
+
+    def build_query(
         self,
         table_name: str,
         column_name: str,
-        start_time: datetime | str | None = None,
-        end_time: datetime | str | None = None,
-        time_col: bool = True,
-        not_null: bool = True,
-    ):
-        if isinstance(start_time, datetime):
-            start_time = start_time.isoformat()
-
-        if isinstance(end_time, datetime):
-            end_time = end_time.isoformat()
-
-        if not table_exists(self.engine, table_name, schema=self.db_cfg.schema):
-            raise ValueError(f"Table {table_name} not found in DB")
-
-        if not column_exists(self.engine, table_name, column_name, schema=self.db_cfg.schema):
-            raise ValueError(f"Column {column_name} not found in {table_name} not found in DB")
-
-        # Build SELECT clause
+        start_time: str | None,
+        end_time: str | None,
+        time_col: bool,
+        not_null: bool,
+    ) -> tuple[str, dict]:
         columns = ["time", column_name] if time_col else [column_name]
         select_clause = f"SELECT {', '.join(columns)} FROM {table_name}"
 
-        # Build WHERE clause
         where_conditions = []
         params = {}
 
@@ -74,32 +60,20 @@ class SqlReader:
             params["end_time"] = end_time
 
         where_clause = f" WHERE {' AND '.join(where_conditions)}" if where_conditions else ""
-
-        # Build ORDER BY and LIMIT
         order_clause = " ORDER BY time DESC"
         limit_clause = " LIMIT 1" if start_time is None and end_time is None else ""
 
-        # Combine all parts
         query = f"{select_clause}{where_clause}{order_clause}{limit_clause};"
+        return query, params
 
-        # Prepare and execute
+    def execute_query(self, query: str, params: dict):
         select_query = text(query).bindparams(**params) if params else text(query)
-
         with TryConnectContextManager(self.engine) as connection:
-            result = connection.execute(select_query).fetchall()
+            return connection.execute(select_query).fetchall()
 
-        if not result:
-            raise ValueError(
-                f"No data found in table '{table_name}' for column '{column_name}' for time range"
-                f"from {start_time or ""} to {end_time or ""} ",
-            )
-
-        if len(result) > MAX_RESULT_ROWS:
-            raise ValueError(
-                f"Result exceeded maximum length of {MAX_RESULT_ROWS} rows",
-            )
-
-        return result
+    def get_column_names(self, table_name: str) -> list[str]:
+        columns = get_all_columns(self.engine, table_name, schema=self.db_cfg.schema)
+        return [col["name"] for col in columns]
 
     def test_connection(self) -> bool:
         try:
@@ -151,42 +125,99 @@ class TelemetryManager:
         yaml_file_path = self.config_path / f"{agent_id}.yaml"
 
         if not yaml_file_path.exists():
-            raise FileNotFoundError(f"Configuration file not found: {yaml_file_path}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Configuration file not found for agent '{agent_id}': {yaml_file_path}",
+            )
 
-        with open(yaml_file_path) as f:
-            config_data = yaml.safe_load(f)
+        try:
+            with open(yaml_file_path) as f:
+                config_data = yaml.safe_load(f)
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to parse configuration file for agent '{agent_id}': {e!s}",
+            ) from e
 
         table_name = (config_data or {}).get('metrics', {}).get('table_name')
 
         if not table_name:
-            raise KeyError(f"'metrics.table_name' not found in {yaml_file_path}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"'metrics.table_name' not found in configuration for agent '{agent_id}'",
+            )
 
         self.metrics_table_cache[agent_id] = table_name
 
         return table_name
 
-    async def get_telemetry_data(
+    def get_telemetry_data(
         self,
         agent_id: str,
         metric: str,
         start_time: str | None,
         end_time: str | None,
     ):
+        if self.sql_reader is None:
+            self.sql_reader = SqlReader(self.db_config)
 
+        if metric.lower() == "time":
+            raise HTTPException(status_code=400, detail="'time' is a reserved column and cannot be used as a metric")
+
+        if isinstance(start_time, datetime):
+            start_time = start_time.isoformat()
+        if isinstance(end_time, datetime):
+            end_time = end_time.isoformat()
+
+        table_name = self._get_metrics_table_name(agent_id)
+
+        if not self.sql_reader.table_exists(table_name):
+            raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found in database")
+
+        if not self.sql_reader.column_exists(table_name, metric):
+            raise HTTPException(status_code=404, detail=f"Column '{metric}' not found in table '{table_name}'")
+
+        query, params = self.sql_reader.build_query(
+            table_name, metric, start_time, end_time, time_col=True, not_null=True,
+        )
+
+        try:
+            raw_data = self.sql_reader.execute_query(query, params)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Database connection failed: {e!s}") from e
+
+        if not raw_data:
+            time_range = f" from {start_time} to {end_time}" if start_time or end_time else ""
+            raise HTTPException(
+                status_code=404,
+                detail=f"No data found in table '{table_name}' for column '{metric}'{time_range}",
+            )
+
+        if len(raw_data) > MAX_RESULT_ROWS:
+            raise HTTPException(status_code=413, detail=f"Result exceeded maximum length of {MAX_RESULT_ROWS} rows")
+
+        return [{"timestamp": row[0], "value": float(row[1])} for row in raw_data]
+
+    def get_available_metrics(self, agent_id: str) -> dict:
         if self.sql_reader is None:
             self.sql_reader = SqlReader(self.db_config)
 
         table_name = self._get_metrics_table_name(agent_id)
-        raw_data = self.sql_reader.read_single_column(table_name, metric, start_time, end_time)
 
-        return [{"timestamp": row[0], "value": float(row[1])} for row in raw_data]
+        if not self.sql_reader.table_exists(table_name):
+            raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found in database")
 
+        try:
+            all_columns = self.sql_reader.get_column_names(table_name)
+        except Exception as e:
+            raise HTTPException(status_code=503, detail=f"Failed to retrieve columns: {e!s}") from e
 
-    async def get_available_metrics(self, agent_id: str) -> dict:
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
-        # Placeholder implementation
-        return {"agent_id": agent_id, "data": []}
+        metrics = [col for col in all_columns if col.lower() != "time"]
+
+        if not metrics:
+            raise HTTPException(status_code=404, detail=f"No metrics available for agent '{agent_id}'")
+
+        return {"agent_id": agent_id, "data": metrics}
 
 
 # Create singleton instance

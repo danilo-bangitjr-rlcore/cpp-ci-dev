@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from coretelemetry.services import (
-    DataPoint,
     DBConfig,
     TelemetryManager,
     get_telemetry_manager,
@@ -9,7 +8,6 @@ from coretelemetry.services import (
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel
 
 app = FastAPI(title="CoreTelemetry API")
 
@@ -30,15 +28,7 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-class DataResponse(BaseModel):
-    agent_id: str
-    metric: str
-    start_time: str
-    end_time: str
-    data: list[DataPoint]
-
-
-@app.get("/api/v1/telemetry/data/{agent_id}", response_model = DataResponse)
+@app.get("/api/v1/telemetry/{agent_id}")
 async def get_telemetry(
     agent_id: str,
     metric: str,
@@ -58,17 +48,25 @@ async def get_telemetry(
     Returns:
         Telemetry data for the specified parameters
     """
-    data = await manager.get_telemetry_data(agent_id, metric, start_time, end_time)
-    return {
-        "agent_id": agent_id,
-        "metric": metric,
-        "start_time": start_time or "",
-        "end_time": end_time or "",
-        "data": data,
+    return manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
-    }
+@app.get("/api/v1/telemetry/{agent_id}/metrics")
+async def get_available_metrics(
+    agent_id: str,
+    manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
+):
+    """
+    Get all available metrics for a specific agent.
 
-@app.get("/api/v1/telemetry/db/config", response_model=DBConfig)
+    Args:
+        agent_id: The ID of the agent
+
+    Returns:
+        List of available metric names for the agent
+    """
+    return manager.get_available_metrics(agent_id)
+
+@app.get("/api/v1/config/db", response_model=DBConfig)
 async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current database configuration.
@@ -78,7 +76,7 @@ async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manage
     """
     return manager.get_db_config()
 
-@app.post("/api/v1/telemetry/db/config")
+@app.post("/api/v1/config/db")
 async def set_db_config(
     config: DBConfig,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
@@ -95,24 +93,7 @@ async def set_db_config(
     updated_config = manager.set_db_config(config)
     return {"message": "Database configuration updated successfully", "config": updated_config}
 
-class DBTestResponse(BaseModel):
-    connected: bool
-
-@app.get("/api/v1/telemetry/db/test", response_model=DBTestResponse)
-async def test_db_connection(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
-    """
-    Test database connectivity.
-
-    Returns:
-        Connection status
-    """
-    is_connected = manager.test_db_connection()
-    return {"connected": is_connected}
-
-class ConfigPathResponse(BaseModel):
-    config_path: str
-
-@app.get("/api/v1/telemetry/config/path", response_model=ConfigPathResponse)
+@app.get("/api/v1/config/path")
 async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
     """
     Get the current configuration path.
@@ -122,11 +103,7 @@ async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_mana
     """
     return {"config_path": str(manager.get_config_path())}
 
-class ConfigPathUpdateResponse(BaseModel):
-    message: str
-    config_path: str
-
-@app.post("/api/v1/telemetry/config/path", response_model=ConfigPathUpdateResponse)
+@app.post("/api/v1/config/path")
 async def set_config_path(
     path: str,
     manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
@@ -155,16 +132,10 @@ if __name__ == "__main__":
         default="clean/",
         help="Path to the configuration directory (default: clean/)",
     )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8001,
-        help="Port to run the server on (default: 8001)",
-    )
     args = parser.parse_args()
 
     # Set the config path from command line args
     manager = get_telemetry_manager()
     manager.set_config_path(Path(args.config_path))
 
-    uvicorn.run(app, host="0.0.0.0", port=args.port)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
