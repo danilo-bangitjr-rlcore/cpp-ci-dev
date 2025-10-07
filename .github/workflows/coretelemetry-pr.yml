@@ -34,10 +34,8 @@ jobs:
         with:
           subrepo: coretelemetry
 
-      - name: Setup CoreRL dependencies
-        run: |
-          cd ../corerl
-          uv sync --all-extras --dev --frozen
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       # linting
       - uses: astral-sh/ruff-action@v1

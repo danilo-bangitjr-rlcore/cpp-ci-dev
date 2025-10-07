@@ -144,7 +144,7 @@ Health check endpoint.
 ### Run All Tests
 
 ```bash
-pytest
+pytest tests/
 ```
 
 ### Run Specific Test Suites
@@ -226,11 +226,3 @@ The API returns appropriate HTTP status codes:
 - `413` - Payload too large (>5000 rows)
 - `500` - Server error (config file issues)
 - `503` - Service unavailable (database connection failed)
-
-## License
-
-[Add license information]
-
-## Contributing
-
-[Add contribution guidelines]
