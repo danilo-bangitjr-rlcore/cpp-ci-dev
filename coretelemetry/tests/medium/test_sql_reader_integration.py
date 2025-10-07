@@ -1,5 +1,7 @@
 """Integration tests for SqlReader with real PostgreSQL database."""
 
+from datetime import UTC, datetime
+
 import pytest
 from coretelemetry.services import DBConfig, SqlReader
 from sqlalchemy import Engine
@@ -63,7 +65,7 @@ class TestExecuteQueryIntegration:
 
     @pytest.mark.timeout(10)
     def test_execute_query_all_rows(self, sql_reader_real: SqlReader, sample_metrics_table: tuple[str, str]):
-        """Test query returns all rows without filters."""
+        """Test query returns latest row without filters (LIMIT 1)."""
         _schema_name, table_name = sample_metrics_table
 
         query, params = sql_reader_real.build_query(
@@ -77,8 +79,31 @@ class TestExecuteQueryIntegration:
 
         result = sql_reader_real.execute_query(query, params)
 
-        # Should return only 1 row due to LIMIT 1 (latest value)
         assert len(result) == 1
+        time, temp = result[0]
+        assert str(time) == "2024-01-01 13:00:00+00:00"
+        assert temp is None
+
+    @pytest.mark.timeout(10)
+    def test_execute_query_all_rows_not_null(self, sql_reader_real: SqlReader, sample_metrics_table: tuple[str, str]):
+        """Test query returns latest non-NULL row when not_null=True (LIMIT 1)."""
+        _schema_name, table_name = sample_metrics_table
+
+        query, params = sql_reader_real.build_query(
+            table_name=table_name,
+            column_name="temperature",
+            start_time=None,
+            end_time=None,
+            time_col=True,
+            not_null=True,
+        )
+
+        result = sql_reader_real.execute_query(query, params)
+
+        assert len(result) == 1
+        time, temp = result[0]
+        assert str(time) == "2024-01-01 12:00:00+00:00"
+        assert temp == 27.5
 
     @pytest.mark.timeout(10)
     def test_execute_query_with_start_time(self, sql_reader_real: SqlReader, sample_metrics_table: tuple[str, str]):
@@ -96,8 +121,11 @@ class TestExecuteQueryIntegration:
 
         result = sql_reader_real.execute_query(query, params)
 
-        # Should return 3 rows (11:00, 12:00, 13:00 but 13:00 has NULL temp)
-        assert len(result) >= 2
+        start_time_dt = datetime(2024, 1, 1, 11, 0, 0, tzinfo=UTC)
+        assert len(result) == 3
+        for row in result:
+            time = row[0]
+            assert time >= start_time_dt
 
     @pytest.mark.timeout(10)
     def test_execute_query_with_time_range(self, sql_reader_real: SqlReader, sample_metrics_table: tuple[str, str]):
@@ -115,8 +143,12 @@ class TestExecuteQueryIntegration:
 
         result = sql_reader_real.execute_query(query, params)
 
-        # Should return 2 rows (10:00 and 11:00)
+        start_time_dt = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
+        end_time_dt = datetime(2024, 1, 1, 11, 30, 0, tzinfo=UTC)
         assert len(result) == 2
+        for row in result:
+            time = row[0]
+            assert start_time_dt <= time <= end_time_dt
 
     @pytest.mark.timeout(10)
     def test_execute_query_not_null_filter(self, sql_reader_real: SqlReader, sample_metrics_table: tuple[str, str]):
@@ -134,11 +166,13 @@ class TestExecuteQueryIntegration:
 
         result = sql_reader_real.execute_query(query, params)
 
-        # Should return 3 rows (excludes 13:00 with NULL temperature)
+        start_time_dt = datetime(2024, 1, 1, 10, 0, 0, tzinfo=UTC)
+        end_time_dt = datetime(2024, 1, 1, 14, 0, 0, tzinfo=UTC)
         assert len(result) == 3
-        # Verify no NULL values
         for row in result:
-            assert row[1] is not None
+            time, temp = row[0], row[1]
+            assert start_time_dt <= time <= end_time_dt
+            assert temp is not None
 
 
 class TestGetColumnNamesIntegration:

@@ -166,6 +166,9 @@ class TestCaching:
         """Test that second call uses cached table name."""
         _schema_name, table_name = sample_metrics_table
 
+        # Verify cache starts empty
+        assert "test_agent" not in manager_real.metrics_table_cache
+
         # First call
         manager_real.get_telemetry_data("test_agent", "temperature", None, None)
 
