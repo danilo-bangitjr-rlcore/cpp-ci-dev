@@ -94,6 +94,7 @@ class ServicePersistenceLayer:
         """Persist service state to database."""
         status = service.status()
         process_ids = service.get_process_ids()
+        version = service.get_version()
 
         # Extract service configuration data
         service_type = type(service).__name__
@@ -108,6 +109,7 @@ class ServicePersistenceLayer:
             intended_state=status.intended_state,
             config_path=config_path,
             process_ids=process_ids,
+            version=version,
         )
 
         @backoff.on_exception(
@@ -123,10 +125,19 @@ class ServicePersistenceLayer:
                 cursor.execute(
                     """
                     INSERT OR REPLACE INTO service_states
-                    (service_id, service_type, intended_state, config_path, base_path, process_ids, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+                    (service_id, service_type, intended_state, config_path, base_path,
+                     process_ids, service_version, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                     """,
-                    (service.id, service_type, status.intended_state, config_path, base_path_str, process_ids_json),
+                    (
+                        service.id,
+                        service_type,
+                        status.intended_state,
+                        config_path,
+                        base_path_str,
+                        process_ids_json,
+                        version,
+                    ),
                 )
                 conn.commit()
 
@@ -153,14 +164,15 @@ class ServicePersistenceLayer:
                 cursor = conn.cursor()
                 cursor.execute(
                     """
-                    SELECT service_id, service_type, intended_state, config_path, base_path, process_ids
+                    SELECT service_id, service_type, intended_state, config_path, base_path,
+                           process_ids, service_version
                     FROM service_states
                     """,
                 )
 
                 for (
                     service_id, service_type, intended_state,
-                    config_path, base_path_str, process_ids_json,
+                    config_path, base_path_str, process_ids_json, service_version,
                 ) in cursor.fetchall():
                     service_id = ServiceID(service_id)
                     config_path = Path(config_path)
@@ -174,11 +186,12 @@ class ServicePersistenceLayer:
                         intended_state=intended_state,
                         config_path=str(config_path),
                         process_ids=process_ids,
+                        version=service_version,
                     )
 
                     # Create service instance based on type
                     maybe_service = create_service_instance(
-                        service_id, service_type, config_path, loaded_base_path,
+                        service_id, service_type, config_path, loaded_base_path, service_version,
                     )
                     service = maybe_service.unwrap()
                     if service is None:

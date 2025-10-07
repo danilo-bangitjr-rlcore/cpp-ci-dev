@@ -20,6 +20,7 @@ def create_service_instance(
     service_type: str,
     config_path: Path,
     base_path: Path,
+    version: str | None = None,
 ):
     if service_type == "CoreIOService":
         return CoreIOService(id=service_id, config_path=config_path, base_path=base_path)
