@@ -37,6 +37,9 @@ jobs:
       - name: set up path
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
+      - name: Pull TimescaleDB Docker image
+        run: docker pull timescale/timescaledb:latest-pg17
+
       # linting
       - uses: astral-sh/ruff-action@v1
         with:
