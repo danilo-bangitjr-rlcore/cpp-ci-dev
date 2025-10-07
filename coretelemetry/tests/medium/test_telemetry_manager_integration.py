@@ -182,18 +182,18 @@ class TestCaching:
         assert len(result) >= 1
 
     @pytest.mark.timeout(15)
-    def test_refresh_clears_yaml_cache(
+    def test_clear_cache_clears_yaml_cache(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
-        """Test that refresh clears the YAML config cache."""
+        """Test that clear_cache clears the YAML config cache."""
         _schema_name, _table_name = sample_metrics_table
 
         # Populate cache
         manager_real.get_telemetry_data("test_agent", "temperature", None, None)
         assert "test_agent" in manager_real.metrics_table_cache
 
-        # Refresh
-        manager_real.refresh()
+        # Clear cache
+        manager_real.clear_cache()
 
         # Cache should be cleared
         assert manager_real.metrics_table_cache == {}

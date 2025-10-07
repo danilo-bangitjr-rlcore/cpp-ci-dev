@@ -107,8 +107,8 @@ class TelemetryManager:
         self.config_path = path
         return self.config_path
 
-    # TODO: Needs an endpoint
-    def refresh(self):
+    def clear_cache(self):
+        """Clear all cached data including SQL reader and metrics table cache."""
         self.sql_reader = None
         self.metrics_table_cache = {}
 

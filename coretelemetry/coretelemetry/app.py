@@ -28,7 +28,16 @@ async def root():
 async def health_check():
     return {"status": "healthy"}
 
-# TODO: Add endpoint for refresh, call it clear cache...
+@app.post("/api/v1/telemetry/config/clear_cache")
+async def clear_cache(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
+    """
+    Clear all cached data including YAML configuration cache.
+
+    Returns:
+        Success message confirming cache was cleared
+    """
+    manager.clear_cache()
+    return {"message": "Cache cleared successfully"}
 
 @app.get("/api/v1/telemetry/data/{agent_id}")
 async def get_telemetry(

@@ -58,12 +58,12 @@ class TestConfigManagement:
         assert result == new_path
         assert manager.get_config_path() == new_path
 
-    def test_refresh_clears_cache(self, manager: TelemetryManager) -> None:
-        """Test refresh clears sql_reader and cache."""
+    def test_clear_cache_clears_cache(self, manager: TelemetryManager) -> None:
+        """Test clear_cache clears sql_reader and cache."""
         manager.sql_reader = Mock()
         manager.metrics_table_cache = {"agent1": "table1"}
 
-        manager.refresh()
+        manager.clear_cache()
 
         assert manager.sql_reader is None
         assert manager.metrics_table_cache == {}

@@ -20,7 +20,7 @@ def test_client(db_config_from_engine: DBConfig, sample_config_dir: Path) -> Tes
     manager = get_telemetry_manager()
     manager.set_db_config(db_config_from_engine)
     manager.set_config_path(sample_config_dir)
-    manager.refresh()  # Clear any stale state
+    manager.clear_cache()  # Clear any stale state
 
     return TestClient(app)
 
@@ -201,6 +201,20 @@ class TestConfigEndpoints:
         data = response.json()
         assert "message" in data
         assert data["config_path"] == "/tmp/new_configs"
+
+    @pytest.mark.timeout(10)
+    def test_clear_cache(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
+        """Test POST /api/v1/telemetry/config/clear_cache endpoint."""
+        # First, populate cache by making a request
+        test_client.get("/api/v1/telemetry/data/test_agent?metric=temperature")
+
+        # Clear the cache
+        response = test_client.post("/api/v1/telemetry/config/clear_cache")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "message" in data
+        assert data["message"] == "Cache cleared successfully"
 
 
 class TestCORSHeaders:
