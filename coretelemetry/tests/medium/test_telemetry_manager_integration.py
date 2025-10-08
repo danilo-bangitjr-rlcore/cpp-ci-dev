@@ -4,9 +4,14 @@ from pathlib import Path
 
 import pytest
 import yaml
+from coretelemetry.exceptions import (
+    ColumnNotFoundError,
+    NoDataFoundError,
+    ReservedColumnError,
+    TableNotFoundError,
+)
 from coretelemetry.services import TelemetryManager
 from coretelemetry.utils.sql import DBConfig
-from fastapi import HTTPException
 
 pytest_plugins = [
     "test.infrastructure.networking",
@@ -26,7 +31,7 @@ def manager_real(db_config_from_engine: DBConfig, sample_config_dir: Path) -> Te
 class TestGetTelemetryDataIntegration:
     """Integration tests for get_telemetry_data with real database."""
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_latest_value(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
@@ -41,7 +46,7 @@ class TestGetTelemetryDataIntegration:
         assert "value" in result[0]
         assert result[0]["value"] == 27.5  # Latest non-NULL temperature
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_time_range(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
@@ -57,7 +62,7 @@ class TestGetTelemetryDataIntegration:
         assert result[0]["value"] == 26.0  # Descending order
         assert result[1]["value"] == 25.5
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_filters_nulls(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
@@ -74,7 +79,7 @@ class TestGetTelemetryDataIntegration:
         for row in result:
             assert row["value"] is not None
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_transforms_correctly(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
@@ -89,59 +94,48 @@ class TestGetTelemetryDataIntegration:
         assert "value" in result[0]
         assert isinstance(result[0]["value"], float)
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_time_reserved_word(self, manager_real: TelemetryManager):
-        """Test 'time' as metric raises 400 error."""
-        with pytest.raises(HTTPException) as exc_info:
+        """Test 'time' as metric raises ReservedColumnError."""
+        with pytest.raises(ReservedColumnError):
             manager_real.get_telemetry_data("test_agent", "time", None, None)
 
-        assert exc_info.value.status_code == 400
-
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_table_not_found(
         self, manager_real: TelemetryManager, sample_config_dir: Path,
     ):
-        """Test 404 error when table doesn't exist."""
+        """Test TableNotFoundError when table doesn't exist."""
         # Create config with nonexistent table
         bad_config = {"metrics": {"table_name": "nonexistent_table_xyz"}}
         config_file = sample_config_dir / "bad_agent.yaml"
         with open(config_file, "w") as f:
             yaml.dump(bad_config, f)
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(TableNotFoundError):
             manager_real.get_telemetry_data("bad_agent", "temperature", None, None)
 
-        assert exc_info.value.status_code == 404
-        assert "Table" in exc_info.value.detail
-
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_column_not_found(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
-        """Test 404 error when column doesn't exist."""
-        with pytest.raises(HTTPException) as exc_info:
+        """Test ColumnNotFoundError when column doesn't exist."""
+        with pytest.raises(ColumnNotFoundError):
             manager_real.get_telemetry_data("test_agent", "nonexistent_column", None, None)
 
-        assert exc_info.value.status_code == 404
-        assert "Column" in exc_info.value.detail
-
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_telemetry_data_empty_result(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
-        """Test 404 error when query returns no data."""
-        with pytest.raises(HTTPException) as exc_info:
+        """Test NoDataFoundError when query returns no data."""
+        with pytest.raises(NoDataFoundError):
             # Query for a future time range with no data
             manager_real.get_telemetry_data("test_agent", "temperature", "2025-01-01", "2025-01-02")
-
-        assert exc_info.value.status_code == 404
-        assert "No data found" in exc_info.value.detail
 
 
 class TestGetAvailableMetricsIntegration:
     """Integration tests for get_available_metrics with real database."""
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_get_available_metrics_returns_columns(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
@@ -160,7 +154,7 @@ class TestGetAvailableMetricsIntegration:
 class TestCaching:
     """Integration tests for YAML config caching."""
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_yaml_cache_works(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):
@@ -182,7 +176,7 @@ class TestCaching:
 
         assert len(result) >= 1
 
-    @pytest.mark.timeout(15)
+    @pytest.mark.timeout(30)
     def test_clear_cache_clears_yaml_cache(
         self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
     ):

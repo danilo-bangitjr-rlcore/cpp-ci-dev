@@ -5,9 +5,18 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
+from coretelemetry.exceptions import (
+    ColumnNotFoundError,
+    ConfigFileNotFoundError,
+    ConfigParseError,
+    DatabaseConnectionError,
+    NoDataFoundError,
+    NoMetricsAvailableError,
+    ReservedColumnError,
+    TableNotFoundError,
+)
 from coretelemetry.services import TelemetryManager
 from coretelemetry.utils.sql import DBConfig, SqlReader
-from fastapi import HTTPException
 
 
 @pytest.fixture
@@ -101,20 +110,18 @@ class TestGetMetricsTableName:
     def test_get_metrics_table_name_file_not_found(
         self, manager: TelemetryManager, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 500 when YAML file doesn't exist."""
+        """Test ConfigFileNotFoundError when YAML file doesn't exist."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ConfigFileNotFoundError):
             manager._get_metrics_table_name("nonexistent_agent")
-
-        assert exc_info.value.status_code == 500
 
     def test_get_metrics_table_name_yaml_parse_error(
         self, manager: TelemetryManager, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 500 when YAML parsing fails."""
+        """Test ConfigParseError when YAML parsing fails."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -123,15 +130,13 @@ class TestGetMetricsTableName:
         yaml_file = config_dir / "test_agent.yaml"
         yaml_file.write_text("invalid: yaml: content:")
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ConfigParseError):
             manager._get_metrics_table_name("test_agent")
-
-        assert exc_info.value.status_code == 500
 
     def test_get_metrics_table_name_missing_key(
         self, manager: TelemetryManager, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 500 when table_name key is missing."""
+        """Test ConfigParseError when table_name key is missing."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -140,10 +145,8 @@ class TestGetMetricsTableName:
         yaml_file = config_dir / "test_agent.yaml"
         yaml_file.write_text(yaml.dump({"other_key": "value"}))
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ConfigParseError):
             manager._get_metrics_table_name("test_agent")
-
-        assert exc_info.value.status_code == 500
 
 
 class TestGetTelemetryData:
@@ -152,31 +155,27 @@ class TestGetTelemetryData:
     def test_get_telemetry_data_reserved_column(
         self, manager: TelemetryManager,
     ) -> None:
-        """Test 'time' as metric raises HTTPException 400."""
-        with pytest.raises(HTTPException) as exc_info:
+        """Test 'time' as metric raises ReservedColumnError."""
+        with pytest.raises(ReservedColumnError):
             manager.get_telemetry_data("agent1", "time", None, None)
-
-        assert exc_info.value.status_code == 400
 
     def test_get_telemetry_data_table_not_found(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 404 when table doesn't exist."""
+        """Test TableNotFoundError when table doesn't exist."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
         manager.metrics_table_cache = {"agent1": "metrics_table"}
         mock_sql_reader.table_exists.return_value = False
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(TableNotFoundError):
             manager.get_telemetry_data("agent1", "temperature", None, None)
-
-        assert exc_info.value.status_code == 404
 
     def test_get_telemetry_data_column_not_found(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 404 when column doesn't exist."""
+        """Test ColumnNotFoundError when column doesn't exist."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -184,15 +183,13 @@ class TestGetTelemetryData:
         mock_sql_reader.table_exists.return_value = True
         mock_sql_reader.column_exists.return_value = False
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ColumnNotFoundError):
             manager.get_telemetry_data("agent1", "temperature", None, None)
-
-        assert exc_info.value.status_code == 404
 
     def test_get_telemetry_data_connection_failure(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 503 on connection failure."""
+        """Test DatabaseConnectionError on connection failure."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -202,15 +199,13 @@ class TestGetTelemetryData:
         mock_sql_reader.build_query.return_value = ("SELECT * FROM table", {})
         mock_sql_reader.execute_query.side_effect = Exception("Database error")
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(DatabaseConnectionError):
             manager.get_telemetry_data("agent1", "temperature", None, None)
-
-        assert exc_info.value.status_code == 503
 
     def test_get_telemetry_data_empty_result(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test telemetry data raises 404 when no data found."""
+        """Test NoDataFoundError when no data found."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -220,10 +215,8 @@ class TestGetTelemetryData:
         mock_sql_reader.build_query.return_value = ("SELECT * FROM table", {})
         mock_sql_reader.execute_query.return_value = []
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NoDataFoundError):
             manager.get_telemetry_data("agent1", "temperature", None, None)
-
-        assert exc_info.value.status_code == 404
 
 
 class TestGetAvailableMetrics:
@@ -252,22 +245,20 @@ class TestGetAvailableMetrics:
     def test_get_available_metrics_table_not_found(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 404 when table doesn't exist."""
+        """Test TableNotFoundError when table doesn't exist."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
         manager.metrics_table_cache = {"agent1": "metrics_table"}
         mock_sql_reader.table_exists.return_value = False
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(TableNotFoundError):
             manager.get_available_metrics("agent1")
-
-        assert exc_info.value.status_code == 404
 
     def test_get_available_metrics_connection_failure(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test HTTPException 503 on connection failure."""
+        """Test DatabaseConnectionError on connection failure."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -275,15 +266,13 @@ class TestGetAvailableMetrics:
         mock_sql_reader.table_exists.return_value = True
         mock_sql_reader.get_column_names.side_effect = Exception("Database error")
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(DatabaseConnectionError):
             manager.get_available_metrics("agent1")
-
-        assert exc_info.value.status_code == 503
 
     def test_get_available_metrics_only_time_column(
         self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
-        """Test raises 404 when only time column exists."""
+        """Test NoMetricsAvailableError when only time column exists."""
         config_dir = tmp_path / "configs"
         config_dir.mkdir()
         manager.config_path = config_dir
@@ -291,7 +280,5 @@ class TestGetAvailableMetrics:
         mock_sql_reader.table_exists.return_value = True
         mock_sql_reader.get_column_names.return_value = ["time"]
 
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(NoMetricsAvailableError):
             manager.get_available_metrics("agent1")
-
-        assert exc_info.value.status_code == 404

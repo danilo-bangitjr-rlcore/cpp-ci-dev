@@ -2,8 +2,18 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
+from coretelemetry.exceptions import (
+    ColumnNotFoundError,
+    ConfigFileNotFoundError,
+    ConfigParseError,
+    DatabaseConnectionError,
+    NoDataFoundError,
+    NoMetricsAvailableError,
+    ReservedColumnError,
+    ResultTooLargeError,
+    TableNotFoundError,
+)
 from coretelemetry.utils.sql import DBConfig, SqlReader
-from fastapi import HTTPException
 
 MAX_RESULT_ROWS = 5000
 
@@ -49,26 +59,29 @@ class TelemetryManager:
         yaml_file_path = self.config_path / f"{agent_id}.yaml"
 
         if not yaml_file_path.exists():
-            raise HTTPException(
-                status_code=500,
-                detail=f"Configuration file not found for agent '{agent_id}': {yaml_file_path}",
+            raise ConfigFileNotFoundError(
+                f"Configuration file not found for agent '{agent_id}': {yaml_file_path}",
+                agent_id=agent_id,
+                config_path=str(yaml_file_path),
             )
 
         try:
             with open(yaml_file_path) as f:
                 config_data = yaml.safe_load(f)
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to parse configuration file for agent '{agent_id}': {e!s}",
+            raise ConfigParseError(
+                f"Failed to parse configuration file for agent '{agent_id}': {e!s}",
+                agent_id=agent_id,
+                config_path=str(yaml_file_path),
             ) from e
 
         table_name = (config_data or {}).get('metrics', {}).get('table_name')
 
         if not table_name:
-            raise HTTPException(
-                status_code=500,
-                detail=f"'metrics.table_name' not found in configuration for agent '{agent_id}'",
+            raise ConfigParseError(
+                f"'metrics.table_name' not found in configuration for agent '{agent_id}'",
+                agent_id=agent_id,
+                config_path=str(yaml_file_path),
             )
 
         self.metrics_table_cache[agent_id] = table_name
@@ -86,7 +99,10 @@ class TelemetryManager:
             self.sql_reader = SqlReader(self.db_config)
 
         if metric.lower() == "time":
-            raise HTTPException(status_code=400, detail="'time' is a reserved column and cannot be used as a metric")
+            raise ReservedColumnError(
+                "'time' is a reserved column and cannot be used as a metric",
+                metric=metric,
+            )
 
         if isinstance(start_time, datetime):
             start_time = start_time.isoformat()
@@ -96,10 +112,19 @@ class TelemetryManager:
         table_name = self._get_metrics_table_name(agent_id)
 
         if not self.sql_reader.table_exists(table_name):
-            raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found in database")
+            raise TableNotFoundError(
+                f"Table '{table_name}' not found in database",
+                table_name=table_name,
+                agent_id=agent_id,
+            )
 
         if not self.sql_reader.column_exists(table_name, metric):
-            raise HTTPException(status_code=404, detail=f"Column '{metric}' not found in table '{table_name}'")
+            raise ColumnNotFoundError(
+                f"Column '{metric}' not found in table '{table_name}'",
+                column=metric,
+                table_name=table_name,
+                agent_id=agent_id,
+            )
 
         query, params = self.sql_reader.build_query(
             table_name, metric, start_time, end_time, time_col=True, not_null=True,
@@ -108,17 +133,26 @@ class TelemetryManager:
         try:
             raw_data = self.sql_reader.execute_query(query, params)
         except Exception as e:
-            raise HTTPException(status_code=503, detail=f"Database connection failed: {e!s}") from e
+            raise DatabaseConnectionError(
+                f"Database connection failed: {e!s}",
+                agent_id=agent_id,
+            ) from e
 
         if not raw_data:
             time_range = f" from {start_time} to {end_time}" if start_time or end_time else ""
-            raise HTTPException(
-                status_code=404,
-                detail=f"No data found in table '{table_name}' for column '{metric}'{time_range}",
+            raise NoDataFoundError(
+                f"No data found in table '{table_name}' for column '{metric}'{time_range}",
+                table_name=table_name,
+                metric=metric,
+                agent_id=agent_id,
             )
 
         if len(raw_data) > MAX_RESULT_ROWS:
-            raise HTTPException(status_code=413, detail=f"Result exceeded maximum length of {MAX_RESULT_ROWS} rows")
+            raise ResultTooLargeError(
+                f"Result exceeded maximum length of {MAX_RESULT_ROWS} rows",
+                max_rows=MAX_RESULT_ROWS,
+                actual_rows=len(raw_data),
+            )
 
         return [{"timestamp": row[0], "value": float(row[1])} for row in raw_data]
 
@@ -129,17 +163,29 @@ class TelemetryManager:
         table_name = self._get_metrics_table_name(agent_id)
 
         if not self.sql_reader.table_exists(table_name):
-            raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found in database")
+            raise TableNotFoundError(
+                f"Table '{table_name}' not found in database",
+                table_name=table_name,
+                agent_id=agent_id,
+            )
 
         try:
             all_columns = self.sql_reader.get_column_names(table_name)
         except Exception as e:
-            raise HTTPException(status_code=503, detail=f"Failed to retrieve columns: {e!s}") from e
+            raise DatabaseConnectionError(
+                f"Failed to retrieve columns: {e!s}",
+                agent_id=agent_id,
+                table_name=table_name,
+            ) from e
 
         metrics = [col for col in all_columns if col.lower() != "time"]
 
         if not metrics:
-            raise HTTPException(status_code=404, detail=f"No metrics available for agent '{agent_id}'")
+            raise NoMetricsAvailableError(
+                f"No metrics available for agent '{agent_id}'",
+                agent_id=agent_id,
+                table_name=table_name,
+            )
 
         return {"agent_id": agent_id, "data": metrics}
 

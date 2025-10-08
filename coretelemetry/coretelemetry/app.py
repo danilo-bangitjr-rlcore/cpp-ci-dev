@@ -1,13 +1,14 @@
 from pathlib import Path
 
+from coretelemetry.exceptions import TelemetryException
 from coretelemetry.services import (
     DBConfig,
     TelemetryManager,
     get_telemetry_manager,
 )
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 app = FastAPI(title="CoreTelemetry API")
 
@@ -19,6 +20,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Global exception handler for all domain exceptions
+@app.exception_handler(TelemetryException)
+async def telemetry_exception_handler(request: Request, exc: TelemetryException):
+    """Convert domain exceptions to HTTP responses with appropriate status codes."""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message},
+    )
+
 
 @app.get("/")
 async def root():
