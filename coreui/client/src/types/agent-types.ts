@@ -29,3 +29,12 @@ export type AgentStatusResponse = {
   version?: string;
   uptime?: string;
 };
+
+export type IOStatusResponse = {
+  service_id: string;
+  status: ServiceStatus;
+};
+
+export type IOListResponse = {
+  coreio_services: IOStatusResponse[];
+}

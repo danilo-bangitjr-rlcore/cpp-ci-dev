@@ -56,10 +56,10 @@ const addConfig = async (configName: string): Promise<void> => {
   }
 };
 
-const startAgent = async (configPath: string, ioId?: string): Promise<void> => {
-  const body = ioId
-    ? { config_path: configPath, io_id: ioId }
-    : { config_path: configPath };
+const startAgent = async (config_path: string, coreio_id?: string): Promise<void> => {
+  const body = coreio_id
+    ? { config_path, coreio_id }
+    : { config_path };
 
   const response = await post(API_ENDPOINTS.coredinator.start_agent, {
     headers: {
@@ -69,7 +69,7 @@ const startAgent = async (configPath: string, ioId?: string): Promise<void> => {
   });
 
   if (!response.ok) {
-    throw new Error(`Failed to start agent with config path ${configPath}`);
+    throw new Error(`Failed to start agent with config path ${config_path}`);
   }
 };
 
@@ -128,19 +128,22 @@ export const useAddAgentMutation = () => {
   });
 };
 
-export const useAgentToggleMutation = (configPath: string, agentId: string) => {
+export const useAgentToggleMutation = (
+  configPath: string,
+  agentId: string,
+  existingIOId?: string
+) => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({ action }: { action: 'start' | 'stop' }) => {
       if (action === 'start') {
-        await startAgent(configPath, agentId);
+        await startAgent(configPath, existingIOId || agentId);
       } else {
         await stopAgent(agentId);
       }
     },
     onSettled: () => {
-      // Invalidate agent status query to refresh the data
       queryClient.invalidateQueries({ queryKey: ['agent-status', configPath] });
     },
     onError: (error, { action }) => {

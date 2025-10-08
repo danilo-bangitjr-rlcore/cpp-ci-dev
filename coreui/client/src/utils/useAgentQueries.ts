@@ -4,12 +4,7 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
-import type { AgentStatusResponse, ServiceStatus } from '../types/agent-types';
-
-type IOStatusResponse = {
-  service_id: string;
-  status: ServiceStatus;
-};
+import type { AgentStatusResponse, IOStatusResponse, IOListResponse } from '../types/agent-types';
 
 // Config API functions (unchanged)
 const fetchConfigList = async (): Promise<string[]> => {
@@ -90,6 +85,16 @@ const fetchConfigPath = async (configName: string): Promise<string> => {
   const data: { config_path: string } = await response.json();
   return data.config_path;
 };
+
+
+export const fetchIOs = async (): Promise<IOListResponse> => {
+  const response = await get(API_ENDPOINTS.coredinator.list_io);
+  if (!response.ok) {
+    throw new Error('Failed to fetch I/O list');
+  }
+  const data: IOListResponse = await response.json();
+  return data;
+}
 
 // Hook for fetching config list
 export const useConfigListQuery = () => {
@@ -191,11 +196,10 @@ export const useConfigPathQuery = (configName: string, enabled: boolean = true) 
   });
 };
 
-export const listIOs = async (): Promise<string[]> => {
-  const response = await get(API_ENDPOINTS.coredinator.list_io);
-  if (!response.ok) {
-    throw new Error('Failed to fetch I/O list');
-  }
-  const data: { coreio_services: string[] } = await response.json();
-  return data.coreio_services;
-}
+export const useIOListQuery = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['io-list'],
+    queryFn: fetchIOs,
+    enabled,
+  });
+};

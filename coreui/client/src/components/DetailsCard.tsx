@@ -1,11 +1,5 @@
 import React from 'react';
 
-// interface MetadataItem {
-//   label: string;
-//   value: string;
-//   valueClassName?: string;
-// }
-
 type DetailsCardProps = {
   entityName: string;
   state: 'running' | 'stopped' | 'never-started';
@@ -14,6 +8,7 @@ type DetailsCardProps = {
   metadata: { label: string; value: string }[];
   metadataTitle: string;
   isFirstStart?: boolean;
+  isUsingExisting?: boolean;
 };
 
 const PilotLight: React.FC<{ state: 'running' | 'stopped' | 'never-started' }> = ({ state }) => {
@@ -37,10 +32,13 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
   metadata = [],
   metadataTitle = 'Metadata',
   isFirstStart = false,
+  isUsingExisting = false,
 }) => {
   const getButtonText = () => {
     if (isLoading) return 'Loading...';
-    if (isFirstStart) return 'Start for the First Time';
+    if (isFirstStart) {
+      return isUsingExisting ? 'Start with Existing I/O' : 'Start for the First Time';
+    }
     return state === 'running' ? 'Stop' : 'Start';
   };
 
@@ -49,7 +47,9 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
       return 'bg-red-500 hover:bg-red-600 text-white';
     }
     if (state === 'never-started' || isFirstStart) {
-      return 'bg-blue-500 hover:bg-blue-600 text-white';
+      return isUsingExisting
+        ? 'bg-purple-500 hover:bg-purple-600 text-white'
+        : 'bg-blue-500 hover:bg-blue-600 text-white';
     }
     return 'bg-green-500 hover:bg-green-600 text-white';
   };
@@ -60,6 +60,11 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
         <h3 className="text-xl font-bold text-gray-900 text-center">
           {entityName}
         </h3>
+        {isUsingExisting && (
+          <p className="text-xs text-purple-600 text-center mt-1">
+            Using existing service
+          </p>
+        )}
       </div>
 
       <div className="bg-white p-3 rounded-md border border-gray-200">
@@ -91,9 +96,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
             {metadata.map((item, index) => (
               <div key={index} className="flex justify-between">
                 <span className="text-gray-600">{item.label}:</span>
-                <span
-                  className={'font-medium text-gray-900'}
-                >
+                <span className="font-medium text-gray-900">
                   {item.value}
                 </span>
               </div>
