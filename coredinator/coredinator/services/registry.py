@@ -20,15 +20,16 @@ def create_service_instance(
     service_type: str,
     config_path: Path,
     base_path: Path,
+    version: str | None = None,
 ):
     if service_type == "CoreIOService":
-        return CoreIOService(id=service_id, config_path=config_path, base_path=base_path)
+        return CoreIOService(id=service_id, config_path=config_path, base_path=base_path, version=version)
     if service_type == "CoreRLService":
-        return CoreRLService(id=service_id, config_path=config_path, base_path=base_path)
+        return CoreRLService(id=service_id, config_path=config_path, base_path=base_path, version=version)
     if service_type == "TEPService":
-        return TEPService(id=service_id, config_path=config_path, base_path=base_path)
+        return TEPService(id=service_id, config_path=config_path, base_path=base_path, version=version)
     if service_type == "UAServer":
-        return UAServer(id=service_id, config_path=config_path, base_path=base_path)
+        return UAServer(id=service_id, config_path=config_path, base_path=base_path, version=version)
 
     logger.error(
         "Unknown service type",

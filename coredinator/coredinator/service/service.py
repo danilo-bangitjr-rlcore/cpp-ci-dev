@@ -13,6 +13,7 @@ from coredinator.logging_config import get_logger
 from coredinator.service.protocols import ServiceID, ServiceIntendedState, ServiceState, ServiceStatus
 from coredinator.service.service_monitor import ServiceMonitor
 from coredinator.utils.healthcheck import check_http_health
+from coredinator.utils.semver import parse_version_from_filename
 
 log = get_logger(__name__)
 
@@ -28,7 +29,14 @@ class ServiceConfig:
 
 
 class Service(ABC):
-    def __init__(self, id: ServiceID, base_path: Path, config_path: Path, config: ServiceConfig | None = None):
+    def __init__(
+        self,
+        id: ServiceID,
+        base_path: Path,
+        config_path: Path,
+        config: ServiceConfig | None = None,
+        version: str | None = None,
+    ):
         self._intended_state = ServiceIntendedState.STOPPED
         self.config = config if config is not None else ServiceConfig()
 
@@ -39,6 +47,7 @@ class Service(ABC):
         self._process: Process | None = None
         self._monitor: ServiceMonitor | None = None
         self._failed: bool = False
+        self._version: str | None = version
 
     @abstractmethod
     def _find_executable(self) -> Path:
@@ -68,6 +77,7 @@ class Service(ABC):
 
         try:
             exe_path = self._find_executable()
+            self._version = self._extract_version(exe_path)
             exe = self._ensure_executable(exe_path)
             cfg = self._ensure_config()
 
@@ -75,7 +85,7 @@ class Service(ABC):
             log.debug("Service command args", service_id=self.id, args_preview=args[:2])
 
             self._process = Process.start_in_background(args)
-            log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid)
+            log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid, version=self._version)
 
         except Exception:
             log.exception("Service failed to start", service_id=self.id)
@@ -173,6 +183,10 @@ class Service(ABC):
 
         return False
 
+    def get_version(self) -> str | None:
+        """Get the version of the service executable, or None if not started."""
+        return self._version
+
     # -----------------
     # -- Validations --
     # -----------------
@@ -189,6 +203,12 @@ class Service(ABC):
             raise FileNotFoundError(f"Config file not found at {self._config_path}")
 
         return self._config_path
+
+    def _extract_version(self, exe_path: Path) -> str | None:
+        version_obj = parse_version_from_filename(exe_path.name)
+        if not version_obj:
+            return None
+        return f"{version_obj.major}.{version_obj.minor}.{version_obj.patch}"
 
     def _is_healthy(self) -> bool:
         if not self.config.healthcheck_enabled:

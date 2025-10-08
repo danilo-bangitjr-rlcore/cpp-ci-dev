@@ -80,3 +80,7 @@ class ServiceLike(Protocol):
         Returns True if successfully reattached, False otherwise.
         """
         ...
+
+    def get_version(self) -> str | None:
+        """Get the version of the service executable, or None if not started."""
+        ...
