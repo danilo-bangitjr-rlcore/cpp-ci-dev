@@ -55,7 +55,7 @@ def test_query_schema_qualified(reader_writer_non_public: tuple[DataReader, Data
     # Ensure table exists by writing a dummy data point first
     ts = datetime.now(tz=UTC)
     writer.write(timestamp=ts, name="test", val=1.0)
-    writer.blocking_sync()
+    writer.flush()
 
     df = reader.query("SELECT time FROM :table LIMIT 1")
     assert "time" in df.columns or df.empty
@@ -72,7 +72,7 @@ def test_writer_and_reader_round_trip(reader_writer_non_public: tuple[DataReader
 
     ts = datetime.now(tz=UTC)
     writer.write(timestamp=ts, name="foo", val=1.23)
-    writer.blocking_sync()
+    writer.flush()
 
     df = reader.query("SELECT time, name FROM :table WHERE name='foo'")
     assert not df.empty
