@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.3](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.2...coreio-v0.11.3) (2025-10-08)
+
+
+### Bug Fixes
+
+* **PROD-970:** See Test Coverage Inside CoreIO subprocesses ([e783092](https://github.com/rlcoretech/core-rl/commit/e783092aea548263c30fefff7cc1598bc7d2d0ae))
+
 ## [0.11.2](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.1...coreio-v0.11.2) (2025-10-01)
 
 

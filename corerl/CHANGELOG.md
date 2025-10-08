@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.153.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.152.1...corerl-v0.153.0) (2025-10-08)
+
+
+### Features
+
+* **lib-agent:** make state layernorm default, add flag for all layer norm ([da0b9c7](https://github.com/rlcoretech/core-rl/commit/da0b9c7b7c0cbee8a921e9540cd416cfdfd52c00))
+
 ## [0.152.1](https://github.com/rlcoretech/core-rl/compare/corerl-v0.152.0...corerl-v0.152.1) (2025-10-01)
 
 
