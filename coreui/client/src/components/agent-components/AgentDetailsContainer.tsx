@@ -4,43 +4,62 @@ import DetailsCard from '../DetailsCard';
 import {
   useAgentStatusQuery,
   useAgentToggleMutation,
-  useIOStatusQuery,
   useIOToggleMutation,
 } from '../../utils/useAgentQueries';
+
+type ServiceStatus = {
+  id?: string;
+  state?: string;
+  intended_state?: string;
+  config_path?: string;
+};
+
+function getServiceStatus(statusObj: unknown): ServiceStatus {
+  if (!statusObj) return {};
+  if (Array.isArray(statusObj)) return statusObj[0] || {};
+  return statusObj as ServiceStatus;
+}
+
+function getMetadata(service: ServiceStatus) {
+  return [
+    { label: 'Service ID', value: service.id || 'N/A' },
+    { label: 'Intended State', value: service.intended_state || 'N/A' },
+    {
+      label: 'Config Path',
+      value: service.config_path
+        ? '.../' + service.config_path.split('/').slice(-2).join('/')
+        : 'N/A',
+    },
+  ];
+}
 
 const AgentDetailsContainer: React.FC = () => {
   const params = useParams({ from: '/agents/$config-name/' });
   const configName = params['config-name'];
+  const [isPolling, setIsPolling] = useState(true);
 
-  const [agentData] = useState({
-    agentName: configName,
-    version: '1.0.0',
-    uptime: '5 hours',
-  });
-
-  // Agent status and controls
-  const { data: agentStatusData, isLoading: isLoadingAgentStatus } =
-    useAgentStatusQuery(configName);
+  const {
+    data: agentStatusData,
+    isLoading: isLoadingStatus,
+    refetch: refetchStatus,
+  } = useAgentStatusQuery(configName, isPolling);
 
   const agentToggleMutation = useAgentToggleMutation(configName);
-
-  const agentState =
-    agentStatusData?.state === 'running' || agentStatusData?.state === 'stopped'
-      ? agentStatusData.state
-      : 'stopped';
-  const isAgentLoading = isLoadingAgentStatus || agentToggleMutation.isPending;
-
-  // I/O status and controls
-  const { data: ioStatusData, isLoading: isLoadingIOStatus } =
-    useIOStatusQuery(configName);
-
   const ioToggleMutation = useIOToggleMutation(configName);
 
-  const ioState =
-    ioStatusData?.state === 'running' || ioStatusData?.state === 'stopped'
-      ? ioStatusData.state
+  const corerl = getServiceStatus(agentStatusData?.service_statuses?.corerl);
+  const coreio = getServiceStatus(agentStatusData?.service_statuses?.coreio);
+
+  const getState = (service: ServiceStatus) =>
+    service.state === 'running' || service.state === 'stopped'
+      ? service.state
       : 'stopped';
-  const isIOLoading = isLoadingIOStatus || ioToggleMutation.isPending;
+
+  const agentState = getState(corerl);
+  const ioState = getState(coreio);
+
+  const isAgentLoading = isLoadingStatus || agentToggleMutation.isPending;
+  const isIOLoading = isLoadingStatus || ioToggleMutation.isPending;
 
   const handleToggleAgentStatus = async () => {
     try {
@@ -64,34 +83,55 @@ const AgentDetailsContainer: React.FC = () => {
     }
   };
 
-  const agentMetadata = [
-    { label: 'Version', value: agentData.version },
-    { label: 'Uptime', value: agentData.uptime },
-  ];
+  const handleRefresh = () => {
+    refetchStatus();
+  };
 
-  const ioMetadata = [
-    { label: 'Time since last ingress', value: '23s' },
-    { label: 'Time since last action', value: '1h 12m 43s' },
-    { label: 'Heartbeat', value: '9s' },
-  ];
+  const agentName = agentStatusData?.id || configName;
+  const ioName = coreio.id || 'I/O Service';
+
+  if (isLoadingStatus && !agentStatusData) {
+    return <div className="p-6">Loading agent details...</div>;
+  }
 
   return (
     <div className="space-y-4">
+      <div className="flex justify-center items-center mb-4">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={handleRefresh}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+          >
+            Refresh Status
+          </button>
+          <button
+            onClick={() => setIsPolling(!isPolling)}
+            className={`px-3 py-1 text-sm rounded transition-colors ${
+              isPolling
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-600 text-white hover:bg-gray-700'
+            }`}
+          >
+            {isPolling ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
+          </button>
+        </div>
+      </div>
+
       <div className="flex flex-row gap-6 flex-wrap justify-center p-10">
         <DetailsCard
-          entityName={agentData.agentName}
+          entityName={agentName}
           state={agentState}
           onToggleStatus={handleToggleAgentStatus}
           isLoading={isAgentLoading}
-          metadata={agentMetadata}
+          metadata={getMetadata(corerl)}
           metadataTitle="Agent Metadata"
         />
         <DetailsCard
-          entityName="I/O Service"
+          entityName={ioName}
           state={ioState}
           onToggleStatus={handleToggleIOStatus}
           isLoading={isIOLoading}
-          metadata={ioMetadata}
+          metadata={getMetadata(coreio)}
           metadataTitle="I/O Metadata"
         />
       </div>

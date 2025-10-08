@@ -29,6 +29,8 @@ export const API_ENDPOINTS = {
   coredinator: {
     agent_status: (agentId: string) =>
       `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/status`,
+    io_status: (ioId: string) =>
+      `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/status`,
   },
 } as const;
 
