@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.2.2...coredinator-v0.3.0) (2025-10-08)
+
+
+### Features
+
+* **coredinator:** add event bus proxy server to coredinator ([004ad67](https://github.com/rlcoretech/core-rl/commit/004ad6748ebb331c592eb495b6b285c75b4694a4))
+* **coredinator:** build semver tooling for executable discovery ([06cd81d](https://github.com/rlcoretech/core-rl/commit/06cd81dabfba37b5d84232de15c58d0de145e586))
+* **coredinator:** improve monitor logging ([c21ca4d](https://github.com/rlcoretech/core-rl/commit/c21ca4dfdf40848af61417015727bd75dfc0ed58))
+* **coredinator:** integrate semver executable discovery into services ([a21e019](https://github.com/rlcoretech/core-rl/commit/a21e0192e484dda0ae2617c3f2fc40bc010ca3fd))
+* **coredinator:** move executable discovery into retry loops ([f0b62ba](https://github.com/rlcoretech/core-rl/commit/f0b62ba4fcd336baa85c5cee70cf58e31da243c5))
+* **PROD-1063:** add database migration for version column ([0c361eb](https://github.com/rlcoretech/core-rl/commit/0c361eb480641293940eead9e13624cc4e992530))
+* **PROD-1063:** add service_version column to persistence schema ([c055864](https://github.com/rlcoretech/core-rl/commit/c055864a2d3b2cd0c0fa86357e38010d345dd64b))
+* **PROD-1063:** add version parameter to Service hierarchy ([8e73a1e](https://github.com/rlcoretech/core-rl/commit/8e73a1ec77bedb1c425b44ed1719ea6f1b3c6b00))
+* **PROD-1063:** add version tracking to Service class ([9e17411](https://github.com/rlcoretech/core-rl/commit/9e1741137cdb5b9e4a1c077bc7fa47d0abb5f040))
+* **PROD-1063:** persist and load service versions ([3f6eb60](https://github.com/rlcoretech/core-rl/commit/3f6eb60a9e661c52a0d245c70bda498336fecdba))
+
+
+### Bug Fixes
+
+* **coredinator:** explicitly marked failed startup as failed state ([43dba2d](https://github.com/rlcoretech/core-rl/commit/43dba2d6a5756bab99592eb02c145f1296ec6dc1))
+
 ## [0.2.2](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.2.1...coredinator-v0.2.2) (2025-10-01)
 
 
