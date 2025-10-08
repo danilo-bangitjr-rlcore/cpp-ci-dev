@@ -56,10 +56,11 @@ const addConfig = async (configName: string): Promise<void> => {
   }
 };
 
-const startAgent = async (config_path: string, coreio_id?: string): Promise<void> => {
-  const body = coreio_id
-    ? { config_path, coreio_id }
-    : { config_path };
+const startAgent = async (
+  config_path: string,
+  coreio_id?: string
+): Promise<void> => {
+  const body = coreio_id ? { config_path, coreio_id } : { config_path };
 
   const response = await post(API_ENDPOINTS.coredinator.start_agent, {
     headers: {

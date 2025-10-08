@@ -10,7 +10,10 @@ import {
   useAgentToggleMutation,
   useIOToggleMutation,
 } from '../../utils/useAgentMutations';
-import type { AgentStatusResponse, ServiceStatus } from '../../types/agent-types';
+import type {
+  AgentStatusResponse,
+  ServiceStatus,
+} from '../../types/agent-types';
 import AgentStatusMessages from './AgentStatusMessages';
 import ServiceCardsContainer from './ServiceCardsContainer';
 import ConfigurationMenu from './ConfigurationMenu';
@@ -30,8 +33,11 @@ function extractAgentData(
 ): AgentData | null {
   if (!agentStatusData) return null;
 
-  const hasNoConfigPath = agentStatusData.config_path === null || agentStatusData.config_path === '';
-  const hasNoServices = !agentStatusData.service_statuses?.corerl && !agentStatusData.service_statuses?.coreio;
+  const hasNoConfigPath =
+    agentStatusData.config_path === null || agentStatusData.config_path === '';
+  const hasNoServices =
+    !agentStatusData.service_statuses?.corerl &&
+    !agentStatusData.service_statuses?.coreio;
   const isNeverStarted = hasNoConfigPath && hasNoServices;
 
   const emptySvc: ServiceStatus = {
@@ -57,17 +63,23 @@ export default function AgentDetailsContainer() {
   const [isPolling, setIsPolling] = useState(true);
   const [selectedExistingIO, setSelectedExistingIO] = useState<string>('');
 
-  const { data: agentStatusData, isLoading: isLoadingStatus, refetch: refetchStatus, error: statusError } =
-    useAgentStatusQuery(configName, isPolling);
-  const { data: missingConfigAgents = [] } = useAgentsMissingConfigQuery(isPolling);
+  const {
+    data: agentStatusData,
+    isLoading: isLoadingStatus,
+    refetch: refetchStatus,
+    error: statusError,
+  } = useAgentStatusQuery(configName, isPolling);
+  const { data: missingConfigAgents = [] } =
+    useAgentsMissingConfigQuery(isPolling);
 
   const isConfigMissing = missingConfigAgents.includes(configName);
   const agentData = extractAgentData(agentStatusData, isConfigMissing);
 
-  const { data: resolvedConfigPath, isLoading: isLoadingConfigPath } = 
+  const { data: resolvedConfigPath, isLoading: isLoadingConfigPath } =
     useConfigPathQuery(configName, agentData?.isNeverStarted);
-  const { data: ioListResponse, isLoading: isLoadingIOs } = 
-    useIOListQuery(agentData?.isNeverStarted ?? false);
+  const { data: ioListResponse, isLoading: isLoadingIOs } = useIOListQuery(
+    agentData?.isNeverStarted ?? false
+  );
 
   const agentToggleMutation = useAgentToggleMutation(
     resolvedConfigPath || agentData?.configPath || configName,
@@ -131,7 +143,9 @@ export default function AgentDetailsContainer() {
           <button
             onClick={() => setIsPolling(!isPolling)}
             className={`px-3 py-1 text-sm rounded transition-colors ${
-              isPolling ? 'bg-green-600 text-white hover:bg-green-700' : 'bg-gray-600 text-white hover:bg-gray-700'
+              isPolling
+                ? 'bg-green-600 text-white hover:bg-green-700'
+                : 'bg-gray-600 text-white hover:bg-gray-700'
             }`}
           >
             {isPolling ? 'Auto-refresh ON' : 'Auto-refresh OFF'}
@@ -163,7 +177,10 @@ export default function AgentDetailsContainer() {
         isLoadingConfigPath={isLoadingConfigPath}
       />
 
-      <ConfigurationMenu configName={configName} isConfigMissing={agentData.isConfigMissing} />
+      <ConfigurationMenu
+        configName={configName}
+        isConfigMissing={agentData.isConfigMissing}
+      />
     </div>
   );
 }

@@ -5,7 +5,10 @@ type ConfigurationMenuProps = {
   isConfigMissing: boolean;
 };
 
-export default function ConfigurationMenu({ configName, isConfigMissing }: ConfigurationMenuProps) {
+export default function ConfigurationMenu({
+  configName,
+  isConfigMissing,
+}: ConfigurationMenuProps) {
   if (isConfigMissing) {
     return (
       <div className="max-w-md mx-auto justify-center">
@@ -14,7 +17,8 @@ export default function ConfigurationMenu({ configName, isConfigMissing }: Confi
             Configuration Unavailable
           </h3>
           <p className="text-sm text-gray-600">
-            Create a configuration file for this agent to access configuration options.
+            Create a configuration file for this agent to access configuration
+            options.
           </p>
         </div>
       </div>

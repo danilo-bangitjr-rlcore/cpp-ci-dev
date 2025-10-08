@@ -37,4 +37,4 @@ export type IOStatusResponse = {
 
 export type IOListResponse = {
   coreio_services: IOStatusResponse[];
-}
+};

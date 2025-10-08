@@ -18,22 +18,29 @@ type ServiceCardsContainerProps = {
   isLoadingConfigPath: boolean;
 };
 
-function getServiceState(service: ServiceStatus, isNeverStarted: boolean): 'running' | 'stopped' | 'never-started' {
+function getServiceState(
+  service: ServiceStatus,
+  isNeverStarted: boolean
+): 'running' | 'stopped' | 'never-started' {
   if (isNeverStarted) return 'never-started';
   return service.state === 'running' ? 'running' : 'stopped';
 }
 
-function getServiceMetadata(service: ServiceStatus, resolvedConfigPath?: string) {
+function getServiceMetadata(
+  service: ServiceStatus,
+  resolvedConfigPath?: string
+) {
   return [
     { label: 'Service ID', value: service.id || 'N/A' },
     { label: 'Intended State', value: service.intended_state || 'N/A' },
     {
       label: 'Config Path',
-      value: resolvedConfigPath && resolvedConfigPath !== ''
-        ? '.../' + resolvedConfigPath.split('/').slice(-2).join('/')
-        : service.config_path
-        ? '.../' + service.config_path.split('/').slice(-2).join('/')
-        : 'N/A',
+      value:
+        resolvedConfigPath && resolvedConfigPath !== ''
+          ? '.../' + resolvedConfigPath.split('/').slice(-2).join('/')
+          : service.config_path
+            ? '.../' + service.config_path.split('/').slice(-2).join('/')
+            : 'N/A',
     },
   ];
 }
@@ -50,7 +57,8 @@ export default function ServiceCardsContainer({
 }: ServiceCardsContainerProps) {
   const agentName = agentData.agentId;
   const ioName = selectedExistingIO || agentData.coreio.id || 'I/O Service';
-  const isStartingWithExistingIO = agentData.isNeverStarted && selectedExistingIO;
+  const isStartingWithExistingIO =
+    agentData.isNeverStarted && selectedExistingIO;
 
   return (
     <div className="flex flex-row gap-6 flex-wrap justify-center p-10">
@@ -58,7 +66,9 @@ export default function ServiceCardsContainer({
         entityName={agentName}
         state={getServiceState(agentData.corerl, agentData.isNeverStarted)}
         onToggleStatus={onToggleAgent}
-        isLoading={isTogglingAgent || (agentData.isNeverStarted && isLoadingConfigPath)}
+        isLoading={
+          isTogglingAgent || (agentData.isNeverStarted && isLoadingConfigPath)
+        }
         metadata={getServiceMetadata(agentData.corerl, resolvedConfigPath)}
         metadataTitle="Agent Metadata"
         isFirstStart={agentData.isNeverStarted}
@@ -68,7 +78,9 @@ export default function ServiceCardsContainer({
           entityName={ioName}
           state={getServiceState(agentData.coreio, agentData.isNeverStarted)}
           onToggleStatus={onToggleIO}
-          isLoading={isTogglingIO || (agentData.isNeverStarted && isLoadingConfigPath)}
+          isLoading={
+            isTogglingIO || (agentData.isNeverStarted && isLoadingConfigPath)
+          }
           metadata={getServiceMetadata(agentData.coreio, resolvedConfigPath)}
           metadataTitle="I/O Metadata"
           isFirstStart={agentData.isNeverStarted && !selectedExistingIO}

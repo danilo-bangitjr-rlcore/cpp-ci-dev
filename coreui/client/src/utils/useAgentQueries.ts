@@ -4,7 +4,11 @@ import {
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
-import type { AgentStatusResponse, IOStatusResponse, IOListResponse } from '../types/agent-types';
+import type {
+  AgentStatusResponse,
+  IOStatusResponse,
+  IOListResponse,
+} from '../types/agent-types';
 
 // Config API functions (unchanged)
 const fetchConfigList = async (): Promise<string[]> => {
@@ -86,7 +90,6 @@ const fetchConfigPath = async (configName: string): Promise<string> => {
   return data.config_path;
 };
 
-
 export const fetchIOs = async (): Promise<IOListResponse> => {
   const response = await get(API_ENDPOINTS.coredinator.list_io);
   if (!response.ok) {
@@ -94,7 +97,7 @@ export const fetchIOs = async (): Promise<IOListResponse> => {
   }
   const data: IOListResponse = await response.json();
   return data;
-}
+};
 
 // Hook for fetching config list
 export const useConfigListQuery = () => {
@@ -188,7 +191,10 @@ export const useAgentsMissingConfigQuery = (isPolling: boolean = true) => {
   });
 };
 
-export const useConfigPathQuery = (configName: string, enabled: boolean = true) => {
+export const useConfigPathQuery = (
+  configName: string,
+  enabled: boolean = true
+) => {
   return useQuery({
     queryKey: ['config-path', configName],
     queryFn: () => fetchConfigPath(configName),

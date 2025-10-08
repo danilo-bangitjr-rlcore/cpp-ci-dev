@@ -11,7 +11,9 @@ type DetailsCardProps = {
   isUsingExisting?: boolean;
 };
 
-const PilotLight: React.FC<{ state: 'running' | 'stopped' | 'never-started' }> = ({ state }) => {
+const PilotLight: React.FC<{
+  state: 'running' | 'stopped' | 'never-started';
+}> = ({ state }) => {
   const imagePath =
     state === 'running'
       ? '/app/assets/pilot_light_green.svg'
@@ -37,7 +39,9 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
   const getButtonText = () => {
     if (isLoading) return 'Loading...';
     if (isFirstStart) {
-      return isUsingExisting ? 'Start with Existing I/O' : 'Start for the First Time';
+      return isUsingExisting
+        ? 'Start with Existing I/O'
+        : 'Start for the First Time';
     }
     return state === 'running' ? 'Stop' : 'Start';
   };
@@ -96,9 +100,7 @@ const DetailsCard: React.FC<DetailsCardProps> = ({
             {metadata.map((item, index) => (
               <div key={index} className="flex justify-between">
                 <span className="text-gray-600">{item.label}:</span>
-                <span className="font-medium text-gray-900">
-                  {item.value}
-                </span>
+                <span className="font-medium text-gray-900">{item.value}</span>
               </div>
             ))}
           </div>
