@@ -2,7 +2,7 @@ import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
+from corerl.data_pipeline.virtual.seasonal_tags import SeasonalTagIncluder
 from corerl.tags.seasonal import SeasonalTagConfig, SeasonalTags
 from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import BasicTagConfig

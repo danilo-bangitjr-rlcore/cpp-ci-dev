@@ -41,3 +41,6 @@ class SeasonalTagIncluder:
             pf.data[SeasonalTags.time_of_day] = day_seconds
 
         return pf
+
+    def reset(self):
+        pass

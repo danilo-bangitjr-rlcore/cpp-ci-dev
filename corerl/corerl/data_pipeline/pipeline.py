@@ -22,15 +22,16 @@ from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
-from corerl.data_pipeline.deltaize_tags import DeltaizeTags, log_delta_tags
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.pipeline_config import PipelineConfig
-from corerl.data_pipeline.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter
 from corerl.data_pipeline.utils import invoke_stage_per_tag
-from corerl.data_pipeline.virtual_tags import VirtualTagComputer, log_virtual_tags
+from corerl.data_pipeline.virtual.computed_tags import ComputedTagStage
+from corerl.data_pipeline.virtual.deltaize_tags import DeltaizeTags, log_delta_tags
+from corerl.data_pipeline.virtual.seasonal_tags import SeasonalTagIncluder
+from corerl.data_pipeline.virtual.virtual_tags import VirtualTagComputer, log_virtual_tags
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.state import AppState
 from corerl.tags.components.bounds import BoundedTag
@@ -114,9 +115,12 @@ class Pipeline:
         self.tags = cfg.tags
 
         # initialization all stateful stages
-        self.seasonal_tags = SeasonalTagIncluder(self.tags)
-        self.delta_tags = DeltaizeTags(self.tags, cfg.delta, app_state)
-        self.virtual_tags = VirtualTagComputer(self.tags, app_state)
+        self.computed_tags = ComputedTagStage(
+            self.tags,
+            SeasonalTagIncluder(self.tags),
+            DeltaizeTags(self.tags, cfg.delta, app_state),
+            VirtualTagComputer(self.tags, app_state),
+        )
         self.preprocessor = Preprocessor(self.tags)
         self.bound_checkers = {
             tag.name: bound_checker_builder(tag.operating_range, self.preprocessor, tag.operating_range_tol)
@@ -148,9 +152,7 @@ class Pipeline:
             data_mode: defaultdict(list) for data_mode in DataMode}
 
         self._stage_invokers: dict[StageCode, Callable[[PipelineFrame], PipelineFrame]] = {
-            StageCode.SEASONAL:   self.seasonal_tags,
-            StageCode.DELTA:      self.delta_tags,
-            StageCode.VIRTUAL:    self.virtual_tags,
+            StageCode.VIRTUAL:   self.computed_tags,
             StageCode.INIT:       lambda pf: pf,
             StageCode.TRIGGER:    self.tag_trigger,
             StageCode.PREPROCESS: self.preprocessor,
@@ -166,8 +168,6 @@ class Pipeline:
         }
 
         self.default_stages = (
-            StageCode.SEASONAL,
-            StageCode.DELTA,
             StageCode.VIRTUAL,
             StageCode.INIT,
             StageCode.TRIGGER,

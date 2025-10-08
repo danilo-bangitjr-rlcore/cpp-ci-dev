@@ -3,6 +3,7 @@ from functools import cached_property
 
 from lib_config.config import config
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.list import filter_instance
 from pydantic import Field
 
 from corerl.data_pipeline.constructors.constructor import Constructor
@@ -26,7 +27,7 @@ class DeltaizeTags(Constructor):
         super().__init__(tag_cfgs)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        transformed_parts, tag_names = self._transform_tags(pf, StageCode.DELTA)
+        transformed_parts, tag_names = self._transform_tags(pf, StageCode.VIRTUAL)
         for tag_name, transformed_part in zip(tag_names, transformed_parts, strict=True):
             pf.data[tag_name] = transformed_part
 
@@ -54,12 +55,14 @@ def log_delta_tags(
     Log denormalized delta tags after outliers have been filtered and NaNs have been imputed
     """
     raw_data = prep_stage.inverse(pf.data)
-    for tag_cfg in tag_cfgs:
-        if isinstance(tag_cfg, DeltaTagConfig):
-            if len(raw_data[tag_cfg.name]) > 0:
-                val = float(raw_data[tag_cfg.name].values[-1])
-                app_state.metrics.write(
-                    agent_step=app_state.agent_step,
-                    metric="DELTA-" + tag_cfg.name,
-                    value=val,
-                )
+    delta_cfgs = filter_instance(DeltaTagConfig, tag_cfgs)
+    for tag_cfg in delta_cfgs:
+        if len(raw_data[tag_cfg.name]) == 0:
+            continue
+
+        val = float(raw_data[tag_cfg.name].values[-1])
+        app_state.metrics.write(
+            agent_step=app_state.agent_step,
+            metric="DELTA-" + tag_cfg.name,
+            value=val,
+        )

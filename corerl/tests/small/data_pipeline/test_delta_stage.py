@@ -3,8 +3,8 @@ import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.data_pipeline.datatypes import DataMode
-from corerl.data_pipeline.deltaize_tags import DeltaizeTags
 from corerl.data_pipeline.pipeline import Pipeline
+from corerl.data_pipeline.virtual.deltaize_tags import DeltaizeTags
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
