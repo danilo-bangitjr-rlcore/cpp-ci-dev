@@ -80,6 +80,17 @@ const fetchAgentsMissingConfig = async (): Promise<string[]> => {
   return data.agents;
 };
 
+const fetchConfigPath = async (configName: string): Promise<string> => {
+  const response = await get(
+    API_ENDPOINTS.configs.get_clean_config_path(configName)
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch config path for ${configName}`);
+  }
+  const data: { config_path: string } = await response.json();
+  return data.config_path;
+};
+
 // Hook for fetching config list
 export const useConfigListQuery = () => {
   return useQuery({
@@ -171,3 +182,20 @@ export const useAgentsMissingConfigQuery = (isPolling: boolean = true) => {
     staleTime: 30000,
   });
 };
+
+export const useConfigPathQuery = (configName: string, enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['config-path', configName],
+    queryFn: () => fetchConfigPath(configName),
+    enabled: !!configName && enabled,
+  });
+};
+
+export const listIOs = async (): Promise<string[]> => {
+  const response = await get(API_ENDPOINTS.coredinator.list_io);
+  if (!response.ok) {
+    throw new Error('Failed to fetch I/O list');
+  }
+  const data: { coreio_services: string[] } = await response.json();
+  return data.coreio_services;
+}

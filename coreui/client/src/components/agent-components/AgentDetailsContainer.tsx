@@ -4,6 +4,7 @@ import DetailsCard from '../DetailsCard';
 import {
   useAgentStatusQuery,
   useAgentsMissingConfigQuery,
+  useConfigPathQuery,
 } from '../../utils/useAgentQueries';
 import {
   useAgentToggleMutation,
@@ -53,17 +54,20 @@ function extractAgentData(
   };
 }
 
-function getServiceState(service: ServiceStatus): 'running' | 'stopped' {
+function getServiceState(service: ServiceStatus, isNeverStarted: boolean): 'running' | 'stopped' | 'never-started' {
+  if (isNeverStarted) return 'never-started';
   return service.state === 'running' ? 'running' : 'stopped';
 }
 
-function getServiceMetadata(service: ServiceStatus) {
+function getServiceMetadata(service: ServiceStatus, resolvedConfigPath?: string) {
   return [
     { label: 'Service ID', value: service.id || 'N/A' },
     { label: 'Intended State', value: service.intended_state || 'N/A' },
     {
       label: 'Config Path',
-      value: service.config_path
+      value: resolvedConfigPath && resolvedConfigPath !== ''
+        ? '.../' + resolvedConfigPath.split('/').slice(-2).join('/')
+        : service.config_path
         ? '.../' + service.config_path.split('/').slice(-2).join('/')
         : 'N/A',
     },
@@ -88,25 +92,31 @@ const AgentDetailsContainer: React.FC = () => {
   const isConfigMissing = missingConfigAgents.includes(configName);
   const agentData = extractAgentData(agentStatusData, isConfigMissing);
 
+  // Fetch config path when agent has never been started
+  const {
+    data: resolvedConfigPath,
+    isLoading: isLoadingConfigPath,
+  } = useConfigPathQuery(configName, agentData?.isNeverStarted);
+
   const agentToggleMutation = useAgentToggleMutation(
-    agentData?.configPath || configName,
+    resolvedConfigPath || agentData?.configPath || configName,
     agentData?.agentId || ''
   );
 
   const ioToggleMutation = useIOToggleMutation(
-    agentData?.configPath || configName,
+    resolvedConfigPath || agentData?.configPath || configName,
     agentData?.coreio?.id || ''
   );
 
   const handleToggleAgent = async () => {
     if (!agentData) return;
 
-    const currentState = getServiceState(agentData.corerl);
+    const currentState = getServiceState(agentData.corerl, agentData.isNeverStarted);
     const action = currentState === 'running' ? 'stop' : 'start';
 
     try {
       await agentToggleMutation.mutateAsync({ action });
-      refetchStatus();
+      await refetchStatus();
     } catch (error) {
       console.error('Failed to toggle agent status:', error);
     }
@@ -115,12 +125,12 @@ const AgentDetailsContainer: React.FC = () => {
   const handleToggleIO = async () => {
     if (!agentData) return;
 
-    const currentState = getServiceState(agentData.coreio);
+    const currentState = getServiceState(agentData.coreio, agentData.isNeverStarted);
     const action = currentState === 'running' ? 'stop' : 'start';
 
     try {
       await ioToggleMutation.mutateAsync({ action });
-      refetchStatus();
+      await refetchStatus();
     } catch (error) {
       console.error('Failed to toggle I/O status:', error);
     }
@@ -205,23 +215,40 @@ const AgentDetailsContainer: React.FC = () => {
       )}
 
       {agentData.isNeverStarted && (
-        <div className="mx-auto max-w-md p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <div className="flex items-center space-x-2">
+        <div className="mx-auto max-w-md p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <div className="flex items-start space-x-2">
             <svg
-              className="w-5 h-5 text-yellow-600"
+              className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
               fill="currentColor"
               viewBox="0 0 24 24"
             >
               <path
                 fillRule="evenodd"
-                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM12 9a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0112 9zm0 8a1 1 0 100-2 1 1 0 000 2z"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
                 clipRule="evenodd"
               />
             </svg>
-            <p className="text-sm font-medium text-yellow-800">
-              This agent has never been started. Service information is not
-              available.
-            </p>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">
+                This agent has never been started
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Before starting, please verify the configuration path:
+              </p>
+              {isLoadingConfigPath ? (
+                <p className="text-xs text-blue-700 mt-2 font-mono bg-blue-100 p-2 rounded">
+                  Loading config path...
+                </p>
+              ) : resolvedConfigPath ? (
+                <p className="text-xs text-blue-700 mt-2 font-mono bg-blue-100 p-2 rounded break-all">
+                  {resolvedConfigPath}
+                </p>
+              ) : (
+                <p className="text-xs text-red-700 mt-2">
+                  Could not resolve config path
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -247,19 +274,21 @@ const AgentDetailsContainer: React.FC = () => {
       <div className="flex flex-row gap-6 flex-wrap justify-center p-10">
         <DetailsCard
           entityName={agentName}
-          state={getServiceState(agentData.corerl)}
+          state={getServiceState(agentData.corerl, agentData.isNeverStarted)}
           onToggleStatus={handleToggleAgent}
-          isLoading={agentToggleMutation.isPending}
-          metadata={getServiceMetadata(agentData.corerl)}
+          isLoading={agentToggleMutation.isPending || (agentData.isNeverStarted && isLoadingConfigPath)}
+          metadata={getServiceMetadata(agentData.corerl, resolvedConfigPath)}
           metadataTitle="Agent Metadata"
+          isFirstStart={agentData.isNeverStarted}
         />
         <DetailsCard
           entityName={ioName}
-          state={getServiceState(agentData.coreio)}
+          state={getServiceState(agentData.coreio, agentData.isNeverStarted)}
           onToggleStatus={handleToggleIO}
-          isLoading={ioToggleMutation.isPending}
-          metadata={getServiceMetadata(agentData.coreio)}
+          isLoading={ioToggleMutation.isPending || (agentData.isNeverStarted && isLoadingConfigPath)}
+          metadata={getServiceMetadata(agentData.coreio, resolvedConfigPath)}
           metadataTitle="I/O Metadata"
+          isFirstStart={agentData.isNeverStarted}
         />
       </div>
 
