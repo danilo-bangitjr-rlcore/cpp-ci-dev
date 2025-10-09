@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from types import MappingProxyType
 
 import pytest
-from corerl.sql_logging.sql_logging import SQLEngineConfig
+from corerl.configs.sql_logging.sql_engine import SQLEngineConfig
 from docker.models.containers import Container
 from lib_sql.engine import get_sql_engine
 from sqlalchemy import text

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import TYPE_CHECKING
 
 from lib_config.config import MISSING, computed, config
@@ -8,7 +7,6 @@ from lib_config.config import MISSING, computed, config
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
-logger = logging.getLogger(__name__)
 
 @config()
 class SQLEngineConfig:

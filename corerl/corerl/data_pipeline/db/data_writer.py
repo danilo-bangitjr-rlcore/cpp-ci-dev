@@ -9,7 +9,7 @@ from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_sql.writers.core.static_schema_sql_writer import StaticSchemaSqlWriter
 from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 
-from corerl.sql_logging.sql_logging import SQLEngineConfig
+from corerl.configs.sql_logging.sql_engine import SQLEngineConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
