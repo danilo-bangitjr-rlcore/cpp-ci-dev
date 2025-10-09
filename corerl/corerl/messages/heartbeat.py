@@ -1,23 +1,14 @@
 import logging
 import threading
-from datetime import timedelta
 from threading import Thread
 
 from coreio.utils.io_events import OPCUANodeWriteValue
-from lib_config.config import config
 
+from corerl.configs.messages.heartbeat import HeartbeatConfig
 from corerl.utils.coreio import CoreIOLink
 from corerl.utils.time import clock_generator, wait_for_timestamp
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class HeartbeatConfig:
-    connection_id: str | None = None
-    heartbeat_node_id: str | None = None
-    heartbeat_period: timedelta = timedelta(seconds=5)
-    max_counter: int = 1000
 
 
 def heartbeat(cfg: HeartbeatConfig, coreio_origin: str):

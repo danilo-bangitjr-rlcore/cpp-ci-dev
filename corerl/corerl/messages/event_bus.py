@@ -2,8 +2,8 @@ from collections import deque
 
 from lib_utils.messages.base_event_bus import BaseEventBus, Callback
 
+from corerl.configs.messages.event_bus import EventBusConfig
 from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
-from corerl.messages.factory import EventBusConfig
 
 
 class EventBus(BaseEventBus[RLEvent, RLEventTopic, RLEventType]):

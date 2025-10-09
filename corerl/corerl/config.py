@@ -17,7 +17,6 @@ from corerl.eval.config import EvalConfig
 from corerl.eval.evals.base import EvalDBConfig
 from corerl.eval.metrics.base import MetricsDBConfig
 from corerl.interaction.factory import InteractionConfig
-from corerl.messages.factory import EventBusConfig
 
 
 @config()
