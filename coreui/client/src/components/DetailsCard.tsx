@@ -1,21 +1,19 @@
 import React from 'react';
 
-interface MetadataItem {
-  label: string;
-  value: string;
-  valueClassName?: string;
-}
-
-interface DetailsProps {
+type DetailsCardProps = {
   entityName: string;
-  state: 'running' | 'stopped';
+  state: 'running' | 'stopped' | 'never-started';
   onToggleStatus: () => void;
-  isLoading?: boolean;
-  metadata?: MetadataItem[];
-  metadataTitle?: string;
-}
+  isLoading: boolean;
+  metadata: { label: string; value: string }[];
+  metadataTitle: string;
+  isFirstStart?: boolean;
+  isUsingExisting?: boolean;
+};
 
-const PilotLight: React.FC<{ state: 'running' | 'stopped' }> = ({ state }) => {
+const PilotLight: React.FC<{
+  state: 'running' | 'stopped' | 'never-started';
+}> = ({ state }) => {
   const imagePath =
     state === 'running'
       ? '/app/assets/pilot_light_green.svg'
@@ -28,20 +26,49 @@ const PilotLight: React.FC<{ state: 'running' | 'stopped' }> = ({ state }) => {
   );
 };
 
-const DetailsCard: React.FC<DetailsProps> = ({
+const DetailsCard: React.FC<DetailsCardProps> = ({
   entityName,
   state,
   onToggleStatus,
   isLoading = false,
   metadata = [],
   metadataTitle = 'Metadata',
+  isFirstStart = false,
+  isUsingExisting = false,
 }) => {
+  const getButtonText = () => {
+    if (isLoading) return 'Loading...';
+    if (isFirstStart) {
+      return isUsingExisting
+        ? 'Start with Existing I/O'
+        : 'Start for the First Time';
+    }
+    return state === 'running' ? 'Stop' : 'Start';
+  };
+
+  const getButtonStyle = () => {
+    if (state === 'running') {
+      return 'bg-red-500 hover:bg-red-600 text-white';
+    }
+    if (state === 'never-started' || isFirstStart) {
+      return isUsingExisting
+        ? 'bg-purple-500 hover:bg-purple-600 text-white'
+        : 'bg-blue-500 hover:bg-blue-600 text-white';
+    }
+    return 'bg-green-500 hover:bg-green-600 text-white';
+  };
+
   return (
     <div className="border border-gray-300 bg-gray-100 p-4 rounded-lg shadow-sm space-y-4 w-1/3">
       <div className="bg-white p-3 rounded-md border border-gray-200">
         <h3 className="text-xl font-bold text-gray-900 text-center">
           {entityName}
         </h3>
+        {isUsingExisting && (
+          <p className="text-xs text-purple-600 text-center mt-1">
+            Using existing service
+          </p>
+        )}
       </div>
 
       <div className="bg-white p-3 rounded-md border border-gray-200">
@@ -56,13 +83,11 @@ const DetailsCard: React.FC<DetailsProps> = ({
         <button
           onClick={onToggleStatus}
           disabled={isLoading}
-          className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${
-            state === 'running'
-              ? 'bg-red-500 hover:bg-red-600 text-white'
-              : 'bg-green-500 hover:bg-green-600 text-white'
-          } ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+          className={`w-full py-2 px-4 rounded-md font-medium transition-colors ${getButtonStyle()} ${
+            isLoading ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
         >
-          {isLoading ? 'Processing...' : state === 'running' ? 'Stop' : 'Start'}
+          {getButtonText()}
         </button>
       </div>
 
@@ -75,11 +100,7 @@ const DetailsCard: React.FC<DetailsProps> = ({
             {metadata.map((item, index) => (
               <div key={index} className="flex justify-between">
                 <span className="text-gray-600">{item.label}:</span>
-                <span
-                  className={`font-medium ${item.valueClassName || 'text-gray-900'}`}
-                >
-                  {item.value}
-                </span>
+                <span className="font-medium text-gray-900">{item.value}</span>
               </div>
             ))}
           </div>

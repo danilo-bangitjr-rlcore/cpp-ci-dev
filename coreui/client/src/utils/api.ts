@@ -25,12 +25,22 @@ export const API_ENDPOINTS = {
       `${API_BASE_URL}/v1/config/raw/${configName}/tags`,
     update_raw_tag: (configName: string, tagIndex: number) =>
       `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
+    get_clean_config_path: (configName: string) =>
+      `${API_BASE_URL}/v1/config/${configName}/config_path`,
   },
   coredinator: {
     agent_status: (agentId: string) =>
       `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/status`,
     io_status: (ioId: string) =>
       `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/status`,
+    start_agent: `${API_BASE_URL}/v1/coredinator/api/agents/start`,
+    stop_agent: (agentId: string) =>
+      `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/stop`,
+    start_io: `${API_BASE_URL}/v1/coredinator/api/io/start`,
+    stop_io: (ioId: string) =>
+      `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/stop`,
+    agents_missing_config: `${API_BASE_URL}/v1/coredinator/agents/missing-config`,
+    list_io: `${API_BASE_URL}/v1/coredinator/api/io/`,
   },
 } as const;
 

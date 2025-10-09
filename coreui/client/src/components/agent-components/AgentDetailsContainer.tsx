@@ -1,97 +1,132 @@
-import React, { useState } from 'react';
-import { Link, useParams } from '@tanstack/react-router';
-import DetailsCard from '../DetailsCard';
+import { useState } from 'react';
+import { useParams } from '@tanstack/react-router';
 import {
   useAgentStatusQuery,
+  useAgentsMissingConfigQuery,
+  useConfigPathQuery,
+  useIOListQuery,
+} from '../../utils/useAgentQueries';
+import {
   useAgentToggleMutation,
   useIOToggleMutation,
-} from '../../utils/useAgentQueries';
+} from '../../utils/useAgentMutations';
+import type {
+  AgentStatusResponse,
+  ServiceStatus,
+} from '../../types/agent-types';
+import AgentStatusMessages from './AgentStatusMessages';
+import ServiceCardsContainer from './ServiceCardsContainer';
+import ConfigurationMenu from './ConfigurationMenu';
 
-type ServiceStatus = {
-  id?: string;
-  state?: string;
-  intended_state?: string;
-  config_path?: string;
+type AgentData = {
+  agentId: string;
+  configPath: string;
+  corerl: ServiceStatus;
+  coreio: ServiceStatus;
+  isNeverStarted: boolean;
+  isConfigMissing: boolean;
 };
 
-function getServiceStatus(statusObj: unknown): ServiceStatus {
-  if (!statusObj) return {};
-  if (Array.isArray(statusObj)) return statusObj[0] || {};
-  return statusObj as ServiceStatus;
+function extractAgentData(
+  agentStatusData: AgentStatusResponse | undefined,
+  isConfigMissing: boolean
+): AgentData | null {
+  if (!agentStatusData) return null;
+
+  const hasNoConfigPath =
+    agentStatusData.config_path === null || agentStatusData.config_path === '';
+  const hasNoServices =
+    !agentStatusData.service_statuses?.corerl &&
+    !agentStatusData.service_statuses?.coreio;
+  const isNeverStarted = hasNoConfigPath && hasNoServices;
+
+  const emptySvc: ServiceStatus = {
+    id: '',
+    state: '',
+    intended_state: '',
+    config_path: null,
+  };
+
+  return {
+    agentId: agentStatusData.id || '',
+    configPath: agentStatusData.config_path || '',
+    corerl: agentStatusData.service_statuses?.corerl || emptySvc,
+    coreio: agentStatusData.service_statuses?.coreio || emptySvc,
+    isNeverStarted,
+    isConfigMissing,
+  };
 }
 
-function getMetadata(service: ServiceStatus) {
-  return [
-    { label: 'Service ID', value: service.id || 'N/A' },
-    { label: 'Intended State', value: service.intended_state || 'N/A' },
-    {
-      label: 'Config Path',
-      value: service.config_path
-        ? '.../' + service.config_path.split('/').slice(-2).join('/')
-        : 'N/A',
-    },
-  ];
-}
-
-const AgentDetailsContainer: React.FC = () => {
+export default function AgentDetailsContainer() {
   const params = useParams({ from: '/agents/$config-name/' });
   const configName = params['config-name'];
   const [isPolling, setIsPolling] = useState(true);
+  const [selectedExistingIO, setSelectedExistingIO] = useState<string>('');
 
   const {
     data: agentStatusData,
     isLoading: isLoadingStatus,
     refetch: refetchStatus,
+    error: statusError,
   } = useAgentStatusQuery(configName, isPolling);
+  const { data: missingConfigAgents = [] } =
+    useAgentsMissingConfigQuery(isPolling);
 
-  const agentToggleMutation = useAgentToggleMutation(configName);
-  const ioToggleMutation = useIOToggleMutation(configName);
+  const isConfigMissing = missingConfigAgents.includes(configName);
+  const agentData = extractAgentData(agentStatusData, isConfigMissing);
 
-  const corerl = getServiceStatus(agentStatusData?.service_statuses?.corerl);
-  const coreio = getServiceStatus(agentStatusData?.service_statuses?.coreio);
+  const { data: resolvedConfigPath, isLoading: isLoadingConfigPath } =
+    useConfigPathQuery(configName, agentData?.isNeverStarted);
+  const { data: ioListResponse, isLoading: isLoadingIOs } = useIOListQuery(
+    agentData?.isNeverStarted ?? false
+  );
 
-  const getState = (service: ServiceStatus) =>
-    service.state === 'running' || service.state === 'stopped'
-      ? service.state
-      : 'stopped';
+  const agentToggleMutation = useAgentToggleMutation(
+    resolvedConfigPath || agentData?.configPath || configName,
+    agentData?.agentId || '',
+    selectedExistingIO || undefined
+  );
 
-  const agentState = getState(corerl);
-  const ioState = getState(coreio);
+  const ioToggleMutation = useIOToggleMutation(
+    resolvedConfigPath || agentData?.configPath || configName,
+    agentData?.coreio?.id || ''
+  );
 
-  const isAgentLoading = isLoadingStatus || agentToggleMutation.isPending;
-  const isIOLoading = isLoadingStatus || ioToggleMutation.isPending;
-
-  const handleToggleAgentStatus = async () => {
-    try {
-      await agentToggleMutation.mutateAsync({
-        configName,
-        action: agentState === 'running' ? 'stop' : 'start',
-      });
-    } catch (error) {
-      console.error('Failed to toggle agent status:', error);
-    }
+  const handleToggleAgent = async () => {
+    if (!agentData) return;
+    const action = agentData.corerl.state === 'running' ? 'stop' : 'start';
+    await agentToggleMutation.mutateAsync({ action });
+    setSelectedExistingIO('');
+    await refetchStatus();
   };
 
-  const handleToggleIOStatus = async () => {
-    try {
-      await ioToggleMutation.mutateAsync({
-        configName,
-        action: ioState === 'running' ? 'stop' : 'start',
-      });
-    } catch (error) {
-      console.error('Failed to toggle I/O status:', error);
-    }
+  const handleToggleIO = async () => {
+    if (!agentData) return;
+    const action = agentData.coreio.state === 'running' ? 'stop' : 'start';
+    await ioToggleMutation.mutateAsync({ action });
+    await refetchStatus();
   };
 
-  const handleRefresh = () => {
-    refetchStatus();
-  };
-
-  const agentName = agentStatusData?.id || configName;
-  const ioName = coreio.id || 'I/O Service';
-
-  if (isLoadingStatus && !agentStatusData) {
+  if (isLoadingStatus && !agentData) {
     return <div className="p-6">Loading agent details...</div>;
+  }
+
+  if (statusError) {
+    return (
+      <div className="p-6 text-red-600">
+        Error loading agent details: {statusError.message}
+        <button
+          onClick={() => refetchStatus()}
+          className="ml-4 px-3 py-1 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!agentData) {
+    return <div className="p-6">No agent data available</div>;
   }
 
   return (
@@ -99,10 +134,11 @@ const AgentDetailsContainer: React.FC = () => {
       <div className="flex justify-center items-center mb-4">
         <div className="flex items-center space-x-2">
           <button
-            onClick={handleRefresh}
-            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            onClick={() => refetchStatus()}
+            disabled={isLoadingStatus}
+            className="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Refresh Status
+            {isLoadingStatus ? 'Refreshing...' : 'Refresh Status'}
           </button>
           <button
             onClick={() => setIsPolling(!isPolling)}
@@ -117,54 +153,34 @@ const AgentDetailsContainer: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex flex-row gap-6 flex-wrap justify-center p-10">
-        <DetailsCard
-          entityName={agentName}
-          state={agentState}
-          onToggleStatus={handleToggleAgentStatus}
-          isLoading={isAgentLoading}
-          metadata={getMetadata(corerl)}
-          metadataTitle="Agent Metadata"
-        />
-        <DetailsCard
-          entityName={ioName}
-          state={ioState}
-          onToggleStatus={handleToggleIOStatus}
-          isLoading={isIOLoading}
-          metadata={getMetadata(coreio)}
-          metadataTitle="I/O Metadata"
-        />
-      </div>
+      <AgentStatusMessages
+        isConfigMissing={agentData.isConfigMissing}
+        isNeverStarted={agentData.isNeverStarted}
+        resolvedConfigPath={resolvedConfigPath}
+        isLoadingConfigPath={isLoadingConfigPath}
+        availableIOs={ioListResponse?.coreio_services ?? []}
+        isLoadingIOs={isLoadingIOs}
+        selectedExistingIO={selectedExistingIO}
+        onSelectIO={setSelectedExistingIO}
+        agentError={agentToggleMutation.error}
+        ioError={ioToggleMutation.error}
+      />
 
-      <div className="max-w-md mx-auto justify-center">
-        <div className="bg-white p-4 rounded-lg border border-gray-200 shadow-sm">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3">
-            Configuration Options
-          </h3>
-          <ul className="space-y-2">
-            <li>
-              <Link
-                to={'/agents/$config-name/general-settings'}
-                params={{ 'config-name': configName }}
-                className="block p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-              >
-                General Settings
-              </Link>
-            </li>
-            <li>
-              <Link
-                to={'/agents/$config-name/monitor'}
-                params={{ 'config-name': configName }}
-                className="block p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-              >
-                Monitor
-              </Link>
-            </li>
-          </ul>
-        </div>
-      </div>
+      <ServiceCardsContainer
+        agentData={agentData}
+        resolvedConfigPath={resolvedConfigPath}
+        selectedExistingIO={selectedExistingIO}
+        onToggleAgent={handleToggleAgent}
+        onToggleIO={handleToggleIO}
+        isTogglingAgent={agentToggleMutation.isPending}
+        isTogglingIO={ioToggleMutation.isPending}
+        isLoadingConfigPath={isLoadingConfigPath}
+      />
+
+      <ConfigurationMenu
+        configName={configName}
+        isConfigMissing={agentData.isConfigMissing}
+      />
     </div>
   );
-};
-
-export default AgentDetailsContainer;
+}

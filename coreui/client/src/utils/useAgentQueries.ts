@@ -1,39 +1,14 @@
 import {
   useQuery,
   useQueries,
-  useMutation,
-  useQueryClient,
   type UseQueryOptions,
 } from '@tanstack/react-query';
 import { API_ENDPOINTS, get } from './api';
-
-// Define the agent status response type
-type AgentStatusResponse = {
-  state: string;
-  config_path: string;
-  service_statuses: {
-    [key: string]: ServiceStatus[];
-  };
-  id: string;
-  version?: string;
-  uptime?: string;
-};
-
-type ServiceStatus = {
-  id: string;
-  state: string;
-  intended_state: string;
-  config_path: string;
-};
-
-type IOStatusResponse = {
-  service_id: string;
-  status: ServiceStatus;
-};
-
-// Mock state storage - in real implementation this would be handled by the backend
-const mockAgentStates = new Map<string, 'running' | 'stopped'>();
-const mockIOStates = new Map<string, 'running' | 'stopped'>();
+import type {
+  AgentStatusResponse,
+  IOStatusResponse,
+  IOListResponse,
+} from '../types/agent-types';
 
 // Config API functions (unchanged)
 const fetchConfigList = async (): Promise<string[]> => {
@@ -95,6 +70,35 @@ const fetchAgentStatus = async (
   };
 };
 
+const fetchAgentsMissingConfig = async (): Promise<string[]> => {
+  const response = await get(API_ENDPOINTS.coredinator.agents_missing_config);
+  if (!response.ok) {
+    throw new Error('Failed to fetch agents missing config');
+  }
+  const data: { agents: string[] } = await response.json();
+  return data.agents;
+};
+
+const fetchConfigPath = async (configName: string): Promise<string> => {
+  const response = await get(
+    API_ENDPOINTS.configs.get_clean_config_path(configName)
+  );
+  if (!response.ok) {
+    throw new Error(`Failed to fetch config path for ${configName}`);
+  }
+  const data: { config_path: string } = await response.json();
+  return data.config_path;
+};
+
+export const fetchIOs = async (): Promise<IOListResponse> => {
+  const response = await get(API_ENDPOINTS.coredinator.list_io);
+  if (!response.ok) {
+    throw new Error('Failed to fetch I/O list');
+  }
+  const data: IOListResponse = await response.json();
+  return data;
+};
+
 // Hook for fetching config list
 export const useConfigListQuery = () => {
   return useQuery({
@@ -142,8 +146,8 @@ export const useAgentStatusQuery = (configName: string, isPolling: boolean) => {
     queryKey: ['agent-status', configName],
     queryFn: () => fetchAgentStatus(configName),
     enabled: !!configName,
-    refetchInterval: isPolling ? 60000 : false, // Poll every 1 minute if isPolling is true
-    staleTime: 30000, // Data considered fresh for 30s
+    refetchInterval: isPolling ? 60000 : false,
+    staleTime: 30000,
   });
 };
 
@@ -158,41 +162,10 @@ export const useAgentStatusQueries = (
         queryKey: ['agent-status', configName],
         queryFn: () => fetchAgentStatus(configName),
         enabled: true,
-        refetchInterval: isPolling ? 60000 : false, // Only poll when isPolling is true
-        staleTime: 30000, // Data considered fresh for 30s
+        refetchInterval: isPolling ? 60000 : false,
+        staleTime: 30000,
       })
     ),
-  });
-};
-
-export const useAgentToggleMutation = (configName: string) => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      configName,
-      action,
-    }: {
-      configName: string;
-      action: 'start' | 'stop';
-    }) => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Update mock state
-      const newState = action === 'start' ? 'running' : 'stopped';
-      mockAgentStates.set(configName, newState);
-
-      return {
-        success: true,
-        message: `Agent ${configName} ${action}ed successfully`,
-        state: newState,
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['agent-status', configName],
-      });
-    },
   });
 };
 
@@ -205,36 +178,34 @@ export const useIOStatusQuery = (ioName: string) => {
     },
     enabled: true,
     refetchInterval: 60000,
-    staleTime: 30000, // Data considered fresh for 30s
+    staleTime: 30000,
   });
 };
 
-export const useIOToggleMutation = (configName: string) => {
-  const queryClient = useQueryClient();
+export const useAgentsMissingConfigQuery = (isPolling: boolean = true) => {
+  return useQuery({
+    queryKey: ['agents-missing-config'],
+    queryFn: fetchAgentsMissingConfig,
+    refetchInterval: isPolling ? 60000 : false,
+    staleTime: 30000,
+  });
+};
 
-  return useMutation({
-    mutationFn: async ({
-      configName,
-      action,
-    }: {
-      configName: string;
-      action: 'start' | 'stop';
-    }) => {
-      await new Promise((resolve) => setTimeout(resolve, 300));
+export const useConfigPathQuery = (
+  configName: string,
+  enabled: boolean = true
+) => {
+  return useQuery({
+    queryKey: ['config-path', configName],
+    queryFn: () => fetchConfigPath(configName),
+    enabled: !!configName && enabled,
+  });
+};
 
-      const newState = action === 'start' ? 'running' : 'stopped';
-      mockIOStates.set(configName, newState);
-
-      return {
-        success: true,
-        message: `I/O service ${configName} ${action}ed successfully`,
-        state: newState,
-      };
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: ['io-status', configName],
-      });
-    },
+export const useIOListQuery = (enabled: boolean = true) => {
+  return useQuery({
+    queryKey: ['io-list'],
+    queryFn: fetchIOs,
+    enabled,
   });
 };

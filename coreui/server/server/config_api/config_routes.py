@@ -13,6 +13,7 @@ from server.config_api.config import (
     get_all_configs,
     get_config,
     get_config_field,
+    get_config_path,
     get_tag,
     get_tags,
     update_tag,
@@ -50,6 +51,9 @@ class ErrorResponse(BaseModel):
 
 class ConfigNameRequest(BaseModel):
     config_name: str
+
+class ConfigPathResponse(BaseModel):
+    config_path: str
 
 
 #════════════════════════════════════════════════════════════════════════════
@@ -275,10 +279,33 @@ async def create_clean_config(config: ConfigNameRequest = Body(...)):
 async def delete_clean_config(config: ConfigNameRequest = Body(...)):
     return await delete_config(config.config_name, subfolder=ConfigSubfolder.CLEAN)
 
+@config_router.get(
+    "/{config_name}/config_path",
+    response_model=ConfigPathResponse,
+    responses={
+        200: {
+            "description": "The file path of the specified configuration.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "config_path": "/path/to/configs/clean/main_backwash.yaml",
+                    },
+                },
+            },
+        },
+        404: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
+    summary="Get Config File Path",
+    description="Retrieve the file path of the specified configuration.",
+)
+async def get_clean_config_path(config_name: str):
+    return await get_config_path(config_name, subfolder=ConfigSubfolder.CLEAN)
+
 
 #════════════════════════════════════════════════════════════════════════════
 #                          RAW CONFIG ENDPOINTS
-#════════════════════════════════════════════════════════════════════════════
+#════════════════════════════════════════════════════════════════════════════get_clean_config_path
 
 @config_router.get(
     "/raw/list",
