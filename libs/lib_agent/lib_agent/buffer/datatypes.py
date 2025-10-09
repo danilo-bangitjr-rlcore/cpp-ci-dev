@@ -39,6 +39,8 @@ class JaxTransition(NamedTuple):
     n_step_reward: jax.Array
     n_step_gamma: jax.Array
 
+    timestamp: int | None = None
+
     @property
     def state_dim(self):
         return self.state.shape[-1]

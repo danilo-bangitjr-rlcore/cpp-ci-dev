@@ -84,38 +84,42 @@ class RecencyBiasBuffer(EnsembleReplayBuffer[T]):
         steps_since_transition = self._calculate_steps(curr_timestamp, timestamp)
         return curr_timestamp, steps_since_transition
 
-    def add(self, transition: T, timestamp: int | None = None) -> None:
-        super().add(transition)
-        idx = self.size - 1
-
-        if timestamp is None:
-            return
-
+    def _update_distributions(self, idx: int, timestamp: int, mask: np.ndarray) -> None:
         curr_timestamp, steps_since_transition = self._calculate_timestamps(timestamp)
 
         for i, (dist, discount_factor) in enumerate(zip(self._ens_dists, self._discount_factors, strict=False)):
-            mask = self.ensemble_masks[i, idx]
             if self._last_timestamp is not None:
                 steps_since_last_call = self._calculate_steps(curr_timestamp, self._last_timestamp)
                 dist.discount_geometric(discount_factor**steps_since_last_call)
-            if mask:
+            if mask[i]:
                 weights = np.power(discount_factor, steps_since_transition)
                 dist.update_uniform(np.array([idx]), np.array([True]))
                 dist.update_geometric(np.array([idx]), np.array([weights]))
 
         self._last_timestamp = curr_timestamp
 
+    def add(self, transition: T) -> None:
+        super().add(transition)
+        idx = self.size - 1
+
+        timestamp = getattr(transition, 'timestamp', None)
+        assert timestamp is not None, "RecencyBiasBuffer requires transitions with timestamps"
+
+        self._update_distributions(idx, timestamp, self.ensemble_masks[:, idx])
+
     def feed(self, transitions: Sequence[T], data_mode: DataMode) -> np.ndarray:
         idxs = np.empty(len(transitions), dtype=np.int64)
-        for j, transition in enumerate(transitions):
-            idxs[j] = self._storage.add(transition)
-
-        batch_size = len(idxs)
+        batch_size = len(transitions)
         ensemble_masks = self._get_ensemble_masks(batch_size)
 
-        for dist, mask in zip(self._ens_dists, ensemble_masks, strict=True):
-            if mask.any():
-                dist.update_uniform(idxs, mask)
+        for j, transition in enumerate(transitions):
+            idx = self._storage.add(transition)
+            idxs[j] = idx
+
+            timestamp = getattr(transition, 'timestamp', None)
+            assert timestamp is not None, "RecencyBiasBuffer requires transitions with timestamps"
+
+            self._update_distributions(idx, timestamp, ensemble_masks[:, j])
 
         return idxs
 

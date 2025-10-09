@@ -22,9 +22,10 @@ class FakeTransition(NamedTuple):
     last_a: jnp.ndarray
     state_dim: int
     action_dim: int
+    timestamp: int
 
 
-def create_test_transition(i: int) -> FakeTransition:
+def create_test_transition(i: int, timestamp: int) -> FakeTransition:
     return FakeTransition(
         state=jnp.array([i]),
         action=jnp.array([i]),
@@ -40,6 +41,7 @@ def create_test_transition(i: int) -> FakeTransition:
         last_a=jnp.array([i-1]),
         state_dim=1,
         action_dim=1,
+        timestamp=timestamp,
     )
 
 
@@ -62,15 +64,15 @@ def test_recency_bias_buffer_basic():
         ensemble_probability=cfg.ensemble_probability,
         max_size=cfg.max_size,
     )
-    timestamps = np.array([
+    timestamps = [
         int(np.datetime64('2024-01-01T00:00:00').astype('datetime64[s]').astype('int')),
         int(np.datetime64('2024-01-01T00:00:01').astype('datetime64[s]').astype('int')),
         int(np.datetime64('2024-01-01T00:00:02').astype('datetime64[s]').astype('int')),
-    ])
+    ]
 
     for i in range(3):
-        transition = create_test_transition(i)
-        buffer.add(transition, timestamps[i])
+        transition = create_test_transition(i, timestamps[i])
+        buffer.add(transition)
 
     assert buffer.size == 3
 
@@ -99,15 +101,15 @@ def test_recency_bias_buffer_weights():
         max_size=cfg.max_size,
     )
 
-    timestamps = np.array([
+    timestamps = [
         int(np.datetime64('2024-01-01T00:00:00').astype('datetime64[s]').astype('int')),
         int(np.datetime64('2024-01-01T00:00:01').astype('datetime64[s]').astype('int')),
         int(np.datetime64('2024-01-01T00:00:02').astype('datetime64[s]').astype('int')),
-    ])
+    ]
 
     for i in range(3):
-        transition = create_test_transition(i)
-        buffer.add(transition, timestamps[i])
+        transition = create_test_transition(i, timestamps[i])
+        buffer.add(transition)
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
 
@@ -134,19 +136,19 @@ def test_recency_bias_buffer_discount():
         max_size=cfg.max_size,
     )
 
-    timestamps = np.array([
+    timestamps = [
         int(np.datetime64('2024-01-01T00:00:00').astype('datetime64[s]').astype('int')),
         int(np.datetime64('2024-01-01T00:00:01').astype('datetime64[s]').astype('int')),
-    ])
+    ]
 
     for i in range(2):
-        transition = create_test_transition(i)
-        buffer.add(transition, timestamps[i])
+        transition = create_test_transition(i, timestamps[i])
+        buffer.add(transition)
     initial_probs = buffer.get_probability(0, np.array([0, 1]))
 
     later_timestamp = int(np.datetime64('2024-01-01T00:00:10').astype('datetime64[s]').astype('int'))
-    transition = create_test_transition(2)
-    buffer.add(transition, later_timestamp)
+    transition = create_test_transition(2, later_timestamp)
+    buffer.add(transition)
     new_probs = buffer.get_probability(0, np.array([0, 1, 2]))
     assert new_probs[0] < initial_probs[0]
     assert new_probs[1] < initial_probs[1]
@@ -180,8 +182,8 @@ def test_recency_bias_buffer_datetime_timestamps():
     ]
 
     for i, ts in enumerate(timestamps):
-        transition = create_test_transition(i)
-        buffer.add(transition, int(ts.timestamp()))
+        transition = create_test_transition(i, int(ts.timestamp()))
+        buffer.add(transition)
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
     assert np.all(np.diff(probs) > 0)
@@ -211,8 +213,8 @@ def test_recency_bias_buffer_integer_timestamps():
     timestamps = [0, 1, 2]
 
     for i, ts in enumerate(timestamps):
-        transition = create_test_transition(i)
-        buffer.add(transition, ts)
+        transition = create_test_transition(i, ts)
+        buffer.add(transition)
 
     probs = buffer.get_probability(0, np.array([0, 1, 2]))
     assert probs[2] > probs[1] > probs[0]
@@ -243,8 +245,8 @@ def test_recency_bias_buffer_different_discounts():
 
     n_transitions = 10
     for i in range(n_transitions):
-        transition = create_test_transition(i)
-        buffer.add(transition, i)
+        transition = create_test_transition(i, i)
+        buffer.add(transition)
 
     probs_0 = buffer.get_probability(0, np.arange(n_transitions))
     probs_1 = buffer.get_probability(1, np.arange(n_transitions))
@@ -259,4 +261,3 @@ def test_recency_bias_buffer_different_discounts():
 
     assert np.all(np.diff(probs_0) > 0), "First ensemble probabilities should increase with recency"
     assert np.all(np.diff(probs_1) > 0), "Second ensemble probabilities should increase with recency"
-
