@@ -59,40 +59,38 @@ export default function AgentStatusMessages({
 
       {isNeverStarted && (
         <div className="mx-auto max-w-2xl p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <div className="mx-auto max-w-2xl p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-start space-x-2">
-              <svg
-                className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
-                fill="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-blue-800">
-                  This agent has never been started
+          <div className="flex items-start space-x-2">
+            <svg
+              className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"
+              fill="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                fillRule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-blue-800">
+                This agent has never been started
+              </p>
+              <p className="text-xs text-blue-700 mt-1">
+                Before starting, please verify the configuration path:
+              </p>
+              {isLoadingConfigPath ? (
+                <p className="text-xs text-blue-700 mt-2 font-mono bg-blue-100 p-2 rounded">
+                  Loading config path...
                 </p>
-                <p className="text-xs text-blue-700 mt-1">
-                  Before starting, please verify the configuration path:
+              ) : resolvedConfigPath ? (
+                <p className="text-xs text-blue-700 mt-2 font-mono bg-blue-100 p-2 rounded break-all">
+                  {resolvedConfigPath}
                 </p>
-                {isLoadingConfigPath ? (
-                  <p className="text-xs text-blue-700 mt-2 font-mono bg-blue-100 p-2 rounded">
-                    Loading config path...
-                  </p>
-                ) : resolvedConfigPath ? (
-                  <p className="text-xs text-blue-700 mt-2 font-mono bg-blue-100 p-2 rounded break-all">
-                    {resolvedConfigPath}
-                  </p>
-                ) : (
-                  <p className="text-xs text-red-700 mt-2">
-                    Could not resolve config path
-                  </p>
-                )}
-              </div>
+              ) : (
+                <p className="text-xs text-red-700 mt-2">
+                  Could not resolve config path
+                </p>
+              )}
             </div>
           </div>
           {availableIOs.length > 0 && (
