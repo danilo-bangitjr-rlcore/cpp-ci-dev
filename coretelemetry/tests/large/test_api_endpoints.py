@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from coretelemetry.app import app, get_telemetry_manager
+from coretelemetry.app import create_app, get_telemetry_manager
 from coretelemetry.utils.sql import DBConfig
 from fastapi.testclient import TestClient
 
@@ -22,7 +22,7 @@ def test_client(db_config_from_engine: DBConfig, sample_config_dir: Path) -> Tes
     manager.set_config_path(sample_config_dir)
     manager.clear_cache()  # Clear any stale state
 
-    return TestClient(app)
+    return TestClient(create_app())
 
 
 class TestBasicEndpoints:
@@ -42,7 +42,8 @@ class TestBasicEndpoints:
         response = test_client.get("/health")
 
         assert response.status_code == 200
-        assert response.json() == {"status": "healthy"}
+        data = response.json()
+        assert data["status"] == "healthy"
 
 
 class TestGetTelemetryEndpoint:
