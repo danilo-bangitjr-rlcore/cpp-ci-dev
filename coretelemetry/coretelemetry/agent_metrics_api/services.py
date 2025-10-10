@@ -73,7 +73,6 @@ class AgentMetricsManager:
 
         return table_name
 
-
     # Configuration methods
     def get_db_config(self) -> DBConfig:
         return self.db_config
