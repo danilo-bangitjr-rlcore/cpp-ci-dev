@@ -1,5 +1,7 @@
+import argparse
 from pathlib import Path
 
+import uvicorn
 from coretelemetry.exceptions import TelemetryException
 from coretelemetry.services import (
     DBConfig,
@@ -9,6 +11,8 @@ from coretelemetry.services import (
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
+
+__version__ = "0.1.0"
 
 
 # pyright: reportUnusedFunction=false
@@ -164,9 +168,6 @@ def create_app() -> FastAPI:
     return app
 
 if __name__ == "__main__":
-    import argparse
-
-    import uvicorn
 
     parser = argparse.ArgumentParser(description="CoreTelemetry API")
     parser.add_argument(
