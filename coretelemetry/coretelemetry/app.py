@@ -2,13 +2,12 @@ import argparse
 from pathlib import Path
 
 import uvicorn
+from coretelemetry.agent_metrics_api.agent_metrics_routes import agent_metrics_router
+from coretelemetry.agent_metrics_api.exceptions import TelemetryException
+from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-
-from agent_metrics_api.agent_metrics_routes import agent_metrics_router
-from agent_metrics_api.exceptions import TelemetryException
-from agent_metrics_api.services import get_telemetry_manager
 
 __version__ = "0.1.0"
 
@@ -35,8 +34,8 @@ def create_app(config_path: str | Path) -> FastAPI:
         allow_headers=["*"],
     )
 
-    manager = get_telemetry_manager()
-    manager.set_config_path(Path(config_path))
+    agent_metrics_manager = get_agent_metrics_manager()
+    agent_metrics_manager.set_config_path(Path(config_path))
 
     app.include_router(agent_metrics_router)
     return app

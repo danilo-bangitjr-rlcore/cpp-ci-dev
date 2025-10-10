@@ -193,8 +193,8 @@ class AgentMetricsManager:
 
 
 # Create singleton instance
-telemetry_manager = AgentMetricsManager()
+agent_metrics_manager = AgentMetricsManager()
 
 
-def get_telemetry_manager() -> AgentMetricsManager:
-    return telemetry_manager
+def get_agent_metrics_manager() -> AgentMetricsManager:
+    return agent_metrics_manager
