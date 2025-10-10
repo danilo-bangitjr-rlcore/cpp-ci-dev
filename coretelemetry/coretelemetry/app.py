@@ -14,7 +14,7 @@ __version__ = "0.1.0"
 
 
 # pyright: reportUnusedFunction=false
-def create_app(config_path: str) -> FastAPI:
+def create_app(config_path: str | Path) -> FastAPI:
     app = FastAPI(title="CoreTelemetry API")
 
     # Global exception handler for all domain exceptions

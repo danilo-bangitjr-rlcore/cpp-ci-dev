@@ -22,7 +22,7 @@ def test_client(db_config_from_engine: DBConfig, sample_config_dir: Path) -> Tes
     manager.set_config_path(sample_config_dir)
     manager.clear_cache()  # Clear any stale state
 
-    return TestClient(create_app())
+    return TestClient(create_app(config_path=sample_config_dir))
 
 
 class TestBasicEndpoints:

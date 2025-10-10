@@ -18,38 +18,13 @@ from coretelemetry.utils.sql import DBConfig, SqlReader
 MAX_RESULT_ROWS = 5000
 
 
-class TelemetryManager:
+class AgentMetricsManager:
 
     def __init__(self):
         self.db_config = DBConfig()
         self.config_path = Path("clean/")
         self.metrics_table_cache: dict[str, str] = {}
         self.sql_reader: SqlReader | None = None
-
-    # Configuration methods
-    def get_db_config(self) -> DBConfig:
-        return self.db_config
-
-    def set_db_config(self, config: DBConfig) -> DBConfig:
-        self.db_config = config
-        return self.db_config
-
-    def get_config_path(self) -> Path:
-        return self.config_path
-
-    def set_config_path(self, path: Path) -> Path:
-        self.config_path = path
-        return self.config_path
-
-    def clear_cache(self):
-        """Clear all cached data including SQL reader and metrics table cache."""
-        self.sql_reader = None
-        self.metrics_table_cache = {}
-
-    def test_db_connection(self) -> bool:
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
-        return self.sql_reader.test_connection()
 
     # Private helper methods
     def _get_metrics_table_name(self, agent_id: str) -> str:
@@ -88,6 +63,33 @@ class TelemetryManager:
 
         return table_name
 
+
+    # Configuration methods
+    def get_db_config(self) -> DBConfig:
+        return self.db_config
+
+    def set_db_config(self, config: DBConfig) -> DBConfig:
+        self.db_config = config
+        return self.db_config
+
+    def get_config_path(self) -> Path:
+        return self.config_path
+
+    def set_config_path(self, path: Path) -> Path:
+        self.config_path = path
+        return self.config_path
+
+    def clear_cache(self):
+        """Clear all cached data including SQL reader and metrics table cache."""
+        self.sql_reader = None
+        self.metrics_table_cache = {}
+
+    def test_db_connection(self) -> bool:
+        if self.sql_reader is None:
+            self.sql_reader = SqlReader(self.db_config)
+        return self.sql_reader.test_connection()
+
+    # Metrics methods
     def get_telemetry_data(
         self,
         agent_id: str,
@@ -191,8 +193,8 @@ class TelemetryManager:
 
 
 # Create singleton instance
-telemetry_manager = TelemetryManager()
+telemetry_manager = AgentMetricsManager()
 
 
-def get_telemetry_manager() -> TelemetryManager:
+def get_telemetry_manager() -> AgentMetricsManager:
     return telemetry_manager
