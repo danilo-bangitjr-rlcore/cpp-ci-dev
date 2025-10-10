@@ -2,10 +2,10 @@ import argparse
 from pathlib import Path
 
 import uvicorn
-from coretelemetry.agent_metrics_api.agent_metrics_routes import agent_metrics_router
+from coretelemetry.agent_metrics_api.agent_metrics_routes import AgentMetricsManager, agent_metrics_router
 from coretelemetry.agent_metrics_api.exceptions import TelemetryException
 from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -38,6 +38,12 @@ def create_app(config_path: str | Path) -> FastAPI:
     agent_metrics_manager.set_config_path(Path(config_path))
 
     app.include_router(agent_metrics_router)
+
+    @agent_metrics_router.get("/health")
+    async def health_check(agent_metrics_manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
+        db_connected = agent_metrics_manager.test_db_connection()
+        return {"status": "healthy", "db_connected": db_connected}
+
     return app
 
 if __name__ == "__main__":

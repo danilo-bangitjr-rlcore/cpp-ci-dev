@@ -17,11 +17,6 @@ agent_metrics_router = APIRouter(
 async def root():
     return RedirectResponse(url="/docs")
 
-@agent_metrics_router.get("/health")
-async def health_check(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
-    db_connected = manager.test_db_connection()
-    return {"status": "healthy", "db_connected": db_connected}
-
 @agent_metrics_router.post("/api/v1/telemetry/config/clear_cache")
 async def clear_cache(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
     """
