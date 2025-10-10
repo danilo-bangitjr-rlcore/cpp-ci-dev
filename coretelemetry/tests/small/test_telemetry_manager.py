@@ -5,7 +5,7 @@ from unittest.mock import Mock
 
 import pytest
 import yaml
-from coretelemetry.exceptions import (
+from coretelemetry.agent_metrics_api.exceptions import (
     ColumnNotFoundError,
     ConfigFileNotFoundError,
     ConfigParseError,
@@ -15,7 +15,7 @@ from coretelemetry.exceptions import (
     ReservedColumnError,
     TableNotFoundError,
 )
-from coretelemetry.services import TelemetryManager
+from coretelemetry.agent_metrics_api.services import TelemetryManager
 from coretelemetry.utils.sql import DBConfig, SqlReader
 
 

@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
-from coretelemetry.exceptions import (
+from coretelemetry.agent_metrics_api.exceptions import (
     ColumnNotFoundError,
     ConfigFileNotFoundError,
     ConfigParseError,
