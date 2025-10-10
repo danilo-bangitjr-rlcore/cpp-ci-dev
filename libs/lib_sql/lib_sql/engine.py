@@ -35,7 +35,7 @@ def try_create_engine(url_object: URL, backoff_seconds: int = 5, max_tries: int 
 
 def get_sql_engine(
     db_data: SQLEngineConfigProtocol, db_name: str, force_drop: bool = False,
-    backoff_seconds: int = 5, max_tries: int = 5
+    backoff_seconds: int = 5, max_tries: int = 5,
 ) -> Engine:
     url_object = sqlalchemy.URL.create(
         drivername=db_data.drivername,
