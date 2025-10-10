@@ -46,8 +46,6 @@ dev = [
 
 [project.scripts]
 corerl_main = "corerl.main:main"
-corerl_convertdb_backup = "corerl.bin.convert_db_backup:main"
-corerl_agent_step = "corerl.bin.corerl_step_cli:main"
 
 [build-system]
 requires = ["hatchling"]
