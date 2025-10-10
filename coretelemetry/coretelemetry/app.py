@@ -39,7 +39,7 @@ def create_app(config_path: str | Path) -> FastAPI:
 
     app.include_router(agent_metrics_router)
 
-    @agent_metrics_router.get("/health")
+    @app.get("/health")
     async def health_check(agent_metrics_manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
         db_connected = agent_metrics_manager.test_db_connection()
         return {"status": "healthy", "db_connected": db_connected}
