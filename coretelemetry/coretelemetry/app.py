@@ -46,7 +46,7 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health_check(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
         db_connected = manager.test_db_connection()
-        return {"status": "healthy", "db_conencted": db_connected}
+        return {"status": "healthy", "db_connected": db_connected}
 
     @app.post("/api/v1/telemetry/config/clear_cache")
     async def clear_cache(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
