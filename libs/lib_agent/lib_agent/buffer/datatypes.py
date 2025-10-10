@@ -10,16 +10,6 @@ class DataMode(Enum):
     REFRESH = auto()
 
 
-class Transition(NamedTuple):
-    state: jax.Array
-    action: jax.Array
-    reward: float
-    next_state: jax.Array
-    gamma: float
-    state_dim: int
-    action_dim: int
-
-
 class JaxTransition(NamedTuple):
     last_action: jax.Array
     state: jax.Array
