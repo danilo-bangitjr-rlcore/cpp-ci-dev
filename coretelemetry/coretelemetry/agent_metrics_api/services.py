@@ -26,6 +26,16 @@ class AgentMetricsManager:
         self.metrics_table_cache: dict[str, str] = {}
         self.sql_reader: SqlReader | None = None
 
+    def _ensure_sql_reader(self):
+        if self.sql_reader is None:
+            try:
+                self.sql_reader = SqlReader(self.db_config)
+            except Exception as e:
+                raise DatabaseConnectionError(
+                    f"Failed to initialize database connection: {e!s}",
+                ) from e
+        return self.sql_reader
+
     # Private helper methods
     def _get_metrics_table_name(self, agent_id: str) -> str:
         if agent_id in self.metrics_table_cache:
@@ -85,8 +95,11 @@ class AgentMetricsManager:
         self.metrics_table_cache = {}
 
     def test_db_connection(self) -> bool:
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
+        try:
+            self.sql_reader = self._ensure_sql_reader()
+        except DatabaseConnectionError:
+            return False
+
         return self.sql_reader.test_connection()
 
     # Metrics methods
@@ -97,8 +110,7 @@ class AgentMetricsManager:
         start_time: str | None,
         end_time: str | None,
     ):
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
+        self.sql_reader = self._ensure_sql_reader()
 
         if metric.lower() == "time":
             raise ReservedColumnError(
@@ -159,8 +171,7 @@ class AgentMetricsManager:
         return [{"timestamp": row[0], "value": float(row[1])} for row in raw_data]
 
     def get_available_metrics(self, agent_id: str) -> dict:
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
+        self.sql_reader = self._ensure_sql_reader()
 
         table_name = self._get_metrics_table_name(agent_id)
 
