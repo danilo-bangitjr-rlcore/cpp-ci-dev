@@ -1,15 +1,7 @@
-from typing import Literal
-
-from lib_config.config import config
-
+from corerl.configs.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
 from corerl.state import AppState
-
-
-@config()
-class IdentityFilterConfig(BaseOddityFilterConfig):
-    name: Literal['identity'] = 'identity'
 
 
 class IdentityFilter(BaseOddityFilter):

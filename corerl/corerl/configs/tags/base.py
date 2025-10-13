@@ -3,8 +3,8 @@ from typing import Any
 from lib_config.config import MISSING, config, list_
 
 from corerl.configs.data_pipeline.imputers.per_tag import ImputerConfig
+from corerl.configs.data_pipeline.oddity_filters import OddityFilterConfig
 from corerl.configs.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
-from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.messages.events import RLEventType
 
 

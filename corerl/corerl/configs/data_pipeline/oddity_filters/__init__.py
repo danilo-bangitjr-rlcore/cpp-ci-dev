@@ -1,15 +1,15 @@
-from typing import Annotated
+"""Oddity filter configuration union type."""
 
-from pydantic import Field
-
+from corerl.configs.data_pipeline.oddity_filters.base import BaseOddityFilterConfig
 from corerl.configs.data_pipeline.oddity_filters.conditional import ConditionalFilterConfig
 from corerl.configs.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.configs.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.configs.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
 
-OddityFilterConfig = Annotated[
-    EMAFilterConfig
+OddityFilterConfig = (
+    IdentityFilterConfig
+    | EMAFilterConfig
     | StuckDetectorConfig
     | ConditionalFilterConfig
-    | IdentityFilterConfig
-, Field(discriminator='name')]
+    | BaseOddityFilterConfig
+)

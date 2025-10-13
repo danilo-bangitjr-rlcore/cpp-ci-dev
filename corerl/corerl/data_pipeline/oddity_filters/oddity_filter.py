@@ -2,11 +2,11 @@ from collections.abc import Sequence
 
 from lib_defs.config_defs.tag_config import TagType
 
+from corerl.configs.data_pipeline.oddity_filters import OddityFilterConfig
+from corerl.configs.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
-from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
-from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
 from corerl.state import AppState
 
 

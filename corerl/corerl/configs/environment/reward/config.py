@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 
 
 type ListOrSingle[T] = list[T] | T
+
 
 @config()
 class Goal:

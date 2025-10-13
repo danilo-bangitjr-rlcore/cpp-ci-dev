@@ -7,6 +7,7 @@ import numpy as np
 from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
+from corerl.configs.environment.reward.config import Goal, JointGoal
 from corerl.configs.tags.components.bounds import (
     BoundedTag,
     BoundInfo,
@@ -18,7 +19,6 @@ from corerl.configs.tags.components.bounds import (
 )
 from corerl.configs.tags.setpoint import SetpointTagConfig
 from corerl.configs.tags.tag_config import BasicTagConfig, TagConfig
-from corerl.environment.reward.config import Goal, JointGoal
 from corerl.utils.sympy import to_sympy
 
 

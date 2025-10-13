@@ -13,6 +13,7 @@ import pandas as pd
 from lib_agent.buffer.datatypes import DataMode
 from pandas import DataFrame
 
+from corerl.configs.data_pipeline.pipeline_config import PipelineConfig
 from corerl.configs.tags.components.bounds import BoundedTag
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC
@@ -26,7 +27,6 @@ from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
-from corerl.data_pipeline.pipeline_config import PipelineConfig
 from corerl.data_pipeline.transforms import register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilter
 from corerl.data_pipeline.utils import invoke_stage_per_tag
