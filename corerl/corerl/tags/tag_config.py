@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING, Literal
 from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
 
-from corerl.tags.components.bounds import SafetyZonedTag
-from corerl.tags.components.computed import ComputedTag
-from corerl.tags.components.opc import OPCTag
+from corerl.configs.tags.components.bounds import SafetyZonedTag
+from corerl.configs.tags.components.computed import ComputedTag
+from corerl.configs.tags.components.opc import OPCTag
 from corerl.tags.delta import DeltaTagConfig
 from corerl.tags.meta import MetaTagConfig
 from corerl.tags.seasonal import SeasonalTagConfig

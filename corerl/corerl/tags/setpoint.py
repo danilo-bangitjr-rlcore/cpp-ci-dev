@@ -7,7 +7,7 @@ from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
 
-from corerl.tags.components.bounds import (
+from corerl.configs.tags.components.bounds import (
     BoundInfo,
     Bounds,
     BoundsInfo,
@@ -18,8 +18,8 @@ from corerl.tags.components.bounds import (
     get_maybe_bound_info,
     init_bounds_info,
 )
-from corerl.tags.components.computed import ComputedTag
-from corerl.tags.components.opc import Agg, OPCTag
+from corerl.configs.tags.components.computed import ComputedTag
+from corerl.configs.tags.components.opc import Agg, OPCTag
 from corerl.utils.sympy import to_sympy
 
 if TYPE_CHECKING:

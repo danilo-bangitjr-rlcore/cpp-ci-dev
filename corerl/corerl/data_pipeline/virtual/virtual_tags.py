@@ -1,7 +1,7 @@
+from corerl.configs.tags.components.computed import ComputedTag
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-from corerl.tags.components.computed import ComputedTag
 from corerl.tags.tag_config import TagConfig
 from corerl.utils.sympy import to_sympy
 

@@ -6,7 +6,7 @@ from lib_config.errors import ConfigValidationErrors
 from lib_utils.maybe import Maybe
 
 from corerl.config import MainConfig
-from corerl.tags.components.bounds import SafetyZonedTag, get_priority_violation_bounds
+from corerl.configs.tags.components.bounds import SafetyZonedTag, get_priority_violation_bounds
 from corerl.tags.validate_tag_configs import validate_tag_configs
 from tests.infrastructure.config import create_config_with_overrides
 

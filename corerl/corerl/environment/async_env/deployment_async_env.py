@@ -10,9 +10,9 @@ from lib_defs.config_defs.tag_config import TagType
 from lib_utils.iterable import partition
 from lib_utils.maybe import Maybe
 
+from corerl.configs.tags.components.bounds import BoundInfo, BoundsInfo, get_bound_with_data, get_maybe_bound_info
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.environment.async_env.async_env import AsyncEnv, AsyncEnvConfig
-from corerl.tags.components.bounds import BoundInfo, BoundsInfo, get_bound_with_data, get_maybe_bound_info
 from corerl.tags.setpoint import SetpointTagConfig
 from corerl.tags.tag_config import TagConfig, get_scada_tags
 from corerl.utils.coreio import CoreIOLink
