@@ -61,7 +61,6 @@ class BSuiteTestCase:
             'infra.db.port': port,
             'infra.db.db_name': db_name,
             'infra.db.schema': schema,
-            'infra.num_threads': 1,
             'seed': self.seed,
             'metrics.enabled': True,
             'evals.enabled': True,
