@@ -12,10 +12,6 @@ class MetaTagConfig(GlobalTagAttributes):
     name: str = MISSING
     type: Literal[TagType.meta] = TagType.meta
 
-
-    # --------------
-    # -- Defaults --
-    # --------------
     @post_processor
     def _set_defaults(self, _: object):
         self.preprocess = []

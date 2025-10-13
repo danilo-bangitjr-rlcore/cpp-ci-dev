@@ -10,6 +10,7 @@ from pydantic import Field
 
 from corerl.configs.tags.components.bounds import BoundType, init_bounds_info
 from corerl.configs.tags.components.opc import Agg
+from corerl.configs.tags.tag_config import BasicTagConfig, TagConfig, in_taglist
 from corerl.data_pipeline.all_the_time import AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig
 from corerl.data_pipeline.imputers.auto_encoder import MaskedAEConfig
@@ -21,7 +22,6 @@ from corerl.data_pipeline.transforms import NukeConfig, register_dispatchers
 from corerl.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.data_pipeline.virtual.deltaize_tags import DeltaStageConfig
 from corerl.environment.reward.config import RewardConfig
-from corerl.tags.tag_config import BasicTagConfig, TagConfig, in_taglist
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

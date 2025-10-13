@@ -15,11 +15,11 @@ from corerl.configs.tags.components.bounds import (
     get_bound_with_data,
     get_maybe_bound_info,
 )
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.messages.events import RLEvent, RLEventType
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 

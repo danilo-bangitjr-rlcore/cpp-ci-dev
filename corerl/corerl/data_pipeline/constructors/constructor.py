@@ -7,11 +7,11 @@ import numpy as np
 import pandas as pd
 from lib_defs.config_defs.tag_config import TagType
 
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.data_pipeline.transforms import TransformConfig
 from corerl.data_pipeline.transforms.base import Transform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.tags.tag_config import TagConfig
 
 
 class Constructor(ABC):

@@ -20,10 +20,6 @@ class SeasonalTagConfig(GlobalTagAttributes):
     name: SeasonalTags = MISSING
     type: Literal[TagType.seasonal] = TagType.seasonal
 
-
-    # --------------
-    # -- Defaults --
-    # --------------
     @post_processor
     def _set_defaults(self, _: object):
         self.preprocess = []

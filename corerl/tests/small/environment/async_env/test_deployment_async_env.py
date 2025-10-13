@@ -8,8 +8,8 @@ from pandas import DataFrame
 from test.infrastructure.utils.pandas import dfs_close
 
 from corerl.config import MainConfig
+from corerl.configs.tags.setpoint import SetpointTagConfig
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv, clip_action, sanitize_actions
-from corerl.tags.setpoint import SetpointTagConfig
 from tests.infrastructure.config import create_config_with_overrides
 
 # -------------------------

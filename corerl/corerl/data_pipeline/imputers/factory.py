@@ -2,11 +2,11 @@ from typing import Annotated
 
 from pydantic import Field
 
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.imputers.auto_encoder import MaskedAEConfig, MaskedAutoencoder
 from corerl.data_pipeline.imputers.base import imputer_group
 from corerl.data_pipeline.imputers.imputer_stage import PerTagImputer, PerTagImputerConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 
 imputer_group.dispatcher(PerTagImputer)
 imputer_group.dispatcher(MaskedAutoencoder)

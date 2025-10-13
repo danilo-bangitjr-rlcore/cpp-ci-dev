@@ -17,12 +17,12 @@ from lib_agent.buffer.storage import ReplayStorage
 from lib_config.config import config, list_, post_processor
 from lib_defs.config_defs.tag_config import TagType
 
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState, log_trace_quality
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

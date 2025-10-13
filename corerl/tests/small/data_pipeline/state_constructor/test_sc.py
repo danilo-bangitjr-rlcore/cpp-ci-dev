@@ -5,6 +5,8 @@ import pandas as pd
 import pytest
 from test.infrastructure.utils.pandas import dfs_close
 
+from corerl.configs.tags.setpoint import SetpointTagConfig
+from corerl.configs.tags.tag_config import BasicTagConfig
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig
@@ -13,8 +15,6 @@ from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.data_pipeline.transforms.split import SplitConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.state import AppState
-from corerl.tags.setpoint import SetpointTagConfig
-from corerl.tags.tag_config import BasicTagConfig
 from tests.sdk.factories import PipelineFrameFactory
 
 

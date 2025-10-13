@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 
-
 @config()
 class CascadeConfig:
     """
@@ -43,14 +42,11 @@ class CascadeConfig:
     mode: str = MISSING
     op_sp: str = MISSING
     ai_sp: str = MISSING
-    op_mode_val: float | int | bool = MISSING # value of mode indicating operator control
-    ai_mode_val: float | int | bool = MISSING # value of mode indicating ai control
+    op_mode_val: float | int | bool = MISSING
+    ai_mode_val: float | int | bool = MISSING
     mode_is_bool: bool = False
 
 
-# -----------------------
-# -- Bounds Scheduling --
-# -----------------------
 @config()
 class GuardrailScheduleConfig:
     """
@@ -84,7 +80,6 @@ class SetpointTagConfig(
     The default setpoint for this tag. Can only be specified for tags of type `TagType.ai_setpoint`.
     """
 
-    # tag zones
     action_bounds: Bounds | None = None
     """
     Kind: optional external
@@ -135,7 +130,6 @@ class SetpointTagConfig(
         if self.cascade is None:
             return
 
-        # mark tag as computed and define piecewise expression
         self.is_computed = True
         self.value = (
             "Piecewise("
@@ -144,9 +138,6 @@ class SetpointTagConfig(
             ")"
         )
 
-    # --------------
-    # -- Defaults --
-    # --------------
     @post_processor
     def _set_action_bounds(self, cfg: 'MainConfig'):
         tags = {tag.name for tag in cfg.pipeline.tags}
@@ -154,15 +145,10 @@ class SetpointTagConfig(
         if self.action_bounds is not None:
             self.action_bounds_info = init_bounds_info(self, self.action_bounds, BoundType.action_bound, tags)
 
-
-    # -----------------
-    # -- Validations --
-    # -----------------
     @post_processor
     def _validate(self, cfg: 'MainConfig'):
         if self.operating_range is None:
             raise ValueError(f"Setpoint tag '{self.name}' must have an operating range defined.")
-
 
         if self.guardrail_schedule is not None:
             assert self.operating_range is not None
@@ -179,9 +165,6 @@ class SetpointTagConfig(
                     self.guardrail_schedule.starting_range[1] <= hi
                 ), "Guardrail starting range must be less than or equal to the operating range."
 
-        # -----------------------------
-        # -- Virtual tag validations --
-        # -----------------------------
         if self.is_computed:
             assert self.value is not None, \
                 "A value string must be specified for computed virtual tags."
@@ -195,7 +178,6 @@ class SetpointTagConfig(
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
 
         if self.nominal_setpoint is not None:
-            # Want nominal setpoint to be specified as a raw value but it must then be converted to a normalized value
             assert self.operating_range[0] is not None
             assert self.operating_range[1] is not None
             assert (

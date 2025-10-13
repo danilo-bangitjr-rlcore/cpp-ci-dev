@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
+from corerl.configs.tags.tag_config import BasicTagConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
@@ -9,7 +10,6 @@ from corerl.data_pipeline.oddity_filters.identity import IdentityFilterConfig
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
 from corerl.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import BasicTagConfig
 from tests.sdk.factories import PipelineFrameFactory
 
 

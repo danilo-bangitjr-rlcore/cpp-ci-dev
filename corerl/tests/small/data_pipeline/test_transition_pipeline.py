@@ -3,6 +3,7 @@ import datetime
 import numpy as np
 import pandas as pd
 
+from corerl.configs.tags.tag_config import BasicTagConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import SCConfig, StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
@@ -10,7 +11,6 @@ from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, D
 from corerl.data_pipeline.transforms.trace import TraceConfig
 from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import BasicTagConfig
 
 
 def pf_from_actions(actions: np.ndarray, ts: dict | None = None) -> PipelineFrame:

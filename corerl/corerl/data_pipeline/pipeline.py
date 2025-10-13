@@ -14,6 +14,7 @@ from lib_agent.buffer.datatypes import DataMode
 from pandas import DataFrame
 
 from corerl.configs.tags.components.bounds import BoundedTag
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC
 from corerl.data_pipeline.bound_checker import bound_checker_builder
 from corerl.data_pipeline.constructors.ac import ActionConstructor
@@ -35,7 +36,6 @@ from corerl.data_pipeline.virtual.seasonal_tags import SeasonalTagIncluder
 from corerl.data_pipeline.virtual.virtual_tags import VirtualTagComputer, log_virtual_tags
 from corerl.data_pipeline.zones import ZoneDiscourager
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 register_dispatchers()

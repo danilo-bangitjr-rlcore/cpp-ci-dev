@@ -8,7 +8,7 @@ from lib_utils.maybe import Maybe
 from pydantic import Field
 
 from corerl.configs.tags.components.bounds import BoundedTag
-from corerl.tags.tag_config import TagConfig
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
 if TYPE_CHECKING:

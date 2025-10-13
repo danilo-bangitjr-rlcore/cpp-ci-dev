@@ -2,9 +2,9 @@ import pandas as pd
 import pytest
 from test.infrastructure.utils.pandas import dfs_close
 
+from corerl.configs.tags.seasonal import SeasonalTagConfig, SeasonalTags
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalTagFeatures
-from corerl.tags.seasonal import SeasonalTagConfig, SeasonalTags
 
 
 @pytest.fixture()

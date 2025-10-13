@@ -4,9 +4,9 @@ from typing import Any
 from lib_config.config import MISSING, config
 from lib_config.group import Group
 
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 
 
 @config()

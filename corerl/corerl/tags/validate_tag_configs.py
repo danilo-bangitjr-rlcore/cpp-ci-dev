@@ -16,9 +16,9 @@ from corerl.configs.tags.components.bounds import (
     get_static_bound,
     get_widest_static_bounds,
 )
+from corerl.configs.tags.setpoint import SetpointTagConfig
+from corerl.configs.tags.tag_config import BasicTagConfig, TagConfig
 from corerl.environment.reward.config import Goal, JointGoal
-from corerl.tags.setpoint import SetpointTagConfig
-from corerl.tags.tag_config import BasicTagConfig, TagConfig
 from corerl.utils.sympy import to_sympy
 
 

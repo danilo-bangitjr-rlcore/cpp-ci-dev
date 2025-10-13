@@ -6,11 +6,11 @@ import pandas as pd
 from lib_utils.maybe import Maybe
 
 from corerl.configs.tags.components.bounds import BoundedTag, SafetyZonedTag, get_priority_violation_bounds
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.environment.reward.config import Goal, JointGoal, Optimization, RewardConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 from corerl.utils.math import put_in_range
 
 logger = logging.getLogger(__name__)
