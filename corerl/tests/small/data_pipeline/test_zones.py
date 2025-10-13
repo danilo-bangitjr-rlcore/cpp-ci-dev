@@ -24,6 +24,15 @@ def cfg():
         },
     )
 
+@pytest.fixture
+def reflex_cfg():
+    return create_config_with_overrides(
+        base_config_path='tests/small/data_pipeline/assets/red_reflex.yaml',
+        overrides={
+            'metrics.enabled': False,
+            'evals.enabled': False,
+        },
+    )
 
 @pytest.fixture
 def app_state(cfg: MainConfig):
@@ -38,6 +47,10 @@ def app_state(cfg: MainConfig):
 @pytest.fixture
 def pipeline(cfg: MainConfig, app_state: AppState):
     return Pipeline(app_state, cfg.pipeline)
+
+@pytest.fixture
+def reflex_pipeline(reflex_cfg: MainConfig, app_state: AppState):
+    return Pipeline(app_state, reflex_cfg.pipeline)
 
 
 @pytest.mark.parametrize('data_mode', [DataMode.OFFLINE, DataMode.ONLINE])
@@ -112,3 +125,54 @@ def test_zones1(
     )
 
     pd.testing.assert_frame_equal(pf.rewards, expected_rewards)
+
+
+@pytest.mark.parametrize('data_mode', [DataMode.OFFLINE, DataMode.ONLINE])
+def test_red_zone_reflex(
+    reflex_cfg: MainConfig,
+    app_state: AppState[DummyEventBus, MainConfig],
+    reflex_pipeline: Pipeline,
+    data_mode: DataMode,
+):
+    assert reflex_cfg.pipeline.reward is not None
+
+    zone_discourager = ZoneDiscourager(app_state, reflex_cfg.pipeline.tags, reflex_pipeline.preprocessor)
+
+    pf = PipelineFrameFactory.build(
+        data={
+            'action-1': [5., 5, 5],
+            'tag-0': [10., 4, 4],
+            'tag-1': [9., 0., 6],
+            'tag-2': [0., 7, 0.25],
+        },
+        data_mode=data_mode,
+    )
+
+    pf.rewards = pd.DataFrame({ 'reward': [-1.] * 3 }, index=pf.data.index)
+    pf = reflex_pipeline.preprocessor(pf)
+    pf = reflex_pipeline.action_constructor(pf)
+    pf = zone_discourager(pf)
+
+    expected_a_lo = pd.DataFrame(
+        index=pf.data.index,
+        columns=['action-1-lo'],
+        data=[
+            [0.],
+            [0.4],
+            [0.],
+        ],
+    )
+
+    # action bounds should be normalized
+    expected_a_hi = pd.DataFrame(
+        index=pf.data.index,
+        columns=['action-1-hi'],
+        data=[
+            [0.1],
+            [0.6],
+            [1.],
+        ],
+    )
+
+    pd.testing.assert_frame_equal(pf.action_lo, expected_a_lo)
+    pd.testing.assert_frame_equal(pf.action_hi, expected_a_hi)
