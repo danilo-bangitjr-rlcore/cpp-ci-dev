@@ -8,7 +8,7 @@ from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
-from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.configs.agent.greedy_ac import GreedyACConfig
 from corerl.configs.infra import FeatureFlags, InfraConfig
 from corerl.configs.messages.event_bus import EventBusConfig
 from corerl.data_pipeline.pipeline_config import PipelineConfig
