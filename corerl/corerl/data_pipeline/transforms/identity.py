@@ -1,14 +1,6 @@
-from typing import Literal
-
-from lib_config.config import config
-
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.configs.data_pipeline.transforms.identity import IdentityConfig
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-
-
-@config()
-class IdentityConfig(BaseTransformConfig):
-    name: Literal["identity"] = "identity"
 
 
 class Identity:

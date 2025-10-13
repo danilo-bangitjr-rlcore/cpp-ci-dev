@@ -6,13 +6,13 @@ from lib_defs.config_defs.tag_config import TagType
 from lib_utils.list import filter_instance
 from pydantic import Field
 
+from corerl.configs.data_pipeline.transforms import TransformConfig
+from corerl.configs.data_pipeline.transforms.delta import DeltaConfig
 from corerl.configs.tags.delta import DeltaTagConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.transforms import TransformConfig
-from corerl.data_pipeline.transforms.delta import DeltaConfig
 from corerl.state import AppState
 
 

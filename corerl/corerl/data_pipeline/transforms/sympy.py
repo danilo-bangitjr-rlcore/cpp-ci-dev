@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 import sympy as sy
 
-from corerl.data_pipeline.transforms import SympyConfig
+from corerl.configs.data_pipeline.transforms import SympyConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.utils.sympy import to_sympy
 

@@ -9,12 +9,12 @@ from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
+from corerl.configs.data_pipeline.transforms import TraceConfig, TransformConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState
 from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalTagFeatures
-from corerl.data_pipeline.transforms import TraceConfig, TransformConfig
 from corerl.data_pipeline.transforms.base import Transform
 from corerl.data_pipeline.transforms.trace import TraceConstructor, TraceTemporalState, log_trace_quality
 from corerl.state import AppState

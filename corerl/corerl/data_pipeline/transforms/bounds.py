@@ -1,17 +1,8 @@
-from typing import Literal
-
 import numpy as np
-from lib_config.config import MISSING, config
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.configs.data_pipeline.transforms.bounds import BoundsConfig
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-
-
-@config()
-class BoundsConfig(BaseTransformConfig):
-    name: Literal['bounds'] = 'bounds'
-    bounds: tuple[float, float] = MISSING
-    mode: Literal['clip', 'nan'] = 'clip'
 
 
 class BoundsXform:

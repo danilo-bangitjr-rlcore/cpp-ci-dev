@@ -2,9 +2,9 @@ from typing import Any
 
 from lib_config.config import MISSING, config, list_
 
+from corerl.configs.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
 from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import RLEventType
 
 

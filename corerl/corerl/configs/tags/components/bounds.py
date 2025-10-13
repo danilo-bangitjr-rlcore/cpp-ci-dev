@@ -9,8 +9,8 @@ from lib_config.config import MISSING, config, post_processor
 from lib_utils.list import find_instance
 from lib_utils.maybe import Maybe
 
+from corerl.configs.data_pipeline.transforms import NormalizerConfig
 from corerl.configs.tags.base import GlobalTagAttributes
-from corerl.data_pipeline.transforms import NormalizerConfig
 from corerl.utils.sympy import is_affine, to_sympy
 
 if TYPE_CHECKING:
