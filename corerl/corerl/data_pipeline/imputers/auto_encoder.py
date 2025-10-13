@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass, field
 from functools import partial
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import NamedTuple
 
 import chex
 import haiku as hk
@@ -14,18 +14,16 @@ import numpy as np
 import optax
 import pandas as pd
 from lib_agent.buffer.storage import ReplayStorage
-from lib_config.config import config, list_, post_processor
 from lib_defs.config_defs.tag_config import TagType
 
+from corerl.configs.data_pipeline.imputers.auto_encoder import MaskedAEConfig, TrainingConfig
+from corerl.configs.data_pipeline.transforms.trace import TraceConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.imputers.imputer_stage import BaseImputer, BaseImputerStageConfig
+from corerl.data_pipeline.imputers.base import BaseImputer
 from corerl.data_pipeline.transforms.interface import TransformCarry
-from corerl.data_pipeline.transforms.trace import TraceConfig, TraceConstructor, TraceTemporalState, log_trace_quality
+from corerl.data_pipeline.transforms.trace import TraceConstructor, TraceTemporalState, log_trace_quality
 from corerl.state import AppState
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
 
@@ -35,36 +33,6 @@ class MaskedAETemporalState:
     trace_ts: TraceTemporalState = field(default_factory=TraceTemporalState)
     last_trace: jax.Array | None = None
     num_outside_thresh: int = 0
-
-
-@config(frozen=True)
-class TrainingConfig:
-    init_train_steps = 100
-    batch_size: int = 64
-    stepsize: float = 1e-4
-    err_tolerance: float = 1e-4
-    max_update_steps: int = 100
-    training_missing_perc: float = 0.25
-
-@config()
-class MaskedAEConfig(BaseImputerStageConfig):
-    name: Literal["masked-ae"] = "masked-ae"
-    horizon: int = 10
-    trace_values: list[float] = list_([0.5, 0.9, 0.95])
-    buffer_size: int = 50_000
-
-    fill_val: float = 0.0
-    prop_missing_tol: float = np.nan
-    train_cfg: TrainingConfig = field(default_factory=TrainingConfig)
-
-    @post_processor
-    def _set_missing_tol(self, cfg: 'MainConfig'):
-        """
-        If no missing tol is explicitly set, use the training_missing_perc
-        """
-        if not np.isnan(self.prop_missing_tol):
-            return
-        self.prop_missing_tol = self.train_cfg.training_missing_perc
 
 class ImputeData(NamedTuple):
     obs: jax.Array # raw observation

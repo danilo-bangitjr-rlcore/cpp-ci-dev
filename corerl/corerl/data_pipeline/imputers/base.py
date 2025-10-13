@@ -1,17 +1,11 @@
 from abc import abstractmethod
-from typing import Any
 
-from lib_config.config import MISSING, config
 from lib_config.group import Group
 
+from corerl.configs.data_pipeline.imputers.base import BaseImputerStageConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-
-
-@config()
-class BaseImputerStageConfig:
-    name: Any = MISSING
 
 
 class BaseImputer:

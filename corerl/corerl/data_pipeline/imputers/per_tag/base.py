@@ -1,15 +1,9 @@
 from abc import abstractmethod
-from typing import Any
 
-from lib_config.config import MISSING, config
 from lib_config.group import Group
 
+from corerl.configs.data_pipeline.imputers.per_tag.base import BasePerTagImputerConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-
-
-@config()
-class BasePerTagImputerConfig:
-    name: Any = MISSING
 
 
 class BasePerTagImputer:
