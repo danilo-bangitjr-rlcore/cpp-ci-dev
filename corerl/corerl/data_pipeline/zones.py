@@ -272,10 +272,12 @@ class ZoneDiscourager:
 
             lo, hi = reflex_cfg.bounds
             if lo is not None:
-                pf.action_lo.loc[violation.row_idx, f'{reflex_cfg.tag}-lo'] = lo
+                norm_lo = self._prep_stage.normalize(reflex_cfg.tag, lo)
+                pf.action_lo.loc[violation.row_idx, f'{reflex_cfg.tag}-lo'] = norm_lo
 
             if hi is not None:
-                pf.action_hi.loc[violation.row_idx, f'{reflex_cfg.tag}-hi'] = hi
+                norm_hi = self._prep_stage.normalize(reflex_cfg.tag, hi)
+                pf.action_hi.loc[violation.row_idx, f'{reflex_cfg.tag}-hi'] = norm_hi
 
 
 class ZoneViolationEvent(RLEvent):
