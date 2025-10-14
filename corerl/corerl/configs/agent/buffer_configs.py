@@ -1,10 +1,10 @@
 from collections.abc import Sequence
-from dataclasses import field
 from typing import TYPE_CHECKING, Literal
 
 from lib_agent.buffer.mixed_history_buffer import MixedHistoryBufferConfig as LibMixedHistoryBufferConfig
 from lib_agent.buffer.recency_bias_buffer import RecencyBiasBufferConfig as LibRecencyBiasBufferConfig
 from lib_config.config import MISSING, computed, config
+from pydantic import Field
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 class RecencyBiasBufferConfig:
     name: Literal["recency_bias_buffer"] = "recency_bias_buffer"
     obs_period: int = MISSING
-    gamma: Sequence[float] = field(default_factory=lambda: [0.99])
-    effective_episodes: Sequence[int] = field(default_factory=lambda: [100])
+    gamma: Sequence[float] = Field(default_factory=lambda: [0.99])
+    effective_episodes: Sequence[int] = Field(default_factory=lambda: [100])
     ensemble: int = MISSING
     uniform_weight: float = 0.01
     ensemble_probability: float = 0.5

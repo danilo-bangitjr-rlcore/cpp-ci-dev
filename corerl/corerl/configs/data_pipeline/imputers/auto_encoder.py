@@ -1,11 +1,11 @@
 
 from __future__ import annotations
 
-from dataclasses import field
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 from lib_config.config import config, list_, post_processor
+from pydantic import Field
 
 from corerl.configs.data_pipeline.imputers.base import BaseImputerStageConfig
 
@@ -32,7 +32,7 @@ class MaskedAEConfig(BaseImputerStageConfig):
 
     fill_val: float = 0.0
     prop_missing_tol: float = np.nan
-    train_cfg: TrainingConfig = field(default_factory=TrainingConfig)
+    train_cfg: TrainingConfig = Field(default_factory=TrainingConfig)
 
     @post_processor
     def _set_missing_tol(self, cfg: MainConfig):
