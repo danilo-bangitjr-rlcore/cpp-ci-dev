@@ -23,6 +23,7 @@ def test_no_seasonal_tags_enabled():
     assert not seasonal_tag_stage.has_day_of_year
     assert not seasonal_tag_stage.has_day_of_week
     assert not seasonal_tag_stage.has_time_of_day
+    assert not seasonal_tag_stage.has_second_in_hour
 
     df = pd.DataFrame({
         "tag_1": [1, 5],
@@ -47,6 +48,9 @@ def test_all_seasonal_tags_enabled():
         SeasonalTagConfig(
             name=SeasonalTags.time_of_day,
         ),
+        SeasonalTagConfig(
+            name=SeasonalTags.second_in_hour,
+        ),
         BasicTagConfig(
             name="tag_1",
         ),
@@ -60,6 +64,7 @@ def test_all_seasonal_tags_enabled():
     assert seasonal_tag_stage.has_day_of_year
     assert seasonal_tag_stage.has_day_of_week
     assert seasonal_tag_stage.has_time_of_day
+    assert seasonal_tag_stage.has_second_in_hour
 
     df = pd.DataFrame({
         "tag_1": [1, 5],
@@ -76,6 +81,7 @@ def test_all_seasonal_tags_enabled():
         SeasonalTags.day_of_year: [267, 195],
         SeasonalTags.day_of_week: [6, 5],
         SeasonalTags.time_of_day: [36720, 23820],
+        SeasonalTags.second_in_hour: [720, 2220],
     })
 
     assert dfs_close(out.data, expected)
@@ -101,6 +107,7 @@ def test_some_seasonal_tags_enabled():
     assert seasonal_tag_stage.has_day_of_year
     assert not seasonal_tag_stage.has_day_of_week
     assert seasonal_tag_stage.has_time_of_day
+    assert not seasonal_tag_stage.has_second_in_hour
 
     df = pd.DataFrame({
         "tag_1": [1, 5],
