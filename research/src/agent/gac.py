@@ -27,12 +27,12 @@ class PolicyState(Protocol):
     @property
     def opt_state(self) -> chex.ArrayTree | None: ...
 
-class ActorState(Protocol):
-    @property
-    def actor(self) -> PolicyState: ...
 
-    @property
-    def proposal(self) -> PolicyState: ...
+
+class ActorState(NamedTuple):
+    actor: PolicyState
+    proposal: PolicyState
+
 
 class GACState(NamedTuple):
     critic: CriticState
