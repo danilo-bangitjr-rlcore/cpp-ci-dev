@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 import uvicorn
+from coretelemetry.system_metrics_api.system_metrics_routes import system_metrics_router
 from coretelemetry.agent_metrics_api.agent_metrics_routes import AgentMetricsManager, agent_metrics_router
 from coretelemetry.agent_metrics_api.exceptions import AgentMetricsException
 from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
@@ -38,9 +39,10 @@ def create_app(config_path: str | Path) -> FastAPI:
     agent_metrics_manager.set_config_path(Path(config_path))
 
     app.include_router(agent_metrics_router)
+    app.include_router(system_metrics_router)
 
 
-    @agent_metrics_router.get("/")
+    @app.get("/")
     async def root():
         return RedirectResponse(url="/docs")
 
