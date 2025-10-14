@@ -17,7 +17,7 @@ class TestSystemMetricsEndpoints:
     @pytest.mark.timeout(10)
     def test_get_platform_returns_200(self, test_client: TestClient):
         """Test platform endpoint returns valid platform."""
-        response = test_client.get("/api/v1/coretelemetry/system/platform")
+        response = test_client.get("/api/system/platform")
 
         assert response.status_code == 200
         data = response.json()
@@ -27,7 +27,7 @@ class TestSystemMetricsEndpoints:
     @pytest.mark.timeout(10)
     def test_get_cpu_returns_valid_percent(self, test_client: TestClient):
         """Test CPU endpoint returns valid percentage."""
-        response = test_client.get("/api/v1/coretelemetry/system/cpu")
+        response = test_client.get("/api/system/cpu")
 
         assert response.status_code == 200
         data = response.json()
@@ -37,7 +37,7 @@ class TestSystemMetricsEndpoints:
     @pytest.mark.timeout(10)
     def test_get_cpu_per_core_returns_list(self, test_client: TestClient):
         """Test per-core CPU endpoint returns list."""
-        response = test_client.get("/api/v1/coretelemetry/system/cpu_per_core")
+        response = test_client.get("/api/system/cpu_per_core")
 
         assert response.status_code == 200
         data = response.json()
@@ -49,7 +49,7 @@ class TestSystemMetricsEndpoints:
     @pytest.mark.timeout(10)
     def test_get_ram_returns_valid_stats(self, test_client: TestClient):
         """Test RAM endpoint returns valid statistics."""
-        response = test_client.get("/api/v1/coretelemetry/system/ram")
+        response = test_client.get("/api/system/ram")
 
         assert response.status_code == 200
         data = response.json()
@@ -63,7 +63,7 @@ class TestSystemMetricsEndpoints:
     @pytest.mark.timeout(10)
     def test_get_disk_returns_valid_stats(self, test_client: TestClient):
         """Test disk endpoint returns valid statistics."""
-        response = test_client.get("/api/v1/coretelemetry/system/disk")
+        response = test_client.get("/api/system/disk")
 
         assert response.status_code == 200
         data = response.json()

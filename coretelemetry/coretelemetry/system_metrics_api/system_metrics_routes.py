@@ -33,7 +33,7 @@ system_metrics_router = APIRouter(
     tags=["System Metrics"],
 )
 
-@system_metrics_router.get("/api/v1/coretelemetry/system/platform", response_model=PlatformResponse)
+@system_metrics_router.get("/api/system/platform", response_model=PlatformResponse)
 async def get_system_platform():
     """
     Get the operating system platform.
@@ -43,7 +43,7 @@ async def get_system_platform():
     """
     return {"data": platform.system()}
 
-@system_metrics_router.get("/api/v1/coretelemetry/system/cpu", response_model=CPUResponse)
+@system_metrics_router.get("/api/system/cpu", response_model=CPUResponse)
 async def get_cpu():
     """
     Get overall CPU usage percentage.
@@ -53,7 +53,7 @@ async def get_cpu():
     """
     return {"percent": psutil.cpu_percent(interval=1)}
 
-@system_metrics_router.get("/api/v1/coretelemetry/system/cpu_per_core", response_model=CPUPerCoreResponse)
+@system_metrics_router.get("/api/system/cpu_per_core", response_model=CPUPerCoreResponse)
 async def get_cpu_per_core():
     """
     Get CPU usage percentage for each individual core.
@@ -63,7 +63,7 @@ async def get_cpu_per_core():
     """
     return {"percent": psutil.cpu_percent(interval=1, percpu=True)}
 
-@system_metrics_router.get("/api/v1/coretelemetry/system/ram", response_model=MemoryResponse)
+@system_metrics_router.get("/api/system/ram", response_model=MemoryResponse)
 async def get_ram():
     """
     Get RAM memory usage statistics.
@@ -74,7 +74,7 @@ async def get_ram():
     ram = psutil.virtual_memory()
     return {"percent": ram.percent, "used_gb": ram.used / (1024**3), "total_gb": ram.total / (1024**3)}
 
-@system_metrics_router.get("/api/v1/coretelemetry/system/disk", response_model=DiskResponse)
+@system_metrics_router.get("/api/system/disk", response_model=DiskResponse)
 async def get_disk():
     """
     Get disk usage statistics for the root filesystem.
