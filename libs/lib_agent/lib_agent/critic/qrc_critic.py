@@ -22,7 +22,7 @@ from lib_agent.critic.critic_utils import (
 from lib_agent.critic.rolling_reset import RollingResetManager
 
 
-class CriticOutputs(NamedTuple):
+class QRCOutputs(NamedTuple):
     q: jax.Array
     h: jax.Array
     phi: jax.Array
@@ -34,7 +34,7 @@ def critic_builder(cfg: nets.TorsoConfig):
         phi = torso(x, a)
 
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
-        return CriticOutputs(
+        return QRCOutputs(
             q=hk.Linear(1, w_init=small_init, with_bias=False)(phi),
             h=hk.Linear(1, name='h', w_init=small_init, with_bias=False)(phi),
             phi=phi,
@@ -182,7 +182,7 @@ class QRCCritic:
     # -- Shared net.apply vmapping --
     # -------------------------------
     @jax_u.method_jit
-    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> CriticOutputs:
+    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> QRCOutputs:
         # state shape is one of (state_dim,) or (batch, state_dim)
         # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
         # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
