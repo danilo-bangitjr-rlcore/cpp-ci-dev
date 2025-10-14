@@ -175,6 +175,26 @@ class GreedyAC:
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
         self._collector.collect('critic_loss', metrics.loss.mean().item())
 
+    def initialize_to_nominal_action(self, nominal_setpoints: jax.Array, iterations: int = 100):
+        critic_rng, actor_rng, self.rng = jax.random.split(self.rng, 3)
+        new_critic_state = self._critic.initialize_to_nominal_action(
+            critic_rng,
+            self.agent_state.critic,
+            nominal_setpoints,
+        )
+        self.agent_state = self.agent_state._replace(critic=new_critic_state)
+
+        new_actor_state = self._actor.initialize_to_nominal_action(
+            actor_rng,
+            self.agent_state.actor.actor,
+            nominal_setpoints,
+            self.state_dim,
+        )
+        new_actor_state = ActorState(new_actor_state, self.agent_state.actor.proposal)
+
+        self.agent_state = self.agent_state._replace(actor=new_actor_state)
+
+
     def policy_update(self):
         if self.policy_buffer.size == 0:
             return
