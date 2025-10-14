@@ -6,16 +6,10 @@ from coretelemetry.agent_metrics_api.services import (
     get_agent_metrics_manager,
 )
 from fastapi import APIRouter, Depends
-from fastapi.responses import RedirectResponse
 
 agent_metrics_router = APIRouter(
     tags=["Agent Metrics"],
 )
-
-
-@agent_metrics_router.get("/")
-async def root():
-    return RedirectResponse(url="/docs")
 
 @agent_metrics_router.post("/api/v1/telemetry/config/clear_cache")
 async def clear_cache(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008

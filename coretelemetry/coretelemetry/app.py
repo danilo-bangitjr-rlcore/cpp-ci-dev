@@ -7,7 +7,7 @@ from coretelemetry.agent_metrics_api.exceptions import AgentMetricsException
 from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 __version__ = "0.1.0"
 
@@ -38,6 +38,11 @@ def create_app(config_path: str | Path) -> FastAPI:
     agent_metrics_manager.set_config_path(Path(config_path))
 
     app.include_router(agent_metrics_router)
+
+
+    @agent_metrics_router.get("/")
+    async def root():
+        return RedirectResponse(url="/docs")
 
     @app.get("/health")
     async def health_check(agent_metrics_manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
