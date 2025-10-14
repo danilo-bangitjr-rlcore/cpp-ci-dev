@@ -33,6 +33,7 @@ class NamedArray: # noqa: PLW1641
         self._names = tuple(names)
         self._values = values
         self._timestamps = JaxTimestamp.from_datetime64(ts)
+        self._known_names: set[str] = set(self._names)
 
     def _input_validation(self, names: Sequence[str], values: jax.Array, timestamps: NDArray[np.datetime64]):
         assert len(names) == len(set(names)), "names must be unique"
@@ -119,13 +120,13 @@ class NamedArray: # noqa: PLW1641
         NamedArray uses the convention that the last dimension of a tensor is the "feature" dimension.
         E.g. semantically labeled dims would look like (ensemble, batch, feature)
         """
-        if key not in self._names:
+        if key not in self._known_names:
             return Maybe[jax.Array](None)
         idx = self._names.index(key)
         return Maybe(self._values[..., idx])
 
     def get_features(self, keys: Iterable[str]) -> Maybe[jax.Array]:
-        if any(key not in self._names for key in keys):
+        if not set(keys).issubset(self._known_names):
             return Maybe[jax.Array](None)
         return Maybe(jnp.concat([jnp.expand_dims(self.get_feature(k).expect(), -1) for k in keys], axis=-1))
 
@@ -238,6 +239,7 @@ class NamedArray: # noqa: PLW1641
         obj._names = aux_data
         obj._values = children[0]
         obj._timestamps = children[1]
+        obj._known_names = set(aux_data)
         return obj
 
 
