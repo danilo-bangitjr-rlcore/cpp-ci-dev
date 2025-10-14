@@ -2,10 +2,10 @@ import argparse
 from pathlib import Path
 
 import uvicorn
-from coretelemetry.system_metrics_api.system_metrics_routes import system_metrics_router
 from coretelemetry.agent_metrics_api.agent_metrics_routes import AgentMetricsManager, agent_metrics_router
 from coretelemetry.agent_metrics_api.exceptions import AgentMetricsException
 from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
+from coretelemetry.system_metrics_api.system_metrics_routes import system_metrics_router
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
