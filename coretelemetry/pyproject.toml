@@ -13,6 +13,7 @@ dependencies = [
     "corerl",
     "httpx>=0.28.1",
     "lib-sql",
+    "psutil~=7.0",
 ]
 
 [build-system]
