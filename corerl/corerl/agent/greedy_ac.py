@@ -13,13 +13,12 @@ from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
-    QRCConfig,
     RollingResetConfig,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,
 )
-from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
@@ -403,7 +402,6 @@ class GreedyAC(BaseAgent):
                 value=len(t),
             )
 
-
     # --------------------------- critic updating-------------------------- #
 
     def update_critic(self) -> list[float]:
@@ -511,7 +509,6 @@ class GreedyAC(BaseAgent):
             )
             self._actor_state = self._actor_state._replace(actor=actor_state)
 
-
         q_losses = []
 
         alpha = self.cfg.loss_ema_factor
@@ -571,7 +568,6 @@ class GreedyAC(BaseAgent):
         with open(path / "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
-
     def load(self, path: Path) -> None:
         self._app_state.event_bus.emit_event(RLEventType.agent_load)
 
@@ -609,6 +605,7 @@ class GreedyAC(BaseAgent):
             metric="BUFFER-ACTOR-size",
             value=self._actor_buffer.size,
         )
+
 
 def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
     """
