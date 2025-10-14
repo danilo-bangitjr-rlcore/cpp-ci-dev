@@ -1,13 +1,16 @@
 from dataclasses import dataclass
+from functools import partial
 from typing import Any, NamedTuple, Protocol
 
 import chex
 import jax
 import jax.numpy as jnp
+import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
 from lib_agent.actor.percentile_actor import State
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
+from lib_agent.critic.adv_critic import AdvCritic
 from lib_agent.critic.critic_registry import get_critic
 from lib_agent.critic.qrc_critic import QRCCritic
 from ml_instrumentation.Collector import Collector
@@ -19,6 +22,7 @@ from interaction.transition_creator import Transition
 class CriticState(Protocol):
     @property
     def params(self) -> chex.ArrayTree: ...
+
 
 class PolicyState(Protocol):
     @property
@@ -37,6 +41,7 @@ class ActorState(NamedTuple):
 class GACState(NamedTuple):
     critic: CriticState
     actor: ActorState
+
 
 @dataclass
 class GreedyACConfig:
@@ -229,11 +234,94 @@ class GreedyAC:
 
         self._collector.collect('actor_loss', metrics.actor_loss.mean().item())
 
-
-
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         qs = self._critic.get_active_values(params, rng, x, a).q
         values = qs.mean(axis=0).squeeze(-1)
 
         chex.assert_rank(values, 0)
         return values
+
+
+class GAAC(GreedyAC):
+    """Greedy Advantage Actor-Critic (GAAC).
+
+    Inherits from GreedyAC and overrides critic_update to sample policy actions
+    and compute their probabilities for the advantage centering loss.
+    """
+
+    @jax_u.method_jit
+    def _get_action_probs(self, states: State, actions: jax.Array):
+        chex.assert_rank(states.features, 3)  # (ens, batch, state_dim)
+        chex.assert_rank(actions, 4)  # (ens, batch, n_samples, state_dim)
+
+        f = partial(self.get_probs, self.agent_state.actor.actor.params)
+        return jax_u.multi_vmap(f, levels=2)(
+            states,
+            actions,
+        )
+
+    def _get_actions_and_probs(self, states: State):
+        """Sample actions from policy for current state (for advantage centering)"""
+        num_policy_actions = self._cfg.critic.get('num_policy_actions', 100)
+        ensemble_size = self._cfg.critic['ensemble']
+        batch_size = self._cfg.batch_size
+
+        self.rng, bs_rng = jax.random.split(self.rng)
+        policy_actions, _ = self._actor.get_actions_rng(
+            self.agent_state.actor.actor.params,
+            bs_rng,
+            states,
+            num_policy_actions,
+        )
+        chex.assert_shape(policy_actions, (ensemble_size, batch_size, num_policy_actions, self.action_dim))
+
+        policy_probs = self._get_action_probs(
+            states,
+            policy_actions,
+        )
+        chex.assert_shape(policy_probs, (ensemble_size, batch_size, num_policy_actions))
+        return policy_actions, policy_probs
+
+    def critic_update(self):
+        assert isinstance(self._critic, AdvCritic)
+        if self.critic_buffer.size == 0:
+            return
+
+        batch = self.critic_buffer.sample()
+
+        # Create state for current timestep
+        states = State(
+            features=batch.state,
+            a_lo=batch.a_lo,
+            a_hi=batch.a_hi,
+            last_a=batch.last_a,
+            dp=jnp.expand_dims(batch.next_dp, axis=-1),
+        )
+
+        policy_actions, policy_probs = self._get_actions_and_probs(states)
+
+        # Create next state
+        next_states = State(
+            features=batch.next_state,
+            a_lo=batch.next_a_lo,
+            a_hi=batch.next_a_hi,
+            last_a=batch.action,
+            dp=jnp.expand_dims(batch.next_dp, axis=-1),
+        )
+
+        # Update critic with policy actions and probabilities
+        new_critic_state, metrics = self._critic.update(
+            critic_state=self.agent_state.critic,
+            transitions=BatchWithState(
+                state=states,
+                action=batch.action,
+                reward=batch.reward.squeeze(-1),
+                next_state=next_states,
+                gamma=batch.gamma.squeeze(-1),
+            ),
+            policy_actions=policy_actions,
+            policy_probs=policy_probs,
+        )
+
+        self.agent_state = self.agent_state._replace(critic=new_critic_state)
+        self._collector.collect('critic_loss', metrics.loss.mean().item())
