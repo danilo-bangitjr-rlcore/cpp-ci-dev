@@ -57,6 +57,7 @@ class QRCConfig:
     use_all_layer_norm: bool = False
     rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
 
+
 class QRCCritic:
     def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):
         self._rng = jax.random.PRNGKey(seed)
@@ -261,7 +262,6 @@ class QRCCritic:
             params=params,
         )
 
-
     # ------------
     # -- Update --
     # ------------
@@ -302,7 +302,6 @@ class QRCCritic:
             opt_state=new_opt_state,
         ), metrics
 
-
     def _ensemble_loss(
         self,
         params: chex.ArrayTree,
@@ -310,7 +309,7 @@ class QRCCritic:
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
-        chex.assert_rank(transition.state.features, 3) # (ens, batch, state_dim)
+        chex.assert_rank(transition.state.features, 3)  # (ens, batch, state_dim)
         chex.assert_tree_shape_prefix(transition, transition.state.features.shape[:2])
         rngs = jax.random.split(rng, self._reset_manager.total_critics)
         losses, metrics = jax_u.vmap(self._batch_loss)(
@@ -321,7 +320,6 @@ class QRCCritic:
         )
 
         return losses.sum(), metrics
-
 
     def _batch_loss(
         self,
@@ -343,7 +341,6 @@ class QRCCritic:
         metrics = metrics._replace(h_reg_loss=h_reg_loss)
         return losses.mean() + h_reg_loss, metrics
 
-
     def _loss(
         self,
         params: chex.ArrayTree,
@@ -357,8 +354,8 @@ class QRCCritic:
         next_state = transition.next_state
         gamma = transition.gamma
         chex.assert_rank((state.features, next_state.features, action), 1)
-        chex.assert_rank(next_actions, 2) # (num_samples, action_dim)
-        chex.assert_rank((reward, gamma), 0) # scalars
+        chex.assert_rank(next_actions, 2)  # (num_samples, action_dim)
+        chex.assert_rank((reward, gamma), 0)  # scalars
 
         q_rng, qp_rng, a_rng = jax.random.split(rng, 3)
         qp_rngs = jax.random.split(qp_rng, self._cfg.num_rand_actions)

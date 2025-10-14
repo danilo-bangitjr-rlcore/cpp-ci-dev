@@ -88,6 +88,7 @@ def stable_rank(matrix: jax.Array):
 
 def get_layer_names(params: chex.ArrayTree):
     keys = []
+
     def _inner(path: str, sub_params: chex.ArrayTree):
         if isinstance(sub_params, jax.Array):
             keys.append(path)
@@ -104,9 +105,9 @@ def get_layer_names(params: chex.ArrayTree):
 def get_stable_rank(params: chex.ArrayTree):
     leaves = jax.tree.leaves(params)
     ensemble = leaves[0].shape[0]
-    names =  get_layer_names(params)
+    names = get_layer_names(params)
 
-    matrix_idxs =  [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
+    matrix_idxs = [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
     matrix_leaves = [leaves[i] for i in matrix_idxs]
     matrix_names = [names[i] for i in matrix_idxs]
 
@@ -153,7 +154,7 @@ def uniform_except(
             new,
             prop,
         )
-        return key, x, it+1
+        return key, x, it + 1
 
     key, x, _ = jax.lax.while_loop(
         keep_trying,
