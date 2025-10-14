@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, NamedTuple, Protocol
 
@@ -21,12 +21,6 @@ class CriticState(NamedTuple):
     opt_state: chex.ArrayTree
 
 
-class CriticOutputs(NamedTuple):
-    q: jax.Array
-    h: jax.Array
-    phi: jax.Array
-
-
 class CriticBatch(Protocol):
     @property
     def state(self) -> State: ...
@@ -44,21 +38,6 @@ class CriticBatch(Protocol):
 class RollingResetConfig:
     reset_period: int = 2**31 - 1
     warm_up_steps: int = 1000
-
-
-@dataclass
-class QRCConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_rand_actions: int
-    action_regularization: float
-    action_regularization_epsilon: float
-    l2_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
 
 
 def l2_regularizer(params: chex.ArrayTree, beta: float):

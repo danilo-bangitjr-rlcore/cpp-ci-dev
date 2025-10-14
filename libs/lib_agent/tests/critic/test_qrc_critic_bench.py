@@ -7,8 +7,8 @@ import numpy as np
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.buffer.buffer import State
-from lib_agent.critic.critic_utils import CriticBatch, QRCConfig, RollingResetConfig
-from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.critic.critic_utils import CriticBatch, RollingResetConfig
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 
 
 class FakeCriticBatch(NamedTuple):

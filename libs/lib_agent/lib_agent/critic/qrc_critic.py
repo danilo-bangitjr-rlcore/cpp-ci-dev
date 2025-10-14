@@ -1,4 +1,5 @@
-from typing import Any
+from dataclasses import dataclass, field
+from typing import Any, NamedTuple
 
 import chex
 import haiku as hk
@@ -10,16 +11,21 @@ import optax
 import lib_agent.network.networks as nets
 from lib_agent.critic.critic_utils import (
     CriticBatch,
-    CriticOutputs,
     CriticState,
-    QRCConfig,
     QRCCriticMetrics,
+    RollingResetConfig,
     get_ensemble_norm,
     get_layer_norms,
     l2_regularizer,
     uniform_except,
 )
 from lib_agent.critic.rolling_reset import RollingResetManager
+
+
+class CriticOutputs(NamedTuple):
+    q: jax.Array
+    h: jax.Array
+    phi: jax.Array
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -35,6 +41,21 @@ def critic_builder(cfg: nets.TorsoConfig):
         )
 
     return hk.transform(_inner)
+
+
+@dataclass
+class QRCConfig:
+    name: str
+    stepsize: float
+    ensemble: int
+    ensemble_prob: float
+    num_rand_actions: int
+    action_regularization: float
+    action_regularization_epsilon: float
+    l2_regularization: float
+    nominal_setpoint_updates: int = 1000
+    use_all_layer_norm: bool = False
+    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
 
 class QRCCritic:
     def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):

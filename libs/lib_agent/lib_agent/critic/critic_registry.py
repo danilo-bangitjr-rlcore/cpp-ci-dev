@@ -1,6 +1,6 @@
 from typing import Any
 
-from lib_agent.critic.critic_utils import QRCConfig
+from lib_agent.critic.qrc_critic import QRCConfig
 from lib_agent.critic.qrc_critic import QRCCritic
 
 
