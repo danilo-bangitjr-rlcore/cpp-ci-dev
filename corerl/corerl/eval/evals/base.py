@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Protocol
 import pandas as pd
 from lib_config.config import MISSING, computed, config
 
-from corerl.sql_logging.sql_logging import SQLEngineConfig
+from corerl.configs.sql_logging.sql_engine import SQLEngineConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig

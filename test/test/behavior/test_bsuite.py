@@ -2,7 +2,7 @@ from typing import Any
 
 import filelock
 import pytest
-from corerl.sql_logging.sql_logging import SQLEngineConfig
+from corerl.configs.sql_logging.sql_engine import SQLEngineConfig
 from lib_sql.engine import get_sql_engine
 
 from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
