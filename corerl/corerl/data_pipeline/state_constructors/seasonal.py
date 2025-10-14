@@ -16,9 +16,10 @@ class SeasonalTagFeatures:
         self.has_day_of_year = any(tag_cfg.name == SeasonalTags.day_of_year for tag_cfg in seasonal_tags)
         self.has_day_of_week = any(tag_cfg.name == SeasonalTags.day_of_week for tag_cfg in seasonal_tags)
         self.has_time_of_day = any(tag_cfg.name == SeasonalTags.time_of_day for tag_cfg in seasonal_tags)
+        self.has_second_in_hour = any(tag_cfg.name == SeasonalTags.second_in_hour for tag_cfg in seasonal_tags)
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
-        if not (self.has_time_of_day or self.has_day_of_week or self.has_day_of_year):
+        if not (self.has_time_of_day or self.has_day_of_week or self.has_day_of_year or self.has_second_in_hour):
             return pf
 
         timestamps = pf.data.index
@@ -43,5 +44,13 @@ class SeasonalTagFeatures:
             cos_data = (np.cos(2.0 * np.pi * pf.data[SeasonalTags.day_of_year] / days_in_year) + 1) / 2
             pf.data["time_of_year_sin"] = sin_data
             pf.data["time_of_year_cos"] = cos_data
+
+        if self.has_second_in_hour:
+            pf.data["second_in_hour_sin"] = (
+                np.sin(2.0 * np.pi * pf.data[SeasonalTags.second_in_hour] / 3600.0) + 1
+            ) / 2
+            pf.data["second_in_hour_cos"] = (
+                np.cos(2.0 * np.pi * pf.data[SeasonalTags.second_in_hour] / 3600.0) + 1
+            ) / 2
 
         return pf
