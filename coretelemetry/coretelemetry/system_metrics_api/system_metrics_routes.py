@@ -34,7 +34,7 @@ system_metrics_router = APIRouter(
 )
 
 @system_metrics_router.get("/api/v1/coretelemetry/system/platform", response_model=PlatformResponse)
-async def get_system_patform():
+async def get_system_platform():
     """
     Get the operating system platform.
 
