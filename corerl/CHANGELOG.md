@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.153.1](https://github.com/rlcoretech/core-rl/compare/corerl-v0.153.0...corerl-v0.153.1) (2025-10-14)
+
+
+### Bug Fixes
+
+* **corerl:** fix bug in transition creator test ([e4a41d7](https://github.com/rlcoretech/core-rl/commit/e4a41d71ebf37fe9b07443efefab96e51dd0bbdf))
+* **corerl:** normalize action bounds in red zone reflexes ([e9b4fbb](https://github.com/rlcoretech/core-rl/commit/e9b4fbb3ef983daf69e43813dfbf343b7f5e18f8))
+
 ## [0.153.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.152.1...corerl-v0.153.0) (2025-10-08)
 
 
