@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 
 import yaml
-from coretelemetry.exceptions import (
+from coretelemetry.agent_metrics_api.exceptions import (
     ColumnNotFoundError,
     ConfigFileNotFoundError,
     ConfigParseError,
@@ -18,7 +18,7 @@ from coretelemetry.utils.sql import DBConfig, SqlReader
 MAX_RESULT_ROWS = 5000
 
 
-class TelemetryManager:
+class AgentMetricsManager:
 
     def __init__(self):
         self.db_config = DBConfig()
@@ -26,30 +26,15 @@ class TelemetryManager:
         self.metrics_table_cache: dict[str, str] = {}
         self.sql_reader: SqlReader | None = None
 
-    # Configuration methods
-    def get_db_config(self) -> DBConfig:
-        return self.db_config
-
-    def set_db_config(self, config: DBConfig) -> DBConfig:
-        self.db_config = config
-        return self.db_config
-
-    def get_config_path(self) -> Path:
-        return self.config_path
-
-    def set_config_path(self, path: Path) -> Path:
-        self.config_path = path
-        return self.config_path
-
-    def clear_cache(self):
-        """Clear all cached data including SQL reader and metrics table cache."""
-        self.sql_reader = None
-        self.metrics_table_cache = {}
-
-    def test_db_connection(self) -> bool:
+    def _ensure_sql_reader(self):
         if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
-        return self.sql_reader.test_connection()
+            try:
+                self.sql_reader = SqlReader(self.db_config)
+            except Exception as e:
+                raise DatabaseConnectionError(
+                    f"Failed to initialize database connection: {e!s}",
+                ) from e
+        return self.sql_reader
 
     # Private helper methods
     def _get_metrics_table_name(self, agent_id: str) -> str:
@@ -88,6 +73,35 @@ class TelemetryManager:
 
         return table_name
 
+    # Configuration methods
+    def get_db_config(self) -> DBConfig:
+        return self.db_config
+
+    def set_db_config(self, config: DBConfig) -> DBConfig:
+        self.db_config = config
+        return self.db_config
+
+    def get_config_path(self) -> Path:
+        return self.config_path
+
+    def set_config_path(self, path: Path) -> Path:
+        self.config_path = path
+        return self.config_path
+
+    def clear_cache(self):
+        """Clear all cached data including SQL reader and metrics table cache."""
+        self.sql_reader = None
+        self.metrics_table_cache = {}
+
+    def test_db_connection(self) -> bool:
+        try:
+            self.sql_reader = self._ensure_sql_reader()
+        except DatabaseConnectionError:
+            return False
+
+        return self.sql_reader.test_connection()
+
+    # Metrics methods
     def get_telemetry_data(
         self,
         agent_id: str,
@@ -95,8 +109,7 @@ class TelemetryManager:
         start_time: str | None,
         end_time: str | None,
     ):
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
+        self.sql_reader = self._ensure_sql_reader()
 
         if metric.lower() == "time":
             raise ReservedColumnError(
@@ -157,8 +170,7 @@ class TelemetryManager:
         return [{"timestamp": row[0], "value": float(row[1])} for row in raw_data]
 
     def get_available_metrics(self, agent_id: str) -> dict:
-        if self.sql_reader is None:
-            self.sql_reader = SqlReader(self.db_config)
+        self.sql_reader = self._ensure_sql_reader()
 
         table_name = self._get_metrics_table_name(agent_id)
 
@@ -191,8 +203,8 @@ class TelemetryManager:
 
 
 # Create singleton instance
-telemetry_manager = TelemetryManager()
+agent_metrics_manager = AgentMetricsManager()
 
 
-def get_telemetry_manager() -> TelemetryManager:
-    return telemetry_manager
+def get_agent_metrics_manager() -> AgentMetricsManager:
+    return agent_metrics_manager

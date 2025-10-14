@@ -3,7 +3,7 @@
 from pathlib import Path
 
 import pytest
-from coretelemetry.app import create_app, get_telemetry_manager
+from coretelemetry.app import create_app, get_agent_metrics_manager
 from coretelemetry.utils.sql import DBConfig
 from fastapi.testclient import TestClient
 
@@ -17,12 +17,12 @@ pytest_plugins = [
 def test_client(db_config_from_engine: DBConfig, sample_config_dir: Path) -> TestClient:
     """FastAPI TestClient with real database configuration."""
     # Configure manager before creating client
-    manager = get_telemetry_manager()
-    manager.set_db_config(db_config_from_engine)
-    manager.set_config_path(sample_config_dir)
-    manager.clear_cache()  # Clear any stale state
+    agent_metrics_manager = get_agent_metrics_manager()
+    agent_metrics_manager.set_db_config(db_config_from_engine)
+    agent_metrics_manager.set_config_path(sample_config_dir)
+    agent_metrics_manager.clear_cache()  # Clear any stale state
 
-    return TestClient(create_app())
+    return TestClient(create_app(config_path=sample_config_dir))
 
 
 class TestBasicEndpoints:

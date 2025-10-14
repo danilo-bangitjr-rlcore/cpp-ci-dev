@@ -1,16 +1,16 @@
-"""Integration tests for TelemetryManager with real PostgreSQL database."""
+"""Integration tests for AgentMetricsManager with real PostgreSQL database."""
 
 from pathlib import Path
 
 import pytest
 import yaml
-from coretelemetry.exceptions import (
+from coretelemetry.agent_metrics_api.exceptions import (
     ColumnNotFoundError,
     NoDataFoundError,
     ReservedColumnError,
     TableNotFoundError,
 )
-from coretelemetry.services import TelemetryManager
+from coretelemetry.agent_metrics_api.services import AgentMetricsManager
 from coretelemetry.utils.sql import DBConfig
 
 pytest_plugins = [
@@ -20,9 +20,9 @@ pytest_plugins = [
 
 
 @pytest.fixture
-def manager_real(db_config_from_engine: DBConfig, sample_config_dir: Path) -> TelemetryManager:
-    """Real TelemetryManager with real database and config."""
-    manager = TelemetryManager()
+def manager_real(db_config_from_engine: DBConfig, sample_config_dir: Path) -> AgentMetricsManager:
+    """Real AgentMetricsManager with real database and config."""
+    manager = AgentMetricsManager()
     manager.set_db_config(db_config_from_engine)
     manager.set_config_path(sample_config_dir)
     return manager
@@ -33,7 +33,7 @@ class TestGetTelemetryDataIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_latest_value(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test retrieving latest value without time parameters."""
         _schema_name, _table_name = sample_metrics_table
@@ -48,7 +48,7 @@ class TestGetTelemetryDataIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_time_range(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test retrieving data with start and end time."""
         _schema_name, _table_name = sample_metrics_table
@@ -64,7 +64,7 @@ class TestGetTelemetryDataIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_filters_nulls(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test that NULL values are filtered out."""
         _schema_name, _table_name = sample_metrics_table
@@ -81,7 +81,7 @@ class TestGetTelemetryDataIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_transforms_correctly(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test data transformation to dict structure."""
         _schema_name, _table_name = sample_metrics_table
@@ -95,14 +95,14 @@ class TestGetTelemetryDataIntegration:
         assert isinstance(result[0]["value"], float)
 
     @pytest.mark.timeout(30)
-    def test_get_telemetry_data_time_reserved_word(self, manager_real: TelemetryManager):
+    def test_get_telemetry_data_time_reserved_word(self, manager_real: AgentMetricsManager):
         """Test 'time' as metric raises ReservedColumnError."""
         with pytest.raises(ReservedColumnError):
             manager_real.get_telemetry_data("test_agent", "time", None, None)
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_table_not_found(
-        self, manager_real: TelemetryManager, sample_config_dir: Path,
+        self, manager_real: AgentMetricsManager, sample_config_dir: Path,
     ):
         """Test TableNotFoundError when table doesn't exist."""
         # Create config with nonexistent table
@@ -116,7 +116,7 @@ class TestGetTelemetryDataIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_column_not_found(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test ColumnNotFoundError when column doesn't exist."""
         with pytest.raises(ColumnNotFoundError):
@@ -124,7 +124,7 @@ class TestGetTelemetryDataIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_telemetry_data_empty_result(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test NoDataFoundError when query returns no data."""
         with pytest.raises(NoDataFoundError):
@@ -137,7 +137,7 @@ class TestGetAvailableMetricsIntegration:
 
     @pytest.mark.timeout(30)
     def test_get_available_metrics_returns_columns(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test retrieving available metrics excludes 'time'."""
         _schema_name, _table_name = sample_metrics_table
@@ -156,7 +156,7 @@ class TestCaching:
 
     @pytest.mark.timeout(30)
     def test_yaml_cache_works(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test that second call uses cached table name."""
         _schema_name, table_name = sample_metrics_table
@@ -178,7 +178,7 @@ class TestCaching:
 
     @pytest.mark.timeout(30)
     def test_clear_cache_clears_yaml_cache(
-        self, manager_real: TelemetryManager, sample_metrics_table: tuple[str, str],
+        self, manager_real: AgentMetricsManager, sample_metrics_table: tuple[str, str],
     ):
         """Test that clear_cache clears the YAML config cache."""
         _schema_name, _table_name = sample_metrics_table

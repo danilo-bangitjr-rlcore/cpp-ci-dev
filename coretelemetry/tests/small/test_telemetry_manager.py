@@ -1,11 +1,11 @@
-"""Unit tests for TelemetryManager class with mocked dependencies."""
+"""Unit tests for AgentMetricsManager class with mocked dependencies."""
 
 from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
 import yaml
-from coretelemetry.exceptions import (
+from coretelemetry.agent_metrics_api.exceptions import (
     ColumnNotFoundError,
     ConfigFileNotFoundError,
     ConfigParseError,
@@ -15,7 +15,7 @@ from coretelemetry.exceptions import (
     ReservedColumnError,
     TableNotFoundError,
 )
-from coretelemetry.services import TelemetryManager
+from coretelemetry.agent_metrics_api.services import AgentMetricsManager
 from coretelemetry.utils.sql import DBConfig, SqlReader
 
 
@@ -26,9 +26,9 @@ def mock_sql_reader() -> Mock:
 
 
 @pytest.fixture
-def manager(mock_sql_reader: Mock) -> TelemetryManager:
-    """TelemetryManager with mocked SqlReader."""
-    manager = TelemetryManager()
+def manager(mock_sql_reader: Mock) -> AgentMetricsManager:
+    """AgentMetricsManager with mocked SqlReader."""
+    manager = AgentMetricsManager()
     manager.sql_reader = mock_sql_reader
     return manager
 
@@ -44,7 +44,7 @@ class TestConfigManagement:
 
     def test_get_set_db_config(self) -> None:
         """Test database configuration getter and setter."""
-        manager = TelemetryManager()
+        manager = AgentMetricsManager()
         new_config = DBConfig(
             username="new_user",
             password="new_pass",
@@ -60,7 +60,7 @@ class TestConfigManagement:
 
     def test_get_set_config_path(self) -> None:
         """Test config path getter and setter."""
-        manager = TelemetryManager()
+        manager = AgentMetricsManager()
         new_path = Path("/tmp/configs")
 
         result = manager.set_config_path(new_path)
@@ -68,7 +68,7 @@ class TestConfigManagement:
         assert result == new_path
         assert manager.get_config_path() == new_path
 
-    def test_clear_cache_clears_cache(self, manager: TelemetryManager) -> None:
+    def test_clear_cache_clears_cache(self, manager: AgentMetricsManager) -> None:
         """Test clear_cache clears sql_reader and cache."""
         manager.sql_reader = Mock()
         manager.metrics_table_cache = {"agent1": "table1"}
@@ -82,7 +82,7 @@ class TestConfigManagement:
 class TestGetMetricsTableName:
     """Tests for _get_metrics_table_name private method."""
 
-    def test_get_metrics_table_name_cache_hit(self, manager: TelemetryManager) -> None:
+    def test_get_metrics_table_name_cache_hit(self, manager: AgentMetricsManager) -> None:
         """Test cached table name is returned."""
         manager.metrics_table_cache = {"agent1": "cached_table"}
 
@@ -91,7 +91,7 @@ class TestGetMetricsTableName:
         assert result == "cached_table"
 
     def test_get_metrics_table_name_yaml_parse(
-        self, manager: TelemetryManager, mock_yaml_config: dict, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_yaml_config: dict, tmp_path: Path,
     ) -> None:
         """Test YAML is parsed correctly and result is cached."""
         config_dir = tmp_path / "configs"
@@ -108,7 +108,7 @@ class TestGetMetricsTableName:
         assert manager.metrics_table_cache["test_agent"] == "test_metrics_table"
 
     def test_get_metrics_table_name_file_not_found(
-        self, manager: TelemetryManager, tmp_path: Path,
+        self, manager: AgentMetricsManager, tmp_path: Path,
     ) -> None:
         """Test ConfigFileNotFoundError when YAML file doesn't exist."""
         config_dir = tmp_path / "configs"
@@ -119,7 +119,7 @@ class TestGetMetricsTableName:
             manager._get_metrics_table_name("nonexistent_agent")
 
     def test_get_metrics_table_name_yaml_parse_error(
-        self, manager: TelemetryManager, tmp_path: Path,
+        self, manager: AgentMetricsManager, tmp_path: Path,
     ) -> None:
         """Test ConfigParseError when YAML parsing fails."""
         config_dir = tmp_path / "configs"
@@ -134,7 +134,7 @@ class TestGetMetricsTableName:
             manager._get_metrics_table_name("test_agent")
 
     def test_get_metrics_table_name_missing_key(
-        self, manager: TelemetryManager, tmp_path: Path,
+        self, manager: AgentMetricsManager, tmp_path: Path,
     ) -> None:
         """Test ConfigParseError when table_name key is missing."""
         config_dir = tmp_path / "configs"
@@ -153,14 +153,14 @@ class TestGetTelemetryData:
     """Tests for get_telemetry_data method."""
 
     def test_get_telemetry_data_reserved_column(
-        self, manager: TelemetryManager,
+        self, manager: AgentMetricsManager,
     ) -> None:
         """Test 'time' as metric raises ReservedColumnError."""
         with pytest.raises(ReservedColumnError):
             manager.get_telemetry_data("agent1", "time", None, None)
 
     def test_get_telemetry_data_table_not_found(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test TableNotFoundError when table doesn't exist."""
         config_dir = tmp_path / "configs"
@@ -173,7 +173,7 @@ class TestGetTelemetryData:
             manager.get_telemetry_data("agent1", "temperature", None, None)
 
     def test_get_telemetry_data_column_not_found(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test ColumnNotFoundError when column doesn't exist."""
         config_dir = tmp_path / "configs"
@@ -187,7 +187,7 @@ class TestGetTelemetryData:
             manager.get_telemetry_data("agent1", "temperature", None, None)
 
     def test_get_telemetry_data_connection_failure(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test DatabaseConnectionError on connection failure."""
         config_dir = tmp_path / "configs"
@@ -203,7 +203,7 @@ class TestGetTelemetryData:
             manager.get_telemetry_data("agent1", "temperature", None, None)
 
     def test_get_telemetry_data_empty_result(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test NoDataFoundError when no data found."""
         config_dir = tmp_path / "configs"
@@ -223,7 +223,7 @@ class TestGetAvailableMetrics:
     """Tests for get_available_metrics method."""
 
     def test_get_available_metrics_success(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test successful retrieval of available metrics."""
         config_dir = tmp_path / "configs"
@@ -243,7 +243,7 @@ class TestGetAvailableMetrics:
         assert "time" not in result["data"]
 
     def test_get_available_metrics_table_not_found(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test TableNotFoundError when table doesn't exist."""
         config_dir = tmp_path / "configs"
@@ -256,7 +256,7 @@ class TestGetAvailableMetrics:
             manager.get_available_metrics("agent1")
 
     def test_get_available_metrics_connection_failure(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test DatabaseConnectionError on connection failure."""
         config_dir = tmp_path / "configs"
@@ -270,7 +270,7 @@ class TestGetAvailableMetrics:
             manager.get_available_metrics("agent1")
 
     def test_get_available_metrics_only_time_column(
-        self, manager: TelemetryManager, mock_sql_reader: Mock, tmp_path: Path,
+        self, manager: AgentMetricsManager, mock_sql_reader: Mock, tmp_path: Path,
     ) -> None:
         """Test NoMetricsAvailableError when only time column exists."""
         config_dir = tmp_path / "configs"

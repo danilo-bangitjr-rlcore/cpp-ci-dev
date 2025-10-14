@@ -1,4 +1,4 @@
-class TelemetryException(Exception):
+class AgentMetricsException(Exception):
     """Base exception for all telemetry business logic errors.
 
     Attributes:
@@ -22,58 +22,58 @@ class TelemetryException(Exception):
 
 
 # 404 - Not Found errors
-class TableNotFoundError(TelemetryException):
+class TableNotFoundError(AgentMetricsException):
     """Raised when database table does not exist."""
 
     status_code = 404
 
 
-class ColumnNotFoundError(TelemetryException):
+class ColumnNotFoundError(AgentMetricsException):
     """Raised when database column does not exist in table."""
 
     status_code = 404
 
 
-class NoDataFoundError(TelemetryException):
+class NoDataFoundError(AgentMetricsException):
     """Raised when query returns no data."""
 
     status_code = 404
 
 
-class NoMetricsAvailableError(TelemetryException):
+class NoMetricsAvailableError(AgentMetricsException):
     """Raised when no metrics are available for an agent."""
 
     status_code = 404
 
 
 # 400 - Bad Request errors
-class ReservedColumnError(TelemetryException):
+class ReservedColumnError(AgentMetricsException):
     """Raised when trying to use a reserved column name as a metric."""
 
     status_code = 400
 
 
 # 413 - Payload Too Large errors
-class ResultTooLargeError(TelemetryException):
+class ResultTooLargeError(AgentMetricsException):
     """Raised when query result exceeds maximum allowed size."""
 
     status_code = 413
 
 
 # 503 - Service Unavailable errors
-class ConfigFileNotFoundError(TelemetryException):
+class ConfigFileNotFoundError(AgentMetricsException):
     """Raised when agent configuration file cannot be found."""
 
     status_code = 500
 
 
-class ConfigParseError(TelemetryException):
+class ConfigParseError(AgentMetricsException):
     """Raised when configuration file cannot be parsed."""
 
     status_code = 503
 
 
-class DatabaseConnectionError(TelemetryException):
+class DatabaseConnectionError(AgentMetricsException):
     """Raised when database connection fails."""
 
     status_code = 503

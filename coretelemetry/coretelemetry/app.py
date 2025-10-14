@@ -2,24 +2,30 @@ import argparse
 from pathlib import Path
 
 import uvicorn
-from coretelemetry.exceptions import TelemetryException
-from coretelemetry.services import (
-    DBConfig,
-    TelemetryManager,
-    get_telemetry_manager,
-)
+from coretelemetry.agent_metrics_api.agent_metrics_routes import AgentMetricsManager, agent_metrics_router
+from coretelemetry.agent_metrics_api.exceptions import AgentMetricsException
+from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse
 
 __version__ = "0.1.0"
 
 
 # pyright: reportUnusedFunction=false
-def create_app() -> FastAPI:
+def create_app(config_path: str | Path) -> FastAPI:
     app = FastAPI(title="CoreTelemetry API")
 
-# Add CORS middleware
+    # Global exception handler for all domain exceptions
+    @app.exception_handler(AgentMetricsException)
+    async def telemetry_exception_handler(request: Request, exc: AgentMetricsException):
+        """Convert domain exceptions to HTTP responses with appropriate status codes."""
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={"detail": exc.message},
+        )
+
+    # Add CORS middleware
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],  # Configure appropriately for production
@@ -28,142 +34,15 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
+    agent_metrics_manager = get_agent_metrics_manager()
+    agent_metrics_manager.set_config_path(Path(config_path))
 
-# Global exception handler for all domain exceptions
-    @app.exception_handler(TelemetryException)
-    async def telemetry_exception_handler(request: Request, exc: TelemetryException):
-        """Convert domain exceptions to HTTP responses with appropriate status codes."""
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={"detail": exc.message},
-        )
-
-
-    @app.get("/")
-    async def root():
-        return RedirectResponse(url="/docs")
+    app.include_router(agent_metrics_router)
 
     @app.get("/health")
-    async def health_check(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
-        db_connected = manager.test_db_connection()
+    async def health_check(agent_metrics_manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
+        db_connected = agent_metrics_manager.test_db_connection()
         return {"status": "healthy", "db_connected": db_connected}
-
-    @app.post("/api/v1/telemetry/config/clear_cache")
-    async def clear_cache(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
-        """
-        Clear all cached data including YAML configuration cache.
-
-        Returns:
-            Success message confirming cache was cleared
-        """
-        manager.clear_cache()
-        return {"message": "Cache cleared successfully"}
-
-    @app.get("/api/v1/telemetry/data/{agent_id}")
-    async def get_telemetry(
-        agent_id: str,
-        metric: str,
-        start_time: str | None = None,
-        end_time: str | None = None,
-        manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
-    ):
-        """
-        Get telemetry data for a specific agent and metric within a date range.
-
-        Args:
-            agent_id: The ID of the agent
-            metric: The name of the metric to retrieve
-            start_time: Start date/time for the telemetry data (query param 'start_time', optional).
-                       If timezone is not specified, UTC is assumed.
-            end_time: End date/time for the telemetry data (query param 'end_time', optional).
-                     If timezone is not specified, UTC is assumed.
-
-        Returns:
-            Telemetry data for the specified parameters
-
-        Note:
-            If neither start_time nor end_time is specified, returns the latest value only.
-            If only one of start_time or end_time is specified, the query may return too many rows
-            and result in a 413 error. It is recommended to specify both start_time and end_time
-            for time-range queries.
-        """
-        # Add UTC timezone if not present
-        if start_time and not start_time.endswith(("+00", "Z", "UTC")) and "+" not in start_time[-6:]:
-            start_time = f"{start_time}+00"
-        if end_time and not end_time.endswith(("+00", "Z", "UTC")) and "+" not in end_time[-6:]:
-            end_time = f"{end_time}+00"
-
-        return manager.get_telemetry_data(agent_id, metric, start_time, end_time)
-
-    @app.get("/api/v1/telemetry/data/{agent_id}/metrics")
-    async def get_available_metrics(
-        agent_id: str,
-        manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
-    ):
-        """
-        Get all available metrics for a specific agent.
-
-        Args:
-            agent_id: The ID of the agent
-
-        Returns:
-            List of available metric names for the agent
-        """
-        return manager.get_available_metrics(agent_id)
-
-    @app.get("/api/v1/telemetry/config/db", response_model=DBConfig)
-    async def get_db_config(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
-        """
-        Get the current database configuration.
-
-        Returns:
-            Current database configuration settings
-        """
-        return manager.get_db_config()
-
-    @app.post("/api/v1/telemetry/config/db")
-    async def set_db_config(
-        config: DBConfig,
-        manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
-    ):
-        """
-        Update the database configuration.
-
-        Args:
-            config: New database configuration settings
-
-        Returns:
-            Updated database configuration
-        """
-        updated_config = manager.set_db_config(config)
-        return {"message": "Database configuration updated successfully", "config": updated_config}
-
-    @app.get("/api/v1/telemetry/config/path")
-    async def get_config_path(manager: TelemetryManager = Depends(get_telemetry_manager)): # noqa: B008
-        """
-        Get the current configuration path.
-
-        Returns:
-            Current configuration path as a string
-        """
-        return {"config_path": str(manager.get_config_path())}
-
-    @app.post("/api/v1/telemetry/config/path")
-    async def set_config_path(
-        path: str,
-        manager: TelemetryManager = Depends(get_telemetry_manager), # noqa: B008
-    ):
-        """
-        Update the configuration path.
-
-        Args:
-            path: New configuration path as a string
-
-        Returns:
-            Updated configuration path
-        """
-        updated_path = manager.set_config_path(Path(path))
-        return {"message": "Configuration path updated successfully", "config_path": str(updated_path)}
 
     return app
 
@@ -186,9 +65,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # Set the config path from command line args
-    manager = get_telemetry_manager()
-    manager.set_config_path(Path(args.config_path))
-
-    app = create_app()
+    app = create_app(args.config_path)
     uvicorn.run(app, host="0.0.0.0", port=args.port, reload=args.reload)
