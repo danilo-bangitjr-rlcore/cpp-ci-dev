@@ -1,8 +1,10 @@
 # ruff: noqa: B008
 
+import json
 from typing import Any
 
-from fastapi import APIRouter, Body, status
+import httpx
+from fastapi import APIRouter, Body, HTTPException, Request, status
 from pydantic import BaseModel
 from server.config_api.config import (
     ConfigSubfolder,
@@ -55,6 +57,12 @@ class ConfigNameRequest(BaseModel):
 class ConfigPathResponse(BaseModel):
     config_path: str
 
+class AgentWithConfigResponse(BaseModel):
+    agents: list[str]
+
+InternalServerErrorResponse = str
+
+COREGATEWAY_BASE = "http://localhost:8001"
 
 #════════════════════════════════════════════════════════════════════════════
 #                          CLEAN CONFIG ENDPOINTS
@@ -301,6 +309,65 @@ async def delete_clean_config(config: ConfigNameRequest = Body(...)):
 )
 async def get_clean_config_path(config_name: str):
     return await get_config_path(config_name, subfolder=ConfigSubfolder.CLEAN)
+
+@config_router.get(
+    "/agents/missing-config",
+    response_model=AgentWithConfigResponse,
+    responses={
+        200: {
+            "description": "List of agents active in coredinator but missing a clean config.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "agents": ["orphan_agent_1", "orphan_agent_2"],
+                    },
+                },
+            },
+        },
+        500: {"model": InternalServerErrorResponse},
+    },
+    summary="Get Agents Missing Config",
+    description="Retrieve agents that are active in coredinator but do not have a clean configuration available.",
+)
+async def get_agents_missing_config(request: Request):
+    """Get agents active in coredinator but missing a clean config."""
+    try:
+        # Get clean configs
+        clean_configs_response = await get_all_clean_configs()
+
+        # Parse response body properly
+        if hasattr(clean_configs_response, "body"):
+            body = clean_configs_response.body
+            # Convert memoryview to bytes if needed
+            # Solves pyright error: Expression of type 'bytes | memoryview' cannot be assigned to declared type 'bytes'
+            if isinstance(body, memoryview):
+                body = bytes(body)
+            clean_configs_data = json.loads(body)
+        else:
+            clean_configs_data = clean_configs_response
+
+        configs = clean_configs_data.get("configs", []) if isinstance(clean_configs_data, dict) else []
+        clean_configs = set(configs)
+
+        # Get active agents from coredinator
+        client: httpx.AsyncClient = request.app.state.httpx_client
+        resp = await client.get(f"{COREGATEWAY_BASE}/api/agents/")
+        content_type = resp.headers.get("content-type", "")
+        coredinator_data = resp.json() if content_type.startswith("application/json") else resp.text
+
+        # Extract agent names
+        if isinstance(coredinator_data, dict) and "agents" in coredinator_data:
+            active_agents = set(coredinator_data["agents"])
+        elif isinstance(coredinator_data, list):
+            active_agents = set(coredinator_data)
+        else:
+            active_agents = set()
+
+        # Return agents missing config
+        return {"agents": sorted(active_agents - clean_configs)}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to retrieve agents missing config: {e!s}") from e
 
 
 #════════════════════════════════════════════════════════════════════════════

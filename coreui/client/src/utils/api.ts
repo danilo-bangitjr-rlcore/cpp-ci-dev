@@ -1,6 +1,8 @@
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+const COREGATEWAY_BASE_URL = 'http://localhost:8001/api';
+
 // Optional: More specific endpoints for better organization
 export const API_ENDPOINTS = {
   health: `${API_BASE_URL}/health`,
@@ -27,20 +29,20 @@ export const API_ENDPOINTS = {
       `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
     get_clean_config_path: (configName: string) =>
       `${API_BASE_URL}/v1/config/${configName}/config_path`,
+    agents_missing_config: `${API_BASE_URL}/v1/config/agents/missing-config`,
   },
   coredinator: {
     agent_status: (agentId: string) =>
-      `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/status`,
+      `${COREGATEWAY_BASE_URL}/v1/coredinator/api/agents/${agentId}/status`,
     io_status: (ioId: string) =>
-      `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/status`,
-    start_agent: `${API_BASE_URL}/v1/coredinator/api/agents/start`,
+      `${COREGATEWAY_BASE_URL}/v1/coredinator/api/io/${ioId}/status`,
+    start_agent: `${COREGATEWAY_BASE_URL}/v1/coredinator/api/agents/start`,
     stop_agent: (agentId: string) =>
-      `${API_BASE_URL}/v1/coredinator/api/agents/${agentId}/stop`,
-    start_io: `${API_BASE_URL}/v1/coredinator/api/io/start`,
+      `${COREGATEWAY_BASE_URL}/v1/coredinator/api/agents/${agentId}/stop`,
+    start_io: `${COREGATEWAY_BASE_URL}/v1/coredinator/api/io/start`,
     stop_io: (ioId: string) =>
-      `${API_BASE_URL}/v1/coredinator/api/io/${ioId}/stop`,
-    agents_missing_config: `${API_BASE_URL}/v1/coredinator/agents/missing-config`,
-    list_io: `${API_BASE_URL}/v1/coredinator/api/io/`,
+      `${COREGATEWAY_BASE_URL}/v1/coredinator/api/io/${ioId}/stop`,
+    list_io: `${COREGATEWAY_BASE_URL}/v1/coredinator/api/io/`,
   },
 } as const;
 
