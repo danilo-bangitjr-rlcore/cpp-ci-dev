@@ -1,12 +1,18 @@
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import Any, SupportsFloat
+from typing import TYPE_CHECKING, Any, SupportsFloat
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from corerl.eval.metrics.base import MetricsDBConfig
 
 
 class DummyMetricsWriter:
     """No-op metrics writer for when metrics are disabled."""
+
+    def __init__(self, cfg: 'MetricsDBConfig', time_provider: Callable[[], datetime] | None = None):
+        pass
 
     def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None) -> None:
         ...

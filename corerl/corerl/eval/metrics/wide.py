@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any, SupportsFloat
 
@@ -12,7 +12,6 @@ from lib_sql.writers.collectors.point_collecting_sql_writer import PointCollecti
 from lib_sql.writers.core.dynamic_schema_sql_writer import DynamicSchemaSqlWriter
 from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 from lib_utils.dict import flatten_tree
-from lib_utils.time import now_iso
 from sqlalchemy import text
 
 from corerl.eval.metrics.base import MetricsDBConfig
@@ -27,9 +26,10 @@ class WideMetricsTable:
     # Initialization & Configuration
     # ============================================================================
 
-    def __init__(self, cfg: MetricsDBConfig):
+    def __init__(self, cfg: MetricsDBConfig, time_provider: Callable[[], datetime] | None = None):
         self.cfg = cfg
         self._current_agent_step: int | None = None
+        self._time_provider = time_provider or (lambda: datetime.now(UTC))
 
         self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)
         log.info(f"Created engine for database {cfg.db_name}")
@@ -95,7 +95,7 @@ class WideMetricsTable:
             self._writer.collect_row()
 
         self._current_agent_step = agent_step
-        current_time = datetime.fromisoformat(timestamp or now_iso())
+        current_time = datetime.fromisoformat(timestamp) if timestamp else self._time_provider()
         self._writer.write_point("__timestamp__", current_time)
         self._writer.write_point("__agent_step__", agent_step)
 
