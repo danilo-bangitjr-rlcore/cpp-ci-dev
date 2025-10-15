@@ -14,11 +14,12 @@ from rl_env.factory import EnvConfig, init_env
 from tqdm import tqdm
 
 import utils.gym as gym_u
-from agent.gac import GreedyAC, GreedyACConfig
+from agent.gac import GreedyACConfig
 from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
 from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
 from interaction.transition_creator import TransitionCreator
+from src.agent.factory import get_agent
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
@@ -154,7 +155,7 @@ def main():
     )
     tc = TransitionCreator(n_step=1, gamma=0.99)
 
-    agent = GreedyAC(
+    agent = get_agent(
         GreedyACConfig(**cfg.agent),
         seed=args.seed,
         state_dim=wrapper_env.get_state_dim(),
