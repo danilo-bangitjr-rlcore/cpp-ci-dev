@@ -56,7 +56,7 @@ class TransitionCreator:
         done: bool,
         dp: bool,
     ) -> list[Transition]:
-        gamma = float(done) * self._gamma
+        gamma = (1 - float(done)) * self._gamma
 
         self._buffer.append(Step(
             state,
