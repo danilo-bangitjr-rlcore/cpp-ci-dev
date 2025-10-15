@@ -11,12 +11,21 @@ from typing import TYPE_CHECKING
 from corerl.eval.evals.base import EvalsWriterProtocol
 from corerl.eval.metrics.base import MetricsWriterProtocol
 from corerl.messages.event_bus import DummyEventBus, EventBus
+from corerl.utils.app_time import AppTime
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 
 logger = logging.getLogger(__name__)
+
+
+def _default_app_time() -> AppTime:
+    """Create default AppTime for normal operation (non-demo mode)."""
+    return AppTime(
+        is_demo=False,
+        start_time=datetime.now(UTC),
+    )
 
 
 @dataclass
@@ -27,6 +36,7 @@ class AppState[AppEventBus: (EventBus, DummyEventBus), AppMainConfig: MainConfig
     event_bus: AppEventBus
     agent_step: int = 0
     start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
+    app_time: AppTime = field(default_factory=_default_app_time)
     stop_event: threading.Event = field(default_factory=threading.Event)
 
     def __getstate__(self):
