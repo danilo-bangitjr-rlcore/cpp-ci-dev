@@ -37,6 +37,7 @@ def critic_config() -> AdvConfig:
         ),
         num_rand_actions=10,
         action_regularization=1.0,
+        adv_l2_regularization=1.0,
     )
 
 
@@ -183,6 +184,7 @@ def rolling_reset_config() -> AdvConfig:
         ),
         num_rand_actions=10,
         action_regularization=1.0,
+        adv_l2_regularization=1.0,
     )
 
 

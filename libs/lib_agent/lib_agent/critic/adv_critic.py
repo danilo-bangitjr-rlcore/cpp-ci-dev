@@ -66,6 +66,7 @@ class AdvConfig:
     num_rand_actions: int
     advantage_centering_weight: float
     l2_regularization: float
+    adv_l2_regularization: float
     action_regularization: float
     nominal_setpoint_updates: int = 1000
     use_all_layer_norm: bool = False
@@ -452,7 +453,7 @@ class AdvCritic:
             policy_probs,
         )
         h_reg_loss = l2_regularizer(params['h'], self._cfg.l2_regularization)  # type: ignore
-        adv_reg_loss = l2_regularizer(params['adv'], 10)  # type: ignore
+        adv_reg_loss = l2_regularizer(params['adv'], self._cfg.adv_l2_regularization)  # type: ignore
 
         metrics = metrics._replace(h_reg_loss=h_reg_loss)
         return losses.mean() + h_reg_loss + adv_reg_loss, metrics

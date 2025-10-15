@@ -36,6 +36,7 @@ def _create_test_adv_critic(ensemble_size: int, state_dim: int, action_dim: int)
         num_rand_actions=10,
         action_regularization=1.0,
         rolling_reset_config=RollingResetConfig(reset_period=10000, warm_up_steps=1000),
+        adv_l2_regularization=1.0,
     )
     return AdvCritic(config, seed=42, state_dim=state_dim, action_dim=action_dim)
 
