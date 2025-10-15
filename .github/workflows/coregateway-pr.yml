@@ -1,0 +1,70 @@
+name: CoreGateway Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "coregateway/**"
+
+concurrency:
+  group: coregateway-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  coregateway-style-n-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coregateway
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup CoreGateway
+        uses: ./.github/actions/setup
+        with:
+          subrepo: coregateway
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: coregateway
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: coregateway
+
+      - name: Run Pytest
+        run: |
+          pytest --cov=coregateway --cov-report=html tests/
+
+      - name: Combine coverage
+        run: |
+          uv run coverage html
+          echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+
+      - uses: actions/upload-artifact@v4
+        id: htmlcov-upload-step
+        with:
+          name: htmlcov
+          path: coregateway/htmlcov/
+          overwrite: true
+
+      - run: |
+          echo "🏁 CoreGateway tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreGateway tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.htmlcov-upload-step.outputs.artifact-url }}
+          comment-tag: execution-coregateway
