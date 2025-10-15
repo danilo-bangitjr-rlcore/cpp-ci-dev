@@ -509,10 +509,11 @@ class AdvCritic:
 
         # optimism loss
         rand_actions = jax.random.uniform(rand_a_rng, shape=(self._cfg.num_rand_actions, self._action_dim))
-        norm_rand_actions = (rand_actions - transition.state.a_lo) / (transition.state.a_hi - transition.state.a_lo)
+        rand_actions_in_bounds = ((rand_actions + transition.state.a_lo)
+                                  * (transition.state.a_hi - transition.state.a_lo))
 
         opt_rngs = jax.random.split(opt_rng, self._cfg.num_rand_actions)
-        rand_advs = self._forward(params, opt_rngs, state.features, norm_rand_actions).adv.squeeze()
+        rand_advs = self._forward(params, opt_rngs, state.features, rand_actions_in_bounds).adv.squeeze()
 
         action_reg_loss = self._cfg.action_regularization * 0.5 * jnp.square(rand_advs.mean())
         loss = v_loss + h_loss + adv_loss + centering_loss + action_reg_loss
