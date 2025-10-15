@@ -70,7 +70,7 @@ def test_critic_forward_pass_single(benchmark: BenchmarkFixture):
         action: jax.Array,
     ):
         for _ in range(50):
-            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_key, state_features, action)
+            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_key, state_features, action).q
             # Force computation
             _ = values.sum()
 
@@ -106,7 +106,7 @@ def test_critic_forward_pass_ensemble(benchmark: BenchmarkFixture):
         action: jax.Array,
     ):
         for _ in range(25):
-            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_key, state_features, action)
+            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_key, state_features, action).q
             # Force computation
             _ = values.sum()
 
@@ -140,7 +140,7 @@ def test_critic_forward_pass_batch(benchmark: BenchmarkFixture):
 
     def _inner(critic: QRCCritic, params: Any, rng_keys: jax.Array, states: jax.Array, actions: jax.Array):
         for _ in range(20):
-            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_keys, states, actions)
+            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_keys, states, actions).q
             # Force computation
             _ = values.sum()
 

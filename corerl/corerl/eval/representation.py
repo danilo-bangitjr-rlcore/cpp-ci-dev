@@ -281,7 +281,7 @@ class RepresentationEval:
             q_rngs,
             states,
             sampled_actions,
-        )
+        ).q
         chex.assert_shape(qs, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, 1))
         mean_qs = qs.mean(axis=(0, 2)).squeeze(-1) # avg over ensemble members and action samples
 

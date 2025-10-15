@@ -321,7 +321,7 @@ class GreedyAC(BaseAgent):
             rng = jax.random.split(rng, action.shape[0])
 
         # use active critic values for decision making
-        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action)
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action).q
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -474,7 +474,7 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.get_active_values(params, rng, x, a)
+        qs = self.critic.get_active_values(params, rng, x, a).q
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 

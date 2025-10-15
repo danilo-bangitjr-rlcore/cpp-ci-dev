@@ -115,7 +115,7 @@ class QRCCritic:
         return ens_init(rngs, x, a)
 
     def get_values(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
-        return self._forward(params, rng, state, action).q
+        return self._forward(params, rng, state, action)
 
     def get_active_indices(self):
         indices = self._reset_manager.active_indices
@@ -368,7 +368,7 @@ class QRCCritic:
         h = out.h
 
         # q_prime takes expectation of state-action value over actions sampled from some dist
-        q_prime = self.get_values(params, qp_rngs, next_state.features, next_actions).mean()
+        q_prime = self.get_values(params, qp_rngs, next_state.features, next_actions).q.mean()
 
         target = reward + gamma * q_prime
 
