@@ -13,13 +13,12 @@ from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
-    QRCConfig,
     RollingResetConfig,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,
 )
-from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 from lib_config.config import MISSING, computed, config
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
@@ -322,7 +321,7 @@ class GreedyAC(BaseAgent):
             rng = jax.random.split(rng, action.shape[0])
 
         # use active critic values for decision making
-        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action)
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action).q
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -403,7 +402,6 @@ class GreedyAC(BaseAgent):
                 value=len(t),
             )
 
-
     # --------------------------- critic updating-------------------------- #
 
     def update_critic(self) -> list[float]:
@@ -476,7 +474,7 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.get_active_values(params, rng, x, a)
+        qs = self.critic.get_active_values(params, rng, x, a).q
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
@@ -510,7 +508,6 @@ class GreedyAC(BaseAgent):
                 self.state_dim,
             )
             self._actor_state = self._actor_state._replace(actor=actor_state)
-
 
         q_losses = []
 
@@ -571,7 +568,6 @@ class GreedyAC(BaseAgent):
         with open(path / "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
-
     def load(self, path: Path) -> None:
         self._app_state.event_bus.emit_event(RLEventType.agent_load)
 
@@ -609,6 +605,7 @@ class GreedyAC(BaseAgent):
             metric="BUFFER-ACTOR-size",
             value=self._actor_buffer.size,
         )
+
 
 def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
     """

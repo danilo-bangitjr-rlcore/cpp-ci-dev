@@ -6,8 +6,8 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import pytest
 
-from lib_agent.critic.critic_utils import QRCConfig, RollingResetConfig
-from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.critic.critic_utils import RollingResetConfig
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 
 
 @dataclass
@@ -90,7 +90,7 @@ def test_get_values_single_sample(critic: QRCCritic):
         rng_apply,
         state,
         action,
-    )
+    ).q
 
     # Check output shape: should be (ensemble, 1) for single sample
     assert q_values.shape == (critic._cfg.ensemble, 1)
@@ -123,7 +123,7 @@ def test_get_values_batch(critic: QRCCritic):
         rngs_batch,
         batch_states,
         batch_actions,
-    )
+    ).q
 
     # Check output shape: should be (ensemble, batch_size, n_samples, 1)
     assert q_values.shape == (critic._cfg.ensemble, batch_size, 1)
@@ -159,7 +159,7 @@ def test_get_values_batch_n_samples(critic: QRCCritic):
         rngs_batch,
         batch_states,
         batch_actions,
-    )
+    ).q
 
     assert q_values.shape == (critic._cfg.ensemble, batch_size, n_samples, 1)
     assert q_values.dtype == jnp.float32
@@ -254,5 +254,5 @@ def test_get_active_values(rolling_critic: QRCCritic):
     critic_state = rolling_critic.init_state(rng, state, action)
 
     rng_apply = jax.random.PRNGKey(456)
-    active_values = rolling_critic.get_active_values(critic_state.params, rng_apply, state, action)
+    active_values = rolling_critic.get_active_values(critic_state.params, rng_apply, state, action).q
     assert active_values.shape == (len(rolling_critic._reset_manager.active_indices), 1)  # (3, 1)

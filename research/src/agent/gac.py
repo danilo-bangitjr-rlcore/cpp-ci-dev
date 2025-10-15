@@ -9,6 +9,7 @@ from lib_agent.actor.actor_registry import get_actor
 from lib_agent.actor.percentile_actor import State
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.critic.critic_registry import get_critic
+from lib_agent.critic.qrc_critic import QRCCritic
 from ml_instrumentation.Collector import Collector
 
 from agent.interface import Batch
@@ -123,7 +124,7 @@ class GreedyAC:
             c_rng,
             state=state.features,
             action=jnp.asarray(actions),
-        )
+        ).q
 
     def get_probs(self, actor_params: chex.ArrayTree, state: State, actions: jax.Array | np.ndarray):
         actions = jnp.asarray(actions)
@@ -133,8 +134,8 @@ class GreedyAC:
         self.critic_update()
         self.policy_update()
 
-
     def critic_update(self):
+        assert isinstance(self._critic, QRCCritic)
         if self.critic_buffer.size == 0:
             return
 
@@ -211,7 +212,7 @@ class GreedyAC:
 
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        qs = self._critic.get_active_values(params, rng, x, a)
+        qs = self._critic.get_active_values(params, rng, x, a).q
         values = qs.mean(axis=0).squeeze(-1)
 
         chex.assert_rank(values, 0)

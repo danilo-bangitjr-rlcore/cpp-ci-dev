@@ -1,5 +1,5 @@
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
 from typing import Any, NamedTuple, Protocol
 
@@ -21,12 +21,6 @@ class CriticState(NamedTuple):
     opt_state: chex.ArrayTree
 
 
-class CriticOutputs(NamedTuple):
-    q: jax.Array
-    h: jax.Array
-    phi: jax.Array
-
-
 class CriticBatch(Protocol):
     @property
     def state(self) -> State: ...
@@ -44,21 +38,6 @@ class CriticBatch(Protocol):
 class RollingResetConfig:
     reset_period: int = 2**31 - 1
     warm_up_steps: int = 1000
-
-
-@dataclass
-class QRCConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_rand_actions: int
-    action_regularization: float
-    action_regularization_epsilon: float
-    l2_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
 
 
 def l2_regularizer(params: chex.ArrayTree, beta: float):
@@ -109,6 +88,7 @@ def stable_rank(matrix: jax.Array):
 
 def get_layer_names(params: chex.ArrayTree):
     keys = []
+
     def _inner(path: str, sub_params: chex.ArrayTree):
         if isinstance(sub_params, jax.Array):
             keys.append(path)
@@ -125,9 +105,9 @@ def get_layer_names(params: chex.ArrayTree):
 def get_stable_rank(params: chex.ArrayTree):
     leaves = jax.tree.leaves(params)
     ensemble = leaves[0].shape[0]
-    names =  get_layer_names(params)
+    names = get_layer_names(params)
 
-    matrix_idxs =  [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
+    matrix_idxs = [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
     matrix_leaves = [leaves[i] for i in matrix_idxs]
     matrix_names = [names[i] for i in matrix_idxs]
 
@@ -174,7 +154,7 @@ def uniform_except(
             new,
             prop,
         )
-        return key, x, it+1
+        return key, x, it + 1
 
     key, x, _ = jax.lax.while_loop(
         keep_trying,
