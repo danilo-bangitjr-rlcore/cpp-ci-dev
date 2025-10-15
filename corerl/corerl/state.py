@@ -34,20 +34,24 @@ class AppState[AppEventBus: (EventBus, DummyEventBus), AppMainConfig: MainConfig
     evals: EvalsWriterProtocol
     metrics: MetricsWriterProtocol
     event_bus: AppEventBus
-    agent_step: int = 0
-    start_time: datetime = field(default_factory=lambda: datetime.now(UTC))
     app_time: AppTime = field(default_factory=_default_app_time)
     stop_event: threading.Event = field(default_factory=threading.Event)
 
+    @property
+    def agent_step(self) -> int:
+        return self.app_time.agent_step
+
+    @property
+    def start_time(self) -> datetime:
+        return self.app_time.start_time
+
     def __getstate__(self):
         return {
-            'agent_step': self.agent_step,
-            'start_time': self.start_time,
+            'app_time': self.app_time.__getstate__(),
         }
 
     def __setstate__(self, state: dict):
-        self.agent_step = state['agent_step']
-        self.start_time = state['start_time']
+        self.app_time.__setstate__(state['app_time'])
 
     def save(self, path: Path):
         path.mkdir(parents=True, exist_ok=True)
@@ -60,8 +64,8 @@ class AppState[AppEventBus: (EventBus, DummyEventBus), AppMainConfig: MainConfig
             with open(path / 'state.pkl', 'rb') as f:
                 state = pickle.load(f)
 
-            self.agent_step = state.agent_step
-            self.start_time = state.start_time
+            self.app_time.agent_step = state.agent_step
+            self.app_time.start_time = state.start_time
         except Exception:
             logger.exception('Failed to load app state from checkpoint. Reinitializing...')
 

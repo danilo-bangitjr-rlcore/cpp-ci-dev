@@ -186,7 +186,7 @@ class DeploymentInteraction:
         logger.info(f"captured state {self._last_state}, with columns {tags}")
 
         self.maybe_checkpoint()
-        self._app_state.agent_step += 1
+        self._app_state.app_time.increment_step()
 
 
     def _on_emit_action(self):

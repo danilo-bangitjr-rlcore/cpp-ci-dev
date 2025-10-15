@@ -24,6 +24,7 @@ from corerl.messages.event_bus import DummyEventBus, EventBus
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from corerl.tags.validate_tag_configs import validate_tag_configs
+from corerl.utils.app_time import AppTime
 
 log = logging.getLogger(__name__)
 log_fmt = "[%(asctime)s][%(levelname)s] - %(message)s"
@@ -57,21 +58,30 @@ def retryable_main(cfg: MainConfig):
     random.seed(seed)
 
     # build global objects
+    is_demo = cfg.feature_flags.demo_mode
+    app_time = AppTime(
+        is_demo=is_demo,
+        start_time=datetime.now(UTC),
+        obs_period=cfg.interaction.obs_period if is_demo else None,
+    )
+
     if cfg.is_simulation:
         event_bus = DummyEventBus()
         app_state = AppState[DummyEventBus, MainConfig](
             cfg=cfg,
-            metrics=create_metrics_writer(cfg.metrics),
+            metrics=create_metrics_writer(cfg.metrics, app_time.get_current_time),
             evals=create_evals_writer(cfg.evals),
             event_bus=event_bus,
+            app_time=app_time,
         )
     else:
         event_bus = EventBus(cfg.event_bus)
         app_state = AppState[EventBus, MainConfig](
             cfg=cfg,
-            metrics=create_metrics_writer(cfg.metrics),
+            metrics=create_metrics_writer(cfg.metrics, app_time.get_current_time),
             evals=create_evals_writer(cfg.evals),
             event_bus=event_bus,
+            app_time=app_time,
         )
 
     pipeline = Pipeline(app_state, cfg.pipeline)
