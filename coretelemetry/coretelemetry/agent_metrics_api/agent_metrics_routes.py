@@ -6,18 +6,12 @@ from coretelemetry.agent_metrics_api.services import (
     get_agent_metrics_manager,
 )
 from fastapi import APIRouter, Depends
-from fastapi.responses import RedirectResponse
 
 agent_metrics_router = APIRouter(
     tags=["Agent Metrics"],
 )
 
-
-@agent_metrics_router.get("/")
-async def root():
-    return RedirectResponse(url="/docs")
-
-@agent_metrics_router.post("/api/v1/telemetry/config/clear_cache")
+@agent_metrics_router.post("/api/config/clear_cache")
 async def clear_cache(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
     """
     Clear all cached data including YAML configuration cache.
@@ -28,7 +22,7 @@ async def clear_cache(manager: AgentMetricsManager = Depends(get_agent_metrics_m
     manager.clear_cache()
     return {"message": "Cache cleared successfully"}
 
-@agent_metrics_router.get("/api/v1/telemetry/data/{agent_id}")
+@agent_metrics_router.get("/api/data/{agent_id}")
 async def get_telemetry(
     agent_id: str,
     metric: str,
@@ -64,7 +58,7 @@ async def get_telemetry(
 
     return manager.get_telemetry_data(agent_id, metric, start_time, end_time)
 
-@agent_metrics_router.get("/api/v1/telemetry/data/{agent_id}/metrics")
+@agent_metrics_router.get("/api/data/{agent_id}/metrics")
 async def get_available_metrics(
     agent_id: str,
     manager: AgentMetricsManager = Depends(get_agent_metrics_manager), # noqa: B008
@@ -80,7 +74,7 @@ async def get_available_metrics(
     """
     return manager.get_available_metrics(agent_id)
 
-@agent_metrics_router.get("/api/v1/telemetry/config/db", response_model=DBConfig)
+@agent_metrics_router.get("/api/config/db", response_model=DBConfig)
 async def get_db_config(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
     """
     Get the current database configuration.
@@ -90,7 +84,7 @@ async def get_db_config(manager: AgentMetricsManager = Depends(get_agent_metrics
     """
     return manager.get_db_config()
 
-@agent_metrics_router.post("/api/v1/telemetry/config/db")
+@agent_metrics_router.post("/api/config/db")
 async def set_db_config(
     config: DBConfig,
     manager: AgentMetricsManager = Depends(get_agent_metrics_manager), # noqa: B008
@@ -107,7 +101,7 @@ async def set_db_config(
     updated_config = manager.set_db_config(config)
     return {"message": "Database configuration updated successfully", "config": updated_config}
 
-@agent_metrics_router.get("/api/v1/telemetry/config/path")
+@agent_metrics_router.get("/api/config/path")
 async def get_config_path(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
     """
     Get the current configuration path.
@@ -117,7 +111,7 @@ async def get_config_path(manager: AgentMetricsManager = Depends(get_agent_metri
     """
     return {"config_path": str(manager.get_config_path())}
 
-@agent_metrics_router.post("/api/v1/telemetry/config/path")
+@agent_metrics_router.post("/api/config/path")
 async def set_config_path(
     path: str,
     manager: AgentMetricsManager = Depends(get_agent_metrics_manager), # noqa: B008
