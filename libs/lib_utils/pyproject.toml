@@ -21,6 +21,7 @@ dev = [
     "pytest-mock>=3.14.1",
     "ruff>=0.11.12",
     "uv>=0.5.24",
+    "lib-agent",
 ]
 
 [project.optional-dependencies]
@@ -31,6 +32,7 @@ jax = [
     "flax>=0.10.6",
     "jax>=0.6.1, <0.8.0",
     "optax>=0.2.4",
+    "pandas~=2.2",
 ]
 
 opc = [
@@ -67,3 +69,4 @@ major_version_zero = true
 
 [tool.uv.sources]
 lib-defs = { path = "../lib_defs", editable = true }
+lib-agent = { path = "../lib_agent", editable = true }
