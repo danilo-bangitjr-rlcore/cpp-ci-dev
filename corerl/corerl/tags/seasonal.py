@@ -12,6 +12,7 @@ class SeasonalTags(StrEnum):
     day_of_year = "day_of_year"
     day_of_week = "day_of_week"
     time_of_day = "time_of_day"
+    second_in_hour = "second_in_hour"
 
 
 @config()

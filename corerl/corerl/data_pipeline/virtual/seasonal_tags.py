@@ -25,6 +25,10 @@ class SeasonalTagIncluder:
             Maybe.find(lambda tag_cfg: tag_cfg.name == SeasonalTags.time_of_day, seasonal_tags)
             .is_some()
         )
+        self.has_second_in_hour = (
+            Maybe.find(lambda tag_cfg: tag_cfg.name == SeasonalTags.second_in_hour, seasonal_tags)
+            .is_some()
+        )
 
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
         timestamps = pf.data.index
@@ -39,6 +43,10 @@ class SeasonalTagIncluder:
         if self.has_time_of_day:
             day_seconds = (timestamps.hour * 3600) + (timestamps.minute * 60) + timestamps.second
             pf.data[SeasonalTags.time_of_day] = day_seconds
+
+        if self.has_second_in_hour:
+            hour_seconds = (timestamps.minute * 60) + timestamps.second
+            pf.data[SeasonalTags.second_in_hour] = hour_seconds
 
         return pf
 

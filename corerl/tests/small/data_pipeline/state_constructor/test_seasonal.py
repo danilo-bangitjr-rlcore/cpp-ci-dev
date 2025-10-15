@@ -106,3 +106,32 @@ def test_day_of_year():
     )
 
     assert dfs_close(pf.data, expected, tol=1e-5)
+
+
+def test_second_in_hour():
+    df = pd.DataFrame(
+        data={"tag-1": [1, 2, 3], "tag-2": [4, 5, 6], "second_in_hour": [0, 1800, 1031]},
+        index=pd.DatetimeIndex(["1/18/2023 7:00:00", "3/27/2023 10:30:00", "7/13/2024 18:17:11"]),
+    )
+
+    pf = PipelineFrame(
+        data=df,
+        data_mode=DataMode.ONLINE,
+    )
+
+    tag_cfgs = [
+        SeasonalTagConfig(name=SeasonalTags.second_in_hour),
+    ]
+
+    seasonal_features = SeasonalTagFeatures(tag_cfgs)
+    pf = seasonal_features(pf)
+
+    expected = pd.DataFrame({
+        "tag-1": [1, 2, 3],
+        "tag-2": [4, 5, 6],
+        "second_in_hour": [0, 1800, 1031],
+        "second_in_hour_sin": [0.5, 0.5, 0.9869879],
+        "second_in_hour_cos": [1.0, 0.0, 0.3866743],
+    })
+
+    assert dfs_close(pf.data, expected)
