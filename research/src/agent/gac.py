@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple, Protocol
+from typing import Any, NamedTuple
 
 import chex
 import jax
@@ -8,10 +8,11 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
-from lib_agent.actor.percentile_actor import State
+from lib_agent.actor.percentile_actor import PAState, State
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
 from lib_agent.critic.adv_critic import AdvCritic
 from lib_agent.critic.critic_registry import get_critic
+from lib_agent.critic.critic_utils import CriticState
 from lib_agent.critic.qrc_critic import QRCCritic
 from ml_instrumentation.Collector import Collector
 
@@ -19,28 +20,9 @@ from agent.interface import Batch
 from interaction.transition_creator import Transition
 
 
-class CriticState(Protocol):
-    @property
-    def params(self) -> chex.ArrayTree: ...
-
-
-class PolicyState(Protocol):
-    @property
-    def params(self) -> chex.ArrayTree: ...
-
-    @property
-    def opt_state(self) -> chex.ArrayTree | None: ...
-
-
-
-class ActorState(NamedTuple):
-    actor: PolicyState
-    proposal: PolicyState
-
-
 class GACState(NamedTuple):
     critic: CriticState
-    actor: ActorState
+    actor: PAState
 
 
 @dataclass
@@ -195,10 +177,9 @@ class GreedyAC:
             nominal_setpoints,
             self.state_dim,
         )
-        new_actor_state = ActorState(new_actor_state, self.agent_state.actor.proposal)
+        new_actor_state = PAState(new_actor_state, self.agent_state.actor.proposal)
 
         self.agent_state = self.agent_state._replace(actor=new_actor_state)
-
 
     def policy_update(self):
         if self.policy_buffer.size == 0:
