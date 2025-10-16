@@ -8,6 +8,7 @@ import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_utils.errors import fail_gracefully
+from lib_utils.named_array import NamedArray
 from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
@@ -60,7 +61,7 @@ def agent_eval(
         for k, v in metrics.items():
             app_state.metrics.write(app_state.agent_step, k, v)
 
-SAEvalFn = Callable[[T, GreedyAC, jax.Array, jax.Array, jax.Array], Sequence[jax.Array]]
+SAEvalFn = Callable[[T, GreedyAC, NamedArray, jax.Array, jax.Array], Sequence[jax.Array]]
 BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[jax.Array]]
 def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
     def batchified(cfg: EvalConfig, agent: GreedyAC):
@@ -84,7 +85,7 @@ def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
 def _q_online(
     cfg: QOnlineConfig,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
     action: jax.Array,
 ):
     """
@@ -100,7 +101,7 @@ def _q_online(
 def q_online(
         app_state: AppState,
         agent: BaseAgent,
-        state: jax.Array,
+        state: NamedArray,
         action: jax.Array,
     ):
     return agent_eval(
@@ -122,7 +123,7 @@ def get_max_action(actions: jax.Array, values: jax.Array):
 def _greed_dist(
     cfg: GreedDistConfig,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
     action_lo: jax.Array,
     action_hi: jax.Array,
 ) -> Sequence[jax.Array]:
@@ -170,7 +171,7 @@ def _greed_dist(
 def greed_dist_online(
         app_state: AppState,
         agent: BaseAgent,
-        state: jax.Array,
+        state: NamedArray,
         action_lo: jax.Array,
         action_hi: jax.Array,
     ):
@@ -201,7 +202,7 @@ def greed_dist_batch(app_state: AppState, agent: BaseAgent):
 def online_q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
 ):
     """
     Logs the probability density function of the policy and the Q values.
@@ -245,7 +246,7 @@ def online_q_values_and_act_prob(
 def q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
 ) -> tuple[jax.Array, jax.Array, jax.Array]:
     cfg = app_state.cfg.eval_cfgs.q_pdf_plots
 

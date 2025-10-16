@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import DataMode, JaxTransition
+from lib_utils.named_array import NamedArray
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
@@ -24,7 +25,7 @@ class Step:
     reward: float
     action: jax.Array
     gamma: float
-    state: jax.Array
+    state: NamedArray
     action_lo: jax.Array
     action_hi: jax.Array
     dp: bool # decision point
@@ -39,7 +40,7 @@ class Step:
                 isclose(self.gamma, other.gamma)
                 and isclose(self.reward, other.reward)
                 and jnp.allclose(self.action, other.action).item()
-                and jnp.allclose(self.state, other.state).item()
+                and jnp.allclose(self.state.array, other.state.array).item()
                 and self.dp == other.dp
         )
 
@@ -54,7 +55,7 @@ class Step:
             self.reward,
             tuple(self.action),
             self.gamma,
-            tuple(self.state),
+            tuple(self.state.array),
             self.action_lo,
             self.action_hi,
             self.dp,

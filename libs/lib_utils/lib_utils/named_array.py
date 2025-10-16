@@ -23,12 +23,18 @@ def maybe_expand_dim0[A: (NDArray, jax.Array)](arr: A) -> A:
     return arr
 
 @register_pytree_node_class
-class NamedArray: # noqa: PLW1641
-    def __init__(self, names: Sequence[str], values: jax.Array, timestamps: NDArray[np.datetime64] | None = None):
+class NamedArray:  # noqa: PLW1641
+    def __init__(
+        self,
+        names: Sequence[str],
+        values: jax.Array | np.ndarray,
+        timestamps: NDArray[np.datetime64] | None = None,
+    ):
         # if no timestamps provided, create timezone naive datetime with value from UTC
         ts = Maybe(timestamps).or_else(
             np.full(values.shape[:-1], np.datetime64(datetime.now(UTC).replace(tzinfo=None))),
         )
+        values = jnp.asarray(values)
         self._input_validation(names, values, ts)
         self._names = tuple(names)
         self._values = values
@@ -49,6 +55,10 @@ class NamedArray: # noqa: PLW1641
     @property
     def ndim(self):
         return self._values.ndim
+
+    @property
+    def dtype(self):
+        return self._values.dtype
 
     @property
     def array(self) -> jax.Array:
@@ -84,7 +94,7 @@ class NamedArray: # noqa: PLW1641
         return cls(df.columns.tolist(), arr, timestamps.unwrap())
 
     @classmethod
-    def unnamed(cls, vals: jax.Array) -> Self:
+    def unnamed(cls, vals: jax.Array | np.ndarray) -> Self:
         dummy_names = [str(i) for i in range(vals.shape[-1])]
         return cls(dummy_names, vals)
 

@@ -478,13 +478,13 @@ class AdvCritic:
 
         v_rng, vp_rng, centering_rng, rand_a_rng, opt_rng = jax.random.split(rng, 5)
 
-        out = self._forward(params, v_rng, state.features, action)
+        out = self._forward(params, v_rng, state.features.array, action)
         v = out.v
         h = out.h
         adv = out.adv
 
         # v_prime is the state value of the next state
-        v_prime = self._forward_val(params, vp_rng, next_state.features).v
+        v_prime = self._forward_val(params, vp_rng, next_state.features.array).v
         target = reward + gamma * v_prime
 
         sg = jax.lax.stop_gradient
@@ -500,7 +500,7 @@ class AdvCritic:
         # Compute advantages for all policy actions
         num_samples = policy_probs.shape[0]
         centering_rngs = jax.random.split(centering_rng, num_samples)
-        policy_advantages = self._forward(params, centering_rngs, state.features, policy_actions).adv.squeeze()
+        policy_advantages = self._forward(params, centering_rngs, state.features.array, policy_actions).adv.squeeze()
         chex.assert_shape(policy_advantages, (num_samples,))
 
         # Weighted sum of advantages by policy probabilities
@@ -513,7 +513,7 @@ class AdvCritic:
                                   * (transition.state.a_hi - transition.state.a_lo))
 
         opt_rngs = jax.random.split(opt_rng, self._cfg.num_rand_actions)
-        rand_advs = self._forward(params, opt_rngs, state.features, rand_actions_in_bounds).adv.squeeze()
+        rand_advs = self._forward(params, opt_rngs, state.features.array, rand_actions_in_bounds).adv.squeeze()
 
         action_reg_loss = self._cfg.action_regularization * 0.5 * jnp.square(rand_advs.mean())
         loss = v_loss + h_loss + adv_loss + centering_loss + action_reg_loss

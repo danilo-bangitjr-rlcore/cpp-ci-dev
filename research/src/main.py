@@ -8,6 +8,7 @@ import numpy as np
 from lib_agent.actor.percentile_actor import State
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import config_from_dict
+from lib_utils.named_array import NamedArray
 from ml_instrumentation.Collector import Collector
 from ml_instrumentation.Sampler import Identity, Subsample, Window
 from rl_env.factory import EnvConfig, init_env
@@ -182,7 +183,7 @@ def main():
         collector.next_frame()
 
         state = State(
-            features=jnp.array(state_features),
+            features=NamedArray.unnamed(jnp.array(state_features)),
             a_lo=jnp.array(a_lo),
             a_hi=jnp.array(a_hi),
             dp=jnp.array([dp]),

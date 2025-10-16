@@ -19,6 +19,7 @@ from lib_agent.critic.critic_utils import (
 )
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.named_array import NamedArray
 
 from corerl.agent.base import BaseAgent
 from corerl.configs.agent.greedy_ac import (
@@ -149,7 +150,7 @@ class GreedyAC(BaseAgent):
         return self._actor_buffer.sample()
 
 
-    def get_dist(self, states: jax.Array):
+    def get_dist(self, states: NamedArray):
         dummy_jaxtions = jnp.zeros(self.action_dim)
         state_ = State(
             states,
@@ -163,12 +164,12 @@ class GreedyAC(BaseAgent):
             state_,
         )
 
-    def prob(self, states: jax.Array, actions: jax.Array) -> jax.Array:
+    def prob(self, states: NamedArray, actions: jax.Array) -> jax.Array:
         state_ = State(
             states,
             a_lo=actions,
             a_hi=actions,
-            dp=jnp.ones_like(states),
+            dp=jnp.ones_like(states.array),
             last_a=actions,
         )
 
@@ -178,7 +179,7 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_active_values(self, state: jax.Array, action: jax.Array):
+    def get_active_values(self, state: NamedArray, action: jax.Array):
         """
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
             1 state, and
@@ -191,7 +192,7 @@ class GreedyAC(BaseAgent):
             rng = jax.random.split(rng, action.shape[0])
 
         # use active critic values for decision making
-        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action).q
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state.array, action).q
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),

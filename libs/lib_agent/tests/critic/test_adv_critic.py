@@ -7,6 +7,7 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import pytest
+from lib_utils.named_array import NamedArray
 
 from lib_agent.buffer.buffer import State
 from lib_agent.critic.adv_critic import AdvConfig, AdvCritic
@@ -295,7 +296,7 @@ def _create_mock_transitions(
     batch_gammas = jnp.ones((ensemble_size, batch_size)) * 0.99
 
     mock_states = State(
-        features=batch_states,
+        features=NamedArray.unnamed(batch_states),
         a_lo=jnp.zeros((ensemble_size, batch_size, 2)),
         a_hi=jnp.ones((ensemble_size, batch_size, 2)),
         dp=jnp.ones((ensemble_size, batch_size, 1)),
@@ -303,7 +304,7 @@ def _create_mock_transitions(
     )
 
     mock_next_states = State(
-        features=jax.random.normal(state_rng, (ensemble_size, batch_size, state_dim)),
+        features=NamedArray.unnamed(jax.random.normal(state_rng, (ensemble_size, batch_size, state_dim))),
         a_lo=jnp.zeros((ensemble_size, batch_size, 2)),
         a_hi=jnp.ones((ensemble_size, batch_size, 2)),
         dp=jnp.ones((ensemble_size, batch_size, 1)),

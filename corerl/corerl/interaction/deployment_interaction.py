@@ -10,6 +10,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
+from lib_utils.named_array import NamedArray
 
 import corerl.eval.agent as agent_eval
 from corerl.agent.greedy_ac import GreedyAC
@@ -49,7 +50,7 @@ class DeploymentInteraction:
         ### State-Action Management ###
         self._column_desc = pipeline.column_descriptions
         self._last_state: State = State(
-            features=jnp.full(self._column_desc.state_dim, np.nan),
+            features=NamedArray(self._column_desc.state_cols, jnp.full(self._column_desc.state_dim, np.nan)),
             a_lo=jnp.full(self._column_desc.action_dim, np.nan),
             a_hi=jnp.full(self._column_desc.action_dim, np.nan),
             dp=jnp.full(1, np.nan),
@@ -167,7 +168,7 @@ class DeploymentInteraction:
         self._capture_latest_state(pipe_return)
 
         # log states
-        self._write_to_metrics(pipe_return.states, prefix='STATE-')
+        pipe_return.states.as_pandas().tap(lambda df: self._write_to_metrics(df, prefix='STATE-'))
         self._write_to_metrics(self._pipeline.preprocessor.inverse(pipe_return.actions), prefix='ACTION_OBS-')
 
         # log rewards
@@ -191,6 +192,7 @@ class DeploymentInteraction:
 
     def _on_emit_action(self):
         state = self._last_state
+
         next_a = self._get_action(state)
         if next_a is None:
             return
@@ -271,9 +273,9 @@ class DeploymentInteraction:
         return None
 
     def _capture_latest_state(self, pipe_return: PipelineReturn):
-        pr_ts = pipe_return.states.index[-1]
+        pr_ts = pipe_return.states.timestamps[-1]
         self._last_state = State(
-            features=jnp.asarray(pipe_return.states.iloc[-1]),
+            features=pipe_return.states[-1],
             a_lo=jnp.asarray(pipe_return.action_lo.iloc[-1]),
             a_hi=jnp.asarray(pipe_return.action_hi.iloc[-1]),
             dp=jnp.ones((1,)),
@@ -298,10 +300,10 @@ class DeploymentInteraction:
         return True
 
     def _state_has_no_nans(self):
-        if np.any(np.isnan(self._last_state.features)):
+        if np.any(np.isnan(self._last_state.features.array)):
             logger.error("Interaction state features contains nan values")
             nan_tags = []
-            for i, tag in enumerate(self._last_state.features):
+            for i, tag in enumerate(self._last_state.features.array):
                 if np.isnan(tag):
                     nan_tags.append(self._column_desc.state_cols[i])
 

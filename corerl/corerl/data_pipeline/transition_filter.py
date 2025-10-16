@@ -4,6 +4,7 @@ from typing import Literal, assert_never
 
 import jax
 import jax.numpy as jnp
+from lib_utils.named_array import NamedArray
 
 from corerl.configs.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, Transition
@@ -89,6 +90,9 @@ def has_nan(obj: object):
     for value in vars(obj).values():
         if isinstance(value, jax.Array):
             if jnp.isnan(value).any():
+                return True
+        elif isinstance(value, NamedArray):
+            if jnp.isnan(value.array).any():
                 return True
         elif isinstance(value, float) and math.isnan(value):
             return True

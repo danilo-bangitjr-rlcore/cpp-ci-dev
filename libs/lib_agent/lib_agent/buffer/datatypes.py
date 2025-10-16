@@ -2,6 +2,7 @@ from enum import Enum, auto
 from typing import NamedTuple
 
 import jax
+from lib_utils.named_array import NamedArray
 
 
 class DataMode(Enum):
@@ -12,10 +13,10 @@ class DataMode(Enum):
 
 class JaxTransition(NamedTuple):
     last_action: jax.Array
-    state: jax.Array
+    state: NamedArray
     action: jax.Array
     reward: jax.Array
-    next_state: jax.Array
+    next_state: NamedArray
     gamma: jax.Array
 
     action_lo: jax.Array

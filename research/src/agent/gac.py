@@ -14,6 +14,7 @@ from lib_agent.critic.adv_critic import AdvCritic
 from lib_agent.critic.critic_registry import get_critic
 from lib_agent.critic.critic_utils import CriticState
 from lib_agent.critic.qrc_critic import QRCCritic
+from lib_utils.named_array import NamedArray
 from ml_instrumentation.Collector import Collector
 
 from agent.interface import Batch
@@ -78,10 +79,10 @@ class GreedyAC:
 
     def update_buffer(self, transition: Transition):
         t = Batch(
-            state=jnp.array(transition.state),
+            state=NamedArray.unnamed(jnp.asarray(transition.state)),
             action=jnp.array(transition.action),
             reward=jnp.array([transition.reward]),
-            next_state=jnp.array(transition.next_state),
+            next_state=NamedArray.unnamed(jnp.array(transition.next_state)),
             gamma=jnp.array([transition.gamma]),
 
             a_lo=jnp.array(transition.a_lo),
@@ -109,7 +110,7 @@ class GreedyAC:
         return self._critic.get_active_values(
             self.agent_state.critic.params,
             c_rng,
-            state=state.features,
+            state=state.features.array,
             action=jnp.asarray(actions),
         ).q
 

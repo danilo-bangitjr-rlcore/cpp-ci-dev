@@ -1,13 +1,14 @@
 from typing import NamedTuple
 
 import jax
+from lib_utils.named_array import NamedArray
 
 
 class Batch(NamedTuple):
-    state: jax.Array
+    state: NamedArray
     action: jax.Array
     reward: jax.Array
-    next_state: jax.Array
+    next_state: NamedArray
     gamma: jax.Array
 
     a_lo: jax.Array
