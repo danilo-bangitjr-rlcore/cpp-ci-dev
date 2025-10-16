@@ -14,7 +14,7 @@ from typing import Any
 
 import gymnasium as gym
 import yaml
-from corerl.tags.tag_config import BasicTagConfig, TagConfig
+from corerl.configs.tags.tag_config import BasicTagConfig, TagConfig
 from lib_config.loader import config_to_dict
 
 from test.e2e.opc_clients.gymnasium_utils import gen_tag_configs_from_env

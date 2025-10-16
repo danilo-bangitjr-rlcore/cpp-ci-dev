@@ -1,7 +1,7 @@
 import gymnasium as gym
-from corerl.tags.meta import MetaTagConfig
-from corerl.tags.setpoint import SetpointTagConfig
-from corerl.tags.tag_config import BasicTagConfig, TagConfig
+from corerl.configs.tags.meta import MetaTagConfig
+from corerl.configs.tags.setpoint import SetpointTagConfig
+from corerl.configs.tags.tag_config import BasicTagConfig, TagConfig
 
 
 def gen_tag_configs_from_env(env: gym.Env, include_meta: bool = False):
