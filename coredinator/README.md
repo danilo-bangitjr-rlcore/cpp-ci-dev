@@ -66,8 +66,8 @@ The service requires a `--base-path` argument pointing to the directory containi
 Optional configuration:
 - `--port`: Specify the port number (default: 7000)
 - `--event-bus-host`: Event bus host address (default: *)
-- `--event-bus-pub-port`: Event bus publisher port (default: 5559)
-- `--event-bus-sub-port`: Event bus subscriber port (default: 5560)
+- `--event-bus-pub-port`: Port where publishers connect (XSUB socket, default: 5559)
+- `--event-bus-sub-port`: Port where subscribers connect (XPUB socket, default: 5560)
 
 ## Architecture
 

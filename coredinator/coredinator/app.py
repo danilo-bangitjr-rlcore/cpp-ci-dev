@@ -61,10 +61,12 @@ def parse_args():
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     parser.add_argument("--event-bus-host", type=str, default="*", help="Event bus host address (default: *)")
     parser.add_argument(
-        "--event-bus-pub-port", type=int, default=5559, help="Event bus publisher port (default: 5559)",
+        "--event-bus-pub-port", type=int, default=5559,
+        help="Port where publishers connect (XSUB socket, default: 5559)",
     )
     parser.add_argument(
-        "--event-bus-sub-port", type=int, default=5560, help="Event bus subscriber port (default: 5560)",
+        "--event-bus-sub-port", type=int, default=5560,
+        help="Port where subscribers connect (XPUB socket, default: 5560)",
     )
     args = parser.parse_args()
 

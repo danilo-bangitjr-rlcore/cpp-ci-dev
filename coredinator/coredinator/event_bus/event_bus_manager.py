@@ -13,6 +13,9 @@ class EventBusManager:
         self.host = host
         self.pub_port = pub_port
         self.sub_port = sub_port
+        # ZMQ proxy architecture (counterintuitive naming):
+        # - XSUB socket: where publishers CONNECT (binds to pub_port)
+        # - XPUB socket: where subscribers CONNECT (binds to sub_port)
         self.xsub_addr = f"tcp://{host}:{pub_port}"
         self.xpub_addr = f"tcp://{host}:{sub_port}"
         self.proxy = EventBusProxy(xsub_addr=self.xsub_addr, xpub_addr=self.xpub_addr)
