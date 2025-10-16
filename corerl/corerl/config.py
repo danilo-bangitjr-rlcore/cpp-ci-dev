@@ -10,10 +10,10 @@ from pydantic import Field
 
 from corerl.configs.agent.greedy_ac import GreedyACConfig
 from corerl.configs.data_pipeline.pipeline_config import PipelineConfig
+from corerl.configs.environment.async_env import AsyncEnvConfig
 from corerl.configs.infra import FeatureFlags, InfraConfig
 from corerl.configs.interaction.config import InteractionConfig
 from corerl.configs.messages.event_bus import EventBusConfig
-from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.eval.config import EvalConfig
 from corerl.eval.evals.base import EvalDBConfig
 from corerl.eval.metrics.base import MetricsDBConfig
