@@ -64,8 +64,7 @@ class AppState[AppEventBus: (EventBus, DummyEventBus), AppMainConfig: MainConfig
             with open(path / 'state.pkl', 'rb') as f:
                 state = pickle.load(f)
 
-            self.app_time.agent_step = state.agent_step
-            self.app_time.start_time = state.start_time
+            self.app_time.__setstate__(state.app_time.__getstate__())
         except Exception:
             logger.exception('Failed to load app state from checkpoint. Reinitializing...')
 
