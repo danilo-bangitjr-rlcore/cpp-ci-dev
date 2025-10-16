@@ -30,8 +30,9 @@ def manager(unique_ports: tuple[int, int]):
     """
     xsub_port, xpub_port = unique_ports
     mgr = EventBusManager(
-        xsub_addr=f"tcp://127.0.0.1:{xsub_port}",
-        xpub_addr=f"tcp://127.0.0.1:{xpub_port}",
+        host="127.0.0.1",
+        pub_port=xsub_port,
+        sub_port=xpub_port,
     )
     yield mgr
     if mgr.is_healthy():
@@ -88,8 +89,9 @@ def test_manager_get_config_replaces_wildcard():
     get_config replaces wildcard addresses with localhost.
     """
     manager = EventBusManager(
-        xsub_addr="tcp://*:5559",
-        xpub_addr="tcp://*:5560",
+        host="*",
+        pub_port=5559,
+        sub_port=5560,
     )
     config = manager.get_config()
 
@@ -103,8 +105,9 @@ def test_manager_get_config_preserves_explicit_host():
     get_config preserves explicit host addresses.
     """
     manager = EventBusManager(
-        xsub_addr="tcp://192.168.1.100:5559",
-        xpub_addr="tcp://192.168.1.100:5560",
+        host="192.168.1.100",
+        pub_port=5559,
+        sub_port=5560,
     )
     config = manager.get_config()
 

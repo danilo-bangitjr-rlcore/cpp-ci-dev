@@ -65,6 +65,9 @@ The service requires a `--base-path` argument pointing to the directory containi
 
 Optional configuration:
 - `--port`: Specify the port number (default: 7000)
+- `--event-bus-host`: Event bus host address (default: *)
+- `--event-bus-pub-port`: Event bus publisher port (default: 5559)
+- `--event-bus-sub-port`: Event bus subscriber port (default: 5560)
 
 ## Architecture
 
@@ -236,6 +239,8 @@ The event bus consists of a central proxy that runs in a background thread:
 - **XPUB socket** (default: `tcp://*:5560`): Subscribers connect here to receive events
 
 The proxy automatically forwards messages from publishers to subscribers based on topic subscriptions. All communication happens asynchronously in a dedicated thread, ensuring the main coredinator service remains non-blocking.
+
+The event bus host and ports can be configured via CLI arguments (`--event-bus-host`, `--event-bus-pub-port`, `--event-bus-sub-port`) to support different deployment scenarios or avoid port conflicts.
 
 ### Publisher Usage
 
