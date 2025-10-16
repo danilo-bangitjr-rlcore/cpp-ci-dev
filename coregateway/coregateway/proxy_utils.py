@@ -1,5 +1,3 @@
-from enum import StrEnum, auto
-import json
 import logging
 from typing import Any
 
@@ -9,11 +7,7 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
 
-# Hop-by-hop headers are only valid for a single transport-level connection
-# and must not be forwarded by proxies (RFC 2616 §13.5.1).
-# Examples include "Connection", "Keep-Alive", "Transfer-Encoding", etc.
-# Forwarding them can break request/response handling, so we strip them out.
-# Drop Content-Length: the upstream value may be wrong after proxying.
+# Headers that must not be forwarded by proxies (RFC 2616 §13.5.1)
 HOP_BY_HOP = {
     "connection",
     "keep-alive",
@@ -26,9 +20,6 @@ HOP_BY_HOP = {
     "content-length",
 }
 
-class Services(StrEnum):
-    COREDINATOR = auto()
-    CORETELEMETRY = auto()
 
 class NotFoundResponse(BaseModel):
     """Response model for 404 Not Found errors."""
@@ -89,21 +80,22 @@ def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPExcept
             )
 
 
-async def proxy_request(service: Services, request: Request, path: str, body: dict | None = None) -> Response:
+async def proxy_request(service: str, request: Request, path: str, body: dict | None = None) -> Response:
     """Core proxy logic handling all HTTP methods, body, headers, and redirect rewriting."""
     client: httpx.AsyncClient = request.app.state.httpx_client
 
-    match service:
-        case Services.COREDINATOR:
-            target_url = f"{request.app.state.coredinator_base}/{path}"
-        case Services.CORETELEMETRY:
-            target_url = f"{request.app.state.coretelemetry_base}/{path}"
-        case _:
-            raise ValueError("Unknown backend service")
+    service_lower = service.lower()
+    prefix = getattr(request.app.state, f"{service_lower}_prefix")
+    host = getattr(request.app.state, f"{service_lower}_host")
+    port = getattr(request.app.state, f"{service_lower}_port")
+    base_url = f"http://{host}:{port}"
+
+    full_path = request.url.path
+    clean_path = full_path[len(prefix) + 1 :] if full_path.startswith(prefix + "/") else path
+    target_url = f"{base_url}/{clean_path}"
 
     req_headers = clean_headers(dict(request.headers))
     params = dict(request.query_params)
-
     json_data = body if body else None
     raw_body = await request.body() if json_data is None else None
 
@@ -120,15 +112,9 @@ async def proxy_request(service: Services, request: Request, path: str, body: di
     except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError) as e:
         raise handle_proxy_exception(e, path, request.method) from e
 
-    try:
-        resp_body = resp.json()
-    except Exception:
-        resp_body = resp.text
-
     return Response(
-        content=resp_body if isinstance(resp_body, (str, bytes)) else json.dumps(resp_body),
+        content=resp.text,
         status_code=resp.status_code,
         headers=clean_headers(dict(resp.headers)),
         media_type=resp.headers.get("content-type"),
     )
-

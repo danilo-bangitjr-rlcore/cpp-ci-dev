@@ -5,7 +5,6 @@ import logging
 from coregateway.proxy_utils import (
     error_responses,
     proxy_request,
-    Services,
 )
 from fastapi import APIRouter, Body, Request
 from pydantic import BaseModel
@@ -26,18 +25,18 @@ coretelemetry_router = APIRouter(
 @coretelemetry_router.api_route(
     "/{path:path}",
     methods=["GET"],
-    summary="Proxy requests (no body) to Coredinator",
+    summary="Proxy requests (no body) to Coretelemetry",
     response_model=SuccessResponse,
     responses=error_responses,
 )
 async def proxy_no_body(path: str, request: Request):
-    return await proxy_request(Services.CORETELEMETRY, request, path)
+    return await proxy_request("coretelemetry", request, path)
 
 
 @coretelemetry_router.api_route(
     "/{path:path}",
     methods=["POST"],
-    summary="Proxy requests (with body) to Coredinator",
+    summary="Proxy requests (with body) to Coretelemetry",
     response_model=SuccessResponse,
     responses=error_responses,
 )
@@ -46,5 +45,5 @@ async def proxy_with_body(
     request: Request,
     body: Payload = Body(None, description="Optional JSON body to forward"),
 ):
-    return await proxy_request(Services.CORETELEMETRY, request, path, body.model_dump() if body else None)
+    return await proxy_request("coretelemetry", request, path, body.model_dump() if body else None)
 

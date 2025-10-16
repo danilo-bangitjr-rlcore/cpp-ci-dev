@@ -74,12 +74,18 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
     """Factory function to create FastAPI app."""
     app = FastAPI(lifespan=lifespan, title="CoreGateway API")
     app.state.port = port
+
+    # Service configuration for Coredinator
+    app.state.coredinator_host = "localhost"
     app.state.coredinator_port = coredinator_port
-    app.state.coredinator_base = f"http://localhost:{coredinator_port}"
+    app.state.coredinator_prefix = "/api/v1/coredinator"
+
+    # Service configuration for Coretelemetry
+    app.state.coretelemetry_host = "localhost"
     # Create logger and store in app state
     app.state.logger = get_structured_logger("coregateway")
     app.state.coretelemetry_port = coretelemetry_port
-    app.state.coretelemetry_base = f"http://localhost:{coretelemetry_port}"
+    app.state.coretelemetry_prefix = "/api/v1/coretelemetry"
 
     app.add_middleware(
         CORSMiddleware,
@@ -116,8 +122,9 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
         # Check if we can reach coredinator
         try:
             client: httpx.AsyncClient = app.state.httpx_client
+            coredinator_base = f"http://{app.state.coredinator_host}:{app.state.coredinator_port}"
             resp = await client.get(
-                f"{app.state.coredinator_base}/api/healthcheck",
+                f"{coredinator_base}/api/healthcheck",
                 timeout=2.0,
             )
             coredinator_healthy = resp.status_code == 200
@@ -138,8 +145,8 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
             media_type="application/json",
         )
 
-    app.include_router(coredinator_router, prefix="/api/v1/coredinator")
-    app.include_router(coretelemetry_router, prefix="/api/v1/coretelemetry")
+    app.include_router(coredinator_router, prefix=app.state.coredinator_prefix)
+    app.include_router(coretelemetry_router, prefix=app.state.coretelemetry_prefix)
 
     return app
 
