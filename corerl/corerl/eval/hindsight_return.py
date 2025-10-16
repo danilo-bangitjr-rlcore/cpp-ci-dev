@@ -1,14 +1,10 @@
 
 import numpy as np
 import pandas as pd
-from lib_config.config import config
 
+from corerl.configs.eval.hindsight_return import HindsightReturnConfig
 from corerl.state import AppState
 
-
-@config()
-class HindsightReturnConfig:
-    enabled: bool = True
 
 class HindsightReturnEval:
     def __init__(self, cfg: HindsightReturnConfig, app_state: AppState):

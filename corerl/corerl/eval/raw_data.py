@@ -1,10 +1,9 @@
 import logging
 
 import pandas as pd
-from lib_config.config import config
-from pydantic import Field
 
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
+from corerl.configs.eval.raw_data import RawDataEvalConfig
+from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
 
 
@@ -90,14 +89,6 @@ def raw_data_eval_for_tag(df: pd.DataFrame, tag: str):
         'average_length_of_nan_chunks': average_length_of_nan_chunks(df, tag),
         'average_length_of_non_nan_chunks': average_length_of_non_nan_chunks(df, tag),
     }
-
-
-@config()
-class RawDataEvalConfig:
-    data_modes: list[DataMode] = Field(default_factory=lambda:[DataMode.ONLINE])
-    stage_codes: list[StageCode] = Field(default_factory=lambda:[StageCode.INIT])
-    enabled: bool = True
-    tags: list[str] = Field(default_factory=list) # which tags you want to output stats for
 
 
 def raw_data_eval(
