@@ -3,8 +3,8 @@ from pathlib import Path
 
 import corerl.interaction.checkpointing as chk
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.configs.interaction.config import InteractionConfig
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.interaction.configs import InteractionConfig
 from corerl.state import AppState
 
 

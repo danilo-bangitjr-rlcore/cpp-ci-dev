@@ -9,7 +9,7 @@ from typing import Any, Protocol
 from lib_utils.errors import fail_gracefully
 from lib_utils.list import sort_by
 
-from corerl.interaction.configs import InteractionConfig
+from corerl.configs.interaction.config import InteractionConfig
 
 logger = logging.getLogger(__name__)
 
