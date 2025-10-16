@@ -6,12 +6,19 @@ logger = get_logger(__name__)
 class EventBusManager:
     def __init__(
         self,
-        xsub_addr: str = "tcp://*:5559",
-        xpub_addr: str = "tcp://*:5560",
+        host: str = "*",
+        pub_port: int = 5559,
+        sub_port: int = 5560,
     ):
-        self.xsub_addr = xsub_addr
-        self.xpub_addr = xpub_addr
-        self.proxy = EventBusProxy(xsub_addr=xsub_addr, xpub_addr=xpub_addr)
+        self.host = host
+        self.pub_port = pub_port
+        self.sub_port = sub_port
+        # ZMQ proxy architecture (counterintuitive naming):
+        # - XSUB socket: where publishers CONNECT (binds to pub_port)
+        # - XPUB socket: where subscribers CONNECT (binds to sub_port)
+        self.xsub_addr = f"tcp://{host}:{pub_port}"
+        self.xpub_addr = f"tcp://{host}:{sub_port}"
+        self.proxy = EventBusProxy(xsub_addr=self.xsub_addr, xpub_addr=self.xpub_addr)
 
     def start(self):
         logger.info("Starting event bus manager")

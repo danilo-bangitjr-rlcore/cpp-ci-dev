@@ -3,6 +3,7 @@ import os
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import NamedTuple
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -26,7 +27,6 @@ async def lifespan(app: FastAPI):
     logger.info(
         "CoreRL server starting up",
         base_path=str(app.state.base_path),
-        port=main_port,
         version=version,
     )
 
@@ -39,6 +39,17 @@ async def lifespan(app: FastAPI):
     app.state.event_bus_manager.stop()
     logger.info("Event bus stopped")
 
+class CliArgs(NamedTuple):
+    base_path: Path
+    port: int
+    log_file: Path | None
+    log_level: str
+    console_output: bool
+    reload: bool
+    event_bus_host: str
+    event_bus_pub_port: int
+    event_bus_sub_port: int
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
     parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
@@ -48,9 +59,28 @@ def parse_args():
                        help="Logging level (default: INFO)")
     parser.add_argument("--no-console", action="store_true", help="Disable console logging output")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
+    parser.add_argument("--event-bus-host", type=str, default="*", help="Event bus host address (default: *)")
+    parser.add_argument(
+        "--event-bus-pub-port", type=int, default=5559,
+        help="Port where publishers connect (XSUB socket, default: 5559)",
+    )
+    parser.add_argument(
+        "--event-bus-sub-port", type=int, default=5560,
+        help="Port where subscribers connect (XPUB socket, default: 5560)",
+    )
     args = parser.parse_args()
 
-    return args.base_path, args.port, args.log_file, args.log_level, not args.no_console, args.reload
+    return CliArgs(
+        base_path=args.base_path,
+        port=args.port,
+        log_file=args.log_file,
+        log_level=args.log_level,
+        console_output=not args.no_console,
+        reload=args.reload,
+        event_bus_host=args.event_bus_host,
+        event_bus_pub_port=args.event_bus_pub_port,
+        event_bus_sub_port=args.event_bus_sub_port,
+    )
 
 
 # pyright: reportUnusedFunction=false
@@ -66,13 +96,22 @@ def _prepare_base_path(base_path: Path | str) -> Path:
     return resolved
 
 
-def create_app(base_path: Path) -> FastAPI:
+def create_app(
+    base_path: Path,
+    event_bus_host: str = "*",
+    event_bus_pub_port: int = 5559,
+    event_bus_sub_port: int = 5560,
+) -> FastAPI:
     """Factory function to create FastAPI app with given base_path."""
     prepared_base_path = _prepare_base_path(base_path)
 
     app = FastAPI(lifespan=lifespan)
     service_manager = ServiceManager(base_path=prepared_base_path)
-    event_bus_manager = EventBusManager()
+    event_bus_manager = EventBusManager(
+        host=event_bus_host,
+        pub_port=event_bus_pub_port,
+        sub_port=event_bus_sub_port,
+    )
     app.state.service_manager = service_manager
     app.state.event_bus_manager = event_bus_manager
     app.state.base_path = prepared_base_path
@@ -134,14 +173,19 @@ def create_app(base_path: Path) -> FastAPI:
 
 
 if __name__ == "__main__":
-    base_path, main_port, log_file, log_level, console_output, reload = parse_args()
+    cli_args = parse_args()
 
     # Initialize structured logging
     setup_structured_logging(
-        log_file_path=log_file,
-        log_level=log_level,
-        console_output=console_output,
+        log_file_path=cli_args.log_file,
+        log_level=cli_args.log_level,
+        console_output=cli_args.console_output,
     )
 
-    app = create_app(base_path)
-    uvicorn.run(app, host="0.0.0.0", port=main_port, reload=reload)
+    app = create_app(
+        cli_args.base_path,
+        cli_args.event_bus_host,
+        cli_args.event_bus_pub_port,
+        cli_args.event_bus_sub_port,
+    )
+    uvicorn.run(app, host="0.0.0.0", port=cli_args.port, reload=cli_args.reload)
