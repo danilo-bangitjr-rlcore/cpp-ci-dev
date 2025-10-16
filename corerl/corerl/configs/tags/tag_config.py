@@ -6,23 +6,19 @@ from typing import TYPE_CHECKING, Literal
 from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
 
-from corerl.tags.components.bounds import SafetyZonedTag
-from corerl.tags.components.computed import ComputedTag
-from corerl.tags.components.opc import OPCTag
-from corerl.tags.delta import DeltaTagConfig
-from corerl.tags.meta import MetaTagConfig
-from corerl.tags.seasonal import SeasonalTagConfig
-from corerl.tags.setpoint import SetpointTagConfig
+from corerl.configs.tags.components.bounds import SafetyZonedTag
+from corerl.configs.tags.components.computed import ComputedTag
+from corerl.configs.tags.components.opc import OPCTag
+from corerl.configs.tags.delta import DeltaTagConfig
+from corerl.configs.tags.meta import MetaTagConfig
+from corerl.configs.tags.seasonal import SeasonalTagConfig
+from corerl.configs.tags.setpoint import SetpointTagConfig
 from corerl.utils.sympy import to_sympy
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 
-
-# ----------------
-# -- Tag Config --
-# ----------------
 @config()
 class BasicTagConfig(
     SafetyZonedTag,
@@ -41,7 +37,6 @@ class BasicTagConfig(
     scenarios a 1-1 mapping exists.
     """
 
-    # tag metadata
     name: str = MISSING
     """
     Kind: required external
@@ -60,9 +55,6 @@ class BasicTagConfig(
 
     @post_processor
     def _additional_validations(self, cfg: MainConfig):
-        # -----------------------------
-        # -- Virtual tag validations --
-        # -----------------------------
         if self.is_computed:
             assert self.value is not None, \
                 "A value string must be specified for computed virtual tags."
@@ -72,8 +64,6 @@ class BasicTagConfig(
 
             for dep in dependent_tags:
                 assert dep in known_tags, f"Virtual tag {self.name} depends on unknown tag {dep}."
-
-
 
 
 TagConfig = BasicTagConfig | MetaTagConfig | SeasonalTagConfig | SetpointTagConfig | DeltaTagConfig
@@ -87,7 +77,9 @@ def get_scada_tags(cfgs: Sequence[TagConfig]):
         and not tag_cfg.is_computed
     ]
 
+
 def in_taglist(name: str, taglist: Sequence[TagConfig]):
     for tc in taglist:
-        if tc.name == name: return True
+        if tc.name == name:
+            return True
     return False

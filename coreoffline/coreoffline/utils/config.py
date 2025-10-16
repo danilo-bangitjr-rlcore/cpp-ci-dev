@@ -2,8 +2,8 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from corerl.config import MainConfig
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.datatypes import StageCode
-from corerl.data_pipeline.db.data_writer import TagDBConfig
 from lib_config.config import MISSING, computed, config, post_processor
 from pydantic import Field
 

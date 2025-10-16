@@ -5,12 +5,12 @@ from lib_config.errors import ConfigValidationErrors
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
+from corerl.configs.tags.setpoint import SetpointTagConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
-from corerl.tags.setpoint import SetpointTagConfig
 from tests.infrastructure.config import create_config_with_overrides
 
 

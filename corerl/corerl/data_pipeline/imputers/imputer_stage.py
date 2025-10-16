@@ -1,21 +1,10 @@
-from typing import Literal
-
-from lib_config.config import config
-from pydantic import Field
-
+from corerl.configs.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.imputers.base import BaseImputer, BaseImputerStageConfig
-from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig, init_per_tag_imputer
-from corerl.data_pipeline.imputers.per_tag.identity import IdentityImputerConfig
+from corerl.data_pipeline.imputers.base import BaseImputer
+from corerl.data_pipeline.imputers.per_tag.factory import init_per_tag_imputer
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
-
-
-@config()
-class PerTagImputerConfig(BaseImputerStageConfig):
-    name: Literal['per-tag'] = 'per-tag'
-    default: ImputerConfig = Field(default_factory=IdentityImputerConfig)
 
 
 class PerTagImputer(BaseImputer):

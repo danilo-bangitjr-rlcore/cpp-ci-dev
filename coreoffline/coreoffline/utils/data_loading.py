@@ -4,11 +4,11 @@ from datetime import timedelta
 from math import ceil
 
 import numpy as np
+from corerl.configs.tags.tag_config import get_scada_tags
 from corerl.data_pipeline.db.data_reader import DataReader
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.state import AppState
-from corerl.tags.tag_config import get_scada_tags
 from corerl.utils.time import exclude_from_chunks, split_into_chunks
 from lib_agent.buffer.datatypes import DataMode
 from lib_progress.tracker import track

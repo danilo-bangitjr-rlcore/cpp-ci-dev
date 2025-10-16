@@ -14,8 +14,8 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.sql import text
 
 import corerl.utils.pandas as pd_util
-from corerl.data_pipeline.db.data_writer import TagDBConfig
-from corerl.tags.components.opc import Agg
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
+from corerl.configs.tags.components.opc import Agg
 
 logger = logging.getLogger(__name__)
 

@@ -3,10 +3,10 @@ import pandas as pd
 import pytest
 
 from corerl.config import MainConfig
+from corerl.configs.environment.reward.config import RewardConfig
 from corerl.data_pipeline.constructors.goals import GoalConstructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.pipeline import Pipeline
-from corerl.environment.reward.config import RewardConfig
 from corerl.state import AppState
 from tests.infrastructure.config import create_config_with_overrides
 from tests.sdk.factories import PipelineFrameFactory

@@ -1,21 +1,14 @@
 from dataclasses import dataclass
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
 import numpy as np
-from lib_config.config import config, list_
 from lib_utils.maybe import Maybe
 from numba import njit
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.configs.data_pipeline.transforms.trace import TraceConfig
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.state import AppState
-
-
-@config()
-class TraceConfig(BaseTransformConfig):
-    name: Literal['multi_trace'] = 'multi_trace'
-    trace_values: list[float] = list_([0., 0.75, 0.9, 0.95])
-    missing_tol: float = 0.25 # proportion of the trace that can be "missing"
 
 
 @dataclass

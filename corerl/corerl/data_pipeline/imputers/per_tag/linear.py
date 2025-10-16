@@ -1,20 +1,12 @@
 from dataclasses import dataclass
-from typing import Literal
 
 import numpy as np
-from lib_config.config import MISSING
 from numba import njit
-from pydantic.dataclasses import dataclass as config
 
+from corerl.configs.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
-from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
+from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, per_tag_imputer_group
 from corerl.data_pipeline.utils import get_tag_temporal_state
-
-
-@config(config={'extra': 'forbid'})
-class LinearImputerConfig(BasePerTagImputerConfig):
-    name: Literal['linear'] = "linear"
-    max_gap: int = MISSING # Maximum number of NaNs between the two values used in linear interpolation
 
 
 @dataclass

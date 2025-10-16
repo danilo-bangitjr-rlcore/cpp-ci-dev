@@ -1,16 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any
 
-from lib_config.config import MISSING, config
 from lib_config.group import Group
 
+from corerl.configs.data_pipeline.oddity_filters.base import BaseOddityFilterConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-
-
-@config()
-class BaseOddityFilterConfig:
-    name: Any = MISSING
 
 
 class BaseOddityFilter(ABC):

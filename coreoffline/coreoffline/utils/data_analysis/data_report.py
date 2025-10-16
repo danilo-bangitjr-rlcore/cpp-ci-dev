@@ -7,8 +7,8 @@ from typing import cast
 
 import numpy as np
 import pandas as pd
+from corerl.configs.environment.reward.config import Optimization
 from corerl.data_pipeline.datatypes import StageCode
-from corerl.environment.reward.config import Optimization
 from corerl.eval.raw_data import raw_data_eval_for_tag
 from corerl.state import AppState
 from tabulate import tabulate

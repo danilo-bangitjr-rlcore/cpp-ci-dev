@@ -1,15 +1,8 @@
-from typing import Literal
-
 import pandas as pd
-from lib_config.config import config
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
+from corerl.configs.data_pipeline.transforms.nuke import NukeConfig
+from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-
-
-@config()
-class NukeConfig(BaseTransformConfig):
-    name: Literal['nuke'] = 'nuke'
 
 
 class Nuke:

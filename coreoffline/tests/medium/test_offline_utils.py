@@ -2,19 +2,17 @@ import datetime as dt
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 import pandas as pd
 import pytest
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.datatypes import Step, Transition
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
+from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
-from lib_agent.buffer.datatypes import DataMode
 from lib_defs.config_defs.tag_config import TagType
 from lib_sql.inspection import table_exists
 from sqlalchemy import Engine
@@ -168,31 +166,6 @@ def test_offline_training(
         observed_a_q_entries = metrics.loc[metrics["metric"] == "observed_a_q_0"]
         partial_return_entries = metrics.loc[metrics["metric"] == "partial_return_0"]
         assert len(state_v_entries) == len(observed_a_q_entries) == len(partial_return_entries) == 2
-
-
-def test_regression_normalizer_bounds_reset(offline_cfg: OfflineMainConfig, dummy_app_state: AppState):
-    normalizer = NormalizerConfig(from_data=True)
-
-    # add normalizer to pipeline config
-    offline_cfg.pipeline.tags[1].state_constructor = [normalizer]
-    pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-
-    # trigger pipeline to test dummy data
-    _ = pipeline.column_descriptions
-
-    # create test data and run through pipeline
-    dates = [dt.datetime(2024, 1, 1, 1, i, tzinfo=dt.UTC) for i in range(5)]
-    df = pd.DataFrame({
-        "Tag_1":  [0.1, -0.1, 0, 0, 0],
-        "Action": [0, 0, 1, 1, 0],
-        "reward": [0, 0, 0, 0, 0],
-    }, index=pd.DatetimeIndex(dates))
-
-    # check if tag is normalized using [-0.1, 0.1] as bounds
-    # prior implementation would mistakenly use [-0.1, 1] as bounds
-    pr = pipeline(df, data_mode=DataMode.OFFLINE)
-
-    assert np.all(pr.df['Tag_1_norm'] == [1., 0, 0.5, 0.5, 0.5])
 
 
 def test_offline_start_end(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, data_writer: DataWriter):

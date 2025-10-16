@@ -1,47 +1,17 @@
 import logging
-from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-from lib_config.config import config, list_, post_processor
 from lib_utils.maybe import Maybe
 
+from corerl.configs.data_pipeline.oddity_filters.conditional import ConditionalFilterConfig
+from corerl.configs.tags.components.opc import OPCTag
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
-from corerl.data_pipeline.transforms import SympyConfig, TransformConfig
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.state import AppState
-from corerl.tags.components.opc import OPCTag
-from corerl.utils.sympy import to_sympy
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class ConditionalFilterConfig(BaseOddityFilterConfig):
-    """
-    - condition: transforms that produce a boolean mask that will be used to filter out rows that evaluate to True
-    - filtered_tags: tag names that should be filtered if 'condition' evaluates to True. If set to 'all',
-                     all tags are filtered.
-    - excluded_tags: tags that shouldn't be filtered if 'condition' evaluates to True.
-    """
-    name: Literal['conditional'] = 'conditional'
-    condition: list[TransformConfig] = list_()
-    filtered_tags: list[str] | Literal['all'] = 'all'
-    excluded_tags: list[str] = list_()
-
-    @post_processor
-    def _get_default_excluded_tags(self, cfg: 'MainConfig'):
-        """
-        Tags involved in a sympy condition are trusted implicitly and so shouldn't have their values filtered
-        """
-        for transform in self.condition:
-            if isinstance(transform, SympyConfig):
-                _, _, tag_names = to_sympy(transform.expression)
-                self.excluded_tags = list(set(self.excluded_tags + tag_names))
 
 
 class ConditionalFilter(BaseOddityFilter):

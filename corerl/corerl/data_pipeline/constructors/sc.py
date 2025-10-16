@@ -4,26 +4,18 @@ from functools import cached_property
 import lib_utils.list as list_u
 import numpy as np
 import pandas as pd
-from lib_config.config import config, list_
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
-from pydantic import Field
 
+from corerl.configs.data_pipeline.constructors.sc import SCConfig
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
+from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector
 from corerl.data_pipeline.state_constructors.seasonal import SeasonalTagFeatures
-from corerl.data_pipeline.transforms import TraceConfig, TransformConfig
 from corerl.data_pipeline.transforms.base import Transform
 from corerl.data_pipeline.transforms.trace import TraceConstructor, TraceTemporalState, log_trace_quality
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
-
-
-@config()
-class SCConfig:
-    defaults: list[TransformConfig] = list_([TraceConfig()])
-    countdown: CountdownConfig = Field(default_factory=CountdownConfig)
 
 
 class StateConstructor(Constructor):
@@ -32,7 +24,7 @@ class StateConstructor(Constructor):
         self._app_state = app_state
         super().__init__(tag_cfgs)
 
-        self._cd_adder = DecisionPointDetector(cfg.countdown)
+        self._cd_adder = DecisionPointDetector(cfg.countdown) if cfg.countdown is not None else None
         self._seasonal_features = SeasonalTagFeatures(tag_cfgs)
 
 

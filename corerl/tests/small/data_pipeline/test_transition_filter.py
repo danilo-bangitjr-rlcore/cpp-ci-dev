@@ -8,12 +8,13 @@ from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 
 from corerl.config import MainConfig
+from corerl.configs.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.configs.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
+from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector
 from corerl.data_pipeline.transition_filter import (
     TransitionFilter,
-    TransitionFilterConfig,
     no_nan,
     only_dp,
     only_no_action_change,

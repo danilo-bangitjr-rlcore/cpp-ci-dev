@@ -4,8 +4,8 @@ from typing import Literal
 from lib_config.config import MISSING, config, post_processor
 from lib_defs.config_defs.tag_config import TagType
 
-from corerl.data_pipeline.transforms import NukeConfig
-from corerl.tags.base import GlobalTagAttributes
+from corerl.configs.data_pipeline.transforms import NukeConfig
+from corerl.configs.tags.base import GlobalTagAttributes
 
 
 class SeasonalTags(StrEnum):
@@ -20,10 +20,6 @@ class SeasonalTagConfig(GlobalTagAttributes):
     name: SeasonalTags = MISSING
     type: Literal[TagType.seasonal] = TagType.seasonal
 
-
-    # --------------
-    # -- Defaults --
-    # --------------
     @post_processor
     def _set_defaults(self, _: object):
         self.preprocess = []

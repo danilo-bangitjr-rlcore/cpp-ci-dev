@@ -2,9 +2,9 @@ from typing import Any
 
 from lib_config.config import MISSING, config, list_
 
-from corerl.data_pipeline.imputers.per_tag.factory import ImputerConfig
-from corerl.data_pipeline.oddity_filters.factory import OddityFilterConfig
-from corerl.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
+from corerl.configs.data_pipeline.imputers.per_tag import ImputerConfig
+from corerl.configs.data_pipeline.oddity_filters import OddityFilterConfig
+from corerl.configs.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
 from corerl.messages.events import RLEventType
 
 
@@ -19,8 +19,6 @@ class TagTriggerConfig:
 
 @config()
 class GlobalTagAttributes:
-    # NOTE: being non-prescriptive about the type of the tag name
-    # so that children can do type-narrowing.
     name: Any = MISSING
 
     is_endogenous: bool = True
@@ -31,10 +29,6 @@ class GlobalTagAttributes:
     field, this is sometimes called a "controlled" variable. This may be used for plant modeling
     to simplify counterfactual reasoning.
     """
-
-    # ----------------------
-    # -- Pipeline Configs --
-    # ----------------------
 
     outlier: list[OddityFilterConfig] | None = None
     """
@@ -52,7 +46,6 @@ class GlobalTagAttributes:
     temporal or spatial structure, for example lab-tests.
     """
 
-    # per-tag constructors
     preprocess: list[TransformConfig] = list_([NormalizerConfig()])
     """
     Kind: internal

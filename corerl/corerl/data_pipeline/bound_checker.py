@@ -1,8 +1,8 @@
 import numpy as np
 
+from corerl.configs.tags.components.bounds import FloatBounds
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.tags.components.bounds import FloatBounds
 
 
 def _get_oob_mask(data: np.ndarray, tag: str, bounds: FloatBounds, prep: Preprocessor, tol: float) -> np.ndarray:

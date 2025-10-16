@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
@@ -7,8 +8,8 @@ from lib_config.config import MISSING, computed, config, post_processor
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.tags.components.bounds import BoundedTag
-from corerl.tags.tag_config import TagConfig
+from corerl.configs.tags.components.bounds import BoundedTag
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
 
 if TYPE_CHECKING:
@@ -16,6 +17,7 @@ if TYPE_CHECKING:
 
 
 type ListOrSingle[T] = list[T] | T
+
 
 @config()
 class Goal:
