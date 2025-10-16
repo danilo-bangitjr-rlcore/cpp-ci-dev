@@ -7,6 +7,7 @@ dependencies = [
     "corerl",
     "docker>=7.1.0",
     "pytest>=8.3.5",
+    "requests>=2.32.0",
     "rlevaluation>=1.1.1",
     "psutil>=7.0.0",
     "filelock>=3.18.0",
@@ -15,6 +16,7 @@ dependencies = [
     "lib-utils",
     "pandas~=2.2",
     "pandas-stubs",
+    "lib-process",
 ]
 
 [build-system]
@@ -23,8 +25,12 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "coredinator",
+    "coreio",
     "docker>=7.1.0",
+    "fastapi>=0.115.0",
     "pylint>=3.3.7",
+    "pyinstaller>=6.0.0",
     "pyright>=1.1.401",
     "pytest>=8.3.5",
     "pytest-coverage>=0.0",
@@ -32,6 +38,7 @@ dev = [
     "pytest-xdist>=3.7.0",
     "ruff>=0.11.11",
     "uv>=0.7.8",
+    "uvicorn>=0.37.0",
 ]
 
 [project.scripts]
@@ -42,10 +49,13 @@ opc_sim = "test.e2e.opc_clients.opc_sim:main"
 packages = ["test"]
 
 [tool.uv.sources]
+coredinator = { path = "../coredinator", editable = true }
+coreio = { path = "../coreio", editable = true }
 corerl = { path = "../corerl", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
+lib-process = { path = "../libs/lib_process", editable = true }
 
 # ----------
 # -- Ruff --
