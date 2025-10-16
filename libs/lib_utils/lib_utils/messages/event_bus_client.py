@@ -1,5 +1,6 @@
 import logging
 import threading
+import time
 from collections import defaultdict
 from collections.abc import Callable
 from enum import Enum
@@ -30,6 +31,10 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         host: str = "localhost",
         pub_port: int = 5559,
         sub_port: int = 5560,
+        max_reconnect_attempts: int = -1,
+        reconnect_interval: float = 1.0,
+        reconnect_backoff_multiplier: float = 2.0,
+        reconnect_max_interval: float = 60.0,
     ):
         self._event_class = event_class
         self.host = host
@@ -37,6 +42,11 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         self.sub_port = sub_port
         self.publisher_endpoint = f"tcp://{host}:{pub_port}"
         self.subscriber_endpoint = f"tcp://{host}:{sub_port}"
+
+        self.max_reconnect_attempts = max_reconnect_attempts
+        self.reconnect_interval = reconnect_interval
+        self.reconnect_backoff_multiplier = reconnect_backoff_multiplier
+        self.reconnect_max_interval = reconnect_max_interval
 
         self.context: zmq.Context | None = None
         self.publisher_socket: zmq.Socket | None = None
@@ -48,6 +58,9 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         self._callbacks: dict[EventTypeClass, list[Callback]] = defaultdict(list)
 
         self._connected = False
+        self._reconnect_attempts = 0
+        self._subscribed_topics: list[EventTopicClass] = []
+        self._reconnect_lock = threading.Lock()
 
     # ============================================================
     # Lifecycle Management
@@ -58,17 +71,9 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             logger.warning("Event bus client already connected")
             return
 
-        self.context = zmq.Context()
-
-        self.publisher_socket = self.context.socket(zmq.PUB)
-        assert self.publisher_socket is not None
-        self.publisher_socket.connect(self.publisher_endpoint)
-
-        self.subscriber_socket = self.context.socket(zmq.SUB)
-        assert self.subscriber_socket is not None
-        self.subscriber_socket.connect(self.subscriber_endpoint)
-
+        self._setup_sockets()
         self._connected = True
+        self._reconnect_attempts = 0
         logger.info(
             f"Event bus client connected - pub: {self.publisher_endpoint}, sub: {self.subscriber_endpoint}",
         )
@@ -95,19 +100,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             except Empty:
                 empty_raised = True
 
-        self.queue.join()
-
-        if self.subscriber_socket:
-            self.subscriber_socket.close()
-            self.subscriber_socket = None
-
-        if self.publisher_socket:
-            self.publisher_socket.close()
-            self.publisher_socket = None
-
-        if self.context:
-            self.context.term()
-            self.context = None
+        self._close_sockets()
 
         self._connected = False
         logger.info("Event bus client closed")
@@ -142,6 +135,9 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         if self.subscriber_socket is None:
             logger.warning("Cannot subscribe - subscriber socket not initialized")
             return
+
+        if topic not in self._subscribed_topics:
+            self._subscribed_topics.append(topic)
 
         topic_bytes = topic.name.encode()
         self.subscriber_socket.setsockopt(zmq.SUBSCRIBE, topic_bytes)
@@ -192,6 +188,81 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
 
             yield event
 
+    def _close_sockets(self):
+        if self.subscriber_socket:
+            self.subscriber_socket.setsockopt(zmq.LINGER, 0)
+            self.subscriber_socket.close()
+            self.subscriber_socket = None
+
+        if self.publisher_socket:
+            self.publisher_socket.setsockopt(zmq.LINGER, 0)
+            self.publisher_socket.close()
+            self.publisher_socket = None
+
+        if self.context:
+            self.context.term()
+            self.context = None
+
+    def _setup_sockets(self):
+        self.context = zmq.Context()
+
+        self.publisher_socket = self.context.socket(zmq.PUB)
+        assert self.publisher_socket is not None
+        self.publisher_socket.connect(self.publisher_endpoint)
+
+        self.subscriber_socket = self.context.socket(zmq.SUB)
+        assert self.subscriber_socket is not None
+        self.subscriber_socket.connect(self.subscriber_endpoint)
+
+        for topic in self._subscribed_topics:
+            topic_bytes = topic.name.encode()
+            self.subscriber_socket.setsockopt(zmq.SUBSCRIBE, topic_bytes)
+
+    def _reconnect(self) -> bool:
+        with self._reconnect_lock:
+            if self.stop_event.is_set():
+                logger.debug("Stop event set, aborting reconnection")
+                return False
+
+            if self.max_reconnect_attempts >= 0 and self._reconnect_attempts >= self.max_reconnect_attempts:
+                logger.error(
+                    f"Max reconnection attempts ({self.max_reconnect_attempts}) reached, giving up",
+                )
+                return False
+
+            self._reconnect_attempts += 1
+
+            current_interval = min(
+                self.reconnect_interval * (self.reconnect_backoff_multiplier ** (self._reconnect_attempts - 1)),
+                self.reconnect_max_interval,
+            )
+
+            logger.info(
+                f"Attempting to reconnect (attempt {self._reconnect_attempts}) in {current_interval:.2f}s",
+            )
+
+            sleep_start = time.time()
+            while time.time() - sleep_start < current_interval:
+                if self.stop_event.is_set():
+                    logger.debug("Stop event set during reconnect sleep, aborting")
+                    return False
+                time.sleep(0.1)
+
+            try:
+                self._close_sockets()
+                self._connected = False
+
+                self._setup_sockets()
+
+                self._connected = True
+                self._reconnect_attempts = 0
+                logger.info("Successfully reconnected to event bus")
+                return True
+
+            except Exception as e:
+                logger.error(f"Reconnection attempt {self._reconnect_attempts} failed: {e}")
+                return False
+
     def _consume_messages(self):
         assert self.subscriber_socket is not None
 
@@ -201,10 +272,18 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         while not self.stop_event.is_set():
             try:
                 socks = dict(poller.poll(timeout=500))
-            except zmq.ZMQError:
+            except zmq.ZMQError as e:
                 if self.stop_event.is_set():
                     break
-                continue
+
+                logger.warning(f"ZMQ polling error: {e}, attempting reconnection")
+                if self._reconnect():
+                    poller = zmq.Poller()
+                    poller.register(self.subscriber_socket, zmq.POLLIN)
+                    continue
+
+                logger.error("Failed to reconnect, stopping consumer")
+                break
 
             if self.subscriber_socket not in socks:
                 continue
@@ -228,6 +307,15 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
                         except Exception as e:
                             logger.error(f"Callback error for event {event_type}: {e}", exc_info=True)
 
+            except zmq.ZMQError as e:
+                logger.warning(f"Error receiving message: {e}, attempting reconnection")
+                if self._reconnect():
+                    poller = zmq.Poller()
+                    poller.register(self.subscriber_socket, zmq.POLLIN)
+                    continue
+
+                logger.error("Failed to reconnect, stopping consumer")
+                break
             except Exception as e:
                 logger.error(f"Error consuming message: {e}", exc_info=True)
 

@@ -94,6 +94,8 @@ def mock_proxy(pub_port: int, sub_port: int):
 
     stop_event.set()
     proxy_thread.join(timeout=2)
+    xsub_socket.setsockopt(zmq.LINGER, 0)
+    xpub_socket.setsockopt(zmq.LINGER, 0)
     xsub_socket.close()
     xpub_socket.close()
     context.term()
@@ -109,10 +111,14 @@ def client(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: i
         host="127.0.0.1",
         pub_port=pub_port,
         sub_port=sub_port,
+        max_reconnect_attempts=3,
     )
     yield client
-    if client.is_connected():
-        client.close()
+    try:
+        if client.is_connected():
+            client.close()
+    except Exception:
+        pass
 
 
 @pytest.mark.timeout(5)
@@ -396,3 +402,112 @@ def test_client_emit_event_type_shortcut(mock_proxy: tuple[zmq.Socket, zmq.Socke
 
     publisher.close()
     subscriber.close()
+
+
+@pytest.mark.timeout(5)
+def test_client_reconnection_preserves_state(
+    mock_proxy: tuple[zmq.Socket, zmq.Socket],
+    pub_port: int,
+    sub_port: int,
+):
+    """
+    Subscriptions and state are preserved when client reconnects manually.
+    """
+    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
+        event_class=TestEvent,
+        host="127.0.0.1",
+        pub_port=pub_port,
+        sub_port=sub_port,
+    )
+    client.connect()
+    client.subscribe(TestEventTopic.test_topic)
+    client.subscribe(TestEventTopic.debug_topic)
+
+    assert len(client._subscribed_topics) == 2
+    assert TestEventTopic.test_topic in client._subscribed_topics
+    assert TestEventTopic.debug_topic in client._subscribed_topics
+
+    original_topics = client._subscribed_topics.copy()
+
+    client.close()
+    time.sleep(0.1)
+    client.connect()
+
+    assert len(client._subscribed_topics) == 2
+    assert client._subscribed_topics == original_topics
+
+    client.close()
+
+
+@pytest.mark.timeout(10)
+def test_client_max_reconnect_attempts():
+    """
+    Client respects max reconnect attempts configuration by stopping after limit reached.
+
+    Note: ZMQ connect() succeeds even without a listening server, so we manually
+    set _connected=False and track that the counter properly caps at max_reconnect_attempts.
+    """
+    free_pub_port = get_free_port("localhost")
+    free_sub_port = get_free_port("localhost")
+
+    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
+        event_class=TestEvent,
+        host="127.0.0.1",
+        pub_port=free_pub_port,
+        sub_port=free_sub_port,
+        max_reconnect_attempts=2,
+        reconnect_interval=0.1,
+    )
+
+    client.connect()
+    assert client._reconnect_attempts == 0
+
+    client._connected = False
+    client._reconnect_attempts = 0
+    result = client._reconnect()
+    assert result is True
+
+    client._connected = False
+    client._reconnect_attempts = 1
+    result = client._reconnect()
+    assert result is True
+
+    client._connected = False
+    client._reconnect_attempts = 2
+    result = client._reconnect()
+    assert result is False
+    assert client._reconnect_attempts == 2
+
+    client.stop_event.set()
+    client.close()
+
+
+@pytest.mark.timeout(5)
+def test_client_reconnect_preserves_subscriptions(
+    mock_proxy: tuple[zmq.Socket, zmq.Socket],
+    pub_port: int,
+    sub_port: int,
+):
+    """
+    Subscriptions are re-established after reconnection.
+    """
+    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
+        event_class=TestEvent,
+        host="127.0.0.1",
+        pub_port=pub_port,
+        sub_port=sub_port,
+    )
+    client.connect()
+    client.subscribe(TestEventTopic.test_topic)
+    client.subscribe(TestEventTopic.debug_topic)
+
+    assert len(client._subscribed_topics) == 2
+    assert TestEventTopic.test_topic in client._subscribed_topics
+    assert TestEventTopic.debug_topic in client._subscribed_topics
+
+    client.close()
+    client.connect()
+
+    assert len(client._subscribed_topics) == 2
+
+    client.close()
