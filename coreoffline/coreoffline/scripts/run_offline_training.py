@@ -1,7 +1,6 @@
 import logging
 
 from corerl.agent.greedy_ac import GreedyAC
-from corerl.environment.async_env.async_env import AsyncEnvConfig
 from corerl.tags.validate_tag_configs import validate_tag_configs
 from lib_config.loader import load_config
 
@@ -29,8 +28,6 @@ def main(cfg: OfflineMainConfig):
 
     # Use create_standard_setup for standardized setup
     app_state, pipeline = create_standard_setup(cfg)
-
-    assert isinstance(cfg.env, AsyncEnvConfig)
 
     column_desc = pipeline.column_descriptions
     agent = GreedyAC(cfg.agent, app_state, column_desc)
