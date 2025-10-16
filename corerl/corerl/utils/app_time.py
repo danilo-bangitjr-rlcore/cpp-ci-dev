@@ -18,9 +18,8 @@ class AppTime:
         self.is_demo = is_demo
         self.start_time = start_time
 
-        if self.is_demo:
-            if obs_period is None:
-                raise ValueError("Must include obs_period for demo mode")
+        if self.is_demo and obs_period is None:
+            raise ValueError("Must include obs_period for demo mode")
 
         self.obs_period = obs_period
         self.agent_step = agent_step
