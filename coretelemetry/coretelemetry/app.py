@@ -65,8 +65,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--port",
         type=int,
-        default=8001,
-        help="Port to run the server on (default: 8001)",
+        default=7001,
+        help="Port to run the server on (default: 7001)",
     )
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
 
