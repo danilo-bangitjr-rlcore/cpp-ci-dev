@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 import httpx
 import uvicorn
 from coregateway.coredinator_proxy import coredinator_router
+from coregateway.coretelemetry_proxy import coretelemetry_router
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
@@ -17,8 +18,9 @@ def parse_args():
     parser = argparse.ArgumentParser(description="CoreGateway Service")
     parser.add_argument("--port", type=int, default=8001, help="Port to run CoreGateway")
     parser.add_argument("--coredinator-port", type=int, default=7000, help="Port for coredinator service")
+    parser.add_argument("--coretelemetry-port", type=int, default=7001, help="Port for coredinator service")
     args = parser.parse_args()
-    return args.port, args.coredinator_port
+    return args.port, args.coredinator_port, args.coretelemetry_port
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -68,7 +70,7 @@ async def lifespan(app: FastAPI):
     logger.info("CoreGateway shutting down")
 
 
-def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
+def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_port: int = 7001) -> FastAPI:
     """Factory function to create FastAPI app."""
     app = FastAPI(lifespan=lifespan, title="CoreGateway API")
     app.state.port = port
@@ -76,6 +78,8 @@ def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
     app.state.coredinator_base = f"http://localhost:{coredinator_port}"
     # Create logger and store in app state
     app.state.logger = get_structured_logger("coregateway")
+    app.state.coretelemetry_port = coretelemetry_port
+    app.state.coretelemetry_base = f"http://localhost:{coretelemetry_port}"
 
     app.add_middleware(
         CORSMiddleware,
@@ -135,10 +139,18 @@ def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
         )
 
     app.include_router(coredinator_router, prefix="/api/v1/coredinator")
+    app.include_router(coretelemetry_router, prefix="/api/v1/coretelemetry")
 
     return app
 
 if __name__ == "__main__":
-    port, coredinator_port = parse_args()
-    app = create_app(port, coredinator_port)
+    port, coredinator_port, coretelemetry_port = parse_args()
+
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format="%(asctime)s %(levelname)s %(name)s %(message)s",
+    )
+    logger.setLevel(logging.DEBUG)
+
+    app = create_app(port, coredinator_port, coretelemetry_port)
     uvicorn.run(app, host="0.0.0.0", port=port)

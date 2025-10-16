@@ -10,17 +10,20 @@ from coregateway.proxy_utils import (
 from fastapi import APIRouter, Body, Request
 from pydantic import BaseModel
 
+logger = logging.getLogger(__name__)
+
 SuccessResponse = str
 
+# TODO: Do we need to re define this?
 class Payload(BaseModel):
     config_path: str
     coreio_id: str | None = None
 
-coredinator_router = APIRouter(
-    tags=["Coredinator Proxy"],
+coretelemetry_router = APIRouter(
+    tags=["Coretelemetry Proxy"],
 )
 
-@coredinator_router.api_route(
+@coretelemetry_router.api_route(
     "/{path:path}",
     methods=["GET"],
     summary="Proxy requests (no body) to Coredinator",
@@ -28,10 +31,10 @@ coredinator_router = APIRouter(
     responses=error_responses,
 )
 async def proxy_no_body(path: str, request: Request):
-    return await proxy_request(Services.COREDINATOR, request, path)
+    return await proxy_request(Services.CORETELEMETRY, request, path)
 
 
-@coredinator_router.api_route(
+@coretelemetry_router.api_route(
     "/{path:path}",
     methods=["POST"],
     summary="Proxy requests (with body) to Coredinator",
@@ -41,8 +44,7 @@ async def proxy_no_body(path: str, request: Request):
 async def proxy_with_body(
     path: str,
     request: Request,
-    logger: logging.Logger = Depends(get_logger),
     body: Payload = Body(None, description="Optional JSON body to forward"),
 ):
-    return await proxy_request(Services.COREDINATOR, request, path, body.model_dump() if body else None)
+    return await proxy_request(Services.CORETELEMETRY, request, path, body.model_dump() if body else None)
 

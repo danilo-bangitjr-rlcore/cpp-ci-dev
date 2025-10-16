@@ -1,3 +1,4 @@
+from enum import StrEnum, auto
 import json
 import logging
 from typing import Any
@@ -25,6 +26,9 @@ HOP_BY_HOP = {
     "content-length",
 }
 
+class Services(StrEnum):
+    COREDINATOR = auto()
+    CORETELEMETRY = auto()
 
 class NotFoundResponse(BaseModel):
     """Response model for 404 Not Found errors."""
@@ -85,10 +89,17 @@ def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPExcept
             )
 
 
-async def proxy_request(request: Request, path: str, body: dict | None = None) -> Response:
+async def proxy_request(service: Services, request: Request, path: str, body: dict | None = None) -> Response:
     """Core proxy logic handling all HTTP methods, body, headers, and redirect rewriting."""
     client: httpx.AsyncClient = request.app.state.httpx_client
-    target_url = f"{request.app.state.coredinator_base}/{path}"
+
+    match service:
+        case Services.COREDINATOR:
+            target_url = f"{request.app.state.coredinator_base}/{path}"
+        case Services.CORETELEMETRY:
+            target_url = f"{request.app.state.coretelemetry_base}/{path}"
+        case _:
+            raise ValueError("Unknown backend service")
 
     req_headers = clean_headers(dict(request.headers))
     params = dict(request.query_params)
