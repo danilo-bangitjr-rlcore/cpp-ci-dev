@@ -119,9 +119,10 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
 
     @app.get("/health")
     async def health_check():
+        client: httpx.AsyncClient = app.state.httpx_client
+
         # Check if we can reach coredinator
         try:
-            client: httpx.AsyncClient = app.state.httpx_client
             coredinator_base = f"http://{app.state.coredinator_host}:{app.state.coredinator_port}"
             resp = await client.get(
                 f"{coredinator_base}/api/healthcheck",
@@ -131,14 +132,27 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
         except Exception:
             coredinator_healthy = False
 
-        status = "healthy" if coredinator_healthy else "degraded"
-        status_code = 200 if coredinator_healthy else 503
+        # Check if we can reach coretelemetry
+        try:
+            coretelemetry_base = f"http://{app.state.coretelemetry_host}:{app.state.coretelemetry_port}"
+            resp = await client.get(
+                f"{coretelemetry_base}/health",
+                timeout=2.0,
+            )
+            coretelemetry_healthy = resp.status_code == 200
+        except Exception:
+            coretelemetry_healthy = False
+
+        all_healthy = all([coredinator_healthy, coretelemetry_healthy])
+        status = "healthy" if all_healthy else "degraded"
+        status_code = 200 if all_healthy else 503
 
         return Response(
             content=json.dumps({
                 "status": status,
                 "services": {
                     "coredinator": "healthy" if coredinator_healthy else "unhealthy",
+                    "coretelemetry": "healthy" if coretelemetry_healthy else "unhealthy",
                 },
             }),
             status_code=status_code,
