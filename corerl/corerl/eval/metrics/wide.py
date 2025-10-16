@@ -15,7 +15,7 @@ from lib_utils.dict import flatten_tree
 from lib_utils.time import now_iso
 from sqlalchemy import text
 
-from corerl.eval.metrics.base import MetricsDBConfig
+from corerl.configs.eval.metrics import MetricsDBConfig
 
 log = logging.getLogger(__name__)
 

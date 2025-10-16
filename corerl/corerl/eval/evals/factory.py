@@ -1,4 +1,5 @@
-from corerl.eval.evals.base import EvalDBConfig, EvalsWriterProtocol
+from corerl.configs.eval.evals import EvalDBConfig
+from corerl.eval.evals.base import EvalsWriterProtocol
 from corerl.eval.evals.dummy import DummyEvalsWriter
 from corerl.eval.evals.static import StaticEvalsTable
 

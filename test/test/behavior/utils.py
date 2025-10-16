@@ -2,7 +2,8 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
-from corerl.data_pipeline.db.data_writer import DataWriter, TagDBConfig
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
+from corerl.data_pipeline.db.data_writer import DataWriter
 from sqlalchemy import Connection, Engine, text
 
 

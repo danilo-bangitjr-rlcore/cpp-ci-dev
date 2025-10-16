@@ -7,12 +7,12 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.buffer.datatypes import JaxTransition
-from lib_config.config import config
 from lib_utils.errors import fail_gracefully
 from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.configs.eval.agent import GreedDistConfig, QOnlineConfig
 from corerl.state import AppState
 
 # --------------------------------- Utilities --------------------------------- #
@@ -81,10 +81,6 @@ def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
 
 # ------------------------------ Q Values Online ----------------------------- #
 
-@config()
-class QOnlineConfig:
-    enabled: bool = True
-
 def _q_online(
     cfg: QOnlineConfig,
     agent: GreedyAC,
@@ -122,11 +118,6 @@ def q_online(
 def get_max_action(actions: jax.Array, values: jax.Array):
     max_indices = jnp.argmax(values, axis=0)
     return actions[max_indices, :]
-
-@config()
-class GreedDistConfig:
-    enabled: bool = True
-    n_samples: int = 100
 
 def _greed_dist(
     cfg: GreedDistConfig,
@@ -205,14 +196,6 @@ def greed_dist_batch(app_state: AppState, agent: BaseAgent):
     )
 
 # ------------------------------ Q and PDF Plots ----------------------------- #
-
-@config()
-class QPDFPlotsConfig:
-    enabled: bool = True
-    # number of samples for the primary action (i.e. the values on the x-axis)
-    primary_action_samples: int = 101
-    # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
-    other_action_samples: int = 10
 
 @fail_gracefully()
 def online_q_values_and_act_prob(

@@ -8,15 +8,12 @@ from lib_config.config import MISSING, computed, config, list_, post_processor
 from lib_utils.maybe import Maybe
 from pydantic import Field
 
-from corerl.messages.heartbeat import HeartbeatConfig
+from corerl.configs.messages.heartbeat import HeartbeatConfig
 
 if TYPE_CHECKING:
     from corerl.config import MainConfig
 
 
-# -------------
-# -- Configs --
-# -------------
 @config()
 class InteractionConfig:
     name: Literal["sim_interaction", "dep_interaction"] = "dep_interaction"

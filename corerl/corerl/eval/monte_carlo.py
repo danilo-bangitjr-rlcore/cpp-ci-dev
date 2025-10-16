@@ -3,33 +3,16 @@ import math
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 import jax.numpy as jnp
 import numpy as np
 from lib_agent.buffer.buffer import State
-from lib_config.config import MISSING, computed, config
 
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.configs.eval.monte_carlo import MonteCarloEvalConfig
 from corerl.state import AppState
 
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
-
 logger = logging.getLogger(__name__)
-
-
-@config()
-class MonteCarloEvalConfig:
-    enabled: bool = False
-    precision: float = 0.99 # Monte-Carlo return within 'precision'% of the true return (can't compute infinite sum)
-    critic_samples: int = 5
-    gamma: float = MISSING
-
-    @computed('gamma')
-    @classmethod
-    def _gamma(cls, cfg: 'MainConfig'):
-        return cfg.agent.gamma
 
 
 @dataclass
