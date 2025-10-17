@@ -86,6 +86,42 @@ python coregateway/app.py --port 8001 --coredinator-port 7000 --coretelemetry-po
 
 ## Development
 
+### Testing Tool
+
+A convenience script is provided for testing common endpoints:
+
+```bash
+./tools/requests.sh <command>
+```
+
+**Available commands:**
+
+- `reward` - Get reward data with query parameters
+- `get-path` - Get current config path
+- `set-path` - Set config path
+- `get-db` - Get database configuration
+- `set-db` - Set database configuration
+
+**Examples:**
+
+```bash
+# Get config path
+./tools/requests.sh get-path
+
+# Get data with query parameters
+./tools/requests.sh reward
+
+# Set database configuration
+./tools/requests.sh set-db
+```
+
+**Note:** The script uses `xh` (a modern alternative to curl). Install it with:
+```bash
+cargo install xh
+```
+
+Or modify the script to use `curl` instead.
+
 ### Project Structure
 
 ```
