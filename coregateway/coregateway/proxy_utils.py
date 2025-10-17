@@ -85,7 +85,6 @@ async def proxy_request(service: str, request: Request, path: str, body: dict | 
     client: httpx.AsyncClient = request.app.state.httpx_client
 
     service_lower = service.lower()
-    prefix = getattr(request.app.state, f"{service_lower}_prefix")
     host = getattr(request.app.state, f"{service_lower}_host")
     port = getattr(request.app.state, f"{service_lower}_port")
     base_url = f"http://{host}:{port}"
