@@ -7,8 +7,6 @@ from coregateway.proxy_utils import (
 from fastapi import APIRouter, Body, Request
 from pydantic import BaseModel
 
-SuccessResponse = str
-
 coredinator_router = APIRouter(
     tags=["Coredinator Proxy"],
 )
@@ -17,7 +15,6 @@ coredinator_router = APIRouter(
     "/{path:path}",
     methods=["GET"],
     summary="Proxy requests (no body) to Coredinator",
-    response_model=SuccessResponse,
     responses=error_responses,
 )
 async def proxy_no_body(path: str, request: Request):
@@ -29,7 +26,6 @@ async def proxy_no_body(path: str, request: Request):
     methods=["POST"],
     summary="Proxy requests (with body) to Coredinator",
     description="Accepts any JSON body and forwards it to Coredinator for validation.",
-    response_model=SuccessResponse,
     responses=error_responses,
 )
 async def proxy_with_body(path: str, request: Request):
