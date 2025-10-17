@@ -57,7 +57,6 @@ class Process:
             "stdin": DEVNULL,
             "stdout": DEVNULL,
             "stderr": subprocess.PIPE if logger is not None else DEVNULL,
-            "start_new_session": True,
         }
 
         if IS_WINDOWS:
@@ -66,6 +65,8 @@ class Process:
             create_no_window = getattr(subprocess, "CREATE_NO_WINDOW", 0)
             creationflags = detached_process | create_new_process_group | create_no_window
             popen_kwargs["creationflags"] = creationflags
+        else:
+            popen_kwargs["start_new_session"] = True
 
         popen = Popen(args, **popen_kwargs)
 
