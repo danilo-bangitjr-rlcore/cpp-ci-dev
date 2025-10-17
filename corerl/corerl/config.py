@@ -17,6 +17,7 @@ from corerl.configs.eval.metrics import MetricsDBConfig
 from corerl.configs.infra import FeatureFlags, InfraConfig
 from corerl.configs.interaction.config import InteractionConfig
 from corerl.configs.messages.event_bus import EventBusConfig
+from corerl.configs.messages.event_bus_client import EventBusClientConfig
 
 
 @config()
@@ -31,6 +32,7 @@ class MainConfig:
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
+    event_bus_client: EventBusClientConfig = Field(default_factory=EventBusClientConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     save_path: Path = MISSING
     log_path: Path | None = None

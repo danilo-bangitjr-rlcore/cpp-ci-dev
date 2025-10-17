@@ -18,6 +18,9 @@ class RLEventType(BaseEventType):
     step_agent_update = auto()
     step_emit_action = auto()
     agent_step = auto()
+    agent_started = auto()
+    agent_stopped = auto()
+    agent_error = auto()
 
     # -----------
     # -- Agent --
