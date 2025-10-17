@@ -89,7 +89,6 @@ async def proxy_request(service: str, request: Request, path: str, body: dict | 
     port = getattr(request.app.state, f"{service_lower}_port")
     base_url = f"http://{host}:{port}"
 
-    # FastAPI's {path:path} already strips the prefix, so we can use it directly
     target_url = f"{base_url}/{path}"
 
     req_headers = clean_headers(dict(request.headers))
