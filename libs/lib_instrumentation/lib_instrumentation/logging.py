@@ -15,7 +15,6 @@ class LogLevel(str, Enum):
     WARNING = "WARNING"
     ERROR = "ERROR"
 
-
 class LogRecord(BaseModel):
     """Canonical log schema for all services."""
 
@@ -80,13 +79,14 @@ def _configure_structlog() -> None:
             cache_logger_on_first_use=True,
     )
 
+# Configure structlog once at module load
+_configure_structlog()
 
 class StructuredLogger:
     """Wrapper for structured logging using the canonical LogRecord schema."""
 
     def __init__(self, service_name: str):
         self.service_name = service_name
-        _configure_structlog()
         self._logger = structlog.get_logger(service_name)
 
     def _log(self, level: LogLevel, message: str, x_correlation_id: str | None = None) -> None:
@@ -103,7 +103,7 @@ class StructuredLogger:
         log_data = log_record.model_dump()
 
         # Use structlog's level-specific methods
-        logger_method = getattr(self._logger, level.lower())
+        logger_method = getattr(self._logger, level.value.lower())
         logger_method(message, **log_data)
 
     def debug(self, message: str, x_correlation_id: str | None = None) -> None:

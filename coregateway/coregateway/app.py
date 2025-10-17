@@ -1,6 +1,5 @@
 import argparse
 import json
-import logging
 from collections.abc import Callable
 from contextlib import asynccontextmanager
 
@@ -10,8 +9,7 @@ from coregateway.coredinator_proxy import coredinator_router
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
-
-logger = logging.getLogger(__name__)
+from lib_instrumentation.logging import get_structured_logger
 
 version = "0.0.1"
 
@@ -59,6 +57,8 @@ async def lifespan(app: FastAPI):
         follow_redirects=False,
     )
 
+    # Use logger from app state
+    logger = app.state.logger
     logger.info(f"CoreGateway starting up - port={app.state.port}, version={version}")
 
     yield
@@ -74,6 +74,8 @@ def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
     app.state.port = port
     app.state.coredinator_port = coredinator_port
     app.state.coredinator_base = f"http://localhost:{coredinator_port}"
+    # Create logger and store in app state
+    app.state.logger = get_structured_logger("coregateway")
 
     app.add_middleware(
         CORSMiddleware,
@@ -86,12 +88,18 @@ def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
     @app.middleware("http")
     async def add_core_rl_version(request: Request, call_next: Callable):
         client_host = request.client.host if request.client else "unknown"
-        logger.debug(f"Processing request - method={request.method}, url={request.url!s}, client={client_host}")
+        app.state.logger.debug(
+            f"Processing request - method={request.method}, "
+            f"url={request.url!s}, client={client_host}",
+        )
 
         response = await call_next(request)
         response.headers["X-CoreRL-Version"] = version
 
-        logger.debug(f"Request completed - method={request.method}, url={request.url!s}, status={response.status_code}")
+        app.state.logger.debug(
+            f"Request completed - method={request.method}, "
+            f"url={request.url!s}, status={response.status_code}",
+        )
 
         return response
 
@@ -126,19 +134,11 @@ def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
             media_type="application/json",
         )
 
-    app.include_router(coredinator_router, prefix="/api/v1/coredinator", tags=["Coredinator Proxy"])
+    app.include_router(coredinator_router, prefix="/api/v1/coredinator")
 
     return app
 
-
 if __name__ == "__main__":
     port, coredinator_port = parse_args()
-
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
-    logger.setLevel(logging.DEBUG)
-
     app = create_app(port, coredinator_port)
     uvicorn.run(app, host="0.0.0.0", port=port)
