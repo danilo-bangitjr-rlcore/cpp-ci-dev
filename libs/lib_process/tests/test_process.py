@@ -308,6 +308,7 @@ def test_start_in_background_with_stderr_forwarding():
     process = Process.start_in_background(
         args=[
             sys.executable,
+            "-u",
             "-c",
             "import sys, time; sys.stderr.write('test error\\n'); sys.stderr.flush(); time.sleep(1)",
         ],
@@ -349,6 +350,7 @@ def test_start_in_background_continuous_stderr():
     process = Process.start_in_background(
         args=[
             sys.executable,
+            "-u",
             "-c",
             "import sys, time; "
             "[sys.stderr.write(f'line {i}\\n') or sys.stderr.flush() or time.sleep(0.01) for i in range(20)]; "
