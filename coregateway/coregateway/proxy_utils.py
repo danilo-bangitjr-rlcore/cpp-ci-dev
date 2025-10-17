@@ -80,7 +80,7 @@ def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPExcept
             )
 
 
-async def proxy_request(service: str, request: Request, path: str, body: dict | None = None) -> Response:
+async def proxy_request(service: str, request: Request, path: str) -> Response:
     """Core proxy logic handling all HTTP methods, body, headers, and redirect rewriting."""
     client: httpx.AsyncClient = request.app.state.httpx_client
 
@@ -93,8 +93,7 @@ async def proxy_request(service: str, request: Request, path: str, body: dict | 
 
     req_headers = clean_headers(dict(request.headers))
     params = dict(request.query_params)
-    json_data = body if body else None
-    raw_body = await request.body() if json_data is None else None
+    raw_body = await request.body()
 
     try:
         resp = await client.request(
@@ -102,7 +101,6 @@ async def proxy_request(service: str, request: Request, path: str, body: dict | 
             target_url,
             headers=req_headers,
             params=params,
-            json=json_data,
             content=raw_body,
             follow_redirects=False,
         )
