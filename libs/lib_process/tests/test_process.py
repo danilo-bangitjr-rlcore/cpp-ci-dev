@@ -306,7 +306,11 @@ def test_start_in_background_with_stderr_forwarding():
     mock_logger = MagicMock()
 
     process = Process.start_in_background(
-        args=[sys.executable, "-c", "import sys; sys.stderr.write('test error\\n'); sys.stderr.flush()"],
+        args=[
+            sys.executable,
+            "-c",
+            "import sys, time; sys.stderr.write('test error\\n'); sys.stderr.flush(); time.sleep(1)",
+        ],
         logger=mock_logger,
         service_id="test_service",
     )
@@ -347,7 +351,8 @@ def test_start_in_background_continuous_stderr():
             sys.executable,
             "-c",
             "import sys, time; "
-            "[sys.stderr.write(f'line {i}\\n') or sys.stderr.flush() or time.sleep(0.01) for i in range(20)]",
+            "[sys.stderr.write(f'line {i}\\n') or sys.stderr.flush() or time.sleep(0.01) for i in range(20)]; "
+            "time.sleep(0.5)",
         ],
         logger=mock_logger,
         service_id="test_continuous",
