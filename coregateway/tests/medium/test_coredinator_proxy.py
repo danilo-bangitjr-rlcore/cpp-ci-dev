@@ -91,7 +91,11 @@ class TestCoredinatorProxy:
         call_args = mock_httpx_client.request.call_args
         assert call_args[0][0] == "POST"
         assert call_args[0][1] == "http://localhost:7000/agents/start"
-        assert call_args[1]["json"] == payload
+        # Body is now forwarded as raw bytes via content parameter
+        # Decode and parse to compare JSON content (formatting may differ)
+        import json
+        actual_body = json.loads(call_args[1]["content"].decode())
+        assert actual_body == payload
 
         assert response.status_code == 201
         assert response.json() == {"agent_id": "test-agent"}

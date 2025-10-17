@@ -101,7 +101,7 @@ class TestCoretelemetryProxy:
         test_client: TestClient,
         mock_httpx_client: MagicMock,
     ) -> None:
-        """Test POST request with JSON body is properly proxied."""
+        """Test POST request with query parameters is properly proxied."""
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.headers = {"content-type": "application/json"}
@@ -109,9 +109,8 @@ class TestCoretelemetryProxy:
         mock_response.text = '{"message": "Config path updated"}'
         mock_httpx_client.request.return_value = mock_response
 
-        payload = {"config_path": "/tmp/configs", "coreio_id": None}
         response = test_client.post(
-            "/api/v1/coretelemetry/api/config/path", json=payload,
+            "/api/v1/coretelemetry/api/config/path?path=../config",
         )
 
         # Verify request was proxied correctly
@@ -119,7 +118,8 @@ class TestCoretelemetryProxy:
         call_args = mock_httpx_client.request.call_args
         assert call_args[0][0] == "POST"
         assert call_args[0][1] == "http://localhost:7001/api/config/path"
-        assert call_args[1]["json"] == payload
+        # Query parameters should be passed through
+        assert call_args[1]["params"] == {"path": "../config"}
 
         assert response.status_code == 200
 
