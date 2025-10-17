@@ -10,17 +10,38 @@ from coregateway.coretelemetry_proxy import coretelemetry_router
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
+from pydantic import BaseModel
 from lib_instrumentation.logging import get_structured_logger
 
 version = "0.0.1"
 
+class CoregatewayConfig(BaseModel):
+    port: int = 8001
+    coredinator_port: int = 7000
+    coretelemetry_port: int = 7001
+
+
+# Module-level configuration
+coregateway_config = CoregatewayConfig()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="CoreGateway Service")
-    parser.add_argument("--port", type=int, default=8001, help="Port to run CoreGateway")
-    parser.add_argument("--coredinator-port", type=int, default=7000, help="Port for coredinator service")
-    parser.add_argument("--coretelemetry-port", type=int, default=7001, help="Port for coredinator service")
-    args = parser.parse_args()
-    return args.port, args.coredinator_port, args.coretelemetry_port
+    parser.add_argument("--port", type=int, default=coregateway_config.port, help="Port to run CoreGateway")
+    parser.add_argument(
+        "--coredinator-port",
+        type=int,
+        default=coregateway_config.coredinator_port,
+        help="Port for coredinator service",
+    )
+    parser.add_argument(
+        "--coretelemetry-port",
+        type=int,
+        default=coregateway_config.coretelemetry_port,
+        help="Port for coretelemetry service",
+    )
+    parser.add_argument("--reload", action="store_true", help="Enable auto-reload on code changes")
+    return parser.parse_args()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -164,8 +185,21 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
 
     return app
 
+
+def get_app() -> FastAPI:
+    return create_app(
+        coregateway_config.port,
+        coregateway_config.coredinator_port,
+        coregateway_config.coretelemetry_port,
+    )
+
 if __name__ == "__main__":
-    port, coredinator_port, coretelemetry_port = parse_args()
+    args = parse_args()
+
+    # Store config in module-level variable for reload mode
+    coregateway_config.port = args.port
+    coregateway_config.coredinator_port = args.coredinator_port
+    coregateway_config.coretelemetry_port = args.coretelemetry_port
 
     logging.basicConfig(
         level=logging.DEBUG,
@@ -173,5 +207,10 @@ if __name__ == "__main__":
     )
     logger.setLevel(logging.DEBUG)
 
-    app = create_app(port, coredinator_port, coretelemetry_port)
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(
+        "coregateway.app:get_app",
+        host="0.0.0.0",
+        port=args.port,
+        reload=args.reload,
+        factory=True,
+    )
