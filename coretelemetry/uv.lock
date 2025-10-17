@@ -297,7 +297,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.153.0"
+version = "0.154.0"
 source = { editable = "../corerl" }
 dependencies = [
     { name = "coreio" },
@@ -365,13 +365,13 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "backoff" },
-    { name = "corerl" },
     { name = "fastapi", extra = ["standard"] },
     { name = "httpx" },
     { name = "lib-config" },
     { name = "lib-sql" },
     { name = "lib-utils" },
     { name = "psutil" },
+    { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
 
@@ -393,13 +393,13 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "backoff", specifier = ">=2.2.1" },
-    { name = "corerl", editable = "../corerl" },
     { name = "fastapi", extras = ["standard"], specifier = "~=0.115.6" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "lib-config", editable = "../libs/lib_config" },
     { name = "lib-sql", editable = "../libs/lib_sql" },
     { name = "lib-utils", editable = "../libs/lib_utils" },
     { name = "psutil", specifier = "~=7.0" },
+    { name = "sqlalchemy", specifier = ">=2.0.43" },
     { name = "uvicorn", extras = ["standard"], specifier = "==0.35.0" },
 ]
 
@@ -1104,6 +1104,32 @@ dev = [
 ]
 
 [[package]]
+name = "lib-process"
+version = "0.0.0"
+source = { editable = "../libs/lib_process" }
+dependencies = [
+    { name = "lib-utils" },
+    { name = "psutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "psutil", specifier = "~=7.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "pytest-xdist", specifier = ">=3.7.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
 name = "lib-sql"
 version = "0.0.0"
 source = { editable = "../libs/lib_sql" }
@@ -1155,6 +1181,7 @@ jax = [
     { name = "flax" },
     { name = "jax" },
     { name = "optax" },
+    { name = "pandas" },
 ]
 
 [package.metadata]
@@ -1166,9 +1193,10 @@ requires-dist = [
     { name = "distrax", marker = "extra == 'jax'", specifier = ">=0.1.5" },
     { name = "dm-haiku", marker = "extra == 'jax'", specifier = ">=0.0.14" },
     { name = "flax", marker = "extra == 'jax'", specifier = ">=0.10.6" },
-    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.8.0" },
+    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.9.0" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "optax", marker = "extra == 'jax'", specifier = ">=0.2.4" },
+    { name = "pandas", marker = "extra == 'jax'", specifier = "~=2.2" },
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "pyzmq", specifier = "~=27.1" },
 ]
@@ -1176,6 +1204,7 @@ provides-extras = ["jax", "opc"]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "lib-agent", editable = "../libs/lib_agent" },
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.4.0" },
@@ -1497,6 +1526,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/44/23/78d645adc35d94d1ac4f2a3c4112ab6f5b8999f4898b8cdf01252f8df4a9/pandas-2.3.3-cp313-cp313t-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:900f47d8f20860de523a1ac881c4c36d65efcb2eb850e6948140fa781736e110", size = 12121912, upload-time = "2025-09-29T23:23:05.042Z" },
     { url = "https://files.pythonhosted.org/packages/53/da/d10013df5e6aaef6b425aa0c32e1fc1f3e431e4bcabd420517dceadce354/pandas-2.3.3-cp313-cp313t-musllinux_1_2_aarch64.whl", hash = "sha256:a45c765238e2ed7d7c608fc5bc4a6f88b642f2f01e70c0c23d2224dd21829d86", size = 12712160, upload-time = "2025-09-29T23:23:28.57Z" },
     { url = "https://files.pythonhosted.org/packages/bd/17/e756653095a083d8a37cbd816cb87148debcfcd920129b25f99dd8d04271/pandas-2.3.3-cp313-cp313t-musllinux_1_2_x86_64.whl", hash = "sha256:c4fc4c21971a1a9f4bdb4c73978c7f7256caa3e62b323f70d6cb80db583350bc", size = 13199233, upload-time = "2025-09-29T23:24:24.876Z" },
+]
+
+[[package]]
+name = "pandas-stubs"
+version = "2.3.2.250926"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "types-pytz" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/1b/3b/32be58a125db39d0b5f62cc93795f32b5bb2915bd5c4a46f0e35171985e2/pandas_stubs-2.3.2.250926.tar.gz", hash = "sha256:c64b9932760ceefb96a3222b953e6a251321a9832a28548be6506df473a66406", size = 102147, upload-time = "2025-09-26T19:50:39.522Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/40/96/1e4a035eaf4dce9610aac6e43026d0c6baa05773daf6d21e635a4fe19e21/pandas_stubs-2.3.2.250926-py3-none-any.whl", hash = "sha256:81121818453dcfe00f45c852f4dceee043640b813830f6e7bd084a4ef7ff7270", size = 159995, upload-time = "2025-09-26T19:50:38.241Z" },
 ]
 
 [[package]]
@@ -2353,10 +2395,14 @@ dependencies = [
     { name = "docker" },
     { name = "filelock" },
     { name = "gymnasium" },
+    { name = "lib-process" },
     { name = "lib-sql" },
     { name = "lib-utils" },
+    { name = "pandas" },
+    { name = "pandas-stubs" },
     { name = "psutil" },
     { name = "pytest" },
+    { name = "requests" },
     { name = "rl-env" },
     { name = "rlevaluation" },
 ]
@@ -2367,17 +2413,25 @@ requires-dist = [
     { name = "docker", specifier = ">=7.1.0" },
     { name = "filelock", specifier = ">=3.18.0" },
     { name = "gymnasium", specifier = "~=1.0" },
+    { name = "lib-process", editable = "../libs/lib_process" },
     { name = "lib-sql", editable = "../libs/lib_sql" },
     { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "pandas", specifier = "~=2.2" },
+    { name = "pandas-stubs" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "pytest", specifier = ">=8.3.5" },
+    { name = "requests", specifier = ">=2.32.0" },
     { name = "rl-env", editable = "../libs/rl_env" },
     { name = "rlevaluation", specifier = ">=1.1.1" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "coredinator", editable = "../coredinator" },
+    { name = "coreio", editable = "../coreio" },
     { name = "docker", specifier = ">=7.1.0" },
+    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "pyinstaller", specifier = ">=6.0.0" },
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.401" },
     { name = "pytest", specifier = ">=8.3.5" },
@@ -2386,6 +2440,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.11" },
     { name = "uv", specifier = ">=0.7.8" },
+    { name = "uvicorn", specifier = ">=0.37.0" },
 ]
 
 [[package]]
@@ -2448,6 +2503,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/21/ca/950278884e2ca20547ff3eb109478c6baf6b8cf219318e6bc4f666fad8e8/typer-0.19.2.tar.gz", hash = "sha256:9ad824308ded0ad06cc716434705f691d4ee0bfd0fb081839d2e426860e7fdca", size = 104755, upload-time = "2025-09-23T09:47:48.256Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/00/22/35617eee79080a5d071d0f14ad698d325ee6b3bf824fc0467c03b30e7fa8/typer-0.19.2-py3-none-any.whl", hash = "sha256:755e7e19670ffad8283db353267cb81ef252f595aa6834a0d1ca9312d9326cb9", size = 46748, upload-time = "2025-09-23T09:47:46.777Z" },
+]
+
+[[package]]
+name = "types-pytz"
+version = "2025.2.0.20250809"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/07/e2/c774f754de26848f53f05defff5bb21dd9375a059d1ba5b5ea943cf8206e/types_pytz-2025.2.0.20250809.tar.gz", hash = "sha256:222e32e6a29bb28871f8834e8785e3801f2dc4441c715cd2082b271eecbe21e5", size = 10876, upload-time = "2025-08-09T03:14:17.453Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/db/d0/91c24fe54e565f2344d7a6821e6c6bb099841ef09007ea6321a0bac0f808/types_pytz-2025.2.0.20250809-py3-none-any.whl", hash = "sha256:4f55ed1b43e925cf851a756fe1707e0f5deeb1976e15bf844bcaa025e8fbd0db", size = 10095, upload-time = "2025-08-09T03:14:16.674Z" },
 ]
 
 [[package]]

@@ -6,12 +6,10 @@ on:
     paths:
       - "coretelemetry/**"
       - "libs/**"
-      - "corerl/**"
   merge_group:
     paths:
       - "coretelemetry/**"
       - "libs/**"
-      - "corerl/**"
 
 concurrency:
   group: coretelemetry-${{ github.workflow }}-${{ github.ref }}
