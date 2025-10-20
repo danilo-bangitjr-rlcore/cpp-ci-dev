@@ -97,12 +97,12 @@ class GreedyAC:
         self.critic_buffer.add(t)
         self.policy_buffer.add(t)
 
-    def get_actions(self, state: State):
-        n_samples = 1
+    def get_actions(self, state: State, n_samples: int = 1):
         actions, _ = self._actor.get_actions(self.agent_state.actor.actor.params, state, n_samples)
-
         chex.assert_shape(actions, (n_samples, self.action_dim))
-        return actions.squeeze(0)
+        if n_samples == 1:
+            return actions.squeeze(0)
+        return actions
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         self.rng, c_rng = jax.random.split(self.rng)
