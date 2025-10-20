@@ -8,6 +8,11 @@ from fastapi.testclient import TestClient
 
 
 @pytest.fixture
+def mock_logger() -> MagicMock:
+    """Mock logger for testing."""
+    return MagicMock()
+
+@pytest.fixture
 def mock_httpx_client() -> AsyncMock:
     """Mock httpx.AsyncClient for network isolation."""
     mock_client = AsyncMock(spec=httpx.AsyncClient)
@@ -31,12 +36,15 @@ def stub_async_http_transport() -> Iterator[MagicMock]:
 @pytest.fixture
 def test_client(
     mock_httpx_client: AsyncMock,
+    mock_logger: MagicMock,
     stub_async_http_transport: MagicMock,
 ) -> Iterator[TestClient]:
-    """Test client with mocked HTTP requests."""
+    """Test client with mocked HTTP requests and logger."""
     with patch('httpx.AsyncClient', return_value=mock_httpx_client):
         app = create_app(port=8001)
-        # Ensure the mock is used by the app
+        # Replace the real logger with mock
+        app.state.logger = mock_logger
+        # Ensure the mock httpx client is used by the app
         app.state.httpx_client = mock_httpx_client
         with TestClient(app) as client:
             yield client

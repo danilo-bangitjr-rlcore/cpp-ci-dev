@@ -5,10 +5,8 @@ import logging
 from typing import Any
 
 import httpx
-from fastapi import APIRouter, Body, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Request, Response
 from pydantic import BaseModel
-
-logger = logging.getLogger(__name__)
 
 SuccessResponse = str
 
@@ -53,11 +51,19 @@ HOP_BY_HOP = {
     "content-length",
 }
 
+def get_logger(request: Request) -> logging.Logger:
+    return request.app.state.logger
+
 
 def clean_headers(orig: dict[str, str]) -> dict[str, str]:
     return {k: v for k, v in orig.items() if k.lower() not in HOP_BY_HOP}
 
-def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPException:
+def handle_proxy_exception(
+    exc: Exception,
+    path: str,
+    method: str,
+    logger: logging.Logger,
+) -> HTTPException:
     match exc:
         case httpx.TimeoutException():
             logger.error(f"Request timeout - path={path}, method={method}, error={exc!s}")
@@ -84,8 +90,13 @@ def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPExcept
                 detail="Internal server error",
             )
 
-async def proxy_request(request: Request, path: str, body: dict | None = None) -> Response:
-    """Core proxy logic handling all HTTP methods, body, headers, and redirect rewriting."""
+
+async def proxy_request(
+    request: Request,
+    path: str,
+    logger: logging.Logger,
+    body: dict | None = None,
+) -> Response:
     client: httpx.AsyncClient = request.app.state.httpx_client
     target_url = f"{request.app.state.coredinator_base}/{path}"
 
@@ -105,8 +116,12 @@ async def proxy_request(request: Request, path: str, body: dict | None = None) -
             content=raw_body,
             follow_redirects=False,
         )
+
     except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError) as e:
-        raise handle_proxy_exception(e, path, request.method) from e
+        raise handle_proxy_exception(e, path, request.method, logger) from e
+
+    if resp.status_code == 404:
+        logger.error(f"Resource not found in Coredinator - path={path}, method={request.method}")
 
     try:
         resp_body = resp.json()
@@ -131,8 +146,8 @@ async def proxy_request(request: Request, path: str, body: dict | None = None) -
         500: {"model": InternalServerErrorResponse},
     },
 )
-async def proxy_no_body(path: str, request: Request):
-    return await proxy_request(request, path)
+async def proxy_no_body(path: str, request: Request, logger: logging.Logger = Depends(get_logger)):
+    return await proxy_request(request, path, logger=logger)
 
 
 @coredinator_router.api_route(
@@ -149,7 +164,8 @@ async def proxy_no_body(path: str, request: Request):
 async def proxy_with_body(
     path: str,
     request: Request,
+    logger: logging.Logger = Depends(get_logger),
     body: Payload = Body(None, description="Optional JSON body to forward"),
 ):
-    return await proxy_request(request, path, body.model_dump() if body else None)
+    return await proxy_request(request, path, logger=logger, body=body.model_dump() if body else None)
 

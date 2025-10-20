@@ -9,6 +9,8 @@ dependencies = [
     "uvicorn[standard]==0.35.0",
     "backoff>=2.2.1",
     "httpx>=0.28.1",
+    "structlog~=25.4",
+    "lib_instrumentation",
 ]
 
 [dependency-groups]
@@ -31,6 +33,9 @@ build-backend = "hatchling.build"
 [tool]
 [tool.hatch.build.targets.wheel]
 packages = ["coregateway"]
+
+[tool.uv.sources]
+lib_instrumentation = { path = "../libs/lib_instrumentation", editable = true }
 
 # ----------
 # -- Ruff --
