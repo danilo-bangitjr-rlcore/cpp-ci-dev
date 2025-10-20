@@ -9,26 +9,26 @@ from coregateway.proxy_utils import (
 )
 from fastapi import APIRouter, Depends, Request
 
-coredinator_router = APIRouter(
-    tags=["Coredinator Proxy"],
+coretelemetry_router = APIRouter(
+    tags=["Coretelemetry Proxy"],
 )
 
-@coredinator_router.api_route(
+@coretelemetry_router.api_route(
     "/{path:path}",
     methods=["GET"],
-    summary="Proxy requests (no body) to Coredinator",
+    summary="Proxy requests (no body) to Coretelemetry",
     responses=error_responses,
 )
 async def proxy_no_body(path: str, request: Request, logger: logging.Logger = Depends(get_logger)):
-    return await proxy_request("coredinator", request, path, logger)
+    return await proxy_request("coretelemetry", request, path, logger)
 
-@coredinator_router.api_route(
+@coretelemetry_router.api_route(
     "/{path:path}",
     methods=["POST"],
-    summary="Proxy requests (with body) to Coredinator",
-    description="Accepts any JSON body and forwards it to Coredinator for validation.",
+    summary="Proxy requests (with body) to Coretelemetry",
+    description="Accepts any JSON body and forwards it to CoreTelemetry for validation.",
     responses=error_responses,
 )
 async def proxy_with_body(path: str, request: Request, logger: logging.Logger = Depends(get_logger)):
-    return await proxy_request("coredinator", request, path, logger)
+    return await proxy_request("coretelemetry", request, path, logger)
 

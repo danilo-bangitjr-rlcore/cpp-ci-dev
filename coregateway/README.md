@@ -1,10 +1,10 @@
 # CoreGateway
 
-CoreGateway is a FastAPI-based API gateway that serves as a proxy layer that forwards REST API requests to internal services 
+CoreGateway is a FastAPI-based API gateway that serves as a proxy layer that forwards REST API requests to internal services.
 
 ## Overview
 
-- **Proxying**: Forwards all requests to internal services (currently only Coredinator), which handles internal routing and service resolution.
+- **Proxying**: Forwards all requests to internal services (Coredinator and CoreTelemetry), which handle internal routing and service resolution.
 - **Error Handling**: Normalizes upstream errors and provides clear status codes to clients.
 - **Observability**: Adds version headers and structured logging for traceability.
 - **Health Monitoring**: Checks downstream service availability.
@@ -14,6 +14,7 @@ CoreGateway is a FastAPI-based API gateway that serves as a proxy layer that for
 - **Python 3.13.0**
 - **uv** package manager
 - Coredinator service running and accessible at `localhost:7000`
+- CoreTelemetry service running and accessible at `localhost:7001`
 
 ## Installation
 
@@ -34,15 +35,16 @@ The service will start on `http://localhost:8001` with interactive API documenta
 
 ## API Endpoints
 
-| Method | Endpoint                     | Description                                    |
-|--------|------------------------------|------------------------------------------------|
-| `GET`  | `/`                          | Redirects to `/docs` (Swagger UI)             |
-| `GET`  | `/health`                    | Health check (checks Coredinator status)      |
-| `GET`  | `/api/v1/coredinator/{path}` | Proxy GET requests to Coredinator             |
-| `POST` | `/api/v1/coredinator/{path}` | Proxy POST requests to Coredinator            |
+| Method | Endpoint                          | Description                                    |
+|--------|-----------------------------------|------------------------------------------------|
+| `GET`  | `/`                               | Redirects to `/docs` (Swagger UI)             |
+| `GET`  | `/health`                         | Health check (checks all services)            |
+| `GET`  | `/api/v1/coredinator/{path}`      | Proxy GET requests to Coredinator             |
+| `POST` | `/api/v1/coredinator/{path}`      | Proxy POST requests to Coredinator            |
+| `GET`  | `/api/v1/coretelemetry/{path}`    | Proxy GET requests to CoreTelemetry           |
+| `POST` | `/api/v1/coretelemetry/{path}`    | Proxy POST requests to CoreTelemetry          |
 
-
-NOTE: The request forwarding to Coredinator currently only handles GETs & POSTs because Coredinator only contains these types of requests
+NOTE: The request forwarding currently only handles GETs & POSTs because the backend services only expose these methods.
 
 ### Health Check Response
 
@@ -50,12 +52,13 @@ NOTE: The request forwarding to Coredinator currently only handles GETs & POSTs 
 {
   "status": "healthy",
   "services": {
-    "coredinator": "healthy"
+    "coredinator": "healthy",
+    "coretelemetry": "healthy"
   }
 }
 ```
 
-Returns HTTP 200 if Coredinator is reachable, HTTP 503 if degraded.
+Returns HTTP 200 if all services are reachable, HTTP 503 if any service is degraded.
 
 ## Configuration
 
@@ -63,6 +66,7 @@ The service uses the following default settings:
 
 - **Port**: 8001
 - **Coredinator URL**: `http://localhost:7000`
+- **CoreTelemetry URL**: `http://localhost:7001`
 - **HTTP Timeouts**:
   - Connect: 5.0s
   - Read: 30.0s
@@ -74,22 +78,71 @@ The service uses the following default settings:
   - Keep-alive expiry: 30.0s
 - **Retries**: 3 attempts for transient failures
 
+### Command Line Arguments
+
+```bash
+python coregateway/app.py --port 8001 --coredinator-port 7000 --coretelemetry-port 7001
+```
+
 ## Development
+
+### Testing Tool
+
+A convenience script is provided for testing common endpoints:
+
+```bash
+./tools/requests.sh <command>
+```
+
+**Available commands:**
+
+- `reward` - Get reward data with query parameters
+- `get-path` - Get current config path
+- `set-path` - Set config path
+- `get-db` - Get database configuration
+- `set-db` - Set database configuration
+
+**Examples:**
+
+```bash
+# Get config path
+./tools/requests.sh get-path
+
+# Get data with query parameters
+./tools/requests.sh reward
+
+# Set database configuration
+./tools/requests.sh set-db
+```
+
+**Note:** The script uses `xh` (a modern alternative to curl). Install it with:
+```bash
+cargo install xh
+```
+
+Or modify the script to use `curl` instead.
 
 ### Project Structure
 
 ```
 coregateway/
 ├── coregateway/
-│   ├── app.py                   # FastAPI application entry point
-│   └── coredinator_proxy.py     # Proxy logic for forwarding requests
+│   ├── app.py                     # FastAPI application entry point
+│   ├── coredinator_proxy.py       # Proxy router for Coredinator
+│   ├── coretelemetry_proxy.py     # Proxy router for CoreTelemetry
+│   └── proxy_utils.py             # Shared proxy utilities and error handling
 ├── tests/
+│   └── medium/
+│       ├── test_coregateway_app.py      # Gateway and health check tests
+│       ├── test_coredinator_proxy.py    # Coredinator proxy tests
+│       └── test_coretelemetry_proxy.py  # CoreTelemetry proxy tests
 └── README.md
 ```
 
 ### Key Components
 
-- **Proxy Router**: Handles request forwarding with proper header management
+- **Proxy Routers**: Handle request forwarding for each backend service
+- **Proxy Utils**: Shared utilities for header management, error handling, and request proxying
 - **HTTP Client**: Configured with timeouts, retries, and connection pooling
 - **Error Handling**: Maps HTTP exceptions to appropriate status codes
 - **Header Management**: Strips hop-by-hop headers for proper proxying
@@ -113,7 +166,5 @@ The gateway returns appropriate HTTP status codes:
 
 - `200` - Success
 - `502` - Bad gateway (upstream error or connection failure)
-- `503` - Service unavailable (Coredinator unreachable in health check)
+- `503` - Service unavailable (one or more services unreachable in health check)
 - `504` - Gateway timeout (upstream service timeout)
-
----

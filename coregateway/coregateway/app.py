@@ -6,19 +6,42 @@ from contextlib import asynccontextmanager
 import httpx
 import uvicorn
 from coregateway.coredinator_proxy import coredinator_router
+from coregateway.coretelemetry_proxy import coretelemetry_router
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from lib_instrumentation.logging import get_structured_logger
+from pydantic import BaseModel
 
 version = "0.0.1"
 
+class CoregatewayConfig(BaseModel):
+    port: int = 8001
+    coredinator_port: int = 7000
+    coretelemetry_port: int = 7001
+
+
+# Module-level configuration
+coregateway_config = CoregatewayConfig()
+
+
 def parse_args():
     parser = argparse.ArgumentParser(description="CoreGateway Service")
-    parser.add_argument("--port", type=int, default=8001, help="Port to run CoreGateway")
-    parser.add_argument("--coredinator-port", type=int, default=7000, help="Port for coredinator service")
-    args = parser.parse_args()
-    return args.port, args.coredinator_port
+    parser.add_argument("--port", type=int, default=coregateway_config.port, help="Port to run CoreGateway")
+    parser.add_argument(
+        "--coredinator-port",
+        type=int,
+        default=coregateway_config.coredinator_port,
+        help="Port for coredinator service",
+    )
+    parser.add_argument(
+        "--coretelemetry-port",
+        type=int,
+        default=coregateway_config.coretelemetry_port,
+        help="Port for coretelemetry service",
+    )
+    parser.add_argument("--reload", action="store_true", help="Enable auto-reload on code changes")
+    return parser.parse_args()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -68,14 +91,22 @@ async def lifespan(app: FastAPI):
     logger.info("CoreGateway shutting down")
 
 
-def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
+def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_port: int = 7001) -> FastAPI:
     """Factory function to create FastAPI app."""
     app = FastAPI(lifespan=lifespan, title="CoreGateway API")
     app.state.port = port
+
+    # Service configuration for Coredinator
+    app.state.coredinator_host = "localhost"
     app.state.coredinator_port = coredinator_port
-    app.state.coredinator_base = f"http://localhost:{coredinator_port}"
+    app.state.coredinator_prefix = "/api/v1/coredinator"
+
+    # Service configuration for Coretelemetry
+    app.state.coretelemetry_host = "localhost"
     # Create logger and store in app state
     app.state.logger = get_structured_logger("coregateway")
+    app.state.coretelemetry_port = coretelemetry_port
+    app.state.coretelemetry_prefix = "/api/v1/coretelemetry"
 
     app.add_middleware(
         CORSMiddleware,
@@ -109,36 +140,71 @@ def create_app(port: int = 8001, coredinator_port: int = 7000) -> FastAPI:
 
     @app.get("/health")
     async def health_check():
+        client: httpx.AsyncClient = app.state.httpx_client
+
         # Check if we can reach coredinator
         try:
-            client: httpx.AsyncClient = app.state.httpx_client
+            coredinator_base = f"http://{app.state.coredinator_host}:{app.state.coredinator_port}"
             resp = await client.get(
-                f"{app.state.coredinator_base}/api/healthcheck",
+                f"{coredinator_base}/api/healthcheck",
                 timeout=2.0,
             )
             coredinator_healthy = resp.status_code == 200
         except Exception:
             coredinator_healthy = False
 
-        status = "healthy" if coredinator_healthy else "degraded"
-        status_code = 200 if coredinator_healthy else 503
+        # Check if we can reach coretelemetry
+        try:
+            coretelemetry_base = f"http://{app.state.coretelemetry_host}:{app.state.coretelemetry_port}"
+            resp = await client.get(
+                f"{coretelemetry_base}/health",
+                timeout=2.0,
+            )
+            coretelemetry_healthy = resp.status_code == 200
+        except Exception:
+            coretelemetry_healthy = False
+
+        all_healthy = all([coredinator_healthy, coretelemetry_healthy])
+        status = "healthy" if all_healthy else "degraded"
+        status_code = 200 if all_healthy else 503
 
         return Response(
             content=json.dumps({
                 "status": status,
                 "services": {
                     "coredinator": "healthy" if coredinator_healthy else "unhealthy",
+                    "coretelemetry": "healthy" if coretelemetry_healthy else "unhealthy",
                 },
             }),
             status_code=status_code,
             media_type="application/json",
         )
 
-    app.include_router(coredinator_router, prefix="/api/v1/coredinator")
+    app.include_router(coredinator_router, prefix=app.state.coredinator_prefix)
+    app.include_router(coretelemetry_router, prefix=app.state.coretelemetry_prefix)
 
     return app
 
+
+def get_app() -> FastAPI:
+    return create_app(
+        coregateway_config.port,
+        coregateway_config.coredinator_port,
+        coregateway_config.coretelemetry_port,
+    )
+
 if __name__ == "__main__":
-    port, coredinator_port = parse_args()
-    app = create_app(port, coredinator_port)
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    args = parse_args()
+
+    # Store config in module-level variable for reload mode
+    coregateway_config.port = args.port
+    coregateway_config.coredinator_port = args.coredinator_port
+    coregateway_config.coretelemetry_port = args.coretelemetry_port
+
+    uvicorn.run(
+        "coregateway.app:get_app",
+        host="0.0.0.0",
+        port=args.port,
+        reload=args.reload,
+        factory=True,
+    )
