@@ -20,14 +20,17 @@ from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
 from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
 from interaction.transition_creator import TransitionCreator
+from metrics.actor_critic import ac_eval
 from src.agent.factory import get_agent
 from utils.action_bounds import DeltaActionBoundsComputer
-from utils.plotting import plot_learning_curve
+from utils.plotting import generate_ac_gif, plot_learning_curve
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
 parser.add_argument('-s', '--seed', type=int, required=True)
 parser.add_argument('--plot', action='store_true', help='Plot learning curve after training')
+parser.add_argument('--ac-gif', action='store_true', help='Generate GIF of Q-values and action probs')
+parser.add_argument('--gif-subsample', type=int, default=1, help='Subsample rate for GIF frames')
 parser.add_argument('--save-path', type=str, default='results/test', help='Directory to save results')
 
 args, override_args = parser.parse_known_args()
@@ -189,7 +192,9 @@ def main():
     last_action = (bounds_computer.static_lo + bounds_computer.static_hi) / 2
     dp = True
 
-    for _ in tqdm(range(cfg.max_steps + 1)):
+    gif_frames = []
+
+    for step in tqdm(range(cfg.max_steps + 1)):
         dp = steps % cfg.steps_per_decision == 0
         collector.next_frame()
 
@@ -203,6 +208,16 @@ def main():
             dp=jnp.array([dp]),
             last_a=jnp.array(last_action),
         )
+
+        if args.ac_gif and (steps % args.gif_subsample == 0):
+            q_vals, a_probs, x_axis_actions = ac_eval(agent, state)
+            gif_frames.append({
+                'q_vals': np.array(q_vals),
+                'a_probs': np.array(a_probs),
+                'x_axis_actions': np.array(x_axis_actions),
+                'step': step,
+            })
+
         action = agent.get_actions(state)
 
         transitions = tc(
@@ -241,6 +256,9 @@ def main():
 
     if args.plot:
         plot_learning_curve(save_dir, db_path, exp_id, args.seed)
+
+    if args.ac_gif:
+        generate_ac_gif(gif_frames, save_dir, args.seed)
 
 
 if __name__ == "__main__":
