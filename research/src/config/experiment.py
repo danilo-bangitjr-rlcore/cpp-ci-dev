@@ -1,5 +1,5 @@
 import sqlite3
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +7,7 @@ import yaml
 from filelock import FileLock
 from ml_instrumentation.metadata import attach_metadata
 
+from src.utils.action_bounds import ActionBoundsConfig
 from utils.dict import flatten
 
 
@@ -19,11 +20,13 @@ class ExperimentConfig:
     env: dict[str, Any]
     pipeline: dict[str, Any]
     steps_per_decision: int = 1
+    action_bounds: ActionBoundsConfig = field(default_factory=ActionBoundsConfig)
 
     def flatten(self):
         out = flatten(self.agent, 'agent')
         out |= flatten(self.env, 'env')
         out |= flatten(self.pipeline, 'pipeline')
+        out |= flatten(self.action_bounds.__dict__, 'action_bounds')
 
         return out
 
@@ -45,6 +48,7 @@ class ExperimentConfig:
             agent=cfg['agent'] or {},
             env=cfg['env'] or {},
             pipeline=cfg.get('pipeline', {}),
+            action_bounds=ActionBoundsConfig(**cfg.get('action_bounds', {})),
         )
 
 
