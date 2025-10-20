@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple, Protocol
+from typing import Any, NamedTuple, Protocol, runtime_checkable
 
 import chex
 import jax
@@ -51,20 +51,16 @@ def l2_regularizer(params: chex.ArrayTree, beta: float):
 # ---------------------------------------------------------------------------- #
 
 
-class QRCCriticMetrics(NamedTuple):
-    q: jax.Array
-    h: jax.Array
+@runtime_checkable
+class CriticMetrics(Protocol):
     loss: jax.Array
-    q_loss: jax.Array
-    h_loss: jax.Array
-    delta_l: jax.Array
-    delta_r: jax.Array
-    action_reg_loss: jax.Array
-    h_reg_loss: jax.Array
     ensemble_grad_norms: jax.Array
     ensemble_weight_norms: jax.Array
     layer_grad_norms: jax.Array
     layer_weight_norms: jax.Array
+
+    def _asdict(self) -> dict[str, Any]:
+        ...
 
 
 @jax_u.jit
@@ -207,12 +203,12 @@ def create_ensemble_dict(
 
 
 def extract_metrics(
-    metrics: dict[str, Any] | QRCCriticMetrics,
+    metrics: dict[str, Any] | CriticMetrics,
     metric_names: list[str] | None = None,
     array_processor: Callable[[jax.Array], float] | None = None,
     flatten_separator: str = "_",
 ) -> list[dict[str, float]]:
-    if isinstance(metrics, QRCCriticMetrics):
+    if isinstance(metrics, CriticMetrics):
         metrics = metrics._asdict()
 
     filtered = {k: v for k, v in metrics.items() if metric_names is None or k in metric_names}

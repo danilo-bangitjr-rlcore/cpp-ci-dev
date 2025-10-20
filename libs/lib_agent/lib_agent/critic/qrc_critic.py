@@ -27,6 +27,21 @@ class QRCOutputs(NamedTuple):
     h: jax.Array
     phi: jax.Array
 
+class QRCCriticMetrics(NamedTuple):
+    q: jax.Array
+    h: jax.Array
+    loss: jax.Array
+    q_loss: jax.Array
+    h_loss: jax.Array
+    delta_l: jax.Array
+    delta_r: jax.Array
+    action_reg_loss: jax.Array
+    h_reg_loss: jax.Array
+    ensemble_grad_norms: jax.Array
+    ensemble_weight_norms: jax.Array
+    layer_grad_norms: jax.Array
+    layer_weight_norms: jax.Array
+
 
 def critic_builder(cfg: nets.TorsoConfig):
     def _inner(x: jax.Array, a: jax.Array):
