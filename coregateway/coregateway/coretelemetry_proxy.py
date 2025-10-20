@@ -9,8 +9,6 @@ from coregateway.proxy_utils import (
 )
 from fastapi import APIRouter, Depends, Request
 
-logger = logging.getLogger(__name__)
-
 coretelemetry_router = APIRouter(
     tags=["Coretelemetry Proxy"],
 )
