@@ -58,7 +58,7 @@ def retryable_main(cfg: MainConfig):
     random.seed(seed)
 
     # build global objects
-    is_demo = cfg.feature_flags.demo_mode
+    is_demo = cfg.demo_mode
     app_time = AppTime(
         is_demo=is_demo,
         start_time=datetime.now(UTC),
