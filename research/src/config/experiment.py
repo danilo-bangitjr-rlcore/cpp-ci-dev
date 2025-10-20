@@ -19,13 +19,13 @@ class ExperimentConfig:
     env: dict[str, Any]
     pipeline: dict[str, Any]
     steps_per_decision: int = 1
+
     def flatten(self):
         out = flatten(self.agent, 'agent')
         out |= flatten(self.env, 'env')
         out |= flatten(self.pipeline, 'pipeline')
 
         return out
-
 
     @staticmethod
     def load(
@@ -48,7 +48,7 @@ class ExperimentConfig:
         )
 
 
-def set_nested_value(dictionary: dict, keys: list, value: Any, create_missing: bool=True):
+def set_nested_value(dictionary: dict, keys: list, value: Any, create_missing: bool = True):
     """
     Set a value in a nested dictionary using a list of keys as the path.
     """
