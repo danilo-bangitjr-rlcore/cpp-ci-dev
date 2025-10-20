@@ -46,7 +46,6 @@ class Service(ABC):
 
         self._process: Process | None = None
         self._monitor: ServiceMonitor | None = None
-        self._failed: bool = False
         self._version: str | None = version
 
     @abstractmethod
@@ -70,7 +69,6 @@ class Service(ABC):
     def start(self):
         log.info("Service start requested", service_id=self.id)
         self._intended_state = ServiceIntendedState.RUNNING
-        self._failed = False
         if self.is_running():
             log.info("Service already running, skipping start", service_id=self.id)
             return
@@ -89,7 +87,6 @@ class Service(ABC):
 
         except Exception:
             log.exception("Service failed to start", service_id=self.id)
-            self._failed = True
             raise
 
         # Start background monitoring
@@ -101,7 +98,6 @@ class Service(ABC):
     def stop(self, grace_seconds: float = 5.0) -> None:
         log.info("Stopping service", service_id=self.id)
         self._intended_state = ServiceIntendedState.STOPPED
-        self._failed = False
 
         # Stop monitoring
         if self._monitor is not None:
@@ -136,7 +132,8 @@ class Service(ABC):
 
     def status(self):
         if self._process is None:
-            state = ServiceState.FAILED if self._failed else ServiceState.STOPPED
+            is_intended_running = self._intended_state == ServiceIntendedState.RUNNING
+            state = ServiceState.FAILED if is_intended_running else ServiceState.STOPPED
             return ServiceStatus(
                 id=self.id,
                 state=state,
