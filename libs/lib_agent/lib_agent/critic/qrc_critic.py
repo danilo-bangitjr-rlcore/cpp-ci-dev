@@ -159,7 +159,7 @@ class QRCCritic:
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi
 
-    def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
+    def update(self, critic_state: CriticState, transitions: CriticBatch, next_actions: jax.Array):
         self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 

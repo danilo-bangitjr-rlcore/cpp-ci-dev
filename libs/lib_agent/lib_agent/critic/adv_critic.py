@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import chex
 import haiku as hk
@@ -223,7 +223,7 @@ class AdvCritic:
 
     def update(
         self,
-        critic_state: Any,
+        critic_state: CriticState,
         transitions: CriticBatch,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
