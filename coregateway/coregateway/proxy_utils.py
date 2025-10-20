@@ -108,7 +108,7 @@ async def proxy_request(service: str, request: Request, path: str) -> Response:
         raise handle_proxy_exception(e, path, request.method) from e
 
     return Response(
-        content=resp.text,
+        content=resp.content,
         status_code=resp.status_code,
         headers=clean_headers(dict(resp.headers)),
         media_type=resp.headers.get("content-type"),
