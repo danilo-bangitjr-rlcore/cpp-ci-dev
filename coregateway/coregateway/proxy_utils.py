@@ -5,8 +5,6 @@ import httpx
 from fastapi import HTTPException, Request, Response
 from pydantic import BaseModel
 
-logger = logging.getLogger(__name__)
-
 # Headers that must not be forwarded by proxies (RFC 2616 §13.5.1)
 HOP_BY_HOP = {
     "connection",
@@ -47,11 +45,19 @@ error_responses: dict[int | str, dict] = {
 }
 
 
+def get_logger(request: Request) -> logging.Logger:
+    return request.app.state.logger
+
 def clean_headers(orig: dict[str, str]) -> dict[str, str]:
     return {k: v for k, v in orig.items() if k.lower() not in HOP_BY_HOP}
 
 
-def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPException:
+def handle_proxy_exception(
+    exc: Exception,
+    path: str,
+    method: str,
+    logger: logging.Logger,
+) -> HTTPException:
     """Convert httpx exceptions to appropriate FastAPI HTTPExceptions."""
     match exc:
         case httpx.TimeoutException():
@@ -80,7 +86,12 @@ def handle_proxy_exception(exc: Exception, path: str, method: str) -> HTTPExcept
             )
 
 
-async def proxy_request(service: str, request: Request, path: str) -> Response:
+async def proxy_request(
+    service: str,
+    request: Request,
+    path: str,
+    logger: logging.Logger,
+) -> Response:
     """Core proxy logic handling all HTTP methods, body, headers, and redirect rewriting."""
     client: httpx.AsyncClient = request.app.state.httpx_client
 
@@ -105,7 +116,10 @@ async def proxy_request(service: str, request: Request, path: str) -> Response:
             follow_redirects=False,
         )
     except (httpx.TimeoutException, httpx.NetworkError, httpx.HTTPError) as e:
-        raise handle_proxy_exception(e, path, request.method) from e
+        raise handle_proxy_exception(e, path, request.method, logger) from e
+
+    if resp.status_code == 404:
+        logger.error(f"Resource not found in Coredinator - path={path}, method={request.method}")
 
     return Response(
         content=resp.content,

@@ -10,8 +10,8 @@ from coregateway.coretelemetry_proxy import coretelemetry_router
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
-from pydantic import BaseModel
 from lib_instrumentation.logging import get_structured_logger
+from pydantic import BaseModel
 
 version = "0.0.1"
 
@@ -200,12 +200,6 @@ if __name__ == "__main__":
     coregateway_config.port = args.port
     coregateway_config.coredinator_port = args.coredinator_port
     coregateway_config.coretelemetry_port = args.coretelemetry_port
-
-    logging.basicConfig(
-        level=logging.DEBUG,
-        format="%(asctime)s %(levelname)s %(name)s %(message)s",
-    )
-    logger.setLevel(logging.DEBUG)
 
     uvicorn.run(
         "coregateway.app:get_app",
