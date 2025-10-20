@@ -1,4 +1,5 @@
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, NamedTuple
 
 import chex
 import haiku as hk
@@ -8,12 +9,10 @@ import lib_utils.jax as jax_u
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
     CriticBatch,
-    CriticOutputs,
     CriticState,
-    QRCConfig,
-    QRCCriticMetrics,
     get_ensemble_norm,
     get_layer_norms,
     l2_regularizer,
@@ -22,19 +21,46 @@ from lib_agent.critic.critic_utils import (
 from lib_agent.critic.rolling_reset import RollingResetManager
 
 
+class QRCOutputs(NamedTuple):
+    q: jax.Array
+    h: jax.Array
+    phi: jax.Array
+
+class QRCCriticMetrics(NamedTuple):
+    q: jax.Array
+    h: jax.Array
+    loss: jax.Array
+    q_loss: jax.Array
+    h_loss: jax.Array
+    delta_l: jax.Array
+    delta_r: jax.Array
+    action_reg_loss: jax.Array
+    h_reg_loss: jax.Array
+    ensemble_grad_norms: jax.Array
+    ensemble_weight_norms: jax.Array
+    layer_grad_norms: jax.Array
+    layer_weight_norms: jax.Array
+
+
 def critic_builder(cfg: nets.TorsoConfig):
     def _inner(x: jax.Array, a: jax.Array):
         torso = nets.torso_builder(cfg)
         phi = torso(x, a)
 
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
-        return CriticOutputs(
+        return QRCOutputs(
             q=hk.Linear(1, w_init=small_init, with_bias=False)(phi),
             h=hk.Linear(1, name='h', w_init=small_init, with_bias=False)(phi),
             phi=phi,
         )
 
     return hk.transform(_inner)
+
+
+@dataclass
+class QRCConfig(CriticConfig):
+    action_regularization_epsilon: float = 0.1
+
 
 class QRCCritic:
     def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):
@@ -94,7 +120,7 @@ class QRCCritic:
         return ens_init(rngs, x, a)
 
     def get_values(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
-        return self._forward(params, rng, state, action).q
+        return self._forward(params, rng, state, action)
 
     def get_active_indices(self):
         indices = self._reset_manager.active_indices
@@ -133,7 +159,7 @@ class QRCCritic:
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi
 
-    def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
+    def update(self, critic_state: CriticState, transitions: CriticBatch, next_actions: jax.Array):
         self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 
@@ -161,7 +187,7 @@ class QRCCritic:
     # -- Shared net.apply vmapping --
     # -------------------------------
     @jax_u.method_jit
-    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> CriticOutputs:
+    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> QRCOutputs:
         # state shape is one of (state_dim,) or (batch, state_dim)
         # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
         # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
@@ -240,7 +266,6 @@ class QRCCritic:
             params=params,
         )
 
-
     # ------------
     # -- Update --
     # ------------
@@ -281,7 +306,6 @@ class QRCCritic:
             opt_state=new_opt_state,
         ), metrics
 
-
     def _ensemble_loss(
         self,
         params: chex.ArrayTree,
@@ -289,7 +313,7 @@ class QRCCritic:
         transition: CriticBatch,
         next_actions: jax.Array,
     ):
-        chex.assert_rank(transition.state.features, 3) # (ens, batch, state_dim)
+        chex.assert_rank(transition.state.features, 3)  # (ens, batch, state_dim)
         chex.assert_tree_shape_prefix(transition, transition.state.features.shape[:2])
         rngs = jax.random.split(rng, self._reset_manager.total_critics)
         losses, metrics = jax_u.vmap(self._batch_loss)(
@@ -300,7 +324,6 @@ class QRCCritic:
         )
 
         return losses.sum(), metrics
-
 
     def _batch_loss(
         self,
@@ -322,7 +345,6 @@ class QRCCritic:
         metrics = metrics._replace(h_reg_loss=h_reg_loss)
         return losses.mean() + h_reg_loss, metrics
 
-
     def _loss(
         self,
         params: chex.ArrayTree,
@@ -336,18 +358,18 @@ class QRCCritic:
         next_state = transition.next_state
         gamma = transition.gamma
         chex.assert_rank((state.features, next_state.features, action), 1)
-        chex.assert_rank(next_actions, 2) # (num_samples, action_dim)
-        chex.assert_rank((reward, gamma), 0) # scalars
+        chex.assert_rank(next_actions, 2)  # (num_samples, action_dim)
+        chex.assert_rank((reward, gamma), 0)  # scalars
 
         q_rng, qp_rng, a_rng = jax.random.split(rng, 3)
         qp_rngs = jax.random.split(qp_rng, self._cfg.num_rand_actions)
 
-        out = self._forward(params, q_rng, state.features, action)
+        out = self._forward(params, q_rng, state.features.array, action)
         q = out.q
         h = out.h
 
         # q_prime takes expectation of state-action value over actions sampled from some dist
-        q_prime = self.get_values(params, qp_rngs, next_state.features, next_actions).mean()
+        q_prime = self.get_values(params, qp_rngs, next_state.features.array, next_actions).q.mean()
 
         target = reward + gamma * q_prime
 
@@ -367,7 +389,7 @@ class QRCCritic:
             minval=state.a_lo,
             maxval=state.a_hi,
         )
-        out_rand = jax_u.vmap_only(self._net.apply, [1, 3])(params, qp_rngs, state.features, rand_actions)
+        out_rand = jax_u.vmap_only(self._net.apply, [1, 3])(params, qp_rngs, state.features.array, rand_actions)
         action_reg_loss = self._cfg.action_regularization * jnp.abs(out_rand.q).mean()
 
         loss = q_loss + h_loss + action_reg_loss

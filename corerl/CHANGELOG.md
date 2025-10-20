@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.154.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.153.1...corerl-v0.154.0) (2025-10-15)
+
+
+### Features
+
+* **PROD-1128:** Hourly seasonality feature ([b6ab1c0](https://github.com/rlcoretech/core-rl/commit/b6ab1c09ae85ac4f3fa1df7abc13f0348a703242))
+
 ## [0.153.1](https://github.com/rlcoretech/core-rl/compare/corerl-v0.153.0...corerl-v0.153.1) (2025-10-14)
 
 

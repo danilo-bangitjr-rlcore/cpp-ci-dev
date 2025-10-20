@@ -1,20 +1,12 @@
 from collections import defaultdict
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
-from lib_config.config import config
 from numba import njit
 
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, InvertibleTransform, transform_group
+from corerl.configs.data_pipeline.transforms.norm import NormalizerConfig
+from corerl.data_pipeline.transforms.base import InvertibleTransform, transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
-
-
-@config()
-class NormalizerConfig(BaseTransformConfig):
-    name: Literal['normalize'] = 'normalize'
-    min: float | None = None
-    max: float | None = None
-    from_data: bool = False
 
 
 class Normalizer(InvertibleTransform):

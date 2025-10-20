@@ -1,7 +1,6 @@
-from typing import Any, Protocol, runtime_checkable
+from typing import Protocol, runtime_checkable
 
 import numpy as np
-from lib_config.config import MISSING, config
 from lib_config.group import Group
 
 from corerl.data_pipeline.transforms.interface import TransformCarry
@@ -16,10 +15,6 @@ class Transform(Protocol):
 class InvertibleTransform(Protocol):
     def invert(self, x: np.ndarray, col: str) -> np.ndarray: ...
 
-
-@config()
-class BaseTransformConfig:
-    name: Any = MISSING
 
 transform_group = Group[
     [], Transform,

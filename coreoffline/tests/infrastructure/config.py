@@ -1,9 +1,6 @@
 
 import pytest
-from corerl.data_pipeline.db.data_writer import TagDBConfig
-from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.evals.base import EvalDBConfig
-from corerl.eval.metrics.base import MetricsDBConfig
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
 from lib_config.loader import direct_load_config
 from sqlalchemy import Engine
 
@@ -43,14 +40,11 @@ def offline_cfg(test_db_config: TagDBConfig):
     if cfg.agent.policy.buffer.name == 'mixed_history_buffer':
         cfg.agent.policy.buffer.online_weight = 0.0
 
-    assert isinstance(cfg.env, AsyncEnvConfig)
     cfg.env.db = test_db_config
 
-    assert isinstance(cfg.metrics, MetricsDBConfig)
     cfg.metrics.port = test_db_config.port
     cfg.metrics.db_name = test_db_config.db_name
 
-    assert isinstance(cfg.evals, EvalDBConfig)
     cfg.evals.port = test_db_config.port
     cfg.evals.db_name = test_db_config.db_name
 

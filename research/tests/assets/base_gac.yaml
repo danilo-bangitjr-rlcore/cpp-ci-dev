@@ -2,7 +2,7 @@ name: example
 max_steps: 50
 
 agent:
-  name: base
+  name: gac
 
   batch_size: 32
 

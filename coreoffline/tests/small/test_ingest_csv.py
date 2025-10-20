@@ -2,8 +2,8 @@ import datetime
 from pathlib import Path
 
 import pandas as pd
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
 from corerl.data_pipeline.db.data_reader import DataReader
-from corerl.data_pipeline.db.data_writer import TagDBConfig
 
 from coreoffline.examples.ingest_csv import load_dataset
 from coreoffline.utils.config import LoadDataConfig

@@ -6,7 +6,7 @@ from lib_config.loader import direct_load_config
 from sqlalchemy import Engine
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.db.data_writer import TagDBConfig
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
 
 
 @pytest.fixture

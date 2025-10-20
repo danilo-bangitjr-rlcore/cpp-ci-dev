@@ -76,7 +76,42 @@ uv run python coretelemetry/app.py --config-path /path/to/config/dir
 
 ## API Endpoints
 
-### Data Endpoints
+### System Metrics Endpoints
+
+#### `GET /api/v1/coretelemetry/system/platform`
+Get the operating system platform.
+
+**Response:** `{"data": "Linux"}` (or "Windows", "Darwin", etc.)
+
+#### `GET /api/v1/coretelemetry/system/cpu`
+Get overall CPU usage percentage.
+
+**Response:** `{"percent": 45.2}`
+
+**Notes:**
+- Averaged across all cores
+- Measured over a 1-second interval
+
+#### `GET /api/v1/coretelemetry/system/cpu_per_core`
+Get CPU usage percentage for each individual core.
+
+**Response:** `{"percent": [42.1, 48.3, 45.0, 50.2]}`
+
+**Notes:**
+- Returns a list with one value per CPU core
+- Measured over a 1-second interval
+
+#### `GET /api/v1/coretelemetry/system/ram`
+Get RAM memory usage statistics.
+
+**Response:** `{"percent": 67.5, "used_gb": 10.8, "total_gb": 16.0}`
+
+#### `GET /api/v1/coretelemetry/system/disk`
+Get disk usage statistics for the root filesystem.
+
+**Response:** `{"percent": 45.3, "used_gb": 226.5, "total_gb": 500.0}`
+
+### Agent Metrics Endpoints
 
 #### `GET /api/v1/telemetry/data/{agent_id}`
 Get telemetry data for a specific agent and metric.

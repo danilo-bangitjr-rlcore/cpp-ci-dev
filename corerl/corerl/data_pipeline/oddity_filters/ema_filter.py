@@ -1,24 +1,15 @@
 import logging
 from dataclasses import dataclass, field
-from typing import Literal
 
 import numpy as np
-from lib_config.config import config
 
+from corerl.configs.data_pipeline.oddity_filters.ema_filter import EMAFilterConfig
 from corerl.data_pipeline.data_utils.exp_moving import ExpMovingAvg, ExpMovingVar
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class EMAFilterConfig(BaseOddityFilterConfig):
-    name: Literal["exp_moving"] = "exp_moving"
-    alpha: float = 0.99
-    tolerance: float = 2.0
-    warmup: int = 10  #  number of warmup steps before rejecting
 
 
 @dataclass

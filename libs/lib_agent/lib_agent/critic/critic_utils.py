@@ -1,7 +1,7 @@
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple, Protocol
+from typing import Any, NamedTuple, Protocol, runtime_checkable
 
 import chex
 import jax
@@ -19,12 +19,6 @@ class ActionSampler(Protocol):
 class CriticState(NamedTuple):
     params: chex.ArrayTree
     opt_state: chex.ArrayTree
-
-
-class CriticOutputs(NamedTuple):
-    q: jax.Array
-    h: jax.Array
-    phi: jax.Array
 
 
 class CriticBatch(Protocol):
@@ -46,21 +40,6 @@ class RollingResetConfig:
     warm_up_steps: int = 1000
 
 
-@dataclass
-class QRCConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_rand_actions: int
-    action_regularization: float
-    action_regularization_epsilon: float
-    l2_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
-
-
 def l2_regularizer(params: chex.ArrayTree, beta: float):
     reg = jax.tree.map(jnp.square, params)
     reg = jax.tree.map(jnp.sum, reg)
@@ -72,20 +51,16 @@ def l2_regularizer(params: chex.ArrayTree, beta: float):
 # ---------------------------------------------------------------------------- #
 
 
-class QRCCriticMetrics(NamedTuple):
-    q: jax.Array
-    h: jax.Array
+@runtime_checkable
+class CriticMetrics(Protocol):
     loss: jax.Array
-    q_loss: jax.Array
-    h_loss: jax.Array
-    delta_l: jax.Array
-    delta_r: jax.Array
-    action_reg_loss: jax.Array
-    h_reg_loss: jax.Array
     ensemble_grad_norms: jax.Array
     ensemble_weight_norms: jax.Array
     layer_grad_norms: jax.Array
     layer_weight_norms: jax.Array
+
+    def _asdict(self) -> dict[str, Any]:
+        ...
 
 
 @jax_u.jit
@@ -109,6 +84,7 @@ def stable_rank(matrix: jax.Array):
 
 def get_layer_names(params: chex.ArrayTree):
     keys = []
+
     def _inner(path: str, sub_params: chex.ArrayTree):
         if isinstance(sub_params, jax.Array):
             keys.append(path)
@@ -125,9 +101,9 @@ def get_layer_names(params: chex.ArrayTree):
 def get_stable_rank(params: chex.ArrayTree):
     leaves = jax.tree.leaves(params)
     ensemble = leaves[0].shape[0]
-    names =  get_layer_names(params)
+    names = get_layer_names(params)
 
-    matrix_idxs =  [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
+    matrix_idxs = [i for i, leaf in enumerate(leaves) if leaf.ndim == 3]
     matrix_leaves = [leaves[i] for i in matrix_idxs]
     matrix_names = [names[i] for i in matrix_idxs]
 
@@ -174,7 +150,7 @@ def uniform_except(
             new,
             prop,
         )
-        return key, x, it+1
+        return key, x, it + 1
 
     key, x, _ = jax.lax.while_loop(
         keep_trying,
@@ -227,12 +203,12 @@ def create_ensemble_dict(
 
 
 def extract_metrics(
-    metrics: dict[str, Any] | QRCCriticMetrics,
+    metrics: dict[str, Any] | CriticMetrics,
     metric_names: list[str] | None = None,
     array_processor: Callable[[jax.Array], float] | None = None,
     flatten_separator: str = "_",
 ) -> list[dict[str, float]]:
-    if isinstance(metrics, QRCCriticMetrics):
+    if isinstance(metrics, CriticMetrics):
         metrics = metrics._asdict()
 
     filtered = {k: v for k, v in metrics.items() if metric_names is None or k in metric_names}

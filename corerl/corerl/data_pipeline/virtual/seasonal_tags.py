@@ -4,9 +4,9 @@ import pandas as pd
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
 
+from corerl.configs.tags.seasonal import SeasonalTags
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.tags.seasonal import SeasonalTags
-from corerl.tags.tag_config import TagConfig
 
 
 class SeasonalTagIncluder:

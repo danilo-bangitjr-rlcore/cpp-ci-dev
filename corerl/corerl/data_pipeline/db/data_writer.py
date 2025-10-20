@@ -1,42 +1,15 @@
 import json
 import logging
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING
 
-from lib_config.config import MISSING, computed, config
 from lib_sql.engine import get_sql_engine
 from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_sql.writers.core.static_schema_sql_writer import StaticSchemaSqlWriter
 from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 
-from corerl.configs.sql_logging.sql_engine import SQLEngineConfig
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
+from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class TagDBConfig(SQLEngineConfig):
-    table_name: str = "sensors"
-    wide_format: bool = False
-    enabled: bool = True
-    table_schema: str = MISSING
-    db_name: str = MISSING
-
-    low_watermark: int = 1024
-    high_watermark: int = 2048
-
-    @computed('table_schema')
-    @classmethod
-    def _table_schema(cls, cfg: 'MainConfig'):
-        return cfg.infra.db.schema
-
-    @computed('db_name')
-    @classmethod
-    def _dbname(cls, cfg: 'MainConfig'):
-        return cfg.infra.db.db_name
 
 
 class DataWriter:

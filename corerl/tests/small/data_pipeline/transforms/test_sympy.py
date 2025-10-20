@@ -4,7 +4,7 @@ from lib_config.loader import direct_load_config_from_yaml
 from lib_utils.list import find, find_instance
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.transforms import SympyConfig
+from corerl.configs.data_pipeline.transforms import SympyConfig
 from corerl.data_pipeline.transforms.interface import TransformCarry
 from corerl.data_pipeline.transforms.sympy import SympyTransform
 from tests.sdk.factories import PipelineFrameFactory

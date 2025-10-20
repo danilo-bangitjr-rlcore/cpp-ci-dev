@@ -1,8 +1,8 @@
 from collections.abc import Sequence
 from typing import Protocol
 
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.tags.tag_config import TagConfig
 
 
 class ComputedTagComputer(Protocol):

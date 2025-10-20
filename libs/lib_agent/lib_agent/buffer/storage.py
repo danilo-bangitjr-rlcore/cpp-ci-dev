@@ -1,12 +1,14 @@
-from typing import Any, Generic, NamedTuple, TypeVar
+from typing import Any, Generic, NamedTuple, TypeVar, Union
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 from jax.tree_util import tree_flatten, tree_unflatten
+from lib_utils.named_array import NamedArray
 
 # NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
-T = TypeVar('T', bound=NamedTuple)
+NamedArrayLike = Union[NamedTuple, NamedArray]
+T = TypeVar('T', bound=NamedArrayLike)
 
 
 class ReplayStorage(Generic[T]): # noqa: UP046

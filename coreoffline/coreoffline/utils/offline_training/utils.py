@@ -75,7 +75,7 @@ def get_offline_recommendations(
                 norm_next_a_df = norm_next_a_df.clip(lower=np.asarray(state.a_lo), upper=np.asarray(state.a_hi))
                 _write_to_metrics(app_state, norm_next_a_df, prefix="ACTION-RECOMMEND")
 
-            _write_to_metrics(app_state, chunk_pr.states, prefix="STATE-")
+            _write_to_metrics(app_state, chunk_pr.states.as_pandas().expect(), prefix="STATE-")
             _write_to_metrics(app_state, chunk_pr.rewards)
             _write_to_metrics(app_state, chunk_pr.actions, prefix="ACTION-")
             state = get_latest_state(chunk_pr)
@@ -105,7 +105,7 @@ def _write_to_metrics(app_state: AppState, df: pd.DataFrame, prefix: str = ""):
 
 def get_latest_state(pipe_return: PipelineReturn):
     return State(
-        features=jnp.asarray(pipe_return.states.iloc[-1]),
+        features=pipe_return.states[-1],
         a_lo=jnp.asarray(pipe_return.action_lo.iloc[-1]),
         a_hi=jnp.asarray(pipe_return.action_hi.iloc[-1]),
         dp=jnp.ones((1,)),

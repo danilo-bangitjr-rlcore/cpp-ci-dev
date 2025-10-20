@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from corerl.environment.async_env.async_env import GymEnvConfig
+from corerl.configs.environment.async_env import GymEnvConfig
 
 try:
     import gymnasium as gym

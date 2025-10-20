@@ -2,10 +2,10 @@ import numpy as np
 import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
+from corerl.configs.tags.tag_config import BasicTagConfig
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.tags.tag_config import BasicTagConfig
 
 
 def test_only_normalize_preprocess():

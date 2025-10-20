@@ -1,14 +1,6 @@
-from typing import Literal
-
-from lib_config.config import config
-
+from corerl.configs.data_pipeline.imputers.per_tag.identity import IdentityImputerConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
-
-
-@config()
-class IdentityImputerConfig(BasePerTagImputerConfig):
-    name: Literal['identity'] = "identity"
+from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, per_tag_imputer_group
 
 
 class IdentityImputer(BasePerTagImputer):

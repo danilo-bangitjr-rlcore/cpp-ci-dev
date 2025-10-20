@@ -47,12 +47,12 @@ class TestBasicEndpoints:
 
 
 class TestGetTelemetryEndpoint:
-    """Tests for GET /api/v1/telemetry/data/{agent_id} endpoint."""
+    """Tests for GET /api/data/{agent_id} endpoint."""
 
     @pytest.mark.timeout(15)
     def test_get_telemetry_latest_value(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
         """Test getting latest telemetry value without time params."""
-        response = test_client.get("/api/v1/telemetry/data/test_agent?metric=temperature")
+        response = test_client.get("/api/data/test_agent?metric=temperature")
 
         assert response.status_code == 200
         data = response.json()
@@ -65,7 +65,7 @@ class TestGetTelemetryEndpoint:
     def test_get_telemetry_with_time_range(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
         """Test getting telemetry data with time range."""
         response = test_client.get(
-            "/api/v1/telemetry/data/test_agent"
+            "/api/data/test_agent"
             "?metric=temperature"
             "&start_time=2024-01-01 10:00:00%2B00"
             "&end_time=2024-01-01 11:30:00%2B00",
@@ -78,14 +78,14 @@ class TestGetTelemetryEndpoint:
     @pytest.mark.timeout(15)
     def test_get_telemetry_time_reserved_word(self, test_client: TestClient):
         """Test 'time' as metric returns 400 error."""
-        response = test_client.get("/api/v1/telemetry/data/test_agent?metric=time")
+        response = test_client.get("/api/data/test_agent?metric=time")
 
         assert response.status_code == 400
 
     @pytest.mark.timeout(15)
     def test_get_telemetry_missing_agent(self, test_client: TestClient):
         """Test 500 error when agent config doesn't exist."""
-        response = test_client.get("/api/v1/telemetry/data/nonexistent_agent?metric=temperature")
+        response = test_client.get("/api/data/nonexistent_agent?metric=temperature")
 
         assert response.status_code == 500
 
@@ -100,14 +100,14 @@ class TestGetTelemetryEndpoint:
         with open(config_file, "w") as f:
             yaml.dump(bad_config, f)
 
-        response = test_client.get("/api/v1/telemetry/data/bad_table_agent?metric=temperature")
+        response = test_client.get("/api/data/bad_table_agent?metric=temperature")
 
         assert response.status_code == 404
 
     @pytest.mark.timeout(15)
     def test_get_telemetry_column_not_found(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
         """Test 404 error when column doesn't exist."""
-        response = test_client.get("/api/v1/telemetry/data/test_agent?metric=nonexistent_column")
+        response = test_client.get("/api/data/test_agent?metric=nonexistent_column")
 
         assert response.status_code == 404
 
@@ -115,19 +115,19 @@ class TestGetTelemetryEndpoint:
     def test_get_telemetry_no_data(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
         """Test 404 error when no data found for time range."""
         response = test_client.get(
-            "/api/v1/telemetry/data/test_agent?metric=temperature&start_time=2025-01-01&end_time=2025-01-02",
+            "/api/data/test_agent?metric=temperature&start_time=2025-01-01&end_time=2025-01-02",
         )
 
         assert response.status_code == 404
 
 
 class TestGetAvailableMetricsEndpoint:
-    """Tests for GET /api/v1/telemetry/data/{agent_id}/metrics endpoint."""
+    """Tests for GET /api/data/{agent_id}/metrics endpoint."""
 
     @pytest.mark.timeout(15)
     def test_get_available_metrics(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
         """Test getting available metrics for an agent."""
-        response = test_client.get("/api/v1/telemetry/data/test_agent/metrics")
+        response = test_client.get("/api/data/test_agent/metrics")
 
         assert response.status_code == 200
         data = response.json()
@@ -140,7 +140,7 @@ class TestGetAvailableMetricsEndpoint:
     @pytest.mark.timeout(15)
     def test_get_available_metrics_excludes_time(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
         """Test that 'time' column is excluded from metrics."""
-        response = test_client.get("/api/v1/telemetry/data/test_agent/metrics")
+        response = test_client.get("/api/data/test_agent/metrics")
 
         assert response.status_code == 200
         data = response.json()
@@ -152,8 +152,8 @@ class TestConfigEndpoints:
 
     @pytest.mark.timeout(10)
     def test_get_db_config(self, test_client: TestClient):
-        """Test GET /api/v1/telemetry/config/db endpoint."""
-        response = test_client.get("/api/v1/telemetry/config/db")
+        """Test GET /api/config/db endpoint."""
+        response = test_client.get("/api/config/db")
 
         assert response.status_code == 200
         data = response.json()
@@ -164,7 +164,7 @@ class TestConfigEndpoints:
 
     @pytest.mark.timeout(10)
     def test_set_db_config(self, test_client: TestClient):
-        """Test POST /api/v1/telemetry/config/db endpoint."""
+        """Test POST /api/config/db endpoint."""
         new_config = {
             "drivername": "postgresql+psycopg2",
             "username": "new_user",
@@ -175,7 +175,7 @@ class TestConfigEndpoints:
             "schema": "public",
         }
 
-        response = test_client.post("/api/v1/telemetry/config/db", json=new_config)
+        response = test_client.post("/api/config/db", json=new_config)
 
         assert response.status_code == 200
         data = response.json()
@@ -185,8 +185,8 @@ class TestConfigEndpoints:
 
     @pytest.mark.timeout(10)
     def test_get_config_path(self, test_client: TestClient):
-        """Test GET /api/v1/telemetry/config/path endpoint."""
-        response = test_client.get("/api/v1/telemetry/config/path")
+        """Test GET /api/config/path endpoint."""
+        response = test_client.get("/api/config/path")
 
         assert response.status_code == 200
         data = response.json()
@@ -195,8 +195,8 @@ class TestConfigEndpoints:
 
     @pytest.mark.timeout(10)
     def test_set_config_path(self, test_client: TestClient):
-        """Test POST /api/v1/telemetry/config/path endpoint."""
-        response = test_client.post("/api/v1/telemetry/config/path?path=/tmp/new_configs")
+        """Test POST /api/config/path endpoint."""
+        response = test_client.post("/api/config/path?path=/tmp/new_configs")
 
         assert response.status_code == 200
         data = response.json()
@@ -205,12 +205,12 @@ class TestConfigEndpoints:
 
     @pytest.mark.timeout(10)
     def test_clear_cache(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
-        """Test POST /api/v1/telemetry/config/clear_cache endpoint."""
+        """Test POST /api/config/clear_cache endpoint."""
         # First, populate cache by making a request
-        test_client.get("/api/v1/telemetry/data/test_agent?metric=temperature")
+        test_client.get("/api/data/test_agent?metric=temperature")
 
         # Clear the cache
-        response = test_client.post("/api/v1/telemetry/config/clear_cache")
+        response = test_client.post("/api/config/clear_cache")
 
         assert response.status_code == 200
         data = response.json()
@@ -229,7 +229,7 @@ class TestCORSHeaders:
             "Access-Control-Request-Method": "GET",
         }
 
-        response = test_client.options("/api/v1/telemetry/config/db", headers=headers)
+        response = test_client.options("/api/config/db", headers=headers)
 
         # Check that CORS middleware is configured
         assert response.status_code in (200, 204)

@@ -7,11 +7,11 @@ import pandas as pd
 from lib_defs.config_defs.tag_config import TagType
 from lib_utils.maybe import Maybe
 
+from corerl.configs.tags.setpoint import SetpointTagConfig, get_action_bounds
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import PipelineFrame
 from corerl.state import AppState
-from corerl.tags.setpoint import SetpointTagConfig, get_action_bounds
-from corerl.tags.tag_config import TagConfig
 from corerl.utils.time import percent_time_elapsed
 
 

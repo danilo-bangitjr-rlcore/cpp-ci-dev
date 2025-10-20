@@ -1,7 +1,7 @@
 import logging
 import pickle as pkl
 from pathlib import Path
-from typing import TYPE_CHECKING, Literal, NamedTuple
+from typing import TYPE_CHECKING, NamedTuple
 
 import chex
 import jax
@@ -13,19 +13,18 @@ from lib_agent.buffer.buffer import State
 from lib_agent.buffer.datatypes import JaxTransition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
-    QRCConfig,
-    RollingResetConfig,
     create_ensemble_dict,
     extract_metrics,
     get_stable_rank,
 )
-from lib_agent.critic.qrc_critic import QRCCritic
-from lib_config.config import MISSING, computed, config
+from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 from lib_defs.config_defs.tag_config import TagType
-from pydantic import Field
+from lib_utils.named_array import NamedArray
 
-from corerl.agent.base import BaseAgent, BaseAgentConfig
-from corerl.agent.buffer_configs import MixedHistoryBufferConfig, RecencyBiasBufferConfig
+from corerl.agent.base import BaseAgent
+from corerl.configs.agent.greedy_ac import (
+    GreedyACConfig,
+)
 from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import RLEventType
@@ -33,81 +32,9 @@ from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
 
 if TYPE_CHECKING:
-    from corerl.config import MainConfig
+    pass
 
 logger = logging.getLogger(__name__)
-
-BufferConfig = MixedHistoryBufferConfig | RecencyBiasBufferConfig
-
-@config()
-class CriticNetworkConfig:
-    ensemble: int = MISSING
-
-    @computed('ensemble')
-    @classmethod
-    def _ensemble(cls, cfg: 'MainConfig'):
-        return cfg.feature_flags.ensemble
-
-@config()
-class GTDCriticConfig:
-    action_regularization: float = 0.0
-    action_regularization_epsilon: float = 0.1
-    buffer: BufferConfig = MISSING
-    stepsize: float = 0.0001
-    critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
-    rolling_reset_config: RollingResetConfig = Field(default_factory=RollingResetConfig)
-
-    @computed('buffer')
-    @classmethod
-    def _buffer(cls, cfg: 'MainConfig'):
-        if cfg.feature_flags.recency_bias_buffer:
-            return RecencyBiasBufferConfig(
-                obs_period=int(cfg.interaction.obs_period.total_seconds()),
-                gamma=[cfg.agent.gamma],
-                effective_episodes=[100],
-                ensemble=1,
-                ensemble_probability=1.0,
-                id='actor',
-            )
-        buffer_cfg = MixedHistoryBufferConfig(id='actor')
-        buffer_cfg.ensemble = 1
-        buffer_cfg.ensemble_probability = 1
-
-        return buffer_cfg
-
-@config()
-class PercentileActorConfig:
-    num_samples: int = 128
-    actor_percentile: float = 0.05
-    proposal_percentile: float = 0.2
-    prop_percentile_learned: float = 0.8
-    sort_noise: float = 0.0
-    actor_stepsize: float = 0.0001
-    sampler_stepsize: float = 0.0001
-    mu_multiplier: float = 1.0
-    sigma_multiplier: float = 1.0
-    ensemble_aggregation: Literal["mean", "percentile"] = "mean"
-    ensemble_percentile: float = 0.5
-    buffer: BufferConfig = MISSING
-
-    @computed('buffer')
-    @classmethod
-    def _buffer(cls, cfg: 'MainConfig'):
-        if cfg.feature_flags.recency_bias_buffer:
-            buffer_cfg = RecencyBiasBufferConfig(
-                obs_period=int(cfg.interaction.obs_period.total_seconds()),
-                gamma=[cfg.agent.gamma],
-                effective_episodes=[100],
-                ensemble=1,
-                ensemble_probability=1.0,
-                id='actor',
-            )
-        else:
-            buffer_cfg = MixedHistoryBufferConfig(id='actor')
-            buffer_cfg.ensemble = 1
-            buffer_cfg.ensemble_probability = 1
-
-        return buffer_cfg
 
 
 class EnsembleNetworkReturn(NamedTuple):
@@ -120,63 +47,6 @@ class EnsembleNetworkReturn(NamedTuple):
 
     # the variance of the ensemble values
     ensemble_variance: jax.Array
-
-
-@config()
-class GreedyACConfig(BaseAgentConfig):
-    """
-    Kind: internal
-
-    Agent hyperparameters. For internal use only.
-    These should never be modified for production unless
-    for debugging. These may be modified in tests and
-    research to illicit particular behaviors.
-    """
-    name: Literal["greedy_ac"] = "greedy_ac"
-
-    critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
-    policy: PercentileActorConfig = Field(default_factory=lambda: PercentileActorConfig())
-
-    loss_threshold: float = 0.0001
-    """
-    Kind: internal
-
-    Minimum desired change in loss between updates. If the loss value changes
-    by more than this magnitude, then continue performing updates.
-    """
-
-    loss_ema_factor: float = 0.75
-    """
-    Kind: internal
-
-    Exponential moving average factor for early stopping based on loss.
-    Closer to 1 means slower update to avg, closer to 0 means less averaging.
-    """
-
-    max_internal_actor_updates: int = 3
-    """
-    Number of actor updates per critic update. Early stopping is done
-    using the loss_threshold. A minimum of 1 update will always be performed.
-    """
-
-    max_critic_updates: int = 10
-    """
-    Number of critic updates. Early stopping is done using the loss_threshold.
-    A minimum of 1 update will always be performed.
-    """
-
-    bootstrap_action_samples: int = 10
-    """
-    Number of action samples to use for bootstrapping,
-    producing an Expected Sarsa-like update.
-    """
-
-    max_action_stddev: float = 3
-    """
-    Maximum number of stddevs from the mean for the action
-    taken during an interaction step. Forcefully prevents
-    very long-tailed events from occurring.
-    """
 
 
 class GreedyAC(BaseAgent):
@@ -280,7 +150,7 @@ class GreedyAC(BaseAgent):
         return self._actor_buffer.sample()
 
 
-    def get_dist(self, states: jax.Array):
+    def get_dist(self, states: NamedArray):
         dummy_jaxtions = jnp.zeros(self.action_dim)
         state_ = State(
             states,
@@ -294,12 +164,12 @@ class GreedyAC(BaseAgent):
             state_,
         )
 
-    def prob(self, states: jax.Array, actions: jax.Array) -> jax.Array:
+    def prob(self, states: NamedArray, actions: jax.Array) -> jax.Array:
         state_ = State(
             states,
             a_lo=actions,
             a_hi=actions,
-            dp=jnp.ones_like(states),
+            dp=jnp.ones_like(states.array),
             last_a=actions,
         )
 
@@ -309,7 +179,7 @@ class GreedyAC(BaseAgent):
             actions,
         )
 
-    def get_active_values(self, state: jax.Array, action: jax.Array):
+    def get_active_values(self, state: NamedArray, action: jax.Array):
         """
         returns `EnsembleNetworkReturn` with state-action value estimates from ensemble of critics for:
             1 state, and
@@ -322,7 +192,7 @@ class GreedyAC(BaseAgent):
             rng = jax.random.split(rng, action.shape[0])
 
         # use active critic values for decision making
-        qs = self.critic.get_active_values(self._critic_state.params, rng, state, action)
+        qs = self.critic.get_active_values(self._critic_state.params, rng, state.array, action).q
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -403,7 +273,6 @@ class GreedyAC(BaseAgent):
                 value=len(t),
             )
 
-
     # --------------------------- critic updating-------------------------- #
 
     def update_critic(self) -> list[float]:
@@ -476,7 +345,7 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.get_active_values(params, rng, x, a)
+        qs = self.critic.get_active_values(params, rng, x, a).q
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
@@ -510,7 +379,6 @@ class GreedyAC(BaseAgent):
                 self.state_dim,
             )
             self._actor_state = self._actor_state._replace(actor=actor_state)
-
 
         q_losses = []
 
@@ -571,7 +439,6 @@ class GreedyAC(BaseAgent):
         with open(path / "critic_buffer.pkl", "wb") as f:
             pkl.dump(self.critic_buffer, f)
 
-
     def load(self, path: Path) -> None:
         self._app_state.event_bus.emit_event(RLEventType.agent_load)
 
@@ -609,6 +476,7 @@ class GreedyAC(BaseAgent):
             metric="BUFFER-ACTOR-size",
             value=self._actor_buffer.size,
         )
+
 
 def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
     """

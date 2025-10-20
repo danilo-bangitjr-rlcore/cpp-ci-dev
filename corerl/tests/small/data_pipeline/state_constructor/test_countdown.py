@@ -4,8 +4,9 @@ import numpy as np
 import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
+from corerl.configs.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
+from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector
 
 
 def test_int_countdown1():

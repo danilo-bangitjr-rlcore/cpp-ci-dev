@@ -11,7 +11,7 @@ import numpy as np
 from asyncua.sync import Client, SyncNode
 from asyncua.ua.uaerrors import BadNodeIdExists, BadNodeIdUnknown
 from asyncua.ua.uatypes import VariantType
-from corerl.environment.async_env.async_env import GymEnvConfig
+from corerl.configs.environment.async_env import GymEnvConfig
 from corerl.environment.factory import init_environment
 from corerl.utils.time import clock_generator, wait_for_timestamp
 from lib_config.config import MISSING, config

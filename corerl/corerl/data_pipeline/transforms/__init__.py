@@ -1,72 +1,20 @@
-from __future__ import annotations
+from typing import Any, cast
 
-from typing import TYPE_CHECKING, Annotated, Any, Literal, cast
-
-from lib_config.config import MISSING, config, list_, post_processor
-from pydantic import Field
 from pydantic.dataclasses import rebuild_dataclass
 
-from corerl.data_pipeline.transforms.add_raw import AddRawConfig
-from corerl.data_pipeline.transforms.base import BaseTransformConfig, transform_group
-from corerl.data_pipeline.transforms.bounds import BoundsConfig
-from corerl.data_pipeline.transforms.delta import DeltaConfig
-from corerl.data_pipeline.transforms.identity import IdentityConfig
-from corerl.data_pipeline.transforms.norm import NormalizerConfig
-from corerl.data_pipeline.transforms.nuke import NukeConfig
-from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.utils.sympy import is_expression, is_valid_expression, to_sympy
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
-
-
-"""
-To avoid circular imports and partially defined types
-that result in partially defined schemas, these configs
-are defined in the same place as the union type TransformConfig.
-"""
-@config()
-class SplitConfig(BaseTransformConfig):
-    name: Literal['split'] = 'split'
-
-    left: list[TransformConfig] = list_([IdentityConfig])
-    right: list[TransformConfig] = list_([IdentityConfig])
-    passthrough: bool | None = None
-
-
-@config()
-class SympyConfig(BaseTransformConfig):
-    name: Literal["sympy"] = "sympy"
-    expression: str = MISSING
-    tolerance: float = 1e-4  # Tolerance for division operations, similar to inverse transform
-
-    @post_processor
-    def _validate_expression(self, cfg: MainConfig):
-        # Validate sympy expression format and supported operations
-        if not is_expression(self.expression):
-            raise ValueError(f"Invalid sympy expression format: {self.expression}")
-
-        expr, _, _ = to_sympy(self.expression)
-        if not is_valid_expression(expr):
-            raise ValueError(f"Expression contains unsupported operations: {self.expression}")
-
-
-TransformConfig = Annotated[
-    AddRawConfig
-    | BoundsConfig
-    | DeltaConfig
-    | IdentityConfig
-    | NormalizerConfig
-    | NukeConfig
-    | SplitConfig
-    | SympyConfig
-    | TraceConfig
-, Field(discriminator="name")]
+from corerl.configs.data_pipeline.transforms import SplitConfig, SympyConfig
+from corerl.configs.data_pipeline.transforms import TransformConfig as TransformConfig
+from corerl.data_pipeline.transforms.base import transform_group
 
 
 def register_dispatchers():
+    # Import all transform modules to ensure their dispatchers are registered
+    from corerl.data_pipeline.transforms import add_raw, bounds, delta, identity, norm, nuke, trace
     from corerl.data_pipeline.transforms.split import SplitTransform
     from corerl.data_pipeline.transforms.sympy import SympyTransform
+
+    # These are registered at module level, just need to ensure imports
+    _ = (add_raw, bounds, delta, identity, norm, nuke, trace)
 
     transform_group.dispatcher(SplitTransform)
     transform_group.dispatcher(SympyTransform)

@@ -6,12 +6,10 @@ on:
     paths:
       - "coretelemetry/**"
       - "libs/**"
-      - "corerl/**"
   merge_group:
     paths:
       - "coretelemetry/**"
       - "libs/**"
-      - "corerl/**"
 
 concurrency:
   group: coretelemetry-${{ github.workflow }}-${{ github.ref }}
@@ -22,7 +20,10 @@ jobs:
   # -- Style --
   # -----------
   coretelemetry-style-n-test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     defaults:
       run:
         working-directory: coretelemetry
@@ -38,6 +39,7 @@ jobs:
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Pull TimescaleDB Docker image
+        if: runner.os == 'Linux'
         run: docker pull timescale/timescaledb:latest-pg17
 
       # linting
@@ -51,9 +53,15 @@ jobs:
           pylance-version: latest-release
           working-directory: coretelemetry
 
-      - name: Run Pytest
+      - name: Run Pytest (All tests)
+        if: runner.os == 'Linux'
         run: |
           pytest --cov=coretelemetry --cov-report=html tests/
+
+      - name: Run Pytest (System metrics tests only)
+        if: runner.os == 'Windows'
+        run: |
+          pytest --cov=coretelemetry --cov-report=html tests/large/test_system_metrics_api.py
 
       - name: Combine coverage
         run: |

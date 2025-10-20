@@ -13,7 +13,7 @@ from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 from lib_utils.dict import flatten_tree
 from sqlalchemy import text
 
-from corerl.eval.metrics.base import MetricsDBConfig
+from corerl.configs.eval.metrics import MetricsDBConfig
 
 log = logging.getLogger(__name__)
 

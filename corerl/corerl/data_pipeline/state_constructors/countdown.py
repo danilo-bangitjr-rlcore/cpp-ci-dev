@@ -1,46 +1,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import timedelta
-from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
-from lib_config.config import MISSING, computed, config
 
+from corerl.configs.data_pipeline.state_constructors.countdown import CountdownConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 from corerl.data_pipeline.transforms.delta import Delta
 from corerl.data_pipeline.utils import get_tag_temporal_state
-
-if TYPE_CHECKING:
-    from corerl.config import MainConfig
-
-
-@config()
-class CountdownConfig:
-    """
-    Kind: internal
-
-    Enables a countdown "virtual tag" as a feature in the constructed
-    state. The countdown is a function of both action_period
-    and obs_period, signaling the number of steps until the next
-    decision point.
-    """
-
-    kind: str = 'no_countdown'
-    normalize: bool = True
-
-    action_period: timedelta = MISSING
-    obs_period: timedelta = MISSING
-    @computed('action_period')
-    @classmethod
-    def _action_period(cls, cfg: MainConfig):
-        return cfg.interaction.action_period
-
-    @computed('obs_period')
-    @classmethod
-    def _obs_period(cls, cfg: MainConfig):
-        return cfg.interaction.obs_period
 
 
 @dataclass

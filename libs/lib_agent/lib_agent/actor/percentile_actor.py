@@ -174,7 +174,7 @@ class PercentileActor:
         levels = state.features.ndim - 1
         return jax_u.vmap_only(self.actor.apply, ['x'], levels)(
             actor_params,
-            state.features,
+            state.features.array,
         )
 
 
@@ -434,7 +434,7 @@ class PercentileActor:
         chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
 
         q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
-        q_vals = q_over_proposal(value_estimator_params, q_rng, state.features, proposal_actions)
+        q_vals = q_over_proposal(value_estimator_params, q_rng, state.features.array, proposal_actions)
         q_vals = q_vals + self._cfg.sort_noise * jax.random.normal(
             rng, shape=q_vals.shape, dtype=q_vals.dtype,
         )
@@ -453,7 +453,7 @@ class PercentileActor:
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
     def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: State, top_actions: jax.Array):
-        out: ActorOutputs = policy.apply(params=params, x=state.features)
+        out: ActorOutputs = policy.apply(params=params, x=state.features.array)
         dist = distrax.MultivariateNormalDiag(out.mu, out.sigma)
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)

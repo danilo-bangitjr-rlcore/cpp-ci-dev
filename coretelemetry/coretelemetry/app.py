@@ -5,9 +5,10 @@ import uvicorn
 from coretelemetry.agent_metrics_api.agent_metrics_routes import AgentMetricsManager, agent_metrics_router
 from coretelemetry.agent_metrics_api.exceptions import AgentMetricsException
 from coretelemetry.agent_metrics_api.services import get_agent_metrics_manager
+from coretelemetry.system_metrics_api.system_metrics_routes import system_metrics_router
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 
 __version__ = "0.1.0"
 
@@ -38,6 +39,12 @@ def create_app(config_path: str | Path) -> FastAPI:
     agent_metrics_manager.set_config_path(Path(config_path))
 
     app.include_router(agent_metrics_router)
+    app.include_router(system_metrics_router)
+
+
+    @app.get("/")
+    async def root():
+        return RedirectResponse(url="/docs")
 
     @app.get("/health")
     async def health_check(agent_metrics_manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008

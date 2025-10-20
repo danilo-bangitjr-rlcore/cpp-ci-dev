@@ -71,7 +71,7 @@ const fetchAgentStatus = async (
 };
 
 const fetchAgentsMissingConfig = async (): Promise<string[]> => {
-  const response = await get(API_ENDPOINTS.coredinator.agents_missing_config);
+  const response = await get(API_ENDPOINTS.configs.agents_missing_config);
   if (!response.ok) {
     throw new Error('Failed to fetch agents missing config');
   }

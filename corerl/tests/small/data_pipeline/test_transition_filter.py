@@ -6,14 +6,16 @@ import pandas as pd
 import pytest
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
+from lib_utils.named_array import NamedArray
 
 from corerl.config import MainConfig
+from corerl.configs.data_pipeline.state_constructors.countdown import CountdownConfig
+from corerl.configs.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Step, Transition
-from corerl.data_pipeline.state_constructors.countdown import CountdownConfig, DecisionPointDetector
+from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector
 from corerl.data_pipeline.transition_filter import (
     TransitionFilter,
-    TransitionFilterConfig,
     no_nan,
     only_dp,
     only_no_action_change,
@@ -56,7 +58,7 @@ def make_test_step(
     ac: bool = False,
 ) -> Step:
     return Step(
-        state=jnp.array([i]),
+        state=NamedArray.unnamed(jnp.array([i])),
         action=jnp.array([action]),
         reward=reward,
         gamma=gamma,
@@ -183,7 +185,7 @@ def test_no_nan():
         make_test_step(1),
         make_test_step(2),
     ]
-    steps[1].state = jnp.array([np.nan])
+    steps[1].state = NamedArray.unnamed(jnp.array([np.nan]))
 
     transition = Transition(
         steps=steps,

@@ -1,21 +1,13 @@
 import logging
-from datetime import datetime
-from typing import Literal
 
 import numpy as np
 import pandas as pd
-from lib_config.config import MISSING, config
 
+from corerl.configs.data_pipeline.imputers.per_tag.backfill import BackfillImputerConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, BasePerTagImputerConfig, per_tag_imputer_group
+from corerl.data_pipeline.imputers.per_tag.base import BasePerTagImputer, per_tag_imputer_group
 
 logger = logging.getLogger(__name__)
-
-@config()
-class BackfillImputerConfig(BasePerTagImputerConfig):
-    name: Literal["backfill"] = "backfill"
-    backfill_val: float = MISSING
-    backfill_to: datetime = MISSING
 
 
 class BackfillImputer(BasePerTagImputer):

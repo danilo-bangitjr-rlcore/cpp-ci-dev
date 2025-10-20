@@ -18,10 +18,11 @@ from corerl.environment.async_env.factory import init_async_env
 from corerl.eval.config import register_pipeline_evals
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
+from corerl.event_bus.client import EventBusClient
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
-from corerl.messages.events import RLEventType
+from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
 from corerl.state import AppState
 from corerl.tags.validate_tag_configs import validate_tag_configs
 from corerl.utils.app_time import AppTime
@@ -35,6 +36,7 @@ def main_loop(
     cfg: MainConfig,
     app_state: AppState,
     interaction: DeploymentInteraction,
+    event_bus_client: EventBusClient | None = None,
 ):
     max_steps = cfg.max_steps
 
@@ -43,9 +45,15 @@ def main_loop(
     app_state.event_bus.start()
     event_stream = interaction.interact_forever()
 
-    for _ in event_stream:
+    for step_count, _ in enumerate(event_stream):
         if max_steps is not None and app_state.agent_step >= max_steps:
             break
+
+        if event_bus_client is not None and step_count % 100 == 0:
+            event_bus_client.emit_event(
+                RLEvent(type=RLEventType.step_agent_update),
+                topic=RLEventTopic.corerl,
+            )
 
 
 def retryable_main(cfg: MainConfig):
@@ -56,6 +64,20 @@ def retryable_main(cfg: MainConfig):
     seed = cfg.seed
     np.random.seed(seed)
     random.seed(seed)
+
+    # initialize event bus client if enabled
+    event_bus_client: EventBusClient | None = None
+    if cfg.event_bus_client.enabled:
+        event_bus_client = EventBusClient(
+            host=cfg.event_bus_client.host,
+            pub_port=cfg.event_bus_client.pub_port,
+            sub_port=cfg.event_bus_client.sub_port,
+        )
+        event_bus_client.connect()
+        log.info(
+            f"Event bus client connected to "
+            f"{cfg.event_bus_client.host}:{cfg.event_bus_client.pub_port}/{cfg.event_bus_client.sub_port}",
+        )
 
     # build global objects
     is_demo = cfg.demo_mode
@@ -104,11 +126,23 @@ def retryable_main(cfg: MainConfig):
         pipeline=pipeline,
     )
 
+    if event_bus_client is not None:
+        event_bus_client.emit_event(
+            RLEvent(type=RLEventType.agent_started),
+            topic=RLEventTopic.corerl,
+        )
+
     try:
-        main_loop(cfg, app_state, interaction)
+        main_loop(cfg, app_state, interaction, event_bus_client)
 
     except Exception as e:
         log.exception(e)
+
+        if event_bus_client is not None:
+            event_bus_client.emit_event(
+                RLEvent(type=RLEventType.agent_error),
+                topic=RLEventTopic.corerl,
+            )
 
         # if we are in a simulation, then we want to forward
         # exceptions to fail the process
@@ -116,12 +150,21 @@ def retryable_main(cfg: MainConfig):
             raise e
 
     finally:
+        if event_bus_client is not None:
+            event_bus_client.emit_event(
+                RLEvent(type=RLEventType.agent_stopped),
+                topic=RLEventTopic.corerl,
+            )
+
         app_state.stop_event.set()
         app_state.metrics.close()
         app_state.evals.close()
         env.cleanup()
         event_bus.cleanup()
         interaction.close()
+
+        if event_bus_client is not None:
+            event_bus_client.close()
 
 
 @load_config(MainConfig)
@@ -179,4 +222,11 @@ def enable_log_files(log_path: Path):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        sys.stderr.write(f"FATAL ERROR during corerl startup: {e}\n")
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
+        sys.exit(1)

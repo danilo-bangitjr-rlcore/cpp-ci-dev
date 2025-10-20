@@ -1,23 +1,15 @@
 import logging
 from dataclasses import dataclass
-from typing import Literal
 
 import numpy as np
-from lib_config.config import config
 from numba import njit
 
+from corerl.configs.data_pipeline.oddity_filters.stuck_detector import StuckDetectorConfig
 from corerl.data_pipeline.datatypes import PipelineFrame
-from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, BaseOddityFilterConfig, outlier_group
+from corerl.data_pipeline.oddity_filters.base import BaseOddityFilter, outlier_group
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
-
-
-@config()
-class StuckDetectorConfig(BaseOddityFilterConfig):
-    name: Literal["stuck_detector"] = "stuck_detector"
-    eps: float = 1e-3
-    step_tol: int = 10  #  number of steps before marking stuck
 
 
 @dataclass

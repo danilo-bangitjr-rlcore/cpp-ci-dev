@@ -6,11 +6,11 @@ import pandas as pd
 from lib_agent.buffer.buffer import State
 
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.configs.interaction.config import InteractionConfig
 from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
 from corerl.environment.async_env.sim_async_env import SimAsyncEnv
-from corerl.interaction.configs import InteractionConfig
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.messages.heartbeat import Heartbeat, HeartbeatConfig
 from corerl.state import AppState

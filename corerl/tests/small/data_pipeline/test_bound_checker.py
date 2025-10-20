@@ -4,11 +4,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from corerl.configs.tags.setpoint import FloatBounds
+from corerl.configs.tags.tag_config import BasicTagConfig
 from corerl.data_pipeline.bound_checker import bound_checker
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.tags.setpoint import FloatBounds
-from corerl.tags.tag_config import BasicTagConfig
 
 
 @dataclass

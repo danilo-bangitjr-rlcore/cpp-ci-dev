@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import pandas as pd
 from lib_utils.maybe import Maybe
 
-from corerl.data_pipeline.transforms import SplitConfig
+from corerl.configs.data_pipeline.transforms import SplitConfig
 from corerl.data_pipeline.transforms.base import transform_group
 from corerl.data_pipeline.transforms.interface import TransformCarry
 

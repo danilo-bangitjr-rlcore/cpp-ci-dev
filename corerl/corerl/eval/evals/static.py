@@ -12,7 +12,7 @@ from lib_utils.errors import fail_gracefully
 from lib_utils.time import now_iso
 from sqlalchemy import text
 
-from corerl.eval.evals.base import EvalDBConfig
+from corerl.configs.eval.evals import EvalDBConfig
 
 log = logging.getLogger(__name__)
 

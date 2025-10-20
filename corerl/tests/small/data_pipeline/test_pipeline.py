@@ -4,6 +4,7 @@ import pandas as pd
 import pandas.testing as pdt
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
+from lib_utils.named_array import NamedArray
 from test.infrastructure.app_state import make_dummy_app_state
 
 from corerl.config import MainConfig
@@ -86,7 +87,7 @@ def test_pipeline1(
                     reward=3,
                     action=jnp.array([1.]),
                     gamma=0.9,
-                    state=jnp.array([0.0, 1, 0, 0.18]),
+                    state=NamedArray.unnamed(jnp.array([0.0, 1, 0, 0.18])),
                     action_lo=jnp.zeros_like(jnp.array([1.])),
                     action_hi=jnp.ones_like(jnp.array([1.])),
                     dp=True,
@@ -96,7 +97,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([0.]),
                     gamma=0.9,
-                    state=jnp.array([1.0, 1, 0, 0.378]),
+                    state=NamedArray.unnamed(jnp.array([1.0, 1, 0, 0.378])),
                     action_lo=jnp.zeros_like(jnp.array([0.])),
                     action_hi=jnp.ones_like(jnp.array([0.])),
                     dp=True,
@@ -112,7 +113,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([0.]),
                     gamma=0.9,
-                    state=jnp.array([1.0, 1, 0, 0.378]),
+                    state=NamedArray.unnamed(jnp.array([1.0, 1, 0, 0.378])),
                     action_lo=jnp.zeros_like(jnp.array([0.])),
                     action_hi=jnp.ones_like(jnp.array([0.])),
                     dp=True,
@@ -122,7 +123,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([1.]),
                     gamma=0.9,
-                    state=jnp.array([2.0, 1, 0, 0.5778]),
+                    state=NamedArray.unnamed(jnp.array([2.0, 1, 0, 0.5778])),
                     action_lo=jnp.zeros_like(jnp.array([1.])),
                     action_hi=jnp.ones_like(jnp.array([1.])),
                     dp=True,
@@ -138,7 +139,7 @@ def test_pipeline1(
                     reward=1,
                     action=jnp.array([1.]),
                     gamma=0.9,
-                    state=jnp.array([4.0, 1, 0, 0.5778]),
+                    state=NamedArray.unnamed(jnp.array([4.0, 1, 0, 0.5778])),
                     action_lo=jnp.zeros_like(jnp.array([0.])),
                     action_hi=jnp.ones_like(jnp.array([0.])),
                     dp=True,
@@ -148,7 +149,7 @@ def test_pipeline1(
                     reward=0,
                     action=jnp.array([0.]),
                     gamma=0.9,
-                    state=jnp.array([5.0, 1, 0, 0.5778]),
+                    state=NamedArray.unnamed(jnp.array([5.0, 1, 0, 0.5778])),
                     action_lo=jnp.zeros_like(jnp.array([1.])),
                     action_hi=jnp.ones_like(jnp.array([1.])),
                     dp=True,
@@ -193,7 +194,7 @@ def test_pipeline_overlapping_time(
     # this can only be true if the temporal state is being reset
     # between invocations
     assert np.isclose(
-        out.states['tag-2_trace-0.1'].iloc[0],
+        out.states.get_feature('tag-2_trace-0.1').expect()[0],
         0.1 * first_value,
     )
 

@@ -2,8 +2,9 @@ import numpy as np
 import pandas as pd
 from test.infrastructure.utils.pandas import dfs_close
 
+from corerl.configs.data_pipeline.imputers.per_tag.linear import LinearImputerConfig
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.data_pipeline.imputers.per_tag.linear import LinearImputer, LinearImputerConfig, LinearImputerTemporalState
+from corerl.data_pipeline.imputers.per_tag.linear import LinearImputer, LinearImputerTemporalState
 
 
 def test_no_imputation():

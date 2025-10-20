@@ -1,7 +1,5 @@
-from collections.abc import Callable
-from datetime import datetime
-
-from corerl.eval.metrics.base import MetricsDBConfig, MetricsWriterProtocol
+from corerl.configs.eval.metrics import MetricsDBConfig
+from corerl.eval.metrics.base import MetricsWriterProtocol
 from corerl.eval.metrics.dummy import DummyMetricsWriter
 from corerl.eval.metrics.narrow import NarrowMetricsTable
 from corerl.eval.metrics.wide import WideMetricsTable

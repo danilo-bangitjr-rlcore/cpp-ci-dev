@@ -7,12 +7,13 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.buffer.datatypes import JaxTransition
-from lib_config.config import config
 from lib_utils.errors import fail_gracefully
+from lib_utils.named_array import NamedArray
 from pydantic import BaseModel
 
 from corerl.agent.base import BaseAgent
 from corerl.agent.greedy_ac import GreedyAC
+from corerl.configs.eval.agent import GreedDistConfig, QOnlineConfig
 from corerl.state import AppState
 
 # --------------------------------- Utilities --------------------------------- #
@@ -60,7 +61,7 @@ def agent_eval(
         for k, v in metrics.items():
             app_state.metrics.write(app_state.agent_step, k, v)
 
-SAEvalFn = Callable[[T, GreedyAC, jax.Array, jax.Array, jax.Array], Sequence[jax.Array]]
+SAEvalFn = Callable[[T, GreedyAC, NamedArray, jax.Array, jax.Array], Sequence[jax.Array]]
 BatchSAEvalFn = Callable[[EvalConfig, GreedyAC], Sequence[jax.Array]]
 def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
     def batchified(cfg: EvalConfig, agent: GreedyAC):
@@ -81,14 +82,10 @@ def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
 
 # ------------------------------ Q Values Online ----------------------------- #
 
-@config()
-class QOnlineConfig:
-    enabled: bool = True
-
 def _q_online(
     cfg: QOnlineConfig,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
     action: jax.Array,
 ):
     """
@@ -104,7 +101,7 @@ def _q_online(
 def q_online(
         app_state: AppState,
         agent: BaseAgent,
-        state: jax.Array,
+        state: NamedArray,
         action: jax.Array,
     ):
     return agent_eval(
@@ -123,15 +120,10 @@ def get_max_action(actions: jax.Array, values: jax.Array):
     max_indices = jnp.argmax(values, axis=0)
     return actions[max_indices, :]
 
-@config()
-class GreedDistConfig:
-    enabled: bool = True
-    n_samples: int = 100
-
 def _greed_dist(
     cfg: GreedDistConfig,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
     action_lo: jax.Array,
     action_hi: jax.Array,
 ) -> Sequence[jax.Array]:
@@ -179,7 +171,7 @@ def _greed_dist(
 def greed_dist_online(
         app_state: AppState,
         agent: BaseAgent,
-        state: jax.Array,
+        state: NamedArray,
         action_lo: jax.Array,
         action_hi: jax.Array,
     ):
@@ -206,19 +198,11 @@ def greed_dist_batch(app_state: AppState, agent: BaseAgent):
 
 # ------------------------------ Q and PDF Plots ----------------------------- #
 
-@config()
-class QPDFPlotsConfig:
-    enabled: bool = True
-    # number of samples for the primary action (i.e. the values on the x-axis)
-    primary_action_samples: int = 101
-    # number of samples for other actions (i.e. how many times to average to create each point on the y-axis)
-    other_action_samples: int = 10
-
 @fail_gracefully()
 def online_q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
 ):
     """
     Logs the probability density function of the policy and the Q values.
@@ -262,7 +246,7 @@ def online_q_values_and_act_prob(
 def q_values_and_act_prob(
     app_state: AppState,
     agent: GreedyAC,
-    state: jax.Array,
+    state: NamedArray,
 ) -> tuple[jax.Array, jax.Array, jax.Array]:
     cfg = app_state.cfg.eval_cfgs.q_pdf_plots
 

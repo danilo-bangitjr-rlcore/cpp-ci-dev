@@ -5,6 +5,7 @@ import datetime as dt
 import jax.numpy as jnp
 import pytest
 from corerl.data_pipeline.datatypes import Step, Transition
+from lib_utils.named_array import NamedArray
 
 
 @pytest.fixture
@@ -15,7 +16,7 @@ def transitions_with_timestamps() -> list[Transition]:
 
     # Transition 1: Two-step transition with timestamps
     step_1_1 = Step(
-        state=jnp.array([1.0]),
+        state=NamedArray.unnamed(jnp.array([1.0])),
         action=jnp.array([0.5]),
         reward=1.0,
         gamma=0.9,
@@ -26,7 +27,7 @@ def transitions_with_timestamps() -> list[Transition]:
         timestamp=base_time,
     )
     step_1_2 = Step(
-        state=jnp.array([2.0]),
+        state=NamedArray.unnamed(jnp.array([2.0])),
         action=jnp.array([1.0]),
         reward=0.5,
         gamma=0.9,
@@ -45,7 +46,7 @@ def transitions_with_timestamps() -> list[Transition]:
 
     # Transition 2: Another two-step transition with different timestamps
     step_2_1 = Step(
-        state=jnp.array([3.0]),
+        state=NamedArray.unnamed(jnp.array([3.0])),
         action=jnp.array([0.0]),
         reward=0.0,
         gamma=0.85,
@@ -56,7 +57,7 @@ def transitions_with_timestamps() -> list[Transition]:
         timestamp=base_time + dt.timedelta(minutes=2),
     )
     step_2_2 = Step(
-        state=jnp.array([4.0]),
+        state=NamedArray.unnamed(jnp.array([4.0])),
         action=jnp.array([0.8]),
         reward=1.2,
         gamma=0.85,

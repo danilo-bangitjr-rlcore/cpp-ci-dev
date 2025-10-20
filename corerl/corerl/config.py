@@ -8,15 +8,16 @@ from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
-from corerl.agent.greedy_ac import GreedyACConfig
+from corerl.configs.agent.greedy_ac import GreedyACConfig
+from corerl.configs.data_pipeline.pipeline_config import PipelineConfig
+from corerl.configs.environment.async_env import AsyncEnvConfig
+from corerl.configs.eval.config import EvalConfig
+from corerl.configs.eval.evals import EvalDBConfig
+from corerl.configs.eval.metrics import MetricsDBConfig
 from corerl.configs.infra import FeatureFlags, InfraConfig
+from corerl.configs.interaction.config import InteractionConfig
 from corerl.configs.messages.event_bus import EventBusConfig
-from corerl.data_pipeline.pipeline_config import PipelineConfig
-from corerl.environment.async_env.async_env import AsyncEnvConfig
-from corerl.eval.config import EvalConfig
-from corerl.eval.evals.base import EvalDBConfig
-from corerl.eval.metrics.base import MetricsDBConfig
-from corerl.interaction.factory import InteractionConfig
+from corerl.configs.messages.event_bus_client import EventBusClientConfig
 
 
 @config()
@@ -31,6 +32,7 @@ class MainConfig:
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     infra: InfraConfig = Field(default_factory=InfraConfig)
     event_bus: EventBusConfig = Field(default_factory=EventBusConfig)
+    event_bus_client: EventBusClientConfig = Field(default_factory=EventBusClientConfig)
     feature_flags: FeatureFlags = Field(default_factory=FeatureFlags)
     save_path: Path = MISSING
     log_path: Path | None = None

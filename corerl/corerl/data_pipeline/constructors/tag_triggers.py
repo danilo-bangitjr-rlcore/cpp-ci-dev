@@ -4,11 +4,11 @@ from functools import cached_property
 
 import numpy as np
 
+from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
 from corerl.messages.events import RLEventTopic
 from corerl.state import AppState
-from corerl.tags.tag_config import TagConfig
 
 logger = logging.getLogger(__name__)
 
