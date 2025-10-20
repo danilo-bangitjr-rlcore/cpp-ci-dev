@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, NamedTuple
 
 import chex
@@ -9,11 +9,10 @@ import lib_utils.jax as jax_u
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
     CriticBatch,
     CriticState,
-    QRCCriticMetrics,
-    RollingResetConfig,
     get_ensemble_norm,
     get_layer_norms,
     l2_regularizer,
@@ -59,18 +58,8 @@ def critic_builder(cfg: nets.TorsoConfig):
 
 
 @dataclass
-class QRCConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_rand_actions: int
-    action_regularization: float
-    action_regularization_epsilon: float
-    l2_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
+class QRCConfig(CriticConfig):
+    action_regularization_epsilon: float = 0.1
 
 
 class QRCCritic:
