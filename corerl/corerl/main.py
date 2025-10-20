@@ -212,4 +212,11 @@ def enable_log_files(log_path: Path):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        sys.stderr.write(f"FATAL ERROR during corerl startup: {e}\n")
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
+        sys.exit(1)

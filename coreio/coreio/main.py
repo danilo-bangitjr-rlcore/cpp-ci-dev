@@ -2,6 +2,7 @@
 # CoreIO is async first
 
 import asyncio
+import sys
 import threading
 
 from lib_config.loader import load_config
@@ -128,4 +129,11 @@ def main():
     asyncio.run(coreio_loop())
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        sys.stderr.write(f"FATAL ERROR during coreio startup: {e}\n")
+        import traceback
+        traceback.print_exc(file=sys.stderr)
+        sys.stderr.flush()
+        sys.exit(1)
