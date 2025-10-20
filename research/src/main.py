@@ -22,10 +22,13 @@ from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, Ta
 from interaction.transition_creator import TransitionCreator
 from src.agent.factory import get_agent
 from utils.action_bounds import DeltaActionBoundsComputer
+from utils.plotting import plot_learning_curve
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
 parser.add_argument('-s', '--seed', type=int, required=True)
+parser.add_argument('--plot', action='store_true', help='Plot learning curve after training')
+parser.add_argument('--save-path', type=str, default='results/test', help='Directory to save results')
 
 args, override_args = parser.parse_known_args()
 
@@ -79,15 +82,17 @@ def main():
     overrides = process_overrides(override_args)
     cfg = ExperimentConfig.load(args.exp, overrides)
 
-    save_path = Path('results/test/results.db')
-    save_path.parent.mkdir(exist_ok=True, parents=True)
+    save_dir = Path(args.save_path)
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    db_path = save_dir / 'results.db'
 
     hyperparams = flatten_config(cfg.flatten())
     hyperparams['seed'] = args.seed
-    exp_id = get_next_id(save_path, hyperparams)
+    exp_id = get_next_id(db_path, hyperparams)
 
     collector = Collector(
-        tmp_file=str(save_path),
+        tmp_file=str(db_path),
         # specify which keys to actually store and ultimately save
         # Options are:
         #  - Identity() (save everything)
@@ -233,6 +238,9 @@ def main():
 
     collector.reset()
     collector.close()
+
+    if args.plot:
+        plot_learning_curve(save_dir, db_path, exp_id, args.seed)
 
 
 if __name__ == "__main__":
