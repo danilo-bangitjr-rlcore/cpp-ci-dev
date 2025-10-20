@@ -1,5 +1,5 @@
-from dataclasses import dataclass, field
-from typing import Any, NamedTuple
+from dataclasses import dataclass
+from typing import NamedTuple
 
 import chex
 import haiku as hk
@@ -9,10 +9,10 @@ import lib_utils.jax as jax_u
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
     CriticBatch,
     CriticState,
-    RollingResetConfig,
     get_ensemble_norm,
     get_layer_norms,
     l2_regularizer,
@@ -57,20 +57,10 @@ class AdvCriticMetrics(NamedTuple):
 
 
 @dataclass
-class AdvConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_policy_actions: int
-    num_rand_actions: int
-    advantage_centering_weight: float
-    l2_regularization: float
-    adv_l2_regularization: float
-    action_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
+class AdvConfig(CriticConfig):
+    num_policy_actions: int = 100
+    advantage_centering_weight: float = 0.1
+    adv_l2_regularization: float = 1.0
 
 
 def critic_builder(
@@ -233,7 +223,7 @@ class AdvCritic:
 
     def update(
         self,
-        critic_state: Any,
+        critic_state: CriticState,
         transitions: CriticBatch,
         policy_actions: jax.Array,
         policy_probs: jax.Array,

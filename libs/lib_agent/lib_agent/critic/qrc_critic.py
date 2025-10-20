@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, NamedTuple
 
 import chex
@@ -9,11 +9,10 @@ import lib_utils.jax as jax_u
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
     CriticBatch,
     CriticState,
-    QRCCriticMetrics,
-    RollingResetConfig,
     get_ensemble_norm,
     get_layer_norms,
     l2_regularizer,
@@ -26,6 +25,21 @@ class QRCOutputs(NamedTuple):
     q: jax.Array
     h: jax.Array
     phi: jax.Array
+
+class QRCCriticMetrics(NamedTuple):
+    q: jax.Array
+    h: jax.Array
+    loss: jax.Array
+    q_loss: jax.Array
+    h_loss: jax.Array
+    delta_l: jax.Array
+    delta_r: jax.Array
+    action_reg_loss: jax.Array
+    h_reg_loss: jax.Array
+    ensemble_grad_norms: jax.Array
+    ensemble_weight_norms: jax.Array
+    layer_grad_norms: jax.Array
+    layer_weight_norms: jax.Array
 
 
 def critic_builder(cfg: nets.TorsoConfig):
@@ -44,18 +58,8 @@ def critic_builder(cfg: nets.TorsoConfig):
 
 
 @dataclass
-class QRCConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_rand_actions: int
-    action_regularization: float
-    action_regularization_epsilon: float
-    l2_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
+class QRCConfig(CriticConfig):
+    action_regularization_epsilon: float = 0.1
 
 
 class QRCCritic:
@@ -155,7 +159,7 @@ class QRCCritic:
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi
 
-    def update(self, critic_state: Any, transitions: CriticBatch, next_actions: jax.Array):
+    def update(self, critic_state: CriticState, transitions: CriticBatch, next_actions: jax.Array):
         self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 
