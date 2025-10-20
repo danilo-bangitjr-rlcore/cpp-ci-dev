@@ -1,6 +1,6 @@
 import logging
 import warnings
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import UTC, datetime
 from typing import Any, SupportsFloat
 
@@ -11,7 +11,6 @@ from lib_sql.utils import SQLColumn, create_tsdb_table_query
 from lib_sql.writers.core.static_schema_sql_writer import StaticSchemaSqlWriter
 from lib_sql.writers.transforms.buffered_sql_writer import BufferedSqlWriter
 from lib_utils.dict import flatten_tree
-from lib_utils.time import now_iso
 from sqlalchemy import text
 
 from corerl.configs.eval.metrics import MetricsDBConfig
@@ -30,7 +29,7 @@ class NarrowMetricsTable:
     # Initialization & Configuration
     # ============================================================================
 
-    def __init__(self, cfg: MetricsDBConfig):
+    def __init__(self, cfg: MetricsDBConfig, time_provider: Callable[[], datetime] | None = None):
         warnings.warn(
             "NarrowMetricsTable is deprecated and will be removed in a future version. "
             "Please use WideMetricsTable (narrow_format=False) instead.",
@@ -39,6 +38,7 @@ class NarrowMetricsTable:
         )
 
         self.cfg = cfg
+        self._time_provider = time_provider or (lambda: datetime.now(UTC))
 
         self.engine = get_sql_engine(db_data=cfg, db_name=cfg.db_name)
         log.info(f"Created engine for database {cfg.db_name}")
@@ -82,8 +82,7 @@ class NarrowMetricsTable:
     # ============================================================================
 
     def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None):
-        timestamp = timestamp or now_iso()
-        current_time = datetime.fromisoformat(timestamp)
+        current_time = datetime.fromisoformat(timestamp) if timestamp else self._time_provider()
         return self._writer.write(
             {
                 "time": current_time,

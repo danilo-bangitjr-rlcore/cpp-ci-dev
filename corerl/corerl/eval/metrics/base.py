@@ -1,14 +1,18 @@
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import Any, Protocol, SupportsFloat
 
 import pandas as pd
 
+from corerl.configs.eval.metrics import MetricsDBConfig
+
 log = logging.getLogger(__name__)
 
 
 class MetricsWriterProtocol(Protocol):
+    def __init__(self, cfg: MetricsDBConfig, time_provider: Callable[[], datetime] | None = None): ...
+
     def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None) -> None:
         ...
 

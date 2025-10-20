@@ -90,7 +90,7 @@ def get_offline_recommendations(
             losses = agent.update()
             log.info(f"Agent updated with num transitions={len(chunk_pr.transitions)}, final q loss={losses[-1]}")
 
-        app_state.agent_step += 1
+        app_state.app_time.increment_step()
 
 
 def _write_to_metrics(app_state: AppState, df: pd.DataFrame, prefix: str = ""):

@@ -59,6 +59,7 @@ class MainConfig:
     max_steps: int | None = None
     seed: int = 0  # affects agent and env
     is_simulation: bool = True
+    demo_mode: bool = False
 
     # -----------
     # -- Agent --
