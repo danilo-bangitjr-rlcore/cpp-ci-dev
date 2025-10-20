@@ -117,8 +117,8 @@ class NamedArray:  # noqa: PLW1641
         )
         return Maybe(df)
 
-    def __array__(self) -> np.ndarray:
-        return np.asarray(self._values)
+    def __array__(self, *args: Any) -> np.ndarray:
+        return np.asarray(self._values, *args)
 
     def __jax_array__(self) -> jax.Array:
         return self._values
@@ -151,15 +151,17 @@ class NamedArray:  # noqa: PLW1641
         new_narr._timestamps = JaxTimestamp(new_high_bits, new_low_bits)
         return new_narr
 
-
-    # arithmetic
     def set(self, values: jax.Array) -> Self:
         """
         method to update the values of the stored array.
         Useful to create a new NamedArray with the same feature names and timestamps, but new values
         """
-        return self.__class__(self.names, values, self.timestamps.to_datetime64())
+        new = self.__class__(self.names, values)
+        new._timestamps = self._timestamps
+        return new
 
+
+    # arithmetic
     def add(self, other: Self) -> Self:
         """
         not commutative: keeps timestamps of self
