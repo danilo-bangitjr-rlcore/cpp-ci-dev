@@ -21,7 +21,7 @@ from interaction.env_wrapper import EnvWrapper
 from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
 from interaction.transition_creator import TransitionCreator
 from src.agent.factory import get_agent
-from utils.action_bounds import ActionBoundsComputer
+from utils.action_bounds import DeltaActionBoundsComputer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
@@ -167,7 +167,7 @@ def main():
     )
 
     # Initialize action bounds computer
-    bounds_computer = ActionBoundsComputer(
+    bounds_computer = DeltaActionBoundsComputer(
         config=cfg.action_bounds,
         action_dim=len(act_bounds[0]),
     )

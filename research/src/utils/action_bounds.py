@@ -22,7 +22,7 @@ class ActionBoundsConfig:
         }
 
 
-class ActionBoundsComputer:
+class DeltaActionBoundsComputer:
     """Computes action bounds based on configuration and previous action."""
 
     def __init__(self, config: ActionBoundsConfig, action_dim: int):
