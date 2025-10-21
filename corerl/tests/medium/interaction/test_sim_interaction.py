@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any
 
+import pytest
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -16,8 +17,8 @@ from corerl.utils.time import percent_time_elapsed
 from tests.infrastructure.config import create_config_with_overrides
 
 
-def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
-    NUM_STEPS = 3
+@pytest.fixture
+def saturation_app_state(tsdb_engine: Engine, tsdb_tmp_db_name: str):
     assert tsdb_engine.url.port is not None
 
     cfg = create_config_with_overrides(
@@ -28,25 +29,30 @@ def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
         },
     )
 
-    # build global objects
     event_bus = DummyEventBus()
-    metrics = create_metrics_writer(cfg.metrics)
-    evals = create_evals_writer(cfg.evals)
-
-    app_state = AppState(
+    return AppState(
         cfg=cfg,
-        metrics=metrics,
-        evals=evals,
+        metrics=create_metrics_writer(cfg.metrics),
+        evals=create_evals_writer(cfg.evals),
         event_bus=event_bus,
     )
+
+
+def test_action_bounds(saturation_app_state: AppState):
+    """
+    Verify action bounds change correctly over time during simulation interaction.
+    """
+    NUM_STEPS = 3
+    app_state = saturation_app_state
+    cfg = app_state.cfg
+
     pipeline = Pipeline(app_state, cfg.pipeline)
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
-    column_desc = pipeline.column_descriptions
     agent = GreedyAC(
         cfg.agent,
         app_state,
-        column_desc,
+        pipeline.column_descriptions,
     )
 
     interaction = init_interaction(
@@ -74,5 +80,5 @@ def test_action_bounds(tsdb_engine: Engine, tsdb_tmp_db_name: str):
 
     agent.close()
     env.close()
-    metrics.close()
-    evals.close()
+    app_state.metrics.close()
+    app_state.evals.close()
