@@ -13,7 +13,7 @@ SERVICE_SCRIPT = SERVICE / "windows-service.py"
 FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 SERVER_LIB = BACKEND / "server" / ".."
-DEFAULT_CONFIG_DIR = ROOT / ".." / "config"
+DEFAULT_CONFIG_PATH = ROOT / ".." / "config"
 
 DEV_GRACE_SECONDS = 5.0
 
@@ -90,19 +90,17 @@ def dev():
 
     _block_on_processes(procs)
 
-def dev_stack(coredinator_dir: Path, coretelemetry_dir: Path):
+def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
     print("Starting development servers... (Ctrl+C to stop)")
     build_frontend()
-    print("Starting full development stack... (Ctrl+C to stop)")
-
 
     # Start microservices
     procs = [
         _start_service("Vite", "npm run dev", FRONTEND),
         _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
-        _start_service("CoreGateway", "source .venv/bin/activate && uv run python coregateway/app.py", "../coregateway"),
-        _start_service("CoreDinator", f"source .venv/bin/activate && uv run python coredinator/app.py --base-path {coredinator_dir}", "../coredinator"),
-        _start_service("CoreTelemetry", f"source .venv/bin/activate && uv run python coretelemetry/app.py --config-path {coretelemetry_dir}", "../coretelemetry"),
+        _start_service("CoreGateway", "uv run python coregateway/app.py", "../coregateway"),
+        _start_service("CoreDinator", f"uv run python coredinator/app.py --base-path {coredinator_path}", "../coredinator"),
+        _start_service("CoreTelemetry", f"uv run python coretelemetry/app.py --config-path {coretelemetry_path}", "../coretelemetry"),
     ]
 
     _block_on_processes(procs)
@@ -110,8 +108,8 @@ def dev_stack(coredinator_dir: Path, coretelemetry_dir: Path):
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
     parser.add_argument("command", choices=["build", "clean", "dev", "dev-stack"], help="Action to perform")
-    parser.add_argument("--coredinator-dir", default=DEFAULT_CONFIG_DIR, help="--base-path for Coredinator")
-    parser.add_argument("--coretelemetry-dir", default=DEFAULT_CONFIG_DIR, help="--config-dir for CoreTelemetry")
+    parser.add_argument("--coredinator-path", default=DEFAULT_CONFIG_PATH, help="--base-path for Coredinator")
+    parser.add_argument("--coretelemetry-path", default=DEFAULT_CONFIG_PATH, help="--config-path for CoreTelemetry")
 
     args = parser.parse_args()
 
@@ -125,7 +123,7 @@ def main():
     elif args.command == "dev":
         dev()
     elif args.command == "dev-stack":
-        dev_stack(Path(args.coredinator_dir), Path(args.coretelemetry_dir))
+        dev_stack(Path(args.coredinator_path), Path(args.coretelemetry_path))
 
 if __name__ == "__main__":
     main()
