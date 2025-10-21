@@ -1,5 +1,6 @@
 import argparse
 from pathlib import Path
+from typing import NamedTuple
 
 import uvicorn
 from coretelemetry.agent_metrics_api.agent_metrics_routes import AgentMetricsManager, agent_metrics_router
@@ -9,15 +10,13 @@ from coretelemetry.system_metrics_api.system_metrics_routes import system_metric
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, RedirectResponse
-from pydantic import BaseModel
 
 __version__ = "0.1.0"
 
-class CoretelemetryConfig(BaseModel):
-    port: int = 7001
-    config_path: str = "clean/"
-
-coretelemetry_config = CoretelemetryConfig()
+class CoretelemetryConfig(NamedTuple):
+    port: int
+    config_path: str
+    reload: bool
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CoreTelemetry API")
@@ -34,7 +33,13 @@ def parse_args():
         help="Port to run the server on (default: 7001)",
     )
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    return CoretelemetryConfig(
+        port = args.port,
+        config_path = args.config_path,
+        reload = args.reload,
+    )
 
 # pyright: reportUnusedFunction=false
 def create_app(config_path: str | Path) -> FastAPI:
@@ -78,25 +83,23 @@ def create_app(config_path: str | Path) -> FastAPI:
 
 def get_app() -> FastAPI:
     # Parsing args inside get_app to get consistent config across reloads
-    args = parse_args()
-    coretelemetry_config.port = args.port
-    coretelemetry_config.config_path = args.config_path
+    coretelemetry_config = parse_args()
 
     return create_app(coretelemetry_config.config_path)
 
 if __name__ == "__main__":
-    args = parse_args()
+    coretelemetry_config = parse_args()
 
-    if args.reload:
+    if coretelemetry_config.reload:
         # Use string import for reload support (dev only)
         uvicorn.run(
             "coretelemetry.app:get_app",
             host="0.0.0.0",
-            port=args.port,
+            port=coretelemetry_config.port,
             reload=True,
             factory=True,
         )
     else:
         # Use direct app instance for executable compatibility
         app = get_app()
-        uvicorn.run(app, host="0.0.0.0", port=args.port)
+        uvicorn.run(app, host="0.0.0.0", port=coretelemetry_config.port)
