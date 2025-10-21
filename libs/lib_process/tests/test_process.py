@@ -84,6 +84,7 @@ def test_is_running_nonexistent_process(sleep_process: subprocess.Popen):
     process = Process.from_pid(sleep_process.pid)
     sleep_process.kill()
     sleep_process.wait()
+    time.sleep(0.1)
     assert process.is_running() is False
 
 
