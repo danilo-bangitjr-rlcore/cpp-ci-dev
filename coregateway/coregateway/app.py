@@ -41,8 +41,8 @@ def parse_args():
     args = parser.parse_args()
     return CoregatewayConfig(
         port = args.port,
-        coredinator_port =  args.coredinator_port,
-        coretelemetry_port= args.coretelemetry_port,
+        coredinator_port = args.coredinator_port,
+        coretelemetry_port = args.coretelemetry_port,
         reload = args.reload,
     )
 
@@ -200,16 +200,16 @@ def get_app() -> FastAPI:
     )
 
 if __name__ == "__main__":
-    coregatewayconfig = parse_args()
+    coregateway_config = parse_args()
 
-    if coregatewayconfig.reload:
+    if coregateway_config.reload:
         uvicorn.run(
             "coregateway.app:get_app",
             host="0.0.0.0",
-            port=coregatewayconfig.port,
+            port=coregateway_config.port,
             reload=True,
             factory=True,
         )
     else:
         app = get_app()
-        uvicorn.run(app, host="0.0.0.0", port=coregatewayconfig.port)
+        uvicorn.run(app, host="0.0.0.0", port=coregateway_config.port)

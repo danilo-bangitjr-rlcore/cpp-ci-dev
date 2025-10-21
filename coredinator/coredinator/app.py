@@ -154,7 +154,6 @@ def create_app(
 
     @app.get("/api/healthcheck")
     async def health(request: Request):
-        print("Javo")
         logger.debug("Health check requested")
         event_bus_healthy = request.app.state.event_bus_manager.is_healthy()
         return {
