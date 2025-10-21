@@ -201,10 +201,14 @@ if __name__ == "__main__":
     coregateway_config.coredinator_port = args.coredinator_port
     coregateway_config.coretelemetry_port = args.coretelemetry_port
 
-    uvicorn.run(
-        "coregateway.app:get_app",
-        host="0.0.0.0",
-        port=args.port,
-        reload=args.reload,
-        factory=True,
-    )
+    if args.reload:
+        uvicorn.run(
+            "coregateway.app:get_app",
+            host="0.0.0.0",
+            port=args.port,
+            reload=args.reload,
+            factory=True,
+        )
+    else:
+        app = get_app()
+        uvicorn.run(app, host="0.0.0.0", port=args.port)
