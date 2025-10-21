@@ -1,5 +1,6 @@
 pytest_plugins = (
     # local infra
+    'tests.infrastructure.agent',
     'tests.infrastructure.config',
     'tests.infrastructure.databases',
     'tests.infrastructure.pipeline',
