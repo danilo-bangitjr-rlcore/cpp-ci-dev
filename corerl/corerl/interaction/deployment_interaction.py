@@ -71,9 +71,7 @@ class DeploymentInteraction:
             app_state,
         )
 
-        self._representation_metrics = RepresentationEval(
-            app_state,
-        )
+        self._representation_metrics = RepresentationEval()
 
         self._mc_eval = MonteCarloEvaluator(
             app_state.cfg.eval_cfgs.monte_carlo,
