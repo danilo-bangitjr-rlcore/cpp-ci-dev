@@ -2,13 +2,14 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
+from lib_agent.buffer.datatypes import Step
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 from lib_utils.named_array import NamedArray
 from test.infrastructure.app_state import make_dummy_app_state
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode, Transition
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 

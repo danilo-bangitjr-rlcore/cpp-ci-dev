@@ -1,8 +1,7 @@
 import datetime
 from collections.abc import Callable
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 from enum import Enum, auto
-from math import isclose
 from typing import NamedTuple
 
 import jax
@@ -10,58 +9,10 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import DataMode, JaxTransition
-from lib_utils.named_array import NamedArray
+from lib_agent.buffer.datatypes import DataMode, JaxTransition, Step
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-
-@dataclass
-class Step:
-    """
-    Dataclass for storing the information of a single step.
-    Two of these make up a transition.
-    """
-    reward: float
-    action: jax.Array
-    gamma: float
-    state: NamedArray
-    action_lo: jax.Array
-    action_hi: jax.Array
-    dp: bool # decision point
-    ac: bool # action change
-    timestamp: datetime.datetime | None = None
-
-    def __eq__(self, other: object):
-        if not isinstance(other, Step):
-            return False
-
-        return (
-                isclose(self.gamma, other.gamma)
-                and isclose(self.reward, other.reward)
-                and jnp.allclose(self.action, other.action).item()
-                and jnp.allclose(self.state.array, other.state.array).item()
-                and self.dp == other.dp
-        )
-
-    def __str__(self):
-        return '\n'.join(
-            f'{f.name}: {getattr(self, f.name)}'
-            for f in fields(self)
-        )
-
-    def __hash__(self):
-        return hash((
-            self.reward,
-            tuple(self.action),
-            self.gamma,
-            tuple(self.state.array),
-            self.action_lo,
-            self.action_hi,
-            self.dp,
-            self.ac,
-            self.timestamp,
-        ))
 
 
 @dataclass

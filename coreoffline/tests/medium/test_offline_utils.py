@@ -6,13 +6,14 @@ import pandas as pd
 import pytest
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
-from corerl.data_pipeline.datatypes import Step, Transition
+from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
+from lib_agent.buffer.datatypes import Step
 from lib_defs.config_defs.tag_config import TagType
 from lib_sql.inspection import table_exists
 from lib_utils.named_array import NamedArray

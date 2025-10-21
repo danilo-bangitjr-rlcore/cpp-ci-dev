@@ -5,11 +5,12 @@ from collections import deque
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
+from lib_agent.buffer.datatypes import Step
 from lib_utils.maybe import Maybe
 from lib_utils.named_array import NamedArray
 
 from corerl.configs.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Step, Transition
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Transition
 
 type StepInfo = dict[int, deque[Step]]
 

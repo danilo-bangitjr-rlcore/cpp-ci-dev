@@ -4,7 +4,8 @@ import datetime as dt
 
 import jax.numpy as jnp
 import pytest
-from corerl.data_pipeline.datatypes import Step, Transition
+from corerl.data_pipeline.datatypes import Transition
+from lib_agent.buffer.datatypes import Step
 from lib_utils.named_array import NamedArray
 
 
