@@ -2,8 +2,8 @@ import logging
 from pathlib import Path
 
 import numpy as np
-from corerl.data_pipeline.datatypes import Transition
 from corerl.state import AppState
+from lib_agent.buffer.datatypes import Trajectory
 from lib_config.loader import load_config
 from lib_defs.config_defs.tag_config import TagType
 from lib_progress.tracker import track
@@ -16,7 +16,7 @@ from coreoffline.utils.behaviour_cloning.evaluation import calculate_per_action_
 from coreoffline.utils.behaviour_cloning.models import BaseRegressor, LinearRegressor, MLPRegressor
 from coreoffline.utils.behaviour_cloning.plotting import create_single_action_scatter_plot
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.data_loading import load_offline_transitions
+from coreoffline.utils.data_loading import load_offline_trajectories
 from coreoffline.utils.setup import create_standard_setup
 
 log = logging.getLogger(__name__)
@@ -84,7 +84,7 @@ def run_baseline_cross_validation(data: ModelData, n_splits: int):
     return all_y_true, all_y_pred
 
 
-def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
+def run_behaviour_cloning(app_state: AppState, trajectories: list[Trajectory]):
     assert isinstance(app_state.cfg, OfflineMainConfig)
 
     # Get all action names from configuration
@@ -92,7 +92,7 @@ def run_behaviour_cloning(app_state: AppState, transitions: list[Transition]):
     log.info(f"Training models for {len(action_names)} action(s): {action_names}")
 
     data = prepare_features_and_targets(
-        transitions,
+        trajectories,
         action_names=action_names,
     )
 
@@ -179,19 +179,19 @@ def main(cfg: OfflineMainConfig):
 
     app_state, pipeline = create_standard_setup(cfg)
 
-    log.info("Loading offline transitions...")
-    pr, _ = load_offline_transitions(app_state, pipeline)
+    log.info("Loading offline trajectories...")
+    pr, _ = load_offline_trajectories(app_state, pipeline)
     if pr is None:
         log.info("No pipeline output found, exiting")
         return
 
-    if not pr.transitions:
-        log.info("No transitions found, exiting")
+    if not pr.trajectories:
+        log.info("No trajectories found, exiting")
         return
 
-    log.info(f"Loaded {len(pr.transitions)} transition(s)")
+    log.info(f"Loaded {len(pr.trajectories)} trajectories")
 
-    run_behaviour_cloning(app_state, pr.transitions)
+    run_behaviour_cloning(app_state, pr.trajectories)
 
 
 if __name__ == "__main__":

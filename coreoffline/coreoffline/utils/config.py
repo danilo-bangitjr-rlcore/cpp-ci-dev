@@ -60,9 +60,9 @@ class ReportConfig:
     hist_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.9])
     hist_num_bins: int = 30
 
-    # for transition statistics
-    transition_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
-    contiguous_time_threshold: timedelta = MISSING  # max time gap to consider transitions contiguous
+    # for trajectory statistics
+    trajectory_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])
+    contiguous_time_threshold: timedelta = MISSING  # max time gap to consider trajectories contiguous
 
     # for goal violations
     violation_period_percentiles: list[float] = Field(default_factory=lambda: [0.1, 0.25, 0.5, 0.75, 0.9])

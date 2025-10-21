@@ -63,6 +63,90 @@ class Step:
         ))
 
 
+@dataclass
+class Trajectory:
+    steps: list[Step]
+    n_step_reward: float
+    n_step_gamma: float
+
+    @property
+    def state(self):
+        return self.prior.state
+
+    @property
+    def action(self):
+        return self.post.action
+
+    @property
+    def reward(self):
+        return self.n_step_reward
+
+    @property
+    def gamma(self):
+        return self.n_step_gamma
+
+    @property
+    def next_state(self):
+        return self.post.state
+
+    @property
+    def action_dim(self):
+        return self.post.action.shape[-1]
+
+    @property
+    def state_dim(self):
+        return self.prior.state.shape[-1]
+
+    @property
+    def prior(self):
+        return self.steps[0]
+
+    @property
+    def post(self):
+        return self.steps[-1]
+
+    @property
+    def n_steps(self):
+        return len(self.steps) - 1
+
+    def __eq__(self, other: object):
+        if not isinstance(other, Trajectory):
+            return False
+
+        if len(self.steps) != len(other.steps):
+            return False
+
+        if self.n_steps != other.n_steps:
+            return False
+
+        if self.n_step_gamma != other.n_step_gamma:
+            return False
+
+        for i, step in enumerate(self.steps):
+            if step != other.steps[i]:
+                return False
+
+        return True
+
+    def __len__(self) -> int:
+        return len(self.steps)-1
+
+    def __hash__(self):
+        return hash((
+            tuple(self.steps),
+            self.n_step_reward,
+            self.n_step_gamma,
+        ))
+
+    @property
+    def start_time(self):
+        return self.prior.timestamp
+
+    @property
+    def end_time(self):
+        return self.post.timestamp
+
+
 class JaxTransition(NamedTuple):
     last_action: jax.Array
     state: NamedArray

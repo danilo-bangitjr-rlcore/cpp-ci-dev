@@ -14,12 +14,12 @@ interaction:
   action_period: 00:05:00
 
 pipeline:
-  transition_creator:
+  trajectory_creator:
     name: all-the-time
     min_n_step: 1
     max_n_step: 1
 
-  transition_filter:
+  trajectory_filter:
     filters:
       - "only_pre_dp_or_ac"
       - "only_dp"

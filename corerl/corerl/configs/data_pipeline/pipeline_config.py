@@ -14,8 +14,8 @@ from corerl.configs.data_pipeline.imputers.auto_encoder import MaskedAEConfig
 from corerl.configs.data_pipeline.imputers.imputer_stage import PerTagImputerConfig
 from corerl.configs.data_pipeline.oddity_filters.config import GlobalOddityFilterConfig
 from corerl.configs.data_pipeline.oddity_filters.identity import IdentityFilterConfig
+from corerl.configs.data_pipeline.trajectory_filter import TrajectoryFilterConfig
 from corerl.configs.data_pipeline.transforms import NukeConfig
-from corerl.configs.data_pipeline.transition_filter import TransitionFilterConfig
 from corerl.configs.data_pipeline.virtual.deltaize_tags import DeltaStageConfig
 from corerl.configs.environment.reward.config import RewardConfig
 from corerl.configs.tags.components.bounds import BoundType, init_bounds_info
@@ -36,8 +36,8 @@ class PipelineConfig:
     imputer: ImputerStageConfig = Field(default_factory=MaskedAEConfig)
     oddity_filter: GlobalOddityFilterConfig = Field(default_factory=GlobalOddityFilterConfig)
     state_constructor: SCConfig = Field(default_factory=SCConfig)
-    transition_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
-    transition_filter: TransitionFilterConfig = Field(default_factory=TransitionFilterConfig)
+    trajectory_creator: AllTheTimeTCConfig = Field(default_factory=AllTheTimeTCConfig)
+    trajectory_filter: TrajectoryFilterConfig = Field(default_factory=TrajectoryFilterConfig)
     reward: RewardConfig | None = None
 
     @computed('max_data_gap')

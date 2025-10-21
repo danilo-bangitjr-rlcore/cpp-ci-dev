@@ -28,7 +28,7 @@ coreoffline/
 │   ├── scripts/           # Executable scripts for various workflows
 │   │   ├── behaviour_clone.py
 │   │   ├── create_data_report.py
-│   │   ├── create_transition_report.py
+│   │   ├── create_trajectory_report.py
 │   │   ├── generate_tag_configs.py
 │   │   └── run_offline_training.py
 │   └── utils/             # Utility modules and helper functions
@@ -79,7 +79,7 @@ python -m coreoffline.scripts.create_data_report --config path/to/config.yaml
 
 ---
 
-### `create_transition_report.py`
+### `create_trajectory_report.py`
 
 Generates reports focused on RL transitions (state, action, reward, next_state).
 
@@ -88,11 +88,11 @@ Generates reports focused on RL transitions (state, action, reward, next_state).
 
 **Usage:**
 ```bash
-python -m coreoffline.scripts.create_transition_report --config path/to/config.yaml
+python -m coreoffline.scripts.create_trajectory_report --config path/to/config.yaml
 ```
 
 **Outputs:**
-- Transition statistics and visualizations
+- Trajectory statistics and visualizations
 
 ---
 
@@ -116,7 +116,7 @@ python -m coreoffline.scripts.generate_tag_configs --config path/to/config.yaml
 
 Trains a reinforcement learning agent using offline (batch) data.
 
-**Purpose:** Perform offline RL training on pre-collected transitions without environment interaction, then optionally evaluate on held-out periods.
+**Purpose:** Perform offline RL training on pre-collected trajectories without environment interaction, then optionally evaluate on held-out periods.
 
 **Usage:**
 ```bash

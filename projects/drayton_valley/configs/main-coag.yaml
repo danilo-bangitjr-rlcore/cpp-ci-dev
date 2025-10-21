@@ -93,13 +93,13 @@ pipeline:
       - name: multi_trace
         trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
 
-  transition_creator:
+  trajectory_creator:
     name: all-the-time
     # n_step should be 8, give some buffer
     min_n_step: 7
     max_n_step: 8
 
-  transition_filter:
+  trajectory_filter:
     filters:
     - "only_pre_dp_or_ac"
     - "only_post_dp"

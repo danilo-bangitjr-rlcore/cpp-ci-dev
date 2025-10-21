@@ -9,94 +9,10 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import DataMode, JaxTransition, Step
+from lib_agent.buffer.datatypes import DataMode, JaxTransition, Trajectory
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-
-
-@dataclass
-class Transition:
-    steps: list[Step]
-    n_step_reward: float
-    n_step_gamma: float
-
-    @property
-    def state(self):
-        return self.prior.state
-
-    @property
-    def action(self):
-        return self.post.action
-
-    @property
-    def reward(self):
-        return self.n_step_reward
-
-    @property
-    def gamma(self):
-        return self.n_step_gamma
-
-    @property
-    def next_state(self):
-        return self.post.state
-
-    @property
-    def action_dim(self):
-        return self.post.action.shape[-1]
-
-    @property
-    def state_dim(self):
-        return self.prior.state.shape[-1]
-
-    @property
-    def prior(self):
-        return self.steps[0]
-
-    @property
-    def post(self):
-        return self.steps[-1]
-
-    @property
-    def n_steps(self):
-        return len(self.steps) - 1
-
-    def __eq__(self, other: object):
-        if not isinstance(other, Transition):
-            return False
-
-        if len(self.steps) != len(other.steps):
-            return False
-
-        if self.n_steps != other.n_steps:
-            return False
-
-        if self.n_step_gamma != other.n_step_gamma:
-            return False
-
-        for i, step in enumerate(self.steps):
-            if step != other.steps[i]:
-                return False
-
-        return True
-
-    def __len__(self) -> int:
-        return len(self.steps)-1
-
-    def __hash__(self):
-        return hash((
-            tuple(self.steps),
-            self.n_step_reward,
-            self.n_step_gamma,
-        ))
-
-    @property
-    def start_time(self):
-        return self.prior.timestamp
-
-    @property
-    def end_time(self):
-        return self.post.timestamp
 
 
 class AbsTransition(NamedTuple):
@@ -139,7 +55,7 @@ class PipelineFrame:
     decision_points: np.ndarray = field(init=False)
     action_change: np.ndarray = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
-    transitions: list[Transition] | None = None
+    trajectories: list[Trajectory] | None = None
 
     def __post_init__(self):
         N = len(self.data)
@@ -165,25 +81,25 @@ class PipelineFrame:
         assert isinstance(first_index, datetime.datetime)
         return first_index
 
-def convert_corerl_transition_to_jax_transition(corerl_transition: Transition) -> JaxTransition:
+def convert_trajectory_to_jax_transition(trajectory: Trajectory) -> JaxTransition:
     timestamp = None
-    if corerl_transition.start_time is not None:
-        timestamp = int(corerl_transition.start_time.timestamp())
+    if trajectory.start_time is not None:
+        timestamp = int(trajectory.start_time.timestamp())
 
     return JaxTransition(
-        last_action=corerl_transition.prior.action,
-        state=corerl_transition.state,
-        action=corerl_transition.action,
-        reward=jnp.asarray(corerl_transition.reward),
-        next_state=corerl_transition.next_state,
-        gamma=jnp.asarray(corerl_transition.gamma),
-        action_lo=corerl_transition.prior.action_lo,
-        action_hi=corerl_transition.prior.action_hi,
-        next_action_lo=corerl_transition.post.action_lo,
-        next_action_hi=corerl_transition.post.action_hi,
-        dp=jnp.asarray(corerl_transition.prior.dp),
-        next_dp=jnp.asarray(corerl_transition.post.dp),
-        n_step_reward=jnp.asarray(corerl_transition.n_step_reward),
-        n_step_gamma=jnp.asarray(corerl_transition.n_step_gamma),
+        last_action=trajectory.prior.action,
+        state=trajectory.state,
+        action=trajectory.action,
+        reward=jnp.asarray(trajectory.reward),
+        next_state=trajectory.next_state,
+        gamma=jnp.asarray(trajectory.gamma),
+        action_lo=trajectory.prior.action_lo,
+        action_hi=trajectory.prior.action_hi,
+        next_action_lo=trajectory.post.action_lo,
+        next_action_hi=trajectory.post.action_hi,
+        dp=jnp.asarray(trajectory.prior.dp),
+        next_dp=jnp.asarray(trajectory.post.dp),
+        n_step_reward=jnp.asarray(trajectory.n_step_reward),
+        n_step_gamma=jnp.asarray(trajectory.n_step_gamma),
         timestamp=timestamp,
     )

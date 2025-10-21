@@ -5,12 +5,12 @@ from collections import deque
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.datatypes import Step
+from lib_agent.buffer.datatypes import Step, Trajectory
 from lib_utils.maybe import Maybe
 from lib_utils.named_array import NamedArray
 
 from corerl.configs.data_pipeline.all_the_time import AllTheTimeTCConfig
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, Transition
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
 
 type StepInfo = dict[int, deque[Step]]
 
@@ -99,22 +99,22 @@ class AllTheTimeTC:
 
         pf, steps = self._make_steps(pf)
 
-        transitions = []
+        trajectories = []
         for step in steps:
-            new_transitions, step_info = self._update(step, step_info)
-            transitions += new_transitions
+            new_trajectories, step_info = self._update(step, step_info)
+            trajectories += new_trajectories
 
         pf.temporal_state[StageCode.TC] = step_info
-        pf.transitions = transitions
+        pf.trajectories = trajectories
 
         return pf
 
     def _update(self, step: Step, step_info: StepInfo):
         """
         Updates all the step queues, n_step_rewards, and n_step_gammas stored in self.step_info with the new step,
-        then returns any produced transitions.
+        then returns any produced trajectories.
         """
-        new_transitions: list[Transition] = []
+        new_trajectories: list[Trajectory] = []
         for n in range(self.min_n_step, self.max_n_step + 1):
             step_q = step_info[n]
             step_q.append(step)
@@ -123,12 +123,12 @@ class AllTheTimeTC:
             if is_full:
                 n_step_reward, n_step_gamma = get_n_step_reward(step_q)
 
-                new_transition = Transition(
+                new_trajectory = Trajectory(
                     list(step_q),
                     n_step_reward=n_step_reward,
                     n_step_gamma=n_step_gamma,
                 )
 
-                new_transitions.append(new_transition)
+                new_trajectories.append(new_trajectory)
 
-        return new_transitions, step_info
+        return new_trajectories, step_info

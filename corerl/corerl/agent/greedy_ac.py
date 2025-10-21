@@ -25,7 +25,7 @@ from corerl.agent.base import BaseAgent
 from corerl.configs.agent.greedy_ac import (
     GreedyACConfig,
 )
-from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
+from corerl.data_pipeline.datatypes import AbsTransition, convert_trajectory_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
@@ -227,12 +227,12 @@ class GreedyAC(BaseAgent):
         return np.asarray(jaxtion)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        if pr.transitions is None:
+        if pr.trajectories is None:
             return
 
         self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
 
-        jax_transitions = [convert_corerl_transition_to_jax_transition(t) for t in pr.transitions]
+        jax_transitions = [convert_trajectory_to_jax_transition(t) for t in pr.trajectories]
 
         self.critic_buffer.feed(jax_transitions, pr.data_mode)
         recent_actor_idxs = self._actor_buffer.feed(jax_transitions, pr.data_mode)
@@ -264,12 +264,12 @@ class GreedyAC(BaseAgent):
                 value=actor_loss,
             )
 
-        # ------------------------- transition length metric ------------------------- #
+        # ------------------------- trajectory length metric ------------------------- #
 
-        for t in pr.transitions:
+        for t in pr.trajectories:
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric="pipeline_transition_len",
+                metric="pipeline_trajectory_len",
                 value=len(t),
             )
 

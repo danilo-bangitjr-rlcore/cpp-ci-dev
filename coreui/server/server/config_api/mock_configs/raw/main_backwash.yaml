@@ -70,11 +70,11 @@ pipeline:
       trace_values:
       - 0.0
       - 0.97
-  transition_creator:
+  trajectory_creator:
     name: all-the-time
     min_n_step: 15
     max_n_step: 16
-  transition_filter:
+  trajectory_filter:
     filters:
     - only_pre_dp_or_ac
     - only_post_dp

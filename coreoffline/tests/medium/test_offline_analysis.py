@@ -3,14 +3,14 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from corerl.data_pipeline.datatypes import StageCode, Transition
+from corerl.data_pipeline.datatypes import StageCode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 from corerl.utils.pandas import split_dataframe_into_chunks
-from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode, Trajectory
 
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.data_analysis import data_report, transition_report
+from coreoffline.utils.data_analysis import data_report, trajectory_report
 from coreoffline.utils.data_analysis.data_report import ReportConfig
 from coreoffline.utils.pipeline_utils import StageDataCapture
 
@@ -101,16 +101,16 @@ def test_data_report_smoke_test(
     assert (tmp_path / "data_report" / "sensor_report.txt").exists()
 
 
-def test_transition_report_smoke_test(
+def test_trajectory_report_smoke_test(
         tmp_path: Path,
-        transitions_with_timestamps: list[Transition],
+        trajectories_with_timestamps: list[Trajectory],
         dummy_app_state: AppState,
     ):
-    """Smoke test for transition report generation to ensure it terminates correctly"""
+    """Smoke test for trajectory report generation to ensure it terminates correctly"""
 
     # Create report config
     report_cfg = ReportConfig(
-        output_dir=tmp_path / "transition_report",
+        output_dir=tmp_path / "trajectory_report",
         stages=[StageCode.INIT, StageCode.SC],
         stat_table_enabled=False,
         hist_enabled=False,
@@ -122,17 +122,17 @@ def test_transition_report_smoke_test(
     end = dt.datetime(2023, 7, 13, 10, 5, tzinfo=dt.UTC)
 
     # This should not raise any exceptions
-    transition_report.generate_report(
+    trajectory_report.generate_report(
         report_cfg,
         dummy_app_state,
         start,
         end,
-        transitions_with_timestamps,
+        trajectories_with_timestamps,
     )
 
     # Verify that output directory was created
-    assert (tmp_path / "transition_report").exists()
+    assert (tmp_path / "trajectory_report").exists()
 
-    # Verify that transition statistics file was created
-    assert (tmp_path / "transition_report" / "transition_statistics.txt").exists()
-    assert (tmp_path / "transition_report" / "transition_statistics.csv").exists()
+    # Verify that trajectory statistics file was created
+    assert (tmp_path / "trajectory_report" / "trajectory_statistics.txt").exists()
+    assert (tmp_path / "trajectory_report" / "trajectory_statistics.csv").exists()

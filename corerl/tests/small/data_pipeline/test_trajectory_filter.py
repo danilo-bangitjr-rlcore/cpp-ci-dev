@@ -4,26 +4,26 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pytest
-from lib_agent.buffer.datatypes import Step
+from lib_agent.buffer.datatypes import Step, Trajectory
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 from lib_utils.named_array import NamedArray
 
 from corerl.config import MainConfig
 from corerl.configs.data_pipeline.state_constructors.countdown import CountdownConfig
-from corerl.configs.data_pipeline.transition_filter import TransitionFilterConfig
+from corerl.configs.data_pipeline.trajectory_filter import TrajectoryFilterConfig
 from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
-from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, Transition
+from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector
-from corerl.data_pipeline.transition_filter import (
-    TransitionFilter,
+from corerl.data_pipeline.trajectory_filter import (
+    TrajectoryFilter,
     no_nan,
     only_dp,
     only_no_action_change,
     only_post_dp,
 )
 from corerl.state import AppState
-from tests.small.data_pipeline.test_transition_pipeline import pf_from_actions
+from tests.small.data_pipeline.test_trajectory_pipeline import pf_from_actions
 
 
 def test_only_pre_dp_or_ac_and_only_dp_assert():
@@ -36,7 +36,7 @@ def test_only_pre_dp_or_ac_and_only_dp_assert():
     )
 
     assert isinstance(cfg, ConfigValidationErrors)
-    assert "pipeline.transition_filter" in cfg.meta
+    assert "pipeline.trajectory_filter" in cfg.meta
 
 def test_only_post_dp_and_only_dp_assert():
     """
@@ -48,7 +48,7 @@ def test_only_post_dp_and_only_dp_assert():
     )
 
     assert isinstance(cfg, ConfigValidationErrors)
-    assert "pipeline.transition_filter" in cfg.meta
+    assert "pipeline.trajectory_filter" in cfg.meta
 
 def make_test_step(
     i: int,
@@ -70,8 +70,8 @@ def make_test_step(
     )
 
 
-def make_test_dp_transition(dps: list[bool]):
-    return Transition(
+def make_test_dp_trajectory(dps: list[bool]):
+    return Trajectory(
         steps=[
             make_test_step(i, dp=dp) for i, dp in enumerate(dps)
         ],
@@ -89,9 +89,9 @@ def make_test_dp_transition(dps: list[bool]):
 
     ],
 )
-def test_only_dp_transitions(dps: list[bool], expected: bool):
-    transition = make_test_dp_transition(dps)
-    assert only_dp(transition) == expected
+def test_only_dp_trajectories(dps: list[bool], expected: bool):
+    trajectory = make_test_dp_trajectory(dps)
+    assert only_dp(trajectory) == expected
 
 
 @pytest.mark.parametrize(
@@ -103,15 +103,15 @@ def test_only_dp_transitions(dps: list[bool], expected: bool):
 
     ],
 )
-def test_only_post_transitions(dps: list[bool], expected: bool):
-    transition = make_test_dp_transition(dps)
-    assert only_post_dp(transition) == expected
+def test_only_post_trajectories(dps: list[bool], expected: bool):
+    trajectory = make_test_dp_trajectory(dps)
+    assert only_post_dp(trajectory) == expected
 
 
-def make_action_change_transition(
+def make_action_change_trajectory(
         dps: list[bool],
         actions: list[float]):
-    return Transition(
+    return Trajectory(
         steps=[
             make_test_step(i, dp=dps[i], action=actions[i]) for i in range(len(dps))
         ],
@@ -146,7 +146,7 @@ def test_only_no_action_change(actions: list[float], expected: bool):
     # only_no_action_change filter relies on DP detector to detect action changes
     pf = cd_adder(pf)
 
-    # create transitions
+    # create trajectories
     tc_cfg = AllTheTimeTCConfig(
         gamma=0.9,
         max_n_step=len(actions)-1,
@@ -159,11 +159,11 @@ def test_only_no_action_change(actions: list[float], expected: bool):
     pf.states = pf.data # stub out states for TC
     pf = tc(pf)
 
-    assert pf.transitions is not None
-    assert len(pf.transitions) == 1
-    transition = pf.transitions[0]
+    assert pf.trajectories is not None
+    assert len(pf.trajectories) == 1
+    trajectory = pf.trajectories[0]
 
-    assert only_no_action_change(transition) == expected
+    assert only_no_action_change(trajectory) == expected
 
 
 def test_no_nan():
@@ -173,13 +173,13 @@ def test_no_nan():
         make_test_step(2),
     ]
 
-    transition = Transition(
+    trajectory = Trajectory(
         steps=steps,
         n_step_gamma=0.81,
         n_step_reward=1.9,
     )
 
-    assert not no_nan(transition)
+    assert not no_nan(trajectory)
 
     steps = [
         make_test_step(0),
@@ -188,13 +188,13 @@ def test_no_nan():
     ]
     steps[1].state = NamedArray.unnamed(jnp.array([np.nan]))
 
-    transition = Transition(
+    trajectory = Trajectory(
         steps=steps,
         n_step_gamma=0.81,
         n_step_reward=1.9,
     )
 
-    assert not no_nan(transition)
+    assert not no_nan(trajectory)
 
     steps = [
         make_test_step(0),
@@ -202,26 +202,26 @@ def test_no_nan():
         make_test_step(2),
     ]
 
-    transition = Transition(
+    trajectory = Trajectory(
         steps=steps,
         n_step_gamma=0.81,
         n_step_reward=1.9,
     )
 
-    assert no_nan(transition)
+    assert no_nan(trajectory)
 
 
-def test_transition_filter_1(dummy_app_state: AppState):
-    cfg = TransitionFilterConfig(
+def test_trajectory_filter_1(dummy_app_state: AppState):
+    cfg = TrajectoryFilterConfig(
         filters=[
             'only_post_dp',
             'only_no_action_change',
         ],
     )
-    transition_filter = TransitionFilter(dummy_app_state, cfg)
+    trajectory_filter = TrajectoryFilter(dummy_app_state, cfg)
 
     # no action change and dp is true
-    transition_0 = Transition(
+    trajectory_0 = Trajectory(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=0),
@@ -232,7 +232,7 @@ def test_transition_filter_1(dummy_app_state: AppState):
     )
 
     # no action change and dp is False
-    transition_1 = Transition(
+    trajectory_1 = Trajectory(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=0),
@@ -243,7 +243,7 @@ def test_transition_filter_1(dummy_app_state: AppState):
     )
 
     # action change and dp is True
-    transition_2 = Transition(
+    trajectory_2 = Trajectory(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=1),
@@ -254,7 +254,7 @@ def test_transition_filter_1(dummy_app_state: AppState):
     )
 
     # action change and dp is False
-    transition_3 = Transition(
+    trajectory_3 = Trajectory(
         steps=[
             make_test_step(0, action=0),
             make_test_step(1, action=1),
@@ -269,13 +269,13 @@ def test_transition_filter_1(dummy_app_state: AppState):
     pf = PipelineFrame(
         df,
         data_mode=DataMode.OFFLINE,
-        transitions=[transition_0, transition_1, transition_2, transition_3],
+        trajectories=[trajectory_0, trajectory_1, trajectory_2, trajectory_3],
     )
 
-    pf = transition_filter(pf)
-    assert pf.transitions is not None
-    assert len(pf.transitions) == 1
-    assert pf.transitions[0] == transition_0
+    pf = trajectory_filter(pf)
+    assert pf.trajectories is not None
+    assert len(pf.trajectories) == 1
+    assert pf.trajectories[0] == trajectory_0
 
 
 def test_capture_regular_RL(dummy_app_state: AppState):
@@ -301,7 +301,7 @@ def test_capture_regular_RL(dummy_app_state: AppState):
     )
 
 
-    first_transition = Transition(
+    first_trajectory = Trajectory(
         steps=[first, second, *intermediate, last],
         n_step_reward=5, # irrelevant random value
         n_step_gamma=0.8, # irrelevant random value
@@ -323,29 +323,29 @@ def test_capture_regular_RL(dummy_app_state: AppState):
         ac=False,
     )
 
-    second_transition = Transition(
+    second_trajectory = Trajectory(
         steps=[first_2, second_2, *intermediate_2, last_2],
         n_step_reward=5, # irrelevant random value
         n_step_gamma=0.8, # irrelevant random value
     )
 
 
-    cfg = TransitionFilterConfig(
+    cfg = TrajectoryFilterConfig(
         filters=[
             'only_pre_dp_or_ac',
             'only_post_dp',
         ],
     )
-    transition_filter = TransitionFilter(dummy_app_state, cfg)
+    trajectory_filter = TrajectoryFilter(dummy_app_state, cfg)
 
     pf = PipelineFrame(
         pd.DataFrame([]),
         data_mode=DataMode.OFFLINE,
-        transitions=[first_transition, second_transition],
+        trajectories=[first_trajectory, second_trajectory],
     )
 
-    pf = transition_filter(pf)
-    assert pf.transitions is not None
-    assert len(pf.transitions) == 2
-    assert pf.transitions[0] == first_transition
-    assert pf.transitions[1] == second_transition
+    pf = trajectory_filter(pf)
+    assert pf.trajectories is not None
+    assert len(pf.trajectories) == 2
+    assert pf.trajectories[0] == first_trajectory
+    assert pf.trajectories[1] == second_trajectory

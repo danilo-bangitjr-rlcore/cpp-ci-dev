@@ -6,7 +6,7 @@ from lib_config.loader import load_config
 from lib_progress.tracker import track
 
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.data_analysis.transition_report import generate_report
+from coreoffline.utils.data_analysis.trajectory_report import generate_report
 from coreoffline.utils.data_loading import load_data_chunks
 from coreoffline.utils.setup import create_standard_setup
 
@@ -19,7 +19,7 @@ def main(cfg: OfflineMainConfig):
     Assuming offline data has already been written to TimescaleDB
     """
     log.info("=" * 80)
-    log.info("Starting transition report generation")
+    log.info("Starting trajectory report generation")
     log.info("=" * 80)
 
     app_state, pipeline = create_standard_setup(cfg)
@@ -28,7 +28,7 @@ def main(cfg: OfflineMainConfig):
     start_time = cfg.offline_training.offline_start_time
     end_time = cfg.offline_training.offline_end_time
     log.info(f"Processing data from {start_time} to {end_time}")
-    log.info("Running pipeline to generate transitions...")
+    log.info("Running pipeline to generate trajectorys...")
 
     exclude_periods = cfg.offline_training.eval_periods if cfg.offline_training.remove_eval_from_train else None
     data_chunks, num_chunks = load_data_chunks(
@@ -39,7 +39,7 @@ def main(cfg: OfflineMainConfig):
     )
     report_gen_start = datetime.now()
 
-    transitions = []
+    trajectories = []
     for chunk in track(
         data_chunks,
         desc="Running data through pipeline",
@@ -51,25 +51,25 @@ def main(cfg: OfflineMainConfig):
             data_mode=DataMode.OFFLINE,
             reset_temporal_state=False,
         )
-        if pr.transitions is not None:
-            transitions += pr.transitions
+        if pr.trajectories is not None:
+            trajectories += pr.trajectories
 
     report_gen_end = datetime.now()
 
-    log.info(f"Generated {len(transitions)} transition(s)")
-    log.info("Generating transition report...")
+    log.info(f"Generated {len(trajectories)} trajectories")
+    log.info("Generating trajectory report...")
     generate_report(
         cfg.report,
         app_state,
         report_gen_start,
         report_gen_end,
-        transitions,
+        trajectories,
     )
 
     log.info("=" * 80)
-    log.info("Transition report generation complete!")
+    log.info("Trajectory report generation complete!")
     log.info(f"📁 Artifacts saved to: {cfg.report.output_dir.resolve()}")
-    log.info("📋 Reports: transition_statistics (txt/csv)")
+    log.info("📋 Reports: trajectory_statistics (txt/csv)")
     log.info("=" * 80)
 
 

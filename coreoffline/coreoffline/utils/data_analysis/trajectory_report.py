@@ -3,24 +3,24 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 import numpy as np
-from corerl.data_pipeline.datatypes import Transition
 from corerl.state import AppState
+from lib_agent.buffer.datatypes import Trajectory
 
 from coreoffline.utils.config import ReportConfig
 from coreoffline.utils.data_analysis.data_report import log, save_as_csv, save_as_txt
 
 
-def are_transitions_contiguous(
-    prev_transition: Transition,
-    curr_transition: Transition,
+def are_trajectories_contiguous(
+    prev_trajectory: Trajectory,
+    curr_trajectory: Trajectory,
     time_threshold: timedelta,
 ):
     """
-    Determine if two transitions are contiguous based on timestamp proximity.
+    Determine if two trajectories are contiguous based on timestamp proximity.
     """
-    # Check if both transitions have timestamps
-    prev_timestamp = prev_transition.end_time
-    curr_timestamp = curr_transition.start_time
+    # Check if both trajectories have timestamps
+    prev_timestamp = prev_trajectory.end_time
+    curr_timestamp = curr_trajectory.start_time
 
     if prev_timestamp is None or curr_timestamp is None:
         return False
@@ -31,26 +31,26 @@ def are_transitions_contiguous(
 
 
 def calculate_contiguous_sequence_lengths(
-    transitions: list[Transition],
+    trajectories: list[Trajectory],
     time_threshold: timedelta,
 ):
     """
-    Calculate lengths of contiguous transition sequences.
-    Transitions are considered contiguous if the time gap between consecutive transitions
+    Calculate lengths of contiguous trajectory sequences.
+    Trajectories are considered contiguous if the time gap between consecutive trajectories
     is less than the specified threshold.
     """
-    if not transitions:
+    if not trajectories:
         return []
 
     sequence_lengths = []
     current_length = 1
 
-    for i in range(1, len(transitions)):
-        prev_transition = transitions[i - 1]
-        curr_transition = transitions[i]
+    for i in range(1, len(trajectories)):
+        prev_trajectory = trajectories[i - 1]
+        curr_trajectory = trajectories[i]
 
-        # Check if transitions are contiguous based on timestamp
-        if are_transitions_contiguous(prev_transition, curr_transition, time_threshold):
+        # Check if trajectories are contiguous based on timestamp
+        if are_trajectories_contiguous(prev_trajectory, curr_trajectory, time_threshold):
             current_length += 1
         else:
             sequence_lengths.append(current_length)
@@ -70,29 +70,29 @@ def get_sequence_stats(cfg: ReportConfig, sequence_lengths: list[int]):
         'Max Sequence Length': np.max(sequence_lengths),
     }
     # Add percentiles
-    for p in cfg.transition_percentiles:
+    for p in cfg.trajectory_percentiles:
         percentile_value = np.percentile(sequence_lengths, p * 100)
         return_dict[f'P{int(p * 100)} Sequence Length'] = percentile_value
     return return_dict
 
 
-def make_transition_statistics_table(
+def make_trajectory_statistics_table(
     cfg: ReportConfig,
-    transitions: list[Transition],
+    trajectories: list[Trajectory],
     output_path: Path,
     app_state: AppState,
     start_time: datetime,
     end_time: datetime,
 ):
     """
-    Generate transition statistics table and save to file.
+    Generate trajectory statistics table and save to file.
     """
 
-    log.info("Generating transition statistics...")
+    log.info("Generating trajectory statistics...")
 
     # Calculate contiguous sequence lengths
     sequence_lengths = calculate_contiguous_sequence_lengths(
-        transitions,
+        trajectories,
         cfg.contiguous_time_threshold,
     )
 
@@ -108,26 +108,26 @@ def make_transition_statistics_table(
     ]
 
     # Basic statistics
-    total_transitions = len(transitions)
-    table_data.append(['Total Transitions', str(total_transitions)])
+    total_trajectories = len(trajectories)
+    table_data.append(['Total Trajectories', str(total_trajectories)])
 
-    # Add transitions filtered count from metrics if available
+    # Add trajectories filtered count from metrics if available
     try:
-        transitions_filtered_df = app_state.metrics.read(
-            metric='transitions_filtered',
+        trajectories_filtered_df = app_state.metrics.read(
+            metric='trajectories_filtered',
             start_time=start_time,
             end_time=end_time,
             prefix_match=True,
         )
 
-        for col in transitions_filtered_df.columns:
-            if col.startswith("transitions_filtered"):
-                total_filtered = transitions_filtered_df[col].sum()
-                transition_filter = col.removeprefix("transitions_filtered_by_")
-                table_data.append([f'Total Transitions Filtered by {transition_filter}', str(total_filtered)])
+        for col in trajectories_filtered_df.columns:
+            if col.startswith("trajectories_filtered"):
+                total_filtered = trajectories_filtered_df[col].sum()
+                trajectory_filter = col.removeprefix("trajectories_filtered_by_")
+                table_data.append([f'Total Trajectories Filtered by {trajectory_filter}', str(total_filtered)])
 
     except Exception as e:
-        log.warning(f"Could not read transitions_filtered metric: {e}")
+        log.warning(f"Could not read trajectories_filtered metric: {e}")
 
     # Sequence statistics
     sequence_stat_dict = get_sequence_stats(cfg, sequence_lengths)
@@ -136,8 +136,8 @@ def make_transition_statistics_table(
 
     # Generate table and save
     full_table_data = [headers, *table_data]
-    save_as_txt(full_table_data, output_path, 'transition_statistics')
-    save_as_csv(full_table_data, output_path, 'transition_statistics')
+    save_as_txt(full_table_data, output_path, 'trajectory_statistics')
+    save_as_csv(full_table_data, output_path, 'trajectory_statistics')
 
 
 def generate_report(
@@ -145,7 +145,7 @@ def generate_report(
     app_state: AppState,
     start_time: datetime,
     end_time: datetime,
-    transitions: list[Transition],
+    trajectories: list[Trajectory],
 ):
 
     output_path = Path(cfg.output_dir)
@@ -153,9 +153,9 @@ def generate_report(
         log.warning(f'Output path {output_path} already exists. Deleting...')
         shutil.rmtree(output_path)
     output_path.mkdir(parents=True)
-    make_transition_statistics_table(
+    make_trajectory_statistics_table(
         cfg,
-        transitions,
+        trajectories,
         output_path,
         app_state,
         start_time,

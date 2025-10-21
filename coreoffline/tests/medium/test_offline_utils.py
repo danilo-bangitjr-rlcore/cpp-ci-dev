@@ -6,21 +6,20 @@ import pandas as pd
 import pytest
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.data_pipeline.db.data_writer import TagDBConfig
-from corerl.data_pipeline.datatypes import Transition
 from corerl.data_pipeline.db.data_writer import DataWriter
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
-from lib_agent.buffer.datatypes import Step
+from lib_agent.buffer.datatypes import Step, Trajectory
 from lib_defs.config_defs.tag_config import TagType
 from lib_sql.inspection import table_exists
 from lib_utils.named_array import NamedArray
 from sqlalchemy import Engine
 
 from coreoffline.utils.config import OfflineMainConfig
-from coreoffline.utils.data_loading import load_offline_transitions
+from coreoffline.utils.data_loading import load_offline_trajectories
 from coreoffline.utils.offline_training.utils import offline_rl_from_buffer
 
 
@@ -89,39 +88,39 @@ def offline_pipeout(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, d
     """
     Generate offline data for tests and return the OfflineTraining object
     """
-    # Produce offline transitions
+    # Produce offline trajectories
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     dummy_app_state.cfg = offline_cfg
-    pipeout, _ = load_offline_transitions(dummy_app_state, pipeline)
+    pipeout, _ = load_offline_trajectories(dummy_app_state, pipeline)
     assert pipeout is not None
     return pipeout
 
 
-def test_load_offline_transitions(offline_cfg: OfflineMainConfig, offline_pipeout: PipelineReturn):
+def test_load_offline_trajectories(offline_cfg: OfflineMainConfig, offline_pipeout: PipelineReturn):
     """
     Ensure the test data generated in the 'offline_trainer' fixture was written to TSDB,
-    read from TSDB, and that the correct transitions were produced by the data pipeline
+    read from TSDB, and that the correct trajectories were produced by the data pipeline
     """
-    created_transitions = offline_pipeout.transitions
-    assert created_transitions is not None
+    created_trajectories = offline_pipeout.trajectories
+    assert created_trajectories is not None
 
-    # Expected transitions
+    # Expected trajectories
     gamma = offline_cfg.agent.gamma
     step_0 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([0, 1, 0]), dp=False, ac=False)
     step_1 = make_step(reward=1.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([1, 1, 0]), dp=True, ac=False)
     step_2 = make_step(reward=1.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([2, 1, 0]), dp=False, ac=True)
     step_3 = make_step(reward=0.0, action=jnp.array([1.0]), gamma=gamma, state=jnp.array([3, 1, 0]), dp=True, ac=False)
     step_4 = make_step(reward=0.0, action=jnp.array([0.0]), gamma=gamma, state=jnp.array([4, 1, 0]), dp=False, ac=True)
-    expected_transitions = [Transition([step_0, step_1], 1.0, gamma),
-                            Transition([step_1, step_2], 1.0, gamma),
-                            Transition([step_2, step_3], 0.0, gamma),
-                            Transition([step_1, step_2, step_3], 1.0, gamma**2.0),
-                            Transition([step_3, step_4], 0.0, gamma)]
+    expected_trajectories = [Trajectory([step_0, step_1], 1.0, gamma),
+                            Trajectory([step_1, step_2], 1.0, gamma),
+                            Trajectory([step_2, step_3], 0.0, gamma),
+                            Trajectory([step_1, step_2, step_3], 1.0, gamma**2.0),
+                            Trajectory([step_3, step_4], 0.0, gamma)]
 
-    assert len(created_transitions) == len(expected_transitions)
-    for i, created_transition in enumerate(created_transitions):
-        assert created_transition == expected_transitions[i]
+    assert len(created_trajectories) == len(expected_trajectories)
+    for i, created_trajectory in enumerate(created_trajectories):
+        assert created_trajectory == expected_trajectories[i]
 
 
 @pytest.mark.skip(reason="failing on master, requires further investigation")
@@ -132,7 +131,7 @@ def test_offline_training(
     dummy_app_state: AppState,
 ):
     """
-    Ensure the agent's critic loss decreases over the test transitions produced by the 'offline_trainer' fixture.
+    Ensure the agent's critic loss decreases over the test trajectories produced by the 'offline_trainer' fixture.
     Make sure the enabled evaluators write to the metrics table and/or evals table
     """
     app_state = AppState(
@@ -177,13 +176,13 @@ def test_offline_start_end(offline_cfg: OfflineMainConfig, dummy_app_state: AppS
     # obs_period after start_time.
     first_step = start_time + obs_period
 
-    # Produce offline transitions
+    # Produce offline trajectories
     offline_cfg.offline_training.offline_start_time = first_step
     offline_cfg.offline_training.offline_end_time = first_step + 2 * obs_period
 
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    offline_pipeout, _ = load_offline_transitions(dummy_app_state, pipeline)
+    offline_pipeout, _ = load_offline_trajectories(dummy_app_state, pipeline)
 
     # Since start_time and end_time are specified,
     # make sure PipelineReturn's df spans (end_time - start_time) / obs_period entries
@@ -195,14 +194,14 @@ def test_offline_start_end(offline_cfg: OfflineMainConfig, dummy_app_state: AppS
 
 def test_test_split(offline_cfg: OfflineMainConfig, dummy_app_state: AppState, data_writer: DataWriter):
     """
-    Tests ability to split offline transitions into a train and test set.
+    Tests ability to split offline trajectories into a train and test set.
     """
     offline_cfg.offline_training.test_split = 0.2
     dummy_app_state.cfg = offline_cfg
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
-    offline_pipeout, test_transitions = load_offline_transitions(dummy_app_state, pipeline)
+    offline_pipeout, test_trajectories = load_offline_trajectories(dummy_app_state, pipeline)
     assert offline_pipeout is not None
-    assert offline_pipeout.transitions is not None
-    assert test_transitions is not None
-    assert len(offline_pipeout.transitions) == 4
-    assert len(test_transitions) == 1
+    assert offline_pipeout.trajectories is not None
+    assert test_trajectories is not None
+    assert len(offline_pipeout.trajectories) == 4
+    assert len(test_trajectories) == 1

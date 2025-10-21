@@ -2,7 +2,7 @@ import logging
 from dataclasses import dataclass
 
 import numpy as np
-from corerl.data_pipeline.datatypes import Transition
+from lib_agent.buffer.datatypes import Trajectory
 from sklearn.model_selection import KFold
 
 log = logging.getLogger(__name__)
@@ -67,24 +67,24 @@ class ModelData:
 
 
 def prepare_features_and_targets(
-    transitions: list[Transition],
+    trajectories: list[Trajectory],
     action_names: list[str] | None = None,
 ):
     """
-    Extract states and targets from transitions for regression.
+    Extract states and targets from trajectories for regression.
     """
     states = []
     targets = []
     time_stamps = []
     previous_actions = []
 
-    for transition in transitions:
-        state = transition.state
-        curr_action = transition.action
-        prev_action = transition.prior.action  # Get previous action from prior step
+    for trajectory in trajectories:
+        state = trajectory.state
+        curr_action = trajectory.action
+        prev_action = trajectory.prior.action  # Get previous action from prior step
 
         states.append(np.array(state))
-        time_stamps.append(transition.steps[0].timestamp)
+        time_stamps.append(trajectory.steps[0].timestamp)
         targets.append(np.array(curr_action))
         previous_actions.append(np.array(prev_action))
 
