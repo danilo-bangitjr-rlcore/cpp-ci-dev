@@ -98,9 +98,9 @@ def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
     procs = [
         _start_service("Vite", "npm run dev", FRONTEND),
         _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
-        _start_service("CoreGateway", "uv run python coregateway/app.py", "../coregateway"),
-        _start_service("CoreDinator", f"uv run python coredinator/app.py --base-path {coredinator_path}", "../coredinator"),
-        _start_service("CoreTelemetry", f"uv run python coretelemetry/app.py --config-path {coretelemetry_path}", "../coretelemetry"),
+        _start_service("CoreGateway", "uv run python coregateway/app.py --reload", "../coregateway"),
+        _start_service("CoreDinator", f"uv run python coredinator/app.py --base-path {coredinator_path} --reload", "../coredinator"),
+        _start_service("CoreTelemetry", f"uv run python coretelemetry/app.py --config-path {coretelemetry_path} --reload", "../coretelemetry"),
     ]
 
     _block_on_processes(procs)
@@ -108,8 +108,8 @@ def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
     parser.add_argument("command", choices=["build", "clean", "dev", "dev-stack"], help="Action to perform")
-    parser.add_argument("--coredinator-dir", default=DEFAULT_CONFIG_DIR, help="--base-path for Coredinator")
-    parser.add_argument("--coretelemetry-dir", default=DEFAULT_CONFIG_DIR, help="--config-dir for CoreTelemetry")
+    parser.add_argument("--coredinator-path", default=DEFAULT_CONFIG_PATH, help="--base-path for Coredinator")
+    parser.add_argument("--coretelemetry-path", default=DEFAULT_CONFIG_PATH, help="--config-path for CoreTelemetry")
 
     args = parser.parse_args()
 
