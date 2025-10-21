@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.datatypes import JaxTransition, State
+from lib_agent.buffer.datatypes import JaxTransition, State, Transition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     create_ensemble_dict,
@@ -24,7 +24,7 @@ from corerl.agent.base import BaseAgent
 from corerl.configs.agent.greedy_ac import (
     GreedyACConfig,
 )
-from corerl.data_pipeline.datatypes import AbsTransition, convert_trajectory_to_jax_transition
+from corerl.data_pipeline.datatypes import convert_trajectory_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
@@ -477,11 +477,11 @@ class GreedyAC(BaseAgent):
         )
 
 
-def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
+def abs_transition_from_batch(batch: JaxTransition) -> Transition:
     """
     Converts a JaxTransition batch to a State object, using the absolute state.
     """
-    return AbsTransition(
+    return Transition(
         state=State(
             features=batch.state,
             a_lo=batch.action_lo,

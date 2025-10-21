@@ -155,6 +155,14 @@ class State(NamedTuple):
     last_a: jax.Array
 
 
+class Transition(NamedTuple):
+    state: State
+    action: jax.Array
+    reward: jax.Array
+    next_state: State
+    gamma: jax.Array
+
+
 class JaxTransition(NamedTuple):
     last_action: jax.Array
     state: NamedArray

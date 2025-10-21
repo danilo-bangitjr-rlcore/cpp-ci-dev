@@ -2,24 +2,14 @@ import datetime
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
-from typing import NamedTuple
 
-import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.datatypes import DataMode, JaxTransition, State, Trajectory
+from lib_agent.buffer.datatypes import DataMode, JaxTransition, Trajectory
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]
-
-
-class AbsTransition(NamedTuple):
-    state: State
-    action: jax.Array
-    reward: jax.Array
-    next_state: State
-    gamma: jax.Array
 
 
 class StageCode(Enum):
