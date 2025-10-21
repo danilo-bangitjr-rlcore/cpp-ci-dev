@@ -7,7 +7,7 @@ import yaml
 from filelock import FileLock
 from ml_instrumentation.metadata import attach_metadata
 
-from src.utils.action_bounds import ActionBoundsConfig
+from utils.action_bounds import ActionBoundsConfig
 from utils.dict import flatten
 
 
