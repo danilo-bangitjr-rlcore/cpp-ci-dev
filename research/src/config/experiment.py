@@ -26,7 +26,7 @@ class ExperimentConfig:
         out = flatten(self.agent, 'agent')
         out |= flatten(self.env, 'env')
         out |= flatten(self.pipeline, 'pipeline')
-        out |= flatten(self.action_bounds.__dict__, 'action_bounds')
+        out |= flatten(self.action_bounds.to_dict(), 'action_bounds')
 
         return out
 

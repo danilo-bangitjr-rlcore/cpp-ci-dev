@@ -11,6 +11,16 @@ class ActionBoundsConfig:
     delta_lo: list[float] | float | None = None
     delta_hi: list[float] | float | None = None
 
+    def to_dict(self):
+        """Returns configuration as a dictionary."""
+        return {
+            'delta': self.delta,
+            'static_lo': self.static_lo,
+            'static_hi': self.static_hi,
+            'delta_lo': self.delta_lo,
+            'delta_hi': self.delta_hi,
+        }
+
 
 class ActionBoundsComputer:
     """Computes action bounds based on configuration and previous action."""
