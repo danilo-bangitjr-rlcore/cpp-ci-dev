@@ -23,14 +23,13 @@ class ActionBoundsComputer:
         self.static_lo = self._to_array(config.static_lo)
         self.static_hi = self._to_array(config.static_hi)
 
+        self.delta_lo = None
+        self.delta_hi = None
         if config.delta:
             if config.delta_lo is None or config.delta_hi is None:
                 raise ValueError("delta_lo and delta_hi must be provided when delta=True")
             self.delta_lo = self._to_array(config.delta_lo)
             self.delta_hi = self._to_array(config.delta_hi)
-        else:
-            self.delta_lo = None
-            self.delta_hi = None
 
     def _to_array(self, value: float | list[float]) -> np.ndarray:
         """Converts scalar or list to numpy array of appropriate dimension."""
