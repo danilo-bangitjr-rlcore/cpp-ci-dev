@@ -9,7 +9,7 @@ from typing import Any
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 from lib_utils.named_array import NamedArray
 
 import corerl.eval.agent as agent_eval

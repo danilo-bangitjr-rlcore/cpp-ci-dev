@@ -8,8 +8,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.eval import agent as agent_eval
 from corerl.state import AppState
-from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode, State
 from lib_progress.tracker import ProgressTracker
 
 from coreoffline.utils.config import OfflineMainConfig

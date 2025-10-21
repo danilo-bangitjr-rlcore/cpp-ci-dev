@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 from lib_utils import dict as dict_u
 
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 
 
 class ActionSampler(Protocol):

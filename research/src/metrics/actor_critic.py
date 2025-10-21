@@ -1,6 +1,6 @@
 import jax
 import jax.numpy as jnp
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 from ml_instrumentation.Collector import Collector
 
 from agent.gac import GreedyAC

@@ -8,8 +8,9 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
-from lib_agent.actor.percentile_actor import PAState, State
+from lib_agent.actor.percentile_actor import PAState
 from lib_agent.buffer.buffer import EnsembleReplayBuffer
+from lib_agent.buffer.datatypes import State
 from lib_agent.critic.adv_critic import AdvCritic
 from lib_agent.critic.critic_registry import get_critic
 from lib_agent.critic.critic_utils import CriticState

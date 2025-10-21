@@ -12,7 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 from lib_agent.network.activations import (
     ActivationConfig,
     IdentityConfig,

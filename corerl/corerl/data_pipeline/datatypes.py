@@ -8,8 +8,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import DataMode, JaxTransition, Trajectory
+from lib_agent.buffer.datatypes import DataMode, JaxTransition, State, Trajectory
 
 type TagName = str  # alias to clarify semantics of PipelineStage and stage dict
 type PipelineStage[T] = Callable[[T, TagName], T]

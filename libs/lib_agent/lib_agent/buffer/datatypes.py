@@ -147,6 +147,14 @@ class Trajectory:
         return self.post.timestamp
 
 
+class State(NamedTuple):
+    features: NamedArray
+    a_lo : jax.Array
+    a_hi : jax.Array
+    dp: jax.Array
+    last_a: jax.Array
+
+
 class JaxTransition(NamedTuple):
     last_action: jax.Array
     state: NamedArray

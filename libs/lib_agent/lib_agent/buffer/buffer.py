@@ -1,8 +1,6 @@
 from typing import Generic, NamedTuple, Protocol, TypeVar
 
-import jax
 import numpy as np
-from lib_utils.named_array import NamedArray
 
 from lib_agent.buffer.storage import ReplayStorage
 
@@ -53,12 +51,6 @@ class Transition(Protocol):
     @property
     def action_dim(self) -> int: ...
 
-class State(NamedTuple):
-    features: NamedArray
-    a_lo : jax.Array
-    a_hi : jax.Array
-    dp: jax.Array
-    last_a: jax.Array
 
 class EnsembleReplayBuffer(Generic[T]): # noqa: UP046
     def __init__(

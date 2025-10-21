@@ -9,8 +9,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import JaxTransition
+from lib_agent.buffer.datatypes import JaxTransition, State
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     create_ensemble_dict,
