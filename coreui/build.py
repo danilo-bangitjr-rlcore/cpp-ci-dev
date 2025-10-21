@@ -108,8 +108,8 @@ def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
     parser.add_argument("command", choices=["build", "clean", "dev", "dev-stack"], help="Action to perform")
-    parser.add_argument("--coredinator-path", default=DEFAULT_CONFIG_PATH, help="--base-path for Coredinator")
-    parser.add_argument("--coretelemetry-path", default=DEFAULT_CONFIG_PATH, help="--config-path for CoreTelemetry")
+    parser.add_argument("--coredinator-path", default=DEFAULT_CONFIG_DIR, help="--base-path for Coredinator")
+    parser.add_argument("--coretelemetry-path", default=DEFAULT_CONFIG_DIR, help="--config-path for CoreTelemetry")
 
     args = parser.parse_args()
 
