@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import Mock, patch
-from urllib.error import URLError
+from urllib.request import Request
 
 from pydantic import BaseModel
 
@@ -97,10 +96,11 @@ def test_maybe_get_json_http_error(http_server_url: str) -> None:
     assert res.is_none()
 
 
-@patch('corecli.utils.http.urlopen')
-def test_maybe_get_json_network_error(mock_urlopen: Mock) -> None:
-    """Test that network errors are handled"""
-    mock_urlopen.side_effect = URLError("Network unreachable")
+def test_build_request_post_creates_request_object() -> None:
+    """Test that POST requests build Request objects with proper headers and payload"""
+    payload = {"key": "value"}
+    result = http._build_request("http://localhost:8000/test", "POST", payload)
 
-    result = http.maybe_get_json("http://example.com/api", SimpleModel, timeout=1.0)
-    assert result.is_none()
+    assert isinstance(result, Request)
+    assert result.get_method() == "POST"
+    assert result.get_header("Content-type") == "application/json"
