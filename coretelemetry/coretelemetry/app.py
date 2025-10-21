@@ -77,13 +77,15 @@ def create_app(config_path: str | Path) -> FastAPI:
     return app
 
 def get_app() -> FastAPI:
-    return create_app(coretelemetry_config.config_path)
-
-if __name__ == "__main__":
-
+    # Parsing args inside get_app to get consistent config across reloads
     args = parse_args()
     coretelemetry_config.port = args.port
     coretelemetry_config.config_path = args.config_path
+
+    return create_app(coretelemetry_config.config_path)
+
+if __name__ == "__main__":
+    args = parse_args()
 
     if args.reload:
         # Use string import for reload support (dev only)
