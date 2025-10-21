@@ -4,7 +4,6 @@ from pathlib import Path
 import corerl.interaction.checkpointing as chk
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.interaction.config import InteractionConfig
-from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 
 
@@ -58,7 +57,7 @@ def test_prune_checkpoints_basic():
     assert paths[-1] not in to_delete
     assert to_delete == [Path('chk_2')]
 
-def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
+def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState, greedy_ac_agent: GreedyAC):
     """
     Test that checkpoint creates a directory and calls save, and restore_checkpoint loads the latest checkpoint
     using a real agent and a real app_state.
@@ -80,14 +79,7 @@ def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
         warmup_period=None,
     )
 
-    # Setup a real agent
-    pipeline = Pipeline(dummy_app_state, dummy_app_state.cfg.pipeline)
-    column_desc = pipeline.column_descriptions
-    agent = GreedyAC(
-        dummy_app_state.cfg.agent,
-        dummy_app_state,
-        column_desc,
-    )
+    agent = greedy_ac_agent
 
     now = datetime(2023, 1, 1, 12, 0, 0)
     last = now - timedelta(hours=2)
