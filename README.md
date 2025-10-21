@@ -1,6 +1,6 @@
 # Monorepo
 
-[Wiki](https://github.com/rlcoretech/core-rl/wiki) - [benchmarks](https://fuzzy-guacamole-5k1rj63.pages.github.io/dev/bench/)
+[Wiki](https://github.com/rlcoretech/core-rl/wiki) - [benchmarks](https://fuzzy-guacamole-5k1rj63.pages.github.io/dev/bench/) - [bsuite wireguard](http://10.123.10.55:3003/d/feg5m3ku2qt4wf/bsuite-drill-down) - [bsuite local](http://workstation:3003/d/feg5m3ku2qt4wf/bsuite-drill-down)
 
 This is the main repo containing code for the agent, the surrounding microservices, the research codebase, and project specific code.
 
