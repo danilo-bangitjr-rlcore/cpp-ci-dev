@@ -13,7 +13,7 @@ SERVICE_SCRIPT = SERVICE / "windows-service.py"
 FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 SERVER_LIB = BACKEND / "server" / ".."
-CONFIG_DIR = ROOT / ".." / "config"
+DEFAULT_CONFIG_DIR = ROOT / ".." / "config"
 
 DEV_GRACE_SECONDS = 5.0
 
@@ -90,7 +90,7 @@ def dev():
 
     _block_on_processes(procs)
 
-def dev_stack():
+def dev_stack(coredinator_dir: Path, coretelemetry_dir: Path):
     print("Starting development servers... (Ctrl+C to stop)")
     build_frontend()
     print("Starting full development stack... (Ctrl+C to stop)")
@@ -101,8 +101,8 @@ def dev_stack():
         _start_service("Vite", "npm run dev", FRONTEND),
         _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
         _start_service("CoreGateway", "source .venv/bin/activate && uv run python coregateway/app.py", "../coregateway"),
-        _start_service("CoreDinator", f"source .venv/bin/activate && uv run python coredinator/app.py --base-path {CONFIG_DIR}", "../coredinator"),
-        _start_service("CoreTelemetry", f"source .venv/bin/activate && uv run python coretelemetry/app.py --config-path {CONFIG_DIR}", "../coretelemetry"),
+        _start_service("CoreDinator", f"source .venv/bin/activate && uv run python coredinator/app.py --base-path {coredinator_dir}", "../coredinator"),
+        _start_service("CoreTelemetry", f"source .venv/bin/activate && uv run python coretelemetry/app.py --config-path {coretelemetry_dir}", "../coretelemetry"),
     ]
 
     _block_on_processes(procs)
@@ -110,6 +110,9 @@ def dev_stack():
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
     parser.add_argument("command", choices=["build", "clean", "dev", "dev-stack"], help="Action to perform")
+    parser.add_argument("--coredinator-dir", default=DEFAULT_CONFIG_DIR, help="--base-path for Coredinator")
+    parser.add_argument("--coretelemetry-dir", default=DEFAULT_CONFIG_DIR, help="--config-dir for CoreTelemetry")
+
     args = parser.parse_args()
 
     if args.command == "clean":
@@ -122,7 +125,7 @@ def main():
     elif args.command == "dev":
         dev()
     elif args.command == "dev-stack":
-        dev_stack()
+        dev_stack(Path(args.coredinator_dir), Path(args.coretelemetry_dir))
 
 if __name__ == "__main__":
     main()
