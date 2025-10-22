@@ -1,6 +1,4 @@
-from dataclasses import dataclass
 from itertools import starmap
-from typing import NamedTuple
 
 import chex
 import jax
@@ -9,16 +7,9 @@ import lib_utils.jax as jax_u
 import pytest
 from lib_utils.named_array import NamedArray
 
-from lib_agent.buffer.datatypes import State
+from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.critic.adv_critic import AdvConfig, AdvCritic
 from lib_agent.critic.critic_utils import RollingResetConfig
-
-
-@dataclass
-class MockState:
-    features: jax.Array
-    a_lo: jax.Array
-    a_hi: jax.Array
 
 
 @pytest.fixture
@@ -271,15 +262,6 @@ def test_get_active_values(rolling_critic: AdvCritic):
 # -- update --
 # ------------
 
-class MockTransition(NamedTuple):
-    """Mock transition for testing update."""
-    state: State
-    action: jax.Array
-    reward: jax.Array
-    next_state: State
-    gamma: jax.Array
-
-
 def _create_mock_transitions(
         rng: chex.PRNGKey,
         ensemble_size: int,
@@ -287,7 +269,7 @@ def _create_mock_transitions(
         state_dim: int,
         action_dim: int,
         ):
-    """Helper to create mock transitions for testing."""
+    """Helper to create transitions for testing."""
     state_rng, action_rng, reward_rng = jax.random.split(rng, 3)
 
     batch_states = jax.random.normal(state_rng, (ensemble_size, batch_size, state_dim))
@@ -311,12 +293,12 @@ def _create_mock_transitions(
         last_a=batch_actions,
     )
 
-    return MockTransition(
+    return Transition(
         state=mock_states,
         action=batch_actions,
-        reward=batch_rewards,
+        n_step_reward=batch_rewards,
         next_state=mock_next_states,
-        gamma=batch_gammas,
+        n_step_gamma=batch_gammas,
     )
 
 
