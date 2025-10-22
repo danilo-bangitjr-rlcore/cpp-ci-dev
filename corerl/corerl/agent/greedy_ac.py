@@ -24,7 +24,6 @@ from corerl.agent.base import BaseAgent
 from corerl.configs.agent.greedy_ac import (
     GreedyACConfig,
 )
-from corerl.data_pipeline.datatypes import convert_trajectory_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
@@ -272,8 +271,7 @@ class GreedyAC(BaseAgent):
         if not self.critic_buffer.is_sampleable:
             return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 
-        batches: JaxTransition = self.critic_buffer.sample()
-        critic_batch = abs_transition_from_batch(batches)
+        critic_batch: Transition = self.critic_buffer.sample()
         next_actions, _ = self._actor.get_actions(
             self._actor_state.actor.params,
             critic_batch.next_state,
@@ -346,8 +344,7 @@ class GreedyAC(BaseAgent):
         if not self._actor_buffer.is_sampleable:
             return 0.
 
-        batch: JaxTransition = self._actor_buffer.sample()
-        actor_batch = abs_transition_from_batch(batch)
+        actor_batch: Transition = self._actor_buffer.sample()
         self._actor_state, metrics = self._actor.update(
             self._actor_state,
             self.ensemble_ve,
@@ -469,28 +466,3 @@ class GreedyAC(BaseAgent):
             metric="BUFFER-ACTOR-size",
             value=self._actor_buffer.size,
         )
-
-
-def abs_transition_from_batch(batch: JaxTransition) -> Transition:
-    """
-    Converts a JaxTransition batch to a State object, using the absolute state.
-    """
-    return Transition(
-        state=State(
-            features=batch.state,
-            a_lo=batch.action_lo,
-            a_hi=batch.action_hi,
-            dp=jnp.expand_dims(batch.dp, -1),
-            last_a=batch.last_action,
-        ),
-        next_state=State(
-            features=batch.next_state,
-            a_lo=batch.next_action_lo,
-            a_hi=batch.next_action_hi,
-            dp=jnp.expand_dims(batch.next_dp, -1),
-            last_a=batch.action,
-        ),
-        action=batch.action,
-        reward=batch.reward,
-        gamma=batch.gamma,
-    )
