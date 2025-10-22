@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.12.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.3...coreio-v0.12.0) (2025-10-22)
+
+
+### Features
+
+* **PROD-1148:** capture service logs in coredinator ([8b022ba](https://github.com/rlcoretech/core-rl/commit/8b022ba214d121eab7245219a3e63b5168ed8fe9))
+
 ## [0.11.3](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.2...coreio-v0.11.3) (2025-10-08)
 
 
