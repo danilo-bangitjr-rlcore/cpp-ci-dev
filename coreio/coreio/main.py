@@ -6,6 +6,7 @@ import sys
 import threading
 
 from lib_config.loader import load_config
+from lib_defs.type_defs.base_events import EventTopic, EventType
 
 from coreio.communication.opc_communication import OPC_Connection_IO
 from coreio.communication.scheduler import start_scheduler_io_thread
@@ -105,7 +106,7 @@ async def coreio_loop(cfg: MainConfigAdapter):
         logger.debug("Starting main event loop")
         async for event in zmq_communication.async_listen_forever():
             logger.debug(f"Processing event {event.type} in main loop")
-            if event.type == IOEventType.exit_io:
+            if event.type == EventType.exit_io:
                 logger.info("Received exit event, shutting down CoreIO...")
                 break
 

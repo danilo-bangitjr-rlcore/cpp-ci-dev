@@ -1,11 +1,11 @@
 from typing import Any
 
 from lib_config.config import MISSING, config, list_
+from lib_defs.type_defs.base_events import EventType
 
 from corerl.configs.data_pipeline.imputers.per_tag import ImputerConfig
 from corerl.configs.data_pipeline.oddity_filters import OddityFilterConfig
 from corerl.configs.data_pipeline.transforms import NormalizerConfig, NukeConfig, TransformConfig
-from corerl.messages.events import RLEventType
 
 
 # -----------------
@@ -14,7 +14,7 @@ from corerl.messages.events import RLEventType
 @config()
 class TagTriggerConfig:
     condition: list[TransformConfig] = MISSING
-    event: RLEventType | list[RLEventType] = MISSING
+    event: EventType | list[EventType] = MISSING
 
 
 @config()

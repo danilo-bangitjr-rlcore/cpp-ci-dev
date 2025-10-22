@@ -10,6 +10,7 @@ from pathlib import Path
 
 import numpy as np
 from lib_config.loader import load_config
+from lib_defs.type_defs.base_events import EventTopic, EventType
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
@@ -22,7 +23,6 @@ from corerl.event_bus.client import EventBusClient
 from corerl.interaction.deployment_interaction import DeploymentInteraction
 from corerl.interaction.factory import init_interaction
 from corerl.messages.event_bus import DummyEventBus, EventBus
-from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
 from corerl.state import AppState
 from corerl.tags.validate_tag_configs import validate_tag_configs
 from corerl.utils.app_time import AppTime
@@ -51,8 +51,8 @@ def main_loop(
 
         if event_bus_client is not None and step_count % 100 == 0:
             event_bus_client.emit_event(
-                RLEvent(type=RLEventType.step_agent_update),
-                topic=RLEventTopic.corerl,
+                EventType.step_agent_update,
+                topic=EventTopic.corerl,
             )
 
 
@@ -116,7 +116,7 @@ def retryable_main(cfg: MainConfig):
         column_desc,
     )
 
-    event_bus.attach_callback(event_type=RLEventType.flush_buffers, cb=lambda _e: app_state.evals.flush())
+    event_bus.attach_callback(event_type=EventType.flush_buffers, cb=lambda _e: app_state.evals.flush())
     register_pipeline_evals(cfg.eval_cfgs, agent, pipeline, app_state)
 
     interaction = init_interaction(
@@ -128,8 +128,8 @@ def retryable_main(cfg: MainConfig):
 
     if event_bus_client is not None:
         event_bus_client.emit_event(
-            RLEvent(type=RLEventType.agent_started),
-            topic=RLEventTopic.corerl,
+            EventType.service_started,
+            topic=EventTopic.corerl,
         )
 
     try:
@@ -140,8 +140,8 @@ def retryable_main(cfg: MainConfig):
 
         if event_bus_client is not None:
             event_bus_client.emit_event(
-                RLEvent(type=RLEventType.agent_error),
-                topic=RLEventTopic.corerl,
+                EventType.service_error,
+                topic=EventTopic.corerl,
             )
 
         # if we are in a simulation, then we want to forward
@@ -152,8 +152,8 @@ def retryable_main(cfg: MainConfig):
     finally:
         if event_bus_client is not None:
             event_bus_client.emit_event(
-                RLEvent(type=RLEventType.agent_stopped),
-                topic=RLEventTopic.corerl,
+                EventType.service_stopped,
+                topic=EventTopic.corerl,
             )
 
         app_state.stop_event.set()

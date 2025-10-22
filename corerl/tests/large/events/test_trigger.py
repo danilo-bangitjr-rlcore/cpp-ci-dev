@@ -1,4 +1,5 @@
 import pytest
+from lib_defs.type_defs.base_events import EventType
 from test.infrastructure.networking import get_free_port
 
 from corerl.config import MainConfig
@@ -7,7 +8,6 @@ from corerl.data_pipeline.pipeline import Pipeline
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import EventBus
-from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from tests.infrastructure.config import ConfigBuilder, create_config_with_overrides
 from tests.sdk.factories import PipelineFrameFactory
@@ -84,6 +84,6 @@ def test_trigger(main_cfg: MainConfig):
 
     event = event_bus.recv_event()
     assert event is not None
-    assert event.type == RLEventType.action_period_reset
+    assert event.type == EventType.action_period_reset
 
     event_bus.cleanup()

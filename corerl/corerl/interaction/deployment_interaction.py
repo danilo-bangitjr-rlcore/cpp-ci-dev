@@ -10,6 +10,7 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.datatypes import State
+from lib_defs.type_defs.base_events import Event, EventType
 from lib_utils.named_array import NamedArray
 
 import corerl.eval.agent as agent_eval
@@ -22,7 +23,6 @@ from corerl.eval.hindsight_return import HindsightReturnEval
 from corerl.eval.monte_carlo import MonteCarloEvaluator
 from corerl.eval.representation import RepresentationEval
 from corerl.interaction.checkpointing import checkpoint, restore_checkpoint
-from corerl.messages.events import RLEvent, RLEventType
 from corerl.messages.heartbeat import Heartbeat
 from corerl.messages.scheduler import start_scheduler_thread
 from corerl.state import AppState
@@ -103,10 +103,10 @@ class DeploymentInteraction:
         ### Lifecycle methods ###
         self._scheduler: threading.Thread | None = None
         self._app_state.event_bus.attach_callbacks({
-            RLEventType.step_emit_action:     self._handle_event(self._on_emit_action),
-            RLEventType.step_get_obs:         self._handle_event(self._on_get_obs),
-            RLEventType.step_agent_update:    self._handle_event(self._on_update),
-            RLEventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
+            EventType.step_emit_action:     self._handle_event(self._on_emit_action),
+            EventType.step_get_obs:         self._handle_event(self._on_get_obs),
+            EventType.step_agent_update:    self._handle_event(self._on_update),
+            EventType.ping_setpoints:       self._handle_event(self._on_ping_setpoint),
         })
 
     def _init_offline_chunks(self) -> Generator[tuple[datetime, datetime], Any] | None:
@@ -244,7 +244,7 @@ class DeploymentInteraction:
     # ---------------
     def _handle_event(self, f: Callable[[], None]):
         @functools.wraps(f)
-        def _inner(event: RLEvent):
+        def _inner(event: Event):
             logger.debug(f"Interaction received Event: {event}")
             self._heartbeat.healthcheck()
             return f()
@@ -266,7 +266,7 @@ class DeploymentInteraction:
             logger.info("Querying agent policy for new action")
             return self._agent.get_action_interaction(state)
 
-        self._app_state.event_bus.emit_event(RLEventType.action_period_reset)
+        self._app_state.event_bus.emit_event(EventType.action_period_reset)
         logger.warning(f'Tried to take action, however was unable: {state}')
         return None
 

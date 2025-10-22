@@ -7,10 +7,10 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import zmq
+from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 from lib_utils.messages.clock import Clock
 
 from corerl.messages.event_bus import EventBus
-from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
 from corerl.state import AppState
 
 if TYPE_CHECKING:
@@ -31,14 +31,14 @@ def start_scheduler_thread(app_state: AppState):
 
 
 def create_scheduler_clock(
-        event_type: RLEventType,
+        event_type: EventType,
         period: timedelta,
         offset: timedelta = timedelta(seconds=0),
-) -> Clock[RLEvent, RLEventTopic, RLEventType]:
+) -> Clock[Event, EventTopic, EventType]:
     """
     Factory function to create clocks specifically for the CoreRL scheduler topic
     """
-    return Clock(RLEvent, RLEventTopic.corerl_scheduler, event_type, period, offset)
+    return Clock(Event, EventTopic.corerl_scheduler, event_type, period, offset)
 
 
 def scheduler_task(app_state: AppState[EventBus, MainConfig]):
@@ -47,26 +47,26 @@ def scheduler_task(app_state: AppState[EventBus, MainConfig]):
     Responsible for emitting the step events based on configured observation windows.
     """
     cfg = app_state.cfg.interaction
-    action_clock = create_scheduler_clock(RLEventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
+    action_clock = create_scheduler_clock(EventType.step_emit_action, cfg.action_period, offset=timedelta(seconds=1))
     clocks = [
         action_clock,
-        create_scheduler_clock(RLEventType.step_get_obs, cfg.obs_period),
-        create_scheduler_clock(RLEventType.step_agent_update, cfg.update_period),
-        create_scheduler_clock(RLEventType.agent_step, cfg.obs_period),
-        create_scheduler_clock(RLEventType.flush_buffers, timedelta(seconds=30)),
+        create_scheduler_clock(EventType.step_get_obs, cfg.obs_period),
+        create_scheduler_clock(EventType.step_agent_update, cfg.update_period),
+        create_scheduler_clock(EventType.agent_step, cfg.obs_period),
+        create_scheduler_clock(EventType.flush_buffers, timedelta(seconds=30)),
     ]
 
     if cfg.setpoint_ping_period is not None:
         clocks += [
             create_scheduler_clock(
-                RLEventType.ping_setpoints,
+                EventType.ping_setpoints,
                 cfg.setpoint_ping_period,
                 offset=cfg.setpoint_ping_period,
             ),
         ]
 
     app_state.event_bus.attach_callback(
-        RLEventType.action_period_reset,
+        EventType.action_period_reset,
         lambda _: action_clock.reset(datetime.now(UTC)),
     )
 
