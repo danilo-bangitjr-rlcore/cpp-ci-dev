@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.3.0...coredinator-v0.4.0) (2025-10-22)
+
+
+### Features
+
+* **PROD-1146:** allow setting event bus ports from CLI ([5173bd3](https://github.com/rlcoretech/core-rl/commit/5173bd39948ec911ded4d34a2c882e2578724f65))
+* **PROD-1148:** capture service logs in coredinator ([8b022ba](https://github.com/rlcoretech/core-rl/commit/8b022ba214d121eab7245219a3e63b5168ed8fe9))
+
+
+### Documentation
+
+* **PROD-1146:** explain pub/sub pattern in comments for confusing port names ([a94cd0b](https://github.com/rlcoretech/core-rl/commit/a94cd0b7a9c7106904b6418ac03f8b66ea64c22b))
+
 ## [0.3.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.2.2...coredinator-v0.3.0) (2025-10-08)
 
 
