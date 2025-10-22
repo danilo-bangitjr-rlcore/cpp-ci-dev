@@ -55,11 +55,12 @@ def parse_args():
     parser.add_argument("--base-path", type=Path, required=True, help="Path to microservice executables")
     parser.add_argument("--port", type=int, default=7000, help="Port to run the service on (default: 7000)")
     parser.add_argument("--log-file", type=Path, help="Path to log file for structured logging with rotation")
-    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-                       help="Logging level (default: INFO)")
+    parser.add_argument("--log-level", default="INFO",
+                        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], help="Logging level (default: INFO)")
     parser.add_argument("--no-console", action="store_true", help="Disable console logging output")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
-    parser.add_argument("--event-bus-host", type=str, default="*", help="Event bus host address (default: *)")
+    parser.add_argument("--event-bus-host", type=str, default="*",
+                        help="Event bus host address (default: *)")
     parser.add_argument(
         "--event-bus-pub-port", type=int, default=5559,
         help="Port where publishers connect (XSUB socket, default: 5559)",
@@ -68,6 +69,7 @@ def parse_args():
         "--event-bus-sub-port", type=int, default=5560,
         help="Port where subscribers connect (XPUB socket, default: 5560)",
     )
+
     args = parser.parse_args()
 
     return CliArgs(
@@ -81,7 +83,6 @@ def parse_args():
         event_bus_pub_port=args.event_bus_pub_port,
         event_bus_sub_port=args.event_bus_sub_port,
     )
-
 
 # pyright: reportUnusedFunction=false
 def _prepare_base_path(base_path: Path | str) -> Path:
@@ -171,6 +172,17 @@ def create_app(
 
     return app
 
+def get_app() -> FastAPI:
+    # Parsing args again inside get_app to get consistent config across reloads
+    cli_args = parse_args()
+
+    return create_app(
+        cli_args.base_path,
+        cli_args.event_bus_host,
+        cli_args.event_bus_pub_port,
+        cli_args.event_bus_sub_port,
+    )
+
 
 if __name__ == "__main__":
     cli_args = parse_args()
@@ -182,10 +194,16 @@ if __name__ == "__main__":
         console_output=cli_args.console_output,
     )
 
-    app = create_app(
-        cli_args.base_path,
-        cli_args.event_bus_host,
-        cli_args.event_bus_pub_port,
-        cli_args.event_bus_sub_port,
-    )
-    uvicorn.run(app, host="0.0.0.0", port=cli_args.port, reload=cli_args.reload)
+    if cli_args.reload:
+        # Use string import for reload support (dev only)
+        uvicorn.run(
+            "coredinator.app:get_app",
+            host="0.0.0.0",
+            port=cli_args.port,
+            reload=True,
+            factory=True,
+        )
+    else:
+        # Use direct app instance for executable compatibility
+        app = get_app()
+        uvicorn.run(app, host="0.0.0.0", port=cli_args.port)

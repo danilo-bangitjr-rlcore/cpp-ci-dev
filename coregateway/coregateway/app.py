@@ -2,6 +2,7 @@ import argparse
 import json
 from collections.abc import Callable
 from contextlib import asynccontextmanager
+from typing import NamedTuple
 
 import httpx
 import uvicorn
@@ -11,37 +12,39 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse, Response
 from lib_instrumentation.logging import get_structured_logger
-from pydantic import BaseModel
 
 version = "0.0.1"
 
-class CoregatewayConfig(BaseModel):
-    port: int = 8001
-    coredinator_port: int = 7000
-    coretelemetry_port: int = 7001
-
-
-# Module-level configuration
-coregateway_config = CoregatewayConfig()
+class CoregatewayConfig(NamedTuple):
+    port: int
+    coredinator_port: int
+    coretelemetry_port: int
+    reload: bool
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CoreGateway Service")
-    parser.add_argument("--port", type=int, default=coregateway_config.port, help="Port to run CoreGateway")
+    parser.add_argument("--port", type=int, default=8001, help="Port to run CoreGateway")
     parser.add_argument(
         "--coredinator-port",
         type=int,
-        default=coregateway_config.coredinator_port,
+        default=7000,
         help="Port for coredinator service",
     )
     parser.add_argument(
         "--coretelemetry-port",
         type=int,
-        default=coregateway_config.coretelemetry_port,
+        default=7001,
         help="Port for coretelemetry service",
     )
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload on code changes")
-    return parser.parse_args()
+    args = parser.parse_args()
+    return CoregatewayConfig(
+        port = args.port,
+        coredinator_port = args.coredinator_port,
+        coretelemetry_port = args.coretelemetry_port,
+        reload = args.reload,
+    )
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -187,6 +190,9 @@ def create_app(port: int = 8001, coredinator_port: int = 7000, coretelemetry_por
 
 
 def get_app() -> FastAPI:
+    # Parse args in get_app function to have a consistent config across reloads
+    coregateway_config = parse_args()
+
     return create_app(
         coregateway_config.port,
         coregateway_config.coredinator_port,
@@ -194,17 +200,16 @@ def get_app() -> FastAPI:
     )
 
 if __name__ == "__main__":
-    args = parse_args()
+    coregateway_config = parse_args()
 
-    # Store config in module-level variable for reload mode
-    coregateway_config.port = args.port
-    coregateway_config.coredinator_port = args.coredinator_port
-    coregateway_config.coretelemetry_port = args.coretelemetry_port
-
-    uvicorn.run(
-        "coregateway.app:get_app",
-        host="0.0.0.0",
-        port=args.port,
-        reload=args.reload,
-        factory=True,
-    )
+    if coregateway_config.reload:
+        uvicorn.run(
+            "coregateway.app:get_app",
+            host="0.0.0.0",
+            port=coregateway_config.port,
+            reload=True,
+            factory=True,
+        )
+    else:
+        app = get_app()
+        uvicorn.run(app, host="0.0.0.0", port=coregateway_config.port)
