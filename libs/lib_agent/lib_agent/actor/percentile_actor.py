@@ -12,7 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
-from lib_agent.buffer.datatypes import State
+from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
     IdentityConfig,
@@ -33,18 +33,6 @@ class PAState(NamedTuple):
     actor: PolicyState
     proposal: PolicyState
 
-
-class ActorBatch(Protocol):
-    @property
-    def state(self) -> State: ...
-    @property
-    def action(self) -> jax.Array: ...
-    @property
-    def reward(self) -> jax.Array: ...
-    @property
-    def next_state(self) -> State: ...
-    @property
-    def gamma(self) -> jax.Array: ...
 
 class ValueEstimator(Protocol):
     def __call__(
@@ -306,7 +294,7 @@ class PercentileActor:
         pa_state: Any,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
-        transitions: ActorBatch,
+        transitions: Transition,
     ):
 
         self.rng, update_rng = jax.random.split(self.rng, 2)
