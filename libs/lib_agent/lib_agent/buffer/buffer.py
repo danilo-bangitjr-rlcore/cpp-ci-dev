@@ -1,4 +1,4 @@
-from typing import Generic, NamedTuple, Protocol, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 import numpy as np
 
@@ -6,50 +6,6 @@ from lib_agent.buffer.storage import ReplayStorage
 
 # NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
 T = TypeVar('T', bound=NamedTuple)
-
-
-class Transition(Protocol):
-    @property
-    def state(self) -> np.ndarray: ...
-
-    @property
-    def a_lo(self) -> np.ndarray: ...
-
-    @property
-    def a_hi(self) -> np.ndarray: ...
-
-    @property
-    def dp(self) -> bool: ...
-
-    @property
-    def last_a(self) -> np.ndarray: ...
-
-    @property
-    def action(self) -> np.ndarray: ...
-
-    @property
-    def reward(self) -> float: ...
-
-    @property
-    def gamma(self) -> float: ...
-
-    @property
-    def next_state(self) -> np.ndarray: ...
-
-    @property
-    def next_a_lo(self) -> np.ndarray: ...
-
-    @property
-    def next_a_hi(self) -> np.ndarray: ...
-
-    @property
-    def next_dp(self) -> bool: ...
-
-    @property
-    def state_dim(self) -> int: ...
-
-    @property
-    def action_dim(self) -> int: ...
 
 
 class EnsembleReplayBuffer(Generic[T]): # noqa: UP046
