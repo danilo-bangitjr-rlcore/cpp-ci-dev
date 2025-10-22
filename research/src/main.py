@@ -20,13 +20,21 @@ from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
 from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
 from interaction.transition_creator import TransitionCreator
+from metrics.actor_critic import ac_eval
 from src.agent.factory import get_agent
+from utils.action_bounds import DeltaActionBoundsComputer
+from utils.plotting import generate_ac_gif, plot_learning_curve
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
 parser.add_argument('-s', '--seed', type=int, required=True)
+parser.add_argument('--plot', action='store_true', help='Plot learning curve after training')
+parser.add_argument('--ac-gif', action='store_true', help='Generate GIF of Q-values and action probs')
+parser.add_argument('--gif-subsample', type=int, default=1, help='Subsample rate for GIF frames')
+parser.add_argument('--save-path', type=str, default='results/test', help='Directory to save results')
 
 args, override_args = parser.parse_known_args()
+
 
 def safe_cast(value: Any):
     if not isinstance(value, str):
@@ -77,15 +85,17 @@ def main():
     overrides = process_overrides(override_args)
     cfg = ExperimentConfig.load(args.exp, overrides)
 
-    save_path = Path('results/test/results.db')
-    save_path.parent.mkdir(exist_ok=True, parents=True)
+    save_dir = Path(args.save_path)
+    save_dir.mkdir(exist_ok=True, parents=True)
+
+    db_path = save_dir / 'results.db'
 
     hyperparams = flatten_config(cfg.flatten())
     hyperparams['seed'] = args.seed
-    exp_id = get_next_id(save_path, hyperparams)
+    exp_id = get_next_id(db_path, hyperparams)
 
     collector = Collector(
-        tmp_file=str(save_path),
+        tmp_file=str(db_path),
         # specify which keys to actually store and ultimately save
         # Options are:
         #  - Identity() (save everything)
@@ -113,7 +123,7 @@ def main():
     if cfg.env['name'] == 'DistractionWorld-v0':
         trace_values = (0.,)
 
-    env_cfg = config_from_dict(EnvConfig, cfg.env) # type: ignore
+    env_cfg = config_from_dict(EnvConfig, cfg.env)  # type: ignore
     assert not isinstance(env_cfg, ConfigValidationErrors)
     env = init_env(env_cfg)
 
@@ -164,6 +174,12 @@ def main():
         collector=collector,
     )
 
+    # Initialize action bounds computer
+    bounds_computer = DeltaActionBoundsComputer(
+        config=cfg.action_bounds,
+        action_dim=len(act_bounds[0]),
+    )
+
     state_features, _ = wrapper_env.reset()
     reward: float | None = None
     done = False
@@ -172,15 +188,18 @@ def main():
     # +1 to ensure we don't reject any metrics that are subsampling
     # every 100 steps
 
-    # dummy action bounds
-    a_lo = np.zeros(len(act_bounds[0]))
-    a_hi = np.ones(len(act_bounds[0]))
-    last_action = (a_lo + a_hi) / 2 #placeholder
+    # Initialize last_action to middle of static bounds
+    last_action = (bounds_computer.static_lo + bounds_computer.static_hi) / 2
     dp = True
 
-    for _ in tqdm(range(cfg.max_steps + 1)):
+    gif_frames = []
+
+    for step in tqdm(range(cfg.max_steps + 1)):
         dp = steps % cfg.steps_per_decision == 0
         collector.next_frame()
+
+        # Compute action bounds based on previous action
+        a_lo, a_hi = bounds_computer.compute(last_action)
 
         state = State(
             features=NamedArray.unnamed(jnp.array(state_features)),
@@ -189,6 +208,16 @@ def main():
             dp=jnp.array([dp]),
             last_a=jnp.array(last_action),
         )
+
+        if args.ac_gif and (steps % args.gif_subsample == 0):
+            q_vals, a_probs, x_axis_actions = ac_eval(agent, state)
+            gif_frames.append({
+                'q_vals': np.array(q_vals),
+                'a_probs': np.array(a_probs),
+                'x_axis_actions': np.array(x_axis_actions),
+                'step': step,
+            })
+
         action = agent.get_actions(state)
 
         transitions = tc(
@@ -213,17 +242,24 @@ def main():
             reward = None
 
             state_features, _ = wrapper_env.reset()
-            last_action = (a_lo + a_hi) / 2
+            last_action = (bounds_computer.static_lo + bounds_computer.static_hi) / 2
             tc.flush()
 
         else:
             state_features = next_state_features
-            last_action = action
+            last_action = np.array(action)
 
     env.close()
 
     collector.reset()
     collector.close()
+
+    if args.plot:
+        plot_learning_curve(save_dir, db_path, exp_id, args.seed)
+
+    if args.ac_gif:
+        generate_ac_gif(gif_frames, save_dir, args.seed)
+
 
 if __name__ == "__main__":
     main()

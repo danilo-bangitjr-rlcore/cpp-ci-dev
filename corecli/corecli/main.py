@@ -10,6 +10,7 @@ from corecli.agent import agent
 from corecli.config import config
 from corecli.coredinator import coredinator
 from corecli.dev import dev
+from corecli.io import io
 from corecli.offline import offline
 
 console = Console()
@@ -69,6 +70,7 @@ def version() -> None:
 cli.add_command(dev)
 cli.add_command(coredinator)
 cli.add_command(agent)
+cli.add_command(io)
 cli.add_command(config)
 cli.add_command(offline)
 

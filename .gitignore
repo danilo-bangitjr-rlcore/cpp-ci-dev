@@ -213,3 +213,4 @@ metric_outputs/
 .worktree/
 projects/epcor_scrubber/syed_exports/
 *.code-workspace
+*.db

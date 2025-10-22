@@ -13,6 +13,7 @@ SERVICE_SCRIPT = SERVICE / "windows-service.py"
 FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 SERVER_LIB = BACKEND / "server" / ".."
+DEFAULT_CONFIG_PATH = ROOT / ".." / "config"
 
 DEV_GRACE_SECONDS = 5.0
 
@@ -60,41 +61,56 @@ def clean():
     if spec_file.exists():
         spec_file.unlink()
 
+def _start_service(name: str, cmd: str, cwd: str | Path):
+    """Start a service in its directory and return its process"""
+    print(f"Starting {name}...")
+    return subprocess.Popen(cmd, cwd=cwd, shell=True)
+
+def _block_on_processes(procs: list[subprocess.Popen[bytes]]):
+    try:
+        for proc in procs:
+            proc.wait()
+    except KeyboardInterrupt:
+        for proc in procs:
+            proc.terminate()
+            try:
+                proc.wait(timeout=DEV_GRACE_SECONDS)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+
 def dev():
     """Run FastAPI (CoreUI) app + Vite in parallel for development"""
     print("Starting development servers... (Ctrl+C to stop)")
-    
     build_frontend()
-        
+
+    procs = [
+        _start_service("Vite", "npm run dev", FRONTEND),
+        _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
+    ]
+
+    _block_on_processes(procs)
+
+def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
     print("Starting development servers... (Ctrl+C to stop)")
+    build_frontend()
 
-    # Start frontend vite
-    vite_proc = subprocess.Popen("npm run dev", cwd=FRONTEND, shell=True)
+    # Start microservices
+    procs = [
+        _start_service("Vite", "npm run dev", FRONTEND),
+        _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
+        _start_service("CoreGateway", "uv run python coregateway/app.py", "../coregateway"),
+        _start_service("CoreDinator", f"uv run python coredinator/app.py --base-path {coredinator_path}", "../coredinator"),
+        _start_service("CoreTelemetry", f"uv run python coretelemetry/app.py --config-path {coretelemetry_path}", "../coretelemetry"),
+    ]
 
-    # Start FastAPI dev
-    fastapi_proc = subprocess.Popen(
-        f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", cwd=BACKEND, shell=True
-    )
-
-    try:
-        vite_proc.wait()
-        fastapi_proc.wait()
-    except KeyboardInterrupt:
-        print("Stopping dev servers...")
-        vite_proc.terminate()
-        fastapi_proc.terminate()
-
-        try:
-            vite_proc.wait(timeout=DEV_GRACE_SECONDS)
-            fastapi_proc.wait(timeout=DEV_GRACE_SECONDS)
-
-        except subprocess.TimeoutExpired:
-            vite_proc.kill()
-            fastapi_proc.kill()
+    _block_on_processes(procs)
 
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
-    parser.add_argument("command", choices=["build", "clean", "dev"], help="Action to perform")
+    parser.add_argument("command", choices=["build", "clean", "dev", "dev-stack"], help="Action to perform")
+    parser.add_argument("--coredinator-path", default=DEFAULT_CONFIG_PATH, help="--base-path for Coredinator")
+    parser.add_argument("--coretelemetry-path", default=DEFAULT_CONFIG_PATH, help="--config-path for CoreTelemetry")
+
     args = parser.parse_args()
 
     if args.command == "clean":
@@ -106,6 +122,8 @@ def main():
         print("Build complete. Executable is at win-service/dist/coreui-service.exe")
     elif args.command == "dev":
         dev()
+    elif args.command == "dev-stack":
+        dev_stack(Path(args.coredinator_path), Path(args.coretelemetry_path))
 
 if __name__ == "__main__":
     main()
