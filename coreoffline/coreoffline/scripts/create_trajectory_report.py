@@ -28,7 +28,7 @@ def main(cfg: OfflineMainConfig):
     start_time = cfg.offline_training.offline_start_time
     end_time = cfg.offline_training.offline_end_time
     log.info(f"Processing data from {start_time} to {end_time}")
-    log.info("Running pipeline to generate trajectorys...")
+    log.info("Running pipeline to generate trajectories...")
 
     exclude_periods = cfg.offline_training.eval_periods if cfg.offline_training.remove_eval_from_train else None
     data_chunks, num_chunks = load_data_chunks(
