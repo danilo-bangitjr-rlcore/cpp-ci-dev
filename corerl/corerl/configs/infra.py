@@ -74,3 +74,6 @@ class FeatureFlags:
 
     # 2025-10-02
     all_layer_norm: bool = False
+
+    # 2025-10-21
+    polyak_critic: bool = False
