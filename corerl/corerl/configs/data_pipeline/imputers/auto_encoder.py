@@ -34,6 +34,8 @@ class MaskedAEConfig(BaseImputerStageConfig):
     prop_missing_tol: float = np.nan
     train_cfg: TrainingConfig = Field(default_factory=TrainingConfig)
 
+    debug: bool = False
+
     @post_processor
     def _set_missing_tol(self, cfg: MainConfig):
         """
