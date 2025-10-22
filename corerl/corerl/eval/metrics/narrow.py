@@ -75,7 +75,12 @@ class NarrowMetricsTable:
         )
 
     def close(self):
+        self.flush()
         self._writer.close()
+
+    @property
+    def table_name(self) -> str:
+        return self.cfg.table_name
 
     # ============================================================================
     # Public Write API

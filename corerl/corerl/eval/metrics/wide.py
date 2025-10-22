@@ -84,7 +84,12 @@ class WideMetricsTable:
         )
 
     def close(self):
+        self.flush()
         self._writer.close()
+
+    @property
+    def table_name(self) -> str:
+        return self.cfg.table_name
 
     # ============================================================================
     # Public Write API
@@ -116,6 +121,9 @@ class WideMetricsTable:
             )
 
     def flush(self) -> None:
+        if self._current_agent_step is not None:
+            self._writer.collect_row()
+            self._current_agent_step = None
         self._writer.flush()
 
     # ============================================================================
@@ -170,12 +178,14 @@ class WideMetricsTable:
             return pd.DataFrame(columns=["time", "agent_step"])
 
         columns_str = ", ".join(matching_columns)
+        where_clause = " OR ".join([f"{col} IS NOT NULL" for col in matching_columns])
         stmt = f"""
             SELECT
                 time,
                 agent_step,
                 {columns_str}
             FROM {self.cfg.table_name}
+            WHERE {where_clause}
         """
         df = self._execute_read(stmt)
         df["time"] = pd.to_datetime(df["time"])
@@ -200,12 +210,13 @@ class WideMetricsTable:
             return pd.DataFrame(columns=["agent_step"])
 
         columns_str = ", ".join(matching_columns)
+        where_clause = " OR ".join([f"{col} IS NOT NULL" for col in matching_columns])
         stmt = f"""
             SELECT
                 agent_step,
                 {columns_str}
             FROM {self.cfg.table_name}
-            WHERE 1=1
+            WHERE ({where_clause})
         """
 
         if step_start is not None:
@@ -238,12 +249,13 @@ class WideMetricsTable:
             return pd.DataFrame(columns=["time"])
 
         columns_str = ", ".join(matching_columns)
+        where_clause = " OR ".join([f"{col} IS NOT NULL" for col in matching_columns])
         stmt = f"""
             SELECT
                 time,
                 {columns_str}
             FROM {self.cfg.table_name}
-            WHERE 1=1
+            WHERE ({where_clause})
         """
 
         if start_time is not None:

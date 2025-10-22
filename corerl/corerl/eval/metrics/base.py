@@ -13,6 +13,10 @@ log = logging.getLogger(__name__)
 class MetricsWriterProtocol(Protocol):
     def __init__(self, cfg: MetricsDBConfig, time_provider: Callable[[], datetime] | None = None): ...
 
+    @property
+    def table_name(self) -> str:
+        ...
+
     def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None) -> None:
         ...
 

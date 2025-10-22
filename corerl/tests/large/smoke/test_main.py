@@ -35,10 +35,10 @@ def test_main_configs(
     ], check=False)
     proc.check_returncode()
 
-    # ensure metrics table exists
-    assert table_exists(tsdb_engine, 'metrics')
+    # ensure metrics table exists (wide_metrics is default, so table name is 'metrics_wide')
+    assert table_exists(tsdb_engine, 'metrics_wide')
 
     # ensure some metrics were logged to table
     with tsdb_engine.connect() as conn:
-        metrics = pd.read_sql_table('metrics', con=conn)
+        metrics = pd.read_sql_table('metrics_wide', con=conn)
         assert len(metrics) >= 10

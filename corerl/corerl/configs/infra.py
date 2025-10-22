@@ -64,7 +64,7 @@ class FeatureFlags:
     mu_sigma_multipliers: bool = False
 
     # 2025-07-24
-    wide_metrics: bool = False
+    wide_metrics: bool = True
 
     # 2025-10-02
     all_layer_norm: bool = False
