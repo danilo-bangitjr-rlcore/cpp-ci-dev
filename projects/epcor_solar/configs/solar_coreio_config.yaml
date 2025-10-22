@@ -15,6 +15,8 @@ env:
     wide_format: True # may remove in coreio, any version
 
 interaction: # may remove in coreio 0.11.0 (next version)
+  obs_period: 00:05:00
+  action_period: 00:05:00
   heartbeat: # may remove in coreio 0.11.0 (next version)
     connection_id: null # may remove in coreio 0.11.0 (next version)
     heartbeat_node_id: null # may remove in coreio 0.11.0 (next version)
@@ -32,9 +34,12 @@ coreio:
         policy: basic256_sha256
         mode: sign_and_encrypt
         # Copy pasted from scrubber
-        client_cert_path: "config\\databroker_client_cert.pem"
-        client_key_path: "config\\databroker_client_key.pem"
-        server_cert_path: "config\\databroker_server_cert.der"
+        # client_cert_path: "config\\databroker_client_cert.pem"
+        # client_key_path: "config\\databroker_client_key.pem"
+        # server_cert_path: "config\\databroker_server_cert.der"
+        client_cert_path: "C:/RLCore/services/agent/certs/coreio_cert.der"
+        client_key_path: "C:/RLCore/services/agent/certs/coreio_key.pem"
+        server_cert_path: "C:/RLCore/services/agent/certs/databroker_cert.der"
       authentication_mode:
         username: "admin"
         password: "scrubber4matrikon"
@@ -45,13 +50,16 @@ coreio:
         policy: basic256_sha256
         mode: sign_and_encrypt
         # Copy pasted from scrubber
-        client_cert_path: "config\\aveva_client_cert.pem"
-        client_key_path: "config\\aveva_client_key.pem"
-        server_cert_path: "config\\aveva_server_cert.der"
+        # client_cert_path: "../../telegraf/config/telegraf_cert.pem"
+        client_cert_path: "C:/RLCore/services/telegraf/config/telegraf_cert.pem"
+        # client_key_path: "../../telegraf/config/telegraf_key.pem"
+        client_key_path: "C:/RLCore/services/telegraf/config/telegraf_key.pem"
+        # server_cert_path: "../certs/aveva_server_cert.der"
+        server_cert_path: "C:/RLCore/services/agent/certs/aveva_server_cert.der"
       authentication_mode: "anonymous"
   data_ingress:
     enabled: True
-    ingress_period: 00:00:10
+    ingress_period: 00:01:00
   tags:
     - name: ELS_SLR_BESS1_SOC_SP_MAT
       connection_id: solar_matrikon
@@ -117,18 +125,27 @@ coreio:
       connection_id: opcua
       node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOLoadHour3"
 
-    - name: Actual_Posted_Pool_Price
+    # The pool price from the previous hour
+    # - name: Actual_Posted_Pool_Price
+    #   connection_id: opcua
+    #   node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPrice"
+    
+    # Pool price computed from average of system marginal prices
+    - name: Computed_Pool_Price
       connection_id: opcua
-      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPrice"
+      node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceNew"
 
+    # Forecast for the current hour
     - name: Forecast_Pool_Price_1
       connection_id: opcua
       node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceHour1"
 
+    # Forecast for the next hour
     - name: Forecast_Pool_Price_2
       connection_id: opcua
       node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceHour2"
 
+    # Two hour forecast
     - name: Forecast_Pool_Price_3
       connection_id: opcua
       node_identifier: "ns=3;s=0:BESS_RLCore.Tagname.ELE_MCS_AESOPoolPriceHour3"
