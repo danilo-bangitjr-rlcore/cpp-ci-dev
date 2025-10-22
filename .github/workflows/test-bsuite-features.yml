@@ -16,7 +16,7 @@ jobs:
             recency_bias_buffer,
             normalize_return,
             mu_sigma_multipliers,
-            state_layer_norm,
+            all_layer_norm,
             polyak_critic,
         ]
     steps:
