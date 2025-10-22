@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple
+from typing import Any
 
 import chex
 import jax
@@ -8,18 +8,9 @@ import numpy as np
 from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from lib_agent.buffer.datatypes import State
+from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.critic.adv_critic import AdvConfig, AdvCritic
-from lib_agent.critic.critic_utils import CriticBatch, RollingResetConfig
-
-
-class FakeAdvCriticBatch(NamedTuple):
-    """Simple critic batch for benchmarking."""
-    state: State
-    action: jax.Array
-    reward: jax.Array
-    next_state: State
-    gamma: jax.Array
+from lib_agent.critic.critic_utils import RollingResetConfig
 
 
 def _create_test_adv_critic(ensemble_size: int, state_dim: int, action_dim: int):
@@ -240,12 +231,12 @@ def test_adv_critic_ensemble_update_small(benchmark: BenchmarkFixture):
         last_a=actions,
     )
 
-    transitions = FakeAdvCriticBatch(
+    transitions = Transition(
         state=batch_state,
         action=actions,
-        reward=rewards,
+        n_step_reward=rewards,
         next_state=next_batch_state,
-        gamma=gammas,
+        n_step_gamma=gammas,
     )
 
     policy_actions = jnp.array(rng.random((ensemble_size, batch_size, num_policy_actions, action_dim)))
@@ -254,7 +245,7 @@ def test_adv_critic_ensemble_update_small(benchmark: BenchmarkFixture):
     def _inner(
         critic: AdvCritic,
         state: Any,
-        transitions: CriticBatch,
+        transitions: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):
@@ -307,12 +298,12 @@ def test_adv_critic_ensemble_update_large(benchmark: BenchmarkFixture):
         last_a=actions,
     )
 
-    transitions = FakeAdvCriticBatch(
+    transitions = Transition(
         state=batch_state,
         action=actions,
-        reward=rewards,
+        n_step_reward=rewards,
         next_state=next_batch_state,
-        gamma=gammas,
+        n_step_gamma=gammas,
     )
 
     policy_actions = jnp.array(rng.random((ensemble_size, batch_size, num_policy_actions, action_dim)))
@@ -321,7 +312,7 @@ def test_adv_critic_ensemble_update_large(benchmark: BenchmarkFixture):
     def _inner(
         critic: AdvCritic,
         state: Any,
-        transitions: CriticBatch,
+        transitions: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):

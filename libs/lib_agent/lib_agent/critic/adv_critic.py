@@ -9,9 +9,9 @@ import lib_utils.jax as jax_u
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.buffer.datatypes import Transition
 from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
-    CriticBatch,
     CriticState,
     get_ensemble_norm,
     get_layer_norms,
@@ -224,7 +224,7 @@ class AdvCritic:
     def update(
         self,
         critic_state: CriticState,
-        transitions: CriticBatch,
+        transitions: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):
@@ -366,7 +366,7 @@ class AdvCritic:
         self,
         state: CriticState,
         rng: chex.PRNGKey,
-        transitions: CriticBatch,
+        transitions: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):
@@ -404,7 +404,7 @@ class AdvCritic:
         self,
         params: chex.ArrayTree,
         rng: chex.PRNGKey,
-        transition: CriticBatch,
+        transition: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):
@@ -427,7 +427,7 @@ class AdvCritic:
         self,
         params: chex.ArrayTree,
         rng: chex.PRNGKey,
-        transition: CriticBatch,
+        transition: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):
@@ -452,19 +452,19 @@ class AdvCritic:
         self,
         params: chex.ArrayTree,
         rng: chex.PRNGKey,
-        transition: CriticBatch,
+        transition: Transition,
         policy_actions: jax.Array,
         policy_probs: jax.Array,
     ):
         state = transition.state
         action = transition.action
-        reward = transition.reward
+        n_step_reward = transition.n_step_reward
         next_state = transition.next_state
-        gamma = transition.gamma
+        n_step_gamma = transition.n_step_gamma
         chex.assert_rank((state.features, next_state.features, action), 1)
         chex.assert_rank(policy_actions, 2)  # (num_samples, action_dim)
         chex.assert_rank(policy_probs, 1)  # (num_samples,)
-        chex.assert_rank((reward, gamma), 0)  # scalars
+        chex.assert_rank((n_step_reward, n_step_gamma), 0)  # scalars
 
         v_rng, vp_rng, centering_rng, rand_a_rng, opt_rng = jax.random.split(rng, 5)
 
@@ -475,7 +475,7 @@ class AdvCritic:
 
         # v_prime is the state value of the next state
         v_prime = self._forward_val(params, vp_rng, next_state.features.array).v
-        target = reward + gamma * v_prime
+        target = n_step_reward + n_step_gamma * v_prime
 
         sg = jax.lax.stop_gradient
         delta = sg(target) - v

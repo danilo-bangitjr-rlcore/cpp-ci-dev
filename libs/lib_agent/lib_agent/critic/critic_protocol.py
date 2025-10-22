@@ -4,7 +4,8 @@ from typing import Any, Protocol
 import chex
 import jax
 
-from lib_agent.critic.critic_utils import CriticBatch, CriticMetrics, CriticState, RollingResetConfig
+from lib_agent.buffer.datatypes import Transition
+from lib_agent.critic.critic_utils import CriticMetrics, CriticState, RollingResetConfig
 
 
 class CriticOutputs(Protocol):
@@ -70,7 +71,7 @@ class Critic(Protocol):
     def update(
         self,
         critic_state: CriticState,
-        transitions: CriticBatch,
+        transitions: Transition,
         *args: Any,
     ) -> tuple[CriticState, CriticMetrics]:
         """Update the critic networks using the passed state transitions.

@@ -9,8 +9,6 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 from lib_utils import dict as dict_u
 
-from lib_agent.buffer.datatypes import State
-
 
 class ActionSampler(Protocol):
     def __call__(self, key: chex.PRNGKey, state: chex.Array) -> chex.Array: ...
@@ -19,19 +17,6 @@ class ActionSampler(Protocol):
 class CriticState(NamedTuple):
     params: chex.ArrayTree
     opt_state: chex.ArrayTree
-
-
-class CriticBatch(Protocol):
-    @property
-    def state(self) -> State: ...
-    @property
-    def action(self) -> jax.Array: ...
-    @property
-    def reward(self) -> jax.Array: ...
-    @property
-    def next_state(self) -> State: ...
-    @property
-    def gamma(self) -> jax.Array: ...
 
 
 @dataclass
