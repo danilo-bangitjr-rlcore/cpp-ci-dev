@@ -17,6 +17,7 @@ jobs:
             normalize_return,
             mu_sigma_multipliers,
             state_layer_norm,
+            polyak_critic,
         ]
     steps:
       - uses: actions/checkout@v4
