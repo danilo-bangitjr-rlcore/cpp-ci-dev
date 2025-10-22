@@ -1,10 +1,9 @@
-from typing import NamedTuple
-
 import jax.numpy as jnp
 import numpy as np
-from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode, State, Transition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.buffer.recency_bias_buffer import RecencyBiasBuffer, RecencyBiasBufferConfig
+from lib_utils.named_array import NamedArray
 
 
 def test_recency_bias_buffer_add_with_timestamps():
@@ -35,43 +34,27 @@ def test_recency_bias_buffer_add_with_timestamps():
         batch_size=cfg.batch_size,
     )
 
-    class TransitionWithTimestamp(NamedTuple):
-        idx: int
-        last_action: jnp.ndarray
-        state: jnp.ndarray
-        action: jnp.ndarray
-        reward: jnp.ndarray
-        next_state: jnp.ndarray
-        gamma: jnp.ndarray
-        action_lo: jnp.ndarray
-        action_hi: jnp.ndarray
-        next_action_lo: jnp.ndarray
-        next_action_hi: jnp.ndarray
-        dp: jnp.ndarray
-        next_dp: jnp.ndarray
-        n_step_reward: jnp.ndarray
-        n_step_gamma: jnp.ndarray
-        timestamp: int
-
     timestamps = [0, 5, 10]
 
     for i, ts in enumerate(timestamps):
-        transition = TransitionWithTimestamp(
-            idx=i,
-            last_action=jnp.array([i]),
-            state=jnp.array([i]),
+        transition = Transition(
+            state=State(
+                features=NamedArray.unnamed(jnp.array([i])),
+                a_lo=jnp.array([0.0]),
+                a_hi=jnp.array([1.0]),
+                dp=jnp.array([True]),
+                last_a=jnp.array([i]),
+            ),
             action=jnp.array([i]),
-            reward=jnp.array([i]),
-            next_state=jnp.array([i + 1]),
-            gamma=jnp.array([0.99]),
-            action_lo=jnp.array([0.0]),
-            action_hi=jnp.array([1.0]),
-            next_action_lo=jnp.array([0.0]),
-            next_action_hi=jnp.array([1.0]),
-            dp=jnp.array([True]),
-            next_dp=jnp.array([True]),
             n_step_reward=jnp.array([i]),
             n_step_gamma=jnp.array([0.99]),
+            next_state=State(
+                features=NamedArray.unnamed(jnp.array([i + 1])),
+                a_lo=jnp.array([0.0]),
+                a_hi=jnp.array([1.0]),
+                dp=jnp.array([True]),
+                last_a=jnp.array([i]),
+            ),
             timestamp=ts,
         )
         buffer.add(transition)
@@ -111,50 +94,26 @@ def test_recency_bias_buffer_feed_with_timestamps():
         batch_size=cfg.batch_size,
     )
 
-    class TransitionWithTimestamp(NamedTuple):
-        idx: int
-        last_action: jnp.ndarray
-        state: jnp.ndarray
-        action: jnp.ndarray
-        reward: jnp.ndarray
-        next_state: jnp.ndarray
-        gamma: jnp.ndarray
-        action_lo: jnp.ndarray
-        action_hi: jnp.ndarray
-        next_action_lo: jnp.ndarray
-        next_action_hi: jnp.ndarray
-        dp: jnp.ndarray
-        next_dp: jnp.ndarray
-        n_step_reward: jnp.ndarray
-        n_step_gamma: jnp.ndarray
-        timestamp: int
-
-        @property
-        def state_dim(self):
-            return 1
-
-        @property
-        def action_dim(self):
-            return 1
-
     timestamps = [0, 5, 10]
     transitions = [
-        TransitionWithTimestamp(
-            idx=i,
-            last_action=jnp.array([i]),
-            state=jnp.array([i]),
+        Transition(
+            state=State(
+                features=NamedArray.unnamed(jnp.array([i])),
+                a_lo=jnp.array([0.0]),
+                a_hi=jnp.array([1.0]),
+                dp=jnp.array([True]),
+                last_a=jnp.array([i]),
+            ),
             action=jnp.array([i]),
-            reward=jnp.array([i]),
-            next_state=jnp.array([i + 1]),
-            gamma=jnp.array([0.99]),
-            action_lo=jnp.array([0.0]),
-            action_hi=jnp.array([1.0]),
-            next_action_lo=jnp.array([0.0]),
-            next_action_hi=jnp.array([1.0]),
-            dp=jnp.array([True]),
-            next_dp=jnp.array([True]),
             n_step_reward=jnp.array([i]),
             n_step_gamma=jnp.array([0.99]),
+            next_state=State(
+                features=NamedArray.unnamed(jnp.array([i + 1])),
+                a_lo=jnp.array([0.0]),
+                a_hi=jnp.array([1.0]),
+                dp=jnp.array([True]),
+                last_a=jnp.array([i]),
+            ),
             timestamp=timestamps[i],
         )
         for i in range(3)
@@ -176,24 +135,6 @@ def test_recency_bias_buffer_factory():
     """
     Verifies that buffer can be created via factory function.
     """
-    class TransitionWithTimestamp(NamedTuple):
-        idx: int
-        last_action: jnp.ndarray
-        state: jnp.ndarray
-        action: jnp.ndarray
-        reward: jnp.ndarray
-        next_state: jnp.ndarray
-        gamma: jnp.ndarray
-        action_lo: jnp.ndarray
-        action_hi: jnp.ndarray
-        next_action_lo: jnp.ndarray
-        next_action_hi: jnp.ndarray
-        dp: jnp.ndarray
-        next_dp: jnp.ndarray
-        n_step_reward: jnp.ndarray
-        n_step_gamma: jnp.ndarray
-        timestamp: int
-
     cfg = RecencyBiasBufferConfig(
         obs_period=1000,
         gamma=[0.99, 0.99],
@@ -205,7 +146,7 @@ def test_recency_bias_buffer_factory():
         batch_size=32,
     )
 
-    buffer = build_buffer(cfg, TransitionWithTimestamp)
+    buffer = build_buffer(cfg, Transition)
 
     assert isinstance(buffer, RecencyBiasBuffer)
     assert buffer.ensemble == 2
