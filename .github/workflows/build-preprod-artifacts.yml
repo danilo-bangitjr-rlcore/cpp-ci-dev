@@ -26,8 +26,11 @@
 
 name: Build Pre-Production Artifacts
 
+# Run manually or every Tuesday and Thursday at 9am UTC
 on:
   workflow_dispatch:
+  schedule:
+  - cron: '0 9 * * 2,4'
 
 permissions:
   contents: read
