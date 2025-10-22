@@ -6,7 +6,7 @@ import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
-from lib_agent.buffer.datatypes import JaxTransition
+from lib_agent.buffer.datatypes import Transition
 from lib_utils.errors import fail_gracefully
 from lib_utils.named_array import NamedArray
 from pydantic import BaseModel
@@ -70,10 +70,10 @@ def policy_buffer_batchify(eval_fn: SAEvalFn) ->  BatchSAEvalFn:
 
         batches = agent.sample_policy_buffer()
         assert len(batches) == 1
-        batch: JaxTransition = jax.tree.map(lambda x: x[0], batches)
-        state_batch = batch.state
-        action_lo_batch = batch.action_lo
-        action_hi_batch = batch.action_hi
+        batch: Transition = jax.tree.map(lambda x: x[0], batches)
+        state_batch = batch.state.features
+        action_lo_batch = batch.state.a_lo
+        action_hi_batch = batch.state.a_hi
 
         return eval_fn(cfg, agent, state_batch, action_lo_batch, action_hi_batch)
 

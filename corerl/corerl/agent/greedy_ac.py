@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.datatypes import JaxTransition, State, Transition, convert_trajectory_to_transition
+from lib_agent.buffer.datatypes import State, Transition, convert_trajectory_to_transition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     create_ensemble_dict,
@@ -144,7 +144,7 @@ class GreedyAC(BaseAgent):
     def is_policy_buffer_sampleable(self)-> bool:
         return self._actor_buffer.is_sampleable
 
-    def sample_policy_buffer(self) -> JaxTransition:
+    def sample_policy_buffer(self) -> Transition:
         return self._actor_buffer.sample()
 
 
