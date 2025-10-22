@@ -1,7 +1,10 @@
 from collections import deque
 from dataclasses import dataclass
 
+import jax.numpy as jnp
 import numpy as np
+from lib_agent.buffer.datatypes import State, Transition
+from lib_utils.named_array import NamedArray
 
 
 @dataclass
@@ -13,30 +16,6 @@ class Step:
     reward: float | None
     gamma: float
     dp: bool
-
-
-@dataclass
-class Transition:
-    state: np.ndarray
-    a_lo: np.ndarray
-    a_hi: np.ndarray
-    dp: bool
-    last_a: np.ndarray
-    action: np.ndarray
-    reward: float
-    gamma: float
-    next_state: np.ndarray
-    next_a_lo: np.ndarray
-    next_a_hi: np.ndarray
-    next_dp: bool
-
-    @property
-    def state_dim(self):
-        return self.state.shape[-1]
-
-    @property
-    def action_dim(self):
-        return self.action.shape[-1]
 
 
 class TransitionCreator:
@@ -109,17 +88,21 @@ def _build_n_step_transitions(buffer: deque[Step | None], n: int):
     assert isinstance(last, Step), "Last step in the transition must not be None"
 
     return Transition(
-        state=first.state,
-        a_lo=first.a_lo,
-        a_hi=first.a_hi,
-        dp=first.dp,
-        # use previous action if available, otherwise use default to action in the transition
-        last_a=prev.action if prev is not None else first.action,
-        action=first.action,
-        reward=ret,
-        gamma=gamma,
-        next_state=last.state,
-        next_a_lo=last.a_lo,
-        next_a_hi=last.a_hi,
-        next_dp=last.dp,
+        state=State(
+            features=NamedArray.unnamed(jnp.array(first.state)),
+            a_lo=jnp.array(first.a_lo),
+            a_hi=jnp.array(first.a_hi),
+            dp=jnp.array([first.dp]),
+            last_a=jnp.array(prev.action) if prev is not None else jnp.array(first.action),
+        ),
+        action=jnp.array(first.action),
+        n_step_reward=jnp.array(ret),
+        n_step_gamma=jnp.array(gamma),
+        next_state=State(
+            features=NamedArray.unnamed(jnp.array(last.state)),
+            a_lo=jnp.array(last.a_lo),
+            a_hi=jnp.array(last.a_hi),
+            dp=jnp.array([last.dp]),
+            last_a=jnp.array(last.action),
+        ),
     )
