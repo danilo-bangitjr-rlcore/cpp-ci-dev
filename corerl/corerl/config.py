@@ -85,11 +85,6 @@ class MainConfig:
             self.agent.critic.buffer.ensemble_probability = 1.
 
     @post_processor
-    def _enable_higher_critic_lr(self, cfg: 'MainConfig'):
-        if self.feature_flags.higher_critic_lr:
-            self.agent.critic.stepsize = 0.001
-
-    @post_processor
     def _enable_mu_sigma_multipliers(self, cfg: 'MainConfig'):
         if self.feature_flags.mu_sigma_multipliers:
             self.agent.policy.mu_multiplier = 10.0

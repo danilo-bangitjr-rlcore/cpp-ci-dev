@@ -60,12 +60,6 @@ class FeatureFlags:
     # 2025-05-26
     normalize_return: bool = False
 
-    # 2025-06-11
-    nominal_setpoint_bias: bool = True
-
-    # 2025-06-27
-    higher_critic_lr: bool = True
-
     # 2025-06-27
     mu_sigma_multipliers: bool = False
 

@@ -364,7 +364,7 @@ class GreedyAC(BaseAgent):
         return metrics.actor_loss.mean().item()
 
     def update(self) -> list[float]:
-        if not self._has_preinitialized and self._app_state.cfg.feature_flags.nominal_setpoint_bias:
+        if not self._has_preinitialized:
             self._has_preinitialized = True
             self._critic_state = self.critic.initialize_to_nominal_action(
                 self._jax_rng,
