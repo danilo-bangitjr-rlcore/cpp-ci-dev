@@ -21,12 +21,14 @@ from interaction.env_wrapper import EnvWrapper
 from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
 from interaction.transition_creator import TransitionCreator
 from src.agent.factory import get_agent
+from utils.action_bounds import DeltaActionBoundsComputer
 
 parser = argparse.ArgumentParser()
 parser.add_argument('-e', '--exp', type=str, required=True)
 parser.add_argument('-s', '--seed', type=int, required=True)
 
 args, override_args = parser.parse_known_args()
+
 
 def safe_cast(value: Any):
     if not isinstance(value, str):
@@ -113,7 +115,7 @@ def main():
     if cfg.env['name'] == 'DistractionWorld-v0':
         trace_values = (0.,)
 
-    env_cfg = config_from_dict(EnvConfig, cfg.env) # type: ignore
+    env_cfg = config_from_dict(EnvConfig, cfg.env)  # type: ignore
     assert not isinstance(env_cfg, ConfigValidationErrors)
     env = init_env(env_cfg)
 
@@ -164,6 +166,12 @@ def main():
         collector=collector,
     )
 
+    # Initialize action bounds computer
+    bounds_computer = DeltaActionBoundsComputer(
+        config=cfg.action_bounds,
+        action_dim=len(act_bounds[0]),
+    )
+
     state_features, _ = wrapper_env.reset()
     reward: float | None = None
     done = False
@@ -172,15 +180,16 @@ def main():
     # +1 to ensure we don't reject any metrics that are subsampling
     # every 100 steps
 
-    # dummy action bounds
-    a_lo = np.zeros(len(act_bounds[0]))
-    a_hi = np.ones(len(act_bounds[0]))
-    last_action = (a_lo + a_hi) / 2 #placeholder
+    # Initialize last_action to middle of static bounds
+    last_action = (bounds_computer.static_lo + bounds_computer.static_hi) / 2
     dp = True
 
     for _ in tqdm(range(cfg.max_steps + 1)):
         dp = steps % cfg.steps_per_decision == 0
         collector.next_frame()
+
+        # Compute action bounds based on previous action
+        a_lo, a_hi = bounds_computer.compute(last_action)
 
         state = State(
             features=NamedArray.unnamed(jnp.array(state_features)),
@@ -213,17 +222,18 @@ def main():
             reward = None
 
             state_features, _ = wrapper_env.reset()
-            last_action = (a_lo + a_hi) / 2
+            last_action = (bounds_computer.static_lo + bounds_computer.static_hi) / 2
             tc.flush()
 
         else:
             state_features = next_state_features
-            last_action = action
+            last_action = np.array(action)
 
     env.close()
 
     collector.reset()
     collector.close()
+
 
 if __name__ == "__main__":
     main()
