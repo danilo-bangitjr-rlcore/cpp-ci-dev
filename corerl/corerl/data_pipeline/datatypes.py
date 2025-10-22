@@ -69,26 +69,3 @@ class PipelineFrame:
         first_index = self.data.index[0]
         assert isinstance(first_index, datetime.datetime)
         return first_index
-
-def convert_trajectory_to_jax_transition(trajectory: Trajectory) -> JaxTransition:
-    timestamp = None
-    if trajectory.start_time is not None:
-        timestamp = int(trajectory.start_time.timestamp())
-
-    return JaxTransition(
-        last_action=trajectory.prior.action,
-        state=trajectory.state,
-        action=trajectory.action,
-        reward=jnp.asarray(trajectory.reward),
-        next_state=trajectory.next_state,
-        gamma=jnp.asarray(trajectory.gamma),
-        action_lo=trajectory.prior.action_lo,
-        action_hi=trajectory.prior.action_hi,
-        next_action_lo=trajectory.post.action_lo,
-        next_action_hi=trajectory.post.action_hi,
-        dp=jnp.asarray(trajectory.prior.dp),
-        next_dp=jnp.asarray(trajectory.post.dp),
-        n_step_reward=jnp.asarray(trajectory.n_step_reward),
-        n_step_gamma=jnp.asarray(trajectory.n_step_gamma),
-        timestamp=timestamp,
-    )

@@ -158,9 +158,10 @@ class State(NamedTuple):
 class Transition(NamedTuple):
     state: State
     action: jax.Array
-    reward: jax.Array
+    n_step_reward: jax.Array
+    n_step_gamma: jax.Array
     next_state: State
-    gamma: jax.Array
+    timestamp: int | None = None
 
 
 class JaxTransition(NamedTuple):
@@ -191,3 +192,30 @@ class JaxTransition(NamedTuple):
     @property
     def action_dim(self):
         return self.action.shape[-1]
+
+
+def convert_trajectory_to_transition(trajectory: Trajectory) -> Transition:
+    timestamp = None
+    if trajectory.start_time is not None:
+        timestamp = int(trajectory.start_time.timestamp())
+
+    return Transition(
+        state=State(
+            features=trajectory.state,
+            a_lo=trajectory.prior.action_lo,
+            a_hi=trajectory.prior.action_hi,
+            dp=jnp.expand_dims(trajectory.prior.dp, -1), # jnp.asarray(trajectory.prior.dp),
+            last_a=trajectory.prior.action,
+        ),
+        action=trajectory.action,
+        n_step_reward=jnp.asarray(trajectory.n_step_reward),
+        n_step_gamma=jnp.asarray(trajectory.n_step_gamma),
+        next_state=State(
+            features=trajectory.next_state,
+            a_lo=trajectory.post.action_lo,
+            a_hi=trajectory.post.action_hi,
+            dp=jnp.expand_dims(trajectory.post.dp, -1), # jnp.asarray(trajectory.post.dp),
+            last_a=trajectory.action,
+        ),
+        timestamp=timestamp,
+    )

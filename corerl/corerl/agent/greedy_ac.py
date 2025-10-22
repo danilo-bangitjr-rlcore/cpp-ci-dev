@@ -9,7 +9,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.datatypes import JaxTransition, State, Transition
+from lib_agent.buffer.datatypes import JaxTransition, State, Transition, convert_trajectory_to_transition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     create_ensemble_dict,
@@ -95,7 +95,7 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), Transition)
 
         critic_buffer_config = cfg.critic.buffer.to_lib_config()
         critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
@@ -108,7 +108,7 @@ class GreedyAC(BaseAgent):
                 list(critic_buffer_config.effective_episodes)[:1] * ensemble_size
             )
 
-        self.critic_buffer = build_buffer(critic_buffer_config, JaxTransition)
+        self.critic_buffer = build_buffer(critic_buffer_config, Transition)
 
         self.ensemble = len(self.critic._reset_manager.active_indices)
 
@@ -231,23 +231,17 @@ class GreedyAC(BaseAgent):
 
         self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
 
-        jax_transitions = [convert_trajectory_to_jax_transition(t) for t in pr.trajectories]
+        transitions = [convert_trajectory_to_transition(t) for t in pr.trajectories]
 
-        self.critic_buffer.feed(jax_transitions, pr.data_mode)
-        recent_actor_idxs = self._actor_buffer.feed(jax_transitions, pr.data_mode)
+        self.critic_buffer.feed(transitions, pr.data_mode)
+        recent_actor_idxs = self._actor_buffer.feed(transitions, pr.data_mode)
         self.log_buffer_sizes()
 
         # ---------------------------------- ingress actor loss metic --------------------------------- #
         if len(recent_actor_idxs) > 0:
-            recent_actor_batch: JaxTransition = self._actor_buffer.get_batch(recent_actor_idxs)
+            recent_actor_batch: Transition = self._actor_buffer.get_batch(recent_actor_idxs)
 
-            state = State(
-                features=recent_actor_batch.state,
-                a_lo=recent_actor_batch.action_lo,
-                a_hi=recent_actor_batch.action_hi,
-                dp=jnp.ones((len(recent_actor_batch.state), 1)),
-                last_a=recent_actor_batch.action,
-            )
+            state = recent_actor_batch.state
 
             # vmap over batch
             log_probs = jax_u.vmap_except(self._actor.get_log_probs, exclude=["params"])(
