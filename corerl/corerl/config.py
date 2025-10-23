@@ -3,6 +3,7 @@ from pathlib import Path
 
 import yaml
 from coreio.config import CoreIOConfig
+from lib_agent.critic.qrc_critic import QRCConfig
 from lib_config.config import MISSING, computed, config, post_processor
 from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
@@ -84,11 +85,6 @@ class MainConfig:
             self.agent.critic.buffer.ensemble_probability = 1.
 
     @post_processor
-    def _enable_higher_critic_lr(self, cfg: 'MainConfig'):
-        if self.feature_flags.higher_critic_lr:
-            self.agent.critic.stepsize = 0.001
-
-    @post_processor
     def _enable_mu_sigma_multipliers(self, cfg: 'MainConfig'):
         if self.feature_flags.mu_sigma_multipliers:
             self.agent.policy.mu_multiplier = 10.0
@@ -101,6 +97,20 @@ class MainConfig:
 
         assert self.agent.critic.buffer.name == 'recency_bias_buffer'
         assert self.agent.policy.buffer.name == 'recency_bias_buffer'
+
+
+    @post_processor
+    def _enable_polyak_critic(self, cfg: 'MainConfig'):
+        if not self.feature_flags.polyak_critic:
+            return
+
+        assert isinstance(cfg.agent.critic, QRCConfig)
+        # this expression effectively means we fully "replace" the critic once per update loop
+        # instead of 10 times per update loop. Note, however, that polyak averaging typically
+        # allows much faster convergence, so while this slows down weight changes, it may not
+        # necessarily slow down learning.
+        cfg.agent.critic.polyak_tau = 1 - (1 / cfg.agent.max_critic_updates)
+
 
     @post_processor
     def _enable_time_dilation(self, cfg: 'MainConfig'):

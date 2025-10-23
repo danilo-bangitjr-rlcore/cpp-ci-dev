@@ -60,17 +60,14 @@ class FeatureFlags:
     # 2025-05-26
     normalize_return: bool = False
 
-    # 2025-06-11
-    nominal_setpoint_bias: bool = True
-
-    # 2025-06-27
-    higher_critic_lr: bool = True
-
     # 2025-06-27
     mu_sigma_multipliers: bool = False
 
     # 2025-07-24
-    wide_metrics: bool = False
+    wide_metrics: bool = True
 
     # 2025-10-02
     all_layer_norm: bool = False
+
+    # 2025-10-21
+    polyak_critic: bool = False

@@ -14,6 +14,10 @@ class DummyMetricsWriter:
     def __init__(self, cfg: 'MetricsDBConfig', time_provider: Callable[[], datetime] | None = None):
         pass
 
+    @property
+    def table_name(self) -> str:
+        return "dummy_metrics"
+
     def write(self, agent_step: int, metric: str, value: SupportsFloat, timestamp: str | None = None) -> None:
         ...
 

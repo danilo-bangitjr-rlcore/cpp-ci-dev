@@ -59,6 +59,7 @@ def critic_builder(cfg: nets.TorsoConfig):
 
 @dataclass
 class QRCConfig(CriticConfig):
+    polyak_tau: float = 0.0
     action_regularization_epsilon: float = 0.1
 
 
@@ -292,7 +293,13 @@ class QRCCritic:
             state.opt_state,
             params=state.params,
         )
-        new_params = optax.apply_updates(state.params, updates)
+        updated_params = optax.apply_updates(state.params, updates)
+
+        new_params = jax.tree.map(
+            lambda old, updated: (1 - self._cfg.polyak_tau) * updated + self._cfg.polyak_tau * old,
+            state.params,
+            updated_params,
+        )
 
         metrics = metrics._replace(
             ensemble_grad_norms=get_ensemble_norm(grads),
