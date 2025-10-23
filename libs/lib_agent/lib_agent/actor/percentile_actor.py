@@ -12,7 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
-from lib_agent.actor.actor_protocol import PolicyState
+from lib_agent.actor.actor_protocol import PolicyOutputs, PolicyState
 from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -55,9 +55,6 @@ class PAConfig:
     max_action_stddev: float = jnp.inf
     sort_noise: float = 0.0
 
-class ActorOutputs(NamedTuple):
-    mu: jax.Array
-    sigma: jax.Array
 
 def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int):
     def _inner(x: jax.Array):
@@ -67,7 +64,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
         mu_head_out = output_act(hk.Linear(act_dim, name='mu_head')(phi))
         sigma_head_out = output_act(hk.Linear(act_dim, name='sigma_head')(phi))
 
-        return ActorOutputs(
+        return PolicyOutputs(
             mu=mu_head_out,
             sigma=jax.nn.sigmoid(sigma_head_out) * 0.1 + 1e-5,
         )
@@ -155,7 +152,7 @@ class PercentileActor:
         return PAState(actor_state, proposal_state)
 
     @jax_u.method_jit
-    def _forward(self, actor_params: chex.ArrayTree, state: State) -> ActorOutputs:
+    def _forward(self, actor_params: chex.ArrayTree, state: State) -> PolicyOutputs:
         levels = state.features.ndim - 1
         return jax_u.vmap_only(self.actor.apply, ['x'], levels)(
             actor_params,
@@ -438,7 +435,7 @@ class PercentileActor:
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
     def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: State, top_actions: jax.Array):
-        out: ActorOutputs = policy.apply(params=params, x=state.features.array)
+        out: PolicyOutputs = policy.apply(params=params, x=state.features.array)
         dist = distrax.MultivariateNormalDiag(out.mu, out.sigma)
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)

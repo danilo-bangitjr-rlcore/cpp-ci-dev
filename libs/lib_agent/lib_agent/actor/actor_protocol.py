@@ -1,6 +1,7 @@
 from typing import NamedTuple, Protocol
 
 import chex
+import jax
 
 
 class PolicyState(NamedTuple):
@@ -11,3 +12,8 @@ class PolicyState(NamedTuple):
 
 class ActorState(Protocol):
     actor: PolicyState
+
+
+class PolicyOutputs(NamedTuple):
+    mu: jax.Array
+    sigma: jax.Array
