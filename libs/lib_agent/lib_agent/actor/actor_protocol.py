@@ -17,3 +17,13 @@ class ActorState(Protocol):
 class PolicyOutputs(NamedTuple):
     mu: jax.Array
     sigma: jax.Array
+
+
+class ValueEstimator(Protocol):
+    def __call__(
+        self,
+        params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        x: jax.Array,
+        a: jax.Array,
+    ) -> jax.Array: ...

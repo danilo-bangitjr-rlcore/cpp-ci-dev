@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple, Protocol
+from typing import Any, NamedTuple
 
 import chex
 import distrax
@@ -12,7 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
-from lib_agent.actor.actor_protocol import PolicyOutputs, PolicyState
+from lib_agent.actor.actor_protocol import PolicyOutputs, PolicyState, ValueEstimator
 from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -29,16 +29,6 @@ class UpdateActions(NamedTuple):
 class PAState(NamedTuple):
     actor: PolicyState
     proposal: PolicyState
-
-
-class ValueEstimator(Protocol):
-    def __call__(
-        self,
-        params: chex.ArrayTree,
-        rng: chex.PRNGKey,
-        x: jax.Array,
-        a: jax.Array,
-    ) -> jax.Array: ...
 
 
 @dataclass
