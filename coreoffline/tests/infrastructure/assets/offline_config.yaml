@@ -28,11 +28,11 @@ metrics:
 
 
 pipeline:
-  transition_creator:
+  trajectory_creator:
     min_n_step: 1
     max_n_step: 2
 
-  transition_filter:
+  trajectory_filter:
     filters:
       - only_no_action_change
       - no_nan

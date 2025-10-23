@@ -104,24 +104,24 @@ def test_data_report_requires_config():
     assert "Missing option" in result.output or "Error" in result.output
 
 
-def test_transition_report_command_exists():
-    """Test that transition-report command is registered.
+def test_trajectory_report_command_exists():
+    """Test that trajectory-report command is registered.
 
     Note: This is a smoke test that only verifies the command exists and
     shows help. Full integration testing is handled in coreoffline tests.
     """
     runner = CliRunner()
-    result = runner.invoke(cli, ["offline", "transition-report", "--help"])
+    result = runner.invoke(cli, ["offline", "trajectory-report", "--help"])
 
     assert result.exit_code == 0
-    assert "Generate transition analysis report from offline data" in result.output
+    assert "Generate trajectory analysis report from offline data" in result.output
     assert "--config" in result.output
 
 
-def test_transition_report_requires_config():
-    """Test that transition-report requires --config option."""
+def test_trajectory_report_requires_config():
+    """Test that trajectory-report requires --config option."""
     runner = CliRunner()
-    result = runner.invoke(cli, ["offline", "transition-report"])
+    result = runner.invoke(cli, ["offline", "trajectory-report"])
 
     assert result.exit_code != 0
     assert "Missing option" in result.output or "Error" in result.output

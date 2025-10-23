@@ -3,7 +3,7 @@ from functools import partial
 import chex
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 
 from agent.gac import GreedyAC
 

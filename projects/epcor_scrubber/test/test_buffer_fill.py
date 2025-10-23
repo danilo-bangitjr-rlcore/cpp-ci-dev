@@ -68,5 +68,5 @@ def test_buffer_load():
         reset_temporal_state=False,
     )
 
-    assert pipeline_out.transitions is not None
-    assert len(pipeline_out.transitions) > 1000
+    assert pipeline_out.trajectories is not None
+    assert len(pipeline_out.trajectories) > 1000

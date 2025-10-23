@@ -5,7 +5,7 @@ from typing import Any
 
 import jax.numpy as jnp
 import numpy as np
-from lib_agent.actor.percentile_actor import State
+from lib_agent.buffer.datatypes import State
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import config_from_dict
 from lib_utils.named_array import NamedArray

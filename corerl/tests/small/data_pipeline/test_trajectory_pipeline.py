@@ -10,8 +10,8 @@ from corerl.data_pipeline.all_the_time import AllTheTimeTC, AllTheTimeTCConfig
 from corerl.data_pipeline.constructors.sc import StateConstructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
 from corerl.data_pipeline.state_constructors.countdown import DecisionPointDetector
+from corerl.data_pipeline.trajectory_filter import TrajectoryFilter, TrajectoryFilterConfig
 from corerl.data_pipeline.transforms.trace import TraceConfig
-from corerl.data_pipeline.transition_filter import TransitionFilter, TransitionFilterConfig
 from corerl.state import AppState
 
 
@@ -144,37 +144,37 @@ def test_regular_rl_capture(dummy_app_state: AppState):
 
     tc = AllTheTimeTC(tc_cfg)
     pf = tc(pf)
-    transitions = pf.transitions
-    assert isinstance(transitions, list)
+    trajectories = pf.trajectories
+    assert isinstance(trajectories, list)
 
-    cfg = TransitionFilterConfig(
+    cfg = TrajectoryFilterConfig(
         filters=[
             'only_pre_dp_or_ac',
             'only_post_dp',
             'only_no_action_change',
         ],
     )
-    transition_filter = TransitionFilter(dummy_app_state, cfg)
-    pf = transition_filter(pf)
+    trajectory_filter = TrajectoryFilter(dummy_app_state, cfg)
+    pf = trajectory_filter(pf)
 
-    assert pf.transitions is not None
-    assert len(pf.transitions) == 3
+    assert pf.trajectories is not None
+    assert len(pf.trajectories) == 3
 
-    t0 = pf.transitions[0]
+    t0 = pf.trajectories[0]
     assert len(t0.steps) == 4
     assert t0.steps[0].action == 1
     assert t0.steps[1].action == 2
     assert t0.steps[2].action == 2
     assert t0.steps[3].action == 2
 
-    t1 = pf.transitions[1]
+    t1 = pf.trajectories[1]
     assert len(t1.steps) == 4
     assert t1.steps[0].action == 2
     assert t1.steps[1].action == 3
     assert t1.steps[2].action == 3
     assert t1.steps[3].action == 3
 
-    t2 = pf.transitions[2]
+    t2 = pf.trajectories[2]
     assert len(t2.steps) == 4
     assert t2.steps[0].action == 3
     assert t2.steps[1].action == 4

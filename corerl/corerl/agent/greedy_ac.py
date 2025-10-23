@@ -9,8 +9,7 @@ import jax.numpy as jnp
 import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import JaxTransition
+from lib_agent.buffer.datatypes import State, Transition, convert_trajectory_to_transition
 from lib_agent.buffer.factory import build_buffer
 from lib_agent.critic.critic_utils import (
     create_ensemble_dict,
@@ -25,7 +24,6 @@ from corerl.agent.base import BaseAgent
 from corerl.configs.agent.greedy_ac import (
     GreedyACConfig,
 )
-from corerl.data_pipeline.datatypes import AbsTransition, convert_corerl_transition_to_jax_transition
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.messages.events import RLEventType
 from corerl.state import AppState
@@ -96,7 +94,7 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), JaxTransition)
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), Transition)
 
         critic_buffer_config = cfg.critic.buffer.to_lib_config()
         critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
@@ -109,7 +107,7 @@ class GreedyAC(BaseAgent):
                 list(critic_buffer_config.effective_episodes)[:1] * ensemble_size
             )
 
-        self.critic_buffer = build_buffer(critic_buffer_config, JaxTransition)
+        self.critic_buffer = build_buffer(critic_buffer_config, Transition)
 
         self.ensemble = len(self.critic._reset_manager.active_indices)
 
@@ -146,7 +144,7 @@ class GreedyAC(BaseAgent):
     def is_policy_buffer_sampleable(self)-> bool:
         return self._actor_buffer.is_sampleable
 
-    def sample_policy_buffer(self) -> JaxTransition:
+    def sample_policy_buffer(self) -> Transition:
         return self._actor_buffer.sample()
 
 
@@ -227,28 +225,22 @@ class GreedyAC(BaseAgent):
         return np.asarray(jaxtion)
 
     def update_buffer(self, pr: PipelineReturn) -> None:
-        if pr.transitions is None:
+        if pr.trajectories is None:
             return
 
         self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
 
-        jax_transitions = [convert_corerl_transition_to_jax_transition(t) for t in pr.transitions]
+        transitions = [convert_trajectory_to_transition(t) for t in pr.trajectories]
 
-        self.critic_buffer.feed(jax_transitions, pr.data_mode)
-        recent_actor_idxs = self._actor_buffer.feed(jax_transitions, pr.data_mode)
+        self.critic_buffer.feed(transitions, pr.data_mode)
+        recent_actor_idxs = self._actor_buffer.feed(transitions, pr.data_mode)
         self.log_buffer_sizes()
 
         # ---------------------------------- ingress actor loss metic --------------------------------- #
         if len(recent_actor_idxs) > 0:
-            recent_actor_batch: JaxTransition = self._actor_buffer.get_batch(recent_actor_idxs)
+            recent_actor_batch: Transition = self._actor_buffer.get_batch(recent_actor_idxs)
 
-            state = State(
-                features=recent_actor_batch.state,
-                a_lo=recent_actor_batch.action_lo,
-                a_hi=recent_actor_batch.action_hi,
-                dp=jnp.ones((len(recent_actor_batch.state), 1)),
-                last_a=recent_actor_batch.action,
-            )
+            state = recent_actor_batch.state
 
             # vmap over batch
             log_probs = jax_u.vmap_except(self._actor.get_log_probs, exclude=["params"])(
@@ -264,12 +256,12 @@ class GreedyAC(BaseAgent):
                 value=actor_loss,
             )
 
-        # ------------------------- transition length metric ------------------------- #
+        # ------------------------- trajectory length metric ------------------------- #
 
-        for t in pr.transitions:
+        for t in pr.trajectories:
             self._app_state.metrics.write(
                 agent_step=self._app_state.agent_step,
-                metric="pipeline_transition_len",
+                metric="pipeline_trajectory_len",
                 value=len(t),
             )
 
@@ -279,8 +271,7 @@ class GreedyAC(BaseAgent):
         if not self.critic_buffer.is_sampleable:
             return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 
-        batches: JaxTransition = self.critic_buffer.sample()
-        critic_batch = abs_transition_from_batch(batches)
+        critic_batch: Transition = self.critic_buffer.sample()
         next_actions, _ = self._actor.get_actions(
             self._actor_state.actor.params,
             critic_batch.next_state,
@@ -353,8 +344,7 @@ class GreedyAC(BaseAgent):
         if not self._actor_buffer.is_sampleable:
             return 0.
 
-        batch: JaxTransition = self._actor_buffer.sample()
-        actor_batch = abs_transition_from_batch(batch)
+        actor_batch: Transition = self._actor_buffer.sample()
         self._actor_state, metrics = self._actor.update(
             self._actor_state,
             self.ensemble_ve,
@@ -476,28 +466,3 @@ class GreedyAC(BaseAgent):
             metric="BUFFER-ACTOR-size",
             value=self._actor_buffer.size,
         )
-
-
-def abs_transition_from_batch(batch: JaxTransition) -> AbsTransition:
-    """
-    Converts a JaxTransition batch to a State object, using the absolute state.
-    """
-    return AbsTransition(
-        state=State(
-            features=batch.state,
-            a_lo=batch.action_lo,
-            a_hi=batch.action_hi,
-            dp=jnp.expand_dims(batch.dp, -1),
-            last_a=batch.last_action,
-        ),
-        next_state=State(
-            features=batch.next_state,
-            a_lo=batch.next_action_lo,
-            a_hi=batch.next_action_hi,
-            dp=jnp.expand_dims(batch.next_dp, -1),
-            last_a=batch.action,
-        ),
-        action=batch.action,
-        reward=batch.reward,
-        gamma=batch.gamma,
-    )

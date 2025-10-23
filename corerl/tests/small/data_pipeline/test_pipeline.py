@@ -2,13 +2,14 @@ import jax.numpy as jnp
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
+from lib_agent.buffer.datatypes import Step, Trajectory
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import direct_load_config
 from lib_utils.named_array import NamedArray
 from test.infrastructure.app_state import make_dummy_app_state
 
 from corerl.config import MainConfig
-from corerl.data_pipeline.datatypes import DataMode, Step, Transition
+from corerl.data_pipeline.datatypes import DataMode
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 
@@ -80,8 +81,8 @@ def test_pipeline1(
 
     pdt.assert_frame_equal(got.df, expected_df, check_exact=False, check_dtype=False, rtol=1e-5, atol=1e-8)
     pdt.assert_frame_equal(got.rewards, expected_reward, check_exact=False, check_dtype=False, rtol=1e-5, atol=1e-8)
-    assert got.transitions == [
-        Transition(
+    assert got.trajectories == [
+        Trajectory(
             steps=[
                 Step(
                     reward=3,
@@ -107,7 +108,7 @@ def test_pipeline1(
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
-        Transition(
+        Trajectory(
             steps=[
                 Step(
                     reward=0,
@@ -133,7 +134,7 @@ def test_pipeline1(
             n_step_reward=0.,
             n_step_gamma=0.9,
         ),
-        Transition(
+        Trajectory(
             steps=[
                 Step(
                     reward=1,

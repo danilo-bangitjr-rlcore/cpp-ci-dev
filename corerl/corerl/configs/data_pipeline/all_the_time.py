@@ -15,7 +15,7 @@ class AllTheTimeTCConfig:
     """
     Kind: internal
 
-    Configures the length of n-step transitions produced by
+    Configures the length of n-step trajectories produced by
     the pipeline.
     """
 
@@ -48,10 +48,10 @@ class AllTheTimeTCConfig:
         return cfg.feature_flags.normalize_return
 
     @post_processor
-    def _validate_on_policy_transition_creation(self, cfg: MainConfig):
+    def _validate_on_policy_trajectory_creation(self, cfg: MainConfig):
         assert (
             self.min_n_step >= 1
-        ), "n-step transitions must span at least one obs_period. " \
+        ), "n-step trajectories must span at least one obs_period. " \
            "Therefore, AllTheTimeTCConfig.min_n_step must be greater or equal to 1."
 
         assert (

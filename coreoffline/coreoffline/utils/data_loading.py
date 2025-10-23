@@ -114,9 +114,9 @@ def load_entire_dataset(
     return out
 
 
-def load_offline_transitions(app_state: AppState, pipeline: Pipeline):
+def load_offline_trajectories(app_state: AppState, pipeline: Pipeline):
     """
-    Load offline transitions from database through the data pipeline.
+    Load offline trajectories from database through the data pipeline.
     """
     assert isinstance(app_state.cfg, OfflineMainConfig)
     # Get time range from config
@@ -125,7 +125,7 @@ def load_offline_transitions(app_state: AppState, pipeline: Pipeline):
     # Get configuration for data loading
     exclude_periods = offline_cfg.eval_periods if offline_cfg.remove_eval_from_train else None
 
-    # Pass offline data through data pipeline chunk by chunk to produce transitions
+    # Pass offline data through data pipeline chunk by chunk to produce trajectories
     out = None
 
     data_chunks, num_chunks = load_data_chunks(
@@ -154,27 +154,27 @@ def load_offline_transitions(app_state: AppState, pipeline: Pipeline):
 
     # Apply test split if requested
     test_split = offline_cfg.test_split
-    if test_split > 0.0 and out is not None and out.transitions is not None:
+    if test_split > 0.0 and out is not None and out.trajectories is not None:
         return get_test_split(out, test_split)
 
     return out, []
 
 
 def get_test_split(pr: PipelineReturn, test_split: float):
-    transitions = pr.transitions
-    assert transitions is not None
-    n_transitions = len(transitions)
-    n_test = ceil(n_transitions * test_split)
+    trajectories = pr.trajectories
+    assert trajectories is not None
+    n_trajectories = len(trajectories)
+    n_test = ceil(n_trajectories * test_split)
 
     # Randomly select test indices
-    test_indices = np.random.choice(n_transitions, size=n_test, replace=False)
-    test_mask = np.zeros(n_transitions, dtype=bool)
+    test_indices = np.random.choice(n_trajectories, size=n_test, replace=False)
+    test_mask = np.zeros(n_trajectories, dtype=bool)
     test_mask[test_indices] = True
 
-    # Split transitions
-    test_transitions = [transitions[i] for i in range(n_transitions) if test_mask[i]]
-    train_transitions = [transitions[i] for i in range(n_transitions) if not test_mask[i]]
+    # Split trajectories
+    test_trajectories = [trajectories[i] for i in range(n_trajectories) if test_mask[i]]
+    train_trajectories = [trajectories[i] for i in range(n_trajectories) if not test_mask[i]]
 
-    pr.transitions = train_transitions
+    pr.trajectories = train_trajectories
 
-    return pr, test_transitions
+    return pr, test_trajectories

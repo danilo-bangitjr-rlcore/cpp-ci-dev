@@ -8,8 +8,7 @@ from corerl.agent.greedy_ac import GreedyAC
 from corerl.data_pipeline.pipeline import Pipeline, PipelineReturn
 from corerl.eval import agent as agent_eval
 from corerl.state import AppState
-from lib_agent.buffer.buffer import State
-from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode, State
 from lib_progress.tracker import ProgressTracker
 
 from coreoffline.utils.config import OfflineMainConfig
@@ -81,14 +80,14 @@ def get_offline_recommendations(
             state = get_latest_state(chunk_pr)
             agent_eval.q_values_and_act_prob(app_state, agent, state.features)
 
-        if chunk_pr.transitions is None or len(chunk_pr.transitions) == 0:
-            log.warning("No transitions found for eval chunk")
+        if chunk_pr.trajectories is None or len(chunk_pr.trajectories) == 0:
+            log.warning("No trajectories found for eval chunk")
             continue
 
         if app_state.cfg.offline_training.update_agent_during_offline_recs:
             agent.update_buffer(chunk_pr)
             losses = agent.update()
-            log.info(f"Agent updated with num transitions={len(chunk_pr.transitions)}, final q loss={losses[-1]}")
+            log.info(f"Agent updated with num trajectories={len(chunk_pr.trajectories)}, final q loss={losses[-1]}")
 
         app_state.app_time.increment_step()
 
