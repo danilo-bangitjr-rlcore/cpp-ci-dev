@@ -3,13 +3,12 @@ from pathlib import Path
 
 import yaml
 from coreio.config import CoreIOConfig
-from lib_agent.critic.qrc_critic import QRCConfig
 from lib_config.config import MISSING, computed, config, post_processor
 from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
-from corerl.configs.agent.greedy_ac import GreedyACConfig
+from corerl.configs.agent.greedy_ac import GreedyACConfig, GTDCriticConfig
 from corerl.configs.data_pipeline.pipeline_config import PipelineConfig
 from corerl.configs.environment.async_env import AsyncEnvConfig
 from corerl.configs.eval.config import EvalConfig
@@ -104,7 +103,7 @@ class MainConfig:
         if not self.feature_flags.polyak_critic:
             return
 
-        assert isinstance(cfg.agent.critic, QRCConfig)
+        assert isinstance(cfg.agent.critic, GTDCriticConfig), "Polyak critic only supported for QRCConfig"
         # this expression effectively means we fully "replace" the critic once per update loop
         # instead of 10 times per update loop. Note, however, that polyak averaging typically
         # allows much faster convergence, so while this slows down weight changes, it may not

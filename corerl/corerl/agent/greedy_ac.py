@@ -85,6 +85,7 @@ class GreedyAC(BaseAgent):
             l2_regularization=1.0,
             use_all_layer_norm=app_state.cfg.feature_flags.all_layer_norm,
             rolling_reset_config=cfg.critic.rolling_reset_config,
+            polyak_tau=cfg.critic.polyak_tau,
         )
 
         self.critic = QRCCritic(
