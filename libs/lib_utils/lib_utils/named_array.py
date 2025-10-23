@@ -262,6 +262,9 @@ class NamedArray:  # noqa: PLW1641
 
 
     # Pretty print
+    def __repr__(self):
+        return self.__str__()
+
     def __str__(self):
         vals = self.array
         if vals.ndim > 2:
@@ -285,4 +288,3 @@ class NamedArray:  # noqa: PLW1641
             frame = frame + get_val_line(row) + mid_h
 
         return frame[:-(total_width+1)] + h # replace last midline
-
