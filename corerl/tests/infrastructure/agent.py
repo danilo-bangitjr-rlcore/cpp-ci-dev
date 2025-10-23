@@ -1,9 +1,9 @@
+import datetime
 from collections.abc import Callable
 
-import jax.numpy as jnp
 import jax.random as jrandom
 import pytest
-from lib_agent.buffer.datatypes import DataMode, JaxTransition
+from lib_agent.buffer.datatypes import DataMode, Step, Trajectory, convert_trajectory_to_transition
 from lib_utils.named_array import NamedArray
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -28,46 +28,58 @@ def minimal_agent_config() -> GreedyACConfig:
 
 
 @pytest.fixture
-def sample_jax_transitions():
-    def _factory(n: int, state_dim: int, action_dim: int) -> list[JaxTransition]:
+def sample_trajectories():
+    def _factory(n: int, state_dim: int, action_dim: int) -> list[Trajectory]:
         key = jrandom.PRNGKey(42)
-        transitions = []
+        trajectories = []
+        start_time = datetime.datetime.now(datetime.UTC)
 
-        for _ in range(n):
+        for i in range(n):
             key, *subkeys = jrandom.split(key, 10)
 
-            state = NamedArray.unnamed(jrandom.normal(subkeys[0], (state_dim,)))
+            prior_state = NamedArray.unnamed(jrandom.normal(subkeys[0], (state_dim,)))
             action = jrandom.normal(subkeys[1], (action_dim,))
-            next_state = NamedArray.unnamed(jrandom.normal(subkeys[2], (state_dim,)))
+            post_state = NamedArray.unnamed(jrandom.normal(subkeys[2], (state_dim,)))
             reward = jrandom.normal(subkeys[3], ())
-            last_action = jrandom.normal(subkeys[4], (action_dim,))
-            gamma = jnp.array(0.99)
+            prior_action = jrandom.normal(subkeys[4], (action_dim,))
+            gamma = 0.99
             action_lo = jrandom.uniform(subkeys[5], (action_dim,), minval=-1.0, maxval=0.0)
             action_hi = jrandom.uniform(subkeys[6], (action_dim,), minval=0.0, maxval=1.0)
-            next_action_lo = jrandom.uniform(subkeys[7], (action_dim,), minval=-1.0, maxval=0.0)
-            next_action_hi = jrandom.uniform(subkeys[8], (action_dim,), minval=0.0, maxval=1.0)
-            dp = jnp.array(True)
-            next_dp = jnp.array(True)
+            post_action_lo = jrandom.uniform(subkeys[7], (action_dim,), minval=-1.0, maxval=0.0)
+            post_action_hi = jrandom.uniform(subkeys[8], (action_dim,), minval=0.0, maxval=1.0)
 
-            transition = JaxTransition(
-                state=state,
-                action=action,
-                next_state=next_state,
-                reward=reward,
-                last_action=last_action,
+            prior_step = Step(
+                reward=0.0,
+                action=prior_action,
                 gamma=gamma,
+                state=prior_state,
                 action_lo=action_lo,
                 action_hi=action_hi,
-                next_action_lo=next_action_lo,
-                next_action_hi=next_action_hi,
-                dp=dp,
-                next_dp=next_dp,
-                n_step_reward=reward,
-                n_step_gamma=gamma,
+                dp=True,
+                ac=True,
+                timestamp=start_time + datetime.timedelta(seconds=i * 2),
             )
-            transitions.append(transition)
 
-        return transitions
+            post_step = Step(
+                reward=float(reward),
+                action=action,
+                gamma=gamma,
+                state=post_state,
+                action_lo=post_action_lo,
+                action_hi=post_action_hi,
+                dp=True,
+                ac=True,
+                timestamp=start_time + datetime.timedelta(seconds=i * 2 + 1),
+            )
+
+            trajectory = Trajectory(
+                steps=[prior_step, post_step],
+                n_step_reward=float(reward),
+                n_step_gamma=float(gamma),
+            )
+            trajectories.append(trajectory)
+
+        return trajectories
 
     return _factory
 
@@ -92,11 +104,12 @@ def greedy_ac_agent(
 @pytest.fixture
 def populated_agent(
     greedy_ac_agent: GreedyAC,
-    sample_jax_transitions: Callable[[int, int, int], list[JaxTransition]],
+    sample_trajectories: Callable[[int, int, int], list[Trajectory]],
 ):
     n_transitions = 30
 
-    transitions = sample_jax_transitions(n_transitions, greedy_ac_agent.state_dim, greedy_ac_agent.action_dim)
+    trajectories = sample_trajectories(n_transitions, greedy_ac_agent.state_dim, greedy_ac_agent.action_dim)
+    transitions = [convert_trajectory_to_transition(t) for t in trajectories]
 
     greedy_ac_agent._actor_buffer.feed(transitions, DataMode.ONLINE)
     greedy_ac_agent.critic_buffer.feed(transitions, DataMode.ONLINE)
