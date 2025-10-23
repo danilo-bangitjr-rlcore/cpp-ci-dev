@@ -19,6 +19,11 @@ class PolicyOutputs(NamedTuple):
     sigma: jax.Array
 
 
+class ActorUpdateMetrics(NamedTuple):
+    actor_loss: jax.Array
+    actor_grad_norm: jax.Array
+
+
 class ValueEstimator(Protocol):
     def __call__(
         self,

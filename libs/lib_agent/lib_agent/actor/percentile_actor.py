@@ -12,7 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
-from lib_agent.actor.actor_protocol import PolicyOutputs, PolicyState, ValueEstimator
+from lib_agent.actor.actor_protocol import ActorUpdateMetrics, PolicyOutputs, PolicyState, ValueEstimator
 from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -356,7 +356,7 @@ class PercentileActor:
                 new_params,
                 None,
                 new_opt_states,
-            ), PercentileActorUpdateMetrics(
+            ), ActorUpdateMetrics(
                 actor_loss=loss,
                 actor_grad_norm=grad_norm,
             )
@@ -367,7 +367,7 @@ class PercentileActor:
             return PolicyState(
                 new_params,
                 new_opt_state,
-            ), PercentileActorUpdateMetrics(
+            ), ActorUpdateMetrics(
                 actor_loss=loss,
                 actor_grad_norm=grad_norm,
             )
@@ -441,8 +441,3 @@ class PercentileActor:
     ):
         losses = jax_u.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
-
-
-class PercentileActorUpdateMetrics(NamedTuple):
-    actor_loss: jax.Array
-    actor_grad_norm: jax.Array
