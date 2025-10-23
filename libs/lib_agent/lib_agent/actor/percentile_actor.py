@@ -12,6 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.actor.actor_protocol import PolicyState
 from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -24,10 +25,6 @@ class UpdateActions(NamedTuple):
     actor: jax.Array
     proposal: jax.Array
 
-class PolicyState(NamedTuple):
-    params: chex.ArrayTree
-    opt_state: chex.ArrayTree | None = None
-    group_opt_states: dict[str, chex.ArrayTree] | None = None
 
 class PAState(NamedTuple):
     actor: PolicyState
