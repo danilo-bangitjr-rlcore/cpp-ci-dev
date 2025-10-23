@@ -17,8 +17,7 @@ class RepresentationEval:
     - Dynamics Awareness: Measures how well the representation captures state dynamics
       by comparing distances between states and their successors vs random states
     """
-    def __init__(self, app_state: AppState):
-        self.app_state = app_state
+    def __init__(self):
         self._lmax: float | None = None
 
         self._rng = jax.random.PRNGKey(0)
