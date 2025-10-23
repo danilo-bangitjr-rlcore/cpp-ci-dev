@@ -12,7 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
-from lib_agent.actor.actor_protocol import ActorUpdateMetrics, PolicyOutputs, PolicyState, ValueEstimator
+from lib_agent.actor.actor_protocol import ActorConfig, ActorUpdateMetrics, PolicyOutputs, PolicyState, ValueEstimator
 from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -32,18 +32,17 @@ class PAState(NamedTuple):
 
 
 @dataclass
-class PAConfig:
-    name: str
-    num_samples: int
-    actor_percentile: float
-    proposal_percentile: float
-    uniform_weight: float
-    actor_lr: float
-    proposal_lr: float
+class PAConfig(ActorConfig):
+    num_samples: int = 128
+    actor_percentile: float = 0.05
+    proposal_percentile: float = 0.2
+    uniform_weight: float = 0.8
+    actor_lr: float = 0.0001
+    proposal_lr: float = 0.0001
+    sort_noise: float = 0.0
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
     max_action_stddev: float = jnp.inf
-    sort_noise: float = 0.0
 
 
 def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int):

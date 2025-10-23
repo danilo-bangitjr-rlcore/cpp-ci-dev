@@ -1,7 +1,9 @@
+from dataclasses import dataclass
 from typing import NamedTuple, Protocol
 
 import chex
 import jax
+import jax.numpy as jnp
 
 
 class PolicyState(NamedTuple):
@@ -32,3 +34,12 @@ class ValueEstimator(Protocol):
         x: jax.Array,
         a: jax.Array,
     ) -> jax.Array: ...
+
+
+@dataclass
+class ActorConfig:
+    name: str
+    actor_lr: float = 0.0001
+    mu_multiplier: float = 1.0
+    sigma_multiplier: float = 1.0
+    max_action_stddev: float = jnp.inf
