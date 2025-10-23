@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple
+from typing import NamedTuple
 
 import chex
 import distrax
@@ -152,7 +152,7 @@ class PercentileActor:
     def initialize_to_nominal_action(
         self,
         rng: chex.PRNGKey,
-        actor_state: PolicyState,
+        policy_state: PolicyState,
         nominal_actions: jax.Array,
         state_dim: int,
     ):
@@ -184,13 +184,13 @@ class PercentileActor:
             new_params = optax.apply_updates(params, updates)
             return loss, new_params, new_opt_state
 
-        params = actor_state.params
+        params = policy_state.params
         opt_state = self.actor_opt.init(params)
         for _ in range(100):
             rng, update_rng = jax.random.split(rng)
             _, params, opt_state = update_params(params, opt_state, update_rng)
 
-        return actor_state._replace(
+        return policy_state._replace(
             params=params,
         )
 
@@ -274,7 +274,7 @@ class PercentileActor:
 
     def update(
         self,
-        pa_state: Any,
+        dist_state: PAState,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
         transitions: Transition,
@@ -286,7 +286,7 @@ class PercentileActor:
         chex.assert_equal_rank(states)
 
         actor_state, proposal_state, metrics = self._policy_update(
-            pa_state,
+            dist_state,
             value_estimator,
             value_estimator_params,
             states,
