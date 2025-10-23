@@ -98,7 +98,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
       className={`border ${isConfigMissing ? 'border-orange-400' : 'border-gray-300'} bg-gray-100 p-4 rounded-lg shadow-sm min-h-[400px] flex flex-col space-y-4`}
     >
       <div className="bg-white p-3 rounded-md border border-gray-200">
-        <h3 className="text-xl font-bold text-gray-900 text-center">
+        <h3 className="text-xl font-bold text-gray-900 text-center break-words max-w-full">
           {agent.agentName}
         </h3>
       </div>
