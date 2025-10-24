@@ -103,12 +103,12 @@ class MainConfig:
         if not self.feature_flags.polyak_critic:
             return
 
-        assert isinstance(cfg.agent.critic, GTDCriticConfig), "Polyak critic only supported for QRCConfig"
+        assert isinstance(self.agent.critic, GTDCriticConfig), "Polyak critic only supported for QRCConfig"
         # this expression effectively means we fully "replace" the critic once per update loop
         # instead of 10 times per update loop. Note, however, that polyak averaging typically
         # allows much faster convergence, so while this slows down weight changes, it may not
         # necessarily slow down learning.
-        cfg.agent.critic.polyak_tau = 1 - (1 / cfg.agent.max_critic_updates)
+        self.agent.critic.polyak_tau = 1 - (1 / self.agent.max_critic_updates)
 
 
     @post_processor
