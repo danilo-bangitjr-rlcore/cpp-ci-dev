@@ -44,6 +44,13 @@ export const API_ENDPOINTS = {
       `${COREGATEWAY_BASE_URL}/v1/coredinator/api/io/${ioId}/stop`,
     list_io: `${COREGATEWAY_BASE_URL}/v1/coredinator/api/io/`,
   },
+
+  coretelemetry: {
+    agent_metrics: (agentId: string) =>
+      `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/data/${agentId}`,
+    available_metrics: (agentId: string) =>
+      `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/data/${agentId}/metrics`,
+  }
 } as const;
 
 // Utility functions for HTTP requests

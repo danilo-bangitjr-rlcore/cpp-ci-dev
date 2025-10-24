@@ -9,6 +9,9 @@
 log_path: "outputs/e2e_smoke"
 agent_name: dep_mountain_car_continuous_wide
 
+feature_flags:
+  wide_metrics: True
+
 seed: 1
 is_simulation: False
 
@@ -55,6 +58,7 @@ event_bus:
 
 metrics:
   enabled: True
+  table_name: metrics_wide1
 
 # -----------
 # -- Agent --
