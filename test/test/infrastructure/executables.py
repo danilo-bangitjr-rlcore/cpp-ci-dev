@@ -34,7 +34,10 @@ def _build_service_executable(
         raise FileNotFoundError(f"Service directory not found: {service_dir}")
 
     bin_dir = _get_bin_dir()
-    executable_name = f"{service_name}.exe" if os.name == "nt" else service_name
+
+    platform = "windows" if os.name == "nt" else "linux"
+    executable_base = f"{platform}-{service_name}-v0.1.0"
+    executable_name = f"{executable_base}.exe" if os.name == "nt" else executable_base
     executable_path = bin_dir / executable_name
 
     if executable_path.exists():
@@ -52,7 +55,7 @@ def _build_service_executable(
         "--clean",
         "--onefile",
         "--name",
-        service_name,
+        executable_base,
         "--distpath",
         str(bin_dir),
         "--workpath",
