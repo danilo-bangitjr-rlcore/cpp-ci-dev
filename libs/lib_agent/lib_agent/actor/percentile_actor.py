@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import Any, NamedTuple, Protocol
+from typing import NamedTuple
 
 import chex
 import distrax
@@ -12,6 +12,7 @@ import lib_utils.parameter_groups as param_groups
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.actor.actor_protocol import ActorConfig, ActorUpdateMetrics, PolicyOutputs, PolicyState, ValueEstimator
 from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.network.activations import (
     ActivationConfig,
@@ -24,43 +25,25 @@ class UpdateActions(NamedTuple):
     actor: jax.Array
     proposal: jax.Array
 
-class PolicyState(NamedTuple):
-    params: chex.ArrayTree
-    opt_state: chex.ArrayTree | None = None
-    group_opt_states: dict[str, chex.ArrayTree] | None = None
 
 class PAState(NamedTuple):
     actor: PolicyState
     proposal: PolicyState
 
 
-class ValueEstimator(Protocol):
-    def __call__(
-        self,
-        params: chex.ArrayTree,
-        rng: chex.PRNGKey,
-        x: jax.Array,
-        a: jax.Array,
-    ) -> jax.Array: ...
-
-
 @dataclass
-class PAConfig:
-    name: str
-    num_samples: int
-    actor_percentile: float
-    proposal_percentile: float
-    uniform_weight: float
-    actor_lr: float
-    proposal_lr: float
+class PAConfig(ActorConfig):
+    num_samples: int = 128
+    actor_percentile: float = 0.05
+    proposal_percentile: float = 0.2
+    uniform_weight: float = 0.8
+    actor_lr: float = 0.0001
+    proposal_lr: float = 0.0001
+    sort_noise: float = 0.0
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
     max_action_stddev: float = jnp.inf
-    sort_noise: float = 0.0
 
-class ActorOutputs(NamedTuple):
-    mu: jax.Array
-    sigma: jax.Array
 
 def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int):
     def _inner(x: jax.Array):
@@ -70,7 +53,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
         mu_head_out = output_act(hk.Linear(act_dim, name='mu_head')(phi))
         sigma_head_out = output_act(hk.Linear(act_dim, name='sigma_head')(phi))
 
-        return ActorOutputs(
+        return PolicyOutputs(
             mu=mu_head_out,
             sigma=jax.nn.sigmoid(sigma_head_out) * 0.1 + 1e-5,
         )
@@ -158,7 +141,7 @@ class PercentileActor:
         return PAState(actor_state, proposal_state)
 
     @jax_u.method_jit
-    def _forward(self, actor_params: chex.ArrayTree, state: State) -> ActorOutputs:
+    def _forward(self, actor_params: chex.ArrayTree, state: State) -> PolicyOutputs:
         levels = state.features.ndim - 1
         return jax_u.vmap_only(self.actor.apply, ['x'], levels)(
             actor_params,
@@ -169,7 +152,7 @@ class PercentileActor:
     def initialize_to_nominal_action(
         self,
         rng: chex.PRNGKey,
-        actor_state: PolicyState,
+        policy_state: PolicyState,
         nominal_actions: jax.Array,
         state_dim: int,
     ):
@@ -201,13 +184,13 @@ class PercentileActor:
             new_params = optax.apply_updates(params, updates)
             return loss, new_params, new_opt_state
 
-        params = actor_state.params
+        params = policy_state.params
         opt_state = self.actor_opt.init(params)
         for _ in range(100):
             rng, update_rng = jax.random.split(rng)
             _, params, opt_state = update_params(params, opt_state, update_rng)
 
-        return actor_state._replace(
+        return policy_state._replace(
             params=params,
         )
 
@@ -291,7 +274,7 @@ class PercentileActor:
 
     def update(
         self,
-        pa_state: Any,
+        dist_state: PAState,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
         transitions: Transition,
@@ -303,7 +286,7 @@ class PercentileActor:
         chex.assert_equal_rank(states)
 
         actor_state, proposal_state, metrics = self._policy_update(
-            pa_state,
+            dist_state,
             value_estimator,
             value_estimator_params,
             states,
@@ -372,7 +355,7 @@ class PercentileActor:
                 new_params,
                 None,
                 new_opt_states,
-            ), PercentileActorUpdateMetrics(
+            ), ActorUpdateMetrics(
                 actor_loss=loss,
                 actor_grad_norm=grad_norm,
             )
@@ -383,7 +366,7 @@ class PercentileActor:
             return PolicyState(
                 new_params,
                 new_opt_state,
-            ), PercentileActorUpdateMetrics(
+            ), ActorUpdateMetrics(
                 actor_loss=loss,
                 actor_grad_norm=grad_norm,
             )
@@ -441,7 +424,7 @@ class PercentileActor:
         return UpdateActions(actor_update_actions, proposal_update_actions)
 
     def _policy_loss(self, params: chex.ArrayTree, policy: hk.Transformed, state: State, top_actions: jax.Array):
-        out: ActorOutputs = policy.apply(params=params, x=state.features.array)
+        out: PolicyOutputs = policy.apply(params=params, x=state.features.array)
         dist = distrax.MultivariateNormalDiag(out.mu, out.sigma)
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)
@@ -457,8 +440,3 @@ class PercentileActor:
     ):
         losses = jax_u.vmap(self._policy_loss, in_axes=(None, None, 0, 0))(params, policy, states, top_actions_batch)
         return jnp.mean(losses)
-
-
-class PercentileActorUpdateMetrics(NamedTuple):
-    actor_loss: jax.Array
-    actor_grad_norm: jax.Array
