@@ -1,5 +1,6 @@
 name: example
 max_steps: 5000
+nominal_setpoint: 0.5
 
 action_bounds:
   delta: True

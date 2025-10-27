@@ -15,7 +15,7 @@ from rl_env.factory import EnvConfig, init_env
 from tqdm import tqdm
 
 import utils.gym as gym_u
-from agent.gac import GreedyACConfig
+from agent.gac import GreedyAC, GreedyACConfig
 from config.experiment import ExperimentConfig, get_next_id
 from interaction.env_wrapper import EnvWrapper
 from interaction.goal_constructor import Goal, GoalConstructor, RewardConfig, TagConfig
@@ -79,6 +79,20 @@ def flatten_config(cfg: dict[str, Any]):
         else:
             flattened[key] = value
     return flattened
+
+
+def initialize_to_nominal_setpoint(agent: GreedyAC, cfg: ExperimentConfig):
+    if cfg.nominal_setpoint is None:
+        return
+
+    if isinstance(cfg.nominal_setpoint, float):
+        ns = jnp.array([cfg.nominal_setpoint] * agent.action_dim)
+    else:
+        assert isinstance(cfg.nominal_setpoint, list)
+        for i in cfg.nominal_setpoint:
+            assert isinstance(i, float)
+        ns = jnp.array(cfg.nominal_setpoint)
+    agent.initialize_to_nominal_action(ns)
 
 
 def main():
@@ -173,6 +187,8 @@ def main():
         action_dim=len(act_bounds[0]),
         collector=collector,
     )
+
+    initialize_to_nominal_setpoint(agent, cfg)
 
     # Initialize action bounds computer
     bounds_computer = DeltaActionBoundsComputer(
