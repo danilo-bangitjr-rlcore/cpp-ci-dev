@@ -1,8 +1,17 @@
 #!/bin/bash
 # This script is designed to be run in Git Bash on Windows.
 
-# Define the base path using Git Bash's path convention (/c/ instead of C:\)
-BASE_PATH="/c/RLCore/services"
+# 1. Check for a command-line argument for the volume (e.g., 'c', 'd').
+#    If the first argument ($1) is non-empty, use it.
+#    Otherwise, default to 'c'.
+VOLUME_LETTER="${1:-c}"
+
+# 2. Convert the letter to the Git Bash path convention (/c, /d, etc.)
+#    Ensure it is lowercase for consistency.
+GIT_BASH_VOLUME_ROOT="/$(echo "$VOLUME_LETTER" | tr '[:upper:]' '[:lower:]')"
+
+# 3. Define the base path using the dynamically set volume root
+BASE_PATH="$GIT_BASH_VOLUME_ROOT/RLCore/services"
 
 echo "Creating directory structure at $BASE_PATH..."
 
