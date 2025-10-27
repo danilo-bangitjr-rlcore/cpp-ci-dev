@@ -40,6 +40,7 @@ class GreedyACConfig:
     max_internal_actor_updates: int = 3
     loss_ema_factor: float = 0.75
     loss_threshold: float = 1e-4
+    bootstrap_action_samples: int = 10
 
 
 class GreedyAC:
@@ -143,7 +144,7 @@ class GreedyAC:
             self.agent_state.actor.actor.params,
             bs_rng,
             transitions.next_state,
-            10,
+            self._cfg.bootstrap_action_samples,
         )
         new_critic_state, metrics = self._critic.update(
             critic_state=self.agent_state.critic,
