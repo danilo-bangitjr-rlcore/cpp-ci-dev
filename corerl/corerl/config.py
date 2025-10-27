@@ -164,4 +164,4 @@ class MainConfig:
             return
 
         self.metrics.narrow_format = False
-        self.metrics.table_name = self.metrics.table_name + '_wide'
+        self.metrics.table_name = self.metrics.table_name # + '_wide'
