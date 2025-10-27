@@ -69,7 +69,8 @@ class AgentMetricsManager:
                 config_path=str(yaml_file_path),
             )
 
-        self.metrics_table_cache[agent_id] = table_name
+        # Only supporting wide metrics
+        self.metrics_table_cache[agent_id] = table_name + "_wide"
 
         return table_name
 
