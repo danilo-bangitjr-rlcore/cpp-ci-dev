@@ -44,7 +44,10 @@ const fetchAvailableMetrics = async (agentId: string): Promise<string[]> => {
   return data.data;
 };
 
-export const useAvailableMetricsQuery = (agentId: string, enabled: boolean = true) => {
+export const useAvailableMetricsQuery = (
+  agentId: string,
+  enabled: boolean = true
+) => {
   return useQuery({
     queryKey: ['available-metrics', agentId],
     queryFn: () => fetchAvailableMetrics(agentId),
@@ -52,7 +55,11 @@ export const useAvailableMetricsQuery = (agentId: string, enabled: boolean = tru
   });
 };
 
-export const useMultipleAgentMetricsQueries = (agentId: string, metrics: string[], enabled: boolean = true) => {
+export const useMultipleAgentMetricsQueries = (
+  agentId: string,
+  metrics: string[],
+  enabled: boolean = true
+) => {
   return useQueries({
     queries: metrics.map((metric: string) => ({
       queryKey: ['agent-metrics', agentId, metric],
@@ -66,6 +73,6 @@ export const useMultipleAgentMetricsQueries = (agentId: string, metrics: string[
       },
       enabled: enabled && !!agentId && !!metric,
       refetchInterval: 5000,
-    }))
+    })),
   });
 };
