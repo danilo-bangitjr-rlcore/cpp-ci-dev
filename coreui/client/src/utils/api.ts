@@ -6,6 +6,14 @@ const COREGATEWAY_BASE_URL = 'http://localhost:8001/api';
 // Optional: More specific endpoints for better organization
 export const API_ENDPOINTS = {
   health: `${API_BASE_URL}/health`,
+  system_metrics: {
+    health: `${COREGATEWAY_BASE_URL}/v1/coretelemetry/health`,
+    platform: `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/system/platform`,
+    cpu: `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/system/cpu`,
+    cpu_per_core: `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/system/cpu_per_core`,
+    ram: `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/system/ram`,
+    disk: `${COREGATEWAY_BASE_URL}/v1/coretelemetry/api/system/disk`,
+  },
   opc: {
     connect: `${API_BASE_URL}/v1/opc/connect`,
     disconnect: `${API_BASE_URL}/v1/opc/disconnect`,
