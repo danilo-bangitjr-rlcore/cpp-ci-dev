@@ -140,14 +140,14 @@ class NamedArray:  # noqa: PLW1641
             return Maybe[jax.Array](None)
         return Maybe(jnp.concat([jnp.expand_dims(self.get_feature(k).expect(), -1) for k in keys], axis=-1))
 
-    def __getitem__(self, key: int | slice | tuple[int | slice | EllipsisType, ...]):
+    def __getitem__(self, key: jax.Array | int | slice | tuple[int | slice | EllipsisType, ...]):
         if self.array.ndim == 1:
             raise IndexError("NamedArray must have more than one dim to be indexed")
 
         new_narr = NamedArray(self.names, self.array[key])
         # workaround to avoid working with numpy datetime64 in jax transforms
-        new_high_bits = maybe_expand_dim0(self._timestamps.high_bits[key])
-        new_low_bits = maybe_expand_dim0(self._timestamps.low_bits[key])
+        new_high_bits = self._timestamps.high_bits[key]
+        new_low_bits = self._timestamps.low_bits[key]
         new_narr._timestamps = JaxTimestamp(new_high_bits, new_low_bits)
         return new_narr
 
@@ -156,6 +156,7 @@ class NamedArray:  # noqa: PLW1641
         method to update the values of the stored array.
         Useful to create a new NamedArray with the same feature names and timestamps, but new values
         """
+        assert values.shape == self._values.shape, "new values must have same shape as old values"
         new = self.__class__(self.names, values)
         new._timestamps = self._timestamps
         return new
