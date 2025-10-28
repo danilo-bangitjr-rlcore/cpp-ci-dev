@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.155.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.154.0...corerl-v0.155.0) (2025-10-22)
+
+
+### Features
+
+* **PROD-1112:** add event bus client to corerl ([fd6d909](https://github.com/rlcoretech/core-rl/commit/fd6d909c7350bbad4a92a9d51f9a276cd8832b31))
+* **PROD-1130:** Add AppTime class for managing application time ([e95764c](https://github.com/rlcoretech/core-rl/commit/e95764ce1534f666ac09d381d13749f19b1ed228))
+* **PROD-1130:** add time_provider to metrics ([f50ba46](https://github.com/rlcoretech/core-rl/commit/f50ba46d7ed93dded2c16613f7e0e44bf59cf47f))
+* **PROD-1130:** default_app_time ([9aeb340](https://github.com/rlcoretech/core-rl/commit/9aeb340e290fef10237af714a7704873d3e28087))
+* **PROD-1130:** integrate AppTime for managing application time and add demo_mode feature flag ([69110f2](https://github.com/rlcoretech/core-rl/commit/69110f234046381d69b84c49a4674bfadd341984))
+* **PROD-1148:** capture service logs in coredinator ([8b022ba](https://github.com/rlcoretech/core-rl/commit/8b022ba214d121eab7245219a3e63b5168ed8fe9))
+* **PROD-773:** state features are NamedArrays ([edf59b8](https://github.com/rlcoretech/core-rl/commit/edf59b8526133a3aafd887f57da0699c4bea0c54))
+
+
+### Bug Fixes
+
+* **corerl:** configs **must** use Field instead of field for defaults ([78e3427](https://github.com/rlcoretech/core-rl/commit/78e3427325e7e055d81702f15592412de1e169cd))
+* **corerl:** ensure oddity filters are registered in the group dispatcher ([cc8da2d](https://github.com/rlcoretech/core-rl/commit/cc8da2d09a73dc471bc4a2398ce29f080cd67db6))
+* move demo_mode to config (out of feature flags) ([8ee3479](https://github.com/rlcoretech/core-rl/commit/8ee3479cf7df64fa0e517060cfa1621590e03dc1))
+* stuff that got messed up merging ([8549c8a](https://github.com/rlcoretech/core-rl/commit/8549c8a93dde6e734c3643b19927abf5e39fbdfc))
+
 ## [0.154.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.153.1...corerl-v0.154.0) (2025-10-15)
 
 

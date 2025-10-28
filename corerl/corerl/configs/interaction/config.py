@@ -116,7 +116,7 @@ class InteractionConfig:
     Kind: internal
 
     The number of datapoints to preload into the pipeline
-    before considering transitions valid. Used to warmup
+    before considering trajectories valid. Used to warmup
     history-tracking features, such as state traces.
     """
 

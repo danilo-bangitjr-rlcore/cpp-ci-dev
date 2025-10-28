@@ -2,7 +2,7 @@ import chex
 import jax
 import jax.numpy as jnp
 import lib_utils.jax as jax_u
-from lib_agent.buffer.datatypes import JaxTransition
+from lib_agent.buffer.datatypes import Transition
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.state import AppState
@@ -17,8 +17,7 @@ class RepresentationEval:
     - Dynamics Awareness: Measures how well the representation captures state dynamics
       by comparing distances between states and their successors vs random states
     """
-    def __init__(self, app_state: AppState):
-        self.app_state = app_state
+    def __init__(self):
         self._lmax: float | None = None
 
         self._rng = jax.random.PRNGKey(0)
@@ -236,11 +235,11 @@ class RepresentationEval:
         if not batches:
             return
 
-        batch: JaxTransition = jax.tree.map(lambda x: x[0], batches)
-        states = batch.state
-        next_states = batch.next_state
-        action_lo = batch.action_lo
-        action_hi = batch.action_hi
+        batch: Transition = jax.tree.map(lambda x: x[0], batches)
+        states = batch.state.features
+        next_states = batch.next_state.features
+        action_lo = batch.state.a_lo
+        action_hi = batch.state.a_hi
 
         n_samples = 100
         num_states = states.shape[0]

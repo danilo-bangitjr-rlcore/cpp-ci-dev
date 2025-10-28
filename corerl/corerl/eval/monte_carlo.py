@@ -6,7 +6,7 @@ from datetime import datetime
 
 import jax.numpy as jnp
 import numpy as np
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.eval.monte_carlo import MonteCarloEvalConfig

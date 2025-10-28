@@ -25,6 +25,7 @@ class CriticNetworkConfig:
 
 @config()
 class GTDCriticConfig:
+    polyak_tau: float = 0.0
     action_regularization: float = 0.0
     action_regularization_epsilon: float = 0.1
     buffer: BufferConfig = MISSING

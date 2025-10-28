@@ -2,7 +2,6 @@ import datetime as dt
 from copy import deepcopy
 from typing import NamedTuple
 
-import numpy as np
 import pandas as pd
 import pytest
 import pytz
@@ -15,7 +14,8 @@ MetricsTableFixture = tuple[MetricsWriterProtocol, dt.datetime, dt.timedelta]
 
 
 @pytest.fixture()
-def populated_metrics_table(metrics_table: MetricsWriterProtocol):
+def populated_wide_metrics_table(metrics_table: MetricsWriterProtocol):
+    """Populate metrics table in wide format (default) - 5 steps with 2 metrics each."""
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -39,8 +39,8 @@ def populated_metrics_table(metrics_table: MetricsWriterProtocol):
 @pytest.mark.parametrize(
     "fixture_name, expected_len",
     [
-        ("populated_metrics_table", 10),
-        ("populated_metrics_table_wide", 7),
+        ("populated_wide_metrics_table", 5),  # 5 steps with 2 metrics per step
+        ("populated_wide_metrics_table_sparse", 7),  # 5 steps with 2 metrics, plus 2 steps with 1 metric
     ],
 )
 def test_metrics_read_by_time(
@@ -50,9 +50,7 @@ def test_metrics_read_by_time(
     expected_len: int,
 ):
     metrics_table, start_time, delta = get_fixture(request, fixture_name, MetricsTableFixture)
-
-    # Determine the correct table name based on fixture type
-    table_name = 'metrics_wide' if 'wide' in fixture_name else 'metrics'
+    table_name = metrics_table.table_name
 
     with tsdb_engine.connect() as conn:
         metrics_df = pd.read_sql_table(table_name, con=conn)
@@ -91,7 +89,7 @@ class MetricsReadByStepCase(NamedTuple):
     "case",
     [
         MetricsReadByStepCase(
-            fixture_name="populated_metrics_table",
+            fixture_name="populated_wide_metrics_table",
             start_step=None,
             end_step=3,
             agent_step=[0, 1, 2, 3],
@@ -99,7 +97,7 @@ class MetricsReadByStepCase(NamedTuple):
             q=[0.0, 1.0, 2.0, 3.0],
         ),
         MetricsReadByStepCase(
-            fixture_name="populated_metrics_table_wide",
+            fixture_name="populated_wide_metrics_table_sparse",
             start_step=None,
             end_step=3,
             agent_step=[0, 1, 2, 3],
@@ -139,7 +137,7 @@ class MetricsReadByMetricCase(NamedTuple):
     "case",
     [
         MetricsReadByMetricCase(
-            fixture_name="populated_metrics_table",
+            fixture_name="populated_wide_metrics_table",
             time=[
                 pd.Timestamp(dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)),
                 pd.Timestamp(dt.datetime(2023, 7, 13, 7, tzinfo=pytz.UTC)),
@@ -152,7 +150,7 @@ class MetricsReadByMetricCase(NamedTuple):
             q=[float(i) for i in range(5)],
         ),
         MetricsReadByMetricCase(
-            fixture_name="populated_metrics_table_wide",
+            fixture_name="populated_wide_metrics_table_sparse",
             time=[
                 pd.Timestamp(dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)),
                 pd.Timestamp(dt.datetime(2023, 7, 13, 7, tzinfo=pytz.UTC)),
@@ -164,7 +162,7 @@ class MetricsReadByMetricCase(NamedTuple):
             ],
             agent_step=[0, 1, 2, 3, 4, 5, 6],
             reward=[0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0],
-            q=[0.0, 1.0, 2.0, 3.0, 4.0, np.nan, np.nan],
+            q=[0.0, 1.0, 2.0, 3.0, 4.0],
         ),
     ],
 )
@@ -179,9 +177,13 @@ def test_metrics_read_by_metric(request: pytest.FixtureRequest, case: MetricsRea
         "agent_step": case.agent_step,
         "reward": case.reward,
     })
+
+    # For wide format, q only has values for first 5 steps
+    q_time = case.time[:len(case.q)]
+    q_agent_step = case.agent_step[:len(case.q)]
     expected_q_df = pd.DataFrame({
-        "time": case.time,
-        "agent_step": case.agent_step,
+        "time": q_time,
+        "agent_step": q_agent_step,
         "q": case.q,
     })
 
@@ -239,7 +241,8 @@ def test_disconnect_between_writes(
 # ---------------------------------------------------------------------------- #
 
 @pytest.fixture()
-def populated_metrics_table_wide(wide_metrics_table: MetricsWriterProtocol):
+def populated_wide_metrics_table_sparse(wide_metrics_table: MetricsWriterProtocol):
+    """Populate wide metrics table with sparse data - some steps have only partial metrics."""
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -257,7 +260,7 @@ def populated_metrics_table_wide(wide_metrics_table: MetricsWriterProtocol):
             timestamp=curr_time.isoformat(),
         )
         curr_time += delta
-    # add two reward values without associated q
+    # add two reward values without associated q (tests sparse data handling)
     wide_metrics_table.write(
         agent_step=5,
         metric="reward",
@@ -270,19 +273,19 @@ def populated_metrics_table_wide(wide_metrics_table: MetricsWriterProtocol):
         value=2 * 6,
         timestamp=curr_time.isoformat(),
     )
-    # Force flush & table creation by reading one metric
-    wide_metrics_table.read("q")
+    wide_metrics_table.flush()
     return wide_metrics_table, start_time, delta
 
 
-def test_db_metrics_write_wide(
+def test_db_metrics_write_wide_sparse(
     tsdb_engine: Engine,
-    populated_metrics_table_wide: MetricsTableFixture,
+    populated_wide_metrics_table_sparse: MetricsTableFixture,
 ):
-    _, start_time, delta = populated_metrics_table_wide
+    """Test that wide format correctly handles sparse data (missing metrics for some steps)."""
+    metrics_table, start_time, delta = populated_wide_metrics_table_sparse
 
     with tsdb_engine.connect() as conn:
-        metrics_df = pd.read_sql_table('metrics_wide', con=conn)
+        metrics_df = pd.read_sql_table(metrics_table.table_name, con=conn)
 
     assert len(metrics_df) == 7
 
@@ -317,8 +320,8 @@ def test_db_metrics_write_wide(
 # ---------------------------------------------------------------------------- #
 
 @pytest.fixture()
-def populated_metrics_table_with_prefixes(metrics_table: MetricsWriterProtocol):
-    """Create metrics table with various metrics that have common prefixes."""
+def populated_wide_metrics_table_with_prefixes(metrics_table: MetricsWriterProtocol):
+    """Create wide metrics table (default) with various metrics that have common prefixes."""
     start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
     curr_time = deepcopy(start_time)
     delta = dt.timedelta(hours=1)
@@ -367,68 +370,11 @@ def populated_metrics_table_with_prefixes(metrics_table: MetricsWriterProtocol):
     return metrics_table, start_time, delta
 
 
-@pytest.fixture()
-def populated_metrics_table_wide_with_prefixes(wide_metrics_table: MetricsWriterProtocol):
-    """Create wide metrics table with various metrics that have common prefixes."""
-    start_time = dt.datetime(2023, 7, 13, 6, tzinfo=pytz.UTC)
-    curr_time = deepcopy(start_time)
-    delta = dt.timedelta(hours=1)
-
-    for i in range(3):
-        # Training metrics
-        wide_metrics_table.write(
-            agent_step=i,
-            metric="train_loss",
-            value=i,
-            timestamp=curr_time.isoformat(),
-        )
-        wide_metrics_table.write(
-            agent_step=i,
-            metric="train_accuracy",
-            value=10 + i,
-            timestamp=curr_time.isoformat(),
-        )
-
-        # Validation metrics
-        wide_metrics_table.write(
-            agent_step=i,
-            metric="val_loss",
-            value=2 * i,
-            timestamp=curr_time.isoformat(),
-        )
-        wide_metrics_table.write(
-            agent_step=i,
-            metric="val_accuracy",
-            value=20 + i,
-            timestamp=curr_time.isoformat(),
-        )
-
-        # Test metrics (only for first 2 steps)
-        if i < 2:
-            wide_metrics_table.write(
-                agent_step=i,
-                metric="test_loss",
-                value=3 * i,
-                timestamp=curr_time.isoformat(),
-            )
-
-        curr_time += delta
-
-    # Force flush by reading a metric to ensure table is created
-    wide_metrics_table.flush()
-    return wide_metrics_table, start_time, delta
-
-
-@pytest.mark.parametrize(
-    "fixture_name",
-    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
-)
 def test_metrics_read_by_prefix_all_metrics(
-    request: pytest.FixtureRequest,
-    fixture_name: str,
+    populated_wide_metrics_table_with_prefixes: MetricsTableFixture,
 ):
     """Test reading all metrics by prefix (full dataset)."""
-    metrics_table, *_ = get_fixture(request, fixture_name, MetricsTableFixture)
+    metrics_table, *_ = populated_wide_metrics_table_with_prefixes
 
     # Read all training metrics
     train_df = metrics_table.read("train_", prefix_match=True)
@@ -451,10 +397,10 @@ def test_metrics_read_by_prefix_all_metrics(
 
 
 def test_metrics_read_by_prefix_with_missing_data(
-    populated_metrics_table_with_prefixes: MetricsTableFixture,
+    populated_wide_metrics_table_with_prefixes: MetricsTableFixture,
 ):
     """Test reading metrics by prefix where some metrics have missing data."""
-    metrics_table, *_ = populated_metrics_table_with_prefixes
+    metrics_table, *_ = populated_wide_metrics_table_with_prefixes
 
     # Read all test metrics (only exists for steps 0 and 1)
     test_df = metrics_table.read("test_", prefix_match=True)
@@ -471,10 +417,10 @@ def test_metrics_read_by_prefix_with_missing_data(
 
 
 def test_metrics_read_by_prefix_with_missing_data_wide(
-    populated_metrics_table_wide_with_prefixes: MetricsTableFixture,
+    populated_wide_metrics_table_with_prefixes: MetricsTableFixture,
 ):
-    """Test reading metrics by prefix where some metrics have missing data (wide table)."""
-    metrics_table, *_ = populated_metrics_table_wide_with_prefixes
+    """Test reading metrics by prefix where some metrics have missing data (wide format)."""
+    metrics_table, *_ = populated_wide_metrics_table_with_prefixes
 
     # Read all test metrics (only exists for steps 0 and 1)
     test_df = metrics_table.read("test_", prefix_match=True)
@@ -483,27 +429,18 @@ def test_metrics_read_by_prefix_with_missing_data_wide(
     assert set(test_df.columns) == expected_columns
 
     # Should have 2 rows (for agent steps 0, 1)
-    assert len(test_df) == 3
+    assert len(test_df) == 2
 
     # Check values
     assert test_df.loc[0, "test_loss"] == 0.0
     assert test_df.loc[1, "test_loss"] == 3.0
-    # wide format will fill in the missing value with nan
-    expected_nan = test_df.loc[2, "test_loss"]
-    assert isinstance(expected_nan, float)
-    assert np.isnan(expected_nan)
 
 
-@pytest.mark.parametrize(
-    "fixture_name",
-    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
-)
 def test_metrics_read_by_prefix_step_filtering(
-    request: pytest.FixtureRequest,
-    fixture_name: str,
+    populated_wide_metrics_table_with_prefixes: MetricsTableFixture,
 ):
     """Test reading metrics by prefix with step filtering."""
-    metrics_table, *_ = get_fixture(request, fixture_name, MetricsTableFixture)
+    metrics_table, *_ = populated_wide_metrics_table_with_prefixes
 
     # Read validation metrics for steps 1-2 only
     val_df = metrics_table.read("val_", prefix_match=True, step_start=1, step_end=2)
@@ -521,16 +458,11 @@ def test_metrics_read_by_prefix_step_filtering(
     assert val_df.loc[1, "val_loss"] == 4.0
 
 
-@pytest.mark.parametrize(
-    "fixture_name",
-    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
-)
 def test_metrics_read_by_prefix_time_filtering(
-    request: pytest.FixtureRequest,
-    fixture_name: str,
+    populated_wide_metrics_table_with_prefixes: MetricsTableFixture,
 ):
     """Test reading metrics by prefix with time filtering."""
-    metrics_table, start_time, delta = get_fixture(request, fixture_name, MetricsTableFixture)
+    metrics_table, start_time, delta = populated_wide_metrics_table_with_prefixes
 
     # Read training metrics for middle time period only
     query_start = start_time + delta  # Second hour
@@ -545,16 +477,11 @@ def test_metrics_read_by_prefix_time_filtering(
     assert len(train_df) == 2
 
 
-@pytest.mark.parametrize(
-    "fixture_name",
-    ["populated_metrics_table_with_prefixes", "populated_metrics_table_wide_with_prefixes"],
-)
 def test_metrics_read_by_prefix_no_matches(
-    request: pytest.FixtureRequest,
-    fixture_name: str,
+    populated_wide_metrics_table_with_prefixes: MetricsTableFixture,
 ):
     """Test reading metrics by prefix when no metrics match."""
-    metrics_table, *_ = get_fixture(request, fixture_name, MetricsTableFixture)
+    metrics_table, *_ = populated_wide_metrics_table_with_prefixes
 
     # Try to read metrics with a prefix that doesn't exist
     nonexistent_df = metrics_table.read("nonexistent_", prefix_match=True)

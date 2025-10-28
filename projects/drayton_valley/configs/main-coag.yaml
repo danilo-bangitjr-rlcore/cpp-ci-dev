@@ -1,8 +1,5 @@
 log_path: outputs/main/coag
 
-feature_flags:
-  nominal_setpoint_bias: true
-
 infra:
   db:
     drivername: postgresql+psycopg2
@@ -93,13 +90,13 @@ pipeline:
       - name: multi_trace
         trace_values: [0., 0.944, 0.97] # half life 1 & 2 hours
 
-  transition_creator:
+  trajectory_creator:
     name: all-the-time
     # n_step should be 8, give some buffer
     min_n_step: 7
     max_n_step: 8
 
-  transition_filter:
+  trajectory_filter:
     filters:
     - "only_pre_dp_or_ac"
     - "only_post_dp"
@@ -130,7 +127,7 @@ pipeline:
   #   node_identifier: ns=1;s=[main-veolia]UVT_TARGET_SP_F.OUT
   #   operating_range: [0, 100]
   #   expected_range: [70, 100]
-  # 
+  #
   # - name: UV03_UV254_PV
   #   connection_id: fa3e1022-aaa5-46ac-ad11-9330ec7a6393
   #   node_identifier: ns=1;s=[main-isl]UV03_UV254.IN

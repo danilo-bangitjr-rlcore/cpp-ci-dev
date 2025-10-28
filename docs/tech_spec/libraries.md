@@ -35,7 +35,7 @@ This module provides actor networks for policy learning, featuring a percentile-
 This module contains critic networks for value function estimation, using gradient-based TD learning, ensemble techniques, and a rolling reset mechanism.
 
 ### Data Types
-The library defines shared data structures, like `JaxTransition`, which encapsulates data for a single RL interaction step in a JAX-native format.
+The library defines shared data structures, like `Transition`, which encapsulates data for a single RL interaction step in a JAX-native format.
 
 ## lib_config: Configuration Management
 

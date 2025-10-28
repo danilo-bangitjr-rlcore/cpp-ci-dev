@@ -1,6 +1,7 @@
 import os
 
 import jax.numpy as jnp
+import pytest
 from lib_config.errors import ConfigValidationErrors
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -14,26 +15,42 @@ from corerl.state import AppState
 from tests.infrastructure.config import create_config_with_overrides
 
 
-def test_nominal_setpoint_norm():
+@pytest.fixture
+def nominal_setpoint_config():
     config_path = os.path.join(os.path.dirname(__file__), 'assets/nominal_setpoint.yaml')
     cfg = create_config_with_overrides(base_config_path=config_path)
     assert not isinstance(cfg, ConfigValidationErrors)
-    assert isinstance(cfg.pipeline.tags[0], SetpointTagConfig)
-    assert cfg.pipeline.tags[0].nominal_setpoint == 0.4
+    return cfg
 
+
+@pytest.fixture
+def nominal_setpoint_app_state(nominal_setpoint_config: MainConfig):
     event_bus = DummyEventBus()
-    app_state = AppState[DummyEventBus, MainConfig](
-        cfg=cfg,
-        metrics=create_metrics_writer(cfg.metrics),
-        evals=create_evals_writer(cfg.evals),
+    return AppState[DummyEventBus, MainConfig](
+        cfg=nominal_setpoint_config,
+        metrics=create_metrics_writer(nominal_setpoint_config.metrics),
+        evals=create_evals_writer(nominal_setpoint_config.evals),
         event_bus=event_bus,
     )
-    pipeline = Pipeline(app_state, cfg.pipeline)
-    column_desc = pipeline.column_descriptions
-    agent = GreedyAC(
-        cfg.agent,
-        app_state,
-        column_desc,
+
+
+@pytest.fixture
+def nominal_setpoint_agent(nominal_setpoint_config: MainConfig, nominal_setpoint_app_state: AppState):
+    pipeline = Pipeline(nominal_setpoint_app_state, nominal_setpoint_config.pipeline)
+    return GreedyAC(
+        nominal_setpoint_config.agent,
+        nominal_setpoint_app_state,
+        pipeline.column_descriptions,
     )
 
-    assert jnp.isclose(agent._nominal_setpoints, jnp.array([0.4]))
+
+def test_nominal_setpoint_norm(
+    nominal_setpoint_config: MainConfig,
+    nominal_setpoint_agent: GreedyAC,
+):
+    """
+    Verify that nominal_setpoint config flows through to agent._nominal_setpoints array.
+    """
+    assert isinstance(nominal_setpoint_config.pipeline.tags[0], SetpointTagConfig)
+    assert nominal_setpoint_config.pipeline.tags[0].nominal_setpoint == 0.4
+    assert jnp.isclose(nominal_setpoint_agent._nominal_setpoints, jnp.array([0.4]))

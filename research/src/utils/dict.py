@@ -1,7 +1,7 @@
 from typing import Any
 
 
-def flatten(d: dict[str, object], path: str = '', _out: dict[str, Any] | None = None) -> dict[str, Any]:
+def flatten(d: dict[str, Any], path: str = '', _out: dict[str, Any] | None = None) -> dict[str, Any]:
     out = _out if _out is not None else {}
 
     for k, v in d.items():

@@ -14,7 +14,7 @@ import click
 def train(config: str, overrides: tuple[str, ...]) -> None:
     """Run offline RL training from data in TimescaleDB.
 
-    This command loads offline transitions from the database and trains
+    This command loads offline trajectories from the database and trains
     a reinforcement learning agent using the configured algorithm.
 
     Additional config values can be overridden using key=value syntax:

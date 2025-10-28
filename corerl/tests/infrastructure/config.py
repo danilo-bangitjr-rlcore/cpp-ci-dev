@@ -80,7 +80,11 @@ def create_config_with_overrides(
 
     # Load base config
     base_config = direct_load_config(MainConfig, config_name=base_config_path)
-    assert isinstance(base_config, MainConfig)
+    assert isinstance(base_config, MainConfig), (
+        f"Failed to load MainConfig from '{base_config_path}'. "
+        f"Got {type(base_config).__name__} instead. "
+        f"Check if the config file exists and is valid."
+    )
 
     # Apply overrides using ConfigBuilder
     builder = ConfigBuilder(base_config)

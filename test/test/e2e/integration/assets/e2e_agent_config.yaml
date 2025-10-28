@@ -1,0 +1,51 @@
+seed: 42
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+  restore_checkpoint: false
+
+max_steps: 10
+
+infra:
+  db:
+    drivername: postgresql+psycopg2
+    username: postgres
+    password: password
+    ip: localhost
+    db_name: postgres
+
+metrics:
+  enabled: false
+
+evals:
+  enabled: false
+
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: Saturation-v0
+
+agent:
+  name: greedy_ac
+  gamma: 0.99
+
+pipeline:
+  tags:
+  - name: reward
+    type: meta
+
+  - name: terminated
+    type: meta
+
+  - name: truncated
+    type: meta
+
+  - name: tag-0
+    operating_range: [0, 1.0]
+
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [0, 0.5]

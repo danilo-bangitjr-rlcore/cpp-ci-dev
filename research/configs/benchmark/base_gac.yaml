@@ -1,8 +1,13 @@
 name: example
 max_steps: 5000
 
+action_bounds:
+  delta: True
+  delta_lo: 0.1
+  delta_hi: 0.1
+
 agent:
-  name: base
+  name: gac
 
   batch_size: 32
 

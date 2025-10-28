@@ -1,6 +1,6 @@
 pytest_plugins = (
     'tests.infrastructure.config',
-    'tests.infrastructure.transitions',
+    'tests.infrastructure.trajectories',
     "test.infrastructure.app_state",
     "test.infrastructure.utils.tsdb",
     "test.infrastructure.networking",

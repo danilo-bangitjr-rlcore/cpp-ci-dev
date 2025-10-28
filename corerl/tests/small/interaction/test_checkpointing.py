@@ -4,7 +4,6 @@ from pathlib import Path
 import corerl.interaction.checkpointing as chk
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.interaction.config import InteractionConfig
-from corerl.data_pipeline.pipeline import Pipeline
 from corerl.state import AppState
 
 
@@ -58,7 +57,101 @@ def test_prune_checkpoints_basic():
     assert paths[-1] not in to_delete
     assert to_delete == [Path('chk_2')]
 
-def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
+
+def test_power_of_2_retention_pattern():
+    """
+    Verify that power-of-2 interval checkpoints are retained while intermediate ones are deleted.
+
+    Creates 20 hourly checkpoints and verifies retention at power-of-2 intervals from cliff.
+    """
+    cliff = datetime(2023, 1, 1, 20, 0, 0)
+    freq = timedelta(hours=1)
+
+    times = [datetime(2023, 1, 1, i, 0, 0) for i in range(21)]
+    paths = [Path(f"chk_{i}") for i in range(21)]
+
+    to_delete = chk.prune_checkpoints(paths, times, cliff, freq)
+
+    kept_indices = {i for i in range(21) if paths[i] not in to_delete}
+
+    assert kept_indices == {0, 4, 12, 16, 18, 19, 20}
+
+
+def test_cliff_boundary_preservation():
+    """
+    Verify that all checkpoints more recent than the cliff are preserved.
+
+    Creates 10 hourly checkpoints with cliff 5 hours before the latest.
+    """
+    cliff = datetime(2023, 1, 1, 5, 0, 0)
+    freq = timedelta(hours=1)
+
+    times = [datetime(2023, 1, 1, i, 0, 0) for i in range(11)]
+    paths = [Path(f"chk_{i}") for i in range(11)]
+
+    to_delete = chk.prune_checkpoints(paths, times, cliff, freq)
+
+    for i in range(6, 11):
+        assert paths[i] not in to_delete
+
+
+def test_first_and_last_always_preserved():
+    """
+    Verify that first and last checkpoints are never deleted regardless of timing.
+    """
+    cliff = datetime(2023, 1, 1, 0, 0, 0)
+    freq = timedelta(hours=1)
+
+    times = [datetime(2023, 1, 1, i, 0, 0) for i in range(11)]
+    paths = [Path(f"chk_{i}") for i in range(11)]
+
+    to_delete = chk.prune_checkpoints(paths, times, cliff, freq)
+
+    assert paths[0] not in to_delete
+    assert paths[-1] not in to_delete
+
+
+def test_edge_case_two_checkpoints():
+    """
+    Verify that neither checkpoint is deleted when only 2 exist (both are first and last).
+    """
+    cliff = datetime(2023, 1, 1, 0, 0, 0)
+    freq = timedelta(hours=1)
+
+    times = [datetime(2023, 1, 1, 0, 0, 0), datetime(2023, 1, 1, 2, 0, 0)]
+    paths = [Path("chk_0"), Path("chk_1")]
+
+    to_delete = chk.prune_checkpoints(paths, times, cliff, freq)
+
+    assert len(to_delete) == 0
+
+
+def test_uneven_checkpoint_spacing():
+    """
+    Verify that algorithm handles irregular checkpoint intervals correctly.
+
+    Creates checkpoints with varying time gaps while still preserving power-of-2 checkpoints.
+    """
+    cliff = datetime(2023, 1, 1, 0, 0, 0)
+    freq = timedelta(hours=1)
+
+    times = [
+        datetime(2023, 1, 1, 0, 0, 0),
+        datetime(2023, 1, 1, 1, 30, 0),
+        datetime(2023, 1, 1, 3, 0, 0),
+        datetime(2023, 1, 1, 5, 15, 0),
+        datetime(2023, 1, 1, 8, 0, 0),
+        datetime(2023, 1, 1, 12, 0, 0),
+        datetime(2023, 1, 1, 20, 0, 0),
+    ]
+    paths = [Path(f"chk_{i}") for i in range(len(times))]
+
+    to_delete = chk.prune_checkpoints(paths, times, cliff, freq)
+
+    assert paths[0] not in to_delete
+    assert paths[-1] not in to_delete
+
+def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState, greedy_ac_agent: GreedyAC):
     """
     Test that checkpoint creates a directory and calls save, and restore_checkpoint loads the latest checkpoint
     using a real agent and a real app_state.
@@ -80,14 +173,7 @@ def test_checkpoint_and_restore(tmp_path: Path, dummy_app_state: AppState):
         warmup_period=None,
     )
 
-    # Setup a real agent
-    pipeline = Pipeline(dummy_app_state, dummy_app_state.cfg.pipeline)
-    column_desc = pipeline.column_descriptions
-    agent = GreedyAC(
-        dummy_app_state.cfg.agent,
-        dummy_app_state,
-        column_desc,
-    )
+    agent = greedy_ac_agent
 
     now = datetime(2023, 1, 1, 12, 0, 0)
     last = now - timedelta(hours=2)

@@ -9,9 +9,9 @@ import lib_utils.jax as jax_u
 import optax
 
 import lib_agent.network.networks as nets
+from lib_agent.buffer.datatypes import Transition
 from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
-    CriticBatch,
     CriticState,
     get_ensemble_norm,
     get_layer_norms,
@@ -59,6 +59,7 @@ def critic_builder(cfg: nets.TorsoConfig):
 
 @dataclass
 class QRCConfig(CriticConfig):
+    polyak_tau: float = 0.0
     action_regularization_epsilon: float = 0.1
 
 
@@ -159,7 +160,7 @@ class QRCCritic:
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi
 
-    def update(self, critic_state: CriticState, transitions: CriticBatch, next_actions: jax.Array):
+    def update(self, critic_state: CriticState, transitions: Transition, next_actions: jax.Array):
         self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 
@@ -274,7 +275,7 @@ class QRCCritic:
         self,
         state: CriticState,
         rng: chex.PRNGKey,
-        transitions: CriticBatch,
+        transitions: Transition,
         next_actions: jax.Array,
     ):
         """
@@ -292,7 +293,13 @@ class QRCCritic:
             state.opt_state,
             params=state.params,
         )
-        new_params = optax.apply_updates(state.params, updates)
+        updated_params = optax.apply_updates(state.params, updates)
+
+        new_params = jax.tree.map(
+            lambda old, updated: (1 - self._cfg.polyak_tau) * updated + self._cfg.polyak_tau * old,
+            state.params,
+            updated_params,
+        )
 
         metrics = metrics._replace(
             ensemble_grad_norms=get_ensemble_norm(grads),
@@ -310,7 +317,7 @@ class QRCCritic:
         self,
         params: chex.ArrayTree,
         rng: chex.PRNGKey,
-        transition: CriticBatch,
+        transition: Transition,
         next_actions: jax.Array,
     ):
         chex.assert_rank(transition.state.features, 3)  # (ens, batch, state_dim)
@@ -329,7 +336,7 @@ class QRCCritic:
         self,
         params: Any,
         rng: chex.PRNGKey,
-        transition: CriticBatch,
+        transition: Transition,
         next_actions: jax.Array,
     ):
         # (batch, samples, action_dim)
@@ -349,17 +356,17 @@ class QRCCritic:
         self,
         params: chex.ArrayTree,
         rng: chex.PRNGKey,
-        transition: CriticBatch,
+        transition: Transition,
         next_actions: jax.Array,
     ):
         state = transition.state
         action = transition.action
-        reward = transition.reward
+        n_step_reward = transition.n_step_reward
         next_state = transition.next_state
-        gamma = transition.gamma
+        n_step_gamma = transition.n_step_gamma
         chex.assert_rank((state.features, next_state.features, action), 1)
         chex.assert_rank(next_actions, 2)  # (num_samples, action_dim)
-        chex.assert_rank((reward, gamma), 0)  # scalars
+        chex.assert_rank((n_step_reward, n_step_gamma), 0)  # scalars
 
         q_rng, qp_rng, a_rng = jax.random.split(rng, 3)
         qp_rngs = jax.random.split(qp_rng, self._cfg.num_rand_actions)
@@ -371,7 +378,7 @@ class QRCCritic:
         # q_prime takes expectation of state-action value over actions sampled from some dist
         q_prime = self.get_values(params, qp_rngs, next_state.features.array, next_actions).q.mean()
 
-        target = reward + gamma * q_prime
+        target = n_step_reward + n_step_gamma * q_prime
 
         sg = jax.lax.stop_gradient
         delta_l = sg(target) - q

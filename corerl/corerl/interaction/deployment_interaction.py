@@ -9,7 +9,7 @@ from typing import Any
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 from lib_utils.named_array import NamedArray
 
 import corerl.eval.agent as agent_eval
@@ -71,9 +71,7 @@ class DeploymentInteraction:
             app_state,
         )
 
-        self._representation_metrics = RepresentationEval(
-            app_state,
-        )
+        self._representation_metrics = RepresentationEval()
 
         self._mc_eval = MonteCarloEvaluator(
             app_state.cfg.eval_cfgs.monte_carlo,

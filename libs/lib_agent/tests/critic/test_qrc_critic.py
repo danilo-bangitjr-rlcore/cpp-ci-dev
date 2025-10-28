@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import chex
 import jax
 import jax.numpy as jnp
@@ -8,13 +6,6 @@ import pytest
 
 from lib_agent.critic.critic_utils import RollingResetConfig
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
-
-
-@dataclass
-class MockState:
-    features: jax.Array
-    a_lo: jax.Array
-    a_hi: jax.Array
 
 
 @pytest.fixture

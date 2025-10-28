@@ -7,7 +7,7 @@ from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 
 
 def _create_test_actor(state_dim: int, action_dim: int, num_samples: int = 256):

@@ -11,7 +11,7 @@ from typing import Any, Literal, Self
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.datatypes import DataMode
+from lib_agent.buffer.datatypes import DataMode, Trajectory
 from lib_utils.named_array import NamedArray
 from pandas import DataFrame
 
@@ -26,11 +26,11 @@ from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.constructors.rc import RewardConstructor
 from corerl.data_pipeline.constructors.sc import StateConstructor, construct_default_sc_configs
 from corerl.data_pipeline.constructors.tag_triggers import TagTrigger
-from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState, Transition
+from corerl.data_pipeline.datatypes import PipelineFrame, StageCode, TemporalState
 from corerl.data_pipeline.imputers.factory import init_imputer
 from corerl.data_pipeline.oddity_filters.oddity_filter import OddityFilterConstructor
+from corerl.data_pipeline.trajectory_filter import TrajectoryFilter
 from corerl.data_pipeline.transforms import register_dispatchers
-from corerl.data_pipeline.transition_filter import TransitionFilter
 from corerl.data_pipeline.utils import invoke_stage_per_tag
 from corerl.data_pipeline.virtual.computed_tags import ComputedTagStage
 from corerl.data_pipeline.virtual.deltaize_tags import DeltaizeTags, log_delta_tags
@@ -52,11 +52,11 @@ class PipelineReturn:
     rewards: DataFrame
     action_lo: DataFrame
     action_hi: DataFrame
-    transitions: list[Transition] | None
+    trajectories: list[Trajectory] | None
 
     def _add(
         self, other: Self,
-    ) -> tuple[DataFrame, NamedArray, DataFrame, DataFrame, DataFrame, DataFrame, list[Transition] | None]:
+    ) -> tuple[DataFrame, NamedArray, DataFrame, DataFrame, DataFrame, DataFrame, list[Trajectory] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
@@ -66,16 +66,16 @@ class PipelineReturn:
         action_lo = pd.concat([self.action_lo, other.action_lo])
         action_hi = pd.concat([self.action_hi, other.action_hi])
 
-        transitions = []
-        if self.transitions is None:
-            transitions = other.transitions
-        elif other.transitions is not None:
-            transitions = self.transitions + other.transitions
+        trajectories = []
+        if self.trajectories is None:
+            trajectories = other.trajectories
+        elif other.trajectories is not None:
+            trajectories = self.trajectories + other.trajectories
 
-        return df, states, actions, rewards, action_lo, action_hi, transitions
+        return df, states, actions, rewards, action_lo, action_hi, trajectories
 
     def __iadd__(self, other: Self):
-        df, states, actions, rewards, action_lo, action_hi, transitions = self._add(other)
+        df, states, actions, rewards, action_lo, action_hi, trajectories = self._add(other)
 
         self.df = df
         self.states = states
@@ -83,14 +83,14 @@ class PipelineReturn:
         self.rewards = rewards
         self.action_lo = action_lo
         self.action_hi = action_hi
-        self.transitions = transitions
+        self.trajectories = trajectories
 
         return self
 
     def __add__(self, other: Self):
-        df, states, actions, rewards, action_lo, action_hi, transitions = self._add(other)
+        df, states, actions, rewards, action_lo, action_hi, trajectories = self._add(other)
 
-        return PipelineReturn(self.data_mode, df, states, actions, rewards, action_lo, action_hi, transitions)
+        return PipelineReturn(self.data_mode, df, states, actions, rewards, action_lo, action_hi, trajectories)
 
 
 @dataclass
@@ -130,8 +130,8 @@ class Pipeline:
             if isinstance(tag, BoundedTag) and tag.operating_range is not None
         }
         self.tag_trigger = TagTrigger(app_state, self.tags)
-        self.transition_creator = AllTheTimeTC(cfg.transition_creator)
-        self.transition_filter = TransitionFilter(app_state, cfg.transition_filter)
+        self.trajectory_creator = AllTheTimeTC(cfg.trajectory_creator)
+        self.trajectory_filter = TrajectoryFilter(app_state, cfg.trajectory_filter)
         self.outlier_detectors = OddityFilterConstructor(self.tags, app_state, cfg.oddity_filter)
         self.imputers = init_imputer(cfg.imputer, app_state, self.tags)
         self.action_constructor = ActionConstructor(app_state, self.tags, self.preprocessor)
@@ -165,8 +165,8 @@ class Pipeline:
             StageCode.RC:         self.reward_constructor,
             StageCode.ZONES:      self.zone_discourager,
             StageCode.SC:         self.state_constructor,
-            StageCode.TC:         self.transition_creator,
-            StageCode.TF:         self.transition_filter,
+            StageCode.TC:         self.trajectory_creator,
+            StageCode.TF:         self.trajectory_filter,
         }
 
         self.default_stages = (
@@ -247,7 +247,7 @@ class Pipeline:
                 rewards=data,
                 action_lo=data,
                 action_hi=data,
-                transitions=[],
+                trajectories=[],
             )
         data = data.astype(dtype=np.float32)
 
@@ -277,7 +277,7 @@ class Pipeline:
             rewards=pf.rewards,
             action_lo=pf.action_lo,
             action_hi=pf.action_hi,
-            transitions=pf.transitions,
+            trajectories=pf.trajectories,
         )
 
 

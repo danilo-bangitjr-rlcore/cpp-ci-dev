@@ -6,7 +6,7 @@ from lib_config.loader import load_config
 
 from coreoffline.utils.config import OfflineMainConfig
 from coreoffline.utils.data_loading import (
-    load_offline_transitions,
+    load_offline_trajectories,
 )
 from coreoffline.utils.offline_training.utils import get_all_offline_recommendations, offline_rl_from_buffer
 from coreoffline.utils.setup import create_standard_setup
@@ -34,8 +34,8 @@ def main(cfg: OfflineMainConfig):
 
     # Offline training
     assert cfg.offline_training.offline_steps > 0
-    log.info("Loading offline transitions...")
-    pipeline_out, _ = load_offline_transitions(app_state, pipeline)
+    log.info("Loading offline trajectories...")
+    pipeline_out, _ = load_offline_trajectories(app_state, pipeline)
     assert pipeline_out is not None
     log.info("Training agent from replay buffer...")
     agent.update_buffer(pipeline_out)

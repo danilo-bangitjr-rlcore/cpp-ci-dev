@@ -15,7 +15,7 @@ def bclone(config: str, overrides: tuple[str, ...]) -> None:
     """Run behaviour cloning training on offline data.
 
     This command trains linear and deep learning models to clone the
-    behavior present in offline transitions. Models are evaluated using
+    behavior present in offline trajectories. Models are evaluated using
     cross-validation and scatter plots are generated comparing predictions.
 
     Additional config values can be overridden using key=value syntax:

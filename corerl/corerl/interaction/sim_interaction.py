@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.configs.interaction.config import InteractionConfig

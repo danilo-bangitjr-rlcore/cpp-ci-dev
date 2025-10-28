@@ -8,7 +8,7 @@ from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State, Transition
 
 
 class FakeValueEstimator:
@@ -44,14 +44,6 @@ def _create_test_actor(state_dim: int, action_dim: int, num_samples: int = 256):
         state_dim=state_dim,
         action_dim=action_dim,
     )
-
-
-class FakeActorBatch(NamedTuple):
-    state: State
-    action: jax.Array
-    reward: jax.Array
-    next_state: State
-    gamma: jax.Array
 
 
 class BenchmarkConfig(NamedTuple):
@@ -111,12 +103,12 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         last_a=jnp.tile(actions, (ensemble_size, 1, 1)),
     )
 
-    actor_batch = FakeActorBatch(
+    actor_batch = Transition(
         state=batch_state,
         action=actions,
-        reward=rewards,
+        n_step_reward=rewards,
         next_state=next_batch_state,
-        gamma=gammas,
+        n_step_gamma=gammas,
     )
 
     def _inner(
@@ -124,7 +116,7 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         state: Any,
         ve: FakeValueEstimator,
         ve_params: Any,
-        batch: FakeActorBatch,
+        batch: Transition,
     ):
         for _ in range(config.iterations):
             _new_state, metrics = actor.update(state, ve, ve_params, batch)

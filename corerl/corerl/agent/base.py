@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 
 import numpy
-from lib_agent.buffer.buffer import State
+from lib_agent.buffer.datatypes import State
 
 from corerl.configs.agent.base import BaseAgentConfig
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn

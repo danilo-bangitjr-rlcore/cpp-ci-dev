@@ -1,4 +1,4 @@
-from typing import Any, NamedTuple
+from typing import Any
 
 import jax
 import jax.numpy as jnp
@@ -7,18 +7,9 @@ import numpy as np
 from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
-from lib_agent.buffer.buffer import State
-from lib_agent.critic.critic_utils import CriticBatch, RollingResetConfig
+from lib_agent.buffer.datatypes import State, Transition
+from lib_agent.critic.critic_utils import RollingResetConfig
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
-
-
-class FakeCriticBatch(NamedTuple):
-    """Simple critic batch for benchmarking."""
-    state: State
-    action: jax.Array
-    reward: jax.Array
-    next_state: State
-    gamma: jax.Array
 
 
 def _create_test_critic(ensemble_size: int, state_dim: int, action_dim: int):
@@ -234,17 +225,17 @@ def test_critic_ensemble_update_small(benchmark: BenchmarkFixture):
         last_a=actions,
     )
 
-    transitions = FakeCriticBatch(
+    transitions = Transition(
         state=batch_state,
         action=actions,
-        reward=rewards,
+        n_step_reward=rewards,
         next_state=next_batch_state,
-        gamma=gammas,
+        n_step_gamma=gammas,
     )
 
     next_actions = jnp.array(rng.random((ensemble_size, batch_size, 64, action_dim)))
 
-    def _inner(critic: QRCCritic, state: Any, transitions: CriticBatch, next_actions: jax.Array):
+    def _inner(critic: QRCCritic, state: Any, transitions: Transition, next_actions: jax.Array):
         for _ in range(5):
             _new_state, metrics = critic.update(state, transitions, next_actions)
             # Force computation
@@ -293,17 +284,17 @@ def test_critic_ensemble_update_large(benchmark: BenchmarkFixture):
         last_a=actions,
     )
 
-    transitions = FakeCriticBatch(
+    transitions = Transition(
         state=batch_state,
         action=actions,
-        reward=rewards,
+        n_step_reward=rewards,
         next_state=next_batch_state,
-        gamma=gammas,
+        n_step_gamma=gammas,
     )
 
     next_actions = jnp.array(rng.random((ensemble_size, batch_size, 64, action_dim)))
 
-    def _inner(critic: QRCCritic, state: Any, transitions: CriticBatch, next_actions: jax.Array):
+    def _inner(critic: QRCCritic, state: Any, transitions: Transition, next_actions: jax.Array):
         for _ in range(3):
             _new_state, metrics = critic.update(state, transitions, next_actions)
             # Force computation
