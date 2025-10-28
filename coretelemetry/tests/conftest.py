@@ -72,6 +72,8 @@ def sample_config_dir(tmp_path: Path, sample_metrics_table: tuple[str, str]):
     _schema_name, table_name = sample_metrics_table
 
     # Create agent YAML config
+
+    # The service creates the table with a '_wide' suffix, but the agent config expects the base table name.
     agent_config = {"metrics": {"table_name": table_name.replace("_wide", "") }}
 
     config_file = config_dir / "test_agent.yaml"

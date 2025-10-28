@@ -163,16 +163,13 @@ class TestCaching:
 
         # Verify cache starts empty
         assert "test_agent" not in manager_real.metrics_table_cache
-        print(manager_real.metrics_table_cache)
 
         # First call
         manager_real.get_telemetry_data("test_agent", "temperature", None, None)
-        print(manager_real.metrics_table_cache)
 
         # Verify cache is populated
         assert "test_agent" in manager_real.metrics_table_cache
-        assert table_name in manager_real.metrics_table_cache["test_agent"]
-        print(manager_real.metrics_table_cache)
+        assert table_name == manager_real.metrics_table_cache["test_agent"]
 
         # Second call should use cache
         result = manager_real.get_telemetry_data("test_agent", "pressure", None, None)
