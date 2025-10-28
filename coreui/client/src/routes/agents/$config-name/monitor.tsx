@@ -118,15 +118,17 @@ const getMetricDescription = (metric: string): string | undefined => {
 
 // Format timestamp helper
 const formatTimestamp = (timestamp: string) => {
-  return new Date(timestamp).toLocaleString('en-CA', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }).replace(',', '');
+  return new Date(timestamp)
+    .toLocaleString('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    })
+    .replace(',', '');
 };
 
 // Format value to max decimal places
