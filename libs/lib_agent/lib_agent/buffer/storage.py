@@ -3,7 +3,7 @@ from typing import Any, Generic, NamedTuple, TypeVar, Union
 import jax
 import jax.numpy as jnp
 import numpy as np
-from jax.tree_util import tree_flatten, tree_unflatten
+from jax.tree_util import tree_flatten, tree_map, tree_unflatten
 from lib_utils.named_array import NamedArray
 
 # NOTE: the python 3.12+ syntax for generic types is not compatible with pickle
@@ -36,6 +36,33 @@ class ReplayStorage(Generic[T]): # noqa: UP046
         self._size = min(self._size + 1, self._capacity)
         return idx
 
+    def add_bulk(self, item: T):
+        # get number of items to add to buffer and assert all leaves have consistent leading axis
+        first_axes = jax.tree.leaves(tree_map(lambda x: x.shape[0], item))
+        n = first_axes[0]
+        if n == 1:
+            return self.add(item)
+
+        for m in first_axes:
+            assert n == m
+
+        if self._data is None:
+            # get single item from each leaf for init
+            leaves, treedef = tree_flatten(item)
+            singletons = [leaf[0] for leaf in leaves]
+            # reconstruct tree for init
+            singleton_item = tree_unflatten(treedef, singletons)
+            self._data = self._init(singleton_item)
+
+        idx = self._pos
+        leaves, _ = tree_flatten(item)
+        leaves = jax.tree.map(lambda x: jnp.reshape(x, (n,-1)).squeeze(), leaves)
+        for leaf, buffer in zip(leaves, self._data, strict=True):
+            buffer[idx:idx+n] = np.asarray(leaf)
+
+        self._pos = (self._pos + n) % self._capacity
+        self._size = min(self._size + n, self._capacity)
+        return idx
 
     def _init(self, item: T):
         try:
