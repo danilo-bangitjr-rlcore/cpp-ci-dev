@@ -1,2 +1,6 @@
 agent:
   max_critic_updates: 10
+
+
+feature_flags:
+  wide_metrics: false
