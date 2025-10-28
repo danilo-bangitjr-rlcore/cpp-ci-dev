@@ -1,6 +1,6 @@
 import { createFileRoute, useParams } from '@tanstack/react-router';
 import {
-  useAvailableMetricsQuery,
+  useFilteredMetricsQuery,
   useMultipleAgentMetricsQueries,
 } from '../../../utils/useAgentMetricQueries';
 
@@ -11,110 +11,6 @@ export const Route = createFileRoute('/agents/$config-name/monitor')({
 // Constants
 const MAX_DECIMAL_PLACES = 4;
 
-// Filter patterns (case invariant) and their descriptions
-const FILTER_CONFIGS = [
-  { pattern: /^q$/i, description: 'Quality (value) of the action' },
-  {
-    pattern: /^q_ensemble_variance$/i,
-    description: "The agent's uncertainty about the action it chose",
-  },
-  {
-    pattern: /^observed_a_q[a-z0-9_]*$/i,
-    description:
-      "The difference between observed_a_q{label} and partial_return{label} can be interpreted as the agent's prediction accuracy",
-  },
-  {
-    pattern: /^partial_return[a-z0-9_]*$/i,
-    description:
-      "The difference between observed_a_q{label} and partial_return{label} can be interpreted as the agent's prediction accuracy",
-  },
-  {
-    pattern: /^pdf_plot_action_[a-z0-9_]+$/i,
-    description: 'Probability of choosing each unrealized alternative',
-  },
-  {
-    pattern: /^qs_plot_action_[a-z0-9_]+$/i,
-    description: 'The value of unrealized alternatives',
-  },
-  {
-    pattern: /^critic[0-9]*_loss$/i,
-    description:
-      'How well the agent understands the data seen so far. Less is better (think of it like error)',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_num_non_nan$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_num_nan$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_mean$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_variance$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_max$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_min$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_50th_percentile$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_90th_percentile$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_percent_nan$/i,
-    description:
-      'They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern:
-      /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_average_length_of_nan_chunks$/i,
-    description:
-      'These could all be exposed for the INIT stage of the pipeline. They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern:
-      /^pipeline_[a-z0-9_]+_[a-z0-9_]+_[a-z0-9_]+_average_length_of_non_nan_chunks$/i,
-    description:
-      'These could all be exposed for the INIT stage of the pipeline. They tell us statistics about the tags flowing into the agent',
-  },
-  {
-    pattern: /^ae-num_nan_obs$/i,
-    description: 'Number of missing values in observations',
-  },
-  { pattern: /^ae-imputed$/i, description: 'Number of values imputed' },
-  {
-    pattern: /^ae-quality-[a-z0-9_]+_trace_[a-z0-9_]+$/i,
-    description:
-      'Quality of state variables input to agent. Can be made more interpretable by averaging across decays. This gives a quality per tag',
-  },
-] as const;
-
-// Helper to get description for a metric
-const getMetricDescription = (metric: string): string | undefined => {
-  const config = FILTER_CONFIGS.find((config) => config.pattern.test(metric));
-  return config?.description;
-};
 
 // Format timestamp helper
 const formatTimestamp = (timestamp: string) => {
@@ -141,15 +37,16 @@ function RouteComponent() {
   const configName = params['config-name'];
 
   const {
-    data: availableMetrics,
+    data: filteredMetricsData,
     isLoading: metricsLoading,
     error: metricsError,
-  } = useAvailableMetricsQuery(configName);
+  } = useFilteredMetricsQuery(configName);
 
-  const filteredMetrics =
-    availableMetrics?.filter((metric: string) =>
-      FILTER_CONFIGS.some((config) => config.pattern.test(metric))
-    ) || [];
+  // Extract metric names and create a map for descriptions
+  const filteredMetrics = filteredMetricsData?.map((m) => m.name) || [];
+  const metricDescriptions = new Map(
+    filteredMetricsData?.map((m) => [m.name, m.description]) || []
+  );
 
   // Query data for each filtered metric
   const metricQueries = useMultipleAgentMetricsQueries(
@@ -204,7 +101,7 @@ function RouteComponent() {
                         {metric}
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-500 max-w-xs">
-                        {getMetricDescription(metric)}
+                        {metricDescriptions.get(metric)}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {metricData ? (
