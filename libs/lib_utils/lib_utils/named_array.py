@@ -263,6 +263,9 @@ class NamedArray:  # noqa: PLW1641
     def __len__(self) -> int:
         return len(self._values)
 
+    # Utils
+    def scale_between(self, min: Self, max: Self):
+        return self.sub(min).div(max.sub(min))
 
     # Pretty print
     def __repr__(self):
