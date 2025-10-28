@@ -22,6 +22,7 @@ dev = [
     "ruff>=0.11.12",
     "uv>=0.5.24",
     "lib-agent",
+    "pytest-timeout>=2.4.0",
 ]
 
 [project.optional-dependencies]
