@@ -17,6 +17,7 @@ from lib_defs.config_defs.tag_config import TagType
 from lib_utils.named_array import NamedArray
 
 from corerl.configs.data_pipeline.imputers.auto_encoder import MaskedAEConfig, TrainingConfig
+from corerl.configs.data_pipeline.transforms.nuke import NukeConfig
 from corerl.configs.data_pipeline.transforms.trace import TraceConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
@@ -73,12 +74,25 @@ class CircularBuffer:
         idxs = [np.random.choice(self.size, size=batch_size, replace=True) for _ in range(n_batches)]
         return self._storage.get_ensemble_batch(idxs)
 
+def obs_filter(tag_config: TagConfig):
+    """
+    return False if the tag should be removed from obs
+    """
+    sc = tag_config.state_constructor
+    if sc is None:
+        return False
+    if len(sc) == 1 and isinstance(sc[0], NukeConfig):
+        return False
+    if tag_config.type == TagType.meta:
+        return False
+    return True
+
 class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
         super().__init__(imputer_cfg, app_state, tag_cfgs)
         self._dormant = True # dormant until NaN encountered online
         self._cfg = imputer_cfg
-        self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
+        self._obs_names = [t.name for t in tag_cfgs if obs_filter(t)]
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
         self._fill_val = imputer_cfg.fill_val
@@ -147,7 +161,7 @@ class MaskedAutoencoder(BaseImputer):
         logger.info("AE bulk loading data...")
         ts = dict_u.assign_default(pf.temporal_state, StageCode.IMPUTER, MaskedAETemporalState)
         assert isinstance(ts, MaskedAETemporalState)
-        data = pf.data.copy(deep=False)
+        data = pf.data.copy(deep=False)[self._obs_names]
         obs = NamedArray.from_pandas(data)
         obs_nanmask = obs.set(jnp.isnan(obs.array))
 
@@ -195,13 +209,13 @@ class MaskedAutoencoder(BaseImputer):
         ts = dict_u.assign_default(pf.temporal_state, StageCode.IMPUTER, MaskedAETemporalState)
         assert isinstance(ts, MaskedAETemporalState)
 
-        df = pf.data.copy(deep=False)
-        all_obs = NamedArray.from_pandas(pf.data)
+        df = pf.data.copy(deep=False)[self._obs_names]
+        all_obs = NamedArray.from_pandas(df)
 
         # try to recover traces from the temporal state
         # otherwise, start fresh
         if ts.last_trace is None:
-            obs_row = df.iloc[[0]].copy(deep=False)
+            obs_row = df.iloc[[0]][self._obs_names].copy(deep=False)
             carry = TransformCarry(df, obs_row, "")
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
             ts.last_trace = NamedArray.from_pandas(carry.transform_data)[0]
