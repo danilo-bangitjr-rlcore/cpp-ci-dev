@@ -1,5 +1,6 @@
 name: example
 max_steps: 50
+nominal_setpoint: 0.5
 
 agent:
   name: gaac

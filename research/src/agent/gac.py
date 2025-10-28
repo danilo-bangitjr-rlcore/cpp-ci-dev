@@ -18,6 +18,13 @@ from lib_agent.critic.qrc_critic import QRCCritic
 from ml_instrumentation.Collector import Collector
 
 
+def exp_moving_avg(decay: float, mean: float | None, x: float) -> float:
+    """Computes exponential moving average: mean = decay * mean + (1 - decay) * x"""
+    if mean is None:
+        return x
+    return decay * mean + (1 - decay) * x
+
+
 class GACState(NamedTuple):
     critic: CriticState
     actor: PAState
@@ -29,6 +36,11 @@ class GreedyACConfig:
     batch_size: int
     critic: dict[str, Any]
     actor: dict[str, Any]
+    max_critic_updates: int = 10
+    max_internal_actor_updates: int = 3
+    loss_ema_factor: float = 0.75
+    loss_threshold: float = 1e-4
+    bootstrap_action_samples: int = 10
 
 
 class GreedyAC:
@@ -66,6 +78,12 @@ class GreedyAC:
 
         self.agent_state = GACState(critic_state, actor_state)
 
+        # for early stopping
+        self._last_critic_loss = 0.
+        self._avg_critic_delta: float | None = None
+        self._last_actor_loss = 0.
+        self._avg_actor_delta: float | None = None
+
     def update_buffer(self, transition: Transition):
         self.critic_buffer.add(transition)
         self.policy_buffer.add(transition)
@@ -92,13 +110,33 @@ class GreedyAC:
         return self._actor.get_probs(actor_params, state, actions)
 
     def update(self):
-        self.critic_update()
-        self.policy_update()
+        alpha = self._cfg.loss_ema_factor
+
+        for _ in range(self._cfg.max_critic_updates):
+            critic_loss = self.critic_update()
+
+            for _ in range(self._cfg.max_internal_actor_updates):
+                actor_loss = self.policy_update()
+                last = self._last_actor_loss
+                self._last_actor_loss = actor_loss
+                delta = actor_loss - last
+                self._avg_actor_delta = exp_moving_avg(alpha, self._avg_actor_delta, delta)
+
+                if np.abs(self._avg_actor_delta) < self._cfg.loss_threshold:
+                    break
+
+            last = self._last_critic_loss
+            self._last_critic_loss = critic_loss
+            delta = critic_loss - last
+            self._avg_critic_delta = exp_moving_avg(alpha, self._avg_critic_delta, delta)
+
+            if np.abs(self._avg_critic_delta) < self._cfg.loss_threshold:
+                break
 
     def critic_update(self):
         assert isinstance(self._critic, QRCCritic)
         if self.critic_buffer.size == 0:
-            return
+            return 0.
 
         transitions: Transition = self.critic_buffer.sample()
         self.rng, bs_rng = jax.random.split(self.rng)
@@ -106,7 +144,7 @@ class GreedyAC:
             self.agent_state.actor.actor.params,
             bs_rng,
             transitions.next_state,
-            10,
+            self._cfg.bootstrap_action_samples,
         )
         new_critic_state, metrics = self._critic.update(
             critic_state=self.agent_state.critic,
@@ -115,7 +153,9 @@ class GreedyAC:
         )
 
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
-        self._collector.collect('critic_loss', metrics.loss.mean().item())
+        loss = metrics.loss.mean().item()
+        self._collector.collect('critic_loss', loss)
+        return loss
 
     def initialize_to_nominal_action(self, nominal_setpoints: jax.Array, iterations: int = 100):
         critic_rng, actor_rng, self.rng = jax.random.split(self.rng, 3)
@@ -138,7 +178,7 @@ class GreedyAC:
 
     def policy_update(self):
         if self.policy_buffer.size == 0:
-            return
+            return 0.
 
         transitions: Transition = self.policy_buffer.sample()
 
@@ -150,7 +190,9 @@ class GreedyAC:
         )
         self.agent_state = self.agent_state._replace(actor=actor_state)
 
-        self._collector.collect('actor_loss', metrics.actor_loss.mean().item())
+        loss = metrics.actor_loss.mean().item()
+        self._collector.collect('actor_loss', loss)
+        return loss
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         qs = self._critic.get_active_values(params, rng, x, a).q
@@ -203,7 +245,7 @@ class GAAC(GreedyAC):
     def critic_update(self):
         assert isinstance(self._critic, AdvCritic)
         if self.critic_buffer.size == 0:
-            return
+            return 0.
 
         transitions: Transition = self.critic_buffer.sample()
 
@@ -218,4 +260,6 @@ class GAAC(GreedyAC):
         )
 
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
-        self._collector.collect('critic_loss', metrics.loss.mean().item())
+        loss = metrics.loss.mean().item()
+        self._collector.collect('critic_loss', loss)
+        return loss

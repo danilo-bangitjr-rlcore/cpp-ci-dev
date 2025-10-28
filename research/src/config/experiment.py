@@ -20,6 +20,7 @@ class ExperimentConfig:
     env: dict[str, Any]
     pipeline: dict[str, Any]
     steps_per_decision: int = 1
+    nominal_setpoint: float | list[float] | None = None
     action_bounds: ActionBoundsConfig = field(default_factory=ActionBoundsConfig)
 
     def flatten(self):
@@ -27,6 +28,7 @@ class ExperimentConfig:
         out |= flatten(self.env, 'env')
         out |= flatten(self.pipeline, 'pipeline')
         out |= flatten(self.action_bounds.to_dict(), 'action_bounds')
+        out |= {'nominal_setpoint': self.nominal_setpoint}
 
         return out
 
@@ -48,6 +50,7 @@ class ExperimentConfig:
             agent=cfg['agent'] or {},
             env=cfg['env'] or {},
             pipeline=cfg.get('pipeline', {}),
+            nominal_setpoint=cfg['nominal_setpoint'],
             action_bounds=ActionBoundsConfig(**cfg.get('action_bounds', {})),
         )
 
