@@ -15,7 +15,7 @@ import {
   useSystemDiskQuery,
 } from '../utils/useDiagnosticsQueries';
 
-export const Route = createFileRoute('/about')({
+export const Route = createFileRoute('/diagnostics')({
   component: Diagnostics,
 });
 

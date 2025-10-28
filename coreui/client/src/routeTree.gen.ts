@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
+import { Route as DiagnosticsRouteImport } from './routes/diagnostics'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
@@ -23,6 +24,11 @@ import { Route as AgentsConfigNameGeneralSettingsRouteImport } from './routes/ag
 const OpcNavigationRoute = OpcNavigationRouteImport.update({
   id: '/opc-navigation',
   path: '/opc-navigation',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DiagnosticsRoute = DiagnosticsRouteImport.update({
+  id: '/diagnostics',
+  path: '/diagnostics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AboutRoute = AboutRouteImport.update({
@@ -75,6 +81,7 @@ const AgentsConfigNameGeneralSettingsRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/diagnostics': typeof DiagnosticsRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents': typeof AgentsIndexRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/diagnostics': typeof DiagnosticsRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
@@ -99,6 +107,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/diagnostics': typeof DiagnosticsRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
@@ -113,6 +122,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/diagnostics'
     | '/opc-navigation'
     | '/agents/$config-name'
     | '/agents'
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/diagnostics'
     | '/opc-navigation'
     | '/agents'
     | '/agents/$config-name/general-settings'
@@ -136,6 +147,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/diagnostics'
     | '/opc-navigation'
     | '/agents/$config-name'
     | '/agents/'
@@ -149,6 +161,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  DiagnosticsRoute: typeof DiagnosticsRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
   AgentsConfigNameRoute: typeof AgentsConfigNameRouteWithChildren
   AgentsIndexRoute: typeof AgentsIndexRoute
@@ -161,6 +174,13 @@ declare module '@tanstack/react-router' {
       path: '/opc-navigation'
       fullPath: '/opc-navigation'
       preLoaderRoute: typeof OpcNavigationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/diagnostics': {
+      id: '/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/diagnostics'
+      preLoaderRoute: typeof DiagnosticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -251,6 +271,7 @@ const AgentsConfigNameRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  DiagnosticsRoute: DiagnosticsRoute,
   OpcNavigationRoute: OpcNavigationRoute,
   AgentsConfigNameRoute: AgentsConfigNameRouteWithChildren,
   AgentsIndexRoute: AgentsIndexRoute,

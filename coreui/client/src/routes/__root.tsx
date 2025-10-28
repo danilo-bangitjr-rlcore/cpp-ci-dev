@@ -3,6 +3,7 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 import { HomeIcon } from '../components/icons/HomeIcon';
+import { DiagnosticsIcon } from '../components/icons/DiagnosticsIcon';
 import { useAgentNameQuery } from '../utils/useAgentQueries';
 
 const baseNavItems = [
@@ -23,7 +24,11 @@ const baseNavItems = [
     ),
   },
   { label: 'OPC Navigation', to: '/opc-navigation' },
-  { label: 'About', to: '/about' },
+  {
+    label: 'Diagnostics',
+    to: '/diagnostics',
+    icon: <DiagnosticsIcon size={32} className="mr-1" />,
+  },
 ];
 
 const headerItems = [
