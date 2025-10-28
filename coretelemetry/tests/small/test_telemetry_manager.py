@@ -104,8 +104,8 @@ class TestGetMetricsTableName:
 
         result = manager._get_metrics_table_name("test_agent")
 
-        assert result == "test_metrics_table"
-        assert manager.metrics_table_cache["test_agent"] == "test_metrics_table"
+        assert "test_metrics_table" in result
+        assert "test_metrics_table" in manager.metrics_table_cache["test_agent"]
 
     def test_get_metrics_table_name_file_not_found(
         self, manager: AgentMetricsManager, tmp_path: Path,

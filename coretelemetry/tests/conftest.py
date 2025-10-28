@@ -22,11 +22,11 @@ def sample_fixture():
 def sample_metrics_table(tsdb_engine: Engine):
     """Create a sample metrics table with test data for integration tests."""
     schema_name = "public"
-    table_name = "test_metrics"
+    table_name = "test_metrics_wide"
 
     # Create table
-    create_query = """
-    CREATE TABLE IF NOT EXISTS public.test_metrics (
+    create_query = f"""
+    CREATE TABLE IF NOT EXISTS {schema_name}.{table_name} (
         time TIMESTAMPTZ NOT NULL,
         temperature DOUBLE PRECISION,
         pressure DOUBLE PRECISION
@@ -36,8 +36,8 @@ def sample_metrics_table(tsdb_engine: Engine):
         conn.execute(text(create_query))
 
         # Insert test data
-        insert_query = """
-        INSERT INTO public.test_metrics (time, temperature, pressure) VALUES
+        insert_query = f"""
+        INSERT INTO {schema_name}.{table_name} (time, temperature, pressure) VALUES
         ('2024-01-01 10:00:00+00', 25.5, 101.3),
         ('2024-01-01 11:00:00+00', 26.0, 101.5),
         ('2024-01-01 12:00:00+00', 27.5, 102.0),
@@ -72,7 +72,9 @@ def sample_config_dir(tmp_path: Path, sample_metrics_table: tuple[str, str]):
     _schema_name, table_name = sample_metrics_table
 
     # Create agent YAML config
-    agent_config = {"metrics": {"table_name": table_name}}
+
+    # The service creates the table with a '_wide' suffix, but the agent config expects the base table name.
+    agent_config = {"metrics": {"table_name": table_name.replace("_wide", "") }}
 
     config_file = config_dir / "test_agent.yaml"
     with open(config_file, "w") as f:

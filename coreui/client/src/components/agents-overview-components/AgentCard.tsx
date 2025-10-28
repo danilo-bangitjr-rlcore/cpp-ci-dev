@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from '@tanstack/react-router';
+import { WarningIcon, ErrorIcon } from '../icons';
 import type { Agent } from '../../types/agent-types';
 
 interface AgentCardProps {
@@ -24,29 +25,9 @@ const AlertSection: React.FC<AlertProps> = ({ type }) => {
     <div className={`p-3 rounded-md border ${bgColor} ${borderColor}`}>
       <div className="flex items-center space-x-2">
         {isYellow ? (
-          <svg
-            className="w-5 h-5 text-yellow-600"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              fillRule="evenodd"
-              d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM12 9a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0112 9zm0 8a1 1 0 100-2 1 1 0 000 2z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <WarningIcon className="w-5 h-5 text-yellow-600" />
         ) : (
-          <svg
-            className="w-5 h-5 text-red-600"
-            fill="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              fillRule="evenodd"
-              d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25zm-1.72 6.97a.75.75 0 10-1.06 1.06L10.94 12l-1.72 1.72a.75.75 0 101.06 1.06L12 13.06l1.72 1.72a.75.75 0 101.06-1.06L13.06 12l1.72-1.72a.75.75 0 10-1.06-1.06L12 10.94l-1.72-1.72z"
-              clipRule="evenodd"
-            />
-          </svg>
+          <ErrorIcon className="w-5 h-5 text-red-600" />
         )}
         <span className={`text-sm font-medium ${textColor}`}>
           {isYellow ? 'Yellow Zone Violation' : 'Red Zone Violation'}
@@ -117,7 +98,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
       className={`border ${isConfigMissing ? 'border-orange-400' : 'border-gray-300'} bg-gray-100 p-4 rounded-lg shadow-sm min-h-[400px] flex flex-col space-y-4`}
     >
       <div className="bg-white p-3 rounded-md border border-gray-200">
-        <h3 className="text-xl font-bold text-gray-900 text-center">
+        <h3 className="text-xl font-bold text-gray-900 text-center break-words max-w-full">
           {agent.agentName}
         </h3>
       </div>
@@ -125,17 +106,7 @@ const AgentCard: React.FC<AgentCardProps> = ({ agent }) => {
       {isConfigMissing && (
         <div className="bg-orange-50 p-3 rounded-md border border-orange-200">
           <div className="flex items-start space-x-2">
-            <svg
-              className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5"
-              fill="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fillRule="evenodd"
-                d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM12 9a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0112 9zm0 8a1 1 0 100-2 1 1 0 000 2z"
-                clipRule="evenodd"
-              />
-            </svg>
+            <WarningIcon className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-sm font-medium text-orange-800">
                 Configuration file missing

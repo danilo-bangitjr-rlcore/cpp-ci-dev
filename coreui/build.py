@@ -13,7 +13,8 @@ SERVICE_SCRIPT = SERVICE / "windows-service.py"
 FASTAPI_DEV_SCRIPT = BACKEND / "run_dev.py"
 EXECUTABLE_NAME = "coreui-service"
 SERVER_LIB = BACKEND / "server" / ".."
-DEFAULT_CONFIG_PATH = ROOT / ".." / "config"
+DEFAULT_CORETELEMETRY_PATH = ROOT / ".." / "coreui" / "server" / "server" / "config_api" / "mock_configs" / "clean"
+DEFAULT_COREDINATOR_PATH = ROOT / ".." / "dist"
 
 DEV_GRACE_SECONDS = 5.0
 
@@ -108,8 +109,8 @@ def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
 def main():
     parser = argparse.ArgumentParser(description="Build and dev automation")
     parser.add_argument("command", choices=["build", "clean", "dev", "dev-stack"], help="Action to perform")
-    parser.add_argument("--coredinator-path", default=DEFAULT_CONFIG_PATH, help="--base-path for Coredinator")
-    parser.add_argument("--coretelemetry-path", default=DEFAULT_CONFIG_PATH, help="--config-path for CoreTelemetry")
+    parser.add_argument("--coredinator-path", default=DEFAULT_COREDINATOR_PATH, help="--base-path for Coredinator")
+    parser.add_argument("--coretelemetry-path", default=DEFAULT_CORETELEMETRY_PATH, help="--config-path for CoreTelemetry")
 
     args = parser.parse_args()
 

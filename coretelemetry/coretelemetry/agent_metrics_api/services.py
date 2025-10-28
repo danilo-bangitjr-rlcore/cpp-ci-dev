@@ -69,9 +69,10 @@ class AgentMetricsManager:
                 config_path=str(yaml_file_path),
             )
 
-        self.metrics_table_cache[agent_id] = table_name
+        # Only supporting wide metrics
+        self.metrics_table_cache[agent_id] = table_name + "_wide"
+        return self.metrics_table_cache[agent_id]
 
-        return table_name
 
     # Configuration methods
     def get_db_config(self) -> DBConfig:
