@@ -4,6 +4,7 @@ import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 import { HomeIcon } from '../components/icons/HomeIcon';
 import { DiagnosticsIcon } from '../components/icons/DiagnosticsIcon';
+import { FactoryIcon } from '../components/icons/FactoryIcon';
 import { useAgentNameQuery } from '../utils/useAgentQueries';
 
 const baseNavItems = [
@@ -23,7 +24,11 @@ const baseNavItems = [
       />
     ),
   },
-  { label: 'OPC Navigation', to: '/opc-navigation' },
+  {
+    label: 'OPC Navigation',
+    to: '/opc-navigation',
+    icon: <FactoryIcon size={32} className="mr-1" />,
+  },
   {
     label: 'Diagnostics',
     to: '/diagnostics',
