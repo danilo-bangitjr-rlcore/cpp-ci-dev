@@ -74,6 +74,26 @@ async def get_available_metrics(
     """
     return manager.get_available_metrics(agent_id)
 
+@agent_metrics_router.get("/api/data/{agent_id}/metrics/filtered")
+async def get_filtered_available_metrics(
+    agent_id: str,
+    manager: AgentMetricsManager = Depends(get_agent_metrics_manager), # noqa: B008
+):
+    """
+    Get filtered available metrics for a specific agent with descriptions.
+
+    Returns only metrics that match predefined patterns and includes
+    human-readable descriptions for each metric.
+
+    Args:
+        agent_id: The ID of the agent
+
+    Returns:
+        Dictionary with agent_id and filtered metrics list:
+        {"agent_id": str, "data": [{"name": str, "description": str}, ...]}
+    """
+    return manager.get_filtered_available_metrics(agent_id)
+
 @agent_metrics_router.get("/api/config/db", response_model=DBConfig)
 async def get_db_config(manager: AgentMetricsManager = Depends(get_agent_metrics_manager)): # noqa: B008
     """

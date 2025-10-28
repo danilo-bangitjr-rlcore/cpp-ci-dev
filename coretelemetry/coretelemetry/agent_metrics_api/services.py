@@ -13,6 +13,7 @@ from coretelemetry.agent_metrics_api.exceptions import (
     ResultTooLargeError,
     TableNotFoundError,
 )
+from coretelemetry.agent_metrics_api.metric_filters import filter_metrics
 from coretelemetry.utils.sql import DBConfig, SqlReader
 
 MAX_RESULT_ROWS = 5000
@@ -201,6 +202,27 @@ class AgentMetricsManager:
             )
 
         return {"agent_id": agent_id, "data": metrics}
+
+    def get_filtered_available_metrics(self, agent_id: str) -> dict:
+        """Get available metrics for an agent, filtered and with descriptions.
+
+        Args:
+            agent_id: The ID of the agent
+
+        Returns:
+            Dictionary with agent_id and filtered metrics list containing name and description
+
+        Raises:
+            Same exceptions as get_available_metrics()
+        """
+        # Get all available metrics
+        unfiltered_result = self.get_available_metrics(agent_id)
+        raw_metrics = unfiltered_result["data"]
+
+        # Apply filtering and attach descriptions
+        filtered_metrics = filter_metrics(raw_metrics)
+
+        return {"agent_id": agent_id, "data": filtered_metrics}
 
 
 # Create singleton instance
