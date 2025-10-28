@@ -1,6 +1,6 @@
 interface StatusBadgeProps {
   isLoading: boolean;
-  error: any;
+  error: unknown;
   isHealthy?: boolean;
 }
 

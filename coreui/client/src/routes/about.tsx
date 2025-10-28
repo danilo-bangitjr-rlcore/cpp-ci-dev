@@ -152,7 +152,12 @@ function About() {
             {cpuPerCore && (
               <div>
                 <div className="text-xs text-gray-600 mb-2">Per Core Usage</div>
-                <div className="grid grid-cols-7 gap-2">
+                <div
+                  className="grid gap-2"
+                  style={{
+                    gridTemplateColumns: `repeat(${cpuPerCore.percent.length === 14 ? 7 : Math.min(cpuPerCore.percent.length, 8)}, minmax(0, 1fr))`,
+                  }}
+                >
                   {cpuPerCore.percent.map(
                     (corePercent: number, index: number) => (
                       <div key={index} className="text-center">
@@ -162,11 +167,12 @@ function About() {
                         <div className="text-xs font-semibold text-gray-900">
                           {corePercent.toFixed(1)}%
                         </div>
-                        <div className="w-full bg-gray-200 rounded h-1 mt-1">
-                          <div
-                            className="bg-blue-400 h-1 rounded transition-all duration-300"
-                            style={{ width: `${Math.min(corePercent, 100)}%` }}
-                          ></div>
+                        <div className="mt-1">
+                          <ProgressBar
+                            percent={corePercent}
+                            color="blue"
+                            height="sm"
+                          />
                         </div>
                       </div>
                     )

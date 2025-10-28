@@ -24,7 +24,7 @@ export function ProgressBar({
     <div className={`w-full bg-gray-200 rounded-full ${heightClasses[height]}`}>
       <div
         className={`${colorClasses[color]} ${heightClasses[height]} rounded-full transition-all duration-300`}
-        style={{ width: `${Math.min(percent, 100)}%` }}
+        style={{ width: `${Math.max(0, Math.min(percent, 100))}%` }}
       ></div>
     </div>
   );
