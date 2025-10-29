@@ -155,7 +155,6 @@ class QRCCritic:
         chex.assert_tree_shape_prefix(transitions, transitions.state.features.shape[:2])
         chex.assert_rank(next_actions, 4)  # (ens, batch,  sample, action_dim)
 
-        self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 
         new_state, metrics = self._ensemble_update(
