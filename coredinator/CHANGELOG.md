@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.4.0...coredinator-v0.4.1) (2025-10-29)
+
+
+### Bug Fixes
+
+* **PROD-1188:** Coredinator, Coregateway, Coretelemetry reload fix ([fb2e453](https://github.com/rlcoretech/core-rl/commit/fb2e45352ce4301eb09d0c161db49bfd88ec0682))
+
 ## [0.4.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.3.0...coredinator-v0.4.0) (2025-10-22)
 
 
