@@ -18,7 +18,7 @@ jobs:
   libs-style-n-test:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-slim, windows-latest]
         lib: [lib_agent, lib_config, lib_defs, lib_instrumentation, lib_process, lib_progress, lib_sql, lib_utils, rl_env]
         exclude:
           - os: windows-latest
