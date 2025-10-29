@@ -96,8 +96,8 @@ pushd coreui
 REM Build frontend first
 pushd client
 %LOGCMD% Inside coreui/client directory: %CD%
-npm install
-npm run build
+call npm install --quiet
+call npm run build
 popd
 %LOGCMD% After popd from coreui/client: %CD%
 REM Now build the backend
@@ -117,9 +117,18 @@ uv run pyinstaller --runtime-tmpdir=. --onefile server/core_ui.py ^
     --hidden-import=httpx ^
     --hidden-import=server.config_api.config_routes ^
     --hidden-import=server.opc_api.opc_routes ^
+    --hidden-import=server.config_api ^
+    --hidden-import=server.opc_api ^
+    --hidden-import=lib_utils.opc.opc_communication ^
+    --hidden-import=lib_utils.opc ^
+    --hidden-import=lib_utils ^
     --add-data ../client/dist;dist ^
-    --add-data server/config_api/mock_configs;mock_configs ^
-    --paths server
+    --add-data server;server ^
+    --add-data ../../libs/lib_utils;lib_utils ^
+    --paths . ^
+    --paths server ^
+    --paths ../../libs ^
+    --paths ../../libs/lib_utils
 call deactivate
 popd
 popd

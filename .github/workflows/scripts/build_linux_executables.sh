@@ -138,6 +138,7 @@ uv pip install pyinstaller
 uv run pyinstaller --runtime-tmpdir=. --onefile server/core_ui.py \
     --distpath ../dist \
     --name "$COREUI_ARTIFACT_NAME" \
+    --hidden-import=asyncua \
     --hidden-import=fastapi \
     --hidden-import=fastapi.staticfiles \
     --hidden-import=starlette.responses \
@@ -145,9 +146,18 @@ uv run pyinstaller --runtime-tmpdir=. --onefile server/core_ui.py \
     --hidden-import=httpx \
     --hidden-import=server.config_api.config_routes \
     --hidden-import=server.opc_api.opc_routes \
+    --hidden-import=server.config_api \
+    --hidden-import=server.opc_api \
+    --hidden-import=lib_utils.opc.opc_communication \
+    --hidden-import=lib_utils.opc \
+    --hidden-import=lib_utils \
     --add-data ../client/dist:dist \
-    --add-data server/config_api/mock_configs:mock_configs \
-    --paths server
+    --add-data server:server \
+    --add-data ../../libs/lib_utils:lib_utils \
+    --paths . \
+    --paths server \
+    --paths ../../libs \
+    --paths ../../libs/lib_utils
 deactivate
 popd > /dev/null && popd > /dev/null
 log "After popd from coreui: $(pwd)"
