@@ -15,7 +15,10 @@ class ConfigSubfolder(StrEnum):
 
 _config_cache: dict[tuple[str, ConfigSubfolder], dict] = {}
 
-def _write_config_data(path: str, config_name: str, config: dict, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> None:
+def _write_config_data(path: str,
+    config_name: str,
+    config: dict,
+    subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> None:
     configs_dir = Path(path) / subfolder
     config_path = configs_dir / f"{config_name}.yaml"
     with open(config_path, 'w', encoding='utf-8') as f:
@@ -93,17 +96,32 @@ def handle_exceptions(func: Callable[..., Awaitable[JSONResponse]]) -> Callable[
     return wrapper
 
 @handle_exceptions
-async def get_tags(path: str, config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
+async def get_tags(
+    path: str,
+    config_name: str,
+    subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+) -> JSONResponse:
     config_dict = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config_dict)
-    return JSONResponse(content={"tags": tags}, status_code=status.HTTP_200_OK)
+    return JSONResponse(
+        content={"tags": tags},
+        status_code=status.HTTP_200_OK,
+    )
 
 @handle_exceptions
-async def get_tag(path: str, config_name: str, tag_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
+async def get_tag(
+    path: str,
+    config_name: str,
+    tag_name: str,
+    subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+) -> JSONResponse:
     config_dict = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config_dict)
     tag_index = _find_tag_index(tags, tag_name)
-    return JSONResponse(content={"tag": tags[tag_index]}, status_code=status.HTTP_200_OK)
+    return JSONResponse(
+        content={"tag": tags[tag_index]},
+        status_code=status.HTTP_200_OK,
+    )
 
 @handle_exceptions
 async def get_config(path: str, config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
