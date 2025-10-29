@@ -57,7 +57,7 @@ function useAgentContextNav() {
           params: { 'config-name': configName },
         },
         {
-          label: 'Observation Tags',
+          label: 'Input Tags',
           to: '/agents/$config-name/tags',
           params: { 'config-name': configName },
         },
