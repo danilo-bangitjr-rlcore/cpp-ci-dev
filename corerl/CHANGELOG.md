@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.156.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.155.0...corerl-v0.156.0) (2025-10-29)
+
+
+### Features
+
+* **corerl:** add polyak averaging feature_flag to critic ([e31ebd0](https://github.com/rlcoretech/core-rl/commit/e31ebd02ada83bd6be0c641c975bdbd125c496d2))
+* **corerl:** enable wide_metrics feature flag by default for future deploys ([0294c92](https://github.com/rlcoretech/core-rl/commit/0294c926f94e405b5bfb2dc848dc269ad8f779ef))
+
+
+### Bug Fixes
+
+* **corer/coretelemetry:** only supports wide metrics ([419c5ea](https://github.com/rlcoretech/core-rl/commit/419c5ea1841fabb8d372928096022ff96e9fb9a0))
+* **corerl/coreui:** new defaults for corerl/config:metrics-table ([093b9a3](https://github.com/rlcoretech/core-rl/commit/093b9a3f6062e99f58c78c806985322e3da1db2c))
+* **corerl:** polyak avg param should mutate config on feature_flag ([7039b08](https://github.com/rlcoretech/core-rl/commit/7039b0835474ece67c911907a70e2cd6bca0fa01))
+* **corerl:** properly wire polyak config through prod agent ([cd09f7a](https://github.com/rlcoretech/core-rl/commit/cd09f7a92a9d71883a3c6832c4bc5c038e014d63))
+* **corerl:** remove comment ([7158a7e](https://github.com/rlcoretech/core-rl/commit/7158a7e82e2b684e6dbb54bf190700159583193b))
+* **corerl:** remove jax_transition from agent shared fixtures ([f98bda6](https://github.com/rlcoretech/core-rl/commit/f98bda664c78d14c651f007a6842cc53354751b9))
+
 ## [0.155.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.154.0...corerl-v0.155.0) (2025-10-22)
 
 
