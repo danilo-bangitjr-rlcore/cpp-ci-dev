@@ -51,10 +51,6 @@ class Critic(Protocol):
         """Get metrics related to rolling reset functionality."""
         ...
 
-    def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> jax.Array:
-        """Get internal representations from the critic."""
-        ...
-
     def update(
         self,
         critic_state: CriticState,

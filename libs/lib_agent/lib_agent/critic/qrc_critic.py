@@ -149,9 +149,6 @@ class QRCCritic:
             metrics.update(critic_metrics)
         return metrics
 
-    def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        return self._forward(params, rng, x, a).phi
-
     def update(self, critic_state: CriticState, transitions: Transition, next_actions: jax.Array):
         self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         chex.assert_rank(transitions.state.features, 3)  # (ens, batch, state_dim)
