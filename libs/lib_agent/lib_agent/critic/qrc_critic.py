@@ -154,6 +154,11 @@ class QRCCritic:
 
     def update(self, critic_state: CriticState, transitions: Transition, next_actions: jax.Array):
         self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
+        chex.assert_rank(transitions.state.features, 3)  # (ens, batch, state_dim)
+        chex.assert_tree_shape_prefix(transitions, transitions.state.features.shape[:2])
+        chex.assert_rank(next_actions, 4)  # (ens, batch,  sample, action_dim)
+
+        self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
         self._reset_manager.increment_update_count()
 
         new_state, metrics = self._ensemble_update(
@@ -303,6 +308,11 @@ class QRCCritic:
         """
         Updates each member of the ensemble.
         """
+        chex.assert_rank(transitions.state.features, 3)  # (ens, batch, state_dim)
+        chex.assert_tree_shape_prefix(transitions, transitions.state.features.shape[:2])
+        chex.assert_rank(next_actions, 4)  # (ens, batch,  sample, action_dim)
+        chex.assert_tree_shape_prefix(state, (self._reset_manager.total_critics,))
+
         grads, metrics = jax_u.grad(self._ensemble_loss, has_aux=True)(
             state.params,
             rng,
@@ -344,6 +354,7 @@ class QRCCritic:
     ):
         chex.assert_rank(transition.state.features, 3)  # (ens, batch, state_dim)
         chex.assert_tree_shape_prefix(transition, transition.state.features.shape[:2])
+        chex.assert_rank(next_actions, 4)  # (ens, batch,  sample, action_dim)
         rngs = jax.random.split(rng, self._reset_manager.total_critics)
         losses, metrics = jax_u.vmap(self._batch_loss)(
             params,
@@ -361,8 +372,9 @@ class QRCCritic:
         transition: Transition,
         next_actions: jax.Array,
     ):
-        # (batch, samples, action_dim)
-        chex.assert_rank(next_actions, 3)
+        chex.assert_rank(next_actions, 3)  # (batch, samples, action_dim)
+        chex.assert_rank(transition.state.features, 2)  # (batch, state_dim)
+        chex.assert_rank(rng, 1)
         rngs = jax.random.split(rng, next_actions.shape[0])
         losses, metrics = jax_u.vmap_only(self._loss, ['rng', 'transition', 'next_actions'])(
             params,
@@ -386,7 +398,7 @@ class QRCCritic:
         n_step_reward = transition.n_step_reward
         next_state = transition.next_state
         n_step_gamma = transition.n_step_gamma
-        chex.assert_rank((state.features, next_state.features, action), 1)
+        chex.assert_rank((rng, state.features, next_state.features, action), 1)
         chex.assert_rank(next_actions, 2)  # (num_samples, action_dim)
         chex.assert_rank((n_step_reward, n_step_gamma), 0)  # scalars
 
