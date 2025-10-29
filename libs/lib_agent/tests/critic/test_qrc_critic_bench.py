@@ -197,8 +197,10 @@ def test_critic_ensemble_update_small(benchmark: BenchmarkFixture):
     next_actions = jnp.array(rng.random((ensemble_size, batch_size, 64, action_dim)))
 
     def _inner(critic: QRCCritic, state: Any, transitions: Transition, next_actions: jax.Array):
+        update_rng = jax.random.PRNGKey(123)
         for _ in range(5):
-            _new_state, metrics = critic.update(state, transitions, next_actions)
+            update_rng, sub_rng = jax.random.split(update_rng)
+            _new_state, metrics = critic.update(sub_rng, state, transitions, next_actions)
             # Force computation
             _ = metrics.loss.sum()
 
@@ -256,8 +258,10 @@ def test_critic_ensemble_update_large(benchmark: BenchmarkFixture):
     next_actions = jnp.array(rng.random((ensemble_size, batch_size, 64, action_dim)))
 
     def _inner(critic: QRCCritic, state: Any, transitions: Transition, next_actions: jax.Array):
+        update_rng = jax.random.PRNGKey(123)
         for _ in range(3):
-            _new_state, metrics = critic.update(state, transitions, next_actions)
+            update_rng, sub_rng = jax.random.split(update_rng)
+            _new_state, metrics = critic.update(sub_rng, state, transitions, next_actions)
             # Force computation
             _ = metrics.loss.sum()
 

@@ -277,10 +277,12 @@ class GreedyAC(BaseAgent):
             self.cfg.bootstrap_action_samples,
         )
 
+        self._jax_rng, critic_update_rng = jax.random.split(self._jax_rng)
         self._critic_state, metrics = self.critic.update(
-            critic_state=self._critic_state,
-            transitions=critic_batch,
-            next_actions=next_actions,
+            critic_update_rng,
+            self._critic_state,
+            critic_batch,
+            next_actions,
         )
         rolling_reset_metrics = self.critic.get_rolling_reset_metrics()
 

@@ -135,7 +135,7 @@ class GreedyAC:
             return 0.
 
         transitions: Transition = self.critic_buffer.sample()
-        self.rng, bs_rng = jax.random.split(self.rng)
+        self.rng, bs_rng, critic_update_rng = jax.random.split(self.rng, 3)
         next_actions, _ = self._actor.get_actions_rng(
             self.agent_state.actor.actor.params,
             bs_rng,
@@ -143,9 +143,10 @@ class GreedyAC:
             self._cfg.bootstrap_action_samples,
         )
         new_critic_state, metrics = self._critic.update(
-            critic_state=self.agent_state.critic,
-            transitions=transitions,
-            next_actions=next_actions,
+            critic_update_rng,
+            self.agent_state.critic,
+            transitions,
+            next_actions,
         )
 
         self.agent_state = self.agent_state._replace(critic=new_critic_state)
