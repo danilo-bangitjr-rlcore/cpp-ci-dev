@@ -36,32 +36,19 @@ class Critic(Protocol):
         """Initialize the critic parameters."""
         ...
 
-    def get_values(
+    def forward(
         self,
         params: chex.ArrayTree,
         rng: chex.PRNGKey,
         state: jax.Array,
         action: jax.Array,
+        only_active: bool = True,
     ) -> CriticOutputs:
-        """Get action-values from the critic ensemble."""
-        ...
-
-    def get_active_indices(self) -> jax.Array:
-        """Get the indices of active critics in the ensemble."""
+        """Get action-values from the critic ensemble, optionally filtering to active members only."""
         ...
 
     def get_rolling_reset_metrics(self, prefix: str = "") -> dict[str, float]:
         """Get metrics related to rolling reset functionality."""
-        ...
-
-    def get_active_values(
-        self,
-        params: chex.ArrayTree,
-        rng: chex.PRNGKey,
-        state: jax.Array,
-        action: jax.Array,
-    ) -> CriticOutputs:
-        """Get action-values from only the active critics in the ensemble."""
         ...
 
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> jax.Array:

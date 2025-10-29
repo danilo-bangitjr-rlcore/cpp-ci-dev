@@ -26,6 +26,7 @@ class QRCOutputs(NamedTuple):
     h: jax.Array
     phi: jax.Array
 
+
 class QRCCriticMetrics(NamedTuple):
     q: jax.Array
     h: jax.Array
@@ -120,12 +121,26 @@ class QRCCritic:
         rngs = jax.random.split(rng, self._reset_manager.total_critics)
         return ens_init(rngs, x, a)
 
-    def get_values(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array):
-        return self._forward(params, rng, state, action)
+    def forward(
+        self,
+        params: chex.ArrayTree,
+        rng: chex.PRNGKey,
+        state: jax.Array,
+        action: jax.Array,
+        only_active: bool = True,
+    ):
+        """Computes QRCOutputs using ensemble members, optionally filtering to active members only."""
+        chex.assert_rank(rng, 1)
+        if only_active:
+            active_indices = list(self._reset_manager.active_indices)
+            active_indices.sort()
+            active_indices = jnp.array(active_indices)
+        else:
+            active_indices = jnp.arange(self._reset_manager.total_critics)
 
-    def get_active_indices(self):
-        indices = self._reset_manager.active_indices
-        return jnp.array(sorted(indices))
+        ens_get_values = jax_u.vmap_only(self._forward, ['params'])
+        active_params = jax.tree.map(lambda x: x[active_indices], params)
+        return ens_get_values(active_params, rng, state, action)
 
     def get_rolling_reset_metrics(self, prefix: str = "") -> dict[str, float]:
         metrics = {}
@@ -133,29 +148,6 @@ class QRCCritic:
             critic_metrics = self._reset_manager.get_critic_metrics(i, prefix)
             metrics.update(critic_metrics)
         return metrics
-
-    def get_active_values(
-        self,
-        params: chex.ArrayTree,
-        rng: chex.PRNGKey,
-        state: jax.Array,
-        action: jax.Array,
-    ):
-        active_indices = self.get_active_indices()
-        return self._get_active_values(params, rng, state, action, active_indices)
-
-    @jax_u.method_jit
-    def _get_active_values(
-        self,
-        params: chex.ArrayTree,
-        rng: chex.PRNGKey,
-        state: jax.Array,
-        action: jax.Array,
-        active_indices: jax.Array,
-    ):
-        ens_get_values = jax_u.vmap_only(self.get_values, ['params'])
-        active_params = jax.tree.map(lambda x: x[active_indices], params)
-        return ens_get_values(active_params, rng, state, action)
 
     def get_representations(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
         return self._forward(params, rng, x, a).phi
