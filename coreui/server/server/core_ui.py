@@ -20,7 +20,6 @@ class CoreUIConfig(NamedTuple):
     dist_path: str | None
     reload: bool
 
-
 def parse_args():
     parser = argparse.ArgumentParser(description="CoreUI Service")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the server on (default: 8000)")
@@ -34,61 +33,67 @@ def parse_args():
         reload=args.reload,
     )
 
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.httpx_client = httpx.AsyncClient()
-    yield
-    await app.state.httpx_client.aclose()
-
-
 def create_app(dist_path: str | None = None) -> FastAPI:
-    app = FastAPI(lifespan=lifespan)
+    """Factory function to create FastAPI app with optional dist path."""
+    core_ui = CoreUI(dist_path=dist_path)
+    return core_ui.get_app()
 
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=[
-            "http://localhost:3000",
-            "http://localhost:5173",
-            "http://localhost:4173",
-            "http://localhost:8000",
-        ],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
 
-    app.include_router(opc_router, prefix="/api/v1/opc")
-    app.include_router(config_router, prefix="/api/v1/config")
+class CoreUI:
+    def __init__(self, dist_path: str | None = None):
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            app.state.httpx_client = httpx.AsyncClient()
+            yield # marks the point between startup and shutdown
+            await app.state.httpx_client.aclose()
 
-    if dist_path is None:
-        base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        dist_path = os.path.join(base_dir, "client", "dist")
+        self.app = FastAPI(lifespan=lifespan)
 
-    meipass_path = getattr(sys, '_MEIPASS', None)
-    if meipass_path:
-        dist_path = os.path.join(meipass_path, "dist")
+        self.app.add_middleware(
+            CORSMiddleware,
+            allow_origins=[
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:4173",
+                "http://localhost:8000",
+            ],
+            allow_credentials=True,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
 
-    dist_path = os.path.abspath(dist_path)
-    assets_path = os.path.join(dist_path, "assets")
-    if os.path.exists(assets_path):
-        app.mount("/app/assets", StaticFiles(directory=assets_path), name="assets")
+        self.app.include_router(opc_router, prefix="/api/v1/opc")
+        self.app.include_router(config_router, prefix="/api/v1/config")
 
-    @app.get("/api/health")
-    async def health_check():
-        return {"status": "ok"}
+        if dist_path is None:
+            base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            dist_path = os.path.join(base_dir, "client", "dist")
 
-    index_html = os.path.join(dist_path, "index.html")
+        meipass_path = getattr(sys, '_MEIPASS', None)
+        if meipass_path:
+            dist_path = os.path.join(meipass_path, "dist")
 
-    @app.get("/app")
-    async def spa_root():
-        return FileResponse(index_html)
+        dist_path = os.path.abspath(dist_path)
+        assets_path = os.path.join(dist_path, "assets")
+        if os.path.exists(assets_path):
+            self.app.mount("/app/assets", StaticFiles(directory=assets_path), name="assets")
 
-    @app.get("/app/{full_path:path}")
-    async def spa_catch_all(full_path: str):
-        return FileResponse(index_html)
+        @self.app.get("/api/health")
+        async def health_check():
+            return {"status": "ok"}
 
-    return app
+        index_html = os.path.join(dist_path, "index.html")
+
+        @self.app.get("/app")
+        async def spa_root():
+            return FileResponse(index_html)
+
+        @self.app.get("/app/{full_path:path}")
+        async def spa_catch_all(full_path: str):
+            return FileResponse(index_html)
+
+    def get_app(self):
+        return self.app
 
 
 def get_app() -> FastAPI:
