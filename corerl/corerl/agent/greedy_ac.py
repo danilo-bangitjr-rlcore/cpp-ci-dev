@@ -187,11 +187,9 @@ class GreedyAC(BaseAgent):
         chex.assert_shape(state, (self.state_dim,))
         self._jax_rng, rng = jax.random.split(self._jax_rng)
         assert action.ndim in {1, 2}
-        if action.ndim == 2:
-            rng = jax.random.split(rng, action.shape[0])
 
         # use active critic values for decision making
-        qs = self.critic.get_active_values(self._critic_state.params, rng, state.array, action).q
+        qs = self.critic.forward(self._critic_state.params, rng, state.array, action).q
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -337,7 +335,7 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.get_active_values(params, rng, x, a).q
+        qs = self.critic.forward(params, rng, x, a).q
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
