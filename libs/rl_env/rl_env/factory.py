@@ -8,6 +8,7 @@ from rl_env.calibration import CalibrationConfig
 from rl_env.distraction_world import DistractionWorldConfig
 from rl_env.four_rooms import FourRoomsConfig
 from rl_env.group_util import env_group
+from rl_env.inertia_env import InertiaEnvConfig
 from rl_env.lost_in_translation import LostInTranslationConfig
 from rl_env.mountain_car import MountainCarContinuousConfig
 from rl_env.multi_action_saturation import MultiActionSaturationConfig
@@ -27,6 +28,7 @@ EnvConfig = Annotated[
     CalibrationConfig |
     DistractionWorldConfig |
     FourRoomsConfig |
+    InertiaEnvConfig |
     MultiActionSaturationConfig |
     NonstationaryWorldConfig |
     PVSConfig |
