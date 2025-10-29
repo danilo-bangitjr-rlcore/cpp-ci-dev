@@ -48,9 +48,8 @@ jobs:
           pylance-version: latest-release
           working-directory: coreui/server
 
-      # App creation (no running)
       - name: Test server imports
-        run: uv run python server/run_dev.py
+        run: uv run pytest
 
   coreui-client-ci:
     runs-on: ubuntu-latest

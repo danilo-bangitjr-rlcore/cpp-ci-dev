@@ -80,13 +80,13 @@ def _block_on_processes(procs: list[subprocess.Popen[bytes]]):
                 proc.kill()
 
 def dev():
-    """Run FastAPI (CoreUI) app + Vite in parallel for development"""
+    """Run CoreUI app + Vite in parallel for development"""
     print("Starting development servers... (Ctrl+C to stop)")
     build_frontend()
 
     procs = [
         _start_service("Vite", "npm run dev", FRONTEND),
-        _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
+        _start_service("CoreUI", "uv run python -m server.core_ui --reload --port 8000", BACKEND),
     ]
 
     _block_on_processes(procs)
@@ -98,7 +98,7 @@ def dev_stack(coredinator_path: Path, coretelemetry_path: Path):
     # Start microservices
     procs = [
         _start_service("Vite", "npm run dev", FRONTEND),
-        _start_service("FastAPI", f"uv run fastapi dev {FASTAPI_DEV_SCRIPT}", BACKEND),
+        _start_service("CoreUI", "uv run python -m server.core_ui --reload --port 8000", BACKEND),
         _start_service("CoreGateway", "uv run python coregateway/app.py --reload", "../coregateway"),
         _start_service("CoreDinator", f"uv run python coredinator/app.py --base-path {coredinator_path} --reload", "../coredinator"),
         _start_service("CoreTelemetry", f"uv run python coretelemetry/app.py --config-path {coretelemetry_path} --reload", "../coretelemetry"),

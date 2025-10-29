@@ -14,6 +14,21 @@
             "release-type": "python",
             "changelog-path": "CHANGELOG.md",
             "component": "coredinator"
+        },
+        "coregateway": {
+            "release-type": "python",
+            "changelog-path": "CHANGELOG.md",
+            "component": "coregateway"
+        },
+        "coretelemetry": {
+            "release-type": "python",
+            "changelog-path": "CHANGELOG.md",
+            "component": "coretelemetry"
+        },
+        "coreui": {
+            "release-type": "python",
+            "changelog-path": "CHANGELOG.md",
+            "component": "coreui"
         }
     }
 }
