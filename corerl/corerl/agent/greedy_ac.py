@@ -355,14 +355,16 @@ class GreedyAC(BaseAgent):
     def update(self) -> list[float]:
         if not self._has_preinitialized:
             self._has_preinitialized = True
+            self._jax_rng, critic_init_rng, actor_init_rng = jax.random.split(self._jax_rng, 3)
+
             self._critic_state = self.critic.initialize_to_nominal_action(
-                self._jax_rng,
+                critic_init_rng,
                 self._critic_state,
                 self._nominal_setpoints,
             )
 
             actor_state = self._actor.initialize_to_nominal_action(
-                self._jax_rng,
+                actor_init_rng,
                 self._actor_state.actor,
                 self._nominal_setpoints,
                 self.state_dim,
