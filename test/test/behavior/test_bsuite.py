@@ -8,6 +8,7 @@ from lib_sql.engine import get_sql_engine
 from test.behavior.bsuite import BehaviourCategory, BSuiteTestCase
 from test.behavior.calibration.cases import CalibrationTest
 from test.behavior.distraction_world.cases import DistractionWorldTest
+from test.behavior.inertia_env.cases import InertiaEnv1DDeltaTest, InertiaEnv1DDirectTest
 from test.behavior.mountain_car.cases import MountainCar, StandStillMountainCar
 from test.behavior.nonstationary_world.cases import (
     AllNonstationaryTest,
@@ -65,6 +66,8 @@ TEST_CASES = [
     DistractionWorldTest(),
     ExpandingBoundsSaturationTest(),
     GoalSaturationTest(),
+    InertiaEnv1DDeltaTest(),
+    InertiaEnv1DDirectTest(),
     LongTMazeTest(),
     MCARSaturationEasyTest(),
     MCARSaturationMediumTest(),

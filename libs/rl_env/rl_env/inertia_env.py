@@ -20,7 +20,7 @@ class InertiaEnv(gym.Env):
     The observation is the action taken on the previous time step.
     The agent receives a reward based on how close its action is to the target and
     is also given an action change penalty.
-    In configuration, the agent is given a nominal setpoint bias of 0.15. The agent must sufficiently
+    In configuration, the agent is given a nominal setpoint bias of 0.1. The agent must sufficiently
     explore to overcome the preference for increased determinism along the operating range boundary in favour
     of finding larger rewards near the target.
     """
