@@ -15,8 +15,9 @@ class ConfigSubfolder(StrEnum):
 
 _config_cache: dict[tuple[str, ConfigSubfolder], dict] = {}
 
-def _write_config_data(config_name: str, config: dict, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> None:
-    config_path = _get_configs_dir(subfolder) / f"{config_name}.yaml"
+def _write_config_data(path: str, config_name: str, config: dict, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> None:
+    configs_dir = Path(path) / subfolder
+    config_path = configs_dir / f"{config_name}.yaml"
     with open(config_path, 'w', encoding='utf-8') as f:
         yaml.dump(config, f, default_flow_style=False, sort_keys=False, indent=2)
     _config_cache[(config_name, subfolder)] = config
@@ -26,12 +27,13 @@ def _get_configs_dir(subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> Path
     base = Path(meipass) if meipass is not None else Path(__file__).parent
     return base / "mock_configs" / subfolder
 
-def _load_config_data(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> dict:
+def _load_config_data(path: str, config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> dict:
     cache_key = (config_name, subfolder)
     if cache_key in _config_cache:
         return _config_cache[cache_key]
 
-    config_path = _get_configs_dir(subfolder) / f"{config_name}.yaml"
+    configs_dir = Path(path) / subfolder
+    config_path = configs_dir / f"{config_name}.yaml"
     if not config_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -91,28 +93,28 @@ def handle_exceptions(func: Callable[..., Awaitable[JSONResponse]]) -> Callable[
     return wrapper
 
 @handle_exceptions
-async def get_tags(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
+async def get_tags(path: str, config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
+    config_dict = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config_dict)
     return JSONResponse(content={"tags": tags}, status_code=status.HTTP_200_OK)
 
 @handle_exceptions
-async def get_tag(config_name: str, tag_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
+async def get_tag(path: str, config_name: str, tag_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
+    config_dict = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config_dict)
     tag_index = _find_tag_index(tags, tag_name)
     return JSONResponse(content={"tag": tags[tag_index]}, status_code=status.HTTP_200_OK)
 
 @handle_exceptions
-async def get_config(config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
+async def get_config(path: str, config_name: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
+    config_dict = _load_config_data(path, config_name, subfolder)
     return JSONResponse(content={"config": config_dict}, status_code=status.HTTP_200_OK)
 
 @handle_exceptions
 async def get_config_field(
-    config_name: str, field: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
+    path: str, config_name: str, field: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config_dict = _load_config_data(config_name, subfolder)
+    config_dict = _load_config_data(path, config_name, subfolder)
     value = _get_nested_value(config_dict, field)
     if value is None:
         raise HTTPException(
@@ -123,52 +125,55 @@ async def get_config_field(
 
 @handle_exceptions
 async def add_tag(
+    path: str,
     config_name: str,
     tag: dict,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config = _load_config_data(config_name, subfolder)
+    config = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config)
     tags.append(tag["tag"])
-    _write_config_data(config_name, config, subfolder)
+    _write_config_data(path, config_name, config, subfolder)
 
     return JSONResponse(content={"message": "Tag created", "tag": tag["tag"], "index": len(tags) - 1},
                         status_code=status.HTTP_201_CREATED)
 
 @handle_exceptions
 async def update_tag(
+    path: str,
     config_name: str,
     index: int,
     tag: dict,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config = _load_config_data(config_name, subfolder)
+    config = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config)
     if not (0 <= index < len(tags)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
     tags[index] = tag["tag"]
-    _write_config_data(config_name, config, subfolder)
+    _write_config_data(path, config_name, config, subfolder)
     return JSONResponse(content={"message": "Tag updated", "tag": tag["tag"], "index": index},
                         status_code=status.HTTP_200_OK)
 
 @handle_exceptions
 async def delete_tag(
+    path: str,
     config_name: str,
     index: int,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    config = _load_config_data(config_name, subfolder)
+    config = _load_config_data(path, config_name, subfolder)
     tags = _get_tags(config)
     if index < 0 or index >= len(tags):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag index out of range")
     removed = tags.pop(index)
-    _write_config_data(config_name, config, subfolder)
+    _write_config_data(path, config_name, config, subfolder)
     return JSONResponse(content={"message": "Tag deleted", "tag": removed, "index": index},
                         status_code=status.HTTP_200_OK)
 
 @handle_exceptions
-async def get_all_configs(subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
-    configs_dir = _get_configs_dir(subfolder)
+async def get_all_configs(path: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
+    configs_dir = Path(path)/subfolder
     config_files = list(configs_dir.glob("*.yaml"))
     config_names = [f.stem for f in config_files]
     return JSONResponse(content={"configs": config_names},
@@ -176,24 +181,26 @@ async def get_all_configs(subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) ->
 
 @handle_exceptions
 async def create_config(
+    path: str,
     config_name: str,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
     base_config = {"agent_name": config_name}
-    configs_dir = _get_configs_dir(subfolder)
+    configs_dir = Path(path) / subfolder
     config_path = configs_dir / f"{config_name}.yaml"
     if config_path.exists():
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Config already exists")
-    _write_config_data(config_name, base_config, subfolder)
+    _write_config_data(path, config_name, base_config, subfolder)
     return JSONResponse(content={"message": "Config created", "config": base_config, "name": config_name},
                         status_code=status.HTTP_201_CREATED)
 
 @handle_exceptions
 async def delete_config(
+    path: str,
     config_name: str,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    configs_dir = _get_configs_dir(subfolder)
+    configs_dir = Path(path) / subfolder
     config_path = configs_dir / f"{config_name}.yaml"
     if not config_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found")
@@ -204,10 +211,11 @@ async def delete_config(
 
 @handle_exceptions
 async def get_config_path(
+    path: str,
     config_name: str,
     subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN,
 ) -> JSONResponse:
-    configs_dir = _get_configs_dir(subfolder)
+    configs_dir = Path(path) / subfolder
     config_path = configs_dir / f"{config_name}.yaml"
     if not config_path.exists():
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Config not found")

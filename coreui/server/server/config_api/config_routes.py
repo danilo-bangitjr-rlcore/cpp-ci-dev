@@ -87,8 +87,8 @@ COREGATEWAY_BASE = "http://localhost:8001"
     summary="List Clean Config Names",
     description="List all available type-validated (\"clean\") configuration names.",
 )
-async def get_all_clean_configs():
-    return await get_all_configs(subfolder=ConfigSubfolder.CLEAN)
+async def get_all_clean_configs(request: Request):
+    return await get_all_configs(path=request.app.state.config_path, subfolder=ConfigSubfolder.CLEAN)
 
 @config_router.get(
     "/{config_name}",
@@ -116,8 +116,8 @@ async def get_all_clean_configs():
     summary="Get Clean Config",
     description="Retrieve the type-validated (\"clean\") configuration as a JSON object.",
 )
-async def get_clean_config(config_name: str):
-    return await get_config(config_name, ConfigSubfolder.CLEAN)
+async def get_clean_config(request: Request, config_name: str):
+    return await get_config(request.app.state.config_path, config_name, ConfigSubfolder.CLEAN)
 
 @config_router.get(
     "/{config_name}/tags",
@@ -139,8 +139,8 @@ async def get_clean_config(config_name: str):
     summary="List Clean Tags",
     description="List all tags defined in the type-validated (\"clean\") configuration.",
 )
-async def get_clean_tags(config_name: str):
-    return await get_tags(config_name, ConfigSubfolder.CLEAN)
+async def get_clean_tags(request: Request, config_name: str):
+    return await get_tags(request.app.state.config_path, config_name, ConfigSubfolder.CLEAN)
 
 @config_router.get(
     "/{config_name}/tags/{tag_name}",
@@ -162,8 +162,8 @@ async def get_clean_tags(config_name: str):
     summary="Get Clean Tag",
     description="Retrieve a specific tag by name from the type-validated (\"clean\") configuration.",
 )
-async def get_clean_tag(config_name: str, tag_name: str):
-    return await get_tag(config_name, tag_name, ConfigSubfolder.CLEAN)
+async def get_clean_tag(request: Request, config_name: str, tag_name: str):
+    return await get_tag(request.app.state.config_path, config_name, tag_name, ConfigSubfolder.CLEAN)
 
 @config_router.post(
     "/{config_name}/tags",
@@ -187,8 +187,8 @@ async def get_clean_tag(config_name: str, tag_name: str):
     description="Add a new tag to the type-validated (\"clean\") configuration.",
     status_code=status.HTTP_201_CREATED,
 )
-async def post_clean_tag(config_name: str, tag: Tag = Body(...)):
-    return await add_tag(config_name, tag.model_dump(), subfolder=ConfigSubfolder.CLEAN)
+async def post_clean_tag(request: Request, config_name: str, tag: Tag = Body(...)):
+    return await add_tag(request.app.state.config_path, config_name, tag.model_dump(), subfolder=ConfigSubfolder.CLEAN)
 
 @config_router.put(
     "/{config_name}/tags/{index}",
@@ -212,8 +212,8 @@ async def post_clean_tag(config_name: str, tag: Tag = Body(...)):
     summary="Update Clean Tag",
     description="Update an existing tag by index in the type-validated (\"clean\") configuration.",
 )
-async def put_clean_tag(config_name: str, index: int, tag: Tag = Body(...)):
-    return await update_tag(config_name, index, tag.model_dump(), ConfigSubfolder.CLEAN)
+async def put_clean_tag(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
+    return await update_tag(request.app.state.config_path, config_name, index, tag.model_dump(), ConfigSubfolder.CLEAN)
 
 @config_router.delete(
     "/{config_name}/tags/{index}",
@@ -237,8 +237,8 @@ async def put_clean_tag(config_name: str, index: int, tag: Tag = Body(...)):
     summary="Delete Clean Tag",
     description="Delete a tag by index from the type-validated (\"clean\") configuration.",
 )
-async def delete_clean_tag(config_name: str, index: int):
-    return await delete_tag(config_name, index, ConfigSubfolder.CLEAN)
+async def delete_clean_tag(request: Request, config_name: str, index: int):
+    return await delete_tag(request.app.state.config_path, config_name, index, ConfigSubfolder.CLEAN)
 
 @config_router.post(
     "/configs",
@@ -261,8 +261,8 @@ async def delete_clean_tag(config_name: str, index: int):
     description="Create a new configuration with the given name.",
     status_code=status.HTTP_201_CREATED,
 )
-async def create_clean_config(config: ConfigNameRequest = Body(...)):
-    return await create_config(config.config_name, subfolder=ConfigSubfolder.CLEAN)
+async def create_clean_config(request: Request, config: ConfigNameRequest = Body(...)):
+    return await create_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.CLEAN)
 
 @config_router.delete(
     "/configs",
@@ -284,8 +284,8 @@ async def create_clean_config(config: ConfigNameRequest = Body(...)):
     summary="Delete Config",
     description="Delete an existing configuration by name.",
 )
-async def delete_clean_config(config: ConfigNameRequest = Body(...)):
-    return await delete_config(config.config_name, subfolder=ConfigSubfolder.CLEAN)
+async def delete_clean_config(request: Request, config: ConfigNameRequest = Body(...)):
+    return await delete_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.CLEAN)
 
 @config_router.get(
     "/{config_name}/config_path",
@@ -307,8 +307,8 @@ async def delete_clean_config(config: ConfigNameRequest = Body(...)):
     summary="Get Config File Path",
     description="Retrieve the file path of the specified configuration.",
 )
-async def get_clean_config_path(config_name: str):
-    return await get_config_path(config_name, subfolder=ConfigSubfolder.CLEAN)
+async def get_clean_config_path(request: Request, config_name: str):
+    return await get_config_path(request.app.state.config_path, config_name, subfolder=ConfigSubfolder.CLEAN)
 
 @config_router.get(
     "/agents/missing-config",
@@ -333,7 +333,7 @@ async def get_agents_missing_config(request: Request):
     """Get agents active in coredinator but missing a clean config."""
     try:
         # Get clean configs
-        clean_configs_response = await get_all_clean_configs()
+        clean_configs_response = await get_all_clean_configs(request)
 
         # Parse response body properly
         if hasattr(clean_configs_response, "body"):
@@ -393,8 +393,8 @@ async def get_agents_missing_config(request: Request):
     summary="List Raw Config Names",
     description="List all available raw configuration names.",
 )
-async def get_all_raw_configs():
-    return await get_all_configs(subfolder=ConfigSubfolder.RAW)
+async def get_all_raw_configs(request: Request):
+    return await get_all_configs(path=request.app.state.config_path, subfolder=ConfigSubfolder.RAW)
 
 @config_router.get(
     "/raw/{config_name}",
@@ -419,8 +419,8 @@ async def get_all_raw_configs():
     summary="Get Raw Config",
     description="Retrieve the raw (not type-validated) configuration as a JSON object.",
 )
-async def get_raw_config(config_name: str):
-    return await get_config(config_name, ConfigSubfolder.RAW)
+async def get_raw_config(request: Request, config_name: str):
+    return await get_config(request.app.state.config_path, config_name, ConfigSubfolder.RAW)
 
 @config_router.get(
     "/raw/{config_name}/agent_name",
@@ -442,8 +442,8 @@ async def get_raw_config(config_name: str):
     summary="Get Raw Config Agent Name",
     description="Retrieve the agent_name field from the raw configuration.",
 )
-async def get_raw_config_agent_name(config_name: str):
-    return await get_config_field(config_name, "agent_name", ConfigSubfolder.RAW)
+async def get_raw_config_agent_name(request: Request, config_name: str):
+    return await get_config_field(request.app.state.config_path, config_name, "agent_name", ConfigSubfolder.RAW)
 
 @config_router.get(
     "/raw/{config_name}/tags",
@@ -465,8 +465,8 @@ async def get_raw_config_agent_name(config_name: str):
     summary="List Raw Tags",
     description="List all tags defined in the raw configuration.",
 )
-async def get_raw_tags(config_name: str):
-    return await get_tags(config_name, ConfigSubfolder.RAW)
+async def get_raw_tags(request: Request, config_name: str):
+    return await get_tags(request.app.state.config_path, config_name, ConfigSubfolder.RAW)
 
 @config_router.get(
     "/raw/{config_name}/tags/{tag_name}",
@@ -488,8 +488,8 @@ async def get_raw_tags(config_name: str):
     summary="Get Raw Tag",
     description="Retrieve a specific tag by name from the raw configuration.",
 )
-async def get_raw_tag(config_name: str, tag_name: str):
-    return await get_tag(config_name, tag_name, ConfigSubfolder.RAW)
+async def get_raw_tag(request: Request, config_name: str, tag_name: str):
+    return await get_tag(request.app.state.config_path, config_name, tag_name, ConfigSubfolder.RAW)
 
 @config_router.post(
     "/raw/{config_name}/tags",
@@ -513,8 +513,8 @@ async def get_raw_tag(config_name: str, tag_name: str):
     description="Add a new tag to the raw configuration.",
     status_code=status.HTTP_201_CREATED,
 )
-async def post_raw_tag(config_name: str, tag: Tag = Body(...)):
-    return await add_tag(config_name, tag.model_dump(), subfolder=ConfigSubfolder.RAW)
+async def post_raw_tag(request: Request, config_name: str, tag: Tag = Body(...)):
+    return await add_tag(request.app.state.config_path, config_name, tag.model_dump(), subfolder=ConfigSubfolder.RAW)
 
 @config_router.put(
     "/raw/{config_name}/tags/{index}",
@@ -538,8 +538,8 @@ async def post_raw_tag(config_name: str, tag: Tag = Body(...)):
     summary="Update Raw Tag",
     description="Update an existing tag by index in the raw configuration.",
 )
-async def put_raw_tag(config_name: str, index: int, tag: Tag = Body(...)):
-    return await update_tag(config_name, index, tag.model_dump(), ConfigSubfolder.RAW)
+async def put_raw_tag(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
+    return await update_tag(request.app.state.config_path, config_name, index, tag.model_dump(), ConfigSubfolder.RAW)
 
 @config_router.delete(
     "/raw/{config_name}/tags/{index}",
@@ -563,8 +563,8 @@ async def put_raw_tag(config_name: str, index: int, tag: Tag = Body(...)):
     summary="Delete Raw Tag",
     description="Delete a tag by index from the raw configuration.",
 )
-async def delete_raw_tag(config_name: str, index: int):
-    return await delete_tag(config_name, index, ConfigSubfolder.RAW)
+async def delete_raw_tag(request: Request, config_name: str, index: int):
+    return await delete_tag(request.app.state.config_path, config_name, index, ConfigSubfolder.RAW)
 
 @config_router.post(
     "/raw/configs",
@@ -587,8 +587,8 @@ async def delete_raw_tag(config_name: str, index: int):
     description="Create a new raw configuration with the given name.",
     status_code=status.HTTP_201_CREATED,
 )
-async def create_raw_config(config: ConfigNameRequest = Body(...)):
-    return await create_config(config.config_name, subfolder=ConfigSubfolder.RAW)
+async def create_raw_config(request: Request, config: ConfigNameRequest = Body(...)):
+    return await create_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.RAW)
 
 @config_router.delete(
     "/raw/configs",
@@ -610,5 +610,5 @@ async def create_raw_config(config: ConfigNameRequest = Body(...)):
     summary="Delete Raw Config",
     description="Delete an existing raw configuration by name.",
 )
-async def delete_raw_config(config: ConfigNameRequest = Body(...)):
-    return await delete_config(config.config_name, subfolder=ConfigSubfolder.RAW)
+async def delete_raw_config(request: Request, config: ConfigNameRequest = Body(...)):
+    return await delete_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.RAW)

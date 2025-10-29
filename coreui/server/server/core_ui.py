@@ -19,28 +19,31 @@ class CoreUIConfig(NamedTuple):
     port: int
     dist_path: str | None
     reload: bool
+    config_path: str | None
 
 def parse_args():
     parser = argparse.ArgumentParser(description="CoreUI Service")
     parser.add_argument("--port", type=int, default=8000, help="Port to run the server on (default: 8000)")
     parser.add_argument("--dist-path", type=str, help="Path to the frontend distribution directory")
+    parser.add_argument("--config-path", type=str, help="Path to configuration files (not used in this version)")
     parser.add_argument("--reload", action="store_true", help="Enable auto-reload for development")
     args = parser.parse_args()
 
     return CoreUIConfig(
         port=args.port,
         dist_path=args.dist_path,
+        config_path=args.config_path,
         reload=args.reload,
     )
 
-def create_app(dist_path: str | None = None) -> FastAPI:
+def create_app(dist_path: str | None = None, config_path: str | None = None) -> FastAPI:
     """Factory function to create FastAPI app with optional dist path."""
-    core_ui = CoreUI(dist_path=dist_path)
+    core_ui = CoreUI(dist_path=dist_path, config_path=config_path)
     return core_ui.get_app()
 
 
 class CoreUI:
-    def __init__(self, dist_path: str | None = None):
+    def __init__(self, dist_path: str | None = None, config_path: str | None = None):
         @asynccontextmanager
         async def lifespan(app: FastAPI):
             app.state.httpx_client = httpx.AsyncClient()
@@ -61,6 +64,14 @@ class CoreUI:
             allow_methods=["*"],
             allow_headers=["*"],
         )
+
+        # Set default config_path if not provided
+        if config_path is None:
+            meipass = getattr(sys, '_MEIPASS', None)
+            base = os.path.dirname(__file__) if meipass is None else meipass
+            config_path = os.path.join(base, "config_api", "mock_configs")
+
+        self.app.state.config_path = config_path
 
         self.app.include_router(opc_router, prefix="/api/v1/opc")
         self.app.include_router(config_router, prefix="/api/v1/config")
@@ -98,7 +109,7 @@ class CoreUI:
 
 def get_app() -> FastAPI:
     coreui_config = parse_args()
-    return create_app(coreui_config.dist_path)
+    return create_app(coreui_config.dist_path, coreui_config.config_path)
 
 
 if __name__ == "__main__":
