@@ -99,6 +99,7 @@ class MaskedAutoencoder(BaseImputer):
         self._bulk_load_trigger = 1000
         self._min_buffer = 50
         self._debug = imputer_cfg.debug
+        self._center_inputs = True
 
         self._traces = TraceConstructor(
             TraceConfig(
@@ -112,6 +113,7 @@ class MaskedAutoencoder(BaseImputer):
         # identity function
         torso_cfg = nets.TorsoConfig(
             layers=[
+                nets.FixedAffineConfig(scale=2, bias=-1) if self._center_inputs else nets.IdentityConfig(),
                 nets.LinearConfig(size=256, activation="relu"),
                 nets.LinearConfig(size=128, activation="relu"),
                 nets.LinearConfig(size=2*self._num_obs, activation="relu"),
