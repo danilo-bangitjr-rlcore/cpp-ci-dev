@@ -5,13 +5,13 @@ import servicemanager
 import uvicorn
 import win32service
 import win32serviceutil
-from server.core_ui import CoreUI
+from server.core_ui import get_app
 
 
 class MyService:
     def __init__(self):
         self.running = False
-        self.app = CoreUI().get_app()
+        self.app = get_app()
 
     def stop(self):
         self.running = False

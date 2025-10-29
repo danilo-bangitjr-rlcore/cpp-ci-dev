@@ -50,7 +50,7 @@ jobs:
 
       # App creation (no running)
       - name: Test server imports
-        run: uv run python server/run_dev.py
+        run: cd server/ && uv run python -m server.core_ui
 
   coreui-client-ci:
     runs-on: ubuntu-latest

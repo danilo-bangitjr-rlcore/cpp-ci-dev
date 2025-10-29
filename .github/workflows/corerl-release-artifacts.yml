@@ -33,6 +33,16 @@ jobs:
 
       - name: Install jq
         run: sudo apt-get update && sudo apt-get install -y jq
+      
+      - name: Install NPM + NodeJS
+        run: |
+          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+          sudo apt-get install -y nodejs
+
+      - name: Install Node.js + NPM
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
 
       - name: Build Linux Executables
         run: ./.github/workflows/scripts/build_linux_executables.sh
@@ -65,6 +75,11 @@ jobs:
         uses: astral-sh/setup-uv@v6
         with:
           python-version: 3.13.0
+      
+      - name: Install Node.js + NPM
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
 
       - name: Build Windows Executables
         run: .\.github\workflows\scripts\build_windows_executables.bat
