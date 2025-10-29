@@ -184,37 +184,6 @@ class QRCCritic:
 
         return new_state, metrics
 
-    # -------------------------------
-    # -- Shared net.apply vmapping --
-    # -------------------------------
-    @jax_u.method_jit
-    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> QRCOutputs:
-        # state shape is one of (state_dim,) or (batch, state_dim)
-        # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
-        # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
-        f = self._net.apply
-        if action.ndim == state.ndim + 1:
-            # vmap over action samples and rngs
-            f = jax_u.vmap(f, (None, 0, None, 0))
-
-        if state.ndim == 1:
-            return f(params, rng, state, action)
-
-        # batch mode - vmap over batch dim
-        chex.assert_rank(state, 2)
-        f = jax_u.vmap(f, (None, 0, 0, 0))
-        return f(params, rng, state, action)
-
-    # --------------------
-    # -- Initialization --
-    # --------------------
-    def _init_member_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        params = self._net.init(rng, x, a)
-        return CriticState(
-            params=params,
-            opt_state=self._optim.init(params),
-        )
-
     def initialize_to_nominal_action(
         self,
         rng: chex.PRNGKey,
@@ -265,6 +234,68 @@ class QRCCritic:
 
         return critic_state._replace(
             params=params,
+        )
+
+    # -------------------------------
+    # -- Shared net.apply vmapping --
+    # -------------------------------
+    @jax_u.method_jit
+    def _forward(self, params: chex.ArrayTree, rng: chex.PRNGKey, state: jax.Array, action: jax.Array) -> QRCOutputs:
+        # state shape is one of (state_dim,) or (batch, state_dim)
+        # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
+        # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
+        f = self._net.apply
+        chex.assert_rank(rng, 1)
+
+        if state.ndim == 1 and action.ndim == 1:
+            # state (state_dim,) action (action_dim,)
+            chex.assert_rank(state, 1)
+            chex.assert_rank(action, 1)
+            chex.assert_rank(rng, 1)
+            return f(params, rng, state, action)
+
+        if state.ndim == 1 and action.ndim == 2:
+            # state (state_dim,) action (n_samples, action_dim)
+            chex.assert_rank(state, 1)
+            chex.assert_rank(action, 2)
+            n_samples = action.shape[0]
+            rng = jax.random.split(rng, n_samples)
+            chex.assert_rank(rng, 2)
+            f = jax_u.vmap(f, (None, 0, None, 0))
+
+        if state.ndim == 2 and action.ndim == 2:
+            # state (batch, state_dim,) action (batch, action_dim)
+            chex.assert_rank(state, 2)
+            chex.assert_rank(action, 2)
+            chex.assert_equal_shape_prefix((state, action), prefix_len=1)
+            batch_size = action.shape[0]
+            rng = jax.random.split(rng, batch_size)
+            chex.assert_rank(rng, 2)
+            f = jax_u.vmap(f, (None, 0, 0, 0))
+
+        if state.ndim == 2 and action.ndim == 3:
+            # state (batch, state_dim,) action (batch, n_samples, action_dim)
+            chex.assert_rank(state, 2)
+            chex.assert_rank(action, 3)
+            chex.assert_equal_shape_prefix((state, action), prefix_len=1)
+            batch_size, n_samples = action.shape[:2]
+            rng = jax.random.split(rng, (batch_size, n_samples))
+            chex.assert_rank(rng, 3)
+            f = jax_u.vmap(
+                    jax_u.vmap(f, (None, 0, None, 0)),  # inner maps over n_samples
+                (None, 0, 0, 0),  # outer maps over batch
+            )
+
+        return f(params, rng, state, action)
+
+    # --------------------
+    # -- Initialization --
+    # --------------------
+    def _init_member_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
+        params = self._net.init(rng, x, a)
+        return CriticState(
+            params=params,
+            opt_state=self._optim.init(params),
         )
 
     # ------------
