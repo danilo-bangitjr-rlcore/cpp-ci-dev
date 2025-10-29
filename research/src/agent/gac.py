@@ -94,8 +94,7 @@ class GreedyAC:
 
     def get_action_values(self, state: State, actions: jax.Array | np.ndarray):
         self.rng, c_rng = jax.random.split(self.rng)
-        # use get_active_values instead of vmapping over all critics
-        return self._critic.get_active_values(
+        return self._critic.forward(
             self.agent_state.critic.params,
             c_rng,
             state=state.features.array,
@@ -192,8 +191,5 @@ class GreedyAC:
         return loss
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        qs = self._critic.get_active_values(params, rng, x, a).q
-        values = qs.mean(axis=0).squeeze(-1)
-
-        chex.assert_rank(values, 0)
-        return values
+        qs = self._critic.forward(params, rng, x, a).q
+        return qs.mean(axis=0).squeeze(-1)
