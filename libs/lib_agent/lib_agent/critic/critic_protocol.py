@@ -53,6 +53,7 @@ class Critic(Protocol):
 
     def update(
         self,
+        seed: chex.PRNGKey,
         critic_state: CriticState,
         transitions: Transition,
         *args: Any,
