@@ -2,7 +2,6 @@ from typing import Any
 
 import jax
 import jax.numpy as jnp
-import lib_utils.jax as jax_u
 import numpy as np
 from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
@@ -62,7 +61,7 @@ def test_critic_forward_pass_single(benchmark: BenchmarkFixture):
         action: jax.Array,
     ):
         for _ in range(50):
-            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_key, state_features, action).q
+            values = critic.forward(params, rng_key, state_features, action).q
             # Force computation
             _ = values.sum()
 
@@ -98,7 +97,7 @@ def test_critic_forward_pass_ensemble(benchmark: BenchmarkFixture):
         action: jax.Array,
     ):
         for _ in range(25):
-            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_key, state_features, action).q
+            values = critic.forward(params, rng_key, state_features, action).q
             # Force computation
             _ = values.sum()
 
@@ -130,57 +129,19 @@ def test_critic_forward_pass_batch(benchmark: BenchmarkFixture):
     batch_states = jnp.array(rng.random((batch_size, state_dim)))
     batch_actions = jnp.array(rng.random((batch_size, action_dim)))
 
-    def _inner(critic: QRCCritic, params: Any, rng_keys: jax.Array, states: jax.Array, actions: jax.Array):
+    def _inner(critic: QRCCritic, params: Any, rng_key: jax.Array, states: jax.Array, actions: jax.Array):
         for _ in range(20):
-            values = jax_u.vmap_only(critic.get_values, ['params'])(params, rng_keys, states, actions).q
+            values = critic.forward(params, rng_key, states, actions).q
             # Force computation
             _ = values.sum()
 
     # Create batch of RNG keys for vmap
-    batch_rngs = jax.random.split(init_rng, batch_size)
-
+    inner_rng = jax.random.PRNGKey(43)
     benchmark(
         _inner,
         critic,
         critic_state.params,
-        batch_rngs,
-        batch_states,
-        batch_actions,
-    )
-
-
-def test_critic_representations_forward(benchmark: BenchmarkFixture):
-    """Benchmark critic representation computation."""
-    rng = np.random.default_rng(0)
-    state_dim, action_dim = 128, 8
-    batch_size = 128
-
-    critic = _create_test_critic(ensemble_size=1, state_dim=state_dim, action_dim=action_dim)
-
-    init_rng = jax.random.PRNGKey(42)
-    single_state = _create_fake_state(rng, state_dim, action_dim)
-    single_action = jnp.array(rng.random((action_dim,)))
-
-    critic_state = critic.init_state(init_rng, single_state.features.array, single_action)
-
-    # Create batched data
-    batch_states = jnp.array(rng.random((batch_size, state_dim)))
-    batch_actions = jnp.array(rng.random((batch_size, action_dim)))
-
-    def _inner(critic: QRCCritic, params: Any, rng_keys: jax.Array, states: jax.Array, actions: jax.Array):
-        for _ in range(20):
-            representations = jax_u.vmap_only(critic.get_representations, ['params'])(params, rng_keys, states, actions)
-            # Force computation
-            _ = representations.sum()
-
-    # Create batch of RNG keys for vmap
-    batch_rngs = jax.random.split(init_rng, batch_size)
-
-    benchmark(
-        _inner,
-        critic,
-        critic_state.params,
-        batch_rngs,
+        inner_rng,
         batch_states,
         batch_actions,
     )

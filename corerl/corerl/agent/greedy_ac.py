@@ -187,11 +187,9 @@ class GreedyAC(BaseAgent):
         chex.assert_shape(state, (self.state_dim,))
         self._jax_rng, rng = jax.random.split(self._jax_rng)
         assert action.ndim in {1, 2}
-        if action.ndim == 2:
-            rng = jax.random.split(rng, action.shape[0])
 
         # use active critic values for decision making
-        qs = self.critic.get_active_values(self._critic_state.params, rng, state.array, action).q
+        qs = self.critic.forward(self._critic_state.params, rng, state.array, action).q
 
         return EnsembleNetworkReturn(
             reduced_value=qs.mean(axis=0),
@@ -337,7 +335,7 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.get_active_values(params, rng, x, a).q
+        qs = self.critic.forward(params, rng, x, a).q
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
@@ -357,14 +355,16 @@ class GreedyAC(BaseAgent):
     def update(self) -> list[float]:
         if not self._has_preinitialized:
             self._has_preinitialized = True
+            self._jax_rng, critic_init_rng, actor_init_rng = jax.random.split(self._jax_rng, 3)
+
             self._critic_state = self.critic.initialize_to_nominal_action(
-                self._jax_rng,
+                critic_init_rng,
                 self._critic_state,
                 self._nominal_setpoints,
             )
 
             actor_state = self._actor.initialize_to_nominal_action(
-                self._jax_rng,
+                actor_init_rng,
                 self._actor_state.actor,
                 self._nominal_setpoints,
                 self.state_dim,
