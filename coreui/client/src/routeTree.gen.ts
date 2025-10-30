@@ -17,7 +17,7 @@ import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as AgentsConfigNameRouteImport } from './routes/agents/$config-name'
 import { Route as AgentsConfigNameIndexRouteImport } from './routes/agents/$config-name/index'
 import { Route as AgentsConfigNameTagsRouteImport } from './routes/agents/$config-name/tags'
-import { Route as AgentsConfigNameRewardRouteImport } from './routes/agents/$config-name/reward'
+import { Route as AgentsConfigNameObjectiveRouteImport } from './routes/agents/$config-name/objective'
 import { Route as AgentsConfigNameMonitorRouteImport } from './routes/agents/$config-name/monitor'
 import { Route as AgentsConfigNameGeneralSettingsRouteImport } from './routes/agents/$config-name/general-settings'
 
@@ -61,11 +61,12 @@ const AgentsConfigNameTagsRoute = AgentsConfigNameTagsRouteImport.update({
   path: '/tags',
   getParentRoute: () => AgentsConfigNameRoute,
 } as any)
-const AgentsConfigNameRewardRoute = AgentsConfigNameRewardRouteImport.update({
-  id: '/reward',
-  path: '/reward',
-  getParentRoute: () => AgentsConfigNameRoute,
-} as any)
+const AgentsConfigNameObjectiveRoute =
+  AgentsConfigNameObjectiveRouteImport.update({
+    id: '/objective',
+    path: '/objective',
+    getParentRoute: () => AgentsConfigNameRoute,
+  } as any)
 const AgentsConfigNameMonitorRoute = AgentsConfigNameMonitorRouteImport.update({
   id: '/monitor',
   path: '/monitor',
@@ -87,7 +88,7 @@ export interface FileRoutesByFullPath {
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
-  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/objective': typeof AgentsConfigNameObjectiveRoute
   '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
@@ -99,7 +100,7 @@ export interface FileRoutesByTo {
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
-  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/objective': typeof AgentsConfigNameObjectiveRoute
   '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name': typeof AgentsConfigNameIndexRoute
 }
@@ -113,7 +114,7 @@ export interface FileRoutesById {
   '/agents/': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
-  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/objective': typeof AgentsConfigNameObjectiveRoute
   '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
@@ -128,7 +129,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
-    | '/agents/$config-name/reward'
+    | '/agents/$config-name/objective'
     | '/agents/$config-name/tags'
     | '/agents/$config-name/'
   fileRoutesByTo: FileRoutesByTo
@@ -140,7 +141,7 @@ export interface FileRouteTypes {
     | '/agents'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
-    | '/agents/$config-name/reward'
+    | '/agents/$config-name/objective'
     | '/agents/$config-name/tags'
     | '/agents/$config-name'
   id:
@@ -153,7 +154,7 @@ export interface FileRouteTypes {
     | '/agents/'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
-    | '/agents/$config-name/reward'
+    | '/agents/$config-name/objective'
     | '/agents/$config-name/tags'
     | '/agents/$config-name/'
   fileRoutesById: FileRoutesById
@@ -225,11 +226,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsConfigNameTagsRouteImport
       parentRoute: typeof AgentsConfigNameRoute
     }
-    '/agents/$config-name/reward': {
-      id: '/agents/$config-name/reward'
-      path: '/reward'
-      fullPath: '/agents/$config-name/reward'
-      preLoaderRoute: typeof AgentsConfigNameRewardRouteImport
+    '/agents/$config-name/objective': {
+      id: '/agents/$config-name/objective'
+      path: '/objective'
+      fullPath: '/agents/$config-name/objective'
+      preLoaderRoute: typeof AgentsConfigNameObjectiveRouteImport
       parentRoute: typeof AgentsConfigNameRoute
     }
     '/agents/$config-name/monitor': {
@@ -252,7 +253,7 @@ declare module '@tanstack/react-router' {
 interface AgentsConfigNameRouteChildren {
   AgentsConfigNameGeneralSettingsRoute: typeof AgentsConfigNameGeneralSettingsRoute
   AgentsConfigNameMonitorRoute: typeof AgentsConfigNameMonitorRoute
-  AgentsConfigNameRewardRoute: typeof AgentsConfigNameRewardRoute
+  AgentsConfigNameObjectiveRoute: typeof AgentsConfigNameObjectiveRoute
   AgentsConfigNameTagsRoute: typeof AgentsConfigNameTagsRoute
   AgentsConfigNameIndexRoute: typeof AgentsConfigNameIndexRoute
 }
@@ -260,7 +261,7 @@ interface AgentsConfigNameRouteChildren {
 const AgentsConfigNameRouteChildren: AgentsConfigNameRouteChildren = {
   AgentsConfigNameGeneralSettingsRoute: AgentsConfigNameGeneralSettingsRoute,
   AgentsConfigNameMonitorRoute: AgentsConfigNameMonitorRoute,
-  AgentsConfigNameRewardRoute: AgentsConfigNameRewardRoute,
+  AgentsConfigNameObjectiveRoute: AgentsConfigNameObjectiveRoute,
   AgentsConfigNameTagsRoute: AgentsConfigNameTagsRoute,
   AgentsConfigNameIndexRoute: AgentsConfigNameIndexRoute,
 }

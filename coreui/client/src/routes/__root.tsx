@@ -62,8 +62,8 @@ function useAgentContextNav() {
           params: { 'config-name': configName },
         },
         {
-          label: 'Reward Configuration',
-          to: '/agents/$config-name/reward',
+          label: 'Objective Configuration',
+          to: '/agents/$config-name/objective',
           params: { 'config-name': configName },
         },
         {
