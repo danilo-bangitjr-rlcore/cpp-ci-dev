@@ -78,7 +78,7 @@ class MultiActionSaturation(gym.Env):
         self.num_reward_modes = np.array(cfg.num_reward_modes[:self.num_controllers])
         self.mode_amplitudes = np.array(cfg.mode_amplitudes[:self.num_controllers])
         self.delayed_saturations = [
-            deque([0]*(cfg.delays[i]+1), maxlen=cfg.delays[i]+1)
+            deque([0.0]*(cfg.delays[i]+1), maxlen=cfg.delays[i]+1)
             for i in range(self.num_controllers)
         ]
 
@@ -113,9 +113,7 @@ class MultiActionSaturation(gym.Env):
         # Create multimodal structure using cosine function
         cosine_components = self.mode_amplitudes * np.cos(2 * np.pi * self.num_reward_modes * diffs)
 
-        total_reward = np.sum(base_reward + cosine_components)
-
-        return total_reward
+        return np.sum(base_reward + cosine_components)
 
     def step(self, action: np.ndarray):
         self.time_step += 1

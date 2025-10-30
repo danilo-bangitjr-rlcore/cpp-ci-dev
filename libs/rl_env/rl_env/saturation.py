@@ -70,7 +70,7 @@ class Saturation(gym.Env):
         self.trace_val = cfg.trace_val
         self.num_reward_modes = cfg.num_reward_modes
         self.mode_amplitude = cfg.mode_amplitude
-        self.delayed_saturations = deque([0]*(cfg.delay+1), maxlen=cfg.delay+1)
+        self.delayed_saturations = deque([0.0]*(cfg.delay+1), maxlen=cfg.delay+1)
 
         # for plotting
         self.saturations = []
@@ -107,9 +107,7 @@ class Saturation(gym.Env):
         # Create multimodal structure using cosine function
         cosine_component = self.mode_amplitude * np.cos(2 * np.pi * self.num_reward_modes * diff)
 
-        total_reward = base_reward + cosine_component
-
-        return total_reward
+        return base_reward + cosine_component
 
     def step(self, action: np.ndarray):
         # adjust scheduled attributes
