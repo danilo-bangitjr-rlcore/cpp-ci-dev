@@ -168,6 +168,10 @@ def has_path(d: dict[str, Any], path: str) -> bool:
 
     return False
 
+def resolve_bool(val: Any):
+    if isinstance(val, str):
+        return False if val.lower() == 'false' else True
+    return bool(val)
 
 def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
     if '.' not in path:
@@ -192,7 +196,7 @@ def set_at_path[T](d: dict[str, T], path: str, val: T) -> dict[str, T]:
             # if there is already a value
             # ensure the override has a matching type
             t = type(sub[part])
-            sub[part] = t(val)
+            sub[part] = t(val) if t is not bool else resolve_bool(val)
         # otherwise, keep walking and building subdicts
         elif part not in sub and not ls_part:
             sub[part] = {}
