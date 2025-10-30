@@ -26,10 +26,23 @@ class OPC_Connection_UI(OPC_Connection):
         self._connected = False
 
     def _format_node_id(self, nodeid: NodeId) -> str:
-        """Format NodeId object to standard OPC UA format (ns=X;i=Y)"""
+        """Format NodeId object to standard OPC UA format (ns=X;[i|s|g|b]=Y)"""
         try:
             if hasattr(nodeid, 'NamespaceIndex') and hasattr(nodeid, 'Identifier'):
-                return f"ns={nodeid.NamespaceIndex};i={nodeid.Identifier}"
+                ns = nodeid.NamespaceIndex
+                identifier = nodeid.Identifier
+
+                if isinstance(identifier, int):
+                    return f"ns={ns};i={identifier}"
+                if isinstance(identifier, str):
+                    return f"ns={ns};s={identifier}"
+                if isinstance(identifier, bytes):
+                    import base64
+                    b64_id = base64.b64encode(identifier).decode('ascii')
+                    return f"ns={ns};b={b64_id}"
+                if hasattr(identifier, 'hex'):  # UUID/Guid
+                    return f"ns={ns};g={identifier}"
+                return f"ns={ns};i={identifier}"
             return str(nodeid)
         except Exception:
             return str(nodeid)
