@@ -59,7 +59,7 @@ export default function MetricsTable({ configName }: MetricsTableProps) {
 
   return (
     <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-300">
-      <div className="px-6 py-4 bg-gray-200 border-b-1 border-gray-300">
+      <div className="px-6 py-4 bg-gray-200 border-b border-gray-300">
         <h2 className="text-2xl font-semibold text-gray-800">
           Metrics Available ({filteredMetrics.length})
         </h2>
