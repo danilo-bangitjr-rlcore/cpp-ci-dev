@@ -35,7 +35,8 @@ def ac_eval(agent: GreedyAC, state: State):
 
         # q vals
         q_f = partial(agent.get_action_values, state)
-        q_vals = jax_u.multi_vmap(q_f, levels=2)(constructed_actions).squeeze()
+        q_vals = jax_u.multi_vmap(q_f, levels=2)(constructed_actions)
+        q_vals = q_vals.mean(axis=2).squeeze(axis=2)  # ensemble_dim is last
         chex.assert_shape(q_vals, (num_x_axis_actions, on_policy_samples))
 
         # actor
