@@ -18,3 +18,20 @@ def test_main_smoke_gac():
         '-s', '0',
     ], check=False)
     proc.check_returncode()
+
+
+@pytest.mark.timeout(60)
+def test_main_smoke_gaac():
+    """
+    Should be able to execute the main script without error.
+    If an error code is returned (i.e. the process crashes),
+    then test fails.
+
+    This test does no checking of result validity.
+    """
+    proc = subprocess.run([
+        'python', 'src/main.py',
+        '-e', 'tests/assets/base_gaac.yaml',
+        '-s', '0',
+    ], check=False)
+    proc.check_returncode()
