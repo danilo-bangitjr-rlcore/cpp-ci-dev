@@ -1,7 +1,6 @@
 import chex
 import jax
 import jax.numpy as jnp
-import lib_utils.jax as jax_u
 from lib_agent.buffer.datatypes import Transition
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -98,9 +97,8 @@ class RepresentationEval:
         """
         n = states.shape[0]
 
-        # sample random state indices for each state
-        rng = jax.random.PRNGKey(0)
-        random_indices = jax.random.permutation(rng, n)
+        rand_rng, self._rng = jax.random.split(self._rng, 2)
+        random_indices = jax.random.permutation(rand_rng, n)
 
         # calculate distances to random states
         random_dists = jnp.sqrt(jnp.sum((states - states[random_indices])**2, axis=-1))
@@ -245,7 +243,7 @@ class RepresentationEval:
         num_states = states.shape[0]
         action_dim = action_lo.shape[1]
         self._rng, sample_rng = jax.random.split(self._rng)
-        q_rngs = jax.random.split(sample_rng, (num_states, n_samples))
+        rep_rng, next_rep_rng, q_rng = jax.random.split(sample_rng, 3)
 
         # sample uniform actions for each state
         sampled_actions = jax.random.uniform(
@@ -255,20 +253,24 @@ class RepresentationEval:
             maxval=action_hi[:, None, :],
         )
 
-        get_ens_state_reps = jax_u.vmap_only(agent.critic.get_representations, ["params"])
-        ens_state_reps = get_ens_state_reps(
+        ens_state_reps = agent.critic.forward(
             agent._critic_state.params,
-            q_rngs,
+            rep_rng,
             states.array,
             sampled_actions,
-        )
+            only_active=False,
+        ).phi
+
         chex.assert_shape(ens_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
-        ens_next_state_reps = get_ens_state_reps(
+
+        ens_next_state_reps = agent.critic.forward(
             agent._critic_state.params,
-            q_rngs,
+            next_rep_rng,
             next_states.array,
             sampled_actions,
-        )
+            only_active=False,
+        ).phi
+
         chex.assert_shape(ens_next_state_reps, (agent.ensemble, agent._actor_buffer.batch_size, n_samples, None))
 
         # average representations for each state: avg over ensemble and action samples
@@ -276,9 +278,9 @@ class RepresentationEval:
         mean_next_state_reps = ens_next_state_reps.mean(axis=(0, 2))
 
         # get values for each state (using Q-values for the current policy)
-        qs = jax_u.vmap_only(agent.critic.get_values, ["params"])(
+        qs = agent.critic.forward(
             agent._critic_state.params,
-            q_rngs,
+            q_rng,
             states.array,
             sampled_actions,
         ).q

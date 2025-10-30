@@ -1,5 +1,4 @@
 import { createFileRoute } from '@tanstack/react-router';
-import { ExampleComponent } from '../components/ExampleComponent';
 
 export const Route = createFileRoute('/')({
   component: Index,
@@ -7,8 +6,12 @@ export const Route = createFileRoute('/')({
 
 function Index() {
   return (
-    <div className="p-2">
-      <ExampleComponent title="Hello from the home page" />
+    <div className="h-full w-full">
+      <iframe
+        src="https://www.rlcore.ai"
+        className="w-full h-full border-0"
+        title="RLCore Website"
+      />
     </div>
   );
 }

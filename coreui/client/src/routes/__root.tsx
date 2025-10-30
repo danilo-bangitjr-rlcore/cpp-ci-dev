@@ -3,6 +3,8 @@ import { TanStackRouterDevtools } from '@tanstack/react-router-devtools';
 import { GlobalHeader } from '../components/navigation/GlobalHeader';
 import { LeftNav } from '../components/navigation/LeftNav';
 import { HomeIcon } from '../components/icons/HomeIcon';
+import { DiagnosticsIcon } from '../components/icons/DiagnosticsIcon';
+import { FactoryIcon } from '../components/icons/FactoryIcon';
 import { useAgentNameQuery } from '../utils/useAgentQueries';
 
 const baseNavItems = [
@@ -22,8 +24,16 @@ const baseNavItems = [
       />
     ),
   },
-  { label: 'OPC Navigation', to: '/opc-navigation' },
-  { label: 'About', to: '/about' },
+  {
+    label: 'OPC Navigation',
+    to: '/opc-navigation',
+    icon: <FactoryIcon size={32} className="mr-1" />,
+  },
+  {
+    label: 'Diagnostics',
+    to: '/diagnostics',
+    icon: <DiagnosticsIcon size={32} className="mr-1" />,
+  },
 ];
 
 const headerItems = [
@@ -47,13 +57,13 @@ function useAgentContextNav() {
           params: { 'config-name': configName },
         },
         {
-          label: 'Observation Tags',
+          label: 'Input Tags',
           to: '/agents/$config-name/tags',
           params: { 'config-name': configName },
         },
         {
-          label: 'Reward Configuration',
-          to: '/agents/$config-name/reward',
+          label: 'Objective Configuration',
+          to: '/agents/$config-name/objective',
           params: { 'config-name': configName },
         },
         {

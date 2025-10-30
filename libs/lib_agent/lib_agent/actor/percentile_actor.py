@@ -404,8 +404,8 @@ class PercentileActor:
         proposal_actions = jnp.clip(proposal_actions, 1e-5, 1 - 1e-5)
         chex.assert_shape(proposal_actions, (self._cfg.num_samples, self.action_dim))
 
-        q_over_proposal = jax_u.vmap_only(value_estimator, ['a'])
-        q_vals = q_over_proposal(value_estimator_params, q_rng, state.features.array, proposal_actions)
+        q_vals = value_estimator(value_estimator_params, q_rng, state.features.array, proposal_actions)
+        chex.assert_shape(q_vals, (self._cfg.num_samples, ))
         q_vals = q_vals + self._cfg.sort_noise * jax.random.normal(
             rng, shape=q_vals.shape, dtype=q_vals.dtype,
         )

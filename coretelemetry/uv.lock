@@ -255,7 +255,7 @@ wheels = [
 
 [[package]]
 name = "coreio"
-version = "0.11.3"
+version = "0.12.0"
 source = { editable = "../coreio" }
 dependencies = [
     { name = "asyncua" },
@@ -297,7 +297,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.154.0"
+version = "0.155.0"
 source = { editable = "../corerl" }
 dependencies = [
     { name = "coreio" },
