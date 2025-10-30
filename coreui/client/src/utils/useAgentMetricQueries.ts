@@ -60,13 +60,16 @@ interface FilteredMetric {
   description: string;
 }
 
-const fetchFilteredMetrics = async (agentId: string): Promise<FilteredMetric[]> => {
+const fetchFilteredMetrics = async (
+  agentId: string
+): Promise<FilteredMetric[]> => {
   const url = API_ENDPOINTS.coretelemetry.filtered_metrics(agentId);
   const response = await get(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch filtered metrics for ${agentId}`);
   }
-  const data: { agent_id: string; data: FilteredMetric[] } = await response.json();
+  const data: { agent_id: string; data: FilteredMetric[] } =
+    await response.json();
   return data.data;
 };
 
@@ -80,7 +83,6 @@ export const useFilteredMetricsQuery = (
     enabled: enabled && !!agentId,
   });
 };
-
 
 export const useMultipleAgentMetricsQueries = (
   agentId: string,
