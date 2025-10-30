@@ -97,6 +97,7 @@ class MaskedAutoencoder(BaseImputer):
         self._num_traces = len(imputer_cfg.trace_values)
         self._fill_val = imputer_cfg.fill_val
         self._bulk_load_trigger = 1000
+        self._min_buffer = 50
         self._debug = imputer_cfg.debug
 
         self._traces = TraceConstructor(
@@ -303,7 +304,10 @@ class MaskedAutoencoder(BaseImputer):
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
-        if self._dormant and self._buffer.size > 0:
+        if self._buffer.size < self._min_buffer:
+            # pass nans forward until we have enough data to impute
+            return data.obs.set(jnp.where(data.obs_nanmask.array, jnp.nan, data.obs.array))
+        if self._dormant:
             self._dormant = False
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
             self.warmup()
