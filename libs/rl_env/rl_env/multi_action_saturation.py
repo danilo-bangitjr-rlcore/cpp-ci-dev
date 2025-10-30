@@ -1,3 +1,4 @@
+from collections import deque
 from pathlib import Path
 from typing import Any, Literal
 
@@ -27,6 +28,10 @@ class MultiActionSaturationConfig(EnvConfig):
     frequencies: list[float] = Field(default_factory=lambda: [1.0, 1.5, 2.0])
     phase_shifts: list[float] = Field(default_factory=lambda: [0.0, np.pi/4, np.pi/2])
     setpoints: list[float] = Field(default_factory=lambda: [0.3, 0.5, 0.7])
+    num_reward_modes: list[int] = Field(default_factory=lambda: [0, 0, 0])
+    mode_amplitudes: list[float] = Field(default_factory=lambda: [0.0, 0.0, 0.0])
+    delays: list[int] = Field(default_factory=lambda: [0, 0, 0])
+    filter_threshes: list[float] | list[None] = Field(default_factory=lambda: [None, None, None])
 
 class MultiActionSaturation(gym.Env):
     """Multi-Action Saturation Environment
@@ -44,6 +49,10 @@ class MultiActionSaturation(gym.Env):
                 - Amplitude: 0.15 * cos(.) + 0.75
             3. Exponential smoothing of actions
             4. Random noise
+            5. The observed saturation only achieves values greater than 0 if the filter saturation exceeds a threshold
+            6. The observed saturation can be delayed by a specified number of time steps
+        - Default reward is the negative absolute error between the saturation and the setpoints.
+            - The reward can be modulated based on the number of active reward modes and their respective amplitudes.
     """
     def __init__(self, cfg: MultiActionSaturationConfig | None):
         if cfg is None:
@@ -57,6 +66,7 @@ class MultiActionSaturation(gym.Env):
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
 
         self.saturations = np.zeros(self.num_controllers)
+        self.filter_saturations = np.zeros(self.num_controllers)
         self.setpoints = np.array(cfg.setpoints[:self.num_controllers])
         self.effect_period = cfg.effect_period
         self.noise_std = cfg.noise_std
@@ -65,8 +75,16 @@ class MultiActionSaturation(gym.Env):
         self._action_max = np.ones(self.num_controllers)*0.5
         self.action_space = gym.spaces.Box(self._action_min, self._action_max)
 
+        self.num_reward_modes = np.array(cfg.num_reward_modes[:self.num_controllers])
+        self.mode_amplitudes = np.array(cfg.mode_amplitudes[:self.num_controllers])
+        self.delayed_saturations = [
+            deque([0]*(cfg.delays[i]+1), maxlen=cfg.delays[i]+1)
+            for i in range(self.num_controllers)
+        ]
+
         self.time_step = 0
         self.decay = cfg.decay
+        self.filter_threshes = np.array(cfg.filter_threshes[:self.num_controllers])
 
         self.history_saturations = []
         self.history_effects = []
@@ -83,11 +101,27 @@ class MultiActionSaturation(gym.Env):
     def seed(self, seed: int):
         self._random = np.random.default_rng(seed)
 
+    def get_multimodal_reward(self, saturations: np.ndarray, saturation_sps: np.ndarray) -> float:
+        """
+        Compute multimodal reward function using cosine waves.
+        """
+        diffs = saturations - saturation_sps
+
+        # Base reward component - highest peak at setpoint
+        base_reward = -np.abs(diffs)
+
+        # Create multimodal structure using cosine function
+        cosine_components = self.mode_amplitudes * np.cos(2 * np.pi * self.num_reward_modes * diffs)
+
+        total_reward = np.sum(base_reward + cosine_components)
+
+        return total_reward
+
     def step(self, action: np.ndarray):
         self.time_step += 1
 
         self.action_traces = self.trace_val * self.action_traces + (1 - self.trace_val) * action
-        self.saturations = self.saturations * self.decay
+        self.filter_saturations = self.filter_saturations * self.decay
 
         base_effects = np.zeros(self.num_controllers)
         for i in range(self.num_controllers):
@@ -98,24 +132,32 @@ class MultiActionSaturation(gym.Env):
 
         noise = self._random.normal(0, self.noise_std, self.num_controllers)
 
-        coupled_effects = np.dot(self.coupling_matrix, self.saturations)
+        coupled_effects = np.dot(self.coupling_matrix, self.filter_saturations)
 
-        self.saturations = self.saturations + (
+        self.filter_saturations = self.filter_saturations + (
             self.action_traces * base_effects +
             noise +
             coupled_effects
         )
-        self.saturations = np.clip(self.saturations, 0, 1)
+        for i in range(self.num_controllers):
+            if self.filter_threshes[i]:
+                # Observed saturation is the amount above the filter threshold
+                self.saturations[i] = np.clip(self.filter_saturations[i] - self.filter_threshes[i], 0, 1).item()
+                self.filter_saturations[i] = np.clip(self.filter_saturations[i], 0.0, self.filter_threshes[i]).item()
+                self.delayed_saturations[i].appendleft(self.saturations[i])
+            else:
+                self.filter_saturations[i] = np.clip(self.filter_saturations[i], 0, 1).item()
+                self.delayed_saturations[i].appendleft(self.filter_saturations[i])
 
-        errors = self.saturations - self.setpoints
-        reward = -np.sum(np.abs(errors))
+        observed_saturations = np.array([self.delayed_saturations[i].pop() for i in range(self.num_controllers)])
+        reward = self.get_multimodal_reward(observed_saturations, self.setpoints)
 
         self.history_effects.append(base_effects)
         self.history_saturations.append(self.saturations.copy())
         self.history_raw_actions.append(action.copy())
         self.history_actions.append(self.action_traces.copy())
 
-        return self.saturations, reward, False, False, {}
+        return observed_saturations, reward, False, False, {}
 
     def plot(self, save_path: Path):
         _, (ax1, ax2) = plt.subplots(2, 1, figsize=(10, 10))
