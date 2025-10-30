@@ -16,7 +16,7 @@ import type {
 } from '../../types/agent-types';
 import AgentStatusMessages from './AgentStatusMessages';
 import ServiceCardsContainer from './ServiceCardsContainer';
-import ConfigurationMenu from './ConfigurationMenu';
+import MetricsTable from './MetricsTable';
 
 type AgentData = {
   agentId: string;
@@ -177,10 +177,9 @@ export default function AgentDetailsContainer() {
         isLoadingConfigPath={isLoadingConfigPath}
       />
 
-      <ConfigurationMenu
-        configName={configName}
-        isConfigMissing={agentData.isConfigMissing}
-      />
+      <div className="mt-8 mx-2">
+        <MetricsTable configName={configName} />
+      </div>
     </div>
   );
 }

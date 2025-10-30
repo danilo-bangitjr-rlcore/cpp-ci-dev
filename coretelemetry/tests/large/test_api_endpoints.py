@@ -146,6 +146,44 @@ class TestGetAvailableMetricsEndpoint:
         data = response.json()
         assert "time" not in data["data"]
 
+    @pytest.mark.timeout(15)
+    def test_get_filtered_metrics_returns_descriptions(
+        self,
+        test_client: TestClient,
+        sample_metrics_table: tuple[str, str],
+    ):
+        """Test filtered metrics endpoint returns metrics with descriptions."""
+        response = test_client.get("/api/data/test_agent/metrics/filtered")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["agent_id"] == "test_agent"
+        assert isinstance(data["data"], list)
+
+        # With real metrics, we don't know which will match filters
+        # But we can verify the structure
+        if data["data"]:
+            for item in data["data"]:
+                assert "name" in item
+                assert "description" in item
+                assert isinstance(item["name"], str)
+                assert isinstance(item["description"], str)
+
+    @pytest.mark.timeout(15)
+    def test_unfiltered_metrics_returns_strings(self, test_client: TestClient, sample_metrics_table: tuple[str, str]):
+        """Test unfiltered metrics endpoint returns simple list of names."""
+        response = test_client.get("/api/data/test_agent/metrics")
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["agent_id"] == "test_agent"
+        assert isinstance(data["data"], list)
+
+        # Unfiltered should return simple list of strings
+        if data["data"]:
+            for item in data["data"]:
+                assert isinstance(item, str)
+
 
 class TestConfigEndpoints:
     """Tests for configuration management endpoints."""
