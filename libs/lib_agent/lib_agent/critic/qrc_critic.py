@@ -109,7 +109,7 @@ class QRCCritic:
             skip=False,
         )
         self._net = critic_builder(torso_cfg)
-        self._optim = optax.adamw(learning_rate=cfg.stepsize, weight_decay=0.001)
+        self._optim = optax.adamw(learning_rate=cfg.stepsize, weight_decay=cfg.weight_decay)
 
     # ----------------------
     # -- Public Interface --

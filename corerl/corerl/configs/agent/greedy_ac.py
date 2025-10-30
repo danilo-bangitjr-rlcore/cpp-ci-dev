@@ -110,6 +110,13 @@ class GreedyACConfig(BaseAgentConfig):
     by more than this magnitude, then continue performing updates.
     """
 
+    weight_decay: float = 0.001
+    """
+    Kind: internal
+
+    Weight decay parameter for adam optimizer
+    """
+
     loss_ema_factor: float = 0.75
     """
     Kind: internal
