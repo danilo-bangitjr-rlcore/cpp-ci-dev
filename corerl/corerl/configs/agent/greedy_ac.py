@@ -149,3 +149,8 @@ class GreedyACConfig(BaseAgentConfig):
     taken during an interaction step. Forcefully prevents
     very long-tailed events from occurring.
     """
+
+    return_scale: float = 1.0
+    """
+    Returns predicted by the critic are scaled by this value.
+    """

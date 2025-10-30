@@ -43,14 +43,14 @@ class QRCCriticMetrics(NamedTuple):
     layer_weight_norms: jax.Array
 
 
-def critic_builder(cfg: nets.TorsoConfig):
+def critic_builder(cfg: nets.TorsoConfig, return_scale: float):
     def _inner(x: jax.Array, a: jax.Array):
         torso = nets.torso_builder(cfg)
         phi = torso(x, a)
 
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
         return QRCOutputs(
-            q=hk.Linear(1, w_init=small_init, with_bias=False)(phi),
+            q=return_scale*hk.Linear(1, w_init=small_init, with_bias=False)(phi),
             h=hk.Linear(1, name='h', w_init=small_init, with_bias=False)(phi),
             phi=phi,
         )
@@ -62,6 +62,7 @@ def critic_builder(cfg: nets.TorsoConfig):
 class QRCConfig(CriticConfig):
     polyak_tau: float = 0.0
     action_regularization_epsilon: float = 0.1
+    return_scale: float = 1.0
 
 
 class QRCCritic:
@@ -108,7 +109,7 @@ class QRCCritic:
             ],
             skip=False,
         )
-        self._net = critic_builder(torso_cfg)
+        self._net = critic_builder(torso_cfg, cfg.return_scale)
         self._optim = optax.adamw(learning_rate=cfg.stepsize, weight_decay=cfg.weight_decay)
 
     # ----------------------

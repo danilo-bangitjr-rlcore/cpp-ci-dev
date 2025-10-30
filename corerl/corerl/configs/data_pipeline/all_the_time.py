@@ -23,6 +23,7 @@ class AllTheTimeTCConfig:
     min_n_step: int = 1
     max_n_step: int = MISSING
     gamma: float = MISSING
+    return_scale: float = 1.0
     normalize_return: bool = MISSING
 
     @computed('max_n_step')
