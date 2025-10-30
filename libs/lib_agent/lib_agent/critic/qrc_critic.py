@@ -236,37 +236,45 @@ class QRCCritic:
         # state shape is one of (state_dim,) or (batch, state_dim)
         # if state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim)
         # if state has batch dim, action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim)
-        f = self._net.apply
-        chex.assert_rank(rng, 1)
 
         if state.ndim == 1 and action.ndim == 1:
             # state (state_dim,) action (action_dim,)
-            return f(params, rng, state, action)
+            chex.assert_rank(rng, 1)
+            f = self._net.apply
 
-        if state.ndim == 1 and action.ndim == 2:
+        elif state.ndim == 1 and action.ndim == 2:
             # state (state_dim,) action (n_samples, action_dim)
             n_samples = action.shape[0]
             rng = jax.random.split(rng, n_samples)
             chex.assert_rank(rng, 2)
-            f = jax_u.vmap(f, (None, 0, None, 0))
+            f = jax_u.vmap(self._net.apply, (None, 0, None, 0))
 
-        if state.ndim == 2 and action.ndim == 2:
+        elif state.ndim == 2 and action.ndim == 2:
             # state (batch, state_dim,) action (batch, action_dim
             chex.assert_equal_shape_prefix((state, action), prefix_len=1)
             batch_size = action.shape[0]
             rng = jax.random.split(rng, batch_size)
             chex.assert_rank(rng, 2)
-            f = jax_u.vmap(f, (None, 0, 0, 0))
+            f = jax_u.vmap(self._net.apply, (None, 0, 0, 0))
 
-        if state.ndim == 2 and action.ndim == 3:
+        elif state.ndim == 2 and action.ndim == 3:
             # state (batch, state_dim,) action (batch, n_samples, action_dim)
             chex.assert_equal_shape_prefix((state, action), prefix_len=1)
             batch_size, n_samples = action.shape[:2]
             rng = jax.random.split(rng, (batch_size, n_samples))
             chex.assert_rank(rng, 3)
             f = jax_u.vmap(
-                    jax_u.vmap(f, (None, 0, None, 0)),  # inner maps over n_samples
+                    jax_u.vmap(self._net.apply, (None, 0, None, 0)),  # inner maps over n_samples
                 (None, 0, 0, 0),  # outer maps over batch
+            )
+
+        else:
+            raise ValueError(
+                "Invalid state and/or action input shapes. ",
+                "State shape is one of (state_dim,) or (batch, state_dim). ",
+                "If state is of shape (state_dim,), action must be of shape (action_dim,) or (n_samples, action_dim).",
+                "If state has batch dim, ",
+                "action must be of shape (batch, action_dim,) or (batch, n_samples, action_dim).",
             )
 
         return f(params, rng, state, action)
