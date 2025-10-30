@@ -38,6 +38,7 @@ class GreedyACConfig:
     loss_ema_factor: float = 0.75
     loss_threshold: float = 1e-4
     bootstrap_action_samples: int = 10
+    even_better_q: bool = False
 
 
 class GreedyAC:
@@ -192,5 +193,8 @@ class GreedyAC:
         return loss
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        qs = self._critic.forward(params, rng, x, a).q
+        out = self._critic.forward(params, rng, x, a)
+        qs = out.q
+        if self._cfg.even_better_q:
+            qs = out.q + out.h  # EvenBetterQ correction
         return qs.mean(axis=0).squeeze(-1)

@@ -66,6 +66,7 @@ class PercentileActorConfig:
     ensemble_aggregation: Literal["mean", "percentile"] = "mean"
     ensemble_percentile: float = 0.5
     buffer: BufferConfig = MISSING
+    even_better_q: bool = False
 
     @computed('buffer')
     @classmethod

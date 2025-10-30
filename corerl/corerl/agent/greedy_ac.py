@@ -336,7 +336,11 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.forward(params, rng, x, a).q
+        out = self.critic.forward(params, rng, x, a)
+        qs = out.q
+        if self.cfg.policy.even_better_q:
+            qs = out.q + out.h  # EvenBetterQ correction to qs
+
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 
