@@ -65,8 +65,7 @@ class QRCConfig(CriticConfig):
 
 
 class QRCCritic:
-    def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):
-        self._rng = jax.random.PRNGKey(seed)
+    def __init__(self, cfg: QRCConfig, state_dim: int, action_dim: int):
         self._cfg = cfg
         self._state_dim = state_dim
         self._action_dim = action_dim
