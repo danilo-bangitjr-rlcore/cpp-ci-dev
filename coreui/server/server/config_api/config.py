@@ -193,7 +193,7 @@ async def delete_tag(
 async def get_all_configs(path: str, subfolder: ConfigSubfolder = ConfigSubfolder.CLEAN) -> JSONResponse:
     configs_dir = Path(path)/subfolder
     config_files = list(configs_dir.glob("*.yaml"))
-    config_names = [f.stem for f in config_files]
+    config_names = sorted([f.stem for f in config_files])
     return JSONResponse(content={"configs": config_names},
                         status_code=status.HTTP_200_OK)
 

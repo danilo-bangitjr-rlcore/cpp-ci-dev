@@ -10,13 +10,13 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as OpcNavigationRouteImport } from './routes/opc-navigation'
-import { Route as AboutRouteImport } from './routes/about'
+import { Route as DiagnosticsRouteImport } from './routes/diagnostics'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AgentsIndexRouteImport } from './routes/agents/index'
 import { Route as AgentsConfigNameRouteImport } from './routes/agents/$config-name'
 import { Route as AgentsConfigNameIndexRouteImport } from './routes/agents/$config-name/index'
 import { Route as AgentsConfigNameTagsRouteImport } from './routes/agents/$config-name/tags'
-import { Route as AgentsConfigNameRewardRouteImport } from './routes/agents/$config-name/reward'
+import { Route as AgentsConfigNameObjectiveRouteImport } from './routes/agents/$config-name/objective'
 import { Route as AgentsConfigNameMonitorRouteImport } from './routes/agents/$config-name/monitor'
 import { Route as AgentsConfigNameGeneralSettingsRouteImport } from './routes/agents/$config-name/general-settings'
 
@@ -25,9 +25,9 @@ const OpcNavigationRoute = OpcNavigationRouteImport.update({
   path: '/opc-navigation',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AboutRoute = AboutRouteImport.update({
-  id: '/about',
-  path: '/about',
+const DiagnosticsRoute = DiagnosticsRouteImport.update({
+  id: '/diagnostics',
+  path: '/diagnostics',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -55,11 +55,12 @@ const AgentsConfigNameTagsRoute = AgentsConfigNameTagsRouteImport.update({
   path: '/tags',
   getParentRoute: () => AgentsConfigNameRoute,
 } as any)
-const AgentsConfigNameRewardRoute = AgentsConfigNameRewardRouteImport.update({
-  id: '/reward',
-  path: '/reward',
-  getParentRoute: () => AgentsConfigNameRoute,
-} as any)
+const AgentsConfigNameObjectiveRoute =
+  AgentsConfigNameObjectiveRouteImport.update({
+    id: '/objective',
+    path: '/objective',
+    getParentRoute: () => AgentsConfigNameRoute,
+  } as any)
 const AgentsConfigNameMonitorRoute = AgentsConfigNameMonitorRouteImport.update({
   id: '/monitor',
   path: '/monitor',
@@ -74,37 +75,37 @@ const AgentsConfigNameGeneralSettingsRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/diagnostics': typeof DiagnosticsRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
-  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/objective': typeof AgentsConfigNameObjectiveRoute
   '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/diagnostics': typeof DiagnosticsRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/agents': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
-  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/objective': typeof AgentsConfigNameObjectiveRoute
   '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name': typeof AgentsConfigNameIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/about': typeof AboutRoute
+  '/diagnostics': typeof DiagnosticsRoute
   '/opc-navigation': typeof OpcNavigationRoute
   '/agents/$config-name': typeof AgentsConfigNameRouteWithChildren
   '/agents/': typeof AgentsIndexRoute
   '/agents/$config-name/general-settings': typeof AgentsConfigNameGeneralSettingsRoute
   '/agents/$config-name/monitor': typeof AgentsConfigNameMonitorRoute
-  '/agents/$config-name/reward': typeof AgentsConfigNameRewardRoute
+  '/agents/$config-name/objective': typeof AgentsConfigNameObjectiveRoute
   '/agents/$config-name/tags': typeof AgentsConfigNameTagsRoute
   '/agents/$config-name/': typeof AgentsConfigNameIndexRoute
 }
@@ -112,43 +113,43 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/about'
+    | '/diagnostics'
     | '/opc-navigation'
     | '/agents/$config-name'
     | '/agents'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
-    | '/agents/$config-name/reward'
+    | '/agents/$config-name/objective'
     | '/agents/$config-name/tags'
     | '/agents/$config-name/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/about'
+    | '/diagnostics'
     | '/opc-navigation'
     | '/agents'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
-    | '/agents/$config-name/reward'
+    | '/agents/$config-name/objective'
     | '/agents/$config-name/tags'
     | '/agents/$config-name'
   id:
     | '__root__'
     | '/'
-    | '/about'
+    | '/diagnostics'
     | '/opc-navigation'
     | '/agents/$config-name'
     | '/agents/'
     | '/agents/$config-name/general-settings'
     | '/agents/$config-name/monitor'
-    | '/agents/$config-name/reward'
+    | '/agents/$config-name/objective'
     | '/agents/$config-name/tags'
     | '/agents/$config-name/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AboutRoute: typeof AboutRoute
+  DiagnosticsRoute: typeof DiagnosticsRoute
   OpcNavigationRoute: typeof OpcNavigationRoute
   AgentsConfigNameRoute: typeof AgentsConfigNameRouteWithChildren
   AgentsIndexRoute: typeof AgentsIndexRoute
@@ -163,11 +164,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof OpcNavigationRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/about': {
-      id: '/about'
-      path: '/about'
-      fullPath: '/about'
-      preLoaderRoute: typeof AboutRouteImport
+    '/diagnostics': {
+      id: '/diagnostics'
+      path: '/diagnostics'
+      fullPath: '/diagnostics'
+      preLoaderRoute: typeof DiagnosticsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/': {
@@ -205,11 +206,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AgentsConfigNameTagsRouteImport
       parentRoute: typeof AgentsConfigNameRoute
     }
-    '/agents/$config-name/reward': {
-      id: '/agents/$config-name/reward'
-      path: '/reward'
-      fullPath: '/agents/$config-name/reward'
-      preLoaderRoute: typeof AgentsConfigNameRewardRouteImport
+    '/agents/$config-name/objective': {
+      id: '/agents/$config-name/objective'
+      path: '/objective'
+      fullPath: '/agents/$config-name/objective'
+      preLoaderRoute: typeof AgentsConfigNameObjectiveRouteImport
       parentRoute: typeof AgentsConfigNameRoute
     }
     '/agents/$config-name/monitor': {
@@ -232,7 +233,7 @@ declare module '@tanstack/react-router' {
 interface AgentsConfigNameRouteChildren {
   AgentsConfigNameGeneralSettingsRoute: typeof AgentsConfigNameGeneralSettingsRoute
   AgentsConfigNameMonitorRoute: typeof AgentsConfigNameMonitorRoute
-  AgentsConfigNameRewardRoute: typeof AgentsConfigNameRewardRoute
+  AgentsConfigNameObjectiveRoute: typeof AgentsConfigNameObjectiveRoute
   AgentsConfigNameTagsRoute: typeof AgentsConfigNameTagsRoute
   AgentsConfigNameIndexRoute: typeof AgentsConfigNameIndexRoute
 }
@@ -240,7 +241,7 @@ interface AgentsConfigNameRouteChildren {
 const AgentsConfigNameRouteChildren: AgentsConfigNameRouteChildren = {
   AgentsConfigNameGeneralSettingsRoute: AgentsConfigNameGeneralSettingsRoute,
   AgentsConfigNameMonitorRoute: AgentsConfigNameMonitorRoute,
-  AgentsConfigNameRewardRoute: AgentsConfigNameRewardRoute,
+  AgentsConfigNameObjectiveRoute: AgentsConfigNameObjectiveRoute,
   AgentsConfigNameTagsRoute: AgentsConfigNameTagsRoute,
   AgentsConfigNameIndexRoute: AgentsConfigNameIndexRoute,
 }
@@ -250,7 +251,7 @@ const AgentsConfigNameRouteWithChildren =
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AboutRoute: AboutRoute,
+  DiagnosticsRoute: DiagnosticsRoute,
   OpcNavigationRoute: OpcNavigationRoute,
   AgentsConfigNameRoute: AgentsConfigNameRouteWithChildren,
   AgentsIndexRoute: AgentsIndexRoute,

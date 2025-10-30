@@ -4,7 +4,7 @@ import {
   ProgressBar,
   MetricCard,
   MetricHeader,
-} from '../components/about-components';
+} from '../components/diagnostics-components';
 import {
   useUiHealthQuery,
   useSystemHealthQuery,
@@ -13,13 +13,13 @@ import {
   useSystemCpuPerCoreQuery,
   useSystemRamQuery,
   useSystemDiskQuery,
-} from '../utils/useAboutQueries';
+} from '../utils/useDiagnosticsQueries';
 
-export const Route = createFileRoute('/about')({
-  component: About,
+export const Route = createFileRoute('/diagnostics')({
+  component: Diagnostics,
 });
 
-function About() {
+function Diagnostics() {
   const {
     data: healthData,
     isLoading: isHealthLoading,
@@ -44,7 +44,7 @@ function About() {
 
   return (
     <div className="p-2">
-      <h1 className="text-2xl font-bold mb-6">About</h1>
+      <h1 className="text-2xl font-bold mb-6">Diagnostics</h1>
 
       {/* CoreUI Server Status */}
       <div className="mb-6 p-4 bg-white rounded-lg border border-gray-200 shadow-sm">

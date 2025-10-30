@@ -7,7 +7,10 @@
 # -- Infrastructure --
 # --------------------
 log_path: "outputs/e2e_smoke"
-agent_name: dep_mountain_car_continuous_wide
+agent_name: example_deploy 
+
+feature_flags:
+  wide_metrics: True
 
 seed: 1
 is_simulation: False
@@ -31,6 +34,10 @@ coreio:
     enabled: True
     ingress_period: 00:00:00.5
   tags:
+  - name: heartbeat
+    connection_id: mountain_car_opc_connection
+    node_identifier: "ns=2;s=heartbeat"
+
   - name: action-0
     connection_id: mountain_car_opc_connection
     node_identifier: "ns=2;s=action-0"
@@ -55,6 +62,7 @@ event_bus:
 
 metrics:
   enabled: True
+  table_name: metrics2
 
 # -----------
 # -- Agent --
