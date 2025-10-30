@@ -241,24 +241,17 @@ class QRCCritic:
 
         if state.ndim == 1 and action.ndim == 1:
             # state (state_dim,) action (action_dim,)
-            chex.assert_rank(state, 1)
-            chex.assert_rank(action, 1)
-            chex.assert_rank(rng, 1)
             return f(params, rng, state, action)
 
         if state.ndim == 1 and action.ndim == 2:
             # state (state_dim,) action (n_samples, action_dim)
-            chex.assert_rank(state, 1)
-            chex.assert_rank(action, 2)
             n_samples = action.shape[0]
             rng = jax.random.split(rng, n_samples)
             chex.assert_rank(rng, 2)
             f = jax_u.vmap(f, (None, 0, None, 0))
 
         if state.ndim == 2 and action.ndim == 2:
-            # state (batch, state_dim,) action (batch, action_dim)
-            chex.assert_rank(state, 2)
-            chex.assert_rank(action, 2)
+            # state (batch, state_dim,) action (batch, action_dim
             chex.assert_equal_shape_prefix((state, action), prefix_len=1)
             batch_size = action.shape[0]
             rng = jax.random.split(rng, batch_size)
@@ -267,8 +260,6 @@ class QRCCritic:
 
         if state.ndim == 2 and action.ndim == 3:
             # state (batch, state_dim,) action (batch, n_samples, action_dim)
-            chex.assert_rank(state, 2)
-            chex.assert_rank(action, 3)
             chex.assert_equal_shape_prefix((state, action), prefix_len=1)
             batch_size, n_samples = action.shape[:2]
             rng = jax.random.split(rng, (batch_size, n_samples))
