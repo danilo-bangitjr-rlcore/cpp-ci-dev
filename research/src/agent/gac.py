@@ -42,6 +42,7 @@ class GreedyACConfig:
     even_better_q: bool = False
     ensemble_aggregation: str = 'mean'
     ensemble_percentile: float = .5
+    std_bonus: float = 1.0
 
 
 class GreedyAC:
@@ -209,4 +210,8 @@ class GreedyAC:
             return ensemble_values.mean(axis=0)
         if self._cfg.ensemble_aggregation == "percentile":
             return jnp.percentile(ensemble_values, self._cfg.ensemble_percentile * 100, axis=0)
+        if self._cfg.ensemble_aggregation == "ucb":
+            mean = ensemble_values.mean(axis=0)
+            std = ensemble_values.std(axis=0)
+            return mean + self._cfg.std_bonus * std
         raise ValueError(f"Unknown ensemble aggregation method: {self._cfg.ensemble_aggregation}")

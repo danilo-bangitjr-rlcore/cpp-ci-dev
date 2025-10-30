@@ -326,6 +326,10 @@ class GreedyAC(BaseAgent):
             return ensemble_values.mean(axis=0)
         if self.cfg.policy.ensemble_aggregation == "percentile":
             return jnp.percentile(ensemble_values, self.cfg.policy.ensemble_percentile * 100, axis=0)
+        if self.cfg.policy.ensemble_aggregation == "ucb":
+            mean = ensemble_values.mean(axis=0)
+            std = ensemble_values.std(axis=0)
+            return mean + self.cfg.policy.std_bonus * std
         raise ValueError(f"Unknown ensemble aggregation method: {self.cfg.policy.ensemble_aggregation}")
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
