@@ -65,6 +65,8 @@ class GreedyAC(BaseAgent):
             sigma_multiplier=cfg.policy.sigma_multiplier,
             max_action_stddev=cfg.max_action_stddev,
             sort_noise=cfg.policy.sort_noise,
+            sigma_regularization=cfg.policy.sigma_regularization,
+
         )
 
         self._actor = PercentileActor(
