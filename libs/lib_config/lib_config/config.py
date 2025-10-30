@@ -3,7 +3,7 @@ from collections.abc import Callable
 from dataclasses import field
 from typing import Any, dataclass_transform
 
-from pydantic import Field, PrivateAttr, ValidationInfo, model_validator
+from pydantic import BaseModel, Field, PrivateAttr, ValidationInfo, model_validator
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 MISSING: Any = "|???|"
@@ -110,3 +110,11 @@ def config(
             },
         )
     return _inner
+
+
+class Config(BaseModel):
+    model_config = {'extra': 'forbid'}
+
+
+class ConfigWithExtra(BaseModel):
+    model_config = {'extra': 'allow'}
