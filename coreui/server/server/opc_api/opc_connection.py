@@ -1,3 +1,4 @@
+import base64
 import logging
 
 from asyncua import Client, Node
@@ -37,7 +38,6 @@ class OPC_Connection_UI(OPC_Connection):
                 if isinstance(identifier, str):
                     return f"ns={ns};s={identifier}"
                 if isinstance(identifier, bytes):
-                    import base64
                     b64_id = base64.b64encode(identifier).decode('ascii')
                     return f"ns={ns};b={b64_id}"
                 if hasattr(identifier, 'hex'):  # UUID/Guid
