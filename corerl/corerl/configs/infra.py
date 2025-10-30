@@ -71,3 +71,6 @@ class FeatureFlags:
 
     # 2025-10-21
     polyak_critic: bool = False
+
+    # 2025-10-30
+    ucb: bool = False
