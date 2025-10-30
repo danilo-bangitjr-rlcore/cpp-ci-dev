@@ -30,8 +30,7 @@ def critic_config() -> QRCConfig:
 def critic(critic_config: QRCConfig) -> QRCCritic:
     state_dim = 4
     action_dim = 2
-    seed = 42
-    return QRCCritic(critic_config, seed, state_dim, action_dim)
+    return QRCCritic(critic_config, state_dim, action_dim)
 
 
 # ----------
@@ -175,8 +174,7 @@ def rolling_reset_config() -> QRCConfig:
 def rolling_critic(rolling_reset_config: QRCConfig) -> QRCCritic:
     state_dim = 4
     action_dim = 2
-    seed = 42
-    return QRCCritic(rolling_reset_config, seed, state_dim, action_dim)
+    return QRCCritic(rolling_reset_config, state_dim, action_dim)
 
 
 def test_rolling_reset_initialization(rolling_critic: QRCCritic):

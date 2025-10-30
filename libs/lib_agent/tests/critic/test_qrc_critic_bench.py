@@ -26,7 +26,7 @@ def _create_test_critic(ensemble_size: int, state_dim: int, action_dim: int):
         use_all_layer_norm=True,
         rolling_reset_config=RollingResetConfig(reset_period=10000, warm_up_steps=1000),
     )
-    return QRCCritic(config, seed=42, state_dim=state_dim, action_dim=action_dim)
+    return QRCCritic(config, state_dim=state_dim, action_dim=action_dim)
 
 
 def _create_fake_state(rng: np.random.Generator, state_dim: int, action_dim: int):

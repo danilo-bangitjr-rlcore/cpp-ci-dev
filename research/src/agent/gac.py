@@ -49,7 +49,7 @@ class GreedyAC:
         self._cfg = cfg
         self._collector = collector
 
-        self._critic = get_critic(cfg.critic, seed, state_dim, action_dim)
+        self._critic = get_critic(cfg.critic, state_dim, action_dim)
         self._actor = get_actor(cfg.actor, seed, state_dim, action_dim)
 
         # Replay Buffers
