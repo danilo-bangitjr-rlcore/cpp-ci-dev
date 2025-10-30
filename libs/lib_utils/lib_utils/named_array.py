@@ -117,8 +117,8 @@ class NamedArray:  # noqa: PLW1641
         )
         return Maybe(df)
 
-    def __array__(self) -> np.ndarray:
-        return np.asarray(self._values)
+    def __array__(self, *args: Any) -> np.ndarray:
+        return np.asarray(self._values, *args)
 
     def __jax_array__(self) -> jax.Array:
         return self._values
@@ -140,26 +140,29 @@ class NamedArray:  # noqa: PLW1641
             return Maybe[jax.Array](None)
         return Maybe(jnp.concat([jnp.expand_dims(self.get_feature(k).expect(), -1) for k in keys], axis=-1))
 
-    def __getitem__(self, key: int | slice | tuple[int | slice | EllipsisType, ...]):
+    def __getitem__(self, key: jax.Array | int | slice | tuple[int | slice | EllipsisType, ...]):
         if self.array.ndim == 1:
             raise IndexError("NamedArray must have more than one dim to be indexed")
 
         new_narr = NamedArray(self.names, self.array[key])
         # workaround to avoid working with numpy datetime64 in jax transforms
-        new_high_bits = maybe_expand_dim0(self._timestamps.high_bits[key])
-        new_low_bits = maybe_expand_dim0(self._timestamps.low_bits[key])
+        new_high_bits = self._timestamps.high_bits[key]
+        new_low_bits = self._timestamps.low_bits[key]
         new_narr._timestamps = JaxTimestamp(new_high_bits, new_low_bits)
         return new_narr
 
-
-    # arithmetic
     def set(self, values: jax.Array) -> Self:
         """
         method to update the values of the stored array.
         Useful to create a new NamedArray with the same feature names and timestamps, but new values
         """
-        return self.__class__(self.names, values, self.timestamps.to_datetime64())
+        assert values.shape == self._values.shape, "new values must have same shape as old values"
+        new = self.__class__(self.names, values)
+        new._timestamps = self._timestamps
+        return new
 
+
+    # arithmetic
     def add(self, other: Self) -> Self:
         """
         not commutative: keeps timestamps of self
@@ -260,6 +263,9 @@ class NamedArray:  # noqa: PLW1641
     def __len__(self) -> int:
         return len(self._values)
 
+    # Utils
+    def scale_between(self, min: Self, max: Self):
+        return self.sub(min).div(max.sub(min))
 
     # Pretty print
     def __repr__(self):
