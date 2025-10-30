@@ -46,13 +46,28 @@ jobs:
 
       - name: Build Linux Executables
         run: ./.github/workflows/scripts/build_linux_executables.sh
+      
+      - name: Extract version from artifacts.env
+        id: version
+        run: |
+          source ./dist/artifacts.env
+          echo "corerl_version=v${CORERL_VERSION}" >> $GITHUB_OUTPUT
 
       - name: Upload Linux executables
         uses: actions/upload-artifact@v4
         with:
-          name: corerl-linux-executables
+          name: corerl-linux-executables-${{ steps.version.outputs.corerl_version }}
           path: ./dist/
           retention-days: 30
+      
+      - name: Install Google Drive dependencies
+        run: uv pip install google-auth google-api-python-client tqdm
+
+      - name: Upload to Google Drive
+        run: uv run python ./.github/workflows/scripts/upload_to_gdrive.py --platform linux --version ${{ steps.version.outputs.corerl_version }}
+        env:
+          GDRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
+          GDRIVE_EXECUTABLES_FOLDER_ID: ${{ vars.GDRIVE_EXECUTABLES_FOLDER_ID }}
 
   build-windows-executables:
     runs-on: windows-latest
@@ -83,10 +98,30 @@ jobs:
 
       - name: Build Windows Executables
         run: .\.github\workflows\scripts\build_windows_executables.bat
+      
+      - name: Extract version from artifacts.env
+        id: version
+        shell: pwsh
+        run: |
+          Get-Content .\dist\artifacts.env | ForEach-Object {
+            if ($_ -match 'CORERL_VERSION=(.+)') {
+              "corerl_version=v$($matches[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              return
+            }
+          }
 
       - name: Upload Windows executables
         uses: actions/upload-artifact@v4
         with:
-          name: corerl-windows-executables
+          name: corerl-windows-executables-${{ steps.version.outputs.corerl_version }}
           path: ./dist/
           retention-days: 30
+      
+      - name: Install Google Drive dependencies
+        run: uv pip install google-auth google-api-python-client tqdm
+
+      - name: Upload to Google Drive
+        run: uv run python .\.github\workflows\scripts\upload_to_gdrive.py --platform windows --version ${{ steps.version.outputs.corerl_version }}
+        env:
+          GDRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
+          GDRIVE_EXECUTABLES_FOLDER_ID: ${{ vars.GDRIVE_EXECUTABLES_FOLDER_ID }}
