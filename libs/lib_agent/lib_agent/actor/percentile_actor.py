@@ -62,9 +62,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
 
 class PercentileActor:
-    def __init__(self, cfg: PAConfig, seed: int, state_dim: int, action_dim: int):
-        self.seed = seed
-        self.rng = jax.random.PRNGKey(seed)
+    def __init__(self, cfg: PAConfig, state_dim: int, action_dim: int):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self._cfg = cfg

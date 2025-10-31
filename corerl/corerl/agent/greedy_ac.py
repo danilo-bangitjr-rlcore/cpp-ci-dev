@@ -69,7 +69,6 @@ class GreedyAC(BaseAgent):
 
         self._actor = PercentileActor(
             actor_cfg,
-            app_state.cfg.seed,
             col_desc.state_dim,
             col_desc.action_dim,
         )
