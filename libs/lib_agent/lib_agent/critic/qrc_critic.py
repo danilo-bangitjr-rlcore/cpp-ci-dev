@@ -65,8 +65,7 @@ class QRCConfig(CriticConfig):
 
 
 class QRCCritic:
-    def __init__(self, cfg: QRCConfig, seed: int, state_dim: int, action_dim: int):
-        self._rng = jax.random.PRNGKey(seed)
+    def __init__(self, cfg: QRCConfig, state_dim: int, action_dim: int):
         self._cfg = cfg
         self._state_dim = state_dim
         self._action_dim = action_dim
@@ -149,8 +148,8 @@ class QRCCritic:
             metrics.update(critic_metrics)
         return metrics
 
-    def update(self, critic_state: CriticState, transitions: Transition, next_actions: jax.Array):
-        self._rng, update_rng, reset_rng = jax.random.split(self._rng, 3)
+    def update(self, seed: chex.PRNGKey, critic_state: CriticState, transitions: Transition, next_actions: jax.Array):
+        update_rng, reset_rng = jax.random.split(seed)
         chex.assert_rank(transitions.state.features, 3)  # (ens, batch, state_dim)
         chex.assert_tree_shape_prefix(transitions, transitions.state.features.shape[:2])
         chex.assert_rank(next_actions, 4)  # (ens, batch,  sample, action_dim)

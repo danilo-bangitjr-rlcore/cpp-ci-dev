@@ -29,7 +29,7 @@ class CriticConfig:
 class Critic(Protocol):
     """Protocol defining the interface for critic implementations."""
 
-    def __init__(self, cfg: CriticConfig, seed: int, state_dim: int, action_dim: int):
+    def __init__(self, cfg: CriticConfig, state_dim: int, action_dim: int):
         ...
 
     def init_state(self, rng: chex.PRNGKey, x: jax.Array, a: jax.Array) -> CriticState:
@@ -53,6 +53,7 @@ class Critic(Protocol):
 
     def update(
         self,
+        seed: chex.PRNGKey,
         critic_state: CriticState,
         transitions: Transition,
         *args: Any,

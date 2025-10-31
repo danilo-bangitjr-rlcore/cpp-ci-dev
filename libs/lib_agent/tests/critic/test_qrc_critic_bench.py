@@ -26,7 +26,7 @@ def _create_test_critic(ensemble_size: int, state_dim: int, action_dim: int):
         use_all_layer_norm=True,
         rolling_reset_config=RollingResetConfig(reset_period=10000, warm_up_steps=1000),
     )
-    return QRCCritic(config, seed=42, state_dim=state_dim, action_dim=action_dim)
+    return QRCCritic(config, state_dim=state_dim, action_dim=action_dim)
 
 
 def _create_fake_state(rng: np.random.Generator, state_dim: int, action_dim: int):
@@ -197,8 +197,10 @@ def test_critic_ensemble_update_small(benchmark: BenchmarkFixture):
     next_actions = jnp.array(rng.random((ensemble_size, batch_size, 64, action_dim)))
 
     def _inner(critic: QRCCritic, state: Any, transitions: Transition, next_actions: jax.Array):
+        update_rng = jax.random.PRNGKey(123)
         for _ in range(5):
-            _new_state, metrics = critic.update(state, transitions, next_actions)
+            update_rng, sub_rng = jax.random.split(update_rng)
+            _new_state, metrics = critic.update(sub_rng, state, transitions, next_actions)
             # Force computation
             _ = metrics.loss.sum()
 
@@ -256,8 +258,10 @@ def test_critic_ensemble_update_large(benchmark: BenchmarkFixture):
     next_actions = jnp.array(rng.random((ensemble_size, batch_size, 64, action_dim)))
 
     def _inner(critic: QRCCritic, state: Any, transitions: Transition, next_actions: jax.Array):
+        update_rng = jax.random.PRNGKey(123)
         for _ in range(3):
-            _new_state, metrics = critic.update(state, transitions, next_actions)
+            update_rng, sub_rng = jax.random.split(update_rng)
+            _new_state, metrics = critic.update(sub_rng, state, transitions, next_actions)
             # Force computation
             _ = metrics.loss.sum()
 
