@@ -196,9 +196,14 @@ class PercentileActor:
 
     # -------------------------------- get actions ------------------------------- #
 
-    def get_actions(self, actor_params: chex.ArrayTree, state: State, n: int = 1, std_devs: float = jnp.inf):
-        self.rng, sample_rng = jax.random.split(self.rng, 2)
-        return self.get_actions_rng(actor_params, sample_rng, state, n=n, std_devs=std_devs)
+    def get_actions(
+            self,
+            rng: chex.PRNGKey,
+            actor_params: chex.ArrayTree,
+            state: State, n: int = 1,
+            std_devs: float = jnp.inf,
+        ):
+        return self.get_actions_rng(actor_params, rng, state, n=n, std_devs=std_devs)
 
 
     @partial(jax_u.jit, static_argnums=(0, 4))

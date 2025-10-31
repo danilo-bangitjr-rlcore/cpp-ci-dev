@@ -86,7 +86,8 @@ class GreedyAC:
         self.policy_buffer.add(transition)
 
     def get_actions(self, state: State, n_samples: int = 1):
-        actions, _ = self._actor.get_actions(self.agent_state.actor.actor.params, state, n_samples)
+        self.rng, action_rng = jax.random.split(self.rng)
+        actions, _ = self._actor.get_actions(action_rng, self.agent_state.actor.actor.params, state, n_samples)
         chex.assert_shape(actions, (n_samples, self.action_dim))
         if n_samples == 1:
             return actions.squeeze(0)

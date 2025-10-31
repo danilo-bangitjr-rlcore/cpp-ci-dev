@@ -196,8 +196,9 @@ class GreedyAC(BaseAgent):
             ensemble_variance=qs.var(axis=0),
         )
 
-    def get_actions(self, state: State, n: int=1):
-        actions, _ = self._actor.get_actions(self._actor_state.actor.params, state, n=n)
+    def get_actions(self, state: State, n: int = 1):
+        self._jax_rng, action_rng = jax.random.split(self._jax_rng)
+        actions, _ = self._actor.get_actions(action_rng, self._actor_state.actor.params, state, n=n)
 
         return actions
 
@@ -207,7 +208,9 @@ class GreedyAC(BaseAgent):
         """
         self._app_state.event_bus.emit_event(RLEventType.agent_get_action)
 
+        self._jax_rng, action_rng = jax.random.split(self._jax_rng)
         jaxtion, metrics = self._actor.get_actions(
+            action_rng,
             self._actor_state.actor.params,
             state,
         )
@@ -270,7 +273,9 @@ class GreedyAC(BaseAgent):
             return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 
         critic_batch: Transition = self.critic_buffer.sample()
+        self._jax_rng, next_action_rng = jax.random.split(self._jax_rng)
         next_actions, _ = self._actor.get_actions(
+            next_action_rng,
             self._actor_state.actor.params,
             critic_batch.next_state,
             self.cfg.bootstrap_action_samples,
