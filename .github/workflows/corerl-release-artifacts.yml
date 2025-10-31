@@ -49,9 +49,19 @@ jobs:
       
       - name: Extract version from artifacts.env
         id: version
+        shell: pwsh
         run: |
-          source ./dist/artifacts.env
-          echo "corerl_version=v${CORERL_VERSION}" >> $GITHUB_OUTPUT
+          Write-Host "Contents of artifacts.env:"
+          Get-Content .\dist\artifacts.env
+          Get-Content .\dist\artifacts.env | ForEach-Object {
+            if ($_ -match 'CORERL_VERSION=(.+)') {
+              $version = $matches[1].Trim()
+              Write-Host "CORERL_VERSION variable: $version"
+              Write-Host "Setting output: corerl_version=v$version"
+              "corerl_version=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              return
+            }
+          }
 
       - name: Upload Linux executables
         uses: actions/upload-artifact@v4
@@ -60,11 +70,15 @@ jobs:
           path: ./dist/
           retention-days: 30
       
-      - name: Install Google Drive dependencies
-        run: uv pip install google-auth google-api-python-client tqdm
+      - name: Create zip for Google Drive upload
+        run: |
+          cd dist
+          zip -r "../corerl-linux-executables-${{ steps.version.outputs.corerl_version }}.zip" .
+          cd ..
+          ls -la corerl-linux-executables-${{ steps.version.outputs.corerl_version }}.zip
 
       - name: Upload to Google Drive
-        run: uv run python ./.github/workflows/scripts/upload_to_gdrive.py --platform linux --version ${{ steps.version.outputs.corerl_version }}
+        run: uv run --with google-auth --with google-api-python-client --with tqdm python ./.github/workflows/scripts/upload_to_gdrive.py --platform linux --version ${{ steps.version.outputs.corerl_version }}
         env:
           GDRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
           GDRIVE_EXECUTABLES_FOLDER_ID: ${{ vars.GDRIVE_EXECUTABLES_FOLDER_ID }}
@@ -98,14 +112,19 @@ jobs:
 
       - name: Build Windows Executables
         run: .\.github\workflows\scripts\build_windows_executables.bat
-      
+
       - name: Extract version from artifacts.env
         id: version
         shell: pwsh
         run: |
+          Write-Host "Contents of artifacts.env:"
+          Get-Content .\dist\artifacts.env
           Get-Content .\dist\artifacts.env | ForEach-Object {
             if ($_ -match 'CORERL_VERSION=(.+)') {
-              "corerl_version=v$($matches[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+              $version = $matches[1].Trim()
+              Write-Host "CORERL_VERSION variable: $version"
+              Write-Host "Setting output: corerl_version=v$version"
+              "corerl_version=v$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
               return
             }
           }
@@ -117,11 +136,16 @@ jobs:
           path: ./dist/
           retention-days: 30
       
-      - name: Install Google Drive dependencies
-        run: uv pip install google-auth google-api-python-client tqdm
+      - name: Create zip for Google Drive upload
+        shell: pwsh
+        run: |
+          cd dist
+          Compress-Archive -Path * -DestinationPath "../corerl-windows-executables-${{ steps.version.outputs.corerl_version }}.zip"
+          cd ..
+          Get-ChildItem "corerl-windows-executables-${{ steps.version.outputs.corerl_version }}.zip"
 
       - name: Upload to Google Drive
-        run: uv run python .\.github\workflows\scripts\upload_to_gdrive.py --platform windows --version ${{ steps.version.outputs.corerl_version }}
+        run: uv run --with google-auth --with google-api-python-client --with tqdm python .\.github\workflows\scripts\upload_to_gdrive.py --platform windows --version ${{ steps.version.outputs.corerl_version }}
         env:
           GDRIVE_SERVICE_ACCOUNT_KEY: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
           GDRIVE_EXECUTABLES_FOLDER_ID: ${{ vars.GDRIVE_EXECUTABLES_FOLDER_ID }}

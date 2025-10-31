@@ -77,8 +77,8 @@ def archive_existing_zip(service, folder_id: str, zip_name: str, version: str) -
 
 
 def upload_zip(platform: str, version: str) -> None:
-    zip_name = f"corerl-{platform}-executables.zip"
-    zip_path = Path("dist") / zip_name
+    zip_name = f"corerl-{platform}-executables-{version}.zip"
+    zip_path = Path(zip_name)
 
     if not zip_path.exists():
         logging.error(f"{zip_path} not found.")
