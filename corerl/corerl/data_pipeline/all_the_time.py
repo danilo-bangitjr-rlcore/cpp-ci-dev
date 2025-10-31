@@ -44,6 +44,7 @@ class AllTheTimeTC:
         self.cfg = cfg
 
         self.gamma = cfg.gamma
+        self.return_scale = cfg.return_scale
         self.min_n_step = cfg.min_n_step
         self.max_n_step = cfg.max_n_step
 
@@ -56,7 +57,7 @@ class AllTheTimeTC:
         actions = jnp.asarray(pf.actions.to_numpy(dtype=np.float32))
         rewards = pf.rewards['reward'].to_numpy(dtype=np.float32).copy()
         if self.cfg.normalize_return:
-            rewards *= (1 - self.gamma)
+            rewards *= self.return_scale*(1 - self.gamma)
 
         # dynamic action bounds
         action_lo = jnp.asarray(pf.action_lo.to_numpy(dtype=np.float32))

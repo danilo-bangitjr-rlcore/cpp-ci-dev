@@ -23,6 +23,7 @@ class CriticConfig:
     l2_regularization: float
     nominal_setpoint_updates: int = 1000
     use_all_layer_norm: bool = False
+    weight_decay: float = 0.001
     rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
 
 

@@ -165,7 +165,8 @@ class MainConfig:
         if not self.feature_flags.normalize_return:
             return
 
-        self.agent.loss_threshold = 1e-8
+        self.agent.return_scale = 100.0
+        self.pipeline.trajectory_creator.return_scale = 100.0
 
     @post_processor
     def _enable_wide_metrics(self, cfg: 'MainConfig'):
