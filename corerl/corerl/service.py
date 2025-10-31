@@ -9,7 +9,7 @@ import numpy as np
 from lib_defs.type_defs.base_events import EventTopic, EventType
 from service_framework.service import RLTuneService
 
-from corerl.agent.greedy_ac import GreedyAC
+from corerl.agent.greedy_ac import GAAC, GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
@@ -81,11 +81,19 @@ class CoreRLService(RLTuneService):
         self.env = init_async_env(self.cfg.env, self.cfg.pipeline.tags)
 
         column_desc = self.pipeline.column_descriptions
-        agent = GreedyAC(
-            self.cfg.agent,
-            self.app_state,
-            column_desc,
-        )
+        # Instantiate the appropriate agent based on config
+        if self.cfg.agent.name == "gaac":
+            agent = GAAC(
+                self.cfg.agent,
+                self.app_state,
+                column_desc,
+            )
+        else:
+            agent = GreedyAC(
+                self.cfg.agent,
+                self.app_state,
+                column_desc,
+            )
 
         app_state = self.app_state
         assert app_state is not None

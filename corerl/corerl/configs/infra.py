@@ -74,3 +74,6 @@ class FeatureFlags:
 
     # 2025-10-30
     ucb: bool = False
+
+    # 2025-10-31
+    adv_critic: bool = False
