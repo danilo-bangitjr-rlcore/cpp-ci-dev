@@ -53,6 +53,16 @@ class GTDCriticConfig:
 
 
 @config()
+class AdvCriticConfig(GTDCriticConfig):
+    """Config for Advantage-based critic."""
+    num_policy_actions: int = 100
+    advantage_centering_weight: float = 0.1
+    adv_l2_regularization: float = 1.0
+    h_lr_mult: float = 1.0
+    v_lr_mult: float = 1.0
+
+
+@config()
 class PercentileActorConfig:
     num_samples: int = 128
     actor_percentile: float = 0.05
@@ -100,10 +110,10 @@ class GreedyACConfig(BaseAgentConfig):
     for debugging. These may be modified in tests and
     research to illicit particular behaviors.
     """
-    name: Literal["greedy_ac"] = "greedy_ac"
+    name: Literal["greedy_ac", "gaac"] = "greedy_ac"
 
-    critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
-    policy: PercentileActorConfig = Field(default_factory=lambda: PercentileActorConfig())
+    critic: GTDCriticConfig | AdvCriticConfig = Field(default_factory=GTDCriticConfig)
+    policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
 
     loss_threshold: float = 0.0001
     """
