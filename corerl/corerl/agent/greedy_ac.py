@@ -47,6 +47,28 @@ class EnsembleNetworkReturn(NamedTuple):
     ensemble_variance: jax.Array
 
 
+def build_critic(cfg: GreedyACConfig, all_layer_norm: bool, state_dim: int, action_dim: int):
+    critic_cfg = QRCConfig(
+    name='qrc',
+    stepsize=cfg.critic.stepsize,
+    ensemble=cfg.critic.critic_network.ensemble,
+    ensemble_prob=cfg.critic.buffer.ensemble_probability,
+    num_rand_actions=cfg.bootstrap_action_samples,
+    action_regularization=cfg.critic.action_regularization,
+    action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
+    l2_regularization=1.0,
+    use_all_layer_norm=all_layer_norm,
+    rolling_reset_config=cfg.critic.rolling_reset_config,
+    polyak_tau=cfg.critic.polyak_tau,
+    )
+
+    return QRCCritic(
+        critic_cfg,
+        state_dim,
+        action_dim,
+    )
+
+
 class GreedyAC(BaseAgent):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
         super().__init__(cfg, app_state, col_desc)
@@ -75,29 +97,14 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        critic_cfg = QRCConfig(
-            name='qrc',
-            stepsize=cfg.critic.stepsize,
-            ensemble=cfg.critic.critic_network.ensemble,
-            ensemble_prob=cfg.critic.buffer.ensemble_probability,
-            num_rand_actions=cfg.bootstrap_action_samples,
-            action_regularization=cfg.critic.action_regularization,
-            action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
-            l2_regularization=1.0,
-            use_all_layer_norm=app_state.cfg.feature_flags.all_layer_norm,
-            rolling_reset_config=cfg.critic.rolling_reset_config,
-            polyak_tau=cfg.critic.polyak_tau,
-            weight_decay=cfg.weight_decay,
-            return_scale=cfg.return_scale,
-        )
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), Transition)
 
-        self.critic = QRCCritic(
-            critic_cfg,
+        self.critic = build_critic(
+            cfg,
+            app_state.cfg.feature_flags.all_layer_norm,
             col_desc.state_dim,
             col_desc.action_dim,
         )
-
-        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), Transition)
 
         critic_buffer_config = cfg.critic.buffer.to_lib_config()
         critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
