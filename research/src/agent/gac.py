@@ -179,7 +179,9 @@ class GreedyAC:
 
         transitions: Transition = self.policy_buffer.sample()
 
+        self.rng, actor_update_rng = jax.random.split(self.rng)
         actor_state, metrics = self._actor.update(
+            actor_update_rng,
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,

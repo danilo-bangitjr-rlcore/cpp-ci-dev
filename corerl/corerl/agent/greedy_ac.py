@@ -344,8 +344,10 @@ class GreedyAC(BaseAgent):
         if not self._actor_buffer.is_sampleable:
             return 0.
 
+        self._jax_rng, actor_update_rng = jax.random.split(self._jax_rng)
         actor_batch: Transition = self._actor_buffer.sample()
         self._actor_state, metrics = self._actor.update(
+            actor_update_rng,
             self._actor_state,
             self.ensemble_ve,
             self._critic_state.params,

@@ -118,8 +118,10 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         ve_params: Any,
         batch: Transition,
     ):
+        rng = jax.random.PRNGKey(0)
         for _ in range(config.iterations):
-            _new_state, metrics = actor.update(state, ve, ve_params, batch)
+            rng, update_rng = jax.random.split(rng)
+            _new_state, metrics = actor.update(update_rng, state, ve, ve_params, batch)
             # Force computation
             _ = metrics.actor_loss.sum()
 

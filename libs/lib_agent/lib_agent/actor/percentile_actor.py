@@ -274,15 +274,14 @@ class PercentileActor:
 
     def update(
         self,
+        update_rng: chex.PRNGKey,
         dist_state: PAState,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
         transitions: Transition,
     ):
 
-        self.rng, update_rng = jax.random.split(self.rng, 2)
-
-        states = jax.tree.map(lambda arr: arr[0], transitions.state) # remove ensemble dimension
+        states = jax.tree.map(lambda arr: arr[0], transitions.state)  # remove ensemble dimension
         chex.assert_equal_rank(states)
 
         actor_state, proposal_state, metrics = self._policy_update(
