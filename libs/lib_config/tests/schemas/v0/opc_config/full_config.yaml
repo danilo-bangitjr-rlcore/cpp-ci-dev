@@ -1,0 +1,44 @@
+log_level: DEBUG
+log_file: /var/log/coreio.log
+coreio_origin: tcp://192.168.1.100:5557
+coreio_app: inproc://custom_app
+
+data_ingress:
+  enabled: true
+  ingress_period: 00:00:02
+
+opc_connections:
+  - connection_id: primary_plc
+    client_timeout: 60
+    client_watchdog_interval: 45
+    opc_conn_url: opc.tcp://plc1.example.com:4840
+    application_uri: urn:example:coreio:client
+    security_policy:
+      policy: basic256_sha256
+      mode: sign_and_encrypt
+      client_cert_path: /etc/certs/client.pem
+      client_key_path: /etc/certs/client.key
+      server_cert_path: /etc/certs/server.pem
+    authentication_mode:
+      username: admin
+      password: secure_password
+
+  - connection_id: secondary_plc
+    opc_conn_url: opc.tcp://plc2.example.com:4840
+    security_policy:
+      policy: none
+      mode: none
+    authentication_mode: anonymous
+
+tags:
+  - name: temperature_sensor
+    connection_id: primary_plc
+    node_identifier: ns=2;s=Temperature
+
+  - name: pressure_sensor
+    connection_id: primary_plc
+    node_identifier: ns=2;s=Pressure
+
+  - name: flow_rate
+    connection_id: secondary_plc
+    node_identifier: ns=3;i=1001

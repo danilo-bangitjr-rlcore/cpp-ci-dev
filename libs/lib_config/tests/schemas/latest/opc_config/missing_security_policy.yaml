@@ -1,0 +1,6 @@
+schema_version: 1.0.0
+connections:
+  - connection_id: conn1
+    connection_url: opc.tcp://localhost:4840
+    authentication_mode: anonymous
+tags: []

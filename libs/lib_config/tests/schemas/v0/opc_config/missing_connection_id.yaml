@@ -1,0 +1,8 @@
+log_level: INFO
+opc_connections:
+  - opc_conn_url: opc.tcp://localhost:4840
+    security_policy:
+      policy: none
+      mode: none
+    authentication_mode: anonymous
+tags: []
