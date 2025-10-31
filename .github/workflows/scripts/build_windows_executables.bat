@@ -152,6 +152,13 @@ echo COREGATEWAY_ARTIFACT=!COREGATEWAY_ARTIFACT_NAME! >> dist\artifacts.env
 echo CORETELEMETRY_ARTIFACT=!CORETELEMETRY_ARTIFACT_NAME! >> dist\artifacts.env
 echo COREUI_ARTIFACT=!COREUI_ARTIFACT_NAME! >> dist\artifacts.env
 
+echo CORERL_VERSION=!CORERL_VERSION! >> dist\artifacts.env
+echo COREIO_VERSION=!COREIO_VERSION! >> dist\artifacts.env
+echo COREDINATOR_VERSION=!COREDINATOR_VERSION! >> dist\artifacts.env
+echo COREGATEWAY_VERSION=!COREGATEWAY_VERSION! >> dist\artifacts.env
+echo CORETELEMETRY_VERSION=!CORETELEMETRY_VERSION! >> dist\artifacts.env
+echo COREUI_VERSION=!COREUI_VERSION! >> dist\artifacts.env  
+
 %LOGCMD% Build completed successfully!
 %LOGCMD% Executables:
 %LOGCMD%   - dist\!CORERL_ARTIFACT_NAME!.exe
