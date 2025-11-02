@@ -82,7 +82,7 @@ class Service(ABC):
             args = self._build_args(exe, cfg)
             log.debug("Service command args", service_id=self.id, args_preview=args[:2])
 
-            self._process = Process.start_in_background(args, logger=log, service_id=self.id)
+            self._process = Process.start_in_background(args, service_id=self.id)
             log.info("Service started process", service_id=self.id, pid=self._process.psutil.pid, version=self._version)
 
         except Exception:
