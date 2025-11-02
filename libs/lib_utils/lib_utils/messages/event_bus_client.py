@@ -208,6 +208,8 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
 
         self.publisher_socket = self.context.socket(zmq.PUB)
         assert self.publisher_socket is not None
+        self.publisher_socket.setsockopt(zmq.LINGER, 1000)
+        self.publisher_socket.setsockopt(zmq.SNDHWM, 1000)
         self.publisher_socket.connect(self.publisher_endpoint)
 
         self.subscriber_socket = self.context.socket(zmq.SUB)
@@ -217,6 +219,10 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         for topic in self._subscribed_topics:
             topic_bytes = topic.name.encode()
             self.subscriber_socket.setsockopt(zmq.SUBSCRIBE, topic_bytes)
+
+        # Sleep to avoid "slow joiner" problem where initial messages may be lost
+        time.sleep(1.0)
+        logger.debug("Event bus client sockets configured and connected")
 
     def _reconnect(self) -> bool:
         with self._reconnect_lock:
