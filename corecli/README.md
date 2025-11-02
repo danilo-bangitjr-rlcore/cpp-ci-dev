@@ -72,6 +72,29 @@ corecli dev logs opc-server
 corecli dev logs grafana
 ```
 
+#### `corecli dev monitor-events`
+Monitor event bus traffic in real-time. This developer tool connects to the
+coredinator XPUB socket (default port 5571) and prints every published
+message to the console. It's useful for debugging pub/sub interactions and
+verifying that events are flowing between services.
+
+**Notes:**
+- The command connects as a subscriber to the event bus; ensure the
+	`coredinator` service is running and the event bus is available.
+- By default the command subscribes to all topics; you can filter to a
+	specific topic if needed.
+
+```bash
+# Monitor all event bus traffic (default host localhost, port 5571)
+corecli dev monitor-events
+
+# Connect to a specific host/port
+corecli dev monitor-events --host 127.0.0.1 --port 5571
+
+# Filter by a single topic
+corecli dev monitor-events --topic agent_events
+```
+
 ### Coredinator Management
 
 #### `corecli coredinator status`
