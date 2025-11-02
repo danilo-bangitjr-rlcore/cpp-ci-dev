@@ -200,7 +200,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             self.publisher_socket = None
 
         if self.context:
-            self.context.term()
+            self.context.destroy(linger=0)
             self.context = None
 
     def _setup_sockets(self):
