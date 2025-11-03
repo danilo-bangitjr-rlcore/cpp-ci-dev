@@ -14,6 +14,7 @@ dependencies = [
     "backoff~=2.2",
     "psutil~=7.0",
     "structlog~=25.4",
+    "service-framework",
 ]
 readme = "README.md"
 
@@ -44,6 +45,7 @@ packages = ["coredinator"]
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-process = { path = "../libs/lib_process", editable = true }
+service-framework = { path = "../libs/service_framework", editable = true }
 
 # ----------
 # -- Ruff --
