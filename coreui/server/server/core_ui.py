@@ -8,6 +8,7 @@ import httpx
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.responses import FileResponse
 
@@ -88,6 +89,10 @@ class CoreUI:
         assets_path = os.path.join(dist_path, "assets")
         if os.path.exists(assets_path):
             self.app.mount("/app/assets", StaticFiles(directory=assets_path), name="assets")
+
+        @self.app.get("/")
+        async def redirect():
+            return RedirectResponse(url="/app")
 
         @self.app.get("/api/health")
         async def health_check():
