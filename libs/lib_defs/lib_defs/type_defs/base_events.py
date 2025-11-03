@@ -66,6 +66,7 @@ class EventTopic(BaseEventTopic):
     corerl_cli = auto()
     coreio = auto()
     coreio_debug = auto()
+    coredinator = auto()
     debug_app = auto()
 
 
