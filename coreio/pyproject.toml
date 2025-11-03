@@ -14,6 +14,7 @@ dependencies = [
     "lib-defs",
     "lib-sql",
     "lib-utils",
+    "service-framework",
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
 ]
@@ -44,6 +45,7 @@ lib-config = { path = "../libs/lib_config", editable = true }
 lib-defs = { path = "../libs/lib_defs", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
+service-framework = { path = "../libs/service_framework", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'
