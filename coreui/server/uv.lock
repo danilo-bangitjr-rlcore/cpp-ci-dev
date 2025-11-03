@@ -278,7 +278,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.155.0"
+version = "0.156.0"
 source = { editable = "../../corerl" }
 dependencies = [
     { name = "coreio" },
