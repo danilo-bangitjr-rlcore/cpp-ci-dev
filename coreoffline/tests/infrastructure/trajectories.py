@@ -25,6 +25,7 @@ def trajectories_with_timestamps() -> list[Trajectory]:
         action_lo=jnp.array([0.0]),
         action_hi=jnp.array([1.0]),
         timestamp=base_time,
+        primitive_held=jnp.ones((1,)),
     )
     step_1_2 = Step(
         state=NamedArray.unnamed(jnp.array([2.0])),
@@ -36,6 +37,7 @@ def trajectories_with_timestamps() -> list[Trajectory]:
         action_lo=jnp.array([0.0]),
         action_hi=jnp.array([1.0]),
         timestamp=base_time + dt.timedelta(minutes=1),
+        primitive_held=jnp.ones((1,)),
     )
 
     trajectory_1 = Trajectory(
@@ -55,6 +57,7 @@ def trajectories_with_timestamps() -> list[Trajectory]:
         action_lo=jnp.array([0.0]),
         action_hi=jnp.array([1.0]),
         timestamp=base_time + dt.timedelta(minutes=2),
+        primitive_held=jnp.ones((1,)),
     )
     step_2_2 = Step(
         state=NamedArray.unnamed(jnp.array([4.0])),
@@ -66,6 +69,7 @@ def trajectories_with_timestamps() -> list[Trajectory]:
         action_lo=jnp.array([0.0]),
         action_hi=jnp.array([1.0]),
         timestamp=base_time + dt.timedelta(minutes=3),
+        primitive_held=jnp.ones((1,)),
     )
 
     trajectory_2 = Trajectory(

@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from functools import cached_property, partial
 from typing import Any, Literal, Self
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 import pandas as pd
@@ -52,11 +53,12 @@ class PipelineReturn:
     rewards: DataFrame
     action_lo: DataFrame
     action_hi: DataFrame
+    primitive_held: jax.Array
     trajectories: list[Trajectory] | None
 
     def _add(
         self, other: Self,
-    ) -> tuple[DataFrame, NamedArray, DataFrame, DataFrame, DataFrame, DataFrame, list[Trajectory] | None]:
+    ) -> tuple[DataFrame, NamedArray, DataFrame, DataFrame, DataFrame, DataFrame, jax.Array, list[Trajectory] | None]:
         assert self.data_mode == other.data_mode, "PipelineReturn objects must have the same DataMode to be added"
 
         df = pd.concat([self.df, other.df])
@@ -65,6 +67,7 @@ class PipelineReturn:
         rewards = pd.concat([self.rewards, other.rewards])
         action_lo = pd.concat([self.action_lo, other.action_lo])
         action_hi = pd.concat([self.action_hi, other.action_hi])
+        primitive_held = jnp.concat([self.primitive_held, other.primitive_held])
 
         trajectories = []
         if self.trajectories is None:
@@ -72,10 +75,10 @@ class PipelineReturn:
         elif other.trajectories is not None:
             trajectories = self.trajectories + other.trajectories
 
-        return df, states, actions, rewards, action_lo, action_hi, trajectories
+        return df, states, actions, rewards, action_lo, action_hi, primitive_held, trajectories
 
     def __iadd__(self, other: Self):
-        df, states, actions, rewards, action_lo, action_hi, trajectories = self._add(other)
+        df, states, actions, rewards, action_lo, action_hi, primitive_held, trajectories = self._add(other)
 
         self.df = df
         self.states = states
@@ -83,14 +86,17 @@ class PipelineReturn:
         self.rewards = rewards
         self.action_lo = action_lo
         self.action_hi = action_hi
+        self.primitive_held = primitive_held
         self.trajectories = trajectories
 
         return self
 
     def __add__(self, other: Self):
-        df, states, actions, rewards, action_lo, action_hi, trajectories = self._add(other)
+        df, states, actions, rewards, action_lo, action_hi, primitive_held, trajectories = self._add(other)
 
-        return PipelineReturn(self.data_mode, df, states, actions, rewards, action_lo, action_hi, trajectories)
+        return PipelineReturn(
+            self.data_mode, df, states, actions, rewards, action_lo, action_hi, primitive_held, trajectories,
+        )
 
 
 @dataclass
@@ -239,14 +245,16 @@ class Pipeline:
 
         # handle the no data case with an empty return
         if data.empty:
+            states = NamedArray.from_pandas(data)
             return PipelineReturn(
                 data_mode=data_mode,
                 df=data,
-                states=NamedArray.from_pandas(data),
+                states=states,
                 actions=data,
                 rewards=data,
                 action_lo=data,
                 action_hi=data,
+                primitive_held=jnp.ones_like(states.array),
                 trajectories=[],
             )
         data = data.astype(dtype=np.float32)
@@ -277,6 +285,7 @@ class Pipeline:
             rewards=pf.rewards,
             action_lo=pf.action_lo,
             action_hi=pf.action_hi,
+            primitive_held=pf.primitive_held,
             trajectories=pf.trajectories,
         )
 

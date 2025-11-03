@@ -55,6 +55,7 @@ class DeploymentInteraction:
             a_hi=jnp.full(self._column_desc.action_dim, np.nan),
             dp=jnp.full(1, np.nan),
             last_a=jnp.full(self._column_desc.action_dim, np.nan),
+            primitive_held=jnp.ones(1),
         )
         self._last_action_df: pd.DataFrame | None = None # used to ping setpoints
         self._last_state_ts: datetime | None = None
@@ -278,6 +279,7 @@ class DeploymentInteraction:
             a_hi=jnp.asarray(pipe_return.action_hi.iloc[-1]),
             dp=jnp.ones((1,)),
             last_a=jnp.asarray(pipe_return.actions.iloc[-1]),
+            primitive_held=pipe_return.primitive_held[-1],
         )
         self._last_state_ts=pr_ts.to_pydatetime() if isinstance(pr_ts, pd.Timestamp) else datetime.now(UTC)
 

@@ -29,6 +29,7 @@ class Step:
     action_hi: jax.Array
     dp: bool # decision point
     ac: bool # action change
+    primitive_held: jax.Array
     timestamp: datetime.datetime | None = None
 
     def __eq__(self, other: object):
@@ -153,6 +154,7 @@ class State(NamedTuple):
     a_hi : jax.Array
     dp: jax.Array
     last_a: jax.Array
+    primitive_held: jax.Array
 
 
 class Transition(NamedTuple):
@@ -176,6 +178,7 @@ def convert_trajectory_to_transition(trajectory: Trajectory) -> Transition:
             a_hi=trajectory.prior.action_hi,
             dp=jnp.expand_dims(trajectory.prior.dp, -1),
             last_a=trajectory.prior.action,
+            primitive_held=jnp.asarray(trajectory.prior.primitive_held),
         ),
         action=trajectory.action,
         n_step_reward=jnp.asarray(trajectory.n_step_reward),
