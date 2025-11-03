@@ -71,13 +71,13 @@ def critic_builder(
         v_torso = nets.torso_builder(v_cfg)
         phi_v = v_torso(x)
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
-        return hk.Linear(1, name='value_head', w_init=small_init, with_bias=True)(phi_v)
+        return hk.Linear(1, name='value_head', w_init=small_init, with_bias=False)(phi_v)
 
     def _h_network(x: jax.Array):
         h_torso = nets.torso_builder(h_cfg)
         phi_h = h_torso(x)
         small_init = hk.initializers.VarianceScaling(scale=0.0001)
-        return hk.Linear(1, name='h_delta_head', w_init=small_init, with_bias=True)(phi_h)
+        return hk.Linear(1, name='h_delta_head', w_init=small_init, with_bias=False)(phi_h)
 
     def _adv_network(x: jax.Array, a: jax.Array):
         adv_torso = nets.torso_builder(adv_cfg)
