@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import zmq
 from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 
-from lib_utils.messages.base_event_bus import BaseEventBus
+from lib_events.legacy.base_event_bus import BaseEventBus
 
 
 class Clock[
