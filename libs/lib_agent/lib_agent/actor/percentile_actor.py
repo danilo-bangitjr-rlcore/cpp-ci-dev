@@ -62,9 +62,7 @@ def actor_builder(cfg: nets.TorsoConfig, act_cfg: ActivationConfig, act_dim: int
 
 
 class PercentileActor:
-    def __init__(self, cfg: PAConfig, seed: int, state_dim: int, action_dim: int):
-        self.seed = seed
-        self.rng = jax.random.PRNGKey(seed)
+    def __init__(self, cfg: PAConfig, state_dim: int, action_dim: int):
         self.state_dim = state_dim
         self.action_dim = action_dim
         self._cfg = cfg
@@ -196,9 +194,14 @@ class PercentileActor:
 
     # -------------------------------- get actions ------------------------------- #
 
-    def get_actions(self, actor_params: chex.ArrayTree, state: State, n: int = 1, std_devs: float = jnp.inf):
-        self.rng, sample_rng = jax.random.split(self.rng, 2)
-        return self.get_actions_rng(actor_params, sample_rng, state, n=n, std_devs=std_devs)
+    def get_actions(
+            self,
+            rng: chex.PRNGKey,
+            actor_params: chex.ArrayTree,
+            state: State, n: int = 1,
+            std_devs: float = jnp.inf,
+        ):
+        return self.get_actions_rng(actor_params, rng, state, n=n, std_devs=std_devs)
 
 
     @partial(jax_u.jit, static_argnums=(0, 4))
@@ -274,15 +277,14 @@ class PercentileActor:
 
     def update(
         self,
+        update_rng: chex.PRNGKey,
         dist_state: PAState,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,
         transitions: Transition,
     ):
 
-        self.rng, update_rng = jax.random.split(self.rng, 2)
-
-        states = jax.tree.map(lambda arr: arr[0], transitions.state) # remove ensemble dimension
+        states = jax.tree.map(lambda arr: arr[0], transitions.state)  # remove ensemble dimension
         chex.assert_equal_rank(states)
 
         actor_state, proposal_state, metrics = self._policy_update(

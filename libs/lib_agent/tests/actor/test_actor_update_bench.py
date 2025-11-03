@@ -40,7 +40,6 @@ def _create_test_actor(state_dim: int, action_dim: int, num_samples: int = 256):
 
     return PercentileActor(
         cfg=config,
-        seed=42,
         state_dim=state_dim,
         action_dim=action_dim,
     )
@@ -118,8 +117,10 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         ve_params: Any,
         batch: Transition,
     ):
+        rng = jax.random.PRNGKey(0)
         for _ in range(config.iterations):
-            _new_state, metrics = actor.update(state, ve, ve_params, batch)
+            rng, update_rng = jax.random.split(rng)
+            _new_state, metrics = actor.update(update_rng, state, ve, ve_params, batch)
             # Force computation
             _ = metrics.actor_loss.sum()
 

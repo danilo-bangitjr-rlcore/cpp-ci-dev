@@ -50,7 +50,7 @@ class GreedyAC:
         self._collector = collector
 
         self._critic = get_critic(cfg.critic, state_dim, action_dim)
-        self._actor = get_actor(cfg.actor, seed, state_dim, action_dim)
+        self._actor = get_actor(cfg.actor, state_dim, action_dim)
 
         # Replay Buffers
         self.policy_buffer = EnsembleReplayBuffer[Transition](
@@ -86,7 +86,8 @@ class GreedyAC:
         self.policy_buffer.add(transition)
 
     def get_actions(self, state: State, n_samples: int = 1):
-        actions, _ = self._actor.get_actions(self.agent_state.actor.actor.params, state, n_samples)
+        self.rng, action_rng = jax.random.split(self.rng)
+        actions, _ = self._actor.get_actions(action_rng, self.agent_state.actor.actor.params, state, n_samples)
         chex.assert_shape(actions, (n_samples, self.action_dim))
         if n_samples == 1:
             return actions.squeeze(0)
@@ -179,7 +180,9 @@ class GreedyAC:
 
         transitions: Transition = self.policy_buffer.sample()
 
+        self.rng, actor_update_rng = jax.random.split(self.rng)
         actor_state, metrics = self._actor.update(
+            actor_update_rng,
             self.agent_state.actor,
             self.ensemble_ve,
             self.agent_state.critic.params,

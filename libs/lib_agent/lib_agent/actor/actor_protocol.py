@@ -82,6 +82,7 @@ class Actor(Protocol):
 
     def update(
         self,
+        update_rng: chex.PRNGKey,
         dist_state: ActorState,
         value_estimator: ValueEstimator,
         value_estimator_params: chex.ArrayTree,

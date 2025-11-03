@@ -28,7 +28,6 @@ def _create_test_actor(state_dim: int, action_dim: int, num_samples: int = 256):
 
     return PercentileActor(
         cfg=config,
-        seed=42,
         state_dim=state_dim,
         action_dim=action_dim,
     )
