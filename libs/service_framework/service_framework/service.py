@@ -32,6 +32,7 @@ class RLTuneService(ABC):
         event_bus_host: str = "localhost",
         event_bus_pub_port: int = 5570,
         event_bus_sub_port: int = 5571,
+        event_bus_enabled: bool = True,
     ):
         self.service_name = service_name
         self._event_topic = event_topic
@@ -40,9 +41,8 @@ class RLTuneService(ABC):
         self._event_bus_host = event_bus_host
         self._event_bus_pub_port = event_bus_pub_port
         self._event_bus_sub_port = event_bus_sub_port
-        self._event_bus_client: EventBusClient
-
-        logger.info(f"Service '{service_name}' initialized")
+        self._event_bus_enabled = event_bus_enabled
+        self._event_bus_client: EventBusClient | None = None
 
     # ============================================================
     # Public Lifecycle API
@@ -115,30 +115,40 @@ class RLTuneService(ABC):
     # Event Bus Integration
     # ============================================================
 
-    def get_event_bus_client(self) -> EventBusClient:
+    def get_event_bus_client(self) -> EventBusClient | None:
         return self._event_bus_client
 
     def _emit_lifecycle_event(self, event_type: EventType) -> None:
+        if not self._event_bus_enabled or self._event_bus_client is None:
+            return
+
         self._event_bus_client.emit_event(event_type, topic=self._event_topic)
         logger.debug(f"Emitted lifecycle event: {event_type}")
 
     async def _setup_event_bus_client(self) -> None:
+        if not self._event_bus_enabled:
+            return
+
         logger.info(
             f"Connecting event bus client: {self._event_bus_host}:"
             f"{self._event_bus_pub_port}/{self._event_bus_sub_port}",
         )
 
-        self._event_bus_client = EventBusClient(
+        client = EventBusClient(
             event_class=Event,
             host=self._event_bus_host,
             pub_port=self._event_bus_pub_port,
             sub_port=self._event_bus_sub_port,
         )
-        self._event_bus_client.connect()
+        client.connect()
+        self._event_bus_client = client
 
         logger.info("Event bus client connected")
 
     async def _teardown_event_bus_client(self) -> None:
+        if self._event_bus_client is None:
+            return
+
         logger.info("Closing event bus client")
         self._event_bus_client.close()
         logger.debug("Event bus client closed")

@@ -115,8 +115,9 @@ class CoreRLService(RLTuneService):
             if max_steps is not None and self.app_state.agent_step >= max_steps:
                 break
 
-            if self.step_count % 100 == 0:
-                self.get_event_bus_client().emit_event(
+            event_bus = self.get_event_bus_client()
+            if self.step_count % 100 == 0 and event_bus is not None:
+                event_bus.emit_event(
                     EventType.step_agent_update,
                     topic=EventTopic.corerl,
                 )
