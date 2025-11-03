@@ -175,3 +175,13 @@ class MainConfig:
 
         self.metrics.narrow_format = False
         self.metrics.table_name = self.metrics.table_name + '_wide'
+
+    @post_processor
+    def _enable_ucb(self, cfg: 'MainConfig'):
+        if not self.feature_flags.ucb:
+            return
+
+        self.agent.policy.ensemble_aggregation = 'ucb'
+        self.agent.policy.sigma_regularization = 0.1
+        self.agent.policy.std_bonus = 1.0
+        self.agent.policy.even_better_q = True

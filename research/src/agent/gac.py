@@ -4,6 +4,7 @@ from typing import Any, NamedTuple
 import chex
 import jax
 import jax.numpy as jnp
+import lib_utils.jax as jax_u
 import numpy as np
 from lib_agent.actor.actor_registry import get_actor
 from lib_agent.actor.percentile_actor import PAState
@@ -38,6 +39,10 @@ class GreedyACConfig:
     loss_ema_factor: float = 0.75
     loss_threshold: float = 1e-4
     bootstrap_action_samples: int = 10
+    even_better_q: bool = False
+    ensemble_aggregation: str = 'mean'
+    ensemble_percentile: float = .5
+    std_bonus: float = 1.0
 
 
 class GreedyAC:
@@ -195,5 +200,21 @@ class GreedyAC:
         return loss
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
-        qs = self._critic.forward(params, rng, x, a).q
-        return qs.mean(axis=0).squeeze(-1)
+        out = self._critic.forward(params, rng, x, a)
+        qs = out.q
+        if self._cfg.even_better_q:
+            qs = out.q + out.h  # EvenBetterQ correction
+        aggregated_values = self._aggregate_ensemble_values(qs)
+        return aggregated_values.squeeze(-1)
+
+    @jax_u.method_jit
+    def _aggregate_ensemble_values(self, ensemble_values: jax.Array) -> jax.Array:
+        if self._cfg.ensemble_aggregation == "mean":
+            return ensemble_values.mean(axis=0)
+        if self._cfg.ensemble_aggregation == "percentile":
+            return jnp.percentile(ensemble_values, self._cfg.ensemble_percentile * 100, axis=0)
+        if self._cfg.ensemble_aggregation == "ucb":
+            mean = ensemble_values.mean(axis=0)
+            std = ensemble_values.std(axis=0)
+            return mean + self._cfg.std_bonus * std
+        raise ValueError(f"Unknown ensemble aggregation method: {self._cfg.ensemble_aggregation}")

@@ -65,6 +65,8 @@ class GreedyAC(BaseAgent):
             sigma_multiplier=cfg.policy.sigma_multiplier,
             max_action_stddev=cfg.max_action_stddev,
             sort_noise=cfg.policy.sort_noise,
+            sigma_regularization=cfg.policy.sigma_regularization,
+
         )
 
         self._actor = PercentileActor(
@@ -332,6 +334,10 @@ class GreedyAC(BaseAgent):
             return ensemble_values.mean(axis=0)
         if self.cfg.policy.ensemble_aggregation == "percentile":
             return jnp.percentile(ensemble_values, self.cfg.policy.ensemble_percentile * 100, axis=0)
+        if self.cfg.policy.ensemble_aggregation == "ucb":
+            mean = ensemble_values.mean(axis=0)
+            std = ensemble_values.std(axis=0)
+            return mean + self.cfg.policy.std_bonus * std
         raise ValueError(f"Unknown ensemble aggregation method: {self.cfg.policy.ensemble_aggregation}")
 
     def ensemble_ve(self, params: chex.ArrayTree, rng: chex.PRNGKey, x: jax.Array, a: jax.Array):
@@ -342,7 +348,11 @@ class GreedyAC(BaseAgent):
 
         shape of returned q estimates is respectively () or (n_samples,)
         """
-        qs = self.critic.forward(params, rng, x, a).q
+        out = self.critic.forward(params, rng, x, a)
+        qs = out.q
+        if self.cfg.policy.even_better_q:
+            qs = out.q + out.h  # EvenBetterQ correction to qs
+
         aggregated_values = self._aggregate_ensemble_values(qs)
         return aggregated_values.squeeze(-1)
 

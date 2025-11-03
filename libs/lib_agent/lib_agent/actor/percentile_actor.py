@@ -42,6 +42,7 @@ class PAConfig(ActorConfig):
     sort_noise: float = 0.0
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
+    sigma_regularization: float = 0.0
     max_action_stddev: float = jnp.inf
 
 
@@ -431,7 +432,7 @@ class PercentileActor:
         log_prob = dist.log_prob(top_actions) # log prob for each action dimension
         loss = jnp.sum(log_prob)
 
-        return -loss
+        return -loss + self._cfg.sigma_regularization * jnp.sum(jnp.square(out.sigma - 0.001))
 
     def _batch_policy_loss(
         self,

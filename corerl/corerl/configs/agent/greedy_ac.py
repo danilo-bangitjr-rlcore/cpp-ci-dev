@@ -63,9 +63,12 @@ class PercentileActorConfig:
     sampler_stepsize: float = 0.0001
     mu_multiplier: float = 1.0
     sigma_multiplier: float = 1.0
-    ensemble_aggregation: Literal["mean", "percentile"] = "mean"
+    ensemble_aggregation: Literal["mean", "percentile", "ucb"] = "mean"
     ensemble_percentile: float = 0.5
+    sigma_regularization: float = 0.0
     buffer: BufferConfig = MISSING
+    even_better_q: bool = False
+    std_bonus: float = 1.0
 
     @computed('buffer')
     @classmethod
