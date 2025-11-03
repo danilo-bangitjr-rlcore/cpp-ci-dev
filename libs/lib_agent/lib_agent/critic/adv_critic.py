@@ -21,11 +21,6 @@ from lib_agent.critic.critic_utils import (
 from lib_agent.critic.rolling_reset import RollingResetManager
 
 
-class AdvParams(NamedTuple):
-    adv_params: chex.ArrayTree
-    val_params: chex.ArrayTree
-
-
 class AdvCriticOutputs(NamedTuple):
     q: jax.Array
     v: jax.Array
