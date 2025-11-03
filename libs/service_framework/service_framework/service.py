@@ -9,7 +9,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
-from lib_utils.messages.event_bus_client import EventBusClient
+from lib_events.client.event_bus_client import EventBusClient
 
 logger = logging.getLogger(__name__)
 
