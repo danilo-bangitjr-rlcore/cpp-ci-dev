@@ -116,6 +116,37 @@ dev = [
 ]
 
 [[package]]
+name = "lib-events"
+version = "0.0.0"
+source = { editable = "../lib_events" }
+dependencies = [
+    { name = "lib-defs" },
+    { name = "lib-utils" },
+    { name = "pydantic" },
+    { name = "pyzmq" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lib-defs", editable = "../lib_defs" },
+    { name = "lib-utils", editable = "../lib_utils" },
+    { name = "pydantic", specifier = ">=2.11.5" },
+    { name = "pyzmq", specifier = "~=27.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "pytest-xdist", specifier = ">=3.7.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
 name = "lib-utils"
 version = "0.0.0"
 source = { editable = "../lib_utils" }
@@ -426,6 +457,7 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "lib-defs" },
+    { name = "lib-events" },
     { name = "lib-utils" },
 ]
 
@@ -445,6 +477,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "lib-defs", editable = "../lib_defs" },
+    { name = "lib-events", editable = "../lib_events" },
     { name = "lib-utils", editable = "../lib_utils" },
 ]
 
