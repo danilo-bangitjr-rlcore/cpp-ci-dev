@@ -262,7 +262,7 @@ class SingleActionDelayedObsSaturationTest(BSuiteTestCase):
     """
     name = 'single action delayed obs saturation'
     config = 'test/behavior/saturation/single_action_delayed_obs_saturation.yaml'
-    category = {BehaviourCategory.ROBUSTNESS}
+    category = {BehaviourCategory.CREDIT_ASSIGNMENT}
     lower_bounds = { 'reward': -0.04 }
 
 class MultiActionDelayedObsSaturationTest(BSuiteTestCase):
@@ -273,7 +273,7 @@ class MultiActionDelayedObsSaturationTest(BSuiteTestCase):
     """
     name = 'multi action delayed obs saturation'
     config = 'test/behavior/saturation/multi_action_delayed_obs_saturation.yaml'
-    category = {BehaviourCategory.ROBUSTNESS}
+    category = {BehaviourCategory.CREDIT_ASSIGNMENT}
     lower_bounds = { 'reward': -0.15 }
 
 class SingleActionFilteredSaturationTest(BSuiteTestCase):
