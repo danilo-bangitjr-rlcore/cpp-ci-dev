@@ -6,6 +6,7 @@ requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "lib-defs",
+    "lib-utils",
     "pydantic>=2.11.5",
     "pyzmq~=27.1",
 ]
@@ -48,3 +49,4 @@ major_version_zero = true
 
 [tool.uv.sources]
 lib-defs = { path = "../lib_defs", editable = true }
+lib-utils = { path = "../lib_utils", editable = true }

@@ -121,6 +121,7 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "lib-defs" },
+    { name = "lib-utils" },
     { name = "pydantic" },
     { name = "pyzmq" },
 ]
@@ -140,6 +141,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "lib-defs", editable = "../lib_defs" },
+    { name = "lib-utils", editable = "../lib_utils" },
     { name = "pydantic", specifier = ">=2.11.5" },
     { name = "pyzmq", specifier = "~=27.1" },
 ]
