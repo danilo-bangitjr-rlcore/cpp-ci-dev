@@ -1,10 +1,9 @@
+import logging
 import threading
 
 import zmq
 
-from coredinator.logging_config import get_logger
-
-logger = get_logger(__name__)
+logger = logging.getLogger(__name__)
 
 class EventBusProxy:
     def __init__(
@@ -35,9 +34,7 @@ class EventBusProxy:
         self._proxy_thread.start()
         self._running = True
         logger.info(
-            "Event bus proxy started",
-            xsub_addr=self.xsub_addr,
-            xpub_addr=self.xpub_addr,
+            f"Event bus proxy started - xsub: {self.xsub_addr}, xpub: {self.xpub_addr}",
         )
 
     def _forward_messages(self, xsub_socket: zmq.Socket, xpub_socket: zmq.Socket):
@@ -52,7 +49,7 @@ class EventBusProxy:
                 if self._stop_event.is_set():
                     break
 
-                logger.error("ZMQ polling error", error=str(e))
+                logger.error(f"ZMQ polling error: {e}")
                 continue
 
             if xsub_socket in socks:
@@ -75,15 +72,13 @@ class EventBusProxy:
             self.xsub_socket.bind(self.xsub_addr)
             self.xpub_socket.bind(self.xpub_addr)
             logger.debug(
-                "ZMQ proxy sockets bound",
-                xsub_addr=self.xsub_addr,
-                xpub_addr=self.xpub_addr,
+                f"ZMQ proxy sockets bound - xsub: {self.xsub_addr}, xpub: {self.xpub_addr}",
             )
 
             self._forward_messages(self.xsub_socket, self.xpub_socket)
 
         except Exception as e:
-            logger.error("Event bus proxy error", error=str(e), exc_info=True)
+            logger.error(f"Event bus proxy error: {e}", exc_info=True)
         finally:
             self._cleanup_sockets()
 

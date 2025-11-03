@@ -1,7 +1,8 @@
-from coredinator.event_bus.proxy import EventBusProxy
-from coredinator.logging_config import get_logger
+import logging
 
-logger = get_logger(__name__)
+from lib_events.server.proxy import EventBusProxy
+
+logger = logging.getLogger(__name__)
 
 class EventBusManager:
     def __init__(
