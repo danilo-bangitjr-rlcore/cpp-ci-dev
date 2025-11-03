@@ -1,7 +1,7 @@
 from collections import deque
 
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
-from lib_utils.messages.base_event_bus import BaseEventBus, Callback
+from lib_events.legacy.base_event_bus import BaseEventBus, Callback
 
 from corerl.configs.messages.event_bus import EventBusConfig
 

@@ -4,8 +4,8 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import zmq
-from lib_utils.messages.base_event_bus import BaseEventBus
-from lib_utils.messages.clock import Clock
+from lib_events.legacy.base_event_bus import BaseEventBus
+from lib_events.legacy.clock import Clock
 
 from coreio.config import DataIngressConfig
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType

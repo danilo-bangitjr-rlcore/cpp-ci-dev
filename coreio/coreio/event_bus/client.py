@@ -1,5 +1,5 @@
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
-from lib_utils.messages.event_bus_client import EventBusClient as _EventBusClient
+from lib_events.client.event_bus_client import EventBusClient as _EventBusClient
 
 
 class IOEventBusClient(_EventBusClient[Event, EventType, EventTopic]):
