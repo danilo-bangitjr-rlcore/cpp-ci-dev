@@ -1,8 +1,6 @@
 env:
-  name: sim_async_env
   gym:
     env_config:
-      name: Saturation-v0
       decay: 0.6
       effect: 1.0
       trace_val: 0.99
@@ -10,37 +8,6 @@ env:
       setpoint_schedule: {0: 0.1}
       delay: 10
 
-interaction:
-  name: sim_interaction
-  obs_period: 00:00:01
-  action_period: 00:00:01
-
-seed: 1
-max_steps: 2000
-
-agent:
-  gamma: 0.99
-
-pipeline:
-  tags:
-  # meta tags
-  - name: terminated
-    type: meta
-
-  - name: truncated
-    type: meta
-
-  - name: reward
-    type: meta
-
-  # observations
-  - name: tag-0
-    operating_range: [0, 1]
-
-  # actions
-  - name: action-0
-    type: ai_setpoint
-    operating_range: [0, 0.5]
-
 defaults:
   - ../computational_params
+  - direct_single_action_saturation
