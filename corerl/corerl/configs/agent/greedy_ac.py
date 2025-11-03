@@ -29,6 +29,7 @@ class GTDCriticConfig:
     action_regularization: float = 0.0
     action_regularization_epsilon: float = 0.1
     buffer: BufferConfig = MISSING
+    all_layer_norm: bool = False
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
     rolling_reset_config: RollingResetConfig = Field(default_factory=RollingResetConfig)

@@ -202,3 +202,10 @@ class MainConfig:
         self.agent.policy.sigma_regularization = 0.1
         self.agent.policy.std_bonus = 1.0
         self.agent.policy.even_better_q = True
+
+    @post_processor
+    def _enable_all_layer_norm(self, cfg: 'MainConfig'):
+        if not self.feature_flags.all_layer_norm:
+            return
+
+        self.agent.critic.all_layer_norm = True

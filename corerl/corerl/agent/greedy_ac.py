@@ -47,7 +47,7 @@ class EnsembleNetworkReturn(NamedTuple):
     ensemble_variance: jax.Array
 
 
-def build_critic(cfg: GreedyACConfig, all_layer_norm: bool, state_dim: int, action_dim: int):
+def build_critic(cfg: GreedyACConfig, state_dim: int, action_dim: int):
     if isinstance(cfg.critic, AdvCriticConfig):
         critic_cfg = AdvConfig(
             name='adv',
@@ -57,7 +57,7 @@ def build_critic(cfg: GreedyACConfig, all_layer_norm: bool, state_dim: int, acti
             num_rand_actions=cfg.bootstrap_action_samples,
             action_regularization=cfg.critic.action_regularization,
             l2_regularization=1.0,
-            use_all_layer_norm=all_layer_norm,
+            use_all_layer_norm=cfg.critic.all_layer_norm,
             rolling_reset_config=cfg.critic.rolling_reset_config,
             polyak_tau=cfg.critic.polyak_tau,
             num_policy_actions=cfg.critic.num_policy_actions,
@@ -82,7 +82,7 @@ def build_critic(cfg: GreedyACConfig, all_layer_norm: bool, state_dim: int, acti
     action_regularization=cfg.critic.action_regularization,
     action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
     l2_regularization=1.0,
-    use_all_layer_norm=all_layer_norm,
+    use_all_layer_norm=cfg.critic.all_layer_norm,
     rolling_reset_config=cfg.critic.rolling_reset_config,
     polyak_tau=cfg.critic.polyak_tau,
     )
@@ -126,7 +126,6 @@ class GreedyAC(BaseAgent):
 
         self.critic = build_critic(
             cfg,
-            app_state.cfg.feature_flags.all_layer_norm,
             col_desc.state_dim,
             col_desc.action_dim,
         )
