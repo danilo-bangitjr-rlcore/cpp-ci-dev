@@ -46,6 +46,20 @@ class DebugInfo(NamedTuple):
     pred: jax.Array
     error: jax.Array
 
+    def has_nan(self):
+        return (
+            jnp.isnan(self.losses).any()
+            or jnp.isnan(self.pred).any()
+            or jnp.isnan(self.error).any()
+        )
+
+    def has_inf(self):
+        return (
+            jnp.isinf(self.losses).any()
+            or jnp.isinf(self.pred).any()
+            or jnp.isinf(self.error).any()
+        )
+
 
 def _to_input(data: ImputeData):
     return jnp.hstack((data.obs.array, data.traces.array, data.obs_nanmask.array, data.trace_nanmask.array))
@@ -352,13 +366,9 @@ class MaskedAutoencoder(BaseImputer):
 
         if self._debug and (
             jnp.isnan(batch_losses).any()
-            or jnp.isnan(debug_info.losses).any()
-            or jnp.isnan(debug_info.pred).any()
-            or jnp.isnan(debug_info.error).any()
             or jnp.isinf(batch_losses).any()
-            or jnp.isinf(debug_info.losses).any()
-            or jnp.isinf(debug_info.pred).any()
-            or jnp.isinf(debug_info.error).any()
+            or debug_info.has_nan()
+            or debug_info.has_inf()
         ):
             logger.error("nan or inf detected during AE training")
 
