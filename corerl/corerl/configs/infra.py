@@ -77,3 +77,6 @@ class FeatureFlags:
 
     # 2025-10-31
     adv_critic: bool = False
+
+    # 2025-11-04
+    gamma_schedule: bool = False
