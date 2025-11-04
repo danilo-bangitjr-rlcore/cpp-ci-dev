@@ -19,6 +19,7 @@ jobs:
             all_layer_norm,
             polyak_critic,
             adv_critic,
+            gamma_schedule,
         ]
     steps:
       - uses: actions/checkout@v4
