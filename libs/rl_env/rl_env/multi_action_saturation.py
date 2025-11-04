@@ -65,7 +65,6 @@ class MultiActionSaturation(gym.Env):
         self._obs_max = np.ones(self.num_controllers)
         self.observation_space = gym.spaces.Box(self._obs_min, self._obs_max)
 
-        self.saturations = np.zeros(self.num_controllers)
         self.filter_saturations = np.zeros(self.num_controllers)
         self.setpoints = np.array(cfg.setpoints[:self.num_controllers])
         self.effect_period = cfg.effect_period
@@ -140,9 +139,9 @@ class MultiActionSaturation(gym.Env):
         for i in range(self.num_controllers):
             if self.filter_threshes[i]:
                 # Observed saturation is the amount above the filter threshold
-                self.saturations[i] = np.clip(self.filter_saturations[i] - self.filter_threshes[i], 0, 1).item()
+                saturation = np.clip(self.filter_saturations[i] - self.filter_threshes[i], 0, 1).item()
                 self.filter_saturations[i] = np.clip(self.filter_saturations[i], 0.0, self.filter_threshes[i]).item()
-                self.delayed_saturations[i].appendleft(self.saturations[i])
+                self.delayed_saturations[i].appendleft(saturation)
             else:
                 self.filter_saturations[i] = np.clip(self.filter_saturations[i], 0, 1).item()
                 self.delayed_saturations[i].appendleft(self.filter_saturations[i])
@@ -151,7 +150,7 @@ class MultiActionSaturation(gym.Env):
         reward = self.get_multimodal_reward(observed_saturations, self.setpoints)
 
         self.history_effects.append(base_effects)
-        self.history_saturations.append(self.saturations.copy())
+        self.history_saturations.append(observed_saturations.copy())
         self.history_raw_actions.append(action.copy())
         self.history_actions.append(self.action_traces.copy())
 
@@ -260,7 +259,7 @@ class MultiActionSaturation(gym.Env):
         if seed is not None:
             self._random = np.random.default_rng(seed)
 
-        self.saturations = np.zeros(self.num_controllers)
+        self.filter_saturations = np.zeros(self.num_controllers)
         self.action_traces = np.zeros(self.num_controllers)
         self.time_step = 0
 
@@ -269,7 +268,7 @@ class MultiActionSaturation(gym.Env):
         self.history_actions = []
         self.history_raw_actions = []
 
-        obs = self.saturations if options is None else options['state']
+        obs = self.filter_saturations if options is None else options['state']
         return obs, {}
 
     def close(self):
