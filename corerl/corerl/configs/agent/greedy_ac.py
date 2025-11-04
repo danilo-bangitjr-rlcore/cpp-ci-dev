@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Literal
 
 from lib_agent.critic.critic_utils import RollingResetConfig
+from lib_agent.gamma_schedule import GammaScheduleConfig
 from lib_config.config import MISSING, computed, config
 from pydantic import Field
 
@@ -115,6 +116,7 @@ class GreedyACConfig(BaseAgentConfig):
 
     critic: GTDCriticConfig | AdvCriticConfig = Field(default_factory=GTDCriticConfig)
     policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
+    gamma_schedule: GammaScheduleConfig = Field(default_factory=GammaScheduleConfig)
 
     loss_threshold: float = 0.0001
     """
