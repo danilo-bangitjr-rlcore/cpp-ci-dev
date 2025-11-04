@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+import chex
 import jax
 from lib_config.config import MISSING, config
 
@@ -20,11 +21,11 @@ class BaseEnsembleResetMetric(ABC):
     def __init__(self, config: BaseEnsembleResetMetricConfig, gamma: float):
         self.config = config
         self.gamma = gamma
-        self._jax_rng = jax.random.PRNGKey(0)
 
     @abstractmethod
     def __call__(
         self,
+        rng: chex.PRNGKey,
         transition: Transition,
         critic_state: CriticState,
         critic: Critic,
