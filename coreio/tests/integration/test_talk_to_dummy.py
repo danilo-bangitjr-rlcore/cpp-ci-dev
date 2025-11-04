@@ -84,6 +84,7 @@ async def test_communication_write_only(opc_port: int):
             f"coreio.opc_connections[0].opc_conn_url=opc.tcp://admin@localhost:{opc_port}",
             f"coreio.coreio_origin=tcp://localhost:{zmq_port}",
             "coreio.data_ingress.enabled=false",
+            "coreio.event_bus_client.enabled=false",
         ))
 
         await asyncio.sleep(1)  # Wait for coreio startup
@@ -144,6 +145,7 @@ async def test_communication(tsdb_engine: Engine, tsdb_tmp_db_name: str, opc_por
             "coreio.data_ingress.ingress_period=00:00:00.02",
             f"infra.db.port={tsdb_engine.url.port}",
             f"infra.db.db_name={tsdb_tmp_db_name}",
+            "coreio.event_bus_client.enabled=false",
         ))
 
         await asyncio.sleep(1)  # Wait for coreio startup

@@ -7,8 +7,8 @@ class EventBusManager:
     def __init__(
         self,
         host: str = "*",
-        pub_port: int = 5559,
-        sub_port: int = 5560,
+        pub_port: int = 5570,
+        sub_port: int = 5571,
     ):
         self.host = host
         self.pub_port = pub_port

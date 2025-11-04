@@ -9,8 +9,8 @@ logger = get_logger(__name__)
 class EventBusProxy:
     def __init__(
         self,
-        xsub_addr: str = "tcp://*:5559",
-        xpub_addr: str = "tcp://*:5560",
+        xsub_addr: str = "tcp://*:5570",
+        xpub_addr: str = "tcp://*:5571",
     ):
         self.xsub_addr = xsub_addr
         self.xpub_addr = xpub_addr

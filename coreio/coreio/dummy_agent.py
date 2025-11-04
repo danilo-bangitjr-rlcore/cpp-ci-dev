@@ -74,7 +74,7 @@ def main(cfg: MainConfigAdapter):
     time.sleep(1)
 
     socket.close()
-    context.term()
+    context.destroy(linger=0)
 
 if __name__ == "__main__":
     main()
