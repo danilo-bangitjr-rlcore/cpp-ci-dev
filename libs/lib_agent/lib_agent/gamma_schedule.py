@@ -12,6 +12,7 @@ which is not supported by these schedulers.
 
 import math
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 
 import jax.numpy as jnp
 
@@ -37,7 +38,7 @@ class LogarithmicGammaScheduler(GammaScheduler):
     def __init__(
         self,
         max_gamma: float = 0.99,
-        update_interval: int = 100,
+        update_interval: int = 25,
         horizon: int = 1000,
     ):
         assert 0 <= max_gamma <= 1, f"max_gamma must be in [0, 1], got {max_gamma}"
@@ -57,3 +58,48 @@ class LogarithmicGammaScheduler(GammaScheduler):
         denominator = math.log(self._horizon + 1) / self.max_gamma
         gamma = numerator / denominator
         return min(gamma, self.max_gamma)
+
+
+@dataclass
+class GammaScheduleConfig:
+    type: str = "logarithmic"
+    max_gamma: float = 0.99
+    update_interval: int = 25
+    horizon: int = 1000
+
+    def __post_init__(self):
+        """Validates configuration parameters."""
+        if self.type not in {"logarithmic"}:
+            raise ValueError(f"type must be 'logarithmic', got '{self.type}'")
+
+        if not 0 <= self.max_gamma <= 1:
+            raise ValueError(f"max_gamma must be in [0, 1], got {self.max_gamma}")
+
+        if self.update_interval <= 0:
+            raise ValueError(f"update_interval must be positive, got {self.update_interval}")
+
+        if self.horizon <= 0:
+            raise ValueError(f"horizon must be positive, got {self.horizon}")
+
+    def to_dict(self):
+        """Returns configuration as a dictionary."""
+        return {
+            "type": self.type,
+            "max_gamma": self.max_gamma,
+            "update_interval": self.update_interval,
+            "horizon": self.horizon,
+        }
+
+
+def create_gamma_scheduler(config: GammaScheduleConfig | None) -> GammaScheduler | None:
+    """Creates and returns the appropriate gamma scheduler instance from config."""
+    if config is None:
+        return None
+
+    if config.type == 'logarithmic':
+        return LogarithmicGammaScheduler(
+            max_gamma=config.max_gamma,
+            update_interval=config.update_interval,
+            horizon=config.horizon,
+        )
+    raise ValueError(f"Unknown scheduler type: {config.type}")
