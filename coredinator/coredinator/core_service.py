@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import uvicorn
@@ -98,11 +99,16 @@ class CoredinatorService(RLTuneService):
 
         logger.info("Event bus client connected")
 
-    async def _do_run(self):
+    async def _do_run(self) -> AsyncGenerator[None]:
         assert self.server is not None
 
         logger.info("Starting uvicorn server")
-        await self.server.serve()
+        serve_task = asyncio.create_task(self.server.serve())
+        while not serve_task.done():
+            await asyncio.sleep(0.1)
+            yield
+
+        await serve_task
 
     async def _do_stop(self):
         # Shutdown order: client -> web server -> event bus server

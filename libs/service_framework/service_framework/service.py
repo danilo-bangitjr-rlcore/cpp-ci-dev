@@ -4,6 +4,7 @@ import signal
 import sys
 import time
 from abc import ABC, abstractmethod
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 
@@ -60,7 +61,7 @@ class RLTuneService(ABC):
             self._emit_lifecycle_event(EventType.service_started)
             logger.info(f"Service '{self.service_name}' started successfully")
 
-            await self._do_run()
+            await self._run_loop()
 
         except Exception as e:
             self._state = ServiceState.FAILED
@@ -165,8 +166,15 @@ class RLTuneService(ABC):
     async def _do_stop(self) -> None:
         ...
 
-    async def _do_run(self) -> None:
-        return
+    @abstractmethod
+    async def _do_run(self) -> AsyncGenerator[None]:
+        ...
+        yield
+
+    async def _run_loop(self) -> None:
+        async for _ in self._do_run():
+            if self._state == ServiceState.STOPPING:
+                break
 
     # ============================================================
     # Run Forever with Retry Logic

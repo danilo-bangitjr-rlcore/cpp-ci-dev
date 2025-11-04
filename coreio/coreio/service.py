@@ -1,6 +1,6 @@
-import asyncio
 import logging
 import threading
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -123,7 +123,7 @@ class CoreIOService(RLTuneService):
 
         logger.info("CoreIO is ready")
 
-    async def _do_run(self):
+    async def _do_run(self) -> AsyncGenerator[None]:
         assert self.zmq_communication is not None
 
         logger.debug("Starting main event loop")
@@ -133,7 +133,7 @@ class CoreIOService(RLTuneService):
                 logger.info("Received exit event, shutting down CoreIO...")
                 break
 
-            await asyncio.sleep(0)
+            yield
 
     async def _do_stop(self):
         if self.ingress_stop_event is not None:
