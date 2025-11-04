@@ -5,6 +5,7 @@ from typing import Any, Literal, assert_never
 
 import numpy as np
 import pandas as pd
+from lib_defs.type_defs.base_events import Event, EventType
 from lib_utils.maybe import Maybe
 
 from corerl.configs.tags.components.bounds import (
@@ -18,7 +19,6 @@ from corerl.configs.tags.components.bounds import (
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.preprocess import Preprocessor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame
-from corerl.messages.events import RLEvent, RLEventType
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -280,7 +280,7 @@ class ZoneDiscourager:
                 pf.action_hi.loc[violation.row_idx, f'{reflex_cfg.tag}-hi'] = norm_hi
 
 
-class ZoneViolationEvent(RLEvent):
+class ZoneViolationEvent(Event):
     tag: str
     percent: float
     direction: ViolationDirection
@@ -288,7 +288,7 @@ class ZoneViolationEvent(RLEvent):
     @staticmethod
     def from_violation(violation: ZoneViolation):
         return ZoneViolationEvent(
-            type=RLEventType.red_zone_violation if violation.kind == 'red' else RLEventType.yellow_zone_violation,
+            type=EventType.red_zone_violation if violation.kind == 'red' else EventType.yellow_zone_violation,
             tag=violation.tag.name,
             percent=violation.percent,
             direction=violation.direction,

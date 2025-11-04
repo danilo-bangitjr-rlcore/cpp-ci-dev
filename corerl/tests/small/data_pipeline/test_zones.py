@@ -1,5 +1,6 @@
 import pandas as pd
 import pytest
+from lib_defs.type_defs.base_events import EventType
 
 from corerl.config import MainConfig
 from corerl.data_pipeline.datatypes import DataMode
@@ -8,7 +9,6 @@ from corerl.data_pipeline.zones import ZoneDiscourager, ZoneViolationEvent
 from corerl.eval.evals.factory import create_evals_writer
 from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
-from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from tests.infrastructure.config import create_config_with_overrides
 from tests.sdk.factories import PipelineFrameFactory
@@ -85,32 +85,32 @@ def test_zones1(
         assert len(emitted_events) == 6
         assert (
             isinstance(emitted_events[0], ZoneViolationEvent)
-            and emitted_events[0].type == RLEventType.red_zone_violation
+            and emitted_events[0].type == EventType.red_zone_violation
             and emitted_events[0].tag == 'tag-0'
         )
         assert (
             isinstance(emitted_events[1], ZoneViolationEvent)
-            and emitted_events[1].type == RLEventType.red_zone_violation
+            and emitted_events[1].type == EventType.red_zone_violation
             and emitted_events[1].tag == 'tag-1'
         )
         assert (
             isinstance(emitted_events[2], ZoneViolationEvent)
-            and emitted_events[2].type == RLEventType.yellow_zone_violation
+            and emitted_events[2].type == EventType.yellow_zone_violation
             and emitted_events[2].tag == 'tag-1'
         )
         assert (
             isinstance(emitted_events[3], ZoneViolationEvent)
-            and emitted_events[3].type == RLEventType.yellow_zone_violation
+            and emitted_events[3].type == EventType.yellow_zone_violation
             and emitted_events[3].tag == 'tag-2'
         )
         assert (
             isinstance(emitted_events[4], ZoneViolationEvent)
-            and emitted_events[4].type == RLEventType.yellow_zone_violation
+            and emitted_events[4].type == EventType.yellow_zone_violation
             and emitted_events[4].tag == 'tag-1'
         )
         assert (
             isinstance(emitted_events[5], ZoneViolationEvent)
-            and emitted_events[5].type == RLEventType.yellow_zone_violation
+            and emitted_events[5].type == EventType.yellow_zone_violation
             and emitted_events[5].tag == 'tag-2'
         )
 

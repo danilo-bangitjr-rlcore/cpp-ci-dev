@@ -199,7 +199,7 @@ from corerl.messages.events import RLEventType, RLEventTopic
 
 client = EventBusClient()  # Uses RLEvent by default
 client.connect()
-client.emit_event(RLEventType.agent_started, topic=RLEventTopic.corerl)
+client.emit_event(RLEventType.service_started, topic=RLEventTopic.corerl)
 ```
 
 ## Integration with CoreIO

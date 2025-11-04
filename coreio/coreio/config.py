@@ -6,6 +6,8 @@ from typing import Literal
 from lib_config.config import MISSING, config, list_
 from pydantic import Field
 
+from coreio.configs.messages.event_bus_client import EventBusClientConfig
+
 
 @config(allow_extra=True, frozen=True)
 class TagConfigAdapter:
@@ -71,6 +73,7 @@ class DataIngressConfig:
 @config(frozen=True)
 class CoreIOConfig:
     data_ingress: DataIngressConfig = Field(default_factory=DataIngressConfig)
+    event_bus_client: EventBusClientConfig = Field(default_factory=EventBusClientConfig)
     coreio_origin: str = "tcp://localhost:5557"
     coreio_app: str = "inproc://coreio_app"
     opc_connections: list[OPCConnectionConfig] = list_()

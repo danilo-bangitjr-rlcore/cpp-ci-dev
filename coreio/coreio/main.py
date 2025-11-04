@@ -4,13 +4,16 @@
 import asyncio
 import sys
 import threading
+import time
 
 from lib_config.loader import load_config
+from lib_defs.type_defs.base_events import EventTopic, EventType
 
 from coreio.communication.opc_communication import OPC_Connection_IO
 from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.communication.sql_communication import SQL_Manager
 from coreio.communication.zmq_communication import ZMQ_Communication
+from coreio.event_bus.client import EventBusClient
 from coreio.utils.config_schemas import InteractionConfigAdapter, MainConfigAdapter, PipelineConfigAdapter
 from coreio.utils.event_handlers import handle_read_event, handle_write_event
 from coreio.utils.io_events import IOEvent, IOEventTopic, IOEventType
@@ -23,6 +26,20 @@ async def coreio_loop(cfg: MainConfigAdapter):
     log_file = get_log_file_name(cfg.coreio)
     logger = setup_logging(cfg.coreio.log_level, log_file)
     logger.info(f"Initialized logger with log file: {log_file}")
+
+    event_bus_client: EventBusClient | None = None
+    if cfg.coreio.event_bus_client.enabled:
+        event_bus_client = EventBusClient(
+            host=cfg.coreio.event_bus_client.host,
+            pub_port=cfg.coreio.event_bus_client.pub_port,
+            sub_port=cfg.coreio.event_bus_client.sub_port,
+        )
+        event_bus_client.connect()
+        logger.info(
+            f"Event bus client connected to "
+            f"{cfg.coreio.event_bus_client.host}:{cfg.coreio.event_bus_client.pub_port}/{cfg.coreio.event_bus_client.sub_port}",
+        )
+
     logger.info("Starting OPC Connections")
 
     # Temporary flag to keep reading opc details from pipeline in old config versions
@@ -101,29 +118,35 @@ async def coreio_loop(cfg: MainConfigAdapter):
 
     logger.info("CoreIO is ready")
 
+    if event_bus_client is not None:
+        event_bus_client.emit_event(
+            EventType.service_started,
+            topic=EventTopic.coreio,
+        )
+
     try:
         logger.debug("Starting main event loop")
         async for event in zmq_communication.async_listen_forever():
             logger.debug(f"Processing event {event.type} in main loop")
-            if event.type == IOEventType.exit_io:
+            if event.type == EventType.exit_io:
                 logger.info("Received exit event, shutting down CoreIO...")
                 break
 
     except Exception:
         logger.exception("CoreIO error occurred")
+        if event_bus_client is not None:
+            event_bus_client.emit_event(
+                EventType.service_error,
+                topic=EventTopic.coreio,
+            )
     finally:
-        logger.info("Cleaning up OPC connections")
-        logger.debug(f"Cleaning up {len(opc_connections)} OPC connections")
-        for opc_conn in opc_connections.values():
-            await opc_conn.cleanup()
-
-        logger.info("Cleaning up ZMQ communication")
-        zmq_communication.cleanup()
-        if ingress_stop_event:
-            logger.debug("Setting ingress stop event")
-            ingress_stop_event.set()
-
-        logger.info("CoreIO finished cleanup")
+        if event_bus_client is not None:
+            event_bus_client.emit_event(
+                EventType.service_stopped,
+                topic=EventTopic.coreio,
+            )
+            time.sleep(0.1)
+            event_bus_client.close()
 
 def main():
     asyncio.run(coreio_loop())

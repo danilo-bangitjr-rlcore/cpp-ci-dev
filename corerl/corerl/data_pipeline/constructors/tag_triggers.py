@@ -3,11 +3,11 @@ from collections.abc import Sequence
 from functools import cached_property
 
 import numpy as np
+from lib_defs.type_defs.base_events import EventTopic
 
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.constructors.constructor import Constructor
 from corerl.data_pipeline.datatypes import DataMode, PipelineFrame, StageCode
-from corerl.messages.events import RLEventTopic
 from corerl.state import AppState
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ class TagTrigger(Constructor):
                 for event in events:
                     self._app_state.event_bus.emit_event(
                         event,
-                        topic=RLEventTopic.corerl,
+                        topic=EventTopic.corerl,
                     )
 
         return pf

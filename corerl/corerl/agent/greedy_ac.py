@@ -18,6 +18,7 @@ from lib_agent.critic.critic_utils import (
 )
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 from lib_defs.config_defs.tag_config import TagType
+from lib_defs.type_defs.base_events import EventType
 from lib_utils.named_array import NamedArray
 
 from corerl.agent.base import BaseAgent
@@ -25,7 +26,6 @@ from corerl.configs.agent.greedy_ac import (
     GreedyACConfig,
 )
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
-from corerl.messages.events import RLEventType
 from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
 
@@ -209,7 +209,7 @@ class GreedyAC(BaseAgent):
         """
         Samples a single action during interaction.
         """
-        self._app_state.event_bus.emit_event(RLEventType.agent_get_action)
+        self._app_state.event_bus.emit_event(EventType.agent_get_action)
 
         self._jax_rng, action_rng = jax.random.split(self._jax_rng)
         jaxtion, metrics = self._actor.get_actions(
@@ -232,7 +232,7 @@ class GreedyAC(BaseAgent):
         if pr.trajectories is None:
             return
 
-        self._app_state.event_bus.emit_event(RLEventType.agent_update_buffer)
+        self._app_state.event_bus.emit_event(EventType.agent_update_buffer)
 
         transitions = [convert_trajectory_to_transition(t) for t in pr.trajectories]
 
@@ -433,7 +433,7 @@ class GreedyAC(BaseAgent):
     # ---------------------------- saving and loading ---------------------------- #
 
     def save(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(RLEventType.agent_save)
+        self._app_state.event_bus.emit_event(EventType.agent_save)
 
         path.mkdir(parents=True, exist_ok=True)
 
@@ -450,7 +450,7 @@ class GreedyAC(BaseAgent):
             pkl.dump(self.critic_buffer, f)
 
     def load(self, path: Path) -> None:
-        self._app_state.event_bus.emit_event(RLEventType.agent_load)
+        self._app_state.event_bus.emit_event(EventType.agent_load)
 
         actor_path = path / "actor.pkl"
         with open(actor_path, "rb") as f:

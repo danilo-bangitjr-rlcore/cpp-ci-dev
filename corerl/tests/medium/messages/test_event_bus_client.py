@@ -3,10 +3,10 @@ import time
 
 import pytest
 import zmq
+from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 from test.infrastructure.networking import get_free_port
 
 from corerl.event_bus.client import EventBusClient
-from corerl.messages.events import RLEvent, RLEventTopic, RLEventType
 
 
 @pytest.fixture
@@ -115,8 +115,8 @@ def test_client_emit_without_connect(pub_port: int, sub_port: int):
     client = EventBusClient(host="127.0.0.1", pub_port=pub_port, sub_port=sub_port)
     assert not client.is_connected()
 
-    event = RLEvent(type=RLEventType.agent_started)
-    client.emit_event(event, topic=RLEventTopic.corerl)
+    event = Event(type=EventType.service_started)
+    client.emit_event(event, topic=EventTopic.corerl)
 
 
 @pytest.mark.timeout(5)
@@ -162,20 +162,20 @@ def test_client_callback_invocation(mock_proxy: tuple[zmq.Socket, zmq.Socket], p
 
     callback_invoked = []
 
-    def test_callback(event: RLEvent):
+    def test_callback(event: Event):
         callback_invoked.append(event)
 
-    subscriber.subscribe(RLEventTopic.corerl)
-    subscriber.attach_callback(RLEventType.agent_started, test_callback)
+    subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, test_callback)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event = RLEvent(type=RLEventType.agent_started)
-    publisher.emit_event(event, topic=RLEventTopic.corerl)
+    event = Event(type=EventType.service_started)
+    publisher.emit_event(event, topic=EventTopic.corerl)
     time.sleep(0.5)
 
     assert len(callback_invoked) == 1
-    assert callback_invoked[0].type == RLEventType.agent_started
+    assert callback_invoked[0].type == EventType.service_started
 
     publisher.close()
     subscriber.close()

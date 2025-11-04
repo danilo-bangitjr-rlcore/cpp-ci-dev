@@ -2,7 +2,7 @@ from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 from lib_utils.messages.event_bus_client import EventBusClient as _EventBusClient
 
 
-class RLEventBusClient(_EventBusClient[Event, EventType, EventTopic]):
+class IOEventBusClient(_EventBusClient[Event, EventType, EventTopic]):
     def __init__(
         self,
         host: str = "localhost",
@@ -17,4 +17,4 @@ class RLEventBusClient(_EventBusClient[Event, EventType, EventTopic]):
         )
 
 
-EventBusClient = RLEventBusClient
+EventBusClient = IOEventBusClient
