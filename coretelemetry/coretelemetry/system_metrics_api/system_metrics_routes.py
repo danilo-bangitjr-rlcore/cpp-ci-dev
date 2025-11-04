@@ -1,3 +1,4 @@
+import asyncio
 import platform
 
 import psutil
@@ -29,9 +30,45 @@ class DiskResponse(BaseModel):
     total_gb: float
 
 
+class SystemMetricsResponse(BaseModel):
+    platform: str
+    cpu: CPUResponse
+    cpu_per_core: CPUPerCoreResponse
+    ram: MemoryResponse
+    disk: DiskResponse
+
+
 system_metrics_router = APIRouter(
     tags=["System Metrics"],
 )
+
+@system_metrics_router.get("/api/system", response_model=SystemMetricsResponse)
+async def get_system_metrics():
+    """
+    Get all system metrics in a single request.
+
+    Returns:
+        Dictionary containing platform, CPU, RAM, and disk usage information
+    """
+    # Fetch all metrics in parallel for better performance
+    platform_task = asyncio.create_task(asyncio.to_thread(platform.system))
+    cpu_task = asyncio.create_task(asyncio.to_thread(psutil.cpu_percent, 1))
+    cpu_per_core_task = asyncio.create_task(asyncio.to_thread(psutil.cpu_percent, 1, True))
+    ram_task = asyncio.create_task(asyncio.to_thread(psutil.virtual_memory))
+    disk_task = asyncio.create_task(asyncio.to_thread(psutil.disk_usage, '/'))
+
+    # Wait for all tasks to complete
+    platform_data, cpu_percent, cpu_per_core, ram, disk = await asyncio.gather(
+        platform_task, cpu_task, cpu_per_core_task, ram_task, disk_task,
+    )
+
+    return {
+        "platform": platform_data,
+        "cpu": {"percent": cpu_percent},
+        "cpu_per_core": {"percent": cpu_per_core},
+        "ram": {"percent": ram.percent, "used_gb": ram.used / (1024**3), "total_gb": ram.total / (1024**3)},
+        "disk": {"percent": disk.percent, "used_gb": disk.used / (1024**3), "total_gb": disk.total / (1024**3)},
+    }
 
 @system_metrics_router.get("/api/system/platform", response_model=PlatformResponse)
 async def get_system_platform():
