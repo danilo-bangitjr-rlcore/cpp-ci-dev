@@ -53,5 +53,5 @@ major_version_zero = true
 
 [tool.uv.sources]
 lib-defs = { path = "../lib_defs", editable = true }
-lib-events = { path = "../lib_events", editable = true }
 lib-utils = { path = "../lib_utils", editable = true }
+lib-events = { path = "../lib_events", editable = true }

@@ -8,8 +8,8 @@ import requests
 import yaml
 from docker.models.containers import Container
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
-from lib_process.process import Process
 from lib_events.client.event_bus_client import EventBusClient
+from lib_process.process import Process
 
 from test.infrastructure.networking import get_free_port
 from test.infrastructure.polling import wait_for_agent_state

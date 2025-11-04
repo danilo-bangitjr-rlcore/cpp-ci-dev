@@ -54,10 +54,10 @@ coredinator = { path = "../coredinator", editable = true }
 coreio = { path = "../coreio", editable = true }
 corerl = { path = "../corerl", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
-lib-events = { path = "../libs/lib_events", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-process = { path = "../libs/lib_process", editable = true }
+lib-events = { path = "../libs/lib_events", editable = true }
 
 # ----------
 # -- Ruff --
