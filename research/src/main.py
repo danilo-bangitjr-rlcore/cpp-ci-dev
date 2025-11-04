@@ -6,6 +6,7 @@ from typing import Any
 import jax.numpy as jnp
 import numpy as np
 from lib_agent.buffer.datatypes import State
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_config.errors import ConfigValidationErrors
 from lib_config.loader import config_from_dict
 from lib_utils.named_array import NamedArray
@@ -178,7 +179,13 @@ def main():
         trace_values=trace_values,
         goal_constructor=goal_constructor,
     )
-    tc = TransitionCreator(n_step=1, gamma=0.99)
+
+    # Create gamma scheduler from config
+    gamma_scheduler = create_gamma_scheduler(cfg.gamma_schedule)
+
+    # NOTE: we make transitions with max_gamma, but overwrite gamma in agent updates
+    gamma = gamma_scheduler.max_gamma if gamma_scheduler is not None else 0.99
+    tc = TransitionCreator(n_step=1, gamma=gamma)
 
     agent = get_agent(
         GreedyACConfig(**cfg.agent),
@@ -186,6 +193,7 @@ def main():
         state_dim=wrapper_env.get_state_dim(),
         action_dim=len(act_bounds[0]),
         collector=collector,
+        gamma_scheduler=gamma_scheduler,
     )
 
     initialize_to_nominal_setpoint(agent, cfg)
@@ -249,7 +257,7 @@ def main():
         for t in transitions:
             agent.update_buffer(t)
 
-        agent.update()
+        agent.update(step)
         collector.collect('reward', reward)
         episode_reward += reward
         steps += 1
