@@ -230,7 +230,7 @@ wheels = [
 
 [[package]]
 name = "coreio"
-version = "0.11.3"
+version = "0.12.0"
 source = { editable = "../coreio" }
 dependencies = [
     { name = "asyncua" },
@@ -272,7 +272,7 @@ dev = [
 
 [[package]]
 name = "corerl"
-version = "0.154.0"
+version = "0.156.0"
 source = { editable = "." }
 dependencies = [
     { name = "coreio" },
@@ -289,6 +289,7 @@ dependencies = [
     { name = "pydantic" },
     { name = "pyyaml" },
     { name = "pyzmq" },
+    { name = "service-framework" },
     { name = "sqlalchemy" },
     { name = "sqlalchemy-utils" },
     { name = "sympy" },
@@ -329,6 +330,7 @@ requires-dist = [
     { name = "pydantic", specifier = "~=2.9" },
     { name = "pyyaml", specifier = "~=6.0" },
     { name = "pyzmq", specifier = "~=27.1" },
+    { name = "service-framework", editable = "../libs/service_framework" },
     { name = "sqlalchemy", specifier = "~=2.0" },
     { name = "sqlalchemy-utils", specifier = "~=0.41" },
     { name = "sympy", specifier = "~=1.14" },
@@ -863,12 +865,14 @@ version = "0.0.0"
 source = { editable = "../libs/lib_config" }
 dependencies = [
     { name = "lib-utils" },
+    { name = "pydantic-extra-types", extra = ["semver"] },
     { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "pydantic-extra-types", extras = ["semver"], specifier = ">=2.10.6" },
     { name = "pyyaml", specifier = ">=6.0.2" },
 ]
 
@@ -903,6 +907,32 @@ dev = [
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-xdist", specifier = ">=3.7.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
+name = "lib-process"
+version = "0.0.0"
+source = { editable = "../libs/lib_process" }
+dependencies = [
+    { name = "lib-utils" },
+    { name = "psutil" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "psutil", specifier = "~=7.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-mock", specifier = ">=3.14.1" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
@@ -972,7 +1002,7 @@ requires-dist = [
     { name = "distrax", marker = "extra == 'jax'", specifier = ">=0.1.5" },
     { name = "dm-haiku", marker = "extra == 'jax'", specifier = ">=0.0.14" },
     { name = "flax", marker = "extra == 'jax'", specifier = ">=0.10.6" },
-    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.8.0" },
+    { name = "jax", marker = "extra == 'jax'", specifier = ">=0.6.1,<0.9.0" },
     { name = "lib-defs", editable = "../libs/lib_defs" },
     { name = "optax", marker = "extra == 'jax'", specifier = ">=0.2.4" },
     { name = "pandas", marker = "extra == 'jax'", specifier = "~=2.2" },
@@ -988,6 +1018,7 @@ dev = [
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.4.0" },
     { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
@@ -1515,6 +1546,24 @@ wheels = [
 ]
 
 [[package]]
+name = "pydantic-extra-types"
+version = "2.10.6"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/3a/10/fb64987804cde41bcc39d9cd757cd5f2bb5d97b389d81aa70238b14b8a7e/pydantic_extra_types-2.10.6.tar.gz", hash = "sha256:c63d70bf684366e6bbe1f4ee3957952ebe6973d41e7802aea0b770d06b116aeb", size = 141858, upload-time = "2025-10-08T13:47:49.483Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/93/04/5c918669096da8d1c9ec7bb716bd72e755526103a61bc5e76a3e4fb23b53/pydantic_extra_types-2.10.6-py3-none-any.whl", hash = "sha256:6106c448316d30abf721b5b9fecc65e983ef2614399a24142d689c7546cc246a", size = 40949, upload-time = "2025-10-08T13:47:48.268Z" },
+]
+
+[package.optional-dependencies]
+semver = [
+    { name = "semver" },
+]
+
+[[package]]
 name = "pygments"
 version = "2.19.2"
 source = { registry = "https://pypi.org/simple" }
@@ -1885,6 +1934,43 @@ wheels = [
 ]
 
 [[package]]
+name = "semver"
+version = "3.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/72/d1/d3159231aec234a59dd7d601e9dd9fe96f3afff15efd33c1070019b26132/semver-3.0.4.tar.gz", hash = "sha256:afc7d8c584a5ed0a11033af086e8af226a9c0b206f313e0301f8dd7b6b589602", size = 269730, upload-time = "2025-01-24T13:19:27.617Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/24/4d91e05817e92e3a61c8a21e08fd0f390f5301f1c448b137c57c4bc6e543/semver-3.0.4-py3-none-any.whl", hash = "sha256:9c824d87ba7f7ab4a1890799cec8596f15c1241cb473404ea1cb0c55e4b04746", size = 17912, upload-time = "2025-01-24T13:19:24.949Z" },
+]
+
+[[package]]
+name = "service-framework"
+version = "0.0.0"
+source = { editable = "../libs/service_framework" }
+dependencies = [
+    { name = "lib-defs" },
+    { name = "lib-utils" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lib-defs", editable = "../libs/lib_defs" },
+    { name = "lib-utils", editable = "../libs/lib_utils" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-asyncio", specifier = ">=1.2.0" },
+    { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
+    { name = "pytest-xdist", specifier = ">=3.7.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
 name = "simplejson"
 version = "3.20.2"
 source = { registry = "https://pypi.org/simple" }
@@ -2004,10 +2090,14 @@ dependencies = [
     { name = "docker" },
     { name = "filelock" },
     { name = "gymnasium" },
+    { name = "lib-process" },
     { name = "lib-sql" },
     { name = "lib-utils" },
+    { name = "pandas" },
+    { name = "pandas-stubs" },
     { name = "psutil" },
     { name = "pytest" },
+    { name = "requests" },
     { name = "rl-env" },
     { name = "rlevaluation" },
 ]
@@ -2018,17 +2108,25 @@ requires-dist = [
     { name = "docker", specifier = ">=7.1.0" },
     { name = "filelock", specifier = ">=3.18.0" },
     { name = "gymnasium", specifier = "~=1.0" },
+    { name = "lib-process", editable = "../libs/lib_process" },
     { name = "lib-sql", editable = "../libs/lib_sql" },
     { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "pandas", specifier = "~=2.2" },
+    { name = "pandas-stubs" },
     { name = "psutil", specifier = ">=7.0.0" },
     { name = "pytest", specifier = ">=8.3.5" },
+    { name = "requests", specifier = ">=2.32.0" },
     { name = "rl-env", editable = "../libs/rl_env" },
     { name = "rlevaluation", specifier = ">=1.1.1" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "coredinator", editable = "../coredinator" },
+    { name = "coreio", editable = "../coreio" },
     { name = "docker", specifier = ">=7.1.0" },
+    { name = "fastapi", specifier = ">=0.115.0" },
+    { name = "pyinstaller", specifier = ">=6.0.0" },
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.401" },
     { name = "pytest", specifier = ">=8.3.5" },
@@ -2037,6 +2135,7 @@ dev = [
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.11" },
     { name = "uv", specifier = ">=0.7.8" },
+    { name = "uvicorn", specifier = ">=0.37.0" },
 ]
 
 [[package]]
