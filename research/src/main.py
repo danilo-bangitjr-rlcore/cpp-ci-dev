@@ -210,6 +210,7 @@ def main():
 
     gif_frames = []
 
+    primitive_held = jnp.ones((1,))
     for step in tqdm(range(cfg.max_steps + 1)):
         dp = steps % cfg.steps_per_decision == 0
         collector.next_frame()
@@ -223,6 +224,7 @@ def main():
             a_hi=jnp.array(a_hi),
             dp=jnp.array([dp]),
             last_a=jnp.array(last_action),
+            primitive_held=primitive_held,
         )
 
         if args.ac_gif and (steps % args.gif_subsample == 0):
@@ -235,9 +237,13 @@ def main():
             })
 
         action = agent.get_actions(state)
+        if action == last_action:
+            primitive_held = primitive_held + 1
+        else:
+            primitive_held = jnp.ones((1,))
 
         transitions = tc(
-            state_features, a_lo, a_hi, np.array(action), reward, done, dp)
+            state_features, a_lo, a_hi, np.array(action), primitive_held, reward, done, dp)
 
         next_state_features, reward, terminated, truncated, _ = wrapper_env.step(action)
         for t in transitions:

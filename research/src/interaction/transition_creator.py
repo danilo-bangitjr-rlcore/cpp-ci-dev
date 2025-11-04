@@ -1,6 +1,7 @@
 from collections import deque
 from dataclasses import dataclass
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 from lib_agent.buffer.datatypes import State, Transition
@@ -13,6 +14,7 @@ class Step:
     a_lo: np.ndarray
     a_hi: np.ndarray
     action: np.ndarray
+    primitive_held: jax.Array
     reward: float | None
     gamma: float
     dp: bool
@@ -31,6 +33,7 @@ class TransitionCreator:
         a_lo: np.ndarray,
         a_hi: np.ndarray,
         action: np.ndarray,
+        primitive_held: jax.Array,
         reward: float | None,
         done: bool,
         dp: bool,
@@ -42,6 +45,7 @@ class TransitionCreator:
             a_lo,
             a_hi,
             action,
+            primitive_held,
             reward,
             gamma,
             dp,
@@ -94,6 +98,7 @@ def _build_n_step_transitions(buffer: deque[Step | None], n: int):
             a_hi=jnp.array(first.a_hi),
             dp=jnp.array([first.dp]),
             last_a=jnp.array(prev.action) if prev is not None else jnp.array(first.action),
+            primitive_held=first.primitive_held,
         ),
         action=jnp.array(first.action),
         n_step_reward=jnp.array(ret),
@@ -104,5 +109,6 @@ def _build_n_step_transitions(buffer: deque[Step | None], n: int):
             a_hi=jnp.array(last.a_hi),
             dp=jnp.array([last.dp]),
             last_a=jnp.array(last.action),
+            primitive_held=last.primitive_held,
         ),
     )

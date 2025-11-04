@@ -3,6 +3,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
+import jax
 import numpy as np
 import pandas as pd
 from lib_agent.buffer.datatypes import DataMode, Trajectory
@@ -42,6 +43,7 @@ class PipelineFrame:
     rewards: pd.DataFrame = field(default_factory=pd.DataFrame)
     decision_points: np.ndarray = field(init=False)
     action_change: np.ndarray = field(init=False)
+    primitive_held: jax.Array = field(init=False)
     temporal_state: TemporalState = field(default_factory=dict)
     trajectories: list[Trajectory] | None = None
 
@@ -52,6 +54,7 @@ class PipelineFrame:
         self.decision_points = np.zeros(N, dtype=np.bool_)
         # initialize action change flags
         self.action_change = np.zeros(N, dtype=np.bool_)
+        self.primitive_held = jax.numpy.ones((N,1))
 
         # initialize rl containers
         self.states = self.data.copy(deep=False)

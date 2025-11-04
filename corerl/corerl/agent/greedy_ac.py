@@ -157,8 +157,9 @@ class GreedyAC(BaseAgent):
             states,
             a_lo=dummy_jaxtions,
             a_hi=dummy_jaxtions,
-            dp=jnp.ones((states.shape[0], 1), dtype=jnp.bool),
+            dp=jnp.ones_like(states.array),
             last_a=dummy_jaxtions,
+            primitive_held=jnp.ones_like(states.array),
         )
         return self._actor.get_dist(
             self._actor_state.actor.params,
@@ -172,6 +173,7 @@ class GreedyAC(BaseAgent):
             a_hi=actions,
             dp=jnp.ones_like(states.array),
             last_a=actions,
+            primitive_held=jnp.ones_like(states.array),
         )
 
         return self._actor.get_probs(

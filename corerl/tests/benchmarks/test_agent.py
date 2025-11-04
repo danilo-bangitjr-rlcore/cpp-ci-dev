@@ -53,6 +53,7 @@ def test_actor_query_benchmark(benchmark: BenchmarkFixture, dummy_agent: tuple[G
         a_hi=jax.numpy.ones((1, action_dim)),
         dp=jax.numpy.ones((1, 1), dtype=bool),
         last_a=jax.numpy.zeros((1, action_dim)),
+        primitive_held=jax.numpy.ones((1, 1)),
     )
 
     def _inner(agent: GreedyAC, state: State):

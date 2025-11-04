@@ -109,6 +109,7 @@ def get_latest_state(pipe_return: PipelineReturn):
         a_hi=jnp.asarray(pipe_return.action_hi.iloc[-1]),
         dp=jnp.ones((1,)),
         last_a=jnp.asarray(pipe_return.actions.iloc[-1]),
+        primitive_held=pipe_return.primitive_held[-1],
     )
 
 

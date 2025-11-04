@@ -47,6 +47,7 @@ class DecisionPointDetector:
         n_rows = len(pf.data)
         clock_feats = self._init_feature_builder(n_rows)
 
+        p_held = pf.primitive_held
         for i in range(n_rows):
             is_dp = ts.steps_until_dp == 0
             is_ac = self._is_action_change(pf.actions, ts, i)
@@ -54,6 +55,9 @@ class DecisionPointDetector:
             if is_ac:
                 pf.action_change[i] = True
                 ts.steps_until_dp = self._steps_per_decision - 1
+                pf.primitive_held = p_held.at[i].set(1)
+            else:
+                pf.primitive_held = p_held.at[i].set(p_held[i] + 1)
 
             if is_dp:
                 pf.decision_points[i] = True

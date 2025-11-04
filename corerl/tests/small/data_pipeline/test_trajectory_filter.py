@@ -65,6 +65,7 @@ def make_test_step(
         gamma=gamma,
         ac=ac,
         dp=dp,
+        primitive_held=jnp.ones((1,)),
         action_lo=jnp.zeros_like(jnp.array([action])),
         action_hi=jnp.zeros_like(jnp.array([action])),
     )

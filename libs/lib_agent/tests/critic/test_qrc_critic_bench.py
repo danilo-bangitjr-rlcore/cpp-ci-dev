@@ -37,6 +37,7 @@ def _create_fake_state(rng: np.random.Generator, state_dim: int, action_dim: int
         a_hi=jnp.array([1.0] * action_dim),
         dp=jnp.array([False]),
         last_a=jnp.array(rng.random((action_dim,))),
+        primitive_held=jnp.ones((state_dim,)),
     )
 
 
@@ -176,6 +177,7 @@ def test_critic_ensemble_update_small(benchmark: BenchmarkFixture):
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
         last_a=actions,
+        primitive_held=jnp.ones_like(states),
     )
 
     next_batch_state = State(
@@ -184,6 +186,7 @@ def test_critic_ensemble_update_small(benchmark: BenchmarkFixture):
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
         last_a=actions,
+        primitive_held=jnp.ones_like(next_states),
     )
 
     transitions = Transition(
@@ -237,6 +240,7 @@ def test_critic_ensemble_update_large(benchmark: BenchmarkFixture):
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
         last_a=actions,
+        primitive_held=jnp.ones_like(states),
     )
 
     next_batch_state = State(
@@ -245,6 +249,7 @@ def test_critic_ensemble_update_large(benchmark: BenchmarkFixture):
         a_hi=jnp.tile(jnp.array([1.0] * action_dim), (ensemble_size, batch_size, 1)),
         dp=jnp.zeros((ensemble_size, batch_size, 1), dtype=bool),
         last_a=actions,
+        primitive_held=jnp.ones_like(next_states),
     )
 
     transitions = Transition(

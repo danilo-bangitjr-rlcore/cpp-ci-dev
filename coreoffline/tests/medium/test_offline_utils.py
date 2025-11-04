@@ -40,6 +40,7 @@ def make_step(
         action_hi=jnp.ones_like(action),
         dp=dp,
         ac=ac,
+        primitive_held=jnp.ones_like(state),
     )
 
 

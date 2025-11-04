@@ -51,6 +51,7 @@ def test_actor_log_probs(benchmark: BenchmarkFixture):
         a_hi=jnp.ones((action_dim,)) * 1.0,
         dp=jnp.array([1.0]),
         last_a=jnp.zeros((action_dim,)),
+        primitive_held=jnp.ones((1,)),
     )
     actions = jnp.array(rng.random((batch_size, action_dim)))
 

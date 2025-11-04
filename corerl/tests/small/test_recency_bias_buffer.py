@@ -44,6 +44,7 @@ def test_recency_bias_buffer_add_with_timestamps():
                 a_hi=jnp.array([1.0]),
                 dp=jnp.array([True]),
                 last_a=jnp.array([i]),
+                primitive_held=jnp.ones(1),
             ),
             action=jnp.array([i]),
             n_step_reward=jnp.array([i]),
@@ -54,6 +55,7 @@ def test_recency_bias_buffer_add_with_timestamps():
                 a_hi=jnp.array([1.0]),
                 dp=jnp.array([True]),
                 last_a=jnp.array([i]),
+                primitive_held=jnp.ones(1),
             ),
             timestamp=ts,
         )
@@ -103,6 +105,7 @@ def test_recency_bias_buffer_feed_with_timestamps():
                 a_hi=jnp.array([1.0]),
                 dp=jnp.array([True]),
                 last_a=jnp.array([i]),
+                primitive_held=jnp.ones(1),
             ),
             action=jnp.array([i]),
             n_step_reward=jnp.array([i]),
@@ -113,6 +116,7 @@ def test_recency_bias_buffer_feed_with_timestamps():
                 a_hi=jnp.array([1.0]),
                 dp=jnp.array([True]),
                 last_a=jnp.array([i]),
+                primitive_held=jnp.ones(1),
             ),
             timestamp=timestamps[i],
         )

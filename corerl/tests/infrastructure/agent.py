@@ -1,6 +1,7 @@
 import datetime
 from collections.abc import Callable
 
+import jax.numpy as jnp
 import jax.random as jrandom
 import pytest
 from lib_agent.buffer.datatypes import DataMode, Step, Trajectory, convert_trajectory_to_transition
@@ -57,6 +58,7 @@ def sample_trajectories():
                 action_hi=action_hi,
                 dp=True,
                 ac=True,
+                primitive_held=jnp.ones_like(prior_state),
                 timestamp=start_time + datetime.timedelta(seconds=i * 2),
             )
 
@@ -69,6 +71,7 @@ def sample_trajectories():
                 action_hi=post_action_hi,
                 dp=True,
                 ac=True,
+                primitive_held=jnp.ones_like(post_state),
                 timestamp=start_time + datetime.timedelta(seconds=i * 2 + 1),
             )
 

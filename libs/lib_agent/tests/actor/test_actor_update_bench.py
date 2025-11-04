@@ -92,6 +92,7 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         a_hi=jnp.tile(jnp.array([1.0] * config.action_dim), (ensemble_size, config.batch_size, 1)),
         dp=jnp.ones((ensemble_size, config.batch_size, 1)),
         last_a=jnp.tile(actions, (ensemble_size, 1, 1)),
+        primitive_held=jnp.ones_like(states),
     )
 
     next_batch_state = State(
@@ -100,6 +101,7 @@ def test_actor_policy_update(benchmark: BenchmarkFixture, config: BenchmarkConfi
         a_hi=jnp.tile(jnp.array([1.0] * config.action_dim), (ensemble_size, config.batch_size, 1)),
         dp=jnp.ones((ensemble_size, config.batch_size, 1)),
         last_a=jnp.tile(actions, (ensemble_size, 1, 1)),
+        primitive_held=jnp.ones_like(next_states),
     )
 
     actor_batch = Transition(

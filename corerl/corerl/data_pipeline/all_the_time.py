@@ -80,6 +80,7 @@ class AllTheTimeTC:
                 action_hi=action_hi[i],
                 dp=bool(dps[i]),
                 ac=bool(acs[i]),
+                primitive_held=pf.primitive_held[i],
                 timestamp=( # curse you pandas
                     Maybe(pf.data.index[i])
                     .is_instance(pd.Timestamp)
