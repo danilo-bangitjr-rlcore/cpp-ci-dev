@@ -52,19 +52,20 @@ async def get_system_metrics():
     """
     # Fetch all metrics in parallel for better performance
     platform_task = asyncio.create_task(asyncio.to_thread(platform.system))
-    cpu_task = asyncio.create_task(asyncio.to_thread(psutil.cpu_percent, 1))
     cpu_per_core_task = asyncio.create_task(asyncio.to_thread(psutil.cpu_percent, 1, True))
     ram_task = asyncio.create_task(asyncio.to_thread(psutil.virtual_memory))
     disk_task = asyncio.create_task(asyncio.to_thread(psutil.disk_usage, '/'))
 
-    # Wait for all tasks to complete
-    platform_data, cpu_percent, cpu_per_core, ram, disk = await asyncio.gather(
-        platform_task, cpu_task, cpu_per_core_task, ram_task, disk_task,
+    platform_data, cpu_per_core, ram, disk = await asyncio.gather(
+        platform_task, cpu_per_core_task, ram_task, disk_task,
     )
+
+    # Calculate average CPU from per-core values
+    cpu_avg = sum(cpu_per_core) / len(cpu_per_core) if cpu_per_core else 0.0
 
     return {
         "platform": platform_data,
-        "cpu": {"percent": cpu_percent},
+        "cpu": {"percent": cpu_avg},
         "cpu_per_core": {"percent": cpu_per_core},
         "ram": {"percent": ram.percent, "used_gb": ram.used / (1024**3), "total_gb": ram.total / (1024**3)},
         "disk": {"percent": disk.percent, "used_gb": disk.used / (1024**3), "total_gb": disk.total / (1024**3)},
