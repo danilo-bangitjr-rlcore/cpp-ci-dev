@@ -43,7 +43,6 @@ class Saturation(gym.Env):
         self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
         self.time_step = 0
-        self.saturation = 0.
         self.filter_saturation = 0.
 
         self.setpoint_schedule = cfg.setpoint_schedule
@@ -127,9 +126,9 @@ class Saturation(gym.Env):
         self.filter_saturation = self.filter_saturation*decay + self.action_trace*effect
         if self.filter_thresh:
             # Observed saturation is the amount above the filter threshold
-            self.saturation = np.clip(self.filter_saturation - self.filter_thresh, 0, 1).item()
+            saturation = np.clip(self.filter_saturation - self.filter_thresh, 0, 1).item()
             self.filter_saturation = np.clip(self.filter_saturation, 0.0, self.filter_thresh).item()
-            self.delayed_saturations.appendleft(self.saturation)
+            self.delayed_saturations.appendleft(saturation)
         else:
             self.filter_saturation = np.clip(self.filter_saturation, 0, 1).item()
             self.delayed_saturations.appendleft(self.filter_saturation)
@@ -139,7 +138,7 @@ class Saturation(gym.Env):
 
         self.decays.append(decay)
         self.effects.append(effect)
-        self.saturations.append(self.saturation)
+        self.saturations.append(observed_saturation)
         self.raw_actions.append(action)
         self.actions.append(self.action_trace)
         self.deltas.append(self.delta)
@@ -175,7 +174,9 @@ class Saturation(gym.Env):
         self.saturation_sp = self.setpoint_schedule[0]
         self.delta = self.delta_schedule[0]
         self.anchor = self.anchor_schedule[0]
-        state = np.array([self.saturation, self.delta, self.anchor])
+        self.filter_saturation = 0.
+        self.action_trace = np.array([0])
+        state = np.array([self.filter_saturation, self.delta, self.anchor])
         return state, {}
 
     def close(self):
