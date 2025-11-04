@@ -1,6 +1,6 @@
-import asyncio
 import logging
 import random
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -104,7 +104,7 @@ class CoreRLService(RLTuneService):
 
         self.app_state.event_bus.start()
 
-    async def _do_run(self):
+    async def _do_run(self) -> AsyncGenerator[None]:
         assert self.app_state is not None
         assert self.interaction is not None
 
@@ -115,15 +115,14 @@ class CoreRLService(RLTuneService):
             if max_steps is not None and self.app_state.agent_step >= max_steps:
                 break
 
-            if self.step_count % 100 == 0:
-                self.get_event_bus_client().emit_event(
+            event_bus = self.get_event_bus_client()
+            if self.step_count % 100 == 0 and event_bus is not None:
+                event_bus.emit_event(
                     EventType.step_agent_update,
                     topic=EventTopic.corerl,
                 )
 
-            # give control back to event loop in case
-            # there are interrupts or other tasks to run
-            await asyncio.sleep(0)
+            yield
 
     async def _do_stop(self):
         if self.app_state is not None:

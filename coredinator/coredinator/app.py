@@ -187,15 +187,13 @@ def get_app() -> FastAPI:
 if __name__ == "__main__":
     cli_args = parse_args()
 
-    # Initialize structured logging
-    setup_structured_logging(
-        log_file_path=cli_args.log_file,
-        log_level=cli_args.log_level,
-        console_output=cli_args.console_output,
-    )
-
     if cli_args.reload:
-        # Use string import for reload support (dev only)
+        # Dev mode: use uvicorn reload (bypasses service framework)
+        setup_structured_logging(
+            log_file_path=cli_args.log_file,
+            log_level=cli_args.log_level,
+            console_output=cli_args.console_output,
+        )
         uvicorn.run(
             "coredinator.app:get_app",
             host="0.0.0.0",
@@ -204,6 +202,17 @@ if __name__ == "__main__":
             factory=True,
         )
     else:
-        # Use direct app instance for executable compatibility
-        app = get_app()
-        uvicorn.run(app, host="0.0.0.0", port=cli_args.port)
+        # Production mode: use service framework
+        from coredinator.core_service import CoredinatorService
+
+        service = CoredinatorService(
+            base_path=cli_args.base_path,
+            port=cli_args.port,
+            log_file=cli_args.log_file,
+            log_level=cli_args.log_level,
+            console_output=cli_args.console_output,
+            event_bus_host=cli_args.event_bus_host,
+            event_bus_pub_port=cli_args.event_bus_pub_port,
+            event_bus_sub_port=cli_args.event_bus_sub_port,
+        )
+        service.run_forever(max_retries=5, retry_window_hours=1, enable_retry=True)

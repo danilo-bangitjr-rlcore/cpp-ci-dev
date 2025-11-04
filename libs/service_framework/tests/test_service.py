@@ -1,5 +1,6 @@
 """Tests for RLTuneService base class."""
 
+from collections.abc import AsyncGenerator
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -38,8 +39,9 @@ class MockService(RLTuneService):
         if self.should_fail_stop:
             raise RuntimeError("Intentional stop failure")
 
-    async def _do_run(self) -> None:
+    async def _do_run(self) -> AsyncGenerator[None]:
         self.run_called = True
+        yield
 
 
 @pytest.mark.asyncio
