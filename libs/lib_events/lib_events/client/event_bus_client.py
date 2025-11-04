@@ -1,6 +1,7 @@
 import logging
 import threading
 import time
+import uuid
 from collections import defaultdict
 from collections.abc import Callable
 from enum import Enum
@@ -9,6 +10,8 @@ from typing import TYPE_CHECKING, Any
 
 import zmq
 from pydantic import BaseModel
+
+from lib_events.protocol.message_protocol import MessageType, build_message, parse_message
 
 if TYPE_CHECKING:
     from typing import Protocol
@@ -29,8 +32,8 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         self,
         event_class: type[EventClass],
         host: str = "localhost",
-        pub_port: int = 5559,
-        sub_port: int = 5560,
+        port: int = 5580,
+        service_id: str | None = None,
         max_reconnect_attempts: int = -1,
         reconnect_interval: float = 1.0,
         reconnect_backoff_multiplier: float = 2.0,
@@ -38,10 +41,9 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
     ):
         self._event_class = event_class
         self.host = host
-        self.pub_port = pub_port
-        self.sub_port = sub_port
-        self.publisher_endpoint = f"tcp://{host}:{pub_port}"
-        self.subscriber_endpoint = f"tcp://{host}:{sub_port}"
+        self.port = port
+        self.endpoint = f"tcp://{host}:{port}"
+        self.service_id = service_id or f"client-{uuid.uuid4().hex[:8]}"
 
         self.max_reconnect_attempts = max_reconnect_attempts
         self.reconnect_interval = reconnect_interval
@@ -49,8 +51,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         self.reconnect_max_interval = reconnect_max_interval
 
         self.context: zmq.Context | None = None
-        self.publisher_socket: zmq.Socket | None = None
-        self.subscriber_socket: zmq.Socket | None = None
+        self.dealer_socket: zmq.Socket | None = None
 
         self.queue: Queue[EventClass] = Queue()
         self.stop_event = threading.Event()
@@ -72,11 +73,11 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             return
 
         self._setup_sockets()
+        self._register_with_broker()
+        self._resubscribe_topics()
         self._connected = True
         self._reconnect_attempts = 0
-        logger.info(
-            f"Event bus client connected - pub: {self.publisher_endpoint}, sub: {self.subscriber_endpoint}",
-        )
+        logger.info(f"Event bus client connected - service_id: {self.service_id}, endpoint: {self.endpoint}")
 
     def close(self):
         if not self._connected:
@@ -113,7 +114,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
     # ============================================================
 
     def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
-        if not self._connected or self.publisher_socket is None:
+        if not self._connected or self.dealer_socket is None:
             logger.warning("Cannot publish - event bus client not connected")
             return
 
@@ -122,8 +123,14 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
 
         message_data = event.model_dump_json()
         topic_str = topic.name
-        multipart_message = [topic_str.encode(), message_data.encode()]
-        self.publisher_socket.send_multipart(multipart_message)
+
+        publish_msg = build_message(
+            destination=topic_str,
+            msg_type=MessageType.PUBLISH,
+            correlation_id="",
+            payload=message_data.encode(),
+        )
+        self.dealer_socket.send_multipart(publish_msg)
         event_type = getattr(event, "type", "unknown")
         logger.debug(f"Published event {event_type} to topic '{topic_str}'")
 
@@ -132,15 +139,16 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
     # ============================================================
 
     def subscribe(self, topic: EventTopicClass):
-        if self.subscriber_socket is None:
-            logger.warning("Cannot subscribe - subscriber socket not initialized")
+        if self.dealer_socket is None:
+            logger.warning("Cannot subscribe - dealer socket not initialized")
             return
 
         if topic not in self._subscribed_topics:
             self._subscribed_topics.append(topic)
 
-        topic_bytes = topic.name.encode()
-        self.subscriber_socket.setsockopt(zmq.SUBSCRIBE, topic_bytes)
+        if self._connected:
+            self._send_subscribe(topic)
+
         logger.info(f"Subscribed to topic: {topic.name}")
 
     def start_consumer(self):
@@ -148,8 +156,8 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             logger.warning("Consumer thread already started")
             return
 
-        if self.subscriber_socket is None:
-            logger.error("Cannot start consumer - subscriber socket not initialized")
+        if self.dealer_socket is None:
+            logger.error("Cannot start consumer - dealer socket not initialized")
             return
 
         self.stop_event.clear()
@@ -189,15 +197,10 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             yield event
 
     def _close_sockets(self):
-        if self.subscriber_socket:
-            self.subscriber_socket.setsockopt(zmq.LINGER, 0)
-            self.subscriber_socket.close()
-            self.subscriber_socket = None
-
-        if self.publisher_socket:
-            self.publisher_socket.setsockopt(zmq.LINGER, 0)
-            self.publisher_socket.close()
-            self.publisher_socket = None
+        if self.dealer_socket:
+            self.dealer_socket.setsockopt(zmq.LINGER, 0)
+            self.dealer_socket.close()
+            self.dealer_socket = None
 
         if self.context:
             self.context.destroy(linger=0)
@@ -206,23 +209,45 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
     def _setup_sockets(self):
         self.context = zmq.Context()
 
-        self.publisher_socket = self.context.socket(zmq.PUB)
-        assert self.publisher_socket is not None
-        self.publisher_socket.setsockopt(zmq.LINGER, 1000)
-        self.publisher_socket.setsockopt(zmq.SNDHWM, 1000)
-        self.publisher_socket.connect(self.publisher_endpoint)
+        self.dealer_socket = self.context.socket(zmq.DEALER)
+        assert self.dealer_socket is not None
+        self.dealer_socket.setsockopt(zmq.LINGER, 1000)
+        self.dealer_socket.setsockopt(zmq.SNDHWM, 1000)
+        self.dealer_socket.connect(self.endpoint)
 
-        self.subscriber_socket = self.context.socket(zmq.SUB)
-        assert self.subscriber_socket is not None
-        self.subscriber_socket.connect(self.subscriber_endpoint)
+        # Brief sleep to allow socket connection to establish
+        time.sleep(0.1)
+        logger.debug(f"Event bus client DEALER socket connected to {self.endpoint}")
 
+    def _register_with_broker(self):
+        if self.dealer_socket is None:
+            return
+
+        register_msg = build_message(
+            destination=self.service_id,
+            msg_type=MessageType.REGISTER,
+            correlation_id="",
+            payload=b"{}",
+        )
+        self.dealer_socket.send_multipart(register_msg)
+        logger.debug(f"Registered with broker as: {self.service_id}")
+
+    def _send_subscribe(self, topic: EventTopicClass):
+        if self.dealer_socket is None:
+            return
+
+        subscribe_msg = build_message(
+            destination=topic.name,
+            msg_type=MessageType.SUBSCRIBE,
+            correlation_id="",
+            payload=b"{}",
+        )
+        self.dealer_socket.send_multipart(subscribe_msg)
+        logger.debug(f"Sent SUBSCRIBE for topic: {topic.name}")
+
+    def _resubscribe_topics(self):
         for topic in self._subscribed_topics:
-            topic_bytes = topic.name.encode()
-            self.subscriber_socket.setsockopt(zmq.SUBSCRIBE, topic_bytes)
-
-        # Sleep to avoid "slow joiner" problem where initial messages may be lost
-        time.sleep(1.0)
-        logger.debug("Event bus client sockets configured and connected")
+            self._send_subscribe(topic)
 
     def _reconnect(self) -> bool:
         with self._reconnect_lock:
@@ -259,6 +284,8 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
                 self._connected = False
 
                 self._setup_sockets()
+                self._register_with_broker()
+                self._resubscribe_topics()
 
                 self._connected = True
                 self._reconnect_attempts = 0
@@ -270,10 +297,10 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
                 return False
 
     def _consume_messages(self):
-        assert self.subscriber_socket is not None
+        assert self.dealer_socket is not None
 
         poller = zmq.Poller()
-        poller.register(self.subscriber_socket, zmq.POLLIN)
+        poller.register(self.dealer_socket, zmq.POLLIN)
 
         while not self.stop_event.is_set():
             try:
@@ -285,23 +312,34 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
                 logger.warning(f"ZMQ polling error: {e}, attempting reconnection")
                 if self._reconnect():
                     poller = zmq.Poller()
-                    poller.register(self.subscriber_socket, zmq.POLLIN)
+                    poller.register(self.dealer_socket, zmq.POLLIN)
                     continue
 
                 logger.error("Failed to reconnect, stopping consumer")
                 break
 
-            if self.subscriber_socket not in socks:
+            if self.dealer_socket not in socks:
                 continue
 
             try:
-                message_parts = self.subscriber_socket.recv_multipart(zmq.NOBLOCK)
-                if len(message_parts) != 2:
-                    logger.warning(f"Invalid message format: expected 2 parts, got {len(message_parts)}")
+                message_frames = self.dealer_socket.recv_multipart(zmq.NOBLOCK)
+
+                try:
+                    parsed = parse_message(message_frames)
+                    if parsed.is_none():
+                        logger.warning("Failed to parse message")
+                        continue
+
+                    msg = parsed.expect()
+                except Exception as e:
+                    logger.warning(f"Failed to parse message: {e}")
                     continue
 
-                payload = message_parts[1].decode()
+                if msg.msg_type != MessageType.PUBLISH:
+                    logger.debug(f"Ignoring non-PUBLISH message type: {msg.msg_type}")
+                    continue
 
+                payload = msg.payload.decode()
                 event = self._event_class.model_validate_json(payload)
                 self.queue.put(event)
 
@@ -317,7 +355,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
                 logger.warning(f"Error receiving message: {e}, attempting reconnection")
                 if self._reconnect():
                     poller = zmq.Poller()
-                    poller.register(self.subscriber_socket, zmq.POLLIN)
+                    poller.register(self.dealer_socket, zmq.POLLIN)
                     continue
 
                 logger.error("Failed to reconnect, stopping consumer")
