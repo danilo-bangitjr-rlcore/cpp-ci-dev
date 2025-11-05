@@ -265,15 +265,13 @@ def test_event_bus_cross_service_communication(
     config_data["event_bus_client"] = {
         "enabled": True,
         "host": "localhost",
-        "pub_port": 5559,
-        "sub_port": 5560,
+        "port": 5580,
     }
     config_data["coreio"] = {
         "event_bus_client": {
             "enabled": True,
             "host": "localhost",
-            "pub_port": 5559,
-            "sub_port": 5560,
+            "port": 5580,
         },
         "data_ingress": {
             "enabled": False,
@@ -289,8 +287,7 @@ def test_event_bus_cross_service_communication(
     rl_client = EventBusClient[Event, EventType, EventTopic](
         event_class=Event,
         host="localhost",
-        pub_port=5559,
-        sub_port=5560,
+        port=5580,
     )
     rl_client.connect()
     rl_client.subscribe(EventTopic.corerl)
@@ -298,8 +295,7 @@ def test_event_bus_cross_service_communication(
     io_client = EventBusClient[Event, EventType, EventTopic](
         event_class=Event,
         host="localhost",
-        pub_port=5559,
-        sub_port=5560,
+        port=5580,
     )
     io_client.connect()
     io_client.subscribe(EventTopic.coreio)

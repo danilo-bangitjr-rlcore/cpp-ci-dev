@@ -85,6 +85,7 @@ class RLTuneService(ABC):
             await self._do_stop()
 
             self._emit_lifecycle_event(EventType.service_stopped)
+            await asyncio.sleep(0.2)
             await self._teardown_event_bus_client()
 
             self._state = ServiceState.STOPPED
