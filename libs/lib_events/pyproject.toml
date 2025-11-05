@@ -1,13 +1,14 @@
 [project]
-name = "service_framework"
+name = "lib-events"
 version = "0.0.0"
-description = "Base service framework for RLTune microservices"
+description = "Event bus infrastructure for RLCore microservices"
 requires-python = ">=3.13,<3.14"
 authors = []
 dependencies = [
     "lib-defs",
-    "lib-events",
     "lib-utils",
+    "pydantic>=2.11.5",
+    "pyzmq~=27.1",
 ]
 readme = "README.md"
 
@@ -18,7 +19,6 @@ dev = [
     "pytest>=8.4.0",
     "pytest-xdist>=3.7.0",
     "pytest-mock>=3.14.1",
-    "pytest-asyncio>=1.2.0",
     "pytest-timeout>=2.4.0",
     "ruff>=0.11.12",
     "uv>=0.5.24",
@@ -28,9 +28,8 @@ dev = [
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool]
 [tool.hatch.build.targets.wheel]
-packages = ["service_framework"]
+packages = ["lib_events"]
 
 [tool.ruff]
 extend = "../../standards/python/ruff.toml"
@@ -38,11 +37,8 @@ extend = "../../standards/python/ruff.toml"
 [tool.pyright]
 extends='../../standards/python/pyright.toml'
 include = ['.']
-exclude = [
-    '.venv/',
-]
+exclude = ['.venv/']
 venvPath = '.'
-
 
 [tool.commitizen]
 name = "cz_conventional_commits"
@@ -54,4 +50,3 @@ major_version_zero = true
 [tool.uv.sources]
 lib-defs = { path = "../lib_defs", editable = true }
 lib-utils = { path = "../lib_utils", editable = true }
-lib-events = { path = "../lib_events", editable = true }

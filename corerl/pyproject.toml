@@ -19,6 +19,7 @@ dependencies = [
     "sympy~=1.14",
     "lib-agent",
     "lib-config",
+    "lib-events",
     "lib-sql",
     "lib-utils[jax]",
     "lib-defs",
@@ -66,6 +67,7 @@ lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-defs = { path = "../libs/lib_defs", editable = true }
 service-framework = { path = "../libs/service_framework", editable = true }
+lib-events = { path = "../libs/lib_events", editable = true }
 
 # ----------
 # -- Ruff --

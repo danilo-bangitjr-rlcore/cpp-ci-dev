@@ -8,6 +8,7 @@ dependencies = [
     "corerl",
     "matplotlib~=3.8",
     "lib-progress",
+    "scikit-learn>=1.7.2",
 ]
 readme = "README.md"
 
@@ -15,7 +16,7 @@ readme = "README.md"
 dev = [
     "pre-commit>=4.2.0",
     "pylint>=3.3.7",
-    "pyright>=1.1.401",
+    "pyright==1.1.405",
     "pytest>=8.3.5",
     "pytest-coverage>=0.0",
     "pytest-timeout>=2.4.0",

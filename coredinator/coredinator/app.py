@@ -9,9 +9,9 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
+from lib_events.server.manager import EventBusManager
 
 from coredinator.agent.agent_manager import AgentManager
-from coredinator.event_bus.event_bus_manager import EventBusManager
 from coredinator.logging_config import get_logger, setup_structured_logging
 from coredinator.service.service_manager import ServiceManager
 from coredinator.web.agent_manager import router as agent_manager

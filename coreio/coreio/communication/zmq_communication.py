@@ -1,6 +1,6 @@
 import logging
 
-from lib_utils.messages.base_event_bus import BaseEventBus
+from lib_events.legacy.base_event_bus import BaseEventBus
 
 logger = logging.getLogger(__name__)
 

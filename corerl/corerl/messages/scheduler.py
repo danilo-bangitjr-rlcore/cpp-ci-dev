@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING
 
 import zmq
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
-from lib_utils.messages.clock import Clock
+from lib_events.legacy.clock import Clock
 
 from corerl.messages.event_bus import EventBus
 from corerl.state import AppState
