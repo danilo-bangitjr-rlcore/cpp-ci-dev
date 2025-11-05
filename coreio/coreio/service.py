@@ -26,8 +26,7 @@ class CoreIOService(RLTuneService):
             service_name='coreio',
             event_topic=EventTopic.coreio,
             event_bus_host=cfg.coreio.event_bus_client.host,
-            event_bus_pub_port=cfg.coreio.event_bus_client.pub_port,
-            event_bus_sub_port=cfg.coreio.event_bus_client.sub_port,
+            event_bus_port=cfg.coreio.event_bus_client.port,
             event_bus_enabled=cfg.coreio.event_bus_client.enabled,
         )
         self.cfg = cfg
