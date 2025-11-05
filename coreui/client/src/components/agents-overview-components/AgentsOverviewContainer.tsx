@@ -47,6 +47,12 @@ const AgentsOverviewContainer: React.FC = () => {
 
   const agentStatusQueries = useAgentStatusQueries(validConfigNames, isPolling);
 
+  // Check if we're still determining which configs are valid
+  // We're "loading" if queries are pending AND we haven't identified any errors yet
+  // (Once we have errors, we can show partial results immediately)
+  const isLoadingAgentNames =
+    agentNamesQueries.some((q) => q.isLoading) && errorConfigs.length === 0;
+
   const isNeverStarted = (statusData: any): boolean => {
     if (!statusData) return false;
 
@@ -88,7 +94,7 @@ const AgentsOverviewContainer: React.FC = () => {
   const isLoading =
     isLoadingConfigList ||
     isLoadingMissingConfig ||
-    (agentNamesQueries.some((q) => q.isLoading) && errorConfigs.length === 0) ||
+    isLoadingAgentNames ||
     agentStatusQueries.some((q) => q.isLoading);
 
   const hasError =

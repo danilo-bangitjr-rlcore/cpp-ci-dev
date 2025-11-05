@@ -52,8 +52,8 @@ def _is_valid_config_file(config_file: Path) -> bool:
         with open(config_file, encoding='utf-8') as f:
             config_data = yaml.safe_load(f)
             return config_data is not None and "agent_name" in config_data
-    except Exception:
-        # Skip files that can't be parsed
+    except (OSError, yaml.YAMLError, UnicodeDecodeError):
+        # Skip files that can't be read or parsed
         return False
 
 def _handle_exception(e: Exception) -> JSONResponse:
