@@ -4,7 +4,7 @@ import time
 import pytest
 import zmq
 
-from coredinator.event_bus.proxy import EventBusProxy
+from lib_events.server.proxy import EventBusProxy
 
 
 @pytest.fixture

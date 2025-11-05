@@ -5,7 +5,7 @@ from pathlib import Path
 
 import uvicorn
 from lib_defs.type_defs.base_events import Event, EventTopic
-from lib_utils.messages.event_bus_client import EventBusClient
+from lib_events.client.event_bus_client import EventBusClient
 from service_framework.service import RLTuneService
 
 from coredinator.app import create_app

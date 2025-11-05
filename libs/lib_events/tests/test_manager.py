@@ -3,7 +3,7 @@ import time
 
 import pytest
 
-from coredinator.event_bus.event_bus_manager import EventBusManager
+from lib_events.server.manager import EventBusManager
 
 
 @pytest.fixture

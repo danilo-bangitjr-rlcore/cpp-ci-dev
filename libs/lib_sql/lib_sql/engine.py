@@ -51,6 +51,8 @@ def get_sql_engine(
     if force_drop:
         maybe_drop_database(engine.url)
 
-    maybe_create_database(engine.url, backoff_seconds=1, max_tries=1)
+    # Use higher retry count to handle race conditions in parallel test execution
+    # and transient database creation failures in CI environments
+    maybe_create_database(engine.url, backoff_seconds=0.5, max_tries=5)
 
     return engine

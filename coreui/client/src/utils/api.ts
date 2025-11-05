@@ -1,9 +1,15 @@
-export const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const getApiUrl = (port: number) => {
+  // Allow override via env var
+  const envUrl = import.meta.env[`VITE_API_URL_${port}`];
+  if (envUrl) return `${envUrl}/api`;
 
-const COREGATEWAY_BASE_URL = 'http://localhost:8001/api';
+  const { protocol, hostname } = window.location;
+  return `${protocol}//${hostname}:${port}/api`;
+};
 
-// Optional: More specific endpoints for better organization
+export const API_BASE_URL = getApiUrl(8000);
+export const COREGATEWAY_BASE_URL = getApiUrl(8001);
+
 export const API_ENDPOINTS = {
   health: `${API_BASE_URL}/health`,
   system_metrics: {

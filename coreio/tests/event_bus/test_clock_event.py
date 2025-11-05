@@ -2,7 +2,7 @@ import threading
 from datetime import UTC, datetime, timedelta
 from math import isclose
 
-from lib_utils.messages.base_event_bus import BaseEventBus
+from lib_events.legacy.base_event_bus import BaseEventBus
 
 from coreio.communication.scheduler import start_scheduler_io_thread
 from coreio.config import DataIngressConfig

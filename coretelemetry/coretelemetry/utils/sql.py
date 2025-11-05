@@ -19,7 +19,7 @@ class DBConfig:
 class SqlReader:
     def __init__(self, db_cfg: DBConfig):
         self.db_cfg = db_cfg
-        self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name, backoff_seconds=1, max_tries=1)
+        self.engine = get_sql_engine(db_data=db_cfg, db_name=db_cfg.db_name, backoff_seconds=1, max_tries=5)
 
     def table_exists(self, table_name: str) -> bool:
         return table_exists(self.engine, table_name, schema=self.db_cfg.schema)
@@ -71,7 +71,7 @@ class SqlReader:
 
     def test_connection(self) -> bool:
         try:
-            with TryConnectContextManager(self.engine, max_tries=1, backoff_seconds=0) as connection:
+            with TryConnectContextManager(self.engine, max_tries=2, backoff_seconds=1) as connection:
                 connection.execute(text("SELECT 1"))
             return True
         except Exception:

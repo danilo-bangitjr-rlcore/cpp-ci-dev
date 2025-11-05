@@ -8,7 +8,7 @@ from typing import Any
 import zmq
 from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 
-from lib_utils.messages.consumer_task import consumer_task
+from lib_events.legacy.consumer_task import consumer_task
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +21,10 @@ class BaseEventBus[
 ]:
     """
     Generic ZMQ event bus for consuming pub-sub events.
+
+    DEPRECATED: Use EventBusClient from lib_events.client instead.
+    This legacy implementation uses bound sockets (bind) rather than
+    connected sockets (connect), which is less flexible.
     """
     def __init__(
         self,

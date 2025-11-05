@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import zmq
 
-from lib_utils.messages.consumer_task import consumer_task
+from lib_events.legacy.consumer_task import consumer_task
 
 
 def test_consumer_task_receives_message(mocker: Mock):
@@ -152,4 +152,3 @@ def test_consumer_task_handles_error(mocker: Mock):
     assert isinstance(error[0], zmq.error.ZMQError)
 
     queue.shutdown()
-

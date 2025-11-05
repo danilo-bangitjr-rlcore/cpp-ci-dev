@@ -9,6 +9,7 @@ dependencies = [
     "sqlalchemy~=2.0",
     "sqlalchemy-utils~=0.41",
     "lib-config",
+    "lib-events",
     "lib-process",
     "lib-utils",
     "backoff~=2.2",
@@ -46,6 +47,7 @@ lib-config = { path = "../libs/lib_config", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-process = { path = "../libs/lib_process", editable = true }
 service-framework = { path = "../libs/service_framework", editable = true }
+lib-events = { path = "../libs/lib_events", editable = true }
 
 # ----------
 # -- Ruff --

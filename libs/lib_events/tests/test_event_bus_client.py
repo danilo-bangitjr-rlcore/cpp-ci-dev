@@ -6,10 +6,10 @@ from enum import auto
 import pytest
 import zmq
 from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
+from lib_utils.time import now_iso
 from pydantic import Field
 
-from lib_utils.messages.event_bus_client import EventBusClient
-from lib_utils.time import now_iso
+from lib_events.client.event_bus_client import EventBusClient
 
 
 def get_free_port(host: str = "localhost") -> int:

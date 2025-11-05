@@ -141,6 +141,7 @@ dependencies = [
     { name = "backoff" },
     { name = "fastapi", extra = ["standard"] },
     { name = "lib-config" },
+    { name = "lib-events" },
     { name = "lib-process" },
     { name = "lib-utils" },
     { name = "psutil" },
@@ -170,6 +171,7 @@ requires-dist = [
     { name = "backoff", specifier = "~=2.2" },
     { name = "fastapi", extras = ["standard"], specifier = "~=0.117" },
     { name = "lib-config", editable = "../libs/lib_config" },
+    { name = "lib-events", editable = "../libs/lib_events" },
     { name = "lib-process", editable = "../libs/lib_process" },
     { name = "lib-utils", editable = "../libs/lib_utils" },
     { name = "psutil", specifier = "~=7.0" },
@@ -514,6 +516,37 @@ dev = [
     { name = "pylint", specifier = ">=3.3.7" },
     { name = "pyright", specifier = ">=1.1.392.post0" },
     { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-xdist", specifier = ">=3.7.0" },
+    { name = "ruff", specifier = ">=0.11.12" },
+    { name = "uv", specifier = ">=0.5.24" },
+]
+
+[[package]]
+name = "lib-events"
+version = "0.0.0"
+source = { editable = "../libs/lib_events" }
+dependencies = [
+    { name = "lib-defs" },
+    { name = "lib-utils" },
+    { name = "pydantic" },
+    { name = "pyzmq" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "lib-defs", editable = "../libs/lib_defs" },
+    { name = "lib-utils", editable = "../libs/lib_utils" },
+    { name = "pydantic", specifier = ">=2.11.5" },
+    { name = "pyzmq", specifier = "~=27.1" },
+]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "pylint", specifier = ">=3.3.7" },
+    { name = "pyright", specifier = ">=1.1.392.post0" },
+    { name = "pytest", specifier = ">=8.4.0" },
+    { name = "pytest-mock", specifier = ">=3.14.1" },
+    { name = "pytest-timeout", specifier = ">=2.4.0" },
     { name = "pytest-xdist", specifier = ">=3.7.0" },
     { name = "ruff", specifier = ">=0.11.12" },
     { name = "uv", specifier = ">=0.5.24" },
@@ -1172,12 +1205,14 @@ version = "0.0.0"
 source = { editable = "../libs/service_framework" }
 dependencies = [
     { name = "lib-defs" },
+    { name = "lib-events" },
     { name = "lib-utils" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "lib-defs", editable = "../libs/lib_defs" },
+    { name = "lib-events", editable = "../libs/lib_events" },
     { name = "lib-utils", editable = "../libs/lib_utils" },
 ]
 

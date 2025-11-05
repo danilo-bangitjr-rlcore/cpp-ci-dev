@@ -279,6 +279,7 @@ def _create_mock_transitions(
         a_hi=jnp.ones((ensemble_size, batch_size, 2)),
         dp=jnp.ones((ensemble_size, batch_size, 1)),
         last_a=jnp.ones((ensemble_size, batch_size, 2)),
+        primitive_held=jnp.ones((ensemble_size, batch_size, 1)),
     )
 
     mock_next_states = State(
@@ -287,6 +288,7 @@ def _create_mock_transitions(
         a_hi=jnp.ones((ensemble_size, batch_size, 2)),
         dp=jnp.ones((ensemble_size, batch_size, 1)),
         last_a=batch_actions,
+        primitive_held=jnp.ones((ensemble_size, batch_size, 1)),
     )
 
     return Transition(

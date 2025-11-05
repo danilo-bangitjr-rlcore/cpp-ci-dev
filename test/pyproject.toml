@@ -12,6 +12,7 @@ dependencies = [
     "psutil>=7.0.0",
     "filelock>=3.18.0",
     "gymnasium~=1.0",
+    "lib-events",
     "lib-sql",
     "lib-utils",
     "pandas~=2.2",
@@ -56,6 +57,7 @@ rl_env = { path = "../libs/rl_env", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
 lib-process = { path = "../libs/lib_process", editable = true }
+lib-events = { path = "../libs/lib_events", editable = true }
 
 # ----------
 # -- Ruff --

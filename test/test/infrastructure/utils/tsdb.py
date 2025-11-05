@@ -1,5 +1,6 @@
 import random
 import time
+import uuid
 from collections.abc import Mapping
 from types import MappingProxyType
 
@@ -105,7 +106,13 @@ def tsdb_container(free_localhost_port: int):
 
 @pytest.fixture(scope="function")
 def tsdb_tmp_db_name(request: pytest.FixtureRequest) -> str:
-    return request.node.nodeid + str(random.randint(0, int(1e24)))
+    # Use UUID for guaranteed uniqueness in parallel test execution
+    # Include timestamp for debugging CI failures
+    timestamp = int(time.time() * 1000)
+    unique_id = uuid.uuid4().hex[:16]
+    # Sanitize node ID to be database-safe (remove special chars)
+    safe_node_id = request.node.nodeid.replace('/', '_').replace(':', '_').replace('[', '_').replace(']', '_')[:50]
+    return f"test_{safe_node_id}_{unique_id}_{timestamp}"
 
 
 @pytest.fixture(scope="function")
@@ -128,6 +135,9 @@ def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_tmp_db_name
     # This is required in SQLAlchemy 2.0 to prevent "database is being accessed by other users" errors
     engine.dispose()
 
+    # Allow time for connection disposal to propagate (addresses async PostgreSQL cleanup)
+    time.sleep(0.5)
+
     # Force disconnect all other sessions before dropping database
     # This handles cases where other engines might still be connected
     try:
@@ -141,6 +151,9 @@ def tsdb_engine(tsdb_container: None, free_localhost_port: int, tsdb_tmp_db_name
                 {"db_name": tsdb_tmp_db_name},
             )
             conn.commit()
+
+        # Allow time for pg_terminate_backend to complete (it's async)
+        time.sleep(0.2)
     except Exception:
         # If termination fails, proceed anyway - drop_database will handle the error
         pass
