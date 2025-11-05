@@ -18,8 +18,8 @@ class BaseEnsembleResetMetricConfig:
 
 
 class BaseEnsembleResetMetric(ABC):
-    def __init__(self, config: BaseEnsembleResetMetricConfig, gamma: float):
-        self.config = config
+    def __init__(self, cfg: BaseEnsembleResetMetricConfig, gamma: float):
+        self.config = cfg
         self.gamma = gamma
 
     @abstractmethod
