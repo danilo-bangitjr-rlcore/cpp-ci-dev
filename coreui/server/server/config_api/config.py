@@ -24,7 +24,7 @@ def _load_config_data(path: str, config_name: str) -> dict:
     if not config_path.exists():
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Config file '{config_name}.yaml' not found",
+            detail=f"Config file '{config_name}.yaml' not found in {config_path}",
         )
 
     with open(config_path, encoding='utf-8') as f:
