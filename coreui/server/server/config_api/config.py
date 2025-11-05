@@ -46,6 +46,16 @@ def _find_tag_index(tags: list[dict], tag_name: str) -> int:
         detail=f"Tag '{tag_name}' not found",
     )
 
+def _is_valid_config_file(config_file: Path) -> bool:
+    """Check if a YAML file is a valid config (has agent_name field)."""
+    try:
+        with open(config_file, encoding='utf-8') as f:
+            config_data = yaml.safe_load(f)
+            return config_data is not None and "agent_name" in config_data
+    except Exception:
+        # Skip files that can't be parsed
+        return False
+
 def _handle_exception(e: Exception) -> JSONResponse:
     if isinstance(e, HTTPException):
         raise e
@@ -140,7 +150,13 @@ async def delete_tag(
 async def get_all_configs(path: str) -> JSONResponse:
     configs_dir = Path(path)
     config_files = list(configs_dir.glob("*.yaml"))
-    config_names = sorted([f.stem for f in config_files])
+
+    config_names = [
+        config_file.stem
+        for config_file in sorted(config_files)
+        if _is_valid_config_file(config_file)
+    ]
+
     return JSONResponse(content={"configs": config_names},
                         status_code=status.HTTP_200_OK)
 
