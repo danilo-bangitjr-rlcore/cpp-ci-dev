@@ -5,21 +5,11 @@ from lib_events.server.proxy import EventBusProxy
 logger = logging.getLogger(__name__)
 
 class EventBusManager:
-    def __init__(
-        self,
-        host: str = "*",
-        pub_port: int = 5570,
-        sub_port: int = 5571,
-    ):
+    def __init__(self, host: str = "*", port: int = 5580):
         self.host = host
-        self.pub_port = pub_port
-        self.sub_port = sub_port
-        # ZMQ proxy architecture (counterintuitive naming):
-        # - XSUB socket: where publishers CONNECT (binds to pub_port)
-        # - XPUB socket: where subscribers CONNECT (binds to sub_port)
-        self.xsub_addr = f"tcp://{host}:{pub_port}"
-        self.xpub_addr = f"tcp://{host}:{sub_port}"
-        self.proxy = EventBusProxy(xsub_addr=self.xsub_addr, xpub_addr=self.xpub_addr)
+        self.port = port
+        self.router_addr = f"tcp://{host}:{port}"
+        self.proxy = EventBusProxy(router_addr=self.router_addr)
 
     def start(self):
         logger.info("Starting event bus manager")
@@ -34,8 +24,12 @@ class EventBusManager:
 
     def get_config(self):
         return {
-            "xsub_addr": self.xsub_addr,
-            "xpub_addr": self.xpub_addr,
-            "publisher_endpoint": self.xsub_addr.replace("*", "localhost"),
-            "subscriber_endpoint": self.xpub_addr.replace("*", "localhost"),
+            "router_addr": self.router_addr,
+            "endpoint": self.router_addr.replace("*", "localhost"),
         }
+
+    def get_service_count(self):
+        return self.proxy.get_service_count()
+
+    def get_topic_subscriber_count(self, topic: str):
+        return self.proxy.get_topic_subscriber_count(topic)

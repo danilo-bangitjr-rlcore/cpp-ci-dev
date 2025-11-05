@@ -1,24 +1,33 @@
 import logging
 import threading
+from collections import defaultdict
 
 import zmq
 
+from lib_events.protocol.message_protocol import MessageType, ParsedMessage, parse_message
+
 logger = logging.getLogger(__name__)
+
 
 class EventBusProxy:
     def __init__(
         self,
-        xsub_addr: str = "tcp://*:5570",
-        xpub_addr: str = "tcp://*:5571",
+        router_addr: str = "tcp://*:5580",
     ):
-        self.xsub_addr = xsub_addr
-        self.xpub_addr = xpub_addr
+        self.router_addr = router_addr
         self.context: zmq.Context | None = None
-        self.xsub_socket: zmq.Socket | None = None
-        self.xpub_socket: zmq.Socket | None = None
+        self.router_socket: zmq.Socket | None = None
         self._proxy_thread: threading.Thread | None = None
         self._stop_event = threading.Event()
         self._running = False
+        self._service_registry: dict[str, bytes] = {}
+        self._topic_subscriptions: dict[str, set[bytes]] = defaultdict(set)
+        self._pending_requests: dict[str, bytes] = {}
+        self._lock = threading.Lock()
+
+    # ---------------
+    # -- Lifecycle --
+    # ---------------
 
     def start(self):
         if self._running:
@@ -33,69 +42,7 @@ class EventBusProxy:
         )
         self._proxy_thread.start()
         self._running = True
-        logger.info(
-            f"Event bus proxy started - xsub: {self.xsub_addr}, xpub: {self.xpub_addr}",
-        )
-
-    def _forward_messages(self, xsub_socket: zmq.Socket, xpub_socket: zmq.Socket):
-        poller = zmq.Poller()
-        poller.register(xsub_socket, zmq.POLLIN)
-        poller.register(xpub_socket, zmq.POLLIN)
-
-        while not self._stop_event.is_set():
-            try:
-                socks = dict(poller.poll(timeout=500))
-            except zmq.ZMQError as e:
-                if self._stop_event.is_set():
-                    break
-
-                logger.error(f"ZMQ polling error: {e}")
-                continue
-
-            if xsub_socket in socks:
-                message = xsub_socket.recv_multipart(zmq.NOBLOCK)
-                xpub_socket.send_multipart(message)
-
-            if xpub_socket in socks:
-                message = xpub_socket.recv_multipart(zmq.NOBLOCK)
-                xsub_socket.send_multipart(message)
-
-    def _run_proxy(self):
-        self.context = zmq.Context()
-        self.xsub_socket = self.context.socket(zmq.XSUB)
-        self.xpub_socket = self.context.socket(zmq.XPUB)
-
-        try:
-            assert self.xsub_socket is not None
-            assert self.xpub_socket is not None
-
-            self.xsub_socket.bind(self.xsub_addr)
-            self.xpub_socket.bind(self.xpub_addr)
-            logger.debug(
-                f"ZMQ proxy sockets bound - xsub: {self.xsub_addr}, xpub: {self.xpub_addr}",
-            )
-
-            self._forward_messages(self.xsub_socket, self.xpub_socket)
-
-        except Exception as e:
-            logger.error(f"Event bus proxy error: {e}", exc_info=True)
-        finally:
-            self._cleanup_sockets()
-
-    def _cleanup_sockets(self):
-        if self.xsub_socket:
-            self.xsub_socket.close()
-            self.xsub_socket = None
-
-        if self.xpub_socket:
-            self.xpub_socket.close()
-            self.xpub_socket = None
-
-        if self.context:
-            self.context.term()
-            self.context = None
-
-        logger.debug("ZMQ proxy sockets cleaned up")
+        logger.info(f"Event bus proxy started - router: {self.router_addr}")
 
     def stop(self):
         if not self._running:
@@ -115,3 +62,211 @@ class EventBusProxy:
 
     def is_running(self):
         return self._running and (self._proxy_thread is not None and self._proxy_thread.is_alive())
+
+    # ----------------------
+    # -- Message Handling --
+    # ----------------------
+
+    def _message_loop(self):
+        assert self.router_socket is not None
+
+        poller = zmq.Poller()
+        poller.register(self.router_socket, zmq.POLLIN)
+
+        while not self._stop_event.is_set():
+            try:
+                socks = dict(poller.poll(timeout=500))
+            except zmq.ZMQError as e:
+                if self._stop_event.is_set():
+                    break
+
+                logger.error(f"ZMQ polling error: {e}")
+                continue
+
+            if self.router_socket in socks:
+                self._handle_message()
+
+    def _handle_message(self):
+        assert self.router_socket is not None
+
+        try:
+            frames = self.router_socket.recv_multipart(zmq.NOBLOCK)
+        except zmq.Again:
+            return
+
+        if len(frames) < 5:
+            logger.warning(f"Received malformed message with {len(frames)} frames")
+            return
+
+        zmq_identity = frames[0]
+        message_frames = frames[1:]
+
+        parsed = parse_message(message_frames)
+        if parsed.is_none():
+            logger.error("Failed to parse message")
+            return
+
+        msg = parsed.expect()
+
+        if msg.msg_type == MessageType.REGISTER:
+            self._handle_register(zmq_identity, msg.destination)
+        elif msg.msg_type == MessageType.SUBSCRIBE:
+            self._handle_subscribe(zmq_identity, msg.destination)
+        elif msg.msg_type == MessageType.PUBLISH:
+            self._handle_publish(msg)
+        elif msg.msg_type == MessageType.REQUEST:
+            self._handle_request(zmq_identity, msg)
+        elif msg.msg_type == MessageType.REPLY:
+            self._handle_reply(msg)
+        else:
+            logger.warning(f"Unknown message type: {msg.msg_type}")
+
+    # ---------------------------
+    # -- Message Type Handlers --
+    # ---------------------------
+
+    def _handle_register(self, zmq_identity: bytes, service_id: str):
+        with self._lock:
+            if service_id in self._service_registry:
+                logger.warning(
+                    f"Service '{service_id}' already registered, overwriting",
+                )
+            self._service_registry[service_id] = zmq_identity
+            logger.info(f"Registered service: {service_id}")
+
+    def _handle_subscribe(self, zmq_identity: bytes, topic: str):
+        with self._lock:
+            self._topic_subscriptions[topic].add(zmq_identity)
+            logger.debug(
+                f"Subscription added: topic={topic}, "
+                f"subscribers={len(self._topic_subscriptions[topic])}",
+            )
+
+    def _handle_publish(self, msg: ParsedMessage):
+        assert self.router_socket is not None
+
+        with self._lock:
+            subscribers = self._topic_subscriptions.get(msg.destination, set())
+
+        if not subscribers:
+            logger.debug(f"No subscribers for topic: {msg.destination}")
+            return
+
+        logger.debug(f"Publishing to {len(subscribers)} subscribers on topic: {msg.destination}")
+
+        for subscriber_id in subscribers:
+            _send_frames(self.router_socket, subscriber_id, msg.frames)
+
+    def _handle_request(
+        self,
+        requester_id: bytes,
+        msg: ParsedMessage,
+    ):
+        assert self.router_socket is not None
+
+        with self._lock:
+            service_id = self._service_registry.get(msg.destination)
+            self._pending_requests[msg.correlation_id] = requester_id
+
+        if service_id is None:
+            logger.warning(f"Request to unregistered service: {msg.destination}")
+            self._send_error_reply(requester_id, msg)
+            with self._lock:
+                self._pending_requests.pop(msg.correlation_id, None)
+            return
+
+        _send_frames(self.router_socket, service_id, msg.frames)
+        logger.debug(f"Routed REQUEST to service: {msg.destination} (correlation_id: {msg.correlation_id})")
+
+    def _handle_reply(self, msg: ParsedMessage):
+        assert self.router_socket is not None
+
+        with self._lock:
+            requester_id = self._pending_requests.pop(msg.correlation_id, None)
+
+        if requester_id is None:
+            logger.warning(f"Reply with unknown correlation_id: {msg.correlation_id}")
+            return
+
+        _send_frames(self.router_socket, requester_id, msg.frames)
+        logger.debug(f"Routed REPLY for correlation_id: {msg.correlation_id}")
+
+    def _send_error_reply(self, requester_id: bytes, msg: ParsedMessage):
+        assert self.router_socket is not None
+
+        error_payload = b'{"error": "Service not available"}'
+        error_frames = [
+            b"",
+            MessageType.REPLY.value.encode("utf-8"),
+            msg.correlation_id.encode("utf-8"),
+            error_payload,
+        ]
+
+        _send_frames(self.router_socket, requester_id, error_frames)
+        logger.debug(f"Sent error reply for correlation_id: {msg.correlation_id}")
+
+    # -----------------------
+    # -- Socket Management --
+    # -----------------------
+
+    def _run_proxy(self):
+        self.context = zmq.Context()
+        self.router_socket = self.context.socket(zmq.ROUTER)
+
+        try:
+            assert self.router_socket is not None
+
+            self.router_socket.bind(self.router_addr)
+            logger.debug(f"ZMQ router socket bound - router: {self.router_addr}")
+
+            self._message_loop()
+
+        except Exception as e:
+            logger.error(f"Event bus proxy error: {e}", exc_info=True)
+        finally:
+            self._cleanup_sockets()
+
+    def _cleanup_sockets(self):
+        if self.router_socket:
+            self.router_socket.setsockopt(zmq.LINGER, 0)
+            self.router_socket.close()
+            self.router_socket = None
+
+        if self.context:
+            self.context.destroy(linger=0)
+            self.context = None
+
+        with self._lock:
+            self._service_registry.clear()
+            self._topic_subscriptions.clear()
+            self._pending_requests.clear()
+
+        logger.debug("ZMQ router socket cleaned up")
+
+    # -------------------
+    # -- Query Methods --
+    # -------------------
+
+    def get_service_count(self):
+        with self._lock:
+            return len(self._service_registry)
+
+    def get_topic_subscriber_count(self, topic: str):
+        with self._lock:
+            return len(self._topic_subscriptions.get(topic, set()))
+
+
+# ---------------
+# -- Utilities --
+# ---------------
+
+def _send_frames(socket: zmq.Socket, identity: bytes, frames: list[bytes]):
+    try:
+        socket.send_multipart(
+            [identity, *frames],
+            zmq.NOBLOCK,
+        )
+    except zmq.Again:
+        logger.warning("Failed to send message (queue full)")
+    except zmq.ZMQError as e:
+        logger.error(f"Error sending message: {e}")
