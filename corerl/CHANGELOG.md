@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.157.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.156.0...corerl-v0.157.0) (2025-11-05)
+
+
+### Features
+
+* **corerl:** add `primitive_held` to State, pipelineframe, pipelinereturn ([a8cde5a](https://github.com/rlcoretech/core-rl/commit/a8cde5a638e38bc3a02b9a1e20f776d81d319e66))
+* **corerl:** add return scaling to critic output ([5bd72c2](https://github.com/rlcoretech/core-rl/commit/5bd72c239e4f557bad91197bd8f44e035027222f))
+* **corerl:** configurable critic weight decay ([744b544](https://github.com/rlcoretech/core-rl/commit/744b5440fc91bbcfee1b3ef7c10c71970dd671ca))
+* **lib_events:** add EventBusClient to client module ([1e69d05](https://github.com/rlcoretech/core-rl/commit/1e69d05450593db5aab4d3af8b6109e37e54c39d))
+* **PROD-1225:** EvenBetterQ ([b89c9fe](https://github.com/rlcoretech/core-rl/commit/b89c9feb033fc070ca9666fd191bea8670c33120))
+* **PROD-1226:** ucb ensemble aggregation ([8cfc576](https://github.com/rlcoretech/core-rl/commit/8cfc5762372a48750fb1e5276504ebaf95f2dcfe))
+* **PROD-1227:** ucb feature flag ([fdff272](https://github.com/rlcoretech/core-rl/commit/fdff27229c58da5a4d1153bbe41d485a58db5b82))
+* **PROD-1228:** sigma regularization ([6ed403e](https://github.com/rlcoretech/core-rl/commit/6ed403ead811d4e0839914e76844ce0fafe1cdf4))
+
+
+### Bug Fixes
+
+* rng in nominal setpoint ([4f203c6](https://github.com/rlcoretech/core-rl/commit/4f203c654e3d3b2f1265b18e87f389005dc87180))
+
 ## [0.156.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.155.0...corerl-v0.156.0) (2025-10-29)
 
 
