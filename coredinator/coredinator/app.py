@@ -47,8 +47,7 @@ class CliArgs(NamedTuple):
     console_output: bool
     reload: bool
     event_bus_host: str
-    event_bus_pub_port: int
-    event_bus_sub_port: int
+    event_bus_port: int
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Coredinator Service")
@@ -62,12 +61,8 @@ def parse_args():
     parser.add_argument("--event-bus-host", type=str, default="*",
                         help="Event bus host address (default: *)")
     parser.add_argument(
-        "--event-bus-pub-port", type=int, default=5570,
-        help="Port where publishers connect (XSUB socket, default: 5570)",
-    )
-    parser.add_argument(
-        "--event-bus-sub-port", type=int, default=5571,
-        help="Port where subscribers connect (XPUB socket, default: 5571)",
+        "--event-bus-port", type=int, default=5580,
+        help="Event bus DEALER/ROUTER port (default: 5580)",
     )
 
     args = parser.parse_args()
@@ -80,8 +75,7 @@ def parse_args():
         console_output=not args.no_console,
         reload=args.reload,
         event_bus_host=args.event_bus_host,
-        event_bus_pub_port=args.event_bus_pub_port,
-        event_bus_sub_port=args.event_bus_sub_port,
+        event_bus_port=args.event_bus_port,
     )
 
 # pyright: reportUnusedFunction=false
@@ -100,8 +94,7 @@ def _prepare_base_path(base_path: Path | str) -> Path:
 def create_app(
     base_path: Path,
     event_bus_host: str = "*",
-    event_bus_pub_port: int = 5559,
-    event_bus_sub_port: int = 5560,
+    event_bus_port: int = 5580,
 ) -> FastAPI:
     """Factory function to create FastAPI app with given base_path."""
     prepared_base_path = _prepare_base_path(base_path)
@@ -110,8 +103,7 @@ def create_app(
     service_manager = ServiceManager(base_path=prepared_base_path)
     event_bus_manager = EventBusManager(
         host=event_bus_host,
-        pub_port=event_bus_pub_port,
-        sub_port=event_bus_sub_port,
+        port=event_bus_port,
     )
     app.state.service_manager = service_manager
     app.state.event_bus_manager = event_bus_manager
@@ -179,8 +171,7 @@ def get_app() -> FastAPI:
     return create_app(
         cli_args.base_path,
         cli_args.event_bus_host,
-        cli_args.event_bus_pub_port,
-        cli_args.event_bus_sub_port,
+        cli_args.event_bus_port,
     )
 
 
@@ -212,7 +203,6 @@ if __name__ == "__main__":
             log_level=cli_args.log_level,
             console_output=cli_args.console_output,
             event_bus_host=cli_args.event_bus_host,
-            event_bus_pub_port=cli_args.event_bus_pub_port,
-            event_bus_sub_port=cli_args.event_bus_sub_port,
+            event_bus_port=cli_args.event_bus_port,
         )
         service.run_forever(max_retries=5, retry_window_hours=1, enable_retry=True)

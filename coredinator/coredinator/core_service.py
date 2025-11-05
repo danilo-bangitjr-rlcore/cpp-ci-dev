@@ -23,15 +23,13 @@ class CoredinatorService(RLTuneService):
         log_level: str,
         console_output: bool,
         event_bus_host: str,
-        event_bus_pub_port: int,
-        event_bus_sub_port: int,
+        event_bus_port: int,
     ):
         super().__init__(
             service_name='coredinator',
             event_topic=EventTopic.coredinator,
             event_bus_host=event_bus_host,
-            event_bus_pub_port=event_bus_pub_port,
-            event_bus_sub_port=event_bus_sub_port,
+            event_bus_port=event_bus_port,
         )
         self.base_path = base_path
         self.port = port
@@ -39,8 +37,7 @@ class CoredinatorService(RLTuneService):
         self.log_level = log_level
         self.console_output = console_output
         self.event_bus_host = event_bus_host
-        self.event_bus_pub_port = event_bus_pub_port
-        self.event_bus_sub_port = event_bus_sub_port
+        self.event_bus_port = event_bus_port
 
         self.app = None
         self.server = None
@@ -57,8 +54,7 @@ class CoredinatorService(RLTuneService):
         self.app = create_app(
             self.base_path,
             self.event_bus_host,
-            self.event_bus_pub_port,
-            self.event_bus_sub_port,
+            self.event_bus_port,
         )
 
         # Start the event bus server BEFORE setting up client
@@ -85,15 +81,13 @@ class CoredinatorService(RLTuneService):
         host = "localhost" if self.event_bus_host == "*" else self.event_bus_host
 
         logger.info(
-            f"Connecting event bus client: {host}:"
-            f"{self.event_bus_pub_port}/{self.event_bus_sub_port}",
+            f"Connecting event bus client: {host}:{self.event_bus_port}",
         )
 
         self._event_bus_client = EventBusClient(
             event_class=Event,
             host=host,
-            pub_port=self.event_bus_pub_port,
-            sub_port=self.event_bus_sub_port,
+            port=self.event_bus_port,
         )
         self._event_bus_client.connect()
 
