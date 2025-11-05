@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.5.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.4.1...coredinator-v0.5.0) (2025-11-05)
+
+
+### Features
+
+* **coredinator:** add bash script to setup service dirs ([98eab2d](https://github.com/rlcoretech/core-rl/commit/98eab2dcb6f7d58a1ea133f7b4e4fe77eb48dc68))
+* **lib_events:** add server components (proxy and manager) ([33cf611](https://github.com/rlcoretech/core-rl/commit/33cf6116dd02227c28e8660b3aa106ed278c0ef2))
+
+
+### Bug Fixes
+
+* **event_bus:** change default ports to not collide with coreio ([dacc944](https://github.com/rlcoretech/core-rl/commit/dacc944908ae2c9c719ecadd4c317496ce2b12dc))
+
 ## [0.4.1](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.4.0...coredinator-v0.4.1) (2025-10-29)
 
 

@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.2.0](https://github.com/rlcoretech/core-rl/compare/coretelemetry-v0.1.0...coretelemetry-v0.2.0) (2025-11-05)
+
+
+### Features
+
+* Adding metrics filtering logic to backend ([c144492](https://github.com/rlcoretech/core-rl/commit/c144492fb0284c0675e9deb4a373af3d241a207c))
+
+
+### Bug Fixes
+
+* **CI:** CoreTelemetry flaky database creation ([78525e1](https://github.com/rlcoretech/core-rl/commit/78525e1b5e6baf6866510fff82cbd259bfffd5ae))
+* **CI:** CoreTelemetry only comments coverage percentage when running on Linux ([a2d97ec](https://github.com/rlcoretech/core-rl/commit/a2d97ec11b81a33c8002b640d03963362fcdf234))
+* **coretelemetry:** more retries in sql creation ([34b5f99](https://github.com/rlcoretech/core-rl/commit/34b5f9957214f6fd2e36be01010b2ce28f62847e))
+* **CoreUI:** Refactor agent metrics so filtering happens in Backend ([85ceae7](https://github.com/rlcoretech/core-rl/commit/85ceae78f7c05db062c63310e958bc50323cf84a))
+
 ## [0.1.0](https://github.com/rlcoretech/core-rl/compare/coretelemetry-v0.0.1...coretelemetry-v0.1.0) (2025-10-29)
 
 
