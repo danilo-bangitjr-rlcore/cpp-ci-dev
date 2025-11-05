@@ -1,8 +1,9 @@
 env:
   gym:
     env_config:
+    # The combination of the decay and trace_val make it difficult for the agent to raise the value of
+    # tag-0 to 0.5, making the agent prone to getting stuck at a local maximum at 0.1 or 0.3
       decay: 0.7
-      effect: null
       trace_val: 0.99
       num_reward_modes: 5
       mode_amplitude: 0.5

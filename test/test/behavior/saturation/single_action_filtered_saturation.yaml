@@ -1,9 +1,7 @@
 env:
   gym:
     env_config:
-      decay: 0.6
-      effect: 1.0
-      trace_val: 0.995
+      trace_val: 0.99
       filter_thresh: 0.75
       setpoint_schedule: {0: 0.1}
 

@@ -1,10 +1,6 @@
 env:
   gym:
     env_config:
-      decay: 0.7
-      trace_val: 0.99
-      setpoints: [0.1, 0.2, 0.3]
-      filter_threshes: [0.5, 0.45, 0.4]
       delays: [10, 7, 5]
 
 defaults:
