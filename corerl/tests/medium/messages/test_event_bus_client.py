@@ -1,95 +1,50 @@
-import threading
 import time
 
 import pytest
-import zmq
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
+from lib_events.server.proxy import EventBusProxy
 from test.infrastructure.networking import get_free_port
 
 from corerl.event_bus.client import EventBusClient
 
 
 @pytest.fixture
-def pub_port() -> int:
+def comms_port() -> int:
     """
-    Generate unique publisher port for test to avoid conflicts.
-    """
-    return get_free_port("localhost")
-
-
-@pytest.fixture
-def sub_port() -> int:
-    """
-    Generate unique subscriber port for test to avoid conflicts.
+    Generate unique communications port for test to avoid conflicts.
     """
     return get_free_port("localhost")
 
 
 @pytest.fixture
-def mock_proxy(pub_port: int, sub_port: int):
+def event_bus_proxy(comms_port: int):
     """
-    Create mock proxy with XSUB socket for publisher and XPUB for subscriber that forwards messages.
+    Create real EventBusProxy for testing.
     """
-    context = zmq.Context()
-
-    xsub_socket = context.socket(zmq.XSUB)
-    xsub_socket.bind(f"tcp://127.0.0.1:{pub_port}")
-
-    xpub_socket = context.socket(zmq.XPUB)
-    xpub_socket.bind(f"tcp://127.0.0.1:{sub_port}")
-
-    stop_event = threading.Event()
-
-    def forward_messages():
-        poller = zmq.Poller()
-        poller.register(xsub_socket, zmq.POLLIN)
-        poller.register(xpub_socket, zmq.POLLIN)
-
-        while not stop_event.is_set():
-            try:
-                socks = dict(poller.poll(timeout=100))
-            except zmq.ZMQError:
-                if stop_event.is_set():
-                    break
-                continue
-
-            if xsub_socket in socks:
-                message = xsub_socket.recv_multipart(zmq.NOBLOCK)
-                xpub_socket.send_multipart(message)
-
-            if xpub_socket in socks:
-                message = xpub_socket.recv_multipart(zmq.NOBLOCK)
-                xsub_socket.send_multipart(message)
-
-    proxy_thread = threading.Thread(target=forward_messages, daemon=True)
-    proxy_thread.start()
-
-    yield xsub_socket, xpub_socket
-
-    stop_event.set()
-    proxy_thread.join(timeout=2)
-    xsub_socket.close()
-    xpub_socket.close()
-    context.term()
+    proxy = EventBusProxy(router_addr=f"tcp://127.0.0.1:{comms_port}")
+    proxy.start()
+    time.sleep(0.1)
+    yield proxy
+    proxy.stop()
 
 
 @pytest.fixture
-def client(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
+def client(event_bus_proxy: EventBusProxy, comms_port: int):
     """
-    Create EventBusClient connected to mock proxy.
+    Create EventBusClient connected to real proxy using dynamic port.
     """
-    client = EventBusClient(host="127.0.0.1", pub_port=pub_port, sub_port=sub_port)
+    client = EventBusClient(host="127.0.0.1", port=comms_port)
     yield client
     if client.is_connected():
         client.close()
 
 
 @pytest.mark.timeout(5)
-def test_client_initial_state(pub_port: int, sub_port: int):
+def test_client_initial_state(comms_port: int):
     """
     Client starts in disconnected state.
     """
-    client = EventBusClient(host="127.0.0.1", pub_port=pub_port, sub_port=sub_port)
+    client = EventBusClient(host="127.0.0.1", port=comms_port)
     assert not client.is_connected()
 
 
@@ -108,11 +63,11 @@ def test_client_close(client: EventBusClient):
 
 
 @pytest.mark.timeout(5)
-def test_client_emit_without_connect(pub_port: int, sub_port: int):
+def test_client_emit_without_connect(comms_port: int):
     """
     Emitting without connection logs warning and does nothing.
     """
-    client = EventBusClient(host="127.0.0.1", pub_port=pub_port, sub_port=sub_port)
+    client = EventBusClient(host="127.0.0.1", port=comms_port)
     assert not client.is_connected()
 
     event = Event(type=EventType.service_started)
@@ -148,15 +103,18 @@ def test_client_lifecycle_multiple_cycles(client: EventBusClient):
 
 
 @pytest.mark.timeout(5)
-def test_client_callback_invocation(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
+def test_client_callback_invocation(event_bus_proxy: EventBusProxy, comms_port: int):
     """
     Attached callbacks are invoked when matching events are received.
+
+    Note: This test validates the unified event bus client wrapper but does not reflect
+    the actual CoreRL deployment which uses legacy EventBus for peer-to-peer communication.
     """
-    publisher = EventBusClient(host="127.0.0.1", pub_port=pub_port, sub_port=sub_port)
+    publisher = EventBusClient(host="127.0.0.1", port=comms_port)
     publisher.connect()
     time.sleep(0.1)
 
-    subscriber = EventBusClient(host="127.0.0.1", pub_port=pub_port, sub_port=sub_port)
+    subscriber = EventBusClient(host="127.0.0.1", port=comms_port)
     subscriber.connect()
     time.sleep(0.1)
 

@@ -6,14 +6,12 @@ class RLEventBusClient(_EventBusClient[Event, EventType, EventTopic]):
     def __init__(
         self,
         host: str = "localhost",
-        pub_port: int = 5559,
-        sub_port: int = 5560,
+        port: int = 5580,
     ):
         super().__init__(
             event_class=Event,
             host=host,
-            pub_port=pub_port,
-            sub_port=sub_port,
+            port=port,
         )
 
 
