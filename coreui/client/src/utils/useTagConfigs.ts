@@ -25,7 +25,7 @@ export function useTagConfigs() {
   const { isPending, error, data } = useQuery({
     queryKey: ['tags'],
     queryFn: async () => {
-      const response = await get(API_ENDPOINTS.configs.tags);
+      const response = await get(API_ENDPOINTS.configs.tags(TEMP_CONFIG_NAME));
       if (!response.ok) throw new Error('Failed to fetch tags');
       return response.json();
     },
@@ -55,7 +55,7 @@ export function useTagConfigs() {
   ): Promise<void> => {
     try {
       const response = await fetch(
-        API_ENDPOINTS.configs.delete_raw_tag(configName, index),
+        API_ENDPOINTS.configs.delete_tag(configName, index),
         {
           method: 'DELETE',
           headers: { 'Content-Type': 'application/json' },
@@ -82,7 +82,7 @@ export function useTagConfigs() {
     };
     try {
       const response = await fetch(
-        API_ENDPOINTS.configs.add_raw_tag(TEMP_CONFIG_NAME),
+        API_ENDPOINTS.configs.add_tag(TEMP_CONFIG_NAME),
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -110,7 +110,7 @@ export function useTagConfigs() {
     };
     try {
       const response = await fetch(
-        API_ENDPOINTS.configs.update_raw_tag(
+        API_ENDPOINTS.configs.update_tag(
           TEMP_CONFIG_NAME,
           config.originalIndex
         ),

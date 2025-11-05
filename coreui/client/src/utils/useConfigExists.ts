@@ -6,7 +6,7 @@ export function useConfigExists(configName: string) {
     queryKey: ['config-exists', configName],
     queryFn: async () => {
       if (!configName) return false;
-      const response = await get(API_ENDPOINTS.configs.raw(configName));
+      const response = await get(API_ENDPOINTS.configs.get(configName));
       if (response.status === 404) return false;
       if (response.ok) return true;
       throw new Error(

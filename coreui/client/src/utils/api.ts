@@ -26,22 +26,18 @@ export const API_ENDPOINTS = {
     status: `${API_BASE_URL}/v1/opc/status`,
   },
   configs: {
-    list_raw: `${API_BASE_URL}/v1/config/raw/list`,
-    list_clean: `${API_BASE_URL}/v1/config/clean/list`,
-    clean: (configName: string) => `${API_BASE_URL}/configs/${configName}`,
-    raw: (configName: string) => `${API_BASE_URL}/v1/config/raw/${configName}`,
-    agent_name: (configName: string) =>
-      `${API_BASE_URL}/v1/config/raw/${configName}/agent_name`,
-    mutate_raw_config: `${API_BASE_URL}/v1/config/raw/configs`,
-    // TEMPORARY PLACEHOLDER FOR TAGS -- HARD CODED CONFIG NAME
-    tags: `${API_BASE_URL}/v1/config/raw/main_backwash/tags`,
-    delete_raw_tag: (configName: string, tagIndex: number) =>
-      `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
-    add_raw_tag: (configName: string) =>
-      `${API_BASE_URL}/v1/config/raw/${configName}/tags`,
-    update_raw_tag: (configName: string, tagIndex: number) =>
-      `${API_BASE_URL}/v1/config/raw/${configName}/tags/${tagIndex}`,
-    get_clean_config_path: (configName: string) =>
+    list: `${API_BASE_URL}/v1/config/list`,
+    get: (configName: string) => `${API_BASE_URL}/v1/config/${configName}`,
+    mutate_config: `${API_BASE_URL}/v1/config/configs`,
+    tags: (configName: string) =>
+      `${API_BASE_URL}/v1/config/${configName}/tags`,
+    delete_tag: (configName: string, tagIndex: number) =>
+      `${API_BASE_URL}/v1/config/${configName}/tags/${tagIndex}`,
+    add_tag: (configName: string) =>
+      `${API_BASE_URL}/v1/config/${configName}/tags`,
+    update_tag: (configName: string, tagIndex: number) =>
+      `${API_BASE_URL}/v1/config/${configName}/tags/${tagIndex}`,
+    get_config_path: (configName: string) =>
       `${API_BASE_URL}/v1/config/${configName}/config_path`,
     agents_missing_config: `${API_BASE_URL}/v1/config/agents/missing-config`,
   },
