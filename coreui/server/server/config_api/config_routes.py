@@ -85,7 +85,7 @@ COREGATEWAY_BASE = "http://localhost:8001"
     summary="List Config Names",
     description="List all available configuration names.",
 )
-async def get_all_clean_configs(request: Request):
+async def get_all_configs_endpoint(request: Request):
     return await get_all_configs(path=request.app.state.config_path)
 
 @config_router.get(
@@ -114,7 +114,7 @@ async def get_all_clean_configs(request: Request):
     summary="Get Config",
     description="Retrieve the configuration as a JSON object.",
 )
-async def get_clean_config(request: Request, config_name: str):
+async def get_config_endpoint(request: Request, config_name: str):
     return await get_config(request.app.state.config_path, config_name)
 
 @config_router.get(
@@ -137,7 +137,7 @@ async def get_clean_config(request: Request, config_name: str):
     summary="List Tags",
     description="List all tags defined in the configuration.",
 )
-async def get_clean_tags(request: Request, config_name: str):
+async def get_tags_endpoint(request: Request, config_name: str):
     return await get_tags(request.app.state.config_path, config_name)
 
 @config_router.get(
@@ -160,7 +160,7 @@ async def get_clean_tags(request: Request, config_name: str):
     summary="Get Tag",
     description="Retrieve a specific tag by name from the configuration.",
 )
-async def get_clean_tag(request: Request, config_name: str, tag_name: str):
+async def get_tag_endpoint(request: Request, config_name: str, tag_name: str):
     return await get_tag(request.app.state.config_path, config_name, tag_name)
 
 @config_router.post(
@@ -185,7 +185,7 @@ async def get_clean_tag(request: Request, config_name: str, tag_name: str):
     description="Add a new tag to the configuration.",
     status_code=status.HTTP_201_CREATED,
 )
-async def post_clean_tag(request: Request, config_name: str, tag: Tag = Body(...)):
+async def post_tag_endpoint(request: Request, config_name: str, tag: Tag = Body(...)):
     return await add_tag(request.app.state.config_path, config_name, tag.model_dump())
 
 @config_router.put(
@@ -210,7 +210,7 @@ async def post_clean_tag(request: Request, config_name: str, tag: Tag = Body(...
     summary="Update Tag",
     description="Update an existing tag by index in the configuration.",
 )
-async def put_clean_tag(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
+async def put_tag_endpoint(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
     return await update_tag(request.app.state.config_path, config_name, index, tag.model_dump())
 
 @config_router.delete(
@@ -235,7 +235,7 @@ async def put_clean_tag(request: Request, config_name: str, index: int, tag: Tag
     summary="Delete Tag",
     description="Delete a tag by index from the configuration.",
 )
-async def delete_clean_tag(request: Request, config_name: str, index: int):
+async def delete_tag_endpoint(request: Request, config_name: str, index: int):
     return await delete_tag(request.app.state.config_path, config_name, index)
 
 @config_router.post(
@@ -259,7 +259,7 @@ async def delete_clean_tag(request: Request, config_name: str, index: int):
     description="Create a new configuration with the given name.",
     status_code=status.HTTP_201_CREATED,
 )
-async def create_clean_config(request: Request, config: ConfigNameRequest = Body(...)):
+async def create_config_endpoint(request: Request, config: ConfigNameRequest = Body(...)):
     return await create_config(request.app.state.config_path, config.config_name)
 
 @config_router.delete(
@@ -282,7 +282,7 @@ async def create_clean_config(request: Request, config: ConfigNameRequest = Body
     summary="Delete Config",
     description="Delete an existing configuration by name.",
 )
-async def delete_clean_config(request: Request, config: ConfigNameRequest = Body(...)):
+async def delete_config_endpoint(request: Request, config: ConfigNameRequest = Body(...)):
     return await delete_config(request.app.state.config_path, config.config_name)
 
 @config_router.get(
@@ -305,7 +305,7 @@ async def delete_clean_config(request: Request, config: ConfigNameRequest = Body
     summary="Get Config File Path",
     description="Retrieve the file path of the specified configuration.",
 )
-async def get_clean_config_path(request: Request, config_name: str):
+async def get_config_path_endpoint(request: Request, config_name: str):
     return await get_config_path(request.app.state.config_path, config_name)
 
 @config_router.get(
@@ -331,21 +331,21 @@ async def get_agents_missing_config(request: Request):
     """Get agents active in coredinator but missing a config."""
     try:
         # Get configs
-        clean_configs_response = await get_all_clean_configs(request)
+        configs_response = await get_all_configs_endpoint(request)
 
         # Parse response body properly
-        if hasattr(clean_configs_response, "body"):
-            body = clean_configs_response.body
+        if hasattr(configs_response, "body"):
+            body = configs_response.body
             # Convert memoryview to bytes if needed
             # Solves pyright error: Expression of type 'bytes | memoryview' cannot be assigned to declared type 'bytes'
             if isinstance(body, memoryview):
                 body = bytes(body)
-            clean_configs_data = json.loads(body)
+            configs_data = json.loads(body)
         else:
-            clean_configs_data = clean_configs_response
+            configs_data = configs_response
 
-        configs = clean_configs_data.get("configs", []) if isinstance(clean_configs_data, dict) else []
-        clean_configs = set(configs)
+        configs = configs_data.get("configs", []) if isinstance(configs_data, dict) else []
+        available_configs = set(configs)
 
         # Get active agents from coredinator
         client: httpx.AsyncClient = request.app.state.httpx_client
@@ -362,7 +362,7 @@ async def get_agents_missing_config(request: Request):
             active_agents = set()
 
         # Return agents missing config
-        return {"agents": sorted(active_agents - clean_configs)}
+        return {"agents": sorted(active_agents - available_configs)}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve agents missing config: {e!s}") from e
