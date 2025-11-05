@@ -31,8 +31,7 @@ class RLTuneService(ABC):
         service_name: str,
         event_topic: EventTopic,
         event_bus_host: str = "localhost",
-        event_bus_pub_port: int = 5570,
-        event_bus_sub_port: int = 5571,
+        event_bus_port: int = 5580,
         event_bus_enabled: bool = True,
     ):
         self.service_name = service_name
@@ -40,10 +39,10 @@ class RLTuneService(ABC):
         self._state = ServiceState.CREATED
         self._error: Exception | None = None
         self._event_bus_host = event_bus_host
-        self._event_bus_pub_port = event_bus_pub_port
-        self._event_bus_sub_port = event_bus_sub_port
+        self._event_bus_port = event_bus_port
         self._event_bus_enabled = event_bus_enabled
         self._event_bus_client: EventBusClient | None = None
+        self._shutdown_requested: list[bool] | None = None
 
     # ============================================================
     # Public Lifecycle API
@@ -62,6 +61,10 @@ class RLTuneService(ABC):
             logger.info(f"Service '{self.service_name}' started successfully")
 
             await self._run_loop()
+
+        except asyncio.CancelledError:
+            logger.info(f"Service '{self.service_name}' start cancelled")
+            raise
 
         except Exception as e:
             self._state = ServiceState.FAILED
@@ -131,15 +134,13 @@ class RLTuneService(ABC):
             return
 
         logger.info(
-            f"Connecting event bus client: {self._event_bus_host}:"
-            f"{self._event_bus_pub_port}/{self._event_bus_sub_port}",
+            f"Connecting event bus client: {self._event_bus_host}:{self._event_bus_port}",
         )
 
         client = EventBusClient(
             event_class=Event,
             host=self._event_bus_host,
-            pub_port=self._event_bus_pub_port,
-            sub_port=self._event_bus_sub_port,
+            port=self._event_bus_port,
         )
         client.connect()
         self._event_bus_client = client
@@ -174,6 +175,9 @@ class RLTuneService(ABC):
     async def _run_loop(self) -> None:
         async for _ in self._do_run():
             if self._state == ServiceState.STOPPING:
+                break
+            if self._shutdown_requested and self._shutdown_requested[0]:
+                await self.stop()
                 break
 
     # ============================================================
@@ -306,51 +310,11 @@ class RLTuneService(ABC):
         shutdown_requested: list[bool],
         sigint_received: list[bool],
     ) -> None:
-        async def check_shutdown() -> None:
-            while not shutdown_requested[0]:
-                await asyncio.sleep(0.1)
-
-        service_task = asyncio.create_task(self.start())
-        shutdown_task = asyncio.create_task(check_shutdown())
+        self._shutdown_requested = shutdown_requested
 
         try:
-            done, pending = await asyncio.wait(
-                {service_task, shutdown_task},
-                return_when=asyncio.FIRST_COMPLETED,
-            )
-
-            if shutdown_task in done:
-                await self._handle_shutdown(
-                    service_task,
-                    sigint_received[0],
-                )
-
-            await self._cancel_tasks(pending)
+            await self.start()
 
         finally:
             if sigint_received[0]:
                 raise KeyboardInterrupt()
-
-    async def _handle_shutdown(
-        self,
-        service_task: asyncio.Task,
-        is_sigint: bool,
-    ) -> None:
-        logger.info(f"Shutdown requested, cancelling service task: {self.service_name}")
-
-        if not service_task.done():
-            await self._cancel_tasks({service_task})
-
-        if not is_sigint:
-            await self.stop()
-
-    async def _cancel_tasks(
-        self,
-        tasks: set[asyncio.Task],
-    ) -> None:
-        for task in tasks:
-            task.cancel()
-            try:
-                await task
-            except asyncio.CancelledError:
-                pass

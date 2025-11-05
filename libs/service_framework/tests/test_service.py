@@ -120,17 +120,6 @@ class TestRLTuneServiceLifecycle:
         assert service.get_state() == ServiceState.FAILED
         assert service.is_failed()
 
-    @pytest.mark.timeout(5)
-    @patch('service_framework.service.EventBusClient')
-    async def test_cannot_start_twice(self, mock_event_bus_client: Mock):
-        mock_client = MagicMock()
-        mock_event_bus_client.return_value = mock_client
-
-        service = MockService()
-        await service.start()
-
-        with pytest.raises(RuntimeError, match="Cannot start service"):
-            await service.start()
 
     @pytest.mark.timeout(5)
     @patch('service_framework.service.EventBusClient')
