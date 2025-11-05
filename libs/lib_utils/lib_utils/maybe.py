@@ -180,7 +180,7 @@ class Maybe[T]:
     @staticmethod
     def from_try[U](
         f: Callable[[], U],
-        e: type[Exception] = Exception,
+        e: type[Exception] | tuple[type[Exception], ...] = Exception,
     ) -> Maybe[U]:
         try:
             return Maybe(f())
