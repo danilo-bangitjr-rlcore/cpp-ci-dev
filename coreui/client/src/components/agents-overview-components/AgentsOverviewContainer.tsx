@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import AgentCard from './AgentCard';
 import AddAgentCard from './AddAgentCard';
+import ConfigErrorCard from './ConfigErrorCard';
 import {
   useConfigListQuery,
   useAgentNamesQueries,
@@ -25,7 +26,26 @@ const AgentsOverviewContainer: React.FC = () => {
   } = useAgentsMissingConfigQuery(isPolling);
 
   const agentNamesQueries = useAgentNamesQueries(configNames);
-  const agentStatusQueries = useAgentStatusQueries(configNames, isPolling);
+
+  // Separate valid configs from error configs
+  const validConfigIndices: number[] = [];
+  const validConfigNames: string[] = [];
+  const errorConfigs: { configName: string; error: string }[] = [];
+
+  configNames.forEach((name, idx) => {
+    const nameQuery = agentNamesQueries[idx];
+    if (nameQuery?.error) {
+      errorConfigs.push({
+        configName: name,
+        error: nameQuery.error.message,
+      });
+    } else if (!nameQuery?.isLoading) {
+      validConfigIndices.push(idx);
+      validConfigNames.push(name);
+    }
+  });
+
+  const agentStatusQueries = useAgentStatusQueries(validConfigNames, isPolling);
 
   const isNeverStarted = (statusData: any): boolean => {
     if (!statusData) return false;
@@ -68,19 +88,19 @@ const AgentsOverviewContainer: React.FC = () => {
   const isLoading =
     isLoadingConfigList ||
     isLoadingMissingConfig ||
-    agentNamesQueries.some((q) => q.isLoading) ||
+    (agentNamesQueries.some((q) => q.isLoading) && errorConfigs.length === 0) ||
     agentStatusQueries.some((q) => q.isLoading);
 
   const hasError =
     !!configListError ||
     !!missingConfigError ||
-    agentNamesQueries.some((q) => q.error) ||
     agentStatusQueries.some((q) => q.error);
 
-  const agents: Agent[] = configNames.map((name, idx) => {
-    const nameQuery = agentNamesQueries[idx];
-    const statusQuery = agentStatusQueries[idx];
-    const agentName = nameQuery?.data ?? name;
+  const agents: Agent[] = validConfigIndices.map((originalIdx, validIdx) => {
+    const nameQuery = agentNamesQueries[originalIdx];
+    const statusQuery = agentStatusQueries[validIdx];
+    const configName = configNames[originalIdx];
+    const agentName = nameQuery?.data ?? configName;
     const statusData = statusQuery?.data;
     const hasStatusData = !!statusData;
     const status = mapApiStatusToAgentStatus(
@@ -91,7 +111,7 @@ const AgentsOverviewContainer: React.FC = () => {
 
     return {
       agentName,
-      configName: name,
+      configName,
       status,
     };
   });
@@ -163,6 +183,13 @@ const AgentsOverviewContainer: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {errorConfigs.map((errorConfig) => (
+          <ConfigErrorCard
+            key={errorConfig.configName}
+            configName={errorConfig.configName}
+            errorMessage={errorConfig.error}
+          />
+        ))}
         {allAgents.map((agent) => (
           <AgentCard key={agent.configName} agent={agent} />
         ))}
