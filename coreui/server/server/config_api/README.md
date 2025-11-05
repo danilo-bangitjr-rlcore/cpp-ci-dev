@@ -2,21 +2,12 @@
 
 This module provides a simple REST API for managing and retrieving CoreRL configuration files and tag metadata. It is intended for development and demonstration purposes.
 
-## Config Types
-
-There are two types of configs:
-
-- **Clean configs**: These are YAML files that have already been type validated. They represent the config source of truth.
-- **Raw configs**: These are YAML files that are a work-in-progress in the UI and have not yet been type validated.
-
-The API exposes endpoints for both types, but the distinction is hidden from the client. The backend handles which config type to use based on the endpoint.
-
 ## Endpoints
 
-### 1. Get Clean Config
+### 1. Get Config
 
 - **GET** `/api/configs/{config_name}`
-- **Description:** Retrieve the type-validated ("clean") configuration as a JSON object.
+- **Description:** Retrieve the configuration as a JSON object.
 - **Args:**  
   - `config_name` (str): Name of the config file (without `.yml` extension)
 - **Response:**
@@ -29,10 +20,10 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 2. List Clean Tags
+### 2. List Tags
 
 - **GET** `/api/configs/{config_name}/tags`
-- **Description:** List all tags defined in the type-validated ("clean") configuration.
+- **Description:** List all tags defined in the configuration.
 - **Response:**
   ```json
   {
@@ -42,10 +33,10 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 3. Get Clean Tag
+### 3. Get Tag
 
 - **GET** `/api/configs/{config_name}/tags/{tag_name}`
-- **Description:** Retrieve a specific tag by name from the type-validated ("clean") configuration.
+- **Description:** Retrieve a specific tag by name from the configuration.
 - **Response:**
   ```json
   {
@@ -53,10 +44,10 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 4. Add Clean Tag
+### 4. Add Tag
 
 - **POST** `/api/configs/{config_name}/tags`
-- **Description:** Add a new tag to the type-validated ("clean") configuration.
+- **Description:** Add a new tag to the configuration.
 - **Body:**  
   - `tag` (object): Tag object to add.
 - **Response:**
@@ -68,10 +59,10 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 5. Update Clean Tag
+### 5. Update Tag
 
 - **PUT** `/api/configs/{config_name}/tags/{index}`
-- **Description:** Update an existing tag by index in the type-validated ("clean") configuration.
+- **Description:** Update an existing tag by index in the configuration.
 - **Args:**  
   - `index` (int): Index of the tag to update.
 - **Body:**  
@@ -85,10 +76,10 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 6. Delete Clean Tag
+### 6. Delete Tag
 
 - **DELETE** `/api/configs/{config_name}/tags/{index}`
-- **Description:** Delete a tag by index from the type-validated ("clean") configuration.
+- **Description:** Delete a tag by index from the configuration.
 - **Args:**  
   - `index` (int): Index of the tag to delete.
 - **Response:**
@@ -100,10 +91,10 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 7. List Clean Config Names
+### 7. List Config Names
 
-- **GET** `/api/configs`
-- **Description:** List all available type-validated ("clean") configuration names.
+- **GET** `/api/configs/list`
+- **Description:** List all available configuration names.
 - **Response:**
   ```json
   {
@@ -114,61 +105,59 @@ The API exposes endpoints for both types, but the distinction is hidden from the
   }
   ```
 
-### 8. Get Raw Config
+### 8. Create Config
 
-- **GET** `/api/raw-configs/{config_name}`
-- **Description:** Retrieve the raw (not type-validated) configuration as a JSON object.
-- **Response:** Same as "Get Clean Config".
-
-### 9. List Raw Tags
-
-- **GET** `/api/raw-configs/{config_name}/tags`
-- **Description:** List all tags defined in the raw configuration.
-- **Response:** Same as "List Clean Tags".
-
-### 10. Get Raw Tag
-
-- **GET** `/api/raw-configs/{config_name}/tags/{tag_name}`
-- **Description:** Retrieve a specific tag by name from the raw configuration.
-- **Response:** Same as "Get Clean Tag".
-
-### 11. Add Raw Tag
-
-- **POST** `/api/raw-configs/{config_name}/tags`
-- **Description:** Add a new tag to the raw configuration.
+- **POST** `/api/configs/configs`
+- **Description:** Create a new configuration with the given name.
 - **Body:**  
-  - `tag` (object): Tag object to add.
-- **Response:** Same as "Add Clean Tag".
+  - `config_name` (str): Name of the new configuration.
+- **Response:**
+  ```json
+  {
+    "message": "Config created",
+    "config": { "agent_name": "new_config" },
+    "name": "new_config"
+  }
+  ```
 
-### 12. Update Raw Tag
+### 9. Delete Config
 
-- **PUT** `/api/raw-configs/{config_name}/tags/{index}`
-- **Description:** Update an existing tag by index in the raw configuration.
-- **Args:**  
-  - `index` (int): Index of the tag to update.
+- **DELETE** `/api/configs/configs`
+- **Description:** Delete an existing configuration by name.
 - **Body:**  
-  - `tag` (object): Updated tag object.
-- **Response:** Same as "Update Clean Tag".
+  - `config_name` (str): Name of the configuration to delete.
+- **Response:**
+  ```json
+  {
+    "message": "Config deleted",
+    "name": "deleted_config"
+  }
+  ```
 
-### 13. Delete Raw Tag
+### 10. Get Config File Path
 
-- **DELETE** `/api/raw-configs/{config_name}/tags/{index}`
-- **Description:** Delete a tag by index from the raw configuration.
-- **Args:**  
-  - `index` (int): Index of the tag to delete.
-- **Response:** Same as "Delete Clean Tag".
+- **GET** `/api/configs/{config_name}/config_path`
+- **Description:** Retrieve the file path of the specified configuration.
+- **Response:**
+  ```json
+  {
+    "config_path": "/path/to/configs/main_backwash.yaml"
+  }
+  ```
 
-### 14. List Raw Config Names
+### 11. Get Agents Missing Config
 
-- **GET** `/api/raw-configs`
-- **Description:** List all available raw configuration names.
-- **Response:** Same as "List Clean Config Names".
+- **GET** `/api/configs/agents/missing-config`
+- **Description:** Retrieve agents that are active in coredinator but do not have a configuration available.
+- **Response:**
+  ```json
+  {
+    "agents": ["orphan_agent_1", "orphan_agent_2"]
+  }
+  ```
 
 ## Mock Configs Directory
 
-All configuration files are read from and written to the `mock_configs` directory located alongside this API module. This directory contains two subfolders:
-
-- `clean/`: Type-validated YAML files.
-- `raw/`: Raw YAML files (not type-validated, WIP in the UI).
+All configuration files are read from and written to the `mock_configs` directory located alongside this API module.
 
 This is a **temporary measure** for development and testing. In production, configs should be managed in a dedicated, versioned file system or configuration service on the host machine.
