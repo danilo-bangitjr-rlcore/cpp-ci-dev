@@ -9,7 +9,8 @@ import numpy as np
 from lib_defs.type_defs.base_events import EventTopic, EventType
 from service_framework.service import RLTuneService
 
-from corerl.agent.greedy_ac import GAAC, GreedyAC
+from corerl.agent.gaac import GAAC
+from corerl.agent.greedy_ac import GreedyAC
 from corerl.config import MainConfig
 from corerl.data_pipeline.pipeline import Pipeline
 from corerl.environment.async_env.deployment_async_env import DeploymentAsyncEnv
