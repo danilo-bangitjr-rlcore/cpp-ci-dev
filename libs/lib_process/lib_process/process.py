@@ -2,37 +2,14 @@ from __future__ import annotations
 
 import subprocess
 import sys
-import threading
 import time
 from subprocess import DEVNULL, Popen
-from typing import IO, Any
+from typing import Any
 
 import psutil
 from lib_utils.errors import fail_gracefully
 
 IS_WINDOWS = sys.platform.startswith("win")
-
-
-def _stderr_reader_thread(
-    stderr_pipe: IO[bytes],
-    logger: Any,
-    service_id: str,
-    pid: int,
-) -> None:
-    try:
-        for line in iter(stderr_pipe.readline, b""):
-            if line:
-                decoded = line.decode("utf-8", errors="replace").rstrip()
-                logger.error(
-                    "Service stderr output",
-                    service_id=service_id,
-                    service_pid=pid,
-                    stderr_line=decoded,
-                )
-    except Exception:
-        logger.exception("Error reading stderr from process")
-    finally:
-        stderr_pipe.close()
 
 
 class Process:
@@ -50,13 +27,12 @@ class Process:
     @staticmethod
     def start_in_background(
         args: list[str],
-        logger: Any = None,
         service_id: str | None = None,
     ) -> Process:
         popen_kwargs: dict[str, Any] = {
             "stdin": DEVNULL,
             "stdout": DEVNULL,
-            "stderr": subprocess.PIPE if logger is not None else DEVNULL,
+            "stderr": DEVNULL,
         }
 
         if IS_WINDOWS:
@@ -69,16 +45,6 @@ class Process:
             popen_kwargs["start_new_session"] = True
 
         popen = Popen(args, **popen_kwargs)
-
-        if logger is not None and popen.stderr:
-            thread = threading.Thread(
-                target=_stderr_reader_thread,
-                args=(popen.stderr, logger, service_id or "unknown", popen.pid),
-                daemon=True,
-                name=f"stderr-reader-{service_id or 'unknown'}-{popen.pid}",
-            )
-            thread.start()
-
         return Process.from_pid(popen.pid)
 
     # ============================================================================
