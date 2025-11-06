@@ -3,7 +3,7 @@ import {
   useOpcData,
   NodeTree,
   NodeDetailsPanel,
-} from './opc-components';
+} from './index';
 
 interface OpcNavigationProps {
   className?: string;

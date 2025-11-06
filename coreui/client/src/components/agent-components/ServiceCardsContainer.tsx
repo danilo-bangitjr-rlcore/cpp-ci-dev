@@ -1,4 +1,4 @@
-import DetailsCard from '../DetailsCard';
+import DetailsCard from './DetailsCard';
 import type { ServiceStatus } from '../../types/agent-types';
 
 type ServiceCardsContainerProps = {

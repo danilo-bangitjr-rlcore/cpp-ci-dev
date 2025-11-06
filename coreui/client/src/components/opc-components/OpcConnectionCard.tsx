@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_ENDPOINTS } from '../utils/api';
-import type { StatusResponse } from '../routes/opc-navigation';
+import { API_ENDPOINTS } from '../../utils/api';
+import type { StatusResponse } from '../../routes/opc-navigation';
 
 interface OpcConnectionCardProps {
   statusData?: StatusResponse;

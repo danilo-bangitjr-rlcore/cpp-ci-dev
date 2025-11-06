@@ -33,7 +33,10 @@ const fetchConfig = async (
 
 const fetchAgentName = async (configName: string): Promise<string> => {
   const config = await fetchConfig(configName);
-  return config.agent_name ?? configName;
+  if (!config.agent_name) {
+    throw new Error(`agent_name field is missing in config`);
+  }
+  return config.agent_name;
 };
 
 const fetchIOStatus = async (ioName: string): Promise<IOStatusResponse> => {
@@ -121,6 +124,8 @@ export const useAgentNamesQueries = (configNames?: string[]) => {
       queryKey: ['agentName', name],
       queryFn: () => fetchAgentName(name),
       enabled: names.length > 0,
+      retry: 2,
+      retryDelay: 500,
     })),
   });
 };
