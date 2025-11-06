@@ -8,11 +8,7 @@ import {
 import {
   useUiHealthQuery,
   useSystemHealthQuery,
-  useSystemPlatformQuery,
-  useSystemCpuQuery,
-  useSystemCpuPerCoreQuery,
-  useSystemRamQuery,
-  useSystemDiskQuery,
+  useSystemMetricsQuery,
 } from '../utils/useDiagnosticsQueries';
 
 export const Route = createFileRoute('/diagnostics')({
@@ -32,15 +28,14 @@ function Diagnostics() {
     error: systemHealthError,
   } = useSystemHealthQuery();
 
-  const { data: platform, error: platformError } = useSystemPlatformQuery();
+  const { data: systemMetrics, error: systemMetricsError } =
+    useSystemMetricsQuery();
 
-  const { data: cpu, error: cpuError } = useSystemCpuQuery();
-
-  const { data: cpuPerCore } = useSystemCpuPerCoreQuery();
-
-  const { data: ram, error: ramError } = useSystemRamQuery();
-
-  const { data: disk, error: diskError } = useSystemDiskQuery();
+  const platform = systemMetrics?.platform;
+  const cpu = systemMetrics?.cpu;
+  const cpuPerCore = systemMetrics?.cpu_per_core;
+  const ram = systemMetrics?.ram;
+  const disk = systemMetrics?.disk;
 
   return (
     <div className="p-2">
@@ -122,12 +117,12 @@ function Diagnostics() {
               <MetricHeader title="Platform" />
               {platform && (
                 <div className="text-2xl font-bold text-gray-900">
-                  {platform.data}
+                  {platform}
                 </div>
               )}
-              {platformError && (
+              {systemMetricsError && (
                 <div className="text-xs text-red-600">
-                  Error: {platformError.message}
+                  Error: {systemMetricsError.message}
                 </div>
               )}
             </MetricCard>
@@ -181,9 +176,9 @@ function Diagnostics() {
               </div>
             )}
 
-            {cpuError && (
+            {systemMetricsError && (
               <div className="text-xs text-red-600">
-                Error: {cpuError.message}
+                Error: {systemMetricsError.message}
               </div>
             )}
           </MetricCard>
@@ -192,7 +187,7 @@ function Diagnostics() {
           <div className="grid grid-cols-2 gap-4">
             {/* RAM */}
             <MetricCard>
-              <MetricHeader title="RAM" />
+              <MetricHeader title="Memory" />
               {ram && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
@@ -209,9 +204,9 @@ function Diagnostics() {
                   </div>
                 </div>
               )}
-              {ramError && (
+              {systemMetricsError && (
                 <div className="text-xs text-red-600">
-                  Error: {ramError.message}
+                  Error: {systemMetricsError.message}
                 </div>
               )}
             </MetricCard>
@@ -235,9 +230,9 @@ function Diagnostics() {
                   </div>
                 </div>
               )}
-              {diskError && (
+              {systemMetricsError && (
                 <div className="text-xs text-red-600">
-                  Error: {diskError.message}
+                  Error: {systemMetricsError.message}
                 </div>
               )}
             </MetricCard>

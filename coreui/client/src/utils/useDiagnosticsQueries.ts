@@ -21,20 +21,5 @@ export const useUiHealthQuery = () =>
 export const useSystemHealthQuery = () =>
   useSystemMetricQuery('systemHealth', API_ENDPOINTS.system_metrics.health);
 
-export const useSystemPlatformQuery = () =>
-  useSystemMetricQuery('systemPlatform', API_ENDPOINTS.system_metrics.platform);
-
-export const useSystemCpuQuery = () =>
-  useSystemMetricQuery('systemCpu', API_ENDPOINTS.system_metrics.cpu);
-
-export const useSystemCpuPerCoreQuery = () =>
-  useSystemMetricQuery(
-    'systemCpuPerCore',
-    API_ENDPOINTS.system_metrics.cpu_per_core
-  );
-
-export const useSystemRamQuery = () =>
-  useSystemMetricQuery('systemRam', API_ENDPOINTS.system_metrics.ram);
-
-export const useSystemDiskQuery = () =>
-  useSystemMetricQuery('systemDisk', API_ENDPOINTS.system_metrics.disk);
+export const useSystemMetricsQuery = () =>
+  useSystemMetricQuery('systemMetrics', API_ENDPOINTS.system_metrics.all);
