@@ -51,7 +51,7 @@ class GAAC(GreedyAC):
         chex.assert_shape(policy_probs, (ensemble_size, batch_size, num_policy_actions))
         return policy_actions, policy_probs
 
-    def critic_update(self):
+    def critic_update(self, step: int):
         assert isinstance(self._critic, AdvCritic)
         if self.critic_buffer.size == 0:
             return 0.
