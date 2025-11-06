@@ -1,6 +1,7 @@
 from ml_instrumentation.Collector import Collector
 
-from agent.gac import GAAC, GreedyAC, GreedyACConfig
+from agent.gac import GreedyAC, GreedyACConfig
+from src.agent.gaac import GAAC
 
 
 def get_agent(cfg: GreedyACConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
