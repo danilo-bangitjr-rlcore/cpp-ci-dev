@@ -29,6 +29,7 @@ class GTDCriticConfig:
     action_regularization: float = 0.0
     action_regularization_epsilon: float = 0.1
     buffer: BufferConfig = MISSING
+    all_layer_norm: bool = False
     stepsize: float = 0.0001
     critic_network: CriticNetworkConfig = Field(default_factory=CriticNetworkConfig)
     rolling_reset_config: RollingResetConfig = Field(default_factory=RollingResetConfig)
@@ -50,6 +51,16 @@ class GTDCriticConfig:
         buffer_cfg.ensemble_probability = 1
 
         return buffer_cfg
+
+
+@config()
+class AdvCriticConfig(GTDCriticConfig):
+    """Config for Advantage-based critic."""
+    num_policy_actions: int = 100
+    advantage_centering_weight: float = 0.1
+    adv_l2_regularization: float = 1.0
+    h_lr_mult: float = 1.0
+    v_lr_mult: float = 1.0
 
 
 @config()
@@ -100,10 +111,10 @@ class GreedyACConfig(BaseAgentConfig):
     for debugging. These may be modified in tests and
     research to illicit particular behaviors.
     """
-    name: Literal["greedy_ac"] = "greedy_ac"
+    name: Literal["greedy_ac", "gaac"] = "greedy_ac"
 
-    critic: GTDCriticConfig = Field(default_factory=GTDCriticConfig)
-    policy: PercentileActorConfig = Field(default_factory=lambda: PercentileActorConfig())
+    critic: GTDCriticConfig | AdvCriticConfig = Field(default_factory=GTDCriticConfig)
+    policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
 
     loss_threshold: float = 0.0001
     """

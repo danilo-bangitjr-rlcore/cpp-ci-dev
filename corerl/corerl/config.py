@@ -8,7 +8,7 @@ from lib_config.loader import config_to_json
 from lib_defs.config_defs.tag_config import TagType
 from pydantic import Field
 
-from corerl.configs.agent.greedy_ac import GreedyACConfig, GTDCriticConfig
+from corerl.configs.agent.greedy_ac import GreedyACConfig
 from corerl.configs.data_pipeline.pipeline_config import PipelineConfig
 from corerl.configs.environment.async_env import AsyncEnvConfig
 from corerl.configs.eval.config import EvalConfig
@@ -99,11 +99,28 @@ class MainConfig:
 
 
     @post_processor
+    def _enable_adv_critic(self, cfg: 'MainConfig'):
+        if not self.feature_flags.adv_critic:
+            return
+
+        from corerl.configs.agent.greedy_ac import AdvCriticConfig
+        # Switch to GAAC agent and replace the critic config with AdvCriticConfig
+        self.agent.name = "gaac"
+        self.agent.critic = AdvCriticConfig(
+            polyak_tau=self.agent.critic.polyak_tau,
+            action_regularization=self.agent.critic.action_regularization,
+            action_regularization_epsilon=self.agent.critic.action_regularization_epsilon,
+            stepsize=self.agent.critic.stepsize,
+            buffer=self.agent.critic.buffer,
+            critic_network=self.agent.critic.critic_network,
+            rolling_reset_config=self.agent.critic.rolling_reset_config,
+        )
+
+    @post_processor
     def _enable_polyak_critic(self, cfg: 'MainConfig'):
         if not self.feature_flags.polyak_critic:
             return
 
-        assert isinstance(self.agent.critic, GTDCriticConfig), "Polyak critic only supported for QRCConfig"
         # this expression effectively means we fully "replace" the critic once per update loop
         # instead of 10 times per update loop. Note, however, that polyak averaging typically
         # allows much faster convergence, so while this slows down weight changes, it may not
@@ -185,3 +202,10 @@ class MainConfig:
         self.agent.policy.sigma_regularization = 0.1
         self.agent.policy.std_bonus = 1.0
         self.agent.policy.even_better_q = True
+
+    @post_processor
+    def _enable_all_layer_norm(self, cfg: 'MainConfig'):
+        if not self.feature_flags.all_layer_norm:
+            return
+
+        self.agent.critic.all_layer_norm = True

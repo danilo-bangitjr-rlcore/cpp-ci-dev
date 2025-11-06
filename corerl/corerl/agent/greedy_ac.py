@@ -11,6 +11,7 @@ import numpy as np
 from lib_agent.actor.percentile_actor import PAConfig, PercentileActor
 from lib_agent.buffer.datatypes import State, Transition, convert_trajectory_to_transition
 from lib_agent.buffer.factory import build_buffer
+from lib_agent.critic.adv_critic import AdvConfig, AdvCritic
 from lib_agent.critic.critic_utils import (
     create_ensemble_dict,
     extract_metrics,
@@ -22,9 +23,7 @@ from lib_defs.type_defs.base_events import EventType
 from lib_utils.named_array import NamedArray
 
 from corerl.agent.base import BaseAgent
-from corerl.configs.agent.greedy_ac import (
-    GreedyACConfig,
-)
+from corerl.configs.agent.greedy_ac import AdvCriticConfig, GreedyACConfig
 from corerl.data_pipeline.pipeline import ColumnDescriptions, PipelineReturn
 from corerl.state import AppState
 from corerl.utils.math import exp_moving_avg
@@ -47,6 +46,53 @@ class EnsembleNetworkReturn(NamedTuple):
     ensemble_variance: jax.Array
 
 
+def build_critic(cfg: GreedyACConfig, state_dim: int, action_dim: int):
+    if isinstance(cfg.critic, AdvCriticConfig):
+        critic_cfg = AdvConfig(
+            name='adv',
+            stepsize=cfg.critic.stepsize,
+            ensemble=cfg.critic.critic_network.ensemble,
+            ensemble_prob=cfg.critic.buffer.ensemble_probability,
+            num_rand_actions=cfg.bootstrap_action_samples,
+            action_regularization=cfg.critic.action_regularization,
+            l2_regularization=1.0,
+            use_all_layer_norm=cfg.critic.all_layer_norm,
+            rolling_reset_config=cfg.critic.rolling_reset_config,
+            polyak_tau=cfg.critic.polyak_tau,
+            num_policy_actions=cfg.critic.num_policy_actions,
+            advantage_centering_weight=cfg.critic.advantage_centering_weight,
+            adv_l2_regularization=cfg.critic.adv_l2_regularization,
+            h_lr_mult=cfg.critic.h_lr_mult,
+            v_lr_mult=cfg.critic.v_lr_mult,
+        )
+
+        return AdvCritic(
+            critic_cfg,
+            state_dim,
+            action_dim,
+        )
+
+    critic_cfg = QRCConfig(
+    name='qrc',
+    stepsize=cfg.critic.stepsize,
+    ensemble=cfg.critic.critic_network.ensemble,
+    ensemble_prob=cfg.critic.buffer.ensemble_probability,
+    num_rand_actions=cfg.bootstrap_action_samples,
+    action_regularization=cfg.critic.action_regularization,
+    action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
+    l2_regularization=1.0,
+    use_all_layer_norm=cfg.critic.all_layer_norm,
+    rolling_reset_config=cfg.critic.rolling_reset_config,
+    polyak_tau=cfg.critic.polyak_tau,
+    )
+
+    return QRCCritic(
+        critic_cfg,
+        state_dim,
+        action_dim,
+    )
+
+
 class GreedyAC(BaseAgent):
     def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
         super().__init__(cfg, app_state, col_desc)
@@ -58,7 +104,7 @@ class GreedyAC(BaseAgent):
             num_samples=cfg.policy.num_samples,
             actor_percentile=cfg.policy.actor_percentile,
             proposal_percentile=cfg.policy.proposal_percentile,
-            uniform_weight=1-cfg.policy.prop_percentile_learned*cfg.policy.proposal_percentile,
+            uniform_weight=1 - cfg.policy.prop_percentile_learned * cfg.policy.proposal_percentile,
             actor_lr=cfg.policy.actor_stepsize,
             proposal_lr=cfg.policy.sampler_stepsize,
             mu_multiplier=cfg.policy.mu_multiplier,
@@ -75,29 +121,13 @@ class GreedyAC(BaseAgent):
             col_desc.action_dim,
         )
 
-        critic_cfg = QRCConfig(
-            name='qrc',
-            stepsize=cfg.critic.stepsize,
-            ensemble=cfg.critic.critic_network.ensemble,
-            ensemble_prob=cfg.critic.buffer.ensemble_probability,
-            num_rand_actions=cfg.bootstrap_action_samples,
-            action_regularization=cfg.critic.action_regularization,
-            action_regularization_epsilon=cfg.critic.action_regularization_epsilon,
-            l2_regularization=1.0,
-            use_all_layer_norm=app_state.cfg.feature_flags.all_layer_norm,
-            rolling_reset_config=cfg.critic.rolling_reset_config,
-            polyak_tau=cfg.critic.polyak_tau,
-            weight_decay=cfg.weight_decay,
-            return_scale=cfg.return_scale,
-        )
+        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), Transition)
 
-        self.critic = QRCCritic(
-            critic_cfg,
+        self.critic = build_critic(
+            cfg,
             col_desc.state_dim,
             col_desc.action_dim,
         )
-
-        self._actor_buffer = build_buffer(cfg.policy.buffer.to_lib_config(), Transition)
 
         critic_buffer_config = cfg.critic.buffer.to_lib_config()
         critic_buffer_config.ensemble = cfg.critic.critic_network.ensemble
@@ -138,18 +168,16 @@ class GreedyAC(BaseAgent):
             if cfg.type == TagType.ai_setpoint
         ])
 
-
     @property
     def actor_percentile(self) -> float:
         return self.cfg.policy.actor_percentile
 
     @property
-    def is_policy_buffer_sampleable(self)-> bool:
+    def is_policy_buffer_sampleable(self) -> bool:
         return self._actor_buffer.is_sampleable
 
     def sample_policy_buffer(self) -> Transition:
         return self._actor_buffer.sample()
-
 
     def get_dist(self, states: NamedArray):
         dummy_jaxtions = jnp.zeros(self.action_dim)
@@ -274,6 +302,7 @@ class GreedyAC(BaseAgent):
     # --------------------------- critic updating-------------------------- #
 
     def update_critic(self) -> list[float]:
+        assert isinstance(self.critic, QRCCritic)
         if not self.critic_buffer.is_sampleable:
             return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 

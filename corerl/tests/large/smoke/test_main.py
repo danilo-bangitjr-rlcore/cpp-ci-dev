@@ -42,3 +42,40 @@ def test_main_configs(
     with tsdb_engine.connect() as conn:
         metrics = pd.read_sql_table('metrics_wide', con=conn)
         assert len(metrics) >= 10
+
+
+@pytest.mark.parametrize('config_name', [
+    'saturation',
+])
+@pytest.mark.timeout(360)
+def test_main_adv(
+    tsdb_engine: Engine,
+    config_name: str,
+    tsdb_tmp_db_name: str,
+):
+    """
+    Should be able to execute the main script for several configs
+    without error. If an error code is returned (i.e. the process crashes),
+    then test fails.
+
+    This test does no checking of result validity.
+    """
+    port = tsdb_engine.url.port
+    assert port is not None
+
+    proc = subprocess.run([
+        'uv', 'run', 'python', 'corerl/main.py',
+        '--config-name', f'../config/{config_name}', 'max_steps=50',
+        f'infra.db.port={port}', 'metrics.enabled=True',
+        f'infra.db.db_name={tsdb_tmp_db_name}',
+        'feature_flags.adv_critic=True',
+    ], check=False)
+    proc.check_returncode()
+
+    # ensure metrics table exists (wide_metrics is default, so table name is 'metrics_wide')
+    assert table_exists(tsdb_engine, 'metrics_wide')
+
+    # ensure some metrics were logged to table
+    with tsdb_engine.connect() as conn:
+        metrics = pd.read_sql_table('metrics_wide', con=conn)
+        assert len(metrics) >= 10

@@ -63,6 +63,8 @@ class QRCConfig(CriticConfig):
     polyak_tau: float = 0.0
     action_regularization_epsilon: float = 0.1
     return_scale: float = 1.0
+    nominal_init_batch_size: int = 32
+    nominal_init_action_samples: int = 128
 
 
 class QRCCritic:
@@ -189,14 +191,14 @@ class QRCCritic:
             params: chex.ArrayTree,
             rng: chex.PRNGKey,
         ):
-            BATCH = 32
-            ACTION_SAMPLES = 128
-
             s_rng, a_rng, q_rng = jax.random.split(rng, 3)
-            states = jax.random.uniform(s_rng, shape=(BATCH, self._state_dim))
-            actions = jax.random.uniform(a_rng, shape=(BATCH, ACTION_SAMPLES, self._action_dim))
+            states = jax.random.uniform(s_rng, shape=(self._cfg.nominal_init_batch_size, self._state_dim))
+            actions = jax.random.uniform(
+                a_rng,
+                shape=(self._cfg.nominal_init_batch_size, self._cfg.nominal_init_action_samples, self._action_dim),
+            )
             q = self._forward(params, q_rng, states, actions).q.squeeze()
-            chex.assert_shape(q, (BATCH, ACTION_SAMPLES))
+            chex.assert_shape(q, (self._cfg.nominal_init_batch_size, self._cfg.nominal_init_action_samples))
 
             y = -jnp.abs(actions - jnp.expand_dims(nominal_action, axis=(0, 1))).sum(axis=-1)
             return jnp.square(q - y).mean()
