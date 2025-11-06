@@ -1,3 +1,4 @@
+from collections import deque
 from pathlib import Path
 from typing import Any, Literal
 
@@ -21,6 +22,10 @@ class SaturationConfig(EnvConfig):
     setpoint_schedule: dict = Field(default_factory=lambda: {0: 0.5})
     delta_schedule: dict = Field(default_factory=lambda: {0: 0.})
     anchor_schedule: dict = Field(default_factory=lambda: {0: 0.})
+    num_reward_modes: int = 0 # Number of cosine periods in the multimodal reward
+    mode_amplitude: float = 0.0 # Amplitude of the cosine components in the multimodal reward
+    delay: int = 0 # The number of time steps to delay the saturation observation
+    filter_thresh: float | None = None # The observed saturation is the amount above this threshold
 
 class Saturation(gym.Env):
     def __init__(self, cfg: SaturationConfig):
@@ -38,7 +43,7 @@ class Saturation(gym.Env):
         self.action_space = gym.spaces.Box(self._action_min, self._action_max, dtype=np.float64)
 
         self.time_step = 0
-        self.saturation = 0.
+        self.filter_saturation = 0.
 
         self.setpoint_schedule = cfg.setpoint_schedule
         if 0 not in self.setpoint_schedule:
@@ -57,10 +62,14 @@ class Saturation(gym.Env):
 
         self.decay = cfg.decay
         self.effect = cfg.effect
+        self.filter_thresh = cfg.filter_thresh
         self.decay_period = cfg.decay_period
         self.effect_period = cfg.effect_period
         self.action_trace = np.array([0])
         self.trace_val = cfg.trace_val
+        self.num_reward_modes = cfg.num_reward_modes
+        self.mode_amplitude = cfg.mode_amplitude
+        self.delayed_saturations = deque([0.0]*(cfg.delay+1), maxlen=cfg.delay+1)
 
         # for plotting
         self.saturations = []
@@ -85,6 +94,20 @@ class Saturation(gym.Env):
             return 0.15 * np.cos(self.time_step * np.pi * (2 / self.effect_period)) + 0.75
         return self.effect
 
+    def get_multimodal_reward(self, saturation: float, saturation_sp: float) -> float:
+        """
+        Compute multimodal reward function using cosine waves.
+        """
+        diff = saturation - saturation_sp
+
+        # Base reward component - highest peak at setpoint
+        base_reward = -np.abs(diff)
+
+        # Create multimodal structure using cosine function
+        cosine_component = self.mode_amplitude * np.cos(2 * np.pi * self.num_reward_modes * diff)
+
+        return base_reward + cosine_component
+
     def step(self, action: np.ndarray):
         # adjust scheduled attributes
         if self.time_step in self.setpoint_schedule:
@@ -100,13 +123,22 @@ class Saturation(gym.Env):
         decay =  self.get_decay()
         effect = self.get_effect()
 
-        self.saturation = self.saturation*decay + self.action_trace*effect
-        self.saturation = np.clip(self.saturation, 0, 1).item()
-        reward = -np.abs(self.saturation - self.saturation_sp).item()
+        self.filter_saturation = self.filter_saturation*decay + self.action_trace*effect
+        if self.filter_thresh:
+            # Observed saturation is the amount above the filter threshold
+            saturation = np.clip(self.filter_saturation - self.filter_thresh, 0, 1).item()
+            self.filter_saturation = np.clip(self.filter_saturation, 0.0, self.filter_thresh).item()
+            self.delayed_saturations.appendleft(saturation)
+        else:
+            self.filter_saturation = np.clip(self.filter_saturation, 0, 1).item()
+            self.delayed_saturations.appendleft(self.filter_saturation)
+
+        observed_saturation = self.delayed_saturations.pop()
+        reward = self.get_multimodal_reward(observed_saturation, self.saturation_sp)
 
         self.decays.append(decay)
         self.effects.append(effect)
-        self.saturations.append(self.saturation)
+        self.saturations.append(observed_saturation)
         self.raw_actions.append(action)
         self.actions.append(self.action_trace)
         self.deltas.append(self.delta)
@@ -115,7 +147,7 @@ class Saturation(gym.Env):
 
         self.time_step += 1
 
-        state = np.array([self.saturation, self.delta, self.anchor])
+        state = np.array([observed_saturation, self.delta, self.anchor])
 
         return state, reward, False, False, {}
 
@@ -142,7 +174,9 @@ class Saturation(gym.Env):
         self.saturation_sp = self.setpoint_schedule[0]
         self.delta = self.delta_schedule[0]
         self.anchor = self.anchor_schedule[0]
-        state = np.array([self.saturation, self.delta, self.anchor])
+        self.filter_saturation = 0.
+        self.action_trace = np.array([0])
+        state = np.array([self.filter_saturation, self.delta, self.anchor])
         return state, {}
 
     def close(self):

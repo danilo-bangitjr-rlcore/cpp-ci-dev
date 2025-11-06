@@ -233,3 +233,67 @@ class MultiActionSaturationBadOfflineDataTest(BSuiteTestCase):
         for sql_tup in sql_tups:
             data_writer.write(timestamp=sql_tup[0], name=sql_tup[2], val=sql_tup[1])
         data_writer.close()
+
+class SingleActionMultimodalSaturationTest(BSuiteTestCase):
+    """
+    Test whether the agent can converge to the optimal policy when Saturation has a multimodal reward function.
+    Single action dimension.
+    """
+    name = 'single action multimodal saturation'
+    config = 'test/behavior/saturation/single_action_multimodal_saturation.yaml'
+    category = {BehaviourCategory.EXPLORATION}
+    lower_bounds = { 'reward': 0.302 } # Just higher than the second best local optimum
+
+class MultiActionMultimodalSaturationTest(BSuiteTestCase):
+    """
+    Test whether the agent can converge to the optimal policy when Saturation has a multimodal reward function.
+    Action dimension = 3.
+    """
+    name = 'multi action multimodal saturation'
+    config = 'test/behavior/saturation/multi_action_multimodal_saturation.yaml'
+    category = {BehaviourCategory.EXPLORATION}
+    lower_bounds = { 'reward': 0.906 } # Just higher than the second best local optimum
+
+class SingleActionDelayedObsSaturationTest(BSuiteTestCase):
+    """
+    Version of Saturation where the observed saturation is the amount that exceeds the filter threshold.
+    The observation is also delayed by a configurable number of steps.
+    Action dimension = 1.
+    """
+    name = 'single action delayed obs saturation'
+    config = 'test/behavior/saturation/single_action_delayed_obs_saturation.yaml'
+    category = {BehaviourCategory.CREDIT_ASSIGNMENT}
+    lower_bounds = { 'reward': -0.04 }
+
+class MultiActionDelayedObsSaturationTest(BSuiteTestCase):
+    """
+    Version of Saturation where the observed saturation is the amount that exceeds the filter threshold.
+    The observation is also delayed by a configurable number of steps.
+    Action dimension = 3.
+    """
+    name = 'multi action delayed obs saturation'
+    config = 'test/behavior/saturation/multi_action_delayed_obs_saturation.yaml'
+    category = {BehaviourCategory.CREDIT_ASSIGNMENT}
+    lower_bounds = { 'reward': -0.15 }
+
+class SingleActionFilteredSaturationTest(BSuiteTestCase):
+    """
+    Version of Saturation where the observed saturation is the amount that exceeds the filter threshold.
+    Tests whether the agent can converge to the optimal policy when there is a region of 0 reward.
+    Action dimension = 1.
+    """
+    name = 'single action filtered saturation'
+    config = 'test/behavior/saturation/single_action_filtered_saturation.yaml'
+    category = {BehaviourCategory.EXPLORATION}
+    lower_bounds = { 'reward': -0.04 }
+
+class MultiActionFilteredSaturationTest(BSuiteTestCase):
+    """
+    Version of Saturation where the observed saturation is the amount that exceeds the filter threshold.
+    Tests whether the agent can converge to the optimal policy when there is a region of 0 reward.
+    Action dimension = 3.
+    """
+    name = 'multi action filtered saturation'
+    config = 'test/behavior/saturation/multi_action_filtered_saturation.yaml'
+    category = {BehaviourCategory.EXPLORATION}
+    lower_bounds = { 'reward': -0.15 }

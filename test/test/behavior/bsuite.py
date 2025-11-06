@@ -31,6 +31,7 @@ class BehaviourCategory(Enum):
     ROBUSTNESS = auto()
     GREEDY = auto()
     EXPLORATION = auto()
+    CREDIT_ASSIGNMENT = auto()
 
 class BSuiteTestCase:
     name: str
