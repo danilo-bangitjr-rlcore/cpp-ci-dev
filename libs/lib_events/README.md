@@ -137,8 +137,7 @@ from lib_events.client.event_bus_client import EventBusClient
 from lib_defs.type_defs.base_events import Event, EventType, EventTopic
 
 # Initialize client
-client = EventBusClient[Event, EventType, EventTopic](
-    event_class=Event,
+client = EventBusClient(
     host="localhost",
     port=5580,
     service_id="my-service",
@@ -173,8 +172,7 @@ from lib_events.client.event_bus_client import EventBusClient
 from lib_defs.type_defs.base_events import Event, EventType, EventTopic
 
 # Responder service
-responder = EventBusClient[Event, EventType, EventTopic](
-    event_class=Event,
+responder = EventBusClient(
     host="localhost",
     port=5580,
     service_id="responder-service",
@@ -184,8 +182,7 @@ responder.register_request_handler(lambda payload: b"response-data")
 responder.start_consumer()
 
 # Requester service
-requester = EventBusClient[Event, EventType, EventTopic](
-    event_class=Event,
+requester = EventBusClient(
     host="localhost",
     port=5580,
     service_id="requester-service",
@@ -227,8 +224,7 @@ manager.stop()
 EventBusClient supports automatic reconnection with exponential backoff:
 
 ```python
-client = EventBusClient[Event, EventType, EventTopic](
-    event_class=Event,
+client = EventBusClient(
     host="localhost",
     port=5580,
     service_id="resilient-service",
@@ -275,14 +271,13 @@ Create typed wrappers for specific services:
 from lib_events.client.event_bus_client import EventBusClient
 from lib_defs.type_defs.io_events import IOEvent, IOEventType, IOEventTopic
 
-class IOEventBusClient(EventBusClient[IOEvent, IOEventType, IOEventTopic]):
+class IOEventBusClient(EventBusClient):
     def __init__(
         self,
         host: str = "localhost",
         port: int = 5580,
     ):
         super().__init__(
-            event_class=IOEvent,
             host=host,
             port=port,
             service_id="coreio",
@@ -318,8 +313,7 @@ def event_bus_broker():
 @pytest.fixture
 def event_bus_client(event_bus_broker):
     port = event_bus_broker
-    client = EventBusClient[Event, EventType, EventTopic](
-        event_class=Event,
+    client = EventBusClient(
         host="localhost",
         port=port,
         service_id="test-client",
@@ -375,8 +369,7 @@ bus = BaseEventBus(
 
 # New
 from lib_events.client.event_bus_client import EventBusClient
-client = EventBusClient[Event, EventType, EventTopic](
-    event_class=Event,
+client = EventBusClient(
     host="localhost",
     port=5580,
 )

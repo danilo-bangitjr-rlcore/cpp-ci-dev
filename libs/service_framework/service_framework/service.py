@@ -8,7 +8,7 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime, timedelta
 from enum import Enum
 
-from lib_defs.type_defs.base_events import Event, EventTopic, EventType
+from lib_defs.type_defs.base_events import EventTopic, EventType
 from lib_events.client.event_bus_client import EventBusClient
 
 logger = logging.getLogger(__name__)
@@ -139,7 +139,6 @@ class RLTuneService(ABC):
         )
 
         client = EventBusClient(
-            event_class=Event,
             host=self._event_bus_host,
             port=self._event_bus_port,
         )

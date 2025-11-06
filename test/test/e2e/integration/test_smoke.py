@@ -284,16 +284,14 @@ def test_event_bus_cross_service_communication(
     with temp_config_path.open("w") as f:
         yaml.dump(config_data, f)
 
-    rl_client = EventBusClient[Event, EventType, EventTopic](
-        event_class=Event,
+    rl_client = EventBusClient(
         host="localhost",
         port=5580,
     )
     rl_client.connect()
     rl_client.subscribe(EventTopic.corerl)
 
-    io_client = EventBusClient[Event, EventType, EventTopic](
-        event_class=Event,
+    io_client = EventBusClient(
         host="localhost",
         port=5580,
     )

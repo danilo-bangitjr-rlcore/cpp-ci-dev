@@ -4,7 +4,7 @@ from collections.abc import AsyncGenerator
 from pathlib import Path
 
 import uvicorn
-from lib_defs.type_defs.base_events import Event, EventTopic
+from lib_defs.type_defs.base_events import EventTopic
 from lib_events.client.event_bus_client import EventBusClient
 from service_framework.service import RLTuneService
 
@@ -85,7 +85,6 @@ class CoredinatorService(RLTuneService):
         )
 
         self._event_bus_client = EventBusClient(
-            event_class=Event,
             host=host,
             port=self.event_bus_port,
         )

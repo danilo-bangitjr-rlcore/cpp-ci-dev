@@ -1,11 +1,8 @@
 import socket
 import time
-from enum import auto
 
 import pytest
-from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
-from lib_utils.time import now_iso
-from pydantic import Field
+from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 
 from lib_events.client.event_bus_client import EventBusClient
 from lib_events.server.proxy import EventBusProxy
@@ -16,22 +13,6 @@ def get_free_port(host: str = "localhost") -> int:
         s.bind((host, 0))
         s.listen(1)
         return s.getsockname()[1]
-
-
-class TestEventType(BaseEventType):
-    test_start = auto()
-    test_update = auto()
-    test_stop = auto()
-
-
-class TestEventTopic(BaseEventTopic):
-    test_topic = auto()
-    debug_topic = auto()
-
-
-class TestEvent(BaseEvent[TestEventType]):
-    time: str = Field(default_factory=now_iso)
-    type: TestEventType
 
 
 @pytest.fixture
@@ -61,8 +42,7 @@ def client(broker: EventBusProxy, broker_port: int):
     """
     Create EventBusClient connected to broker.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
         max_reconnect_attempts=3,
@@ -82,8 +62,7 @@ def publisher(broker: EventBusProxy, broker_port: int):
     """
     Create publisher client connected to broker.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
@@ -104,8 +83,7 @@ def subscriber(broker: EventBusProxy, broker_port: int):
     """
     Create subscriber client connected to broker.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
@@ -126,8 +104,7 @@ def requester(broker: EventBusProxy, broker_port: int):
     """
     Create requester client connected to broker.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
         service_id="requester",
@@ -150,8 +127,7 @@ def responder(broker: EventBusProxy, broker_port: int):
     """
     Create responder client connected to broker.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
         service_id="responder",
@@ -204,17 +180,17 @@ def test_client_pub_sub_message_flow(publisher: EventBusClient, subscriber: Even
     """
     Messages published by one client are received by subscribing client.
     """
-    subscriber.subscribe(TestEventTopic.test_topic)
+    subscriber.subscribe(EventTopic.corerl)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event, topic=TestEventTopic.test_topic)
+    event = Event(type=EventType.service_started)
+    publisher.emit_event(event, topic=EventTopic.corerl)
     time.sleep(0.5)
 
     received_event = subscriber.recv_event()
     assert received_event is not None
-    assert received_event.type == TestEventType.test_start
+    assert received_event.type == EventType.service_started
 
 
 
@@ -223,16 +199,14 @@ def test_client_callback_invocation(broker: EventBusProxy, broker_port: int):
     """
     Pub/sub with single callback, multiple callbacks, and event type shortcut.
     """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    publisher = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
     publisher.connect()
     time.sleep(0.1)
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    subscriber = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
@@ -241,20 +215,20 @@ def test_client_callback_invocation(broker: EventBusProxy, broker_port: int):
 
     callback_invoked = []
 
-    def test_callback(event: TestEvent):
+    def test_callback(event: Event):
         callback_invoked.append(event)
 
-    subscriber.subscribe(TestEventTopic.test_topic)
-    subscriber.attach_callback(TestEventType.test_start, test_callback)
+    subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, test_callback)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event, topic=TestEventTopic.test_topic)
+    event = Event(type=EventType.service_started)
+    publisher.emit_event(event, topic=EventTopic.corerl)
     time.sleep(0.5)
 
     assert len(callback_invoked) == 1
-    assert callback_invoked[0].type == TestEventType.test_start
+    assert callback_invoked[0].type == EventType.service_started
 
     publisher.close()
     subscriber.close()
@@ -265,24 +239,24 @@ def test_client_topic_filtering(publisher: EventBusClient, subscriber: EventBusC
     """
     Subscribers only receive messages from topics they subscribe to.
     """
-    subscriber.subscribe(TestEventTopic.test_topic)
+    subscriber.subscribe(EventTopic.corerl)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event_wrong_topic = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event_wrong_topic, topic=TestEventTopic.debug_topic)
+    event_wrong_topic = Event(type=EventType.service_started)
+    publisher.emit_event(event_wrong_topic, topic=EventTopic.debug_app)
     time.sleep(0.3)
 
     received = subscriber.recv_event(timeout=0.5)
     assert received is None
 
-    event_correct_topic = TestEvent(type=TestEventType.test_update)
-    publisher.emit_event(event_correct_topic, topic=TestEventTopic.test_topic)
+    event_correct_topic = Event(type=EventType.step)
+    publisher.emit_event(event_correct_topic, topic=EventTopic.corerl)
     time.sleep(0.3)
 
     received = subscriber.recv_event(timeout=0.5)
     assert received is not None
-    assert received.type == TestEventType.test_update
+    assert received.type == EventType.step
 
 
 
@@ -291,30 +265,28 @@ def test_client_emit_event_type_shortcut(broker: EventBusProxy, broker_port: int
     """
     Can emit just an event type, which gets wrapped in event automatically.
     """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    publisher = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
     publisher.connect()
     time.sleep(0.1)
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    subscriber = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
     subscriber.connect()
-    subscriber.subscribe(TestEventTopic.test_topic)
+    subscriber.subscribe(EventTopic.corerl)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    publisher.emit_event(TestEventType.test_start, topic=TestEventTopic.test_topic)
+    publisher.emit_event(EventType.service_started, topic=EventTopic.corerl)
     time.sleep(0.5)
 
     received_event = subscriber.recv_event()
     assert received_event is not None
-    assert received_event.type == TestEventType.test_start
+    assert received_event.type == EventType.service_started
 
     publisher.close()
     subscriber.close()
@@ -331,18 +303,17 @@ def test_client_reconnection_preserves_state(
     """
     Subscriptions and state are preserved when client reconnects manually.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=broker_port,
     )
     client.connect()
-    client.subscribe(TestEventTopic.test_topic)
-    client.subscribe(TestEventTopic.debug_topic)
+    client.subscribe(EventTopic.corerl)
+    client.subscribe(EventTopic.debug_app)
 
     assert len(client._subscribed_topics) == 2
-    assert TestEventTopic.test_topic in client._subscribed_topics
-    assert TestEventTopic.debug_topic in client._subscribed_topics
+    assert EventTopic.corerl in client._subscribed_topics
+    assert EventTopic.debug_app in client._subscribed_topics
 
     original_topics = client._subscribed_topics.copy()
 
@@ -365,8 +336,7 @@ def test_client_max_reconnect_attempts():
     """
     free_port = get_free_port("localhost")
 
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
         port=free_port,
         max_reconnect_attempts=2,

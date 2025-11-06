@@ -5,33 +5,22 @@ import time
 import uuid
 from collections import defaultdict
 from collections.abc import Callable
-from enum import Enum
 from queue import Empty, Queue
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import zmq
-from pydantic import BaseModel
+from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 
 from lib_events.protocol.message_protocol import MessageType, build_message, parse_message
-
-if TYPE_CHECKING:
-    from typing import Protocol
-
-    class EventProtocol(Protocol):
-        type: Any
-        def model_dump_json(self) -> str: ...
-        @classmethod
-        def model_validate_json(cls, data: str) -> "EventProtocol": ...
 
 logger = logging.getLogger(__name__)
 
 type Callback = Callable[[Any], Any]
 
 
-class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClass: Enum]:
+class EventBusClient:
     def __init__(
         self,
-        event_class: type[EventClass],
         host: str = "localhost",
         port: int = 5580,
         service_id: str | None = None,
@@ -40,8 +29,6 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         reconnect_backoff_multiplier: float = 2.0,
         reconnect_max_interval: float = 60.0,
     ):
-        self._event_class = event_class
-        self.host = host
         self.port = port
         self.endpoint = f"tcp://{host}:{port}"
         self.service_id = service_id or f"client-{uuid.uuid4().hex[:8]}"
@@ -54,14 +41,14 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         self.context: zmq.Context | None = None
         self.dealer_socket: zmq.Socket | None = None
 
-        self.queue: Queue[EventClass] = Queue()
+        self.queue: Queue[Event] = Queue()
         self.stop_event = threading.Event()
         self.consumer_thread: threading.Thread | None = None
-        self._callbacks: dict[EventTypeClass, list[Callback]] = defaultdict(list)
+        self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
 
         self._connected = False
         self._reconnect_attempts = 0
-        self._subscribed_topics: list[EventTopicClass] = []
+        self._subscribed_topics: list[EventTopic] = []
         self._reconnect_lock = threading.Lock()
 
         self._request_handler: Callable[[bytes], bytes] | None = None
@@ -114,13 +101,13 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
     # Publishing
     # ============================================================
 
-    def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
+    def emit_event(self, event: Event | EventType, topic: EventTopic):
         if not self._connected or self.dealer_socket is None:
             logger.warning("Cannot publish - event bus client not connected")
             return
 
-        if not isinstance(event, self._event_class):
-            event = self._event_class(type=event)
+        if not isinstance(event, Event):
+            event = Event(type=event)
 
         message_data = event.model_dump_json()
         topic_str = topic.name
@@ -206,7 +193,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
     # Subscribing
     # ============================================================
 
-    def subscribe(self, topic: EventTopicClass):
+    def subscribe(self, topic: EventTopic):
         if self.dealer_socket is None:
             logger.warning("Cannot subscribe - dealer socket not initialized")
             return
@@ -254,15 +241,15 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
 
         self.consumer_thread = None
 
-    def attach_callback(self, event_type: EventTypeClass, cb: Callback):
+    def attach_callback(self, event_type: EventType, cb: Callback):
         self._callbacks[event_type].append(cb)
         logger.debug(f"Attached callback for event type: {event_type}")
 
-    def attach_callbacks(self, cbs: dict[EventTypeClass, Callback]):
+    def attach_callbacks(self, cbs: dict[EventType, Callback]):
         for event_type, cb in cbs.items():
             self.attach_callback(event_type, cb)
 
-    def recv_event(self, timeout: float = 0.5) -> EventClass | None:
+    def recv_event(self, timeout: float = 0.5) -> Event | None:
         if self.stop_event.is_set():
             return None
 
@@ -314,7 +301,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
         self._send_message(register_msg)
         logger.debug(f"Registered with broker as: {self.service_id}")
 
-    def _send_subscribe(self, topic: EventTopicClass):
+    def _send_subscribe(self, topic: EventTopic):
         subscribe_msg = build_message(
             destination=topic.name,
             msg_type=MessageType.SUBSCRIBE,
@@ -329,7 +316,7 @@ class EventBusClient[EventClass: BaseModel, EventTypeClass: Enum, EventTopicClas
             self._send_subscribe(topic)
 
     def _handle_publish_message(self, payload: bytes):
-        event = self._event_class.model_validate_json(payload.decode())
+        event = Event.model_validate_json(payload.decode())
         self.queue.put(event)
 
         for cb in self._callbacks[event.type]:
