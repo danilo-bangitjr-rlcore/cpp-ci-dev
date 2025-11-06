@@ -2,6 +2,7 @@ import logging
 
 from corerl.agent.greedy_ac import GreedyAC
 from corerl.tags.validate_tag_configs import validate_tag_configs
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_config.loader import load_config
 
 from coreoffline.utils.config import OfflineMainConfig
@@ -30,7 +31,8 @@ def main(cfg: OfflineMainConfig):
     app_state, pipeline = create_standard_setup(cfg)
 
     column_desc = pipeline.column_descriptions
-    agent = GreedyAC(cfg.agent, app_state, column_desc)
+    gamma_scheduler = create_gamma_scheduler(cfg.agent.gamma_schedule)
+    agent = GreedyAC(cfg.agent, app_state, column_desc, gamma_scheduler)
 
     # Offline training
     assert cfg.offline_training.offline_steps > 0

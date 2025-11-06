@@ -2,6 +2,7 @@ import os
 
 import jax.numpy as jnp
 import pytest
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_config.errors import ConfigValidationErrors
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -37,10 +38,12 @@ def nominal_setpoint_app_state(nominal_setpoint_config: MainConfig):
 @pytest.fixture
 def nominal_setpoint_agent(nominal_setpoint_config: MainConfig, nominal_setpoint_app_state: AppState):
     pipeline = Pipeline(nominal_setpoint_app_state, nominal_setpoint_config.pipeline)
+    gamma_scheduler = create_gamma_scheduler(nominal_setpoint_config.agent.gamma_schedule)
     return GreedyAC(
         nominal_setpoint_config.agent,
         nominal_setpoint_app_state,
         pipeline.column_descriptions,
+        gamma_scheduler,
     )
 
 

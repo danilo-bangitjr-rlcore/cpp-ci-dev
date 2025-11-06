@@ -54,7 +54,7 @@ class GreedyAC:
         state_dim: int,
         action_dim: int,
         collector: Collector,
-        gamma_scheduler: GammaScheduler | None = None,
+        gamma_scheduler: GammaScheduler,
     ):
         self.seed = seed
         self.rng = jax.random.PRNGKey(seed)
@@ -151,8 +151,7 @@ class GreedyAC:
             return 0.
 
         transitions: Transition = self.critic_buffer.sample()
-        if self._gamma_scheduler is not None:
-            transitions = self._gamma_scheduler.set_transition_gamma(transitions, step)
+        transitions = self._gamma_scheduler.set_transition_gamma(transitions, step)
         self.rng, bs_rng, critic_update_rng = jax.random.split(self.rng, 3)
 
         next_actions, _ = self._actor.get_actions_rng(

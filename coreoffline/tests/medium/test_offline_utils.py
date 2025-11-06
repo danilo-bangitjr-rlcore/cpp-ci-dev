@@ -13,6 +13,7 @@ from corerl.eval.metrics.factory import create_metrics_writer
 from corerl.messages.event_bus import DummyEventBus
 from corerl.state import AppState
 from lib_agent.buffer.datatypes import Step, Trajectory
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_defs.config_defs.tag_config import TagType
 from lib_sql.inspection import table_exists
 from lib_utils.named_array import NamedArray
@@ -144,7 +145,8 @@ def test_offline_training(
 
     pipeline = Pipeline(dummy_app_state, offline_cfg.pipeline)
     col_desc = pipeline.column_descriptions
-    agent = GreedyAC(offline_cfg.agent, app_state, col_desc)
+    gamma_scheduler = create_gamma_scheduler(offline_cfg.agent.gamma_schedule)
+    agent = GreedyAC(offline_cfg.agent, app_state, col_desc, gamma_scheduler)
 
     agent.update_buffer(offline_pipeout)
 

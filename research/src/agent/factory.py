@@ -11,7 +11,7 @@ def get_agent(
     state_dim: int,
     action_dim: int,
     collector: Collector,
-    gamma_scheduler: GammaScheduler | None = None,
+    gamma_scheduler: GammaScheduler,
 ):
     """Creates an agent instance based on configuration name."""
     if cfg.name.lower() == "gac":

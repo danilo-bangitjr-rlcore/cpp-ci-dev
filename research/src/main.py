@@ -183,8 +183,8 @@ def main():
     # Create gamma scheduler from config
     gamma_scheduler = create_gamma_scheduler(cfg.gamma_schedule)
 
-    # NOTE: we make transitions with max_gamma, but overwrite gamma in agent updates
-    gamma = gamma_scheduler.max_gamma if gamma_scheduler is not None else 0.99
+    # NOTE: we make transitions with max_gamma
+    gamma = gamma_scheduler.max_gamma
     tc = TransitionCreator(n_step=1, gamma=gamma)
 
     agent = get_agent(

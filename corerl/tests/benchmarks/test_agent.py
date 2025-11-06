@@ -3,6 +3,7 @@ import jax
 import pandas as pd
 import pytest
 from lib_agent.buffer.datatypes import State
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_utils.named_array import NamedArray
 from pytest_benchmark.fixture import BenchmarkFixture
 
@@ -29,7 +30,8 @@ def dummy_agent(dummy_app_state: AppState, basic_config: MainConfig):
         state_cols=state_cols,
         action_cols=action_cols,
     )
-    agent = GreedyAC(basic_config.agent, dummy_app_state, col_desc)
+    gamma_scheduler = create_gamma_scheduler(basic_config.agent.gamma_schedule)
+    agent = GreedyAC(basic_config.agent, dummy_app_state, col_desc, gamma_scheduler)
     return agent, len(state_cols), len(action_cols)
 
 

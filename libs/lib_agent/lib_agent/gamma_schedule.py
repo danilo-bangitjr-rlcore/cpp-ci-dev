@@ -34,6 +34,14 @@ class GammaScheduler(ABC):
         return batch._replace(n_step_gamma=new_gammas)
 
 
+class IdentityGammaScheduler(GammaScheduler):
+    def get_gamma(self, step: int) -> float:
+        return self.max_gamma
+
+    def set_transition_gamma(self, batch: Transition, step: int):
+        return batch
+
+
 class LogarithmicGammaScheduler(GammaScheduler):
     def __init__(
         self,
@@ -69,8 +77,8 @@ class GammaScheduleConfig:
 
     def __post_init__(self):
         """Validates configuration parameters."""
-        if self.type not in {"logarithmic"}:
-            raise ValueError(f"type must be 'logarithmic', got '{self.type}'")
+        if self.type not in {"logarithmic", "identity"}:
+            raise ValueError(f"type must be 'logarithmic' or 'identity', got '{self.type}'")
 
         if not 0 <= self.max_gamma <= 1:
             raise ValueError(f"max_gamma must be in [0, 1], got {self.max_gamma}")
@@ -91,10 +99,10 @@ class GammaScheduleConfig:
         }
 
 
-def create_gamma_scheduler(config: GammaScheduleConfig | None) -> GammaScheduler | None:
+def create_gamma_scheduler(config: GammaScheduleConfig) -> GammaScheduler:
     """Creates and returns the appropriate gamma scheduler instance from config."""
-    if config is None:
-        return None
+    if config.type == 'identity':
+        return IdentityGammaScheduler(max_gamma=config.max_gamma)
 
     if config.type == 'logarithmic':
         return LogarithmicGammaScheduler(

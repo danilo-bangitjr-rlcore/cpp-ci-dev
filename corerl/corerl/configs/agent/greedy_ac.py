@@ -116,7 +116,9 @@ class GreedyACConfig(BaseAgentConfig):
 
     critic: GTDCriticConfig | AdvCriticConfig = Field(default_factory=GTDCriticConfig)
     policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
-    gamma_schedule: GammaScheduleConfig | None = Field(default_factory=GammaScheduleConfig)
+    gamma_schedule: GammaScheduleConfig = Field(
+        default_factory=lambda: GammaScheduleConfig(type='identity'),
+    )
 
     loss_threshold: float = 0.0001
     """
@@ -175,7 +177,6 @@ class GreedyACConfig(BaseAgentConfig):
     @classmethod
     def _gamma_schedule(cls, cfg: 'MainConfig'):
         if cfg.feature_flags.gamma_schedule:
-            assert cfg.agent.gamma_schedule is not None
             error_msg = "gamma schedule is only supported for n=1"
             assert cfg.pipeline.trajectory_creator.min_n_step == 1, error_msg
             assert cfg.pipeline.trajectory_creator.max_n_step == 1, error_msg

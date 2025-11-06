@@ -100,7 +100,7 @@ class GreedyAC(BaseAgent):
         cfg: GreedyACConfig,
         app_state: AppState,
         col_desc: ColumnDescriptions,
-        gamma_scheduler: GammaScheduler | None = None,
+        gamma_scheduler: GammaScheduler,
     ):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
@@ -316,9 +316,8 @@ class GreedyAC(BaseAgent):
 
         critic_batch: Transition = self.critic_buffer.sample()
 
-        # Apply gamma scheduler adjustment if available
-        if self._gamma_scheduler is not None:
-            critic_batch = self._gamma_scheduler.set_transition_gamma(critic_batch, self._app_state.agent_step)
+        # Apply gamma scheduler adjustment
+        critic_batch = self._gamma_scheduler.set_transition_gamma(critic_batch, self._app_state.agent_step)
 
         self._jax_rng, next_action_rng = jax.random.split(self._jax_rng)
         next_actions, _ = self._actor.get_actions(
