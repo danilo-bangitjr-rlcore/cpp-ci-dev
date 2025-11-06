@@ -10,9 +10,9 @@ import type {
   IOListResponse,
 } from '../types/agent-types';
 
-// Config API functions (unchanged)
+// Config API functions
 const fetchConfigList = async (): Promise<string[]> => {
-  const response = await get(API_ENDPOINTS.configs.list_raw);
+  const response = await get(API_ENDPOINTS.configs.list);
   if (!response.ok) {
     throw new Error('Failed to fetch config list');
   }
@@ -20,24 +20,20 @@ const fetchConfigList = async (): Promise<string[]> => {
   return data.configs;
 };
 
-const fetchRawConfig = async (
+const fetchConfig = async (
   configName: string
 ): Promise<Record<string, any>> => {
-  const response = await get(API_ENDPOINTS.configs.raw(configName));
+  const response = await get(API_ENDPOINTS.configs.get(configName));
   if (!response.ok) {
-    throw new Error(`Failed to fetch raw config for ${configName}`);
+    throw new Error(`Failed to fetch config for ${configName}`);
   }
   const data: { config: Record<string, any> } = await response.json();
   return data.config;
 };
 
 const fetchAgentName = async (configName: string): Promise<string> => {
-  const response = await get(API_ENDPOINTS.configs.agent_name(configName));
-  if (!response.ok) {
-    throw new Error(`Failed to fetch agent name for ${configName}`);
-  }
-  const data: { agent_name: string } = await response.json();
-  return data.agent_name;
+  const config = await fetchConfig(configName);
+  return config.agent_name ?? configName;
 };
 
 const fetchIOStatus = async (ioName: string): Promise<IOStatusResponse> => {
@@ -80,9 +76,7 @@ const fetchAgentsMissingConfig = async (): Promise<string[]> => {
 };
 
 const fetchConfigPath = async (configName: string): Promise<string> => {
-  const response = await get(
-    API_ENDPOINTS.configs.get_clean_config_path(configName)
-  );
+  const response = await get(API_ENDPOINTS.configs.get_config_path(configName));
   if (!response.ok) {
     throw new Error(`Failed to fetch config path for ${configName}`);
   }
@@ -107,13 +101,13 @@ export const useConfigListQuery = () => {
   });
 };
 
-// Hook for fetching all raw configs
-export const useRawConfigsQueries = (configNames?: string[]) => {
+// Hook for fetching all configs
+export const useConfigsQueries = (configNames?: string[]) => {
   const names = configNames ?? [];
   return useQueries({
     queries: names.map((name) => ({
-      queryKey: ['rawConfig', name],
-      queryFn: () => fetchRawConfig(name),
+      queryKey: ['config', name],
+      queryFn: () => fetchConfig(name),
       enabled: names.length > 0,
     })),
   });

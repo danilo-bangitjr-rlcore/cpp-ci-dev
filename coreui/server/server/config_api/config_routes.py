@@ -7,14 +7,12 @@ import httpx
 from fastapi import APIRouter, Body, HTTPException, Request, status
 from pydantic import BaseModel
 from server.config_api.config import (
-    ConfigSubfolder,
     add_tag,
     create_config,
     delete_config,
     delete_tag,
     get_all_configs,
     get_config,
-    get_config_field,
     get_config_path,
     get_tag,
     get_tags,
@@ -65,7 +63,7 @@ InternalServerErrorResponse = str
 COREGATEWAY_BASE = "http://localhost:8001"
 
 #════════════════════════════════════════════════════════════════════════════
-#                          CLEAN CONFIG ENDPOINTS
+#                          CONFIG ENDPOINTS
 #════════════════════════════════════════════════════════════════════════════
 
 @config_router.get(
@@ -73,7 +71,7 @@ COREGATEWAY_BASE = "http://localhost:8001"
     response_model=ConfigsResponse,
     responses={
         200: {
-            "description": "List of all available type-validated (\"clean\") configuration names.",
+            "description": "List of all available configuration names.",
             "content": {
                 "application/json": {
                     "example": {
@@ -84,18 +82,18 @@ COREGATEWAY_BASE = "http://localhost:8001"
         },
         500: {"model": ErrorResponse},
     },
-    summary="List Clean Config Names",
-    description="List all available type-validated (\"clean\") configuration names.",
+    summary="List Config Names",
+    description="List all available configuration names.",
 )
-async def get_all_clean_configs(request: Request):
-    return await get_all_configs(path=request.app.state.config_path, subfolder=ConfigSubfolder.CLEAN)
+async def get_all_configs_endpoint(request: Request):
+    return await get_all_configs(path=request.app.state.config_path)
 
 @config_router.get(
     "/{config_name}",
     response_model=ConfigResponse,
     responses={
         200: {
-            "description": "The type-validated (\"clean\") configuration as a JSON object.",
+            "description": "The configuration as a JSON object.",
             "content": {
                 "application/json": {
                     "example": {
@@ -113,18 +111,18 @@ async def get_all_clean_configs(request: Request):
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Get Clean Config",
-    description="Retrieve the type-validated (\"clean\") configuration as a JSON object.",
+    summary="Get Config",
+    description="Retrieve the configuration as a JSON object.",
 )
-async def get_clean_config(request: Request, config_name: str):
-    return await get_config(request.app.state.config_path, config_name, ConfigSubfolder.CLEAN)
+async def get_config_endpoint(request: Request, config_name: str):
+    return await get_config(request.app.state.config_path, config_name)
 
 @config_router.get(
     "/{config_name}/tags",
     response_model=TagsResponse,
     responses={
         200: {
-            "description": "All tags defined in the type-validated (\"clean\") configuration.",
+            "description": "All tags defined in the configuration.",
             "content": {
                 "application/json": {
                     "example": {
@@ -136,18 +134,18 @@ async def get_clean_config(request: Request, config_name: str):
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="List Clean Tags",
-    description="List all tags defined in the type-validated (\"clean\") configuration.",
+    summary="List Tags",
+    description="List all tags defined in the configuration.",
 )
-async def get_clean_tags(request: Request, config_name: str):
-    return await get_tags(request.app.state.config_path, config_name, ConfigSubfolder.CLEAN)
+async def get_tags_endpoint(request: Request, config_name: str):
+    return await get_tags(request.app.state.config_path, config_name)
 
 @config_router.get(
     "/{config_name}/tags/{tag_name}",
     response_model=TagDetailResponse,
     responses={
         200: {
-            "description": "A specific tag by name from the type-validated (\"clean\") configuration.",
+            "description": "A specific tag by name from the configuration.",
             "content": {
                 "application/json": {
                     "example": {
@@ -159,11 +157,11 @@ async def get_clean_tags(request: Request, config_name: str):
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Get Clean Tag",
-    description="Retrieve a specific tag by name from the type-validated (\"clean\") configuration.",
+    summary="Get Tag",
+    description="Retrieve a specific tag by name from the configuration.",
 )
-async def get_clean_tag(request: Request, config_name: str, tag_name: str):
-    return await get_tag(request.app.state.config_path, config_name, tag_name, ConfigSubfolder.CLEAN)
+async def get_tag_endpoint(request: Request, config_name: str, tag_name: str):
+    return await get_tag(request.app.state.config_path, config_name, tag_name)
 
 @config_router.post(
     "/{config_name}/tags",
@@ -183,12 +181,12 @@ async def get_clean_tag(request: Request, config_name: str, tag_name: str):
         },
         500: {"model": ErrorResponse},
     },
-    summary="Add Clean Tag",
-    description="Add a new tag to the type-validated (\"clean\") configuration.",
+    summary="Add Tag",
+    description="Add a new tag to the configuration.",
     status_code=status.HTTP_201_CREATED,
 )
-async def post_clean_tag(request: Request, config_name: str, tag: Tag = Body(...)):
-    return await add_tag(request.app.state.config_path, config_name, tag.model_dump(), subfolder=ConfigSubfolder.CLEAN)
+async def post_tag_endpoint(request: Request, config_name: str, tag: Tag = Body(...)):
+    return await add_tag(request.app.state.config_path, config_name, tag.model_dump())
 
 @config_router.put(
     "/{config_name}/tags/{index}",
@@ -209,11 +207,11 @@ async def post_clean_tag(request: Request, config_name: str, tag: Tag = Body(...
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Update Clean Tag",
-    description="Update an existing tag by index in the type-validated (\"clean\") configuration.",
+    summary="Update Tag",
+    description="Update an existing tag by index in the configuration.",
 )
-async def put_clean_tag(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
-    return await update_tag(request.app.state.config_path, config_name, index, tag.model_dump(), ConfigSubfolder.CLEAN)
+async def put_tag_endpoint(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
+    return await update_tag(request.app.state.config_path, config_name, index, tag.model_dump())
 
 @config_router.delete(
     "/{config_name}/tags/{index}",
@@ -234,11 +232,11 @@ async def put_clean_tag(request: Request, config_name: str, index: int, tag: Tag
         404: {"model": ErrorResponse},
         500: {"model": ErrorResponse},
     },
-    summary="Delete Clean Tag",
-    description="Delete a tag by index from the type-validated (\"clean\") configuration.",
+    summary="Delete Tag",
+    description="Delete a tag by index from the configuration.",
 )
-async def delete_clean_tag(request: Request, config_name: str, index: int):
-    return await delete_tag(request.app.state.config_path, config_name, index, ConfigSubfolder.CLEAN)
+async def delete_tag_endpoint(request: Request, config_name: str, index: int):
+    return await delete_tag(request.app.state.config_path, config_name, index)
 
 @config_router.post(
     "/configs",
@@ -261,8 +259,8 @@ async def delete_clean_tag(request: Request, config_name: str, index: int):
     description="Create a new configuration with the given name.",
     status_code=status.HTTP_201_CREATED,
 )
-async def create_clean_config(request: Request, config: ConfigNameRequest = Body(...)):
-    return await create_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.CLEAN)
+async def create_config_endpoint(request: Request, config: ConfigNameRequest = Body(...)):
+    return await create_config(request.app.state.config_path, config.config_name)
 
 @config_router.delete(
     "/configs",
@@ -284,8 +282,8 @@ async def create_clean_config(request: Request, config: ConfigNameRequest = Body
     summary="Delete Config",
     description="Delete an existing configuration by name.",
 )
-async def delete_clean_config(request: Request, config: ConfigNameRequest = Body(...)):
-    return await delete_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.CLEAN)
+async def delete_config_endpoint(request: Request, config: ConfigNameRequest = Body(...)):
+    return await delete_config(request.app.state.config_path, config.config_name)
 
 @config_router.get(
     "/{config_name}/config_path",
@@ -296,7 +294,7 @@ async def delete_clean_config(request: Request, config: ConfigNameRequest = Body
             "content": {
                 "application/json": {
                     "example": {
-                        "config_path": "/path/to/configs/clean/main_backwash.yaml",
+                        "config_path": "/path/to/configs/main_backwash.yaml",
                     },
                 },
             },
@@ -307,15 +305,15 @@ async def delete_clean_config(request: Request, config: ConfigNameRequest = Body
     summary="Get Config File Path",
     description="Retrieve the file path of the specified configuration.",
 )
-async def get_clean_config_path(request: Request, config_name: str):
-    return await get_config_path(request.app.state.config_path, config_name, subfolder=ConfigSubfolder.CLEAN)
+async def get_config_path_endpoint(request: Request, config_name: str):
+    return await get_config_path(request.app.state.config_path, config_name)
 
 @config_router.get(
     "/agents/missing-config",
     response_model=AgentWithConfigResponse,
     responses={
         200: {
-            "description": "List of agents active in coredinator but missing a clean config.",
+            "description": "List of agents active in coredinator but missing a config.",
             "content": {
                 "application/json": {
                     "example": {
@@ -327,27 +325,27 @@ async def get_clean_config_path(request: Request, config_name: str):
         500: {"model": InternalServerErrorResponse},
     },
     summary="Get Agents Missing Config",
-    description="Retrieve agents that are active in coredinator but do not have a clean configuration available.",
+    description="Retrieve agents that are active in coredinator but do not have a configuration available.",
 )
 async def get_agents_missing_config(request: Request):
-    """Get agents active in coredinator but missing a clean config."""
+    """Get agents active in coredinator but missing a config."""
     try:
-        # Get clean configs
-        clean_configs_response = await get_all_clean_configs(request)
+        # Get configs
+        configs_response = await get_all_configs_endpoint(request)
 
         # Parse response body properly
-        if hasattr(clean_configs_response, "body"):
-            body = clean_configs_response.body
+        if hasattr(configs_response, "body"):
+            body = configs_response.body
             # Convert memoryview to bytes if needed
             # Solves pyright error: Expression of type 'bytes | memoryview' cannot be assigned to declared type 'bytes'
             if isinstance(body, memoryview):
                 body = bytes(body)
-            clean_configs_data = json.loads(body)
+            configs_data = json.loads(body)
         else:
-            clean_configs_data = clean_configs_response
+            configs_data = configs_response
 
-        configs = clean_configs_data.get("configs", []) if isinstance(clean_configs_data, dict) else []
-        clean_configs = set(configs)
+        configs = configs_data.get("configs", []) if isinstance(configs_data, dict) else []
+        available_configs = set(configs)
 
         # Get active agents from coredinator
         client: httpx.AsyncClient = request.app.state.httpx_client
@@ -364,251 +362,7 @@ async def get_agents_missing_config(request: Request):
             active_agents = set()
 
         # Return agents missing config
-        return {"agents": sorted(active_agents - clean_configs)}
+        return {"agents": sorted(active_agents - available_configs)}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve agents missing config: {e!s}") from e
-
-
-#════════════════════════════════════════════════════════════════════════════
-#                          RAW CONFIG ENDPOINTS
-#════════════════════════════════════════════════════════════════════════════get_clean_config_path
-
-@config_router.get(
-    "/raw/list",
-    response_model=ConfigsResponse,
-    responses={
-        200: {
-            "description": "List of all available raw configuration names.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "configs": ["main_backwash", "secondary_config"],
-                    },
-                },
-            },
-        },
-        500: {"model": ErrorResponse},
-    },
-    summary="List Raw Config Names",
-    description="List all available raw configuration names.",
-)
-async def get_all_raw_configs(request: Request):
-    return await get_all_configs(path=request.app.state.config_path, subfolder=ConfigSubfolder.RAW)
-
-@config_router.get(
-    "/raw/{config_name}",
-    response_model=ConfigResponse,
-    responses={
-        200: {
-            "description": "The raw (not type-validated) configuration as a JSON object.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "config": {
-                            "agent_name": "main_backwash",
-                            "infra": {},
-                        },
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Get Raw Config",
-    description="Retrieve the raw (not type-validated) configuration as a JSON object.",
-)
-async def get_raw_config(request: Request, config_name: str):
-    return await get_config(request.app.state.config_path, config_name, ConfigSubfolder.RAW)
-
-@config_router.get(
-    "/raw/{config_name}/agent_name",
-    response_model=AgentNameResponse,
-    responses={
-        200: {
-            "description": "The agent_name field from the raw configuration.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "agent_name": "main_backwash",
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Get Raw Config Agent Name",
-    description="Retrieve the agent_name field from the raw configuration.",
-)
-async def get_raw_config_agent_name(request: Request, config_name: str):
-    return await get_config_field(request.app.state.config_path, config_name, "agent_name", ConfigSubfolder.RAW)
-
-@config_router.get(
-    "/raw/{config_name}/tags",
-    response_model=TagsResponse,
-    responses={
-        200: {
-            "description": "All tags defined in the raw configuration.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "tags": [{"name": "DEP_BP_FLOW_SP_WA"}],
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="List Raw Tags",
-    description="List all tags defined in the raw configuration.",
-)
-async def get_raw_tags(request: Request, config_name: str):
-    return await get_tags(request.app.state.config_path, config_name, ConfigSubfolder.RAW)
-
-@config_router.get(
-    "/raw/{config_name}/tags/{tag_name}",
-    response_model=TagDetailResponse,
-    responses={
-        200: {
-            "description": "A specific tag by name from the raw configuration.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "tag": {"name": "DEP_BP_FLOW_SP_WA"},
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Get Raw Tag",
-    description="Retrieve a specific tag by name from the raw configuration.",
-)
-async def get_raw_tag(request: Request, config_name: str, tag_name: str):
-    return await get_tag(request.app.state.config_path, config_name, tag_name, ConfigSubfolder.RAW)
-
-@config_router.post(
-    "/raw/{config_name}/tags",
-    response_model=TagResponse,
-    responses={
-        201: {
-            "description": "Tag successfully created",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "message": "Tag created",
-                        "tag": {"name": "NEW_TAG"},
-                        "index": 2,
-                    },
-                },
-            },
-        },
-        500: {"model": ErrorResponse},
-    },
-    summary="Add Raw Tag",
-    description="Add a new tag to the raw configuration.",
-    status_code=status.HTTP_201_CREATED,
-)
-async def post_raw_tag(request: Request, config_name: str, tag: Tag = Body(...)):
-    return await add_tag(request.app.state.config_path, config_name, tag.model_dump(), subfolder=ConfigSubfolder.RAW)
-
-@config_router.put(
-    "/raw/{config_name}/tags/{index}",
-    response_model=TagResponse,
-    responses={
-        200: {
-            "description": "Tag successfully updated",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "message": "Tag updated",
-                        "tag": {"name": "UPDATED_TAG"},
-                        "index": 2,
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Update Raw Tag",
-    description="Update an existing tag by index in the raw configuration.",
-)
-async def put_raw_tag(request: Request, config_name: str, index: int, tag: Tag = Body(...)):
-    return await update_tag(request.app.state.config_path, config_name, index, tag.model_dump(), ConfigSubfolder.RAW)
-
-@config_router.delete(
-    "/raw/{config_name}/tags/{index}",
-    response_model=TagResponse,
-    responses={
-        200: {
-            "description": "Tag successfully deleted",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "message": "Tag deleted",
-                        "tag": {"name": "REMOVED_TAG"},
-                        "index": 2,
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Delete Raw Tag",
-    description="Delete a tag by index from the raw configuration.",
-)
-async def delete_raw_tag(request: Request, config_name: str, index: int):
-    return await delete_tag(request.app.state.config_path, config_name, index, ConfigSubfolder.RAW)
-
-@config_router.post(
-    "/raw/configs",
-    response_model=ConfigResponse,
-    responses={
-        201: {
-            "description": "Configuration successfully created",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "config_name": "new_config",
-                    },
-                },
-            },
-        },
-        400: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Create Raw Config",
-    description="Create a new raw configuration with the given name.",
-    status_code=status.HTTP_201_CREATED,
-)
-async def create_raw_config(request: Request, config: ConfigNameRequest = Body(...)):
-    return await create_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.RAW)
-
-@config_router.delete(
-    "/raw/configs",
-    response_model=ConfigResponse,
-    responses={
-        200: {
-            "description": "Configuration successfully deleted",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "config_name": "new_config",
-                    },
-                },
-            },
-        },
-        404: {"model": ErrorResponse},
-        500: {"model": ErrorResponse},
-    },
-    summary="Delete Raw Config",
-    description="Delete an existing raw configuration by name.",
-)
-async def delete_raw_config(request: Request, config: ConfigNameRequest = Body(...)):
-    return await delete_config(request.app.state.config_path, config.config_name, subfolder=ConfigSubfolder.RAW)
