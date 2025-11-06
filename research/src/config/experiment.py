@@ -5,6 +5,7 @@ from typing import Any
 
 import yaml
 from filelock import FileLock
+from lib_agent.gamma_schedule import GammaScheduleConfig
 from ml_instrumentation.metadata import attach_metadata
 
 from utils.action_bounds import ActionBoundsConfig
@@ -22,6 +23,9 @@ class ExperimentConfig:
     steps_per_decision: int = 1
     nominal_setpoint: float | list[float] | None = None
     action_bounds: ActionBoundsConfig = field(default_factory=ActionBoundsConfig)
+    gamma_schedule: GammaScheduleConfig = field(
+        default_factory=lambda: GammaScheduleConfig(type='identity'),
+    )
 
     def flatten(self):
         out = flatten(self.agent, 'agent')
@@ -29,6 +33,7 @@ class ExperimentConfig:
         out |= flatten(self.pipeline, 'pipeline')
         out |= flatten(self.action_bounds.to_dict(), 'action_bounds')
         out |= {'nominal_setpoint': self.nominal_setpoint}
+        out |= flatten(self.gamma_schedule.to_dict(), 'gamma_schedule')
 
         return out
 
@@ -52,6 +57,7 @@ class ExperimentConfig:
             pipeline=cfg.get('pipeline', {}),
             nominal_setpoint=cfg['nominal_setpoint'],
             action_bounds=ActionBoundsConfig(**cfg.get('action_bounds', {})),
+            gamma_schedule=GammaScheduleConfig(**cfg.get('gamma_schedule', {})),
         )
 
 

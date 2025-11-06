@@ -2,6 +2,7 @@ from datetime import timedelta
 from typing import Any
 
 import pytest
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from sqlalchemy import Engine
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -49,10 +50,12 @@ def test_action_bounds(saturation_app_state: AppState):
     pipeline = Pipeline(app_state, cfg.pipeline)
     env = init_async_env(cfg.env, cfg.pipeline.tags)
 
+    gamma_scheduler = create_gamma_scheduler(cfg.agent.gamma_schedule)
     agent = GreedyAC(
         cfg.agent,
         app_state,
         pipeline.column_descriptions,
+        gamma_scheduler,
     )
 
     interaction = init_interaction(

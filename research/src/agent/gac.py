@@ -13,6 +13,7 @@ from lib_agent.buffer.datatypes import State, Transition
 from lib_agent.critic.critic_registry import get_critic
 from lib_agent.critic.critic_utils import CriticState
 from lib_agent.critic.qrc_critic import QRCCritic
+from lib_agent.gamma_schedule import GammaScheduler
 from ml_instrumentation.Collector import Collector
 
 
@@ -46,13 +47,22 @@ class GreedyACConfig:
 
 
 class GreedyAC:
-    def __init__(self, cfg: GreedyACConfig, seed: int, state_dim: int, action_dim: int, collector: Collector):
+    def __init__(
+        self,
+        cfg: GreedyACConfig,
+        seed: int,
+        state_dim: int,
+        action_dim: int,
+        collector: Collector,
+        gamma_scheduler: GammaScheduler,
+    ):
         self.seed = seed
         self.rng = jax.random.PRNGKey(seed)
         self.state_dim = state_dim
         self.action_dim = action_dim
         self._cfg = cfg
         self._collector = collector
+        self._gamma_scheduler = gamma_scheduler
 
         self._critic = get_critic(cfg.critic, state_dim, action_dim)
         self._actor = get_actor(cfg.actor, state_dim, action_dim)
@@ -111,11 +121,11 @@ class GreedyAC:
         actions = jnp.asarray(actions)
         return self._actor.get_probs(actor_params, state, actions)
 
-    def update(self):
+    def update(self, step: int):
         alpha = self._cfg.loss_ema_factor
 
         for _ in range(self._cfg.max_critic_updates):
-            critic_loss = self.critic_update()
+            critic_loss = self.critic_update(step)
 
             for _ in range(self._cfg.max_internal_actor_updates):
                 actor_loss = self.policy_update()
@@ -135,13 +145,15 @@ class GreedyAC:
             if np.abs(self._avg_critic_delta) < self._cfg.loss_threshold:
                 break
 
-    def critic_update(self):
+    def critic_update(self, step: int):
         assert isinstance(self._critic, QRCCritic)
         if self.critic_buffer.size == 0:
             return 0.
 
         transitions: Transition = self.critic_buffer.sample()
+        transitions = self._gamma_scheduler.set_transition_gamma(transitions, step)
         self.rng, bs_rng, critic_update_rng = jax.random.split(self.rng, 3)
+
         next_actions, _ = self._actor.get_actions_rng(
             self.agent_state.actor.actor.params,
             bs_rng,

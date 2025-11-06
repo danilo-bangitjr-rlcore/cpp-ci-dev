@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Literal
 
 from lib_agent.critic.critic_utils import RollingResetConfig
+from lib_agent.gamma_schedule import GammaScheduleConfig
 from lib_config.config import MISSING, computed, config
 from pydantic import Field
 
@@ -115,6 +116,9 @@ class GreedyACConfig(BaseAgentConfig):
 
     critic: GTDCriticConfig | AdvCriticConfig = Field(default_factory=GTDCriticConfig)
     policy: PercentileActorConfig = Field(default_factory=PercentileActorConfig)
+    gamma_schedule: GammaScheduleConfig = Field(
+        default_factory=lambda: GammaScheduleConfig(type='identity'),
+    )
 
     loss_threshold: float = 0.0001
     """
@@ -168,3 +172,24 @@ class GreedyACConfig(BaseAgentConfig):
     """
     Returns predicted by the critic are scaled by this value.
     """
+
+    @computed('gamma_schedule')
+    @classmethod
+    def _gamma_schedule(cls, cfg: 'MainConfig'):
+        if cfg.feature_flags.gamma_schedule:
+            error_msg = "gamma schedule is only supported for n=1"
+            assert cfg.pipeline.trajectory_creator.min_n_step == 1, error_msg
+            assert cfg.pipeline.trajectory_creator.max_n_step == 1, error_msg
+            assert cfg.interaction.obs_period == cfg.interaction.action_period, error_msg
+
+            if cfg.max_steps is not None:
+                horizon = min(cfg.max_steps, cfg.agent.gamma_schedule.horizon)
+            else:
+                horizon = cfg.agent.gamma_schedule.horizon
+            return GammaScheduleConfig(
+                    type='logarithmic',
+                    max_gamma=cfg.agent.gamma,
+                    update_interval=cfg.agent.gamma_schedule.update_interval,
+                    horizon=horizon,
+                )
+        return None

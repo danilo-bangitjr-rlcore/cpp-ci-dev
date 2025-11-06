@@ -5,6 +5,7 @@ import jax.numpy as jnp
 import jax.random as jrandom
 import pytest
 from lib_agent.buffer.datatypes import DataMode, Step, Trajectory, convert_trajectory_to_transition
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_utils.named_array import NamedArray
 
 from corerl.agent.greedy_ac import GreedyAC
@@ -101,7 +102,8 @@ def greedy_ac_agent(
         action_cols=[f'a{i}' for i in range(action_dim)],
     )
 
-    return GreedyAC(minimal_agent_config, dummy_app_state, col_desc)
+    gamma_scheduler = create_gamma_scheduler(minimal_agent_config.gamma_schedule)
+    return GreedyAC(minimal_agent_config, dummy_app_state, col_desc, gamma_scheduler)
 
 
 @pytest.fixture

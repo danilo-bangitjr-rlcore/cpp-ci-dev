@@ -6,6 +6,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import numpy as np
+from lib_agent.gamma_schedule import create_gamma_scheduler
 from lib_defs.type_defs.base_events import EventTopic, EventType
 from service_framework.service import RLTuneService
 
@@ -83,17 +84,20 @@ class CoreRLService(RLTuneService):
 
         column_desc = self.pipeline.column_descriptions
         # Instantiate the appropriate agent based on config
+        gamma_scheduler = create_gamma_scheduler(self.cfg.agent.gamma_schedule)
         if self.cfg.agent.name == "gaac":
             agent = GAAC(
                 self.cfg.agent,
                 self.app_state,
                 column_desc,
+                gamma_scheduler,
             )
         else:
             agent = GreedyAC(
                 self.cfg.agent,
                 self.app_state,
                 column_desc,
+                gamma_scheduler,
             )
 
         app_state = self.app_state

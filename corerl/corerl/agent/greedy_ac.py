@@ -18,6 +18,7 @@ from lib_agent.critic.critic_utils import (
     get_stable_rank,
 )
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
+from lib_agent.gamma_schedule import GammaScheduler
 from lib_defs.config_defs.tag_config import TagType
 from lib_defs.type_defs.base_events import EventType
 from lib_utils.named_array import NamedArray
@@ -94,10 +95,17 @@ def build_critic(cfg: GreedyACConfig, state_dim: int, action_dim: int):
 
 
 class GreedyAC(BaseAgent):
-    def __init__(self, cfg: GreedyACConfig, app_state: AppState, col_desc: ColumnDescriptions):
+    def __init__(
+        self,
+        cfg: GreedyACConfig,
+        app_state: AppState,
+        col_desc: ColumnDescriptions,
+        gamma_scheduler: GammaScheduler,
+    ):
         super().__init__(cfg, app_state, col_desc)
         self.cfg = cfg
         self._col_desc = col_desc
+        self._gamma_scheduler = gamma_scheduler
 
         actor_cfg = PAConfig(
             name='percentile',
@@ -307,6 +315,10 @@ class GreedyAC(BaseAgent):
             return [0 for _ in range(len(self.critic._reset_manager.active_indices))]
 
         critic_batch: Transition = self.critic_buffer.sample()
+
+        # Apply gamma scheduler adjustment
+        critic_batch = self._gamma_scheduler.set_transition_gamma(critic_batch, self._app_state.agent_step)
+
         self._jax_rng, next_action_rng = jax.random.split(self._jax_rng)
         next_actions, _ = self._actor.get_actions(
             next_action_rng,
