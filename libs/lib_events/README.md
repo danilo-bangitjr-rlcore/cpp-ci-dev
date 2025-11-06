@@ -246,21 +246,7 @@ def process_event(event: Event):
     pass
 
 client.attach_callback(EventType.step_agent_update, cb=log_event)
-client.attach_callback(EventType.step_agent_update, cb=process_event)
-```
-
-### Listen Forever (Blocking)
-
-For scripts that only consume events:
-
-```python
-client.connect()
-client.subscribe(EventTopic.corerl)
-client.attach_callback(EventType.step_agent_update, cb=handle_update)
-
-# Blocks until interrupted
-for event in client.listen_forever():
-    print(f"Received: {event}")
+requester.close()
 ```
 
 ### Service-Specific Wrappers

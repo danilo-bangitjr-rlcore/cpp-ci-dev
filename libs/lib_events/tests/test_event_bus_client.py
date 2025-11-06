@@ -180,7 +180,13 @@ def test_client_pub_sub_message_flow(publisher: EventBusClient, subscriber: Even
     """
     Messages published by one client are received by subscribing client.
     """
+    received_events = []
+
+    def collect_event(event: Event):
+        received_events.append(event)
+
     subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, collect_event)
     subscriber.start_consumer()
     time.sleep(0.2)
 
@@ -188,9 +194,8 @@ def test_client_pub_sub_message_flow(publisher: EventBusClient, subscriber: Even
     publisher.emit_event(event, topic=EventTopic.corerl)
     time.sleep(0.5)
 
-    received_event = subscriber.recv_event()
-    assert received_event is not None
-    assert received_event.type == EventType.service_started
+    assert len(received_events) == 1
+    assert received_events[0].type == EventType.service_started
 
 
 
@@ -239,7 +244,14 @@ def test_client_topic_filtering(publisher: EventBusClient, subscriber: EventBusC
     """
     Subscribers only receive messages from topics they subscribe to.
     """
+    received_events = []
+
+    def collect_event(event: Event):
+        received_events.append(event)
+
     subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, collect_event)
+    subscriber.attach_callback(EventType.step, collect_event)
     subscriber.start_consumer()
     time.sleep(0.2)
 
@@ -247,16 +259,14 @@ def test_client_topic_filtering(publisher: EventBusClient, subscriber: EventBusC
     publisher.emit_event(event_wrong_topic, topic=EventTopic.debug_app)
     time.sleep(0.3)
 
-    received = subscriber.recv_event(timeout=0.5)
-    assert received is None
+    assert len(received_events) == 0
 
     event_correct_topic = Event(type=EventType.step)
     publisher.emit_event(event_correct_topic, topic=EventTopic.corerl)
     time.sleep(0.3)
 
-    received = subscriber.recv_event(timeout=0.5)
-    assert received is not None
-    assert received.type == EventType.step
+    assert len(received_events) == 1
+    assert received_events[0].type == EventType.step
 
 
 
@@ -278,15 +288,21 @@ def test_client_emit_event_type_shortcut(broker: EventBusProxy, broker_port: int
     )
     subscriber.connect()
     subscriber.subscribe(EventTopic.corerl)
+
+    received_events = []
+
+    def collect_event(event: Event):
+        received_events.append(event)
+
+    subscriber.attach_callback(EventType.service_started, collect_event)
     subscriber.start_consumer()
     time.sleep(0.2)
 
     publisher.emit_event(EventType.service_started, topic=EventTopic.corerl)
     time.sleep(0.5)
 
-    received_event = subscriber.recv_event()
-    assert received_event is not None
-    assert received_event.type == EventType.service_started
+    assert len(received_events) == 1
+    assert received_events[0].type == EventType.service_started
 
     publisher.close()
     subscriber.close()

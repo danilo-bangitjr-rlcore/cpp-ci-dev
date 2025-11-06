@@ -5,13 +5,12 @@ import time
 import uuid
 from collections import defaultdict
 from collections.abc import Callable
-from queue import Empty, Queue
 from typing import Any
 
 import zmq
 from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 
-from lib_events.protocol.message_protocol import MessageType, build_message, parse_message
+from lib_events.protocol.message_protocol import MessageType, ParsedMessage, build_message, parse_message
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +28,6 @@ class EventBusClient:
         reconnect_backoff_multiplier: float = 2.0,
         reconnect_max_interval: float = 60.0,
     ):
-        self.port = port
         self.endpoint = f"tcp://{host}:{port}"
         self.service_id = service_id or f"client-{uuid.uuid4().hex[:8]}"
 
@@ -41,7 +39,6 @@ class EventBusClient:
         self.context: zmq.Context | None = None
         self.dealer_socket: zmq.Socket | None = None
 
-        self.queue: Queue[Event] = Queue()
         self.stop_event = threading.Event()
         self.consumer_thread: threading.Thread | None = None
         self._callbacks: dict[EventType, list[Callback]] = defaultdict(list)
@@ -80,15 +77,6 @@ class EventBusClient:
         logger.info("Closing event bus client")
 
         self.stop_consumer()
-
-        empty_raised = False
-        while not empty_raised:
-            try:
-                self.queue.get_nowait()
-                self.queue.task_done()
-            except Empty:
-                empty_raised = True
-
         self._close_sockets()
 
         self._connected = False
@@ -109,18 +97,15 @@ class EventBusClient:
         if not isinstance(event, Event):
             event = Event(type=event)
 
-        message_data = event.model_dump_json()
-        topic_str = topic.name
-
         publish_msg = build_message(
-            destination=topic_str,
+            destination=topic.name,
             msg_type=MessageType.PUBLISH,
             correlation_id="",
-            payload=message_data.encode(),
+            payload=event.model_dump_json().encode(),
         )
         self._send_message(publish_msg)
 
-        logger.debug(f"Published event {event.type} to topic '{topic_str}'")
+        logger.debug(f"Published event {event.type} to topic '{topic.name}'")
 
     # ============================================================
     # Request/Reply
@@ -164,28 +149,26 @@ class EventBusClient:
         logger.info("Registered request handler")
 
     async def _wait_for_reply(self, correlation_id: str, timeout: float) -> bytes:
-        start_time = time.time()
-
-        while True:
-            elapsed = time.time() - start_time
-
-            if elapsed >= timeout:
-                with self._pending_replies_lock:
-                    self._pending_replies.pop(correlation_id, None)
-                raise TimeoutError(f"Request timed out after {timeout}s")
-
+        def check_reply():
             with self._pending_replies_lock:
-                if correlation_id in self._pending_replies:
-                    payload_bytes = self._pending_replies.pop(correlation_id)
-                    logger.debug(f"Received REPLY with correlation_id: {correlation_id}")
-                    return payload_bytes
+                return self._pending_replies.pop(correlation_id, None)
 
-            await asyncio.sleep(0.01)
+        try:
+            payload_bytes = await asyncio.wait_for(_poll_until(check_reply), timeout)
+            logger.debug(f"Received REPLY with correlation_id: {correlation_id}")
+            return payload_bytes
+
+        except TimeoutError:
+            with self._pending_replies_lock:
+                self._pending_replies.pop(correlation_id, None)
+
+            raise TimeoutError(f"Request timed out after {timeout}s") from None
 
     def _send_message(self, msg: list[bytes]):
         if self.dealer_socket is None:
             logger.error("Cannot send message - dealer socket not initialized")
             return
+
         with self._socket_send_lock:
             self.dealer_socket.send_multipart(msg)
 
@@ -232,12 +215,11 @@ class EventBusClient:
         logger.info("Stopping consumer thread")
         self.stop_event.set()
 
-        if self.consumer_thread is not None:
-            self.consumer_thread.join(timeout=2)
-            if self.consumer_thread.is_alive():
-                logger.warning("Consumer thread did not terminate within timeout")
-            else:
-                logger.info("Consumer thread stopped")
+        self.consumer_thread.join(timeout=2)
+        if self.consumer_thread.is_alive():
+            logger.warning("Consumer thread did not terminate within timeout")
+        else:
+            logger.debug("Consumer thread stopped")
 
         self.consumer_thread = None
 
@@ -248,25 +230,6 @@ class EventBusClient:
     def attach_callbacks(self, cbs: dict[EventType, Callback]):
         for event_type, cb in cbs.items():
             self.attach_callback(event_type, cb)
-
-    def recv_event(self, timeout: float = 0.5) -> Event | None:
-        if self.stop_event.is_set():
-            return None
-
-        try:
-            event = self.queue.get(timeout=timeout)
-            self.queue.task_done()
-            return event
-        except Empty:
-            return None
-
-    def listen_forever(self):
-        while not self.stop_event.is_set():
-            event = self.recv_event()
-            if event is None:
-                continue
-
-            yield event
 
     def _close_sockets(self):
         if self.dealer_socket:
@@ -317,30 +280,26 @@ class EventBusClient:
 
     def _handle_publish_message(self, payload: bytes):
         event = Event.model_validate_json(payload.decode())
-        self.queue.put(event)
 
         for cb in self._callbacks[event.type]:
-            try:
-                cb(event)
-            except Exception as e:
-                logger.error(f"Callback error for event {event.type}: {e}", exc_info=True)
+            cb(event)
 
     def _handle_reply_message(self, correlation_id: str, payload: bytes):
         with self._pending_replies_lock:
             self._pending_replies[correlation_id] = payload
         logger.debug(f"Stored REPLY with correlation_id: {correlation_id}")
 
-    def _reconnect(self) -> bool:
+    def _reconnect(self):
         with self._reconnect_lock:
             if self.stop_event.is_set():
                 logger.debug("Stop event set, aborting reconnection")
-                return False
+                return None
 
             if self.max_reconnect_attempts >= 0 and self._reconnect_attempts >= self.max_reconnect_attempts:
                 logger.error(
                     f"Max reconnection attempts ({self.max_reconnect_attempts}) reached, giving up",
                 )
-                return False
+                return None
 
             self._reconnect_attempts += 1
 
@@ -355,7 +314,7 @@ class EventBusClient:
 
             if not _interruptible_sleep(self.stop_event, current_interval):
                 logger.debug("Stop event set during reconnect sleep, aborting")
-                return False
+                return None
 
             try:
                 self._close_sockets()
@@ -368,11 +327,27 @@ class EventBusClient:
                 self._connected = True
                 self._reconnect_attempts = 0
                 logger.info("Successfully reconnected to event bus")
-                return True
+
+                poller = zmq.Poller()
+                poller.register(self.dealer_socket, zmq.POLLIN)
+                return poller
 
             except Exception as e:
                 logger.error(f"Reconnection attempt {self._reconnect_attempts} failed: {e}")
-                return False
+                return None
+
+    def _dispatch_message(self, msg: ParsedMessage):
+        handlers = {
+            MessageType.PUBLISH: lambda m=msg: self._handle_publish_message(m.payload),
+            MessageType.REQUEST: lambda m=msg: self._handle_incoming_request(m.correlation_id, m.payload),
+            MessageType.REPLY: lambda m=msg: self._handle_reply_message(m.correlation_id, m.payload),
+        }
+
+        handler = handlers.get(msg.msg_type)
+        if handler:
+            handler()
+        else:
+            logger.debug(f"Ignoring message type: {msg.msg_type}")
 
     def _consume_messages(self):
         assert self.dealer_socket is not None
@@ -383,70 +358,36 @@ class EventBusClient:
         while not self.stop_event.is_set():
             try:
                 socks = dict(poller.poll(timeout=500))
+                if self.dealer_socket not in socks:
+                    continue
+
+                message_frames = self.dealer_socket.recv_multipart(zmq.NOBLOCK)
+                parse_message(message_frames) \
+                    .tap_none(lambda: logger.warning("Failed to parse message")) \
+                    .tap(self._dispatch_message)
+
             except zmq.ZMQError as e:
                 if self.stop_event.is_set():
                     break
 
-                logger.warning(f"ZMQ polling error: {e}, attempting reconnection")
-                if self._reconnect():
-                    poller = zmq.Poller()
-                    poller.register(self.dealer_socket, zmq.POLLIN)
-                    continue
+                logger.warning(f"ZMQ error: {e}, attempting reconnection")
+                poller = self._reconnect()
+                if poller is None:
+                    logger.error("Failed to reconnect, stopping consumer")
+                    break
 
-                logger.error("Failed to reconnect, stopping consumer")
-                break
-
-            if self.dealer_socket not in socks:
-                continue
-
-            try:
-                message_frames = self.dealer_socket.recv_multipart(zmq.NOBLOCK)
-
-                parsed = parse_message(message_frames)
-                if parsed.is_none():
-                    logger.warning("Failed to parse message")
-                    continue
-
-                msg = parsed.expect()
-
-                if msg.msg_type == MessageType.PUBLISH:
-                    self._handle_publish_message(msg.payload)
-                elif msg.msg_type == MessageType.REQUEST:
-                    self._handle_incoming_request(msg.correlation_id, msg.payload)
-                elif msg.msg_type == MessageType.REPLY:
-                    self._handle_reply_message(msg.correlation_id, msg.payload)
-                else:
-                    logger.debug(f"Ignoring message type: {msg.msg_type}")
-
-            except zmq.ZMQError as e:
-                logger.warning(f"Error receiving message: {e}, attempting reconnection")
-                if self._reconnect():
-                    poller = zmq.Poller()
-                    poller.register(self.dealer_socket, zmq.POLLIN)
-                    continue
-
-                logger.error("Failed to reconnect, stopping consumer")
-                break
             except Exception as e:
-                logger.error(f"Error consuming message: {e}", exc_info=True)
+                logger.error(f"Error receiving message: {e}", exc_info=True)
 
-        logger.info("Consumer thread stopped")
 
     def _handle_incoming_request(self, correlation_id: str, payload: bytes):
         if self._request_handler is None:
             logger.warning(f"Received REQUEST but no handler registered (correlation_id: {correlation_id})")
-            error_payload = b'{"error": "No request handler registered"}'
-            self._send_reply(correlation_id, error_payload)
             return
 
-        try:
-            response_payload = self._request_handler(payload)
-            self._send_reply(correlation_id, response_payload)
-            logger.debug(f"Handled REQUEST with correlation_id: {correlation_id}")
-        except Exception as e:
-            logger.error(f"Request handler error: {e}", exc_info=True)
-            error_payload = f'{{"error": "{e!s}"}}'.encode()
-            self._send_reply(correlation_id, error_payload)
+        response_payload = self._request_handler(payload)
+        self._send_reply(correlation_id, response_payload)
+        logger.debug(f"Handled REQUEST with correlation_id: {correlation_id}")
 
     def _send_reply(self, correlation_id: str, payload: bytes):
         reply_msg = build_message(
@@ -466,3 +407,11 @@ def _interruptible_sleep(stop_event: threading.Event, duration: float) -> bool:
             return False
         time.sleep(0.1)
     return True
+
+
+async def _poll_until(condition: Callable[[], Any], interval: float = 0.01):
+    while True:
+        result = condition()
+        if result is not None:
+            return result
+        await asyncio.sleep(interval)
