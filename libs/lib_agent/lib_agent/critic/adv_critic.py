@@ -58,6 +58,8 @@ class AdvConfig(CriticConfig):
     adv_l2_regularization: float = 1.0
     h_lr_mult: float = 1.0
     v_lr_mult: float = 1.0
+    nominal_init_batch_size: int = 32
+    nominal_init_action_samples: int = 128
 
 
 def critic_builder(
@@ -450,14 +452,14 @@ class AdvCritic:
             params: chex.ArrayTree,
             rng: chex.PRNGKey,
         ):
-            BATCH = 32
-            ACTION_SAMPLES = 128
-
             s_rng, a_rng, q_rng = jax.random.split(rng, 3)
-            states = jax.random.uniform(s_rng, shape=(BATCH, self._state_dim))
-            actions = jax.random.uniform(a_rng, shape=(BATCH, ACTION_SAMPLES, self._action_dim))
+            states = jax.random.uniform(s_rng, shape=(self._cfg.nominal_init_batch_size, self._state_dim))
+            actions = jax.random.uniform(
+                a_rng,
+                shape=(self._cfg.nominal_init_batch_size, self._cfg.nominal_init_action_samples, self._action_dim),
+            )
             adv = self._forward_adv(params, q_rng, states, actions).adv.squeeze()
-            chex.assert_shape(adv, (BATCH, ACTION_SAMPLES))
+            chex.assert_shape(adv, (self._cfg.nominal_init_batch_size, self._cfg.nominal_init_action_samples))
 
             y = -jnp.abs(actions - jnp.expand_dims(nominal_action, axis=(0, 1))).sum(axis=-1)
             return jnp.square(adv - y).mean()
