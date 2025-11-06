@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.1.1](https://github.com/rlcoretech/core-rl/compare/coreui-v0.1.0...coreui-v0.1.1) (2025-11-05)
+
+
+### Bug Fixes
+
+* add factory icon to opc navigation ([4447d2d](https://github.com/rlcoretech/core-rl/commit/4447d2dd9371251381f122bb70b5cf0d50c26c00))
+* **coreui/client:** now base url comes from window.location.host ([f24d9be](https://github.com/rlcoretech/core-rl/commit/f24d9be523723c2c14bd1a486f9237e06c8a5d52))
+* **coreui/server:** fix cors in coreui server ([7a6cd5a](https://github.com/rlcoretech/core-rl/commit/7a6cd5ae20894f0fd3adf231db0cf6b93c2211bc))
+* **coreui:** opc navigation supports different types of node identifiers ([1ffced1](https://github.com/rlcoretech/core-rl/commit/1ffced18507597d1d07180ad56ad46806a85ce4c))
+* **coreui:** Opc Navigation supports different types of Node Ids ([cb1b403](https://github.com/rlcoretech/core-rl/commit/cb1b403403f4579cccf6a2c330b5d8e84448af5c))
+* **CoreUI:** Presentation Improvements ([95caf5c](https://github.com/rlcoretech/core-rl/commit/95caf5c557653179a823de39cac236d026412edc))
+* **coreui:** redirect to /app ([776a601](https://github.com/rlcoretech/core-rl/commit/776a60172f6aeb23d972d5b2dc2e82568417cb97))
+* **coreui:** redirect to /app ([7acbd31](https://github.com/rlcoretech/core-rl/commit/7acbd31e7da8890e85f92519c9baeea26815284b))
+* **CoreUI:** Refactor agent metrics so filtering happens in Backend ([85ceae7](https://github.com/rlcoretech/core-rl/commit/85ceae78f7c05db062c63310e958bc50323cf84a))
+* imports w/ ruff ([83070eb](https://github.com/rlcoretech/core-rl/commit/83070eb7ea7ce384ca9ba3558e7502c8dea5b7a2))
+* mountain car to more legible name in config ([33e823e](https://github.com/rlcoretech/core-rl/commit/33e823e54e1714704bfbc45191de7b7323d24a03))
+* Moving diagnostics to agents overview ([ee6397d](https://github.com/rlcoretech/core-rl/commit/ee6397de03144b928170a1f01ccf83add4fd79d2))
+* observation tags to input tags ([490d0cf](https://github.com/rlcoretech/core-rl/commit/490d0cf104907400bbb55df387431d426b916e01))
+* **PROD-1246:** CoreUI network fixes ([24b8d79](https://github.com/rlcoretech/core-rl/commit/24b8d79a404be3e0b5512a4268725a6cc756b9b4))
+* Re-imagined home page ([d55722e](https://github.com/rlcoretech/core-rl/commit/d55722ed123355d2712872eea285d1eabf580de2))
+* remove about file ([c599765](https://github.com/rlcoretech/core-rl/commit/c599765b8c7991d8cc0186f07572282b31019dd2))
+* rename about to diagnostics ([bc094ee](https://github.com/rlcoretech/core-rl/commit/bc094ee5fb0f0b437b0be1b4955ae0b1a1841f4b))
+* reward to objective ([ef86f73](https://github.com/rlcoretech/core-rl/commit/ef86f73dc3f74fe0759e5e12818158a6e4852ff7))
+* using backend to filter metrics ([54a8c1e](https://github.com/rlcoretech/core-rl/commit/54a8c1ecdba9bbc8df4e4269dc801f424a2a7136))
+
 ## [0.1.0](https://github.com/rlcoretech/core-rl/compare/coreui-v0.0.1...coreui-v0.1.0) (2025-10-29)
 
 

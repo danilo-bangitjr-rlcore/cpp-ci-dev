@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.13.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.12.0...coreio-v0.13.0) (2025-11-05)
+
+
+### Features
+
+* **coreio:** add global event bus with dummy events to coreio ([722e813](https://github.com/rlcoretech/core-rl/commit/722e8136a48cef7a8a5a4fa9669a6959f73c1957))
+* **coreio:** enable global event bus by default ([207f203](https://github.com/rlcoretech/core-rl/commit/207f203e1f6e7f90042e58c18318a46a90d50014))
+
+
+### Bug Fixes
+
+* **event_bus:** change default ports to not collide with coreio ([dacc944](https://github.com/rlcoretech/core-rl/commit/dacc944908ae2c9c719ecadd4c317496ce2b12dc))
+* **event_bus:** terminate client cleanly when waiting for first connection ([bb95651](https://github.com/rlcoretech/core-rl/commit/bb9565191c0538efec7f5ac901d1f0693d051558))
+
 ## [0.12.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.11.3...coreio-v0.12.0) (2025-10-22)
 
 
