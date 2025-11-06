@@ -13,6 +13,7 @@ which is not supported by these schedulers.
 import math
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from typing import Literal
 
 import jax.numpy as jnp
 
@@ -70,7 +71,7 @@ class LogarithmicGammaScheduler(GammaScheduler):
 
 @dataclass
 class GammaScheduleConfig:
-    type: str = "logarithmic"
+    type: Literal['logarithmic', 'identity'] = "identity"
     max_gamma: float = 0.99
     update_interval: int = 25
     horizon: int = 1000
