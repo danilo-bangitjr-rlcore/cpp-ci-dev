@@ -183,7 +183,7 @@ class GreedyACConfig(BaseAgentConfig):
             assert cfg.interaction.obs_period == cfg.interaction.action_period, error_msg
 
             if cfg.max_steps is not None:
-                horizon = min(cfg.max_steps, 2)
+                horizon = min(cfg.max_steps, cfg.agent.gamma_schedule.horizon)
             else:
                 horizon = cfg.agent.gamma_schedule.horizon
             return GammaScheduleConfig(
