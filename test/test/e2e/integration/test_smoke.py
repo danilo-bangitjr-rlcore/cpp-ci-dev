@@ -265,15 +265,13 @@ def test_event_bus_cross_service_communication(
     config_data["event_bus_client"] = {
         "enabled": True,
         "host": "localhost",
-        "pub_port": 5559,
-        "sub_port": 5560,
+        "port": 5580,
     }
     config_data["coreio"] = {
         "event_bus_client": {
             "enabled": True,
             "host": "localhost",
-            "pub_port": 5559,
-            "sub_port": 5560,
+            "port": 5580,
         },
         "data_ingress": {
             "enabled": False,
@@ -286,23 +284,33 @@ def test_event_bus_cross_service_communication(
     with temp_config_path.open("w") as f:
         yaml.dump(config_data, f)
 
-    rl_client = EventBusClient[Event, EventType, EventTopic](
-        event_class=Event,
+    rl_client = EventBusClient(
         host="localhost",
-        pub_port=5559,
-        sub_port=5560,
+        port=5580,
     )
     rl_client.connect()
     rl_client.subscribe(EventTopic.corerl)
 
-    io_client = EventBusClient[Event, EventType, EventTopic](
-        event_class=Event,
+    io_client = EventBusClient(
         host="localhost",
-        pub_port=5559,
-        sub_port=5560,
+        port=5580,
     )
     io_client.connect()
     io_client.subscribe(EventTopic.coreio)
+
+    rl_events_seen = []
+    io_events_seen = []
+
+    def collect_rl_event(event: Event):
+        rl_events_seen.append(event.type)
+
+    def collect_io_event(event: Event):
+        io_events_seen.append(event.type)
+
+    rl_client.attach_callback(EventType.service_started, collect_rl_event)
+    rl_client.attach_callback(EventType.service_stopped, collect_rl_event)
+    io_client.attach_callback(EventType.service_started, collect_io_event)
+    io_client.attach_callback(EventType.service_stopped, collect_io_event)
 
     rl_client.start_consumer()
     io_client.start_consumer()
@@ -326,22 +334,11 @@ def test_event_bus_cross_service_communication(
     assert status_response.status_code == 200, f"Failed to get status: {status_response.text}"
     print(f"Agent status: {status_response.json()}")
 
-    rl_events_seen = []
-    io_events_seen = []
     deadline = time.time() + 60.0
 
     while time.time() < deadline:
-        rl_event = rl_client.recv_event(timeout=0.1)
-        if rl_event is not None:
-            rl_events_seen.append(rl_event.type)
-
-        io_event = io_client.recv_event(timeout=0.1)
-        if io_event is not None:
-            io_events_seen.append(io_event.type)
-
         if EventType.service_started in rl_events_seen and EventType.service_started in io_events_seen:
             break
-
         time.sleep(0.1)
 
     assert EventType.service_started in rl_events_seen, (
@@ -359,16 +356,9 @@ def test_event_bus_cross_service_communication(
 
     deadline = time.time() + 10.0
     while time.time() < deadline:
-        rl_event = rl_client.recv_event(timeout=0.1)
-        if rl_event is not None:
-            rl_events_seen.append(rl_event.type)
-
-        io_event = io_client.recv_event(timeout=0.1)
-        if io_event is not None:
-            io_events_seen.append(io_event.type)
-
         if EventType.service_stopped in rl_events_seen and EventType.service_stopped in io_events_seen:
             break
+        time.sleep(0.1)
 
         time.sleep(0.1)
 

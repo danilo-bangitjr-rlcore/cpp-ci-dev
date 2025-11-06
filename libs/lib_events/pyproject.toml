@@ -20,6 +20,7 @@ dev = [
     "pytest-xdist>=3.7.0",
     "pytest-mock>=3.14.1",
     "pytest-timeout>=2.4.0",
+    "pytest-asyncio>=0.24.0",
     "ruff>=0.11.12",
     "uv>=0.5.24",
 ]
@@ -40,6 +41,10 @@ include = ['.']
 exclude = ['.venv/']
 venvPath = '.'
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+
 [tool.commitizen]
 name = "cz_conventional_commits"
 version_scheme = "pep440"
@@ -48,5 +53,5 @@ update_changelog_on_bump = true
 major_version_zero = true
 
 [tool.uv.sources]
-lib-defs = { path = "../lib_defs", editable = true }
 lib-utils = { path = "../lib_utils", editable = true }
+lib-defs = { path = "../lib_defs", editable = true }

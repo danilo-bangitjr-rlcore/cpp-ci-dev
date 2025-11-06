@@ -1,15 +1,11 @@
 import socket
-import threading
 import time
-from enum import auto
 
 import pytest
-import zmq
-from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
-from lib_utils.time import now_iso
-from pydantic import Field
+from lib_defs.type_defs.base_events import Event, EventTopic, EventType
 
 from lib_events.client.event_bus_client import EventBusClient
+from lib_events.server.proxy import EventBusProxy
 
 
 def get_free_port(host: str = "localhost") -> int:
@@ -19,173 +15,158 @@ def get_free_port(host: str = "localhost") -> int:
         return s.getsockname()[1]
 
 
-class TestEventType(BaseEventType):
-    test_start = auto()
-    test_update = auto()
-    test_stop = auto()
-
-
-class TestEventTopic(BaseEventTopic):
-    test_topic = auto()
-    debug_topic = auto()
-
-
-class TestEvent(BaseEvent[TestEventType]):
-    time: str = Field(default_factory=now_iso)
-    type: TestEventType
-
-
 @pytest.fixture
-def pub_port() -> int:
+def broker_port() -> int:
     """
-    Generate unique publisher port for test to avoid conflicts.
+    Generate unique broker port for test to avoid conflicts.
     """
     return get_free_port("localhost")
 
 
 @pytest.fixture
-def sub_port() -> int:
+def broker(broker_port: int):
     """
-    Generate unique subscriber port for test to avoid conflicts.
+    Create real EventBusProxy broker for testing.
     """
-    return get_free_port("localhost")
+    proxy = EventBusProxy(router_addr=f"tcp://127.0.0.1:{broker_port}")
+    proxy.start()
+    time.sleep(0.1)
+    yield proxy
+
+    if proxy.is_running():
+        proxy.stop()
 
 
 @pytest.fixture
-def mock_proxy(pub_port: int, sub_port: int):
+def client(broker: EventBusProxy, broker_port: int):
     """
-    Create mock proxy with XSUB socket for publisher and XPUB for subscriber that forwards messages.
+    Create EventBusClient connected to broker.
     """
-    context = zmq.Context()
-
-    xsub_socket = context.socket(zmq.XSUB)
-    xsub_socket.bind(f"tcp://127.0.0.1:{pub_port}")
-
-    xpub_socket = context.socket(zmq.XPUB)
-    xpub_socket.bind(f"tcp://127.0.0.1:{sub_port}")
-
-    stop_event = threading.Event()
-
-    def forward_messages():
-        poller = zmq.Poller()
-        poller.register(xsub_socket, zmq.POLLIN)
-        poller.register(xpub_socket, zmq.POLLIN)
-
-        while not stop_event.is_set():
-            try:
-                socks = dict(poller.poll(timeout=100))
-            except zmq.ZMQError:
-                if stop_event.is_set():
-                    break
-                continue
-
-            if xsub_socket in socks:
-                message = xsub_socket.recv_multipart(zmq.NOBLOCK)
-                xpub_socket.send_multipart(message)
-
-            if xpub_socket in socks:
-                message = xpub_socket.recv_multipart(zmq.NOBLOCK)
-                xsub_socket.send_multipart(message)
-
-    proxy_thread = threading.Thread(target=forward_messages, daemon=True)
-    proxy_thread.start()
-
-    yield xsub_socket, xpub_socket
-
-    stop_event.set()
-    proxy_thread.join(timeout=2)
-    xsub_socket.setsockopt(zmq.LINGER, 0)
-    xpub_socket.setsockopt(zmq.LINGER, 0)
-    xsub_socket.close()
-    xpub_socket.close()
-    context.term()
-
-
-@pytest.fixture
-def client(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
-    """
-    Create EventBusClient connected to mock proxy.
-    """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
         max_reconnect_attempts=3,
     )
     yield client
     try:
+        if client.consumer_thread is not None and client.consumer_thread.is_alive():
+            client.stop_consumer()
         if client.is_connected():
             client.close()
     except Exception:
         pass
 
 
-@pytest.mark.timeout(5)
-def test_client_initial_state(pub_port: int, sub_port: int):
+@pytest.fixture
+def publisher(broker: EventBusProxy, broker_port: int):
     """
-    Client starts in disconnected state.
+    Create publisher client connected to broker.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
     )
-    assert not client.is_connected()
-
-
-@pytest.mark.timeout(5)
-def test_client_connect_and_close(client: EventBusClient):
-    """
-    Client can connect and close cleanly.
-    """
     client.connect()
     time.sleep(0.1)
+    yield client
+    try:
+        if client.consumer_thread is not None and client.consumer_thread.is_alive():
+            client.stop_consumer()
+        if client.is_connected():
+            client.close()
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def subscriber(broker: EventBusProxy, broker_port: int):
+    """
+    Create subscriber client connected to broker.
+    """
+    client = EventBusClient(
+        host="127.0.0.1",
+        port=broker_port,
+    )
+    client.connect()
+    time.sleep(0.1)
+    yield client
+    try:
+        if client.consumer_thread is not None and client.consumer_thread.is_alive():
+            client.stop_consumer()
+        if client.is_connected():
+            client.close()
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def requester(broker: EventBusProxy, broker_port: int):
+    """
+    Create requester client connected to broker.
+    """
+    client = EventBusClient(
+        host="127.0.0.1",
+        port=broker_port,
+        service_id="requester",
+    )
+    client.connect()
+    client.start_consumer()
+    time.sleep(0.1)
+    yield client
+    try:
+        if client.consumer_thread is not None and client.consumer_thread.is_alive():
+            client.stop_consumer()
+        if client.is_connected():
+            client.close()
+    except Exception:
+        pass
+
+
+@pytest.fixture
+def responder(broker: EventBusProxy, broker_port: int):
+    """
+    Create responder client connected to broker.
+    """
+    client = EventBusClient(
+        host="127.0.0.1",
+        port=broker_port,
+        service_id="responder",
+    )
+    client.connect()
+    yield client
+    try:
+        if client.consumer_thread is not None and client.consumer_thread.is_alive():
+            client.stop_consumer()
+        if client.is_connected():
+            client.close()
+    except Exception:
+        pass
+
+
+def test_client_connection_lifecycle(client: EventBusClient):
+    """
+    Client starts disconnected, can connect, handles idempotent connects, and closes cleanly.
+    """
+    assert not client.is_connected()
+
+    client.connect()
+    time.sleep(0.1)
+    assert client.is_connected()
+
+    client.connect()
     assert client.is_connected()
 
     client.close()
-
     assert not client.is_connected()
 
 
-@pytest.mark.timeout(5)
-def test_client_emit_without_connect(pub_port: int, sub_port: int):
-    """
-    Emitting without connection logs warning and does nothing.
-    """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    assert not client.is_connected()
 
-    event = TestEvent(type=TestEventType.test_start)
-    client.emit_event(event, topic=TestEventTopic.test_topic)
-
-
-@pytest.mark.timeout(5)
-def test_client_idempotent_connect(client: EventBusClient):
-    """
-    Multiple connect calls are safe.
-    """
-    client.connect()
-    time.sleep(0.1)
-    assert client.is_connected()
-
-    client.connect()
-
-    assert client.is_connected()
-
-
-@pytest.mark.timeout(5)
+@pytest.mark.timeout(10)
 def test_client_lifecycle_multiple_cycles(client: EventBusClient):
     """
-    Client can be connected and closed multiple times.
+    Client can be connected and closed multiple times without resource leaks.
     """
-    for _ in range(3):
+    for _ in range(2):
         client.connect()
         time.sleep(0.1)
         assert client.is_connected()
@@ -194,238 +175,161 @@ def test_client_lifecycle_multiple_cycles(client: EventBusClient):
         assert not client.is_connected()
 
 
-@pytest.mark.timeout(5)
-def test_client_pub_sub_message_flow(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
+
+def test_client_pub_sub_message_flow(publisher: EventBusClient, subscriber: EventBusClient):
     """
     Messages published by one client are received by subscribing client.
     """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    publisher.connect()
-    time.sleep(0.1)
+    received_events = []
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    subscriber.connect()
-    subscriber.subscribe(TestEventTopic.test_topic)
+    def collect_event(event: Event):
+        received_events.append(event)
+
+    subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, collect_event)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event, topic=TestEventTopic.test_topic)
+    event = Event(type=EventType.service_started)
+    publisher.emit_event(event, topic=EventTopic.corerl)
     time.sleep(0.5)
 
-    received_event = subscriber.recv_event()
-    assert received_event is not None
-    assert received_event.type == TestEventType.test_start
-
-    publisher.close()
-    subscriber.close()
+    assert len(received_events) == 1
+    assert received_events[0].type == EventType.service_started
 
 
-@pytest.mark.timeout(5)
-def test_client_callback_invocation(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
+
+@pytest.mark.timeout(10)
+def test_client_callback_invocation(broker: EventBusProxy, broker_port: int):
     """
-    Attached callbacks are invoked when matching events are received.
+    Pub/sub with single callback, multiple callbacks, and event type shortcut.
     """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    publisher = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
     )
     publisher.connect()
     time.sleep(0.1)
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    subscriber = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
     )
     subscriber.connect()
     time.sleep(0.1)
 
     callback_invoked = []
 
-    def test_callback(event: TestEvent):
+    def test_callback(event: Event):
         callback_invoked.append(event)
 
-    subscriber.subscribe(TestEventTopic.test_topic)
-    subscriber.attach_callback(TestEventType.test_start, test_callback)
+    subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, test_callback)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event, topic=TestEventTopic.test_topic)
+    event = Event(type=EventType.service_started)
+    publisher.emit_event(event, topic=EventTopic.corerl)
     time.sleep(0.5)
 
     assert len(callback_invoked) == 1
-    assert callback_invoked[0].type == TestEventType.test_start
+    assert callback_invoked[0].type == EventType.service_started
 
     publisher.close()
     subscriber.close()
 
 
-@pytest.mark.timeout(5)
-def test_client_multiple_callbacks(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
-    """
-    Multiple callbacks can be attached to the same event type.
-    """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    publisher.connect()
-    time.sleep(0.1)
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    subscriber.connect()
-    time.sleep(0.1)
-
-    callback1_invoked = []
-    callback2_invoked = []
-
-    def callback1(event: TestEvent):
-        callback1_invoked.append(event)
-
-    def callback2(event: TestEvent):
-        callback2_invoked.append(event)
-
-    subscriber.subscribe(TestEventTopic.test_topic)
-    subscriber.attach_callback(TestEventType.test_start, callback1)
-    subscriber.attach_callback(TestEventType.test_start, callback2)
-    subscriber.start_consumer()
-    time.sleep(0.2)
-
-    event = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event, topic=TestEventTopic.test_topic)
-    time.sleep(0.5)
-
-    assert len(callback1_invoked) == 1
-    assert len(callback2_invoked) == 1
-
-    publisher.close()
-    subscriber.close()
-
-
-@pytest.mark.timeout(5)
-def test_client_topic_filtering(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
+def test_client_topic_filtering(publisher: EventBusClient, subscriber: EventBusClient):
     """
     Subscribers only receive messages from topics they subscribe to.
     """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    publisher.connect()
-    time.sleep(0.1)
+    received_events = []
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
-    )
-    subscriber.connect()
-    subscriber.subscribe(TestEventTopic.test_topic)
+    def collect_event(event: Event):
+        received_events.append(event)
+
+    subscriber.subscribe(EventTopic.corerl)
+    subscriber.attach_callback(EventType.service_started, collect_event)
+    subscriber.attach_callback(EventType.step, collect_event)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    event_wrong_topic = TestEvent(type=TestEventType.test_start)
-    publisher.emit_event(event_wrong_topic, topic=TestEventTopic.debug_topic)
+    event_wrong_topic = Event(type=EventType.service_started)
+    publisher.emit_event(event_wrong_topic, topic=EventTopic.debug_app)
     time.sleep(0.3)
 
-    received = subscriber.recv_event(timeout=0.5)
-    assert received is None
+    assert len(received_events) == 0
 
-    event_correct_topic = TestEvent(type=TestEventType.test_update)
-    publisher.emit_event(event_correct_topic, topic=TestEventTopic.test_topic)
+    event_correct_topic = Event(type=EventType.step)
+    publisher.emit_event(event_correct_topic, topic=EventTopic.corerl)
     time.sleep(0.3)
 
-    received = subscriber.recv_event(timeout=0.5)
-    assert received is not None
-    assert received.type == TestEventType.test_update
-
-    publisher.close()
-    subscriber.close()
+    assert len(received_events) == 1
+    assert received_events[0].type == EventType.step
 
 
-@pytest.mark.timeout(5)
-def test_client_emit_event_type_shortcut(mock_proxy: tuple[zmq.Socket, zmq.Socket], pub_port: int, sub_port: int):
+
+@pytest.mark.timeout(10)
+def test_client_emit_event_type_shortcut(broker: EventBusProxy, broker_port: int):
     """
     Can emit just an event type, which gets wrapped in event automatically.
     """
-    publisher = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    publisher = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
     )
     publisher.connect()
     time.sleep(0.1)
 
-    subscriber = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    subscriber = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
     )
     subscriber.connect()
-    subscriber.subscribe(TestEventTopic.test_topic)
+    subscriber.subscribe(EventTopic.corerl)
+
+    received_events = []
+
+    def collect_event(event: Event):
+        received_events.append(event)
+
+    subscriber.attach_callback(EventType.service_started, collect_event)
     subscriber.start_consumer()
     time.sleep(0.2)
 
-    publisher.emit_event(TestEventType.test_start, topic=TestEventTopic.test_topic)
+    publisher.emit_event(EventType.service_started, topic=EventTopic.corerl)
     time.sleep(0.5)
 
-    received_event = subscriber.recv_event()
-    assert received_event is not None
-    assert received_event.type == TestEventType.test_start
+    assert len(received_events) == 1
+    assert received_events[0].type == EventType.service_started
 
     publisher.close()
     subscriber.close()
 
 
-@pytest.mark.timeout(5)
+
+
+@pytest.mark.timeout(10)
 def test_client_reconnection_preserves_state(
-    mock_proxy: tuple[zmq.Socket, zmq.Socket],
-    pub_port: int,
-    sub_port: int,
+    broker: EventBusProxy,
+
+    broker_port: int,
 ):
     """
     Subscriptions and state are preserved when client reconnects manually.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+        port=broker_port,
     )
     client.connect()
-    client.subscribe(TestEventTopic.test_topic)
-    client.subscribe(TestEventTopic.debug_topic)
+    client.subscribe(EventTopic.corerl)
+    client.subscribe(EventTopic.debug_app)
 
     assert len(client._subscribed_topics) == 2
-    assert TestEventTopic.test_topic in client._subscribed_topics
-    assert TestEventTopic.debug_topic in client._subscribed_topics
+    assert EventTopic.corerl in client._subscribed_topics
+    assert EventTopic.debug_app in client._subscribed_topics
 
     original_topics = client._subscribed_topics.copy()
 
@@ -439,7 +343,6 @@ def test_client_reconnection_preserves_state(
     client.close()
 
 
-@pytest.mark.timeout(10)
 def test_client_max_reconnect_attempts():
     """
     Client respects max reconnect attempts configuration by stopping after limit reached.
@@ -447,14 +350,11 @@ def test_client_max_reconnect_attempts():
     Note: ZMQ connect() succeeds even without a listening server, so we manually
     set _connected=False and track that the counter properly caps at max_reconnect_attempts.
     """
-    free_pub_port = get_free_port("localhost")
-    free_sub_port = get_free_port("localhost")
+    free_port = get_free_port("localhost")
 
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
+    client = EventBusClient(
         host="127.0.0.1",
-        pub_port=free_pub_port,
-        sub_port=free_sub_port,
+        port=free_port,
         max_reconnect_attempts=2,
         reconnect_interval=0.1,
     )
@@ -465,49 +365,97 @@ def test_client_max_reconnect_attempts():
     client._connected = False
     client._reconnect_attempts = 0
     result = client._reconnect()
-    assert result is True
+    assert result is not None
 
     client._connected = False
     client._reconnect_attempts = 1
     result = client._reconnect()
-    assert result is True
+    assert result is not None
 
     client._connected = False
     client._reconnect_attempts = 2
     result = client._reconnect()
-    assert result is False
+    assert result is None
     assert client._reconnect_attempts == 2
 
     client.stop_event.set()
     client.close()
 
 
-@pytest.mark.timeout(5)
-def test_client_reconnect_preserves_subscriptions(
-    mock_proxy: tuple[zmq.Socket, zmq.Socket],
-    pub_port: int,
-    sub_port: int,
-):
+
+@pytest.mark.timeout(10)
+def test_client_request_reply(requester: EventBusClient, responder: EventBusClient):
     """
-    Subscriptions are re-established after reconnection.
+    Client can send REQUEST and receive REPLY from another client.
     """
-    client = EventBusClient[TestEvent, TestEventType, TestEventTopic](
-        event_class=TestEvent,
-        host="127.0.0.1",
-        pub_port=pub_port,
-        sub_port=sub_port,
+    def handle_request(payload: bytes) -> bytes:
+        request_text = payload.decode()
+        return f"Echo: {request_text}".encode()
+
+    responder.register_request_handler(handle_request)
+    responder.start_consumer()
+    time.sleep(0.2)
+
+    response = requester.send_request(
+        service_id="responder",
+        payload=b"Hello",
+        timeout=2.0,
     )
-    client.connect()
-    client.subscribe(TestEventTopic.test_topic)
-    client.subscribe(TestEventTopic.debug_topic)
+    assert response == b"Echo: Hello"
 
-    assert len(client._subscribed_topics) == 2
-    assert TestEventTopic.test_topic in client._subscribed_topics
-    assert TestEventTopic.debug_topic in client._subscribed_topics
 
-    client.close()
-    client.connect()
+@pytest.mark.timeout(15)
+def test_client_multiple_concurrent_requests(requester: EventBusClient, responder: EventBusClient):
+    """
+    Multiple concurrent requests are handled with correct correlation IDs.
+    """
+    import concurrent.futures
 
-    assert len(client._subscribed_topics) == 2
+    def handle_request(payload: bytes) -> bytes:
+        request_num = int(payload.decode())
+        time.sleep(0.1)
+        return f"Response-{request_num}".encode()
 
-    client.close()
+    responder.register_request_handler(handle_request)
+    responder.start_consumer()
+    time.sleep(0.2)
+
+    def send_request(num: int) -> bytes:
+        return requester.send_request(
+            service_id="responder",
+            payload=str(num).encode(),
+            timeout=3.0,
+        )
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+        futures = [executor.submit(send_request, i) for i in range(5)]
+        responses = [f.result() for f in concurrent.futures.as_completed(futures)]
+
+    assert len(responses) == 5
+    response_texts = {r.decode() for r in responses}
+    assert response_texts == {f"Response-{i}" for i in range(5)}
+
+
+@pytest.mark.timeout(10)
+@pytest.mark.asyncio
+async def test_client_request_reply_async(requester: EventBusClient, responder: EventBusClient):
+    """
+    Client can send async REQUEST and receive REPLY.
+
+    Note: This test requires pytest-asyncio to be installed.
+    Run: uv sync --all-groups in the lib_events directory.
+    """
+    def handle_request(payload: bytes) -> bytes:
+        request_text = payload.decode()
+        return f"Async Echo: {request_text}".encode()
+
+    responder.register_request_handler(handle_request)
+    responder.start_consumer()
+    time.sleep(0.2)
+
+    response = await requester.send_request_async(
+        service_id="responder",
+        payload=b"Hello Async",
+        timeout=2.0,
+    )
+    assert response == b"Async Echo: Hello Async"

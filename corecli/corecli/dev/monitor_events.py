@@ -1,7 +1,9 @@
+import time
 from datetime import datetime
 
 import click
-import zmq
+from lib_defs.type_defs.base_events import Event, EventTopic, EventType
+from lib_events.client.event_bus_client import EventBusClient
 from rich.console import Console
 from rich.panel import Panel
 
@@ -17,19 +19,19 @@ console = Console()
 )
 @click.option(
     "--port",
-    default=5571,
+    default=5580,
     type=int,
-    help="Event bus subscriber port (XPUB socket)",
+    help="Event bus port (ROUTER socket)",
     show_default=True,
 )
 @click.option(
     "--topic",
-    default="",
-    help="Filter by specific topic (empty string subscribes to all)",
+    default=None,
+    help="Filter by specific topic (omit to subscribe to all topics)",
     show_default=True,
 )
 @click.pass_context
-def monitor_events(ctx: click.Context, host: str, port: int, topic: str) -> None:
+def monitor_events(ctx: click.Context, host: str, port: int, topic: str | None) -> None:
     """
     Monitor event bus traffic in real-time.
 
@@ -38,7 +40,7 @@ def monitor_events(ctx: click.Context, host: str, port: int, topic: str) -> None
     interactions between services.
     """
     endpoint = f"tcp://{host}:{port}"
-    subscription = "ALL topics" if topic == "" else f"topic '{topic}'"
+    subscription = "ALL topics" if topic is None else f"topic '{topic}'"
 
     console.print(Panel.fit(
         f"[bold cyan]EVENT BUS MONITOR[/bold cyan]\n\n"
@@ -48,36 +50,51 @@ def monitor_events(ctx: click.Context, host: str, port: int, topic: str) -> None
         border_style="cyan",
     ))
 
-    context = zmq.Context()
-    sub_socket = context.socket(zmq.SUB)
+    received_events = []
+
+    def display_event(event: Event):
+        timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
+        event_type = event.type.name
+        event_id = str(event.id)[:8]
+
+        console.print(f"[dim]{timestamp}[/dim] [bold blue]{event_type}[/bold blue] [dim]({event_id})[/dim]")
+        console.print(f"  [dim]→[/dim] {event.model_dump_json()}\n")
+        received_events.append(event)
+
+    client = EventBusClient(
+        host=host,
+        port=port,
+        service_id="monitor-cli",
+    )
 
     try:
-        sub_socket.connect(endpoint)
-        sub_socket.setsockopt_string(zmq.SUBSCRIBE, topic)
+        client.connect()
 
+        if topic is None:
+            for event_topic in EventTopic:
+                client.subscribe(event_topic)
+        else:
+            try:
+                event_topic = EventTopic[topic]
+                client.subscribe(event_topic)
+            except KeyError as e:
+                console.print(f"[red]✗[/red] Invalid topic: {topic}", style="bold red")
+                console.print(f"[dim]Valid topics:[/dim] {', '.join(t.name for t in EventTopic)}")
+                raise click.Abort() from e
+
+        for event_type in EventType:
+            client.attach_callback(event_type, display_event)
+
+        client.start_consumer()
         console.print(f"[green]✓[/green] Connected to {endpoint}\n")
 
         while True:
-            if sub_socket.poll(timeout=100):
-                message_parts = sub_socket.recv_multipart()
-
-                if len(message_parts) >= 2:
-                    msg_topic = message_parts[0].decode("utf-8", errors="ignore")
-                    payload = message_parts[1].decode("utf-8", errors="ignore")
-                    timestamp = datetime.now().strftime("%H:%M:%S.%f")[:-3]
-
-                    console.print(f"[dim]{timestamp}[/dim] [bold blue]{msg_topic}[/bold blue]")
-                    console.print(f"  [dim]→[/dim] {payload}\n")
-                else:
-                    console.print(
-                        f"[yellow]⚠[/yellow] Malformed message ({len(message_parts)} parts)\n",
-                    )
+            time.sleep(0.1)
 
     except KeyboardInterrupt:
         console.print("\n[yellow]Monitor stopped[/yellow]")
-    except zmq.ZMQError as e:
-        console.print(f"[red]✗[/red] ZMQ error: {e}", style="bold red")
+    except Exception as e:
+        console.print(f"[red]✗[/red] Error: {e}", style="bold red")
         raise click.Abort() from e
     finally:
-        sub_socket.close()
-        context.term()
+        client.close()

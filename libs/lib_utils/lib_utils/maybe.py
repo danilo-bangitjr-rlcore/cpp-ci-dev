@@ -59,6 +59,14 @@ class Maybe[T]:
         self.map(f)
         return self
 
+    def tap_none(self, f: Callable[[], Any]):
+        """
+        Like `tap`, but only called when the Maybe
+        contains a None value.
+        """
+        self.otherwise(f)
+        return self
+
     # ------------------------
     # -- Negative Accessors --
     # ------------------------
@@ -180,7 +188,7 @@ class Maybe[T]:
     @staticmethod
     def from_try[U](
         f: Callable[[], U],
-        e: type[Exception] = Exception,
+        e: type[Exception] | tuple[type[Exception], ...] = Exception,
     ) -> Maybe[U]:
         try:
             return Maybe(f())

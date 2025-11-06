@@ -1,9 +1,17 @@
 from datetime import UTC, datetime, timedelta
+from typing import Protocol
 
 import zmq
 from lib_defs.type_defs.base_events import BaseEvent, BaseEventTopic, BaseEventType
 
-from lib_events.legacy.base_event_bus import BaseEventBus
+
+class EventBusProtocol[
+    EventClass: BaseEvent,
+    EventTopicClass: BaseEventTopic,
+    EventTypeClass: BaseEventType,
+](Protocol):
+    def emit_event(self, event: EventClass | EventTypeClass, topic: EventTopicClass):
+        ...
 
 
 class Clock[
@@ -26,13 +34,12 @@ class Clock[
 
         self._next_ts = datetime.now(UTC) + offset
 
-    def emit(self, event_bus: BaseEventBus[EventClass, EventTopicClass, EventTypeClass], now: datetime):
+    def emit(self, event_bus: EventBusProtocol[EventClass, EventTopicClass, EventTypeClass], now: datetime):
         event = self._event_class(type=self._event_type)
         try:
             event_bus.emit_event(event, topic=self._event_topic)
         except zmq.ZMQError as e:
             if isinstance(e, zmq.error.Again):
-                # temporarily unavailable, retry
                 return
             raise
 
@@ -41,7 +48,7 @@ class Clock[
     def should_emit(self, now: datetime):
         return now > self._next_ts
 
-    def maybe_emit(self, event_bus: BaseEventBus[EventClass, EventTopicClass, EventTypeClass], now: datetime):
+    def maybe_emit(self, event_bus: EventBusProtocol[EventClass, EventTopicClass, EventTypeClass], now: datetime):
         if self.should_emit(now):
             self.emit(event_bus, now)
 
