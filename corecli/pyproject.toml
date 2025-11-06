@@ -9,6 +9,7 @@ dependencies = [
     "colorlog>=6.9.0",
     "coreoffline",
     "lib-config",
+    "lib-events",
     "lib-utils",
     "pydantic>=2.11.5",
     "rich>=13.9.4",
@@ -42,6 +43,7 @@ test = { path = "../test", editable = true }
 coreoffline = { path = "../coreoffline", editable = true }
 lib-config = { path = "../libs/lib_config", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
+lib-events = { path = "../libs/lib_events", editable = true }
 
 [tool.pyright]
 extends='../standards/python/pyright.toml'
