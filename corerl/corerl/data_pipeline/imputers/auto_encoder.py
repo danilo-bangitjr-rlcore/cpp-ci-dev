@@ -12,11 +12,12 @@ import lib_utils.dict as dict_u
 import lib_utils.jax as jax_u
 import numpy as np
 import optax
-import pandas as pd
 from lib_agent.buffer.storage import ReplayStorage
 from lib_defs.config_defs.tag_config import TagType
+from lib_utils.named_array import NamedArray
 
 from corerl.configs.data_pipeline.imputers.auto_encoder import MaskedAEConfig, TrainingConfig
+from corerl.configs.data_pipeline.transforms.nuke import NukeConfig
 from corerl.configs.data_pipeline.transforms.trace import TraceConfig
 from corerl.configs.tags.tag_config import TagConfig
 from corerl.data_pipeline.datatypes import PipelineFrame, StageCode
@@ -31,17 +32,37 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MaskedAETemporalState:
     trace_ts: TraceTemporalState = field(default_factory=TraceTemporalState)
-    last_trace: jax.Array | None = None
+    last_trace: NamedArray | None = None
     num_outside_thresh: int = 0
 
 class ImputeData(NamedTuple):
-    obs: jax.Array # raw observation
-    traces: jax.Array
-    obs_nanmask: jax.Array # bool array set to True where raw obs was nan
-    trace_nanmask: jax.Array # bool array set to True when trace was nan
+    obs: NamedArray # raw observation
+    traces: NamedArray
+    obs_nanmask: NamedArray # bool array set to True where raw obs was nan
+    trace_nanmask: NamedArray # bool array set to True when trace was nan
+
+class DebugInfo(NamedTuple):
+    losses: jax.Array
+    pred: jax.Array
+    error: jax.Array
+
+    def has_nan(self):
+        return (
+            jnp.isnan(self.losses).any()
+            or jnp.isnan(self.pred).any()
+            or jnp.isnan(self.error).any()
+        )
+
+    def has_inf(self):
+        return (
+            jnp.isinf(self.losses).any()
+            or jnp.isinf(self.pred).any()
+            or jnp.isinf(self.error).any()
+        )
+
 
 def _to_input(data: ImputeData):
-    return jnp.hstack((data.obs, data.traces, data.obs_nanmask, data.trace_nanmask))
+    return jnp.hstack((data.obs.array, data.traces.array, data.obs_nanmask.array, data.trace_nanmask.array))
 
 class CircularBuffer:
     def __init__(self, max_size: int):
@@ -54,21 +75,45 @@ class CircularBuffer:
         return self._storage.size()
 
     def add(self, data: ImputeData):
+        if jnp.all(data.obs_nanmask.array):
+            logger.warning("Attempted to add all NaN obs to AE buffer - rejecting...")
+            logger.warning(f"All NaN obs timestamp: {data.obs.timestamps}")
+            return
         self._storage.add(data)
+
+    def add_bulk(self, data: ImputeData):
+        self._storage.add_bulk(data)
 
     def sample_batches(self, batch_size: int, n_batches: int):
         idxs = [np.random.choice(self.size, size=batch_size, replace=True) for _ in range(n_batches)]
         return self._storage.get_ensemble_batch(idxs)
+
+def obs_filter(tag_config: TagConfig):
+    """
+    return False if the tag should be removed from obs
+    """
+    sc = tag_config.state_constructor
+    if sc is None:
+        return False
+    if len(sc) == 1 and isinstance(sc[0], NukeConfig):
+        return False
+    if tag_config.type == TagType.meta:
+        return False
+    return True
 
 class MaskedAutoencoder(BaseImputer):
     def __init__(self, imputer_cfg: MaskedAEConfig, app_state: AppState, tag_cfgs: list[TagConfig]):
         super().__init__(imputer_cfg, app_state, tag_cfgs)
         self._dormant = True # dormant until NaN encountered online
         self._cfg = imputer_cfg
-        self._obs_names = [t.name for t in tag_cfgs if t.type != TagType.meta]
+        self._obs_names = [t.name for t in tag_cfgs if obs_filter(t)]
         self._num_obs = len(self._obs_names)
         self._num_traces = len(imputer_cfg.trace_values)
         self._fill_val = imputer_cfg.fill_val
+        self._bulk_load_trigger = 1000
+        self._min_buffer = 50
+        self._debug = imputer_cfg.debug
+        self._center_inputs = True
 
         self._traces = TraceConstructor(
             TraceConfig(
@@ -82,6 +127,7 @@ class MaskedAutoencoder(BaseImputer):
         # identity function
         torso_cfg = nets.TorsoConfig(
             layers=[
+                nets.FixedAffineConfig(scale=2, bias=-1) if self._center_inputs else nets.IdentityConfig(),
                 nets.LinearConfig(size=256, activation="relu"),
                 nets.LinearConfig(size=128, activation="relu"),
                 nets.LinearConfig(size=2*self._num_obs, activation="relu"),
@@ -101,16 +147,95 @@ class MaskedAutoencoder(BaseImputer):
         self._opt_state = self._optim.init(self._params)
         assert not np.isnan(self._cfg.prop_missing_tol)
 
+    def filter_nans(self, impute_data: ImputeData):
+        num_nan_obs = impute_data.obs_nanmask.array.sum(axis=1)
+        num_nan_trace = impute_data.trace_nanmask.array.sum(axis=1)
+
+        perc_nan_obs = num_nan_obs / self._num_obs
+        perc_nan_trace = num_nan_trace / (self._num_traces * self._num_obs)
+
+        nan_tol = self._cfg.prop_missing_tol
+        can_impute = (perc_nan_obs <= nan_tol) & (perc_nan_trace <= nan_tol)
+        impute_data = ImputeData(
+            obs=impute_data.obs[can_impute],
+            traces=impute_data.traces[can_impute],
+            obs_nanmask=impute_data.obs_nanmask[can_impute],
+            trace_nanmask=impute_data.trace_nanmask[can_impute],
+        )
+
+        all_nan_mask = jnp.all(impute_data.obs_nanmask.array, axis=1)
+        if jnp.all(all_nan_mask):
+            return None
+
+        return ImputeData(
+            obs=impute_data.obs[~all_nan_mask],
+            traces=impute_data.traces[~all_nan_mask],
+            obs_nanmask=impute_data.obs_nanmask[~all_nan_mask],
+            trace_nanmask=impute_data.trace_nanmask[~all_nan_mask],
+        )
+
+    def load(self, pf: PipelineFrame):
+        logger.info("AE bulk loading data...")
+        ts = dict_u.assign_default(pf.temporal_state, StageCode.IMPUTER, MaskedAETemporalState)
+        assert isinstance(ts, MaskedAETemporalState)
+        data = pf.data.copy(deep=False)[self._obs_names]
+        obs = NamedArray.from_pandas(data)
+        obs_nanmask = obs.set(jnp.isnan(obs.array))
+
+        # precompute traces in jitted stream
+        carry = TransformCarry(data, data.copy(deep=False), "")
+        logger.info("\tAE computing traces...")
+        carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
+        all_traces = NamedArray.from_pandas(carry.transform_data)
+        trace_nanmask = all_traces.set(jnp.isnan(all_traces.array))
+        ts.last_trace = all_traces[-1]
+
+        impute_data = ImputeData(
+            obs=obs.set(jnp.where(obs_nanmask.array, self._fill_val, obs.array)),
+            traces=all_traces.set(jnp.where(trace_nanmask.array, self._fill_val, all_traces.array)),
+            obs_nanmask=obs_nanmask,
+            trace_nanmask=trace_nanmask,
+        )
+        impute_data = self.filter_nans(impute_data)
+        if impute_data is None:
+            logger.warning("Tried to load data with only NaN. No data added to buffer.")
+            return
+
+        # create example and add to buffer to init
+        logger.info("\tAE adding impute data to buffer...")
+        self._buffer.add_bulk(impute_data)
+
+    def warmup(self):
+        logger.info("Training autoencoder...")
+        self._dormant = False
+        for i in range(self._cfg.train_cfg.init_train_steps):
+            logger.info(f"\tTrain step {i}")
+            self.train()
+        logger.info("Done training autoencoder")
+
     def __call__(self, pf: PipelineFrame) -> PipelineFrame:
+        bulk_load = len(pf.data) > self._bulk_load_trigger
+        if bulk_load:
+            logger.info(f"AE called with data of len greater than {self._bulk_load_trigger}. Bulk loading...")
+            self.load(pf)
+            self.warmup()
+            self._dormant = False
+            # if bulk loading, dont impute
+            return pf
+
         ts = dict_u.assign_default(pf.temporal_state, StageCode.IMPUTER, MaskedAETemporalState)
         assert isinstance(ts, MaskedAETemporalState)
 
-        df = pf.data.copy(deep=False)
+        df = pf.data.copy(deep=False)[self._obs_names]
+        all_obs = NamedArray.from_pandas(df)
 
         # try to recover traces from the temporal state
         # otherwise, start fresh
         if ts.last_trace is None:
-            ts.last_trace = jnp.ones(self._num_traces * self._num_obs) * np.nan
+            obs_row = df.iloc[[0]][self._obs_names].copy(deep=False)
+            carry = TransformCarry(df, obs_row, "")
+            carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
+            ts.last_trace = NamedArray.from_pandas(carry.transform_data)[0]
 
         # loop through data and impute one row at a time
         # this way we can use imputed values to compute
@@ -121,26 +246,28 @@ class MaskedAutoencoder(BaseImputer):
         for i in range(len(df)):
             row = df.iloc[i].copy(deep=False)
             row_idx = pf.data.index[i]
-            obs_series = row[self._obs_names].astype(np.float32)
+            obs_row = row[self._obs_names].astype(np.float32).to_frame().T
 
             # inputs to the NN are the current row
             # and the prior set of traces -- note use of
             # prior traces is still a valid summary of history
-            obs = _series_to_jax(obs_series)
-            obs_nanmask = jnp.isnan(obs)
-            trace_nanmask = jnp.isnan(ts.last_trace)
+            obs = all_obs[i]
+            obs_nanmask = obs.set(jnp.isnan(obs.array))
+            trace_nanmask = ts.last_trace.set(jnp.isnan(ts.last_trace.array))
+            assert obs.names == obs_nanmask.names
+            assert ts.last_trace.names == trace_nanmask.names
             impute_data = ImputeData(
-                obs=jnp.where(obs_nanmask, self._fill_val, obs),
-                traces=jnp.where(trace_nanmask, self._fill_val, ts.last_trace),
+                obs=obs.set(jnp.where(obs_nanmask.array, self._fill_val, obs.array)),
+                traces=ts.last_trace.set(jnp.where(trace_nanmask.array, self._fill_val, ts.last_trace.array)),
                 obs_nanmask=obs_nanmask,
                 trace_nanmask=trace_nanmask,
             )
 
-            num_nan_obs = obs_nanmask.sum()
+            num_nan_obs = obs_nanmask.array.sum()
             total_nan_obs += num_nan_obs
             perc_nan_obs = num_nan_obs / self._num_obs
 
-            num_nan_trace = trace_nanmask.sum()
+            num_nan_trace = trace_nanmask.array.sum()
             total_nan_trace += num_nan_trace
             perc_nan_trace = num_nan_trace / (self._num_traces * self._num_obs)
 
@@ -162,7 +289,7 @@ class MaskedAutoencoder(BaseImputer):
             if will_impute:
                 obs = self.impute(impute_data)
                 pf.data.loc[row_idx, self._obs_names] = np.asarray(obs)
-                obs_series[:] = obs
+                obs_row[:] = obs
                 total_imputes += 1
 
             # if there is enough info to impute, there
@@ -174,9 +301,9 @@ class MaskedAutoencoder(BaseImputer):
                 ts.num_outside_thresh += 1
 
             # update traces for use on next timestep
-            carry = TransformCarry(df, obs_series.to_frame().T, "")
+            carry = TransformCarry(df, obs_row, "")
             carry, ts.trace_ts = self._traces(carry, ts.trace_ts)
-            ts.last_trace = _series_to_jax(carry.transform_data.iloc[0])
+            ts.last_trace = NamedArray.from_pandas(carry.transform_data)[0]
 
         # log number of nans and whether imputation occurred
         self._app_state.metrics.write(self._app_state.agent_step, metric='AE-num_nan_obs', value=total_nan_obs)
@@ -187,20 +314,23 @@ class MaskedAutoencoder(BaseImputer):
         self.train()
         return pf
 
-    def impute(self, data: ImputeData) -> jax.Array:
+    def impute(self, data: ImputeData) -> NamedArray:
         """
         Runs a forward pass through the AE to get predicted
         values for *all* inputs. Then selectively grabs
         predictions only for the inputs that are NaN.
         """
-        if self._dormant and self._buffer.size > 0:
+        if self._buffer.size < self._min_buffer:
+            # pass nans forward until we have enough data to impute
+            return data.obs.set(jnp.where(data.obs_nanmask.array, jnp.nan, data.obs.array))
+        if self._dormant:
             self._dormant = False
             logger.info("Imputation requested for the first time: AutoEncoder Imputer enabled.")
-            for _ in range(self._cfg.train_cfg.init_train_steps): self.train()
+            self.warmup()
 
         inputs = _to_input(data)
         ae_predictions = self._forward(self._params, inputs)
-        return jnp.where(data.obs_nanmask, ae_predictions, data.obs)
+        return data.obs.set(jnp.where(data.obs_nanmask.array, ae_predictions, data.obs.array))
 
     @jax_u.method_jit
     def _forward(self, params: chex.ArrayTree, inputs: jax.Array) -> jax.Array:
@@ -212,8 +342,16 @@ class MaskedAutoencoder(BaseImputer):
             return
 
         batches = self._buffer.sample_batches(train_cfg.batch_size, train_cfg.max_update_steps)
+
+        if self._debug:
+            for i, leaf in enumerate(jax.tree.leaves(batches)):
+                if jnp.isnan(leaf).any():
+                    logger.error(f"nan in AE training batch, leaf {i}")
+                if jnp.isinf(leaf).any():
+                    logger.error(f"inf in AE training batch, leaf {i}")
+
         self._rng, train_rng = jax.random.split(self._rng)
-        self._params, self._opt_state, loss = _train(
+        self._params, self._opt_state, batch_losses, steps, debug_info = _train(
             params=self._params,
             opt_state=self._opt_state,
             rng=train_rng,
@@ -222,11 +360,32 @@ class MaskedAutoencoder(BaseImputer):
             fill_val=self._cfg.fill_val,
             net=self._net,
             optim=self._optim,
+            debug=self._debug,
         )
-        self._app_state.metrics.write(self._app_state.agent_step, metric="AE-loss", value=loss)
+        batch_losses = batch_losses[:steps]
+
+        if self._debug and (
+            jnp.isnan(batch_losses).any()
+            or jnp.isinf(batch_losses).any()
+            or debug_info.has_nan()
+            or debug_info.has_inf()
+        ):
+            logger.error("nan or inf detected during AE training")
+
+        self._app_state.metrics.write(self._app_state.agent_step, metric="AE-updates", value=steps)
+        self._app_state.metrics.write(self._app_state.agent_step, metric="AE-loss", value=batch_losses[-1])
+
+
+class TrainCarry(NamedTuple):
+    params: chex.ArrayTree
+    opt_state: chex.ArrayTree
+    losses: jax.Array
+    debug_info: DebugInfo
+    rng: chex.PRNGKey
+    step: int
 
 # jit on this function prevents a memory leak with jax.lax.while_loop
-@partial(jax_u.jit, static_argnums=(4,5,6,7))
+@partial(jax_u.jit, static_argnums=(4, 5, 6, 7, 8))
 def _train(
     params: chex.ArrayTree,
     opt_state: chex.ArrayTree,
@@ -236,17 +395,13 @@ def _train(
     fill_val: float,
     net: hk.Transformed,
     optim: optax.GradientTransformation,
+    debug: bool,
 ):
 
-    class TrainCarry(NamedTuple):
-        params: chex.ArrayTree
-        opt_state: chex.ArrayTree
-        loss: float
-        rng: chex.PRNGKey
-        step: int
-
+    batch_size = batches.obs.shape[1]
+    input_size = batches.obs.shape[2]
     def continue_training(carry: TrainCarry):
-        return (carry.loss > train_cfg.err_tolerance) & (carry.step < train_cfg.max_update_steps)
+        return (carry.losses[carry.step-1] > train_cfg.err_tolerance) & (carry.step < train_cfg.max_update_steps)
 
     def train_step(carry: TrainCarry):
         true_obs_batch = batches.obs[carry.step]
@@ -261,17 +416,17 @@ def _train(
         rng, sample_rng = jax.random.split(carry.rng)
         uniform_sample = jax.random.uniform(key=sample_rng, shape=true_obs_batch.shape)
         sim_obs_nanmask = uniform_sample < train_cfg.training_missing_perc
-        train_obs_batch = jnp.where(sim_obs_nanmask, fill_val, true_obs_batch)
+        train_obs_batch = true_obs_batch.set(jnp.where(sim_obs_nanmask, fill_val, true_obs_batch.array))
         # update missing indicator
-        train_obs_nanmask = sim_obs_nanmask | true_obs_nanmask
+        train_obs_nanmask = true_obs_nanmask.set(sim_obs_nanmask | true_obs_nanmask.array)
 
         # simulate missingness of traces
         rng, sample_rng = jax.random.split(rng)
         uniform_sample = jax.random.uniform(key=sample_rng, shape=true_trace_batch.shape)
         sim_trace_nanmask = uniform_sample < train_cfg.training_missing_perc
-        train_trace_batch = jnp.where(sim_trace_nanmask, fill_val, true_trace_batch)
+        train_trace_batch = true_trace_batch.set(jnp.where(sim_trace_nanmask, fill_val, true_trace_batch.array))
         # update missing indicator
-        train_trace_nanmask = sim_trace_nanmask | true_trace_nanmask
+        train_trace_nanmask = true_trace_nanmask.set(sim_trace_nanmask | true_trace_nanmask.array)
 
         # update impute_data to include simulated nans
         train_impute_data = ImputeData(
@@ -282,33 +437,54 @@ def _train(
         )
         input_batch = _to_input(train_impute_data)
 
-        params, opt_state, loss = _update(
+        params, opt_state, loss, new_debug_info = _update(
             params=carry.params,
             opt_state=carry.opt_state,
             input_batch=input_batch,
-            label_batch=true_obs_batch,
-            label_nanmask=true_obs_nanmask,
+            label_batch=true_obs_batch.array,
+            label_nanmask=true_obs_nanmask.array,
             net=net,
             optim=optim,
+            debug=debug,
         )
+
+        if debug:
+            new_losses = new_debug_info.losses.flatten()
+            new_pred = new_debug_info.pred.flatten()
+            new_error = new_debug_info.error.flatten()
+
+            debug_info = DebugInfo(
+                losses=carry.debug_info.losses.at[carry.step].set(new_losses),
+                pred=carry.debug_info.pred.at[carry.step].set(new_pred),
+                error=carry.debug_info.error.at[carry.step].set(new_error),
+            )
+        else:
+            debug_info = carry.debug_info
+
         return TrainCarry(
             params=params,
             opt_state=opt_state,
-            loss=loss,
+            losses=carry.losses.at[carry.step].set(loss),
+            debug_info=debug_info,
             rng=rng,
             step=carry.step + 1,
         )
 
     carry = TrainCarry(
-            params=params,
-            opt_state=opt_state,
-            loss=jnp.inf,
-            rng=rng,
-            step=0,
+        params=params,
+        opt_state=opt_state,
+        losses=jnp.inf * jnp.ones(train_cfg.max_update_steps),
+        debug_info=DebugInfo(
+            losses=jnp.empty((train_cfg.max_update_steps, batch_size)),
+            pred=jnp.empty((train_cfg.max_update_steps, batch_size * input_size)),
+            error=jnp.empty((train_cfg.max_update_steps, batch_size * input_size)),
+        ),
+        rng=rng,
+        step=0,
     )
     carry = jax.lax.while_loop(continue_training, train_step, carry)
 
-    return carry.params, carry.opt_state, carry.loss
+    return carry.params, carry.opt_state, carry.losses, carry.step, carry.debug_info
 
 def _update(
     params: chex.ArrayTree,
@@ -318,11 +494,16 @@ def _update(
     label_nanmask: jax.Array,
     net: hk.Transformed,
     optim: optax.GradientTransformation,
+    debug: bool,
 ):
-    loss, grads = jax.value_and_grad(_batch_loss)(params, input_batch, label_batch, label_nanmask, net)
+    loss_and_debug, grads = jax.value_and_grad(_batch_loss, has_aux=True)(
+        params, input_batch, label_batch, label_nanmask, net, debug,
+    )
+    loss = loss_and_debug[0]
+    debug_info = loss_and_debug[1]
     updates, new_opt_state = optim.update(grads, opt_state, params)
     new_params = optax.apply_updates(params, updates)
-    return new_params, new_opt_state, loss
+    return new_params, new_opt_state, loss, debug_info
 
 def _batch_loss(
     params: chex.ArrayTree,
@@ -330,17 +511,22 @@ def _batch_loss(
     label_batch: jax.Array,
     label_nanmask: jax.Array,
     net: hk.Transformed,
+    debug: bool,
 ):
-    losses = jax_u.vmap_except(_loss, exclude=["params", "net"])(params, input_batch, label_batch, label_nanmask, net)
-    return losses.sum() / len(losses)
+    losses, pred, error = jax_u.vmap_except(_loss, exclude=["params", "net"])(
+        params, input_batch, label_batch, label_nanmask, net,
+    )
+    debug_info = (
+        DebugInfo(losses=losses, pred=pred, error=error)
+        if debug
+        else None
+    )
+    return losses.sum() / len(losses), debug_info
+
 
 def _loss(params: chex.ArrayTree, input: jax.Array, label: jax.Array, label_nanmask: jax.Array, net: hk.Transformed):
     pred = net.apply(params, input)
     # loss is a standard MSE except NaN labels
     # are masked out
     error = (~label_nanmask) * (pred - label)
-    return jnp.sum(error**2) / jnp.sum(~label_nanmask)
-
-
-def _series_to_jax(row: pd.Series) -> jax.Array:
-    return jnp.asarray(row.to_numpy(np.float32))
+    return jnp.sum(error**2) / jnp.sum(~label_nanmask), pred, error

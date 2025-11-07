@@ -28,11 +28,13 @@ class MaskedAEConfig(BaseImputerStageConfig):
     name: Literal["masked-ae"] = "masked-ae"
     horizon: int = 10
     trace_values: list[float] = list_([0.5, 0.9, 0.95])
-    buffer_size: int = 50_000
+    buffer_size: int = 200_000
 
     fill_val: float = 0.0
     prop_missing_tol: float = np.nan
     train_cfg: TrainingConfig = Field(default_factory=TrainingConfig)
+
+    debug: bool = False
 
     @post_processor
     def _set_missing_tol(self, cfg: MainConfig):

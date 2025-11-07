@@ -26,6 +26,11 @@ class LinearConfig:
     name: str | None = None
     activation: str = 'crelu'
 
+@dataclass
+class FixedAffineConfig:
+    scale: float
+    bias: float
+    name: str | None = None
 
 @dataclass
 class NoisyLinearConfig:
@@ -61,6 +66,7 @@ type LayerConfig = (
     | NoisyLinearConfig
     | LayerNormConfig
     | IdentityConfig
+    | FixedAffineConfig
 )
 
 @dataclass
@@ -83,6 +89,16 @@ class Linear(hk.Module):
         act = get_activation(self.cfg.activation)
         z = self._linear(x)
         return act(z)
+
+
+class FixedAffine(hk.Module):
+    def __init__(self, cfg: FixedAffineConfig):
+        super().__init__(name=cfg.name)
+        self.scale = cfg.scale
+        self.bias = cfg.bias
+
+    def __call__(self, x: jax.Array):
+        return x * self.scale + self.bias
 
 
 class LayerNorm(hk.Module):
@@ -200,6 +216,8 @@ def noisy_linear(cfg: NoisyLinearConfig):
 def layer_factory(cfg: LayerConfig):
     if isinstance(cfg, LinearConfig):
         return Linear(cfg)
+    if isinstance(cfg, FixedAffineConfig):
+        return FixedAffine(cfg)
     if isinstance(cfg, ResidualConfig):
         return ResidualBlock(cfg)
     if isinstance(cfg, NoisyLinearConfig):
