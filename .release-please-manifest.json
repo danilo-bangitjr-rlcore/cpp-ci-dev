@@ -1,8 +1,8 @@
 {
-  "corerl": "0.157.0",
-  "coreio": "0.13.0",
-  "coredinator": "0.5.0",
+  "corerl": "0.158.0",
+  "coreio": "1.0.0",
+  "coredinator": "1.0.0",
   "coregateway": "0.1.0",
-  "coretelemetry": "0.2.0",
-  "coreui": "0.1.1"
+  "coretelemetry": "0.2.1",
+  "coreui": "0.1.2"
 }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.0.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.5.0...coredinator-v1.0.0) (2025-11-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **coredinator:** CLI arguments changed from --event-bus-pub-port/--event-bus-sub-port to --event-bus-port
+
+### Code Refactoring
+
+* **coredinator:** migrate coredinator to unified event bus ([c49d804](https://github.com/rlcoretech/core-rl/commit/c49d804d8f937285f68e72bc603496cb176a36c7))
+
 ## [0.5.0](https://github.com/rlcoretech/core-rl/compare/coredinator-v0.4.1...coredinator-v0.5.0) (2025-11-05)
 
 

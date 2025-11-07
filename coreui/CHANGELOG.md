@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.2](https://github.com/rlcoretech/core-rl/compare/coreui-v0.1.1...coreui-v0.1.2) (2025-11-07)
+
+
+### Bug Fixes
+
+* copilot's comments ([fb14ac6](https://github.com/rlcoretech/core-rl/commit/fb14ac635304e90b02e429d60c98fd5eb626f0a8))
+* **CoreUI, client/server:** `get_all_configs` fault tolerance [PROD-1251] ([a658c87](https://github.com/rlcoretech/core-rl/commit/a658c878ad75ffef459d403e971a9bee0784517f))
+* **coreui, server:** filter out non-agent configs from get_all_configs endpoint ([639d821](https://github.com/rlcoretech/core-rl/commit/639d821d14331d64ff03dd75b66f5078358f8298))
+* **coreui,client:** frontend doesn't crash when receiving yaml's that are not configs ([ab8a420](https://github.com/rlcoretech/core-rl/commit/ab8a42084d4120390910ee0739fe587b79bbc5d8))
+* **coreui:** Display Metrics Table Unavailable [Prod 1252] ([df6b79f](https://github.com/rlcoretech/core-rl/commit/df6b79fa0f5fd4038cd797fa9feab2b13ef48ba1))
+* improve metrics loading ([58a1063](https://github.com/rlcoretech/core-rl/commit/58a10632b00ec92591a8aa2f7f74c506341dfb16))
+* **PROD-1240:** CoreUI unified system metrics endpoint ([342c030](https://github.com/rlcoretech/core-rl/commit/342c03003926aa14a30339cdcc22f0f5b5f410bb))
+* **PROD-1248:** CoreUI deprecate `clean` and `raw` notion ([917ce11](https://github.com/rlcoretech/core-rl/commit/917ce119ae45af034b61e6d5227a1b5c2e66adbd))
+
 ## [0.1.1](https://github.com/rlcoretech/core-rl/compare/coreui-v0.1.0...coreui-v0.1.1) (2025-11-05)
 
 
