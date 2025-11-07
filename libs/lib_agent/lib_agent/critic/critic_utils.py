@@ -26,7 +26,9 @@ class RollingResetConfig:
 
 
 class CriticOutputs(Protocol):
-    q: jax.Array
+    @property
+    def q(self) -> jax.Array:
+        ...
 
 
 @dataclass
