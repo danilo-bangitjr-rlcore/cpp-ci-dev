@@ -7,8 +7,8 @@ from lib_utils.named_array import NamedArray
 
 from lib_agent.actor.actor_protocol import Actor, PolicyState
 from lib_agent.buffer.datatypes import State, Transition
-from lib_agent.critic.critic_protocol import Critic
 from lib_agent.critic.critic_utils import CriticState
+from lib_agent.critic.ensemble_reset_metrics.base import EnsembleResetMetricCritic
 from lib_agent.critic.ensemble_reset_metrics.divergence import DivergenceMetric, DivergenceMetricConfig
 
 
@@ -54,9 +54,9 @@ def sample_transition(state_dim: int, action_dim: int, gamma: float) -> Transiti
     )
 
 @pytest.fixture
-def mock_critic() -> Critic:
+def mock_critic() -> EnsembleResetMetricCritic:
     """Create a mock critic for testing."""
-    critic = Mock(spec=Critic)
+    critic = Mock(spec=EnsembleResetMetricCritic)
     critic.forward.return_value.q = jnp.array([[-10.0, -900.0], [20.0, 25.0], [-22.2, -23.4], [0.5, 1.5]])
     return critic
 
@@ -99,7 +99,7 @@ def test_divergence_metric_calculation(
     divergence_metric: DivergenceMetric,
     sample_transition: Transition,
     mock_critic_state: CriticState,
-    mock_critic: Critic,
+    mock_critic: EnsembleResetMetricCritic,
     mock_actor_state: PolicyState,
     mock_actor: Actor,
 ):
