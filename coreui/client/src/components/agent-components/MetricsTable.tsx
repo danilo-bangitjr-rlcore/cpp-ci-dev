@@ -26,6 +26,22 @@ const formatValue = (value: number) => {
   return value.toFixed(MAX_DECIMAL_PLACES).replace(/\.?0+$/, '');
 };
 
+// Shared card wrapper component
+const MetricsCard = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-300">
+    <div className="px-6 py-4 bg-gray-200 border-b border-gray-300">
+      <h2 className="text-2xl font-semibold text-gray-800">{title}</h2>
+    </div>
+    {children}
+  </div>
+);
+
 interface MetricsTableProps {
   configName: string;
 }
@@ -50,21 +66,27 @@ export default function MetricsTable({ configName }: MetricsTableProps) {
   );
 
   if (metricsLoading) {
-    return <div>Loading available metrics...</div>;
+    return (
+      <MetricsCard title={`Loading metrics for ${configName}...`}>
+        <div className="px-6 py-8 text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-gray-500 border-r-transparent"></div>
+        </div>
+      </MetricsCard>
+    );
   }
 
   if (metricsError) {
-    return <div>Error loading available metrics: {metricsError.message}</div>;
+    return (
+      <MetricsCard title={`No metrics available for ${configName}`}>
+        <div className="px-6 py-8 text-center text-gray-500">
+          {metricsError.message}
+        </div>
+      </MetricsCard>
+    );
   }
 
   return (
-    <div className="bg-white shadow-lg rounded-lg overflow-hidden border border-gray-300">
-      <div className="px-6 py-4 bg-gray-200 border-b border-gray-300">
-        <h2 className="text-2xl font-semibold text-gray-800">
-          Metrics Available ({filteredMetrics.length})
-        </h2>
-      </div>
-
+    <MetricsCard title={`Metrics Available (${filteredMetrics.length})`}>
       {filteredMetrics.length > 0 ? (
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -129,6 +151,6 @@ export default function MetricsTable({ configName }: MetricsTableProps) {
           No filtered metrics available
         </div>
       )}
-    </div>
+    </MetricsCard>
   );
 }

@@ -44,6 +44,7 @@ class SqlReader:
 
         if not_null:
             where_conditions.append(f"{column_name} IS NOT NULL")
+            where_conditions.append(f"{column_name} != 'NaN'")
 
         if start_time is not None:
             where_conditions.append("time >= :start_time")
