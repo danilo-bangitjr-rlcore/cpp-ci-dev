@@ -1,7 +1,7 @@
 from typing import Any
 
 from lib_agent.critic.adv_critic import AdvConfig, AdvCritic
-from lib_agent.critic.critic_protocol import CriticConfig
+from lib_agent.critic.critic_utils import CriticConfig
 from lib_agent.critic.qrc_critic import QRCConfig, QRCCritic
 
 

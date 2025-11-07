@@ -1,30 +1,10 @@
-from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import chex
 import jax
 
 from lib_agent.buffer.datatypes import Transition
-from lib_agent.critic.critic_utils import CriticMetrics, CriticState, RollingResetConfig
-
-
-class CriticOutputs(Protocol):
-    q: jax.Array
-
-
-@dataclass
-class CriticConfig:
-    name: str
-    stepsize: float
-    ensemble: int
-    ensemble_prob: float
-    num_rand_actions: int
-    action_regularization: float
-    l2_regularization: float
-    nominal_setpoint_updates: int = 1000
-    use_all_layer_norm: bool = False
-    weight_decay: float = 0.001
-    rolling_reset_config: RollingResetConfig = field(default_factory=RollingResetConfig)
+from lib_agent.critic.critic_utils import CriticConfig, CriticMetrics, CriticOutputs, CriticState
 
 
 class Critic(Protocol):
