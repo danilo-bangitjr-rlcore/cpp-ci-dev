@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.0.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.13.0...coreio-v1.0.0) (2025-11-07)
+
+
+### ⚠ BREAKING CHANGES
+
+* **coreio:** EventBusClientConfig changed from pub_port/sub_port to port
+* **corerl:** EventBusClientConfig changed from pub_port/sub_port to port, enabled changed to True by default
+
+### Code Refactoring
+
+* **coreio:** migrate coreio to unified event bus ([5d0d828](https://github.com/rlcoretech/core-rl/commit/5d0d828a610f0c5555d511d2d3c4a7da29396313))
+* **corerl:** migrate corerl to unified event bus ([5d0d828](https://github.com/rlcoretech/core-rl/commit/5d0d828a610f0c5555d511d2d3c4a7da29396313))
+
 ## [0.13.0](https://github.com/rlcoretech/core-rl/compare/coreio-v0.12.0...coreio-v0.13.0) (2025-11-05)
 
 

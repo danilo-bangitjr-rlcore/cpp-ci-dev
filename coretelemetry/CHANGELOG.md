@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.2.1](https://github.com/rlcoretech/core-rl/compare/coretelemetry-v0.2.0...coretelemetry-v0.2.1) (2025-11-07)
+
+
+### Bug Fixes
+
+* better filter for NaN metrics ([823d766](https://github.com/rlcoretech/core-rl/commit/823d7667a531590fd3683af2530b3263091150e2))
+* copilot's comments ([de73729](https://github.com/rlcoretech/core-rl/commit/de7372994c84f284e912e5470a19cdd544c9ff6b))
+* **coreui:** Display Metrics Table Unavailable [Prod 1252] ([df6b79f](https://github.com/rlcoretech/core-rl/commit/df6b79fa0f5fd4038cd797fa9feab2b13ef48ba1))
+* **PROD-1240:** CoreUI unified system metrics endpoint ([342c030](https://github.com/rlcoretech/core-rl/commit/342c03003926aa14a30339cdcc22f0f5b5f410bb))
+
 ## [0.2.0](https://github.com/rlcoretech/core-rl/compare/coretelemetry-v0.1.0...coretelemetry-v0.2.0) (2025-11-05)
 
 

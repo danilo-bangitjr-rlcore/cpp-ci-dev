@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.158.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.157.0...corerl-v0.158.0) (2025-11-07)
+
+
+### Features
+
+* **PROD-1243:** : gamma scheduler in prod agent ([54b5efc](https://github.com/rlcoretech/core-rl/commit/54b5efcb5adc3f7a0faefd696a963e823febc709))
+* **PROD-1243:** gamma schedule feature flag ([9681713](https://github.com/rlcoretech/core-rl/commit/96817137c6f76e09c6e8ea2c1844387a46242850))
+
+
+### Bug Fixes
+
+* horizon ([193d52e](https://github.com/rlcoretech/core-rl/commit/193d52e198a9404a9088543483742f03384d53bb))
+* **PROD-1253:** fix per-tag imputer cfg specification and initialization ([786f681](https://github.com/rlcoretech/core-rl/commit/786f681979f9e589e68afe57ae6394545a6acb01))
+* **PROD-1253:** fix per-tag imputer cfg specification and initialization ([3d8ea7f](https://github.com/rlcoretech/core-rl/commit/3d8ea7fc656f65afe6c7a0cd73a3333b94f27b7c))
+
 ## [0.157.0](https://github.com/rlcoretech/core-rl/compare/corerl-v0.156.0...corerl-v0.157.0) (2025-11-05)
 
 
