@@ -5,9 +5,12 @@ from lib_config.config import config
 
 from lib_agent.actor.actor_protocol import Actor, PolicyState
 from lib_agent.buffer.datatypes import Transition
-from lib_agent.critic.critic_protocol import Critic
 from lib_agent.critic.critic_utils import CriticState
-from lib_agent.critic.ensemble_reset_metrics.base import BaseEnsembleResetMetric, BaseEnsembleResetMetricConfig
+from lib_agent.critic.ensemble_reset_metrics.base import (
+    BaseEnsembleResetMetric,
+    BaseEnsembleResetMetricConfig,
+    EnsembleResetMetricCritic,
+)
 
 
 @config()
@@ -32,7 +35,7 @@ class DivergenceMetric(BaseEnsembleResetMetric):
         rng: chex.PRNGKey,
         transition: Transition,
         critic_state: CriticState,
-        critic: Critic,
+        critic: EnsembleResetMetricCritic,
         actor_state: PolicyState,
         actor: Actor,
     ) -> jax.Array:

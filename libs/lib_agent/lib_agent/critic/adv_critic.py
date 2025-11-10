@@ -11,8 +11,8 @@ import optax
 
 import lib_agent.network.networks as nets
 from lib_agent.buffer.datatypes import Transition
-from lib_agent.critic.critic_protocol import CriticConfig
 from lib_agent.critic.critic_utils import (
+    CriticConfig,
     CriticState,
     get_ensemble_norm,
     get_layer_norms,
