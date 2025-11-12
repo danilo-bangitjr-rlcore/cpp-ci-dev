@@ -1,0 +1,44 @@
+agent:
+  gamma: 0.99
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+max_steps: 1000
+
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: TMaze-v0
+      corridor_length: 0.5
+
+pipeline:
+  tags:
+    # meta tags
+    - name: reward
+      type: meta
+
+    - name: terminated
+      type: meta
+
+    - name: truncated
+      type: meta
+
+    - name: action-0
+      operating_range: [-1, 1]
+      type: ai_setpoint
+
+    - name: tag-0 # initial signal
+      operating_range: [-1, 1]
+
+    - name: tag-1 # pos
+      operating_range: [0, 1]
+
+    - name: tag-2 # in endzone
+      operating_range: [0, 1]
+
+defaults:
+  - ../computational_params
