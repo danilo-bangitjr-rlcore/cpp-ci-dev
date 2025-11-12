@@ -20,6 +20,8 @@ def main(cfg: MainConfigAdapter):
     service.run_forever(max_retries=5, retry_window_hours=1, enable_retry=True)
 
 if __name__ == "__main__":
+    sys.stdout.write("Starting CoreIO service...\n")
+    sys.stdout.flush()
     try:
         main()
     except KeyboardInterrupt:

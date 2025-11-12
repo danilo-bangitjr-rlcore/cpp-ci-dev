@@ -4,7 +4,7 @@ version = "0.0.1"
 requires-python = ">=3.13"
 dependencies = [
     "rl_env",
-    "corerl",
+#    "corerl",
     "docker>=7.1.0",
     "pytest>=8.3.5",
     "requests>=2.32.0",
@@ -26,7 +26,7 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
-    "coredinator",
+#    "coredinator",
     "coreio",
     "docker>=7.1.0",
     "fastapi>=0.115.0",
@@ -50,9 +50,9 @@ opc_sim = "test.e2e.opc_clients.opc_sim:main"
 packages = ["test"]
 
 [tool.uv.sources]
-coredinator = { path = "../coredinator", editable = true }
+#coredinator = { path = "../coredinator", editable = true }
 coreio = { path = "../coreio", editable = true }
-corerl = { path = "../corerl", editable = true }
+#corerl = { path = "../corerl", editable = true }
 rl_env = { path = "../libs/rl_env", editable = true }
 lib-sql = { path = "../libs/lib_sql", editable = true }
 lib-utils = { path = "../libs/lib_utils", editable = true }
