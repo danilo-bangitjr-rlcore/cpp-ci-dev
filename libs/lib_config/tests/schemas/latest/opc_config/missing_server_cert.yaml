@@ -1,0 +1,11 @@
+schema_version: 1.0.0
+connections:
+  - connection_id: conn1
+    connection_url: opc.tcp://localhost:4840
+    security_policy:
+      policy: basic256_sha256
+      mode: sign_and_encrypt
+      client_cert_path: /path/to/client.pem
+      client_key_path: /path/to/client.key
+    authentication_mode: anonymous
+tags: []
