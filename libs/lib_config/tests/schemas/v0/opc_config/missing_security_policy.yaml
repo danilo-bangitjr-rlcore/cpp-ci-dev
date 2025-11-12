@@ -1,0 +1,6 @@
+log_level: INFO
+opc_connections:
+  - connection_id: conn1
+    opc_conn_url: opc.tcp://localhost:4840
+    authentication_mode: anonymous
+tags: []
