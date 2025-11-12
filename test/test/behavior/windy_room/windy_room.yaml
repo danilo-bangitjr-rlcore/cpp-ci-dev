@@ -1,0 +1,72 @@
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: WindyRoom-v0
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+max_steps: 1500
+
+agent:
+  gamma: 0.95
+  policy:
+    mu_multiplier: 10.0
+    sigma_multiplier: 1.0
+  critic:
+    stepsize: 0.001
+
+pipeline:
+  tags:
+  # meta tags
+  - name: reward
+    type: meta
+
+  - name: terminated
+    type: meta
+
+  - name: truncated
+    type: meta
+
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [-1, 1]
+    action_bounds: ['{action-0}-0.3', '{action-0}+0.3']
+
+  - name: action-1
+    type: ai_setpoint
+    operating_range: [-1, 1]
+    action_bounds: ['{action-1}-0.3', '{action-1}+0.3']
+
+  - name: tag-0 # x position`
+    operating_range: [0, 1]
+    red_bounds: [0.05, 0.95]
+    yellow_bounds: [0.3, 0.7]
+    red_zone_reaction:
+      - tag: action-0
+        kind: upper_violation
+        bounds: [0, 0.5]
+      - tag: action-0
+        kind: lower_violation
+        bounds: [0.5, 1]
+
+  - name: tag-1 # y position
+    operating_range: [0, 1]
+    red_bounds: [0.05, 0.95]
+    yellow_bounds: [0.3, 0.7]
+    red_zone_reaction:
+      - tag: action-1
+        kind: upper_violation
+        bounds: [0, 0.5]
+      - tag: action-1
+        kind: lower_violation
+        bounds: [0.5, 1]
+
+  - name: tag-2 # wind angle in radians
+    operating_range: [0.0, 6.29]
+
+defaults:
+  - ../computational_params

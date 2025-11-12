@@ -1,0 +1,8 @@
+env:
+  gym:
+    env_config:
+      delay: 10
+
+defaults:
+  - ../computational_params
+  - direct_single_action_saturation

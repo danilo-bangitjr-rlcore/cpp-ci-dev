@@ -1,0 +1,54 @@
+defaults:
+  - ../computational_params
+
+agent:
+  gamma: 0.9
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+max_steps: 999
+
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: Calibration-v0
+      calibration_period: 500
+      instant: False
+
+pipeline:
+  reward:
+    priorities:
+      - op: up_to
+        tag: tag-1 # efficiency
+        thresh: 0.5
+
+      - tags: [tag-0] # cost
+        directions: [min]
+
+  tags:
+    # meta tags
+    - name: terminated
+      type: meta
+
+    - name: truncated
+      type: meta
+
+    - name: action-0
+      operating_range: [0, 1]
+      type: ai_setpoint
+      action_bounds: ['{action-0}-0.1', '{action-0}+0.1']
+
+    - name: tag-0 # cost
+      operating_range: [0, 1]
+      yellow_bounds: [null, 0.3]
+      red_bounds: [null, 0.5]
+
+    - name: tag-1 # efficiency
+      operating_range: [0, 1]
+
+    - name: tag-2 # process variable
+      operating_range: [0, 1]

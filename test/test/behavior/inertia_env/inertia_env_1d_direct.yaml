@@ -1,0 +1,39 @@
+defaults:
+  - ../computational_params
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+max_steps: 1000
+
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: InertiaEnv-v0
+      action_dim: 1
+      target: 0.7
+
+pipeline:
+  tags:
+    # meta tags
+    - name: terminated
+      type: meta
+
+    - name: truncated
+      type: meta
+    
+    - name: reward
+      type: meta
+    
+    # observations
+    - name: tag-0 # The previous action
+      operating_range: [0, 1]
+
+    # actions
+    - name: action-0
+      type: ai_setpoint
+      operating_range: [0, 1]
+      nominal_setpoint: 0.1
