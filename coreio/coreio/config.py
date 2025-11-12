@@ -1,0 +1,82 @@
+from datetime import timedelta
+from enum import StrEnum, auto
+from pathlib import Path
+from typing import Literal
+
+from lib_config.config import MISSING, config, list_
+from pydantic import Field
+
+from coreio.configs.messages.event_bus_client import EventBusClientConfig
+
+
+@config(allow_extra=True, frozen=True)
+class TagConfigAdapter:
+    name: str = MISSING
+    connection_id: str | None = None
+    node_identifier: str | None = None
+
+class OPCSecurityPolicy(StrEnum):
+    none = auto()
+    basic256_sha256 = auto()
+
+class OPCMessageSecurityMode(StrEnum):
+    none = auto()
+    sign = auto()
+    sign_and_encrypt = auto()
+
+class OPCAuthMode(StrEnum):
+    anonymous = auto()
+    username_password = auto()
+
+
+type OPCSecurityMode = Literal[OPCMessageSecurityMode.sign, OPCMessageSecurityMode.sign_and_encrypt]
+
+
+@config(frozen=True)
+class OPCSecurityPolicyNoneConfig:
+    policy: Literal[OPCSecurityPolicy.none] = OPCSecurityPolicy.none
+    mode: Literal[OPCMessageSecurityMode.none] = OPCMessageSecurityMode.none
+
+
+@config(frozen=True)
+class OPCSecurityPolicyBasic256SHA256Config:
+    policy: Literal[OPCSecurityPolicy.basic256_sha256] = OPCSecurityPolicy.basic256_sha256
+    mode: OPCSecurityMode = OPCMessageSecurityMode.sign_and_encrypt
+    client_cert_path: Path = MISSING
+    client_key_path: Path = MISSING
+    server_cert_path: Path = MISSING
+
+type OPCSecurityPolicyConfig = OPCSecurityPolicyNoneConfig | OPCSecurityPolicyBasic256SHA256Config
+
+@config(frozen=True)
+class OPCAuthModeUsernamePasswordConfig:
+    username: str = MISSING
+    password: str = ""
+
+type OPCAuthModeConfig = Literal[OPCAuthMode.anonymous] | OPCAuthModeUsernamePasswordConfig
+
+@config(frozen=True)
+class OPCConnectionConfig:
+    connection_id: str = MISSING
+    client_timeout: int = 30 # in seconds
+    client_watchdog_interval: int = 30 # in seconds
+    opc_conn_url: str = MISSING
+    application_uri: str | None = None
+    security_policy: OPCSecurityPolicyConfig = MISSING
+    authentication_mode: OPCAuthModeConfig = MISSING
+
+@config(frozen=True)
+class DataIngressConfig:
+    enabled: bool = False
+    ingress_period: timedelta = timedelta(seconds=1)
+
+@config(frozen=True)
+class CoreIOConfig:
+    data_ingress: DataIngressConfig = Field(default_factory=DataIngressConfig)
+    event_bus_client: EventBusClientConfig = Field(default_factory=EventBusClientConfig)
+    coreio_origin: str = "tcp://localhost:5557"
+    coreio_app: str = "inproc://coreio_app"
+    opc_connections: list[OPCConnectionConfig] = list_()
+    tags: list[TagConfigAdapter] = list_()
+    log_level: str = "INFO"
+    log_file: str | None = None
