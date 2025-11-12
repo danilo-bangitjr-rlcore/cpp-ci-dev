@@ -1,0 +1,51 @@
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.lib
+*.bin
+*.out
+cmake-build-*
+build/
+bin/
+obj/
+
+# IDE-specific files (e.g., Visual Studio, CLion, VS Code)
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.ncb
+*.aps
+*.pch
+*.ipch
+*.log
+*.bak
+*.ilk
+*.pdb
+*.exp
+*.vshost.*
+*.VC.db
+*.VC.opendb
+*.sdf
+*.opensdf
+*.tlog
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+Makefile
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+
+# Other common temporary files
+*~
+*.swp
+*.swo
+*.tmp
+*.log

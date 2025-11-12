@@ -1,0 +1,95 @@
+name: CoreIO-CPP Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "coreio-cpp/**"
+      - "libs/**"
+      - "config/**"
+  merge_group:
+    paths:
+      - "coreio-cpp/**"
+      - "libs/**"
+      - "config/**"
+
+concurrency:
+  group: coreio-cpp-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  coreio-cpp-style-n-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: coreio-cpp
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: coreio-cpp
+
+      # TODO: Integrate a C++ linter here
+      # TODO: Choose best C++ linter for the project and configure it properly
+      # - uses: dciborow/action-pylint@0.1.0
+      #   with:
+      #     github_token: ${{ secrets.github_token }}
+      #     reporter: github-pr-review
+      #     level: warning
+      #     workdir: coreio-cpp
+      #     glob_pattern: "src/"
+
+      # TODO: Delete before final PR. CPP is strongly typed so type checking is done at compile time.
+      # type checking
+      # - uses: jakebailey/pyright-action@v2
+      #   with:
+      #     pylance-version: latest-release
+      #     working-directory: coreio-cpp
+
+      - name: Configure CMake
+        run: cmake -B ${{github.workspace}}/build
+
+      - name: Build
+        run: cmake --build ${{github.workspace}}/build
+
+      # TODO: Set up C++ testing framework (gtest?) and write tests
+      # - name: Run Pytest
+      #   run: |
+      #     pytest --cov=coreio --cov-report=html --asyncio-mode=auto tests/
+
+      # TODO: Setup code coverage for C++ tests (gcov/lcov?)
+      # - name: Combine coverage
+      #   run: |
+      #     uv run coverage html
+      #     echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+
+      # TODO: Upload code coverage artifact - do this after setting up C++ testing and coverage
+      # - uses: actions/upload-artifact@v4
+      #   id: htmlcov-upload-step
+      #   with:
+      #     name: htmlcov
+      #     path: coreio-cpp/htmlcov/
+      #     overwrite: true
+
+      # - run: |
+      #     echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+      #     echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+
+      # - uses: thollander/actions-comment-pull-request@v3
+      #   with:
+      #     message: |
+      #       _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+      #       🏁 CoreIO-CPP tests ran. Coverage reporting is not yet configured. 🏁
+      #     comment-tag: execution-coreio-cpp

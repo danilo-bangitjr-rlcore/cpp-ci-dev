@@ -20,3 +20,8 @@ runs:
       run: |
         cd ${{ inputs.subrepo }}
         uv sync --all-extras --dev --frozen
+
+    - name: Install cmake-lint
+      if: ${{ inputs.subrepo == 'coreio-cpp' }}
+      run: |
+        uv install cmakelint
