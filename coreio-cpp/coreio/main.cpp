@@ -1,6 +1,7 @@
 #include <iostream>
+#include "hello.h"
 
 int main() {
-    std::cout << "Hello, RL Core Technologies!" << std::endl;
+    std::cout << hello_world() << std::endl;
     return 0;
 }
