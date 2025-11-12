@@ -1,0 +1,56 @@
+env:
+  name: sim_async_env
+  gym:
+    env_config:
+      name: Saturation-v0
+      delta_schedule:
+        0 : 0.05
+        100 : 0.10
+        200 : 0.15
+        300 : 0.2
+      anchor_schedule:
+        0 : 0.05
+
+
+interaction:
+  name: sim_interaction
+  obs_period: 00:00:01
+  action_period: 00:00:01
+
+seed: 1
+max_steps: 1000
+
+agent:
+  gamma: 0.99
+
+pipeline:
+  tags:
+  # meta tags
+  - name: terminated
+    type: meta
+
+  - name: truncated
+    type: meta
+
+  - name: reward
+    type: meta
+
+  # observations
+  - name: tag-0
+    operating_range: [0, 1.0]
+
+  - name: tag-1 # the delta
+    operating_range: [0, 1.0]
+
+
+  - name: tag-2 # the anchor
+    operating_range: [0, 1.0]
+
+  # actions
+  - name: action-0
+    type: ai_setpoint
+    operating_range: [0, 0.5]
+    action_bounds: ['{tag-2}-{tag-1}', '{tag-2}+{tag-1}']
+
+defaults:
+  - ../computational_params

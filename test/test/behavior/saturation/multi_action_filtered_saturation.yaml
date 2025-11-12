@@ -1,0 +1,10 @@
+env:
+  gym:
+    env_config:
+      trace_val: 0.99 # Makes it more difficult for the agent to overcome the region of 0 reward
+      setpoints: [0.1, 0.2, 0.3]
+      filter_threshes: [0.7, 0.6, 0.5]
+
+defaults:
+  - ../computational_params
+  - direct_multi_action_saturation

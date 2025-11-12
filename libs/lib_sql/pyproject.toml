@@ -1,0 +1,50 @@
+[project]
+name = "lib_sql"
+version = "0.0.0"
+description = "Shared SQL utilities for the monorepo (scaffold)"
+requires-python = ">=3.13,<3.14"
+authors = []
+dependencies = [
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
+    "psycopg[binary]~=3.2",
+    "lib-utils",
+]
+readme = "README.md"
+
+[dependency-groups]
+dev = [
+    "pylint>=3.3.7",
+    "pyright>=1.1.392.post0",
+    "pytest>=8.4.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-xdist>=3.7.0",
+    "pytest-mock>=3.14.1",
+    "ruff>=0.11.12",
+    "uv>=0.5.24",
+    "docker>=7.1.0",
+    "test",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool]
+[tool.hatch.build.targets.wheel]
+packages = ["lib_sql"]
+
+[tool.ruff]
+extend = "../../standards/python/ruff.toml"
+
+[tool.pyright]
+extends='../../standards/python/pyright.toml'
+include = ['.']
+exclude = [
+    '.venv/',
+]
+venvPath = '.'
+
+[tool.uv.sources]
+lib-utils = { path = "../lib_utils", editable = true }
+test = { path = "../../test", editable = true }
