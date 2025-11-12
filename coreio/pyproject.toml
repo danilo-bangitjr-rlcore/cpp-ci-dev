@@ -1,0 +1,65 @@
+[project]
+name = "coreio"
+version = "1.0.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    # asyncua 1.1.8 causes failures when connecting to matrikon due to "BadServerUriInvalid"
+    # see: https://github.com/FreeOpcUa/opcua-asyncio/issues/1865
+    "asyncua==1.1.6",
+    "backoff~=2.2",
+    "colorlog~=6.9",
+    "lib-config",
+    "lib-defs",
+    "lib-events",
+    "lib-sql",
+    "lib-utils",
+    "service-framework",
+    "sqlalchemy~=2.0",
+    "sqlalchemy-utils~=0.41",
+]
+
+[dependency-groups]
+dev = [
+    "docker>=7.1.0",
+    "pylint>=3.3.7",
+    "pyright>=1.1.401",
+    "pytest-asyncio>=1.0.0",
+    "pytest-xdist>=3.7.0",
+    "pytest-timeout>=2.4.0",
+    "pytest-coverage>=0.0",
+    "ruff>=0.11.12",
+    "test",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["coreio"]
+
+[tool.uv.sources]
+test = { path = "../test", editable = true }
+lib-config = { path = "../libs/lib_config", editable = true }
+lib-defs = { path = "../libs/lib_defs", editable = true }
+lib-sql = { path = "../libs/lib_sql", editable = true }
+lib-utils = { path = "../libs/lib_utils", editable = true }
+service-framework = { path = "../libs/service_framework", editable = true }
+lib-events = { path = "../libs/lib_events", editable = true }
+
+[tool.pyright]
+extends='../standards/python/pyright.toml'
+include = ['.']
+exclude = [
+    '.venv/',
+]
+venvPath = '.'
+
+[tool.ruff]
+extend = "../standards/python/ruff.toml"
+
+[tool.pytest.ini_options]
+asyncio_default_fixture_loop_scope = "function"
+asyncio_mode = "auto"
