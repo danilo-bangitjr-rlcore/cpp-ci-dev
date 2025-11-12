@@ -30,6 +30,7 @@ jobs:
         working-directory: coreio-cpp
     steps:
       - uses: actions/checkout@v4
+      - uses: hendrikmuhs/ccache-action@v1.2
       - name: Setup
         uses: ./.github/actions/setup
         with:
