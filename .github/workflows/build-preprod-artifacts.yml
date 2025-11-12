@@ -1,0 +1,56 @@
+# To build and push to GHCR locally, use:
+# 
+#  Pre-req:
+#  - Follow these instructions to set up your personal access token (PAT) for GHCR:
+#    https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry#authenticating-with-a-personal-access-token-classic
+#
+# 1. .github/workflows/scripts/build_linux_executables.sh --dev --build-number <BUILD_NUMBER>
+# 1a. double check the build number :) make sure not to override any existing artifacts 
+# 2. source dist/artifacts.env 
+# 3. echo "CORERL_ARTIFACT=$CORERL_ARTIFACT"
+# 4. echo "COREIO_ARTIFACT=$COREIO_ARTIFACT"
+# 5. echo "COREDINATOR_ARTIFACT=$COREDINATOR_ARTIFACT"
+# 6. echo "CORERL_VERSION=$CORERL_VERSION"
+# 7. echo "COREIO_VERSION=$COREIO_VERSION"
+# 8. echo "COREDINATOR_VERSION=$COREDINATOR_VERSION"
+# 9. build the docker image with:
+#   docker build -f .github/workflows/scripts/Dockerfile.preprod \
+#   --build-arg CORERL_ARTIFACT="$CORERL_ARTIFACT" \
+#   --build-arg COREIO_ARTIFACT="$COREIO_ARTIFACT" \
+#   --build-arg COREDINATOR_ARTIFACT="$COREDINATOR_ARTIFACT" \
+#   -t ghcr.io/rlcoretech/corerl-preprod:BUILD_NUMBER .
+# 9a. You can test the image locally with:
+#   docker run -it --rm myimage:tag /bin/bash
+# 10. push the image with:
+#   docker push ghcr.io/rlcoretech/corerl-preprod:BUILD_NUMBER
+
+name: Build Pre-Production Artifacts
+
+# Run manually or every Tuesday and Thursday at 9am UTC
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: '0 9 * * 2,4'
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/build-docker-reusable.yml
+    with:
+      environment: preprod
+      image_suffix: -preprod
+      retention_days: 1
+      push_image: true
+      build_dev: true
+      dockerfile: .github/workflows/scripts/Dockerfile.preprod
+    secrets:
+      APP_ID: ${{ vars.APP_ID }}
+      APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+      GHCR_USERNAME: ${{ vars.TEMP_JASMINE_GHCR_USERNAME }}
+      GHCR_PAT: ${{ secrets.TEMP_JASMINE_GHCR_PAT }}
+      DEPLOY_KEY: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}

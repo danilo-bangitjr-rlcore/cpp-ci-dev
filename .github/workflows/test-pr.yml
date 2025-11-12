@@ -1,0 +1,97 @@
+name: Test Style and Tests
+permissions: write-all # Needed to comment coverage% on PR
+
+on:
+  pull_request:
+    paths:
+      - "test/**"
+      - "libs/**"
+      - "config/**"
+  merge_group:
+    paths:
+      - "test/**"
+      - "libs/**"
+      - "config/**"
+
+concurrency:
+  group: test-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------
+  # -- Style --
+  # -----------
+  test-style-n-test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: test
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: test
+
+      - name: set up path
+        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+
+      # linting
+      - uses: astral-sh/ruff-action@v1
+        with:
+            src: test
+
+      - uses: dciborow/action-pylint@0.1.0
+        with:
+          github_token: ${{ secrets.github_token }}
+          reporter: github-pr-review
+          level: warning
+          workdir: test
+          glob_pattern: "src/"
+
+      # type checking
+      - uses: jakebailey/pyright-action@v2
+        with:
+          pylance-version: latest-release
+          working-directory: test
+
+  # docker-build-n-run-opc-sim:
+  #   runs-on: ubuntu-latest
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+  #       with:
+  #         token: ${{ github.token }}
+
+  #     - name: Set up SSH Agent
+  #       uses: webfactory/ssh-agent@v0.7.0
+  #       with:
+  #         ssh-private-key: ${{ secrets.CORE_ENV_CI_DEPLOY_KEY }}
+
+  #     - name: Build docker compose opc-sim
+  #       run: |
+  #         docker compose build opc-sim
+
+  #     - name: Build docker compose opc-server
+  #       run: |
+  #         docker compose build opc-server
+
+  #     - name: Run docker compose opc-sim
+  #       run: |
+  #         docker compose up -d opc-sim
+
+  #     - name: Verify opc_sim is running
+  #       run: |
+  #         container_id=$(docker compose ps -q opc-sim)
+  #         if [ -z "$container_id" ]; then
+  #           echo "Service not running"
+  #           exit 1
+  #         fi
+  #         echo "Service is running"
+
+  #     - name: Cleanup
+  #       if: always()
+  #       run: |
+  #         docker compose down opc-sim

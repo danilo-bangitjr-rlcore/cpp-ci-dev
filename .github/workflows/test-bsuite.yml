@@ -1,0 +1,28 @@
+name: Behavior Test - Base agent
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-base
+  cancel-in-progress: true
+
+
+jobs:
+  behavior-test:
+    runs-on:
+      group: bsuite
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup
+        uses: ./.github/actions/setup
+        with:
+          subrepo: test
+
+      - name: Run Pytest
+        run: |
+          cd test
+          uv run pytest -n auto --dist worksteal test/behavior/test_bsuite.py --feature_flag base

@@ -1,0 +1,24 @@
+# file path                                         # owners
+*                                                   @rlcoretech/rlcore-codeowners
+
+.github/                                            @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+
+# services
+corerl/                                             @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+coreio/                                             @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coreconfig/                                         @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coredinator/                                        @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coregateway/                                        @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coretelemetry/                                      @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coreui/                                             @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+
+# libraries
+libs/*                                              @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+libs/lib_agent/                                     @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+libs/rl_env/                                        @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+
+# tools
+research/                                           @rlcoretech/agent-team @rlcoretech/rlcore-codeowners
+standards/                                          @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+corecli/                                            @rlcoretech/software-team @rlcoretech/rlcore-codeowners
+coreoffline/                                        @rlcoretech/agent-team @rlcoretech/rlcore-codeowners

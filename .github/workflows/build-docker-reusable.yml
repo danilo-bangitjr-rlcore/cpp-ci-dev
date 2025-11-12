@@ -1,0 +1,238 @@
+name: Build Artifacts (Reusable)
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: 'Target environment (preprod, prod)'
+        required: true
+        type: string
+      image_suffix:
+        description: 'Suffix for the image name'
+        required: false
+        type: string
+        default: ''
+      retention_days:
+        description: 'Artifact retention days'
+        required: false
+        type: number
+        default: 1
+      push_image:
+        description: 'Whether to push the Docker image'
+        required: false
+        type: boolean
+        default: true
+      build_dev:
+        description: 'Build in dev mode'
+        required: false
+        type: boolean
+        default: false
+      dockerfile:
+        description: 'Path to Dockerfile'
+        required: false
+        type: string
+        default: '.github/workflows/scripts/Dockerfile.preprod'
+    secrets:
+      APP_ID:
+        required: true
+      APP_PRIVATE_KEY:
+        required: true
+      GHCR_USERNAME:
+        required: true
+      GHCR_PAT:
+        required: true
+      DEPLOY_KEY:
+        required: false
+      CORE_ENV_CI_DEPLOY_KEY:
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ghcr.io/rlcoretech/corerl${{ inputs.image_suffix }}
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    outputs:
+      build_flags: ${{ steps.validate.outputs.build_flags }}
+    steps:
+      - name: Validate inputs and set build flags
+        id: validate
+        run: |
+          # Validate environment
+          case "${{ inputs.environment }}" in
+            preprod|prod)
+              echo "✅ Valid environment: ${{ inputs.environment }}"
+              ;;
+            *)
+              echo "❌ Invalid environment: ${{ inputs.environment }}"
+              echo "Valid options: preprod, prod"
+              exit 1
+              ;;
+          esac
+          
+          # Set build flags
+          BUILD_FLAGS="--build-number ${{ github.run_number }}"
+          if [[ "${{ inputs.build_dev }}" == "true" ]]; then
+            BUILD_FLAGS="$BUILD_FLAGS --dev"
+          fi
+          echo "build_flags=$BUILD_FLAGS" >> $GITHUB_OUTPUT
+
+  build:
+    needs: validate
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+      packages: write 
+      attestations: write
+    steps:
+      - name: Generate a token
+        id: generate-token
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ steps.generate-token.outputs.token }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: 3.13.0
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Set build number
+        run: |
+          echo "BUILD_NUMBER=${{ github.run_number }}" >> $GITHUB_ENV
+
+      - name: Build Linux executables
+        run: |
+          set -euo pipefail
+          echo "🔨 Building executables for ${{ inputs.environment }} environment..."
+          .github/workflows/scripts/build_linux_executables.sh ${{ needs.validate.outputs.build_flags }}
+      
+      - name: Verify and load artifact names
+        id: load-artifacts
+        run: |
+          set -euo pipefail
+          
+          # Verify artifacts.env exists
+          if [[ ! -f "dist/artifacts.env" ]]; then
+            echo "❌ Build failed: dist/artifacts.env not found"
+            exit 1
+          fi
+          
+          # Load and verify environment variables
+          source dist/artifacts.env
+          
+          # Check required variables are set
+          for var in CORERL_ARTIFACT COREIO_ARTIFACT COREDINATOR_ARTIFACT CORERL_VERSION COREIO_VERSION COREDINATOR_VERSION; do
+            if [[ -z "${!var:-}" ]]; then
+              echo "❌ Missing required variable: $var"
+              exit 1
+            fi
+          done
+          
+          # Verify artifacts exist
+          for artifact in "$CORERL_ARTIFACT" "$COREIO_ARTIFACT" "$COREDINATOR_ARTIFACT"; do
+            if [[ ! -f "dist/$artifact" ]]; then
+              echo "❌ Missing artifact file: dist/$artifact"
+              exit 1
+            fi
+            echo "✅ Found artifact: $artifact"
+          done
+          
+          # Export to GitHub environment
+          echo "CORERL_ARTIFACT=$CORERL_ARTIFACT" >> $GITHUB_ENV
+          echo "COREIO_ARTIFACT=$COREIO_ARTIFACT" >> $GITHUB_ENV
+          echo "COREDINATOR_ARTIFACT=$COREDINATOR_ARTIFACT" >> $GITHUB_ENV
+          echo "CORERL_VERSION=$CORERL_VERSION" >> $GITHUB_ENV
+          echo "COREIO_VERSION=$COREIO_VERSION" >> $GITHUB_ENV
+          echo "COREDINATOR_VERSION=$COREDINATOR_VERSION" >> $GITHUB_ENV
+          
+          echo "✅ All artifacts verified and loaded"
+      
+      - name: Upload Linux executables
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.environment }}-corerl-linux-executables
+          path: ./dist/
+          retention-days: ${{ inputs.retention_days }}
+
+      - name: Setup metadata for docker image
+        if: inputs.push_image
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ env.CORERL_VERSION }}-rc.${{ github.run_number }}
+          labels: |
+            org.opencontainers.image.vendor=RL Core Technologies
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=Core-RL ${{ inputs.environment }}
+            org.opencontainers.image.description=Core-RL platform for ${{ inputs.environment }} environment
+
+      - name: Log in to GitHub Container Registry
+        if: inputs.push_image
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_PAT }}
+
+      - name: Set up QEMU
+        if: inputs.push_image
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        if: inputs.push_image
+        uses: docker/setup-buildx-action@v3
+
+      - name: Set up SSH Agent
+        if: inputs.push_image
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.DEPLOY_KEY }}
+
+      - name: Build and push Docker Image
+        if: inputs.push_image
+        id: build_push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          ssh: default=${{ env.SSH_AUTH_SOCK }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          file: ${{ inputs.dockerfile }}
+          build-args: |
+            CORERL_ARTIFACT=${{ env.CORERL_ARTIFACT }}
+            COREIO_ARTIFACT=${{ env.COREIO_ARTIFACT }}
+            COREDINATOR_ARTIFACT=${{ env.COREDINATOR_ARTIFACT }}
+            CORERL_VERSION=${{ env.CORERL_VERSION }}
+            COREIO_VERSION=${{ env.COREIO_VERSION }}
+            COREDINATOR_VERSION=${{ env.COREDINATOR_VERSION }}
+            ENVIRONMENT=${{ inputs.environment }}
+
+      # - name: Generate artifact attestation
+      #   if: inputs.push_image
+      #   uses: actions/attest-build-provenance@v2
+      #   with:
+      #     subject-name: ${{ env.IMAGE_NAME }}
+      #     subject-digest: ${{ steps.build_push.outputs.digest }}
+      #     push-to-registry: true

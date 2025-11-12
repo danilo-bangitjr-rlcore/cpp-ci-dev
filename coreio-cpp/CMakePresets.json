@@ -1,0 +1,81 @@
+{
+  "version": 8,
+  "configurePresets": [
+    {
+      "name": "linux-build",
+      "displayName": "Linux Build",
+      "description": "Configures a standard build using Makefiles on Linux.",
+      "generator": "Unix Makefiles",
+      "cacheVariables": {
+        "CMAKE_C_COMPILER": "gcc",
+        "CMAKE_CXX_COMPILER": "g++"
+      },
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "debug-linux",
+      "displayName": "Debug Build for Linux",
+      "description": "Configures a debug build using Makefiles on Linux.",
+      "inherits": "linux-build",
+      "binaryDir": "${sourceDir}/build/debug-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-linux",
+      "displayName": "Release Build for Linux",
+      "description": "Configures a release build using Makefiles on Linux.",
+      "inherits": "linux-build",
+      "binaryDir": "${sourceDir}/build/release-linux",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "ci-build",
+      "displayName": "CI Build",
+      "description": "A preset for continuous integration builds.",
+      "inherits": "debug-linux",
+      "cacheVariables": {
+        "BUILD_SHARED_LIBS": "OFF"
+      },
+      "environment": {
+        "CI_BUILD_FLAG": "TRUE"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "debug-build",
+      "displayName": "Debug Build",
+      "configurePreset": "debug-linux"
+    },
+    {
+      "name": "release-build",
+      "displayName": "Release Build",
+      "configurePreset": "release-linux"
+    },
+    {
+      "name": "ci-build",
+      "displayName": "CI Build",
+      "configurePreset": "ci-build",
+      "jobs": 8,
+      "verbose": true
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "run-tests",
+      "displayName": "Run All Tests",
+      "configurePreset": "debug-linux",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+name: C++ CI
+on:
+  workflow_call:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        preset: [ci-linux-gcc, ci-linux-clang, ci-windows]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hendrikmuhs/ccache-action@v1.2
+      - run: cmake --preset ${{ matrix.preset }} -S cpp -B build/cpp
+      - run: cmake --build --preset ${{ matrix.preset }}
+      - run: ctest --preset ci --test-dir build/cpp

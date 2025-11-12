@@ -1,0 +1,28 @@
+name: Shared setup workflow
+
+inputs:
+  subrepo:
+    description: "The subrepo to setup"
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: 3.13.0
+        activate-environment: true
+        working-directory: ${{ inputs.subrepo }}
+
+    - name: setup dependencies
+      if: ${{ !inputs.language || inputs.language == 'python' }}
+      shell: bash
+      run: |
+        cd ${{ inputs.subrepo }}
+        uv sync --all-extras --dev --frozen
+
+    - name: Install cmake-lint
+      if: ${{ inputs.language == 'cpp' }}
+      run: |
+        uv pip install cmakelang
