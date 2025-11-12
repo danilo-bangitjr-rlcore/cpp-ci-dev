@@ -24,5 +24,6 @@ runs:
 
     - name: Install cmake-lint
       if: ${{ inputs.language == 'cpp' }}
+      shell: bash
       run: |
         uv pip install cmakelang
