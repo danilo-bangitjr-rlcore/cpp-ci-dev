@@ -7,7 +7,7 @@ requires-python = ">=3.13"
 dependencies = [
     # asyncua 1.1.8 causes failures when connecting to matrikon due to "BadServerUriInvalid"
     # see: https://github.com/FreeOpcUa/opcua-asyncio/issues/1865
-    "asyncua==1.1.6",
+    "asyncua==1.1.8",
     "backoff~=2.2",
     "colorlog~=6.9",
     "lib-config",
