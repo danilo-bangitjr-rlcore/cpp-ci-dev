@@ -59,23 +59,14 @@ jobs:
       #     pylance-version: latest-release
       #     working-directory: coreio-cpp
 
-      # - name: Configure Debug Build
-      #   run: cmake --preset debug-linux
+      - name: Configure Debug Build
+        run: cmake --preset debug-linux
 
-      # - name: Build Debug
-      #   run: cmake --build --preset debug-build
+      - name: Build Debug
+        run: cmake --build --preset debug-build
 
-      - name: Configure and Build Debug on Linux with CMake Action
-        # This action automatically handles source-dir and build-dir from the preset
-        uses: threeal/cmake-action@v2.1.0
-        with:
-          configure-preset: "debug-linux"
-          build-preset: "debug-build"
-
-      # TODO: Set up C++ testing framework (gtest?) and write tests
-      # - name: Run Pytest
-      #   run: |
-      #     pytest --cov=coreio --cov-report=html --asyncio-mode=auto tests/
+      - name: Run Tests
+        run: ctest --preset run-tests --output-on-failure
 
       # TODO: Setup code coverage for C++ tests (gcov/lcov?)
       # - name: Combine coverage
