@@ -1,9 +1,17 @@
 cmake_minimum_required(VERSION 3.25)
 project(coreio-cpp CXX)
 
+option(ENABLE_COVERAGE "Build with gcovr instrumentation" OFF)
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True) # Optional, but recommended
 set(CMAKE_CXX_EXTENSIONS OFF) # Optional, for stricter standard compliance
+
+if(ENABLE_COVERAGE)
+  message(STATUS "Coverage instrumentation ENABLED")
+  add_compile_options(-O0 -g --coverage -fprofile-arcs -ftest-coverage)
+  add_link_options(--coverage)
+endif()
 
 include(FetchContent)
 FetchContent_Declare(
