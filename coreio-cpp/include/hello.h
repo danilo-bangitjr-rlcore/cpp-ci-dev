@@ -3,6 +3,6 @@
 
 #include <string>
 
-std::string hello_world();
+std::string hello_world_message();
 
 #endif // HELLO_H
