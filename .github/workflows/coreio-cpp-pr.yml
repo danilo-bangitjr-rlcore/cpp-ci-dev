@@ -81,7 +81,6 @@ jobs:
       #     echo "Coverage Percentage: $COV_PERCENTAGE"
       #     echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
 
-      - run: ls -la ./build/coverage/report/
       - uses: actions/upload-artifact@v4
         id: code-coverage-upload-step
         with:
