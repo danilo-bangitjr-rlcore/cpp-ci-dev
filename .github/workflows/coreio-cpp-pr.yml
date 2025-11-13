@@ -63,13 +63,16 @@ jobs:
       #     pylance-version: latest-release
       #     working-directory: coreio-cpp
 
-      - name: Build Debug & Run Tests
+      - name: Configure & Build Debug
         run: |
           cmake --preset debug-linux
           cmake --build --preset debug-build
+
+      - name: Run Tests
+        run: |
           ctest --preset run-tests --output-on-failure
 
-      - name: Build & Generate Coverage Report
+      - name: Generate Coverage Report
         run: |
           cmake --preset coverage
           cmake --build --preset coverage-build
