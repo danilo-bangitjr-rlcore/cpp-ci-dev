@@ -30,7 +30,8 @@ jobs:
         working-directory: coreio-cpp
     steps:
       - uses: actions/checkout@v4
-      - uses: hendrikmuhs/ccache-action@v1.2
+      # TODO: Enable ccache to speed up builds
+      # - uses: hendrikmuhs/ccache-action@v1.2
       - name: Setup
         uses: ./.github/actions/setup
         with:
@@ -72,21 +73,19 @@ jobs:
         run: |
           cmake --preset coverage
           cmake --build --preset coverage-build
-          ls ./build/coverage/report
 
-      - name: Extract Coverage Percentage
-        id: extract-coverage
-        run: |
-          ls ./build/coverage/report
-          COV_PERCENTAGE=$(gcovr --root=. --exclude-unreachable-branches --print-summary | grep "lines:" | awk '{print $2}' | sed 's/%//')
-          echo "Coverage Percentage: $COV_PERCENTAGE"
-          echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
+      # - name: Extract Coverage Percentage
+      #   id: extract-coverage
+      #   run: |
+      #     COV_PERCENTAGE=$(gcovr --root=. --exclude-unreachable-branches --print-summary | grep "lines:" | awk '{print $2}' | sed 's/%//')
+      #     echo "Coverage Percentage: $COV_PERCENTAGE"
+      #     echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
 
       - uses: actions/upload-artifact@v4
         id: code-coverage-upload-step
         with:
           name: code-coverage-report
-          path: build/coverage/report/
+          path: ./build/coverage/report/
           overwrite: true
 
       - run: |

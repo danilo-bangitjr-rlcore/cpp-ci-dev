@@ -46,7 +46,6 @@ if(ENABLE_COVERAGE)
                     --exclude="${CMAKE_BINARY_DIR}/_deps/googletest-src/*"
                     --exclude="${CMAKE_SOURCE_DIR}/tests"
                     --exclude-unreachable-branches
-                    --print-summary
                     --xml
                     --output ${CMAKE_BINARY_DIR}/report/coverage.xml
 
