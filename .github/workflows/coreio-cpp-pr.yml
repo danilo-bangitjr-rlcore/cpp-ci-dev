@@ -59,20 +59,16 @@ jobs:
       #     pylance-version: latest-release
       #     working-directory: coreio-cpp
 
-      - name: Configure Debug Build
-        run: cmake --preset debug-linux
+      - name: Build Debug & Run Tests
+        run: |
+          cmake --preset debug-linux
+          cmake --build --preset debug-build
+          ctest --preset run-tests --output-on-failure
 
-      - name: Build Debug
-        run: cmake --build --preset debug-build
-
-      - name: Run Tests
-        run: ctest --preset run-tests --output-on-failure
-
-      # TODO: Setup code coverage for C++ tests (gcov/lcov?)
-      # - name: Combine coverage
-      #   run: |
-      #     uv run coverage html
-      #     echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+      - name: Build & Generate Coverage Report
+        run: |
+          cmake --preset coverage
+          cmake --build --preset coverage-build
 
       # TODO: Upload code coverage artifact - do this after setting up C++ testing and coverage
       # - uses: actions/upload-artifact@v4
