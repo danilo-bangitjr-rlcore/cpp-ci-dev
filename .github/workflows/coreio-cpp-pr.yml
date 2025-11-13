@@ -92,9 +92,10 @@ jobs:
           echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
           echo "${{ steps.code-coverage-upload-step.outputs.artifact-url }}"
 
-      # - uses: thollander/actions-comment-pull-request@v3
-      #   with:
-      #     message: |
-      #       _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
-      #       🏁 CoreIO-CPP tests ran. Coverage reporting is not yet configured. 🏁
-      #     comment-tag: execution-coreio-cpp
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.code-coverage-upload-step.outputs.artifact-url }}
+          comment-tag: execution-coreio-cpp
