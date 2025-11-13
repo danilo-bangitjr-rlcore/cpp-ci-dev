@@ -23,45 +23,47 @@ gtest_discover_tests(hello_test)
 
 # Add a custom target for generating coverage reports (if ENABLE_COVERAGE is ON)
 if(ENABLE_COVERAGE)
-    find_program(GCOVR gcovr)
-    if(GCOVR)
-        add_custom_target(coverage_report
-            COMMAND ${CMAKE_CTEST_COMMAND} 
-                --output-on-failure 
-                --test-dir ${CMAKE_CURRENT_BINARY_DIR}
+  find_program(GCOVR gcovr)
+  if(GCOVR)
+    add_custom_target(
+      coverage_report
+      COMMAND ${CMAKE_CTEST_COMMAND}
+        --output-on-failure
+        --test-dir ${CMAKE_CURRENT_BINARY_DIR}
 
-            # Make output dir
-            COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/report
+      # Make output dir
+      COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/report
 
-            # Generate reports
-            COMMAND ${GCOVR}
-                    --root=${CMAKE_SOURCE_DIR}
-                    --object-directory=${CMAKE_BINARY_DIR}
-                    --exclude="${CMAKE_BINARY_DIR}/_deps/googletest-src/*"
-                    --exclude="${CMAKE_SOURCE_DIR}/tests"
-                    --exclude-unreachable-branches
-                    --print-summary
-                    --html-details
-                    --html-title "${PROJECT_NAME} Coverage"
-                    # Main html output file
-                    --output ${CMAKE_BINARY_DIR}/report/coverage.html
-                    # XML output file for CI systems
-                    --cobertura ${CMAKE_BINARY_DIR}/report/coverage.xml
-                    # Text output file
-                    --txt ${CMAKE_BINARY_DIR}/report/coverage.txt
+      # Generate reports
+      COMMAND ${GCOVR}
+        --root=${CMAKE_SOURCE_DIR}
+        --object-directory=${CMAKE_BINARY_DIR}
+        --exclude="${CMAKE_BINARY_DIR}/_deps/googletest-src/*"
+        --exclude="${CMAKE_SOURCE_DIR}/tests"
+        --exclude-unreachable-branches
+        --print-summary
+        --html-details
+        --html-title "${PROJECT_NAME} Coverage"
+        # Main html output file
+        --output ${CMAKE_BINARY_DIR}/report/coverage.html
+        # XML output file for CI systems
+        --cobertura ${CMAKE_BINARY_DIR}/report/coverage.xml
+        # Text output file
+        --txt ${CMAKE_BINARY_DIR}/report/coverage.txt
 
-            COMMENT "Generating code coverage report..."
-        )
-    else()
-        message(WARNING "gcovr not found. Code coverage report generation will be skipped.")
-    endif()
-endif()
+      COMMENT "Generating code coverage report..."
+    )
+  else()
+    message(WARNING "gcovr not found. Code coverage report will be skipped.")
+  endif()
 
+# TODO: Do we also want to add a target to generate LCOV reports?
+# Alternative coverage target using lcov and genhtml
 # find_program(LCOV NAMES lcov)
 # find_program(GENHTML NAMES genhtml)
 
 # if(LCOV AND GENHTML)
-#   add_custom_target(coverage
+# add_custom_target(coverage
 #     COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_BINARY_DIR}/coverage
 
 #     # 1. Zero counters
@@ -77,9 +79,9 @@ endif()
 
 #     # 4. Remove system / test files
 #     COMMAND ${LCOV} --remove ${CMAKE_BINARY_DIR}/coverage.info
-#                     '/usr/*' '${CMAKE_SOURCE_DIR}/tests/*' '${CMAKE_BINARY_DIR}/*'
-#                     --output-file ${CMAKE_BINARY_DIR}/coverage.filtered.info
-#                     --rc lcov_branch_coverage=1
+#       '/usr/*' '${CMAKE_SOURCE_DIR}/tests/*' '${CMAKE_BINARY_DIR}/*'
+#       --output-file ${CMAKE_BINARY_DIR}/coverage.filtered.info
+#       --rc lcov_branch_coverage=1
 
 #     # 5. Generate HTML
 #     COMMAND ${GENHTML} ${CMAKE_BINARY_DIR}/coverage.filtered.info
@@ -88,8 +90,8 @@ endif()
 #                     --title "MyProject Code Coverage"
 
 #     COMMENT "Generating HTML coverage report in ${CMAKE_BINARY_DIR}/coverage"
-#   )
+# )
 # else()
-#   message(WARNING "lcov or genhtml not found – coverage target disabled")
+# message(WARNING "lcov or genhtml not found – coverage target disabled")
 # endif()
 
