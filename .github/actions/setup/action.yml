@@ -21,8 +21,12 @@ runs:
         cd ${{ inputs.subrepo }}
         uv sync --all-extras --dev --frozen
 
-    - name: Install cmake-lint
+    - name: Install cpp dependencies
+      if: ${{ inputs.language == 'cpp' }}
       shell: bash
       if: ${{ inputs.subrepo == 'coreio-cpp' }}
       run: |
-        uv install cmakelint
+        uv pip install cmakelang
+        sudo apt-get install -y gcovr lcov cmake build-essential
+        # In Fedora, use this command
+        # sudo dnf install -y gcovr lcov cmake gcc g++ make
