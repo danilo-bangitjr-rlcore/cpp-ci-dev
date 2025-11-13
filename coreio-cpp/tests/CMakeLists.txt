@@ -38,7 +38,7 @@ if(ENABLE_COVERAGE)
                     --print-summary
                     --html-details
                     --html-title "${PROJECT_NAME} Coverage"
-                    --output ${CMAKE_BINARY_DIR}/report/index.html
+                    --output ${CMAKE_BINARY_DIR}/report/coverage.html
 
             COMMAND ${GCOVR}
                     --root=${CMAKE_SOURCE_DIR}
