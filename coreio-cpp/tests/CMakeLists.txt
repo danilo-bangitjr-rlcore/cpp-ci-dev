@@ -43,16 +43,12 @@ if(ENABLE_COVERAGE)
                     --print-summary
                     --html-details
                     --html-title "${PROJECT_NAME} Coverage"
+                    # Main html output file
                     --output ${CMAKE_BINARY_DIR}/report/coverage.html
-
-            COMMAND ${GCOVR}
-                    --root=${CMAKE_SOURCE_DIR}
-                    --object-directory=${CMAKE_BINARY_DIR}
-                    --exclude="${CMAKE_BINARY_DIR}/_deps/googletest-src/*"
-                    --exclude="${CMAKE_SOURCE_DIR}/tests"
-                    --exclude-unreachable-branches
-                    --xml
-                    --output ${CMAKE_BINARY_DIR}/report/coverage.xml
+                    # XML output file for CI systems
+                    --cobertura ${CMAKE_BINARY_DIR}/report/coverage.xml
+                    # Text output file
+                    --txt ${CMAKE_BINARY_DIR}/report/coverage.txt
 
             COMMENT "Generating code coverage report..."
         )
