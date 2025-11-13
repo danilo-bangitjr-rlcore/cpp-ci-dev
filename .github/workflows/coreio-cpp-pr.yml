@@ -38,27 +38,21 @@ jobs:
       - name: set up path
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
-      # linting
-      - uses: astral-sh/ruff-action@v1
-        with:
-            src: coreio-cpp
+      # TODO: Also lint CMakeLists.txt files using cmakelang
 
-      # TODO: Integrate a C++ linter here
-      # TODO: Choose best C++ linter for the project and configure it properly
-      # - uses: dciborow/action-pylint@0.1.0
-      #   with:
-      #     github_token: ${{ secrets.github_token }}
-      #     reporter: github-pr-review
-      #     level: warning
-      #     workdir: coreio-cpp
-      #     glob_pattern: "src/"
+      - name: Run clang-format (style check)
+        run: |
+          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\)' -not -path "./build/*" -exec clang-format --style=file --dry-run --Werror {} \;
 
-      # TODO: Delete before final PR. CPP is strongly typed so type checking is done at compile time.
-      # type checking
-      # - uses: jakebailey/pyright-action@v2
-      #   with:
-      #     pylance-version: latest-release
-      #     working-directory: coreio-cpp
+      - name: Run cppcheck (static analysis)
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+                   --suppress=missingIncludeSystem \
+                   --error-exitcode=1 \
+                   --inline-suppr \
+                   --quiet \
+                   --language=c++ \
+                   $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.cxx' -o -name '*.h' | grep -v "./build/")      
 
       - name: Configure & Build Debug
         run: |

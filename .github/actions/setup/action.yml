@@ -28,5 +28,8 @@ runs:
       run: |
         uv pip install cmakelang
         sudo apt-get install -y gcovr lcov cmake build-essential
+        sudo apt-get install -y clang-format cppcheck
+
         # In Fedora, use this command
         # sudo dnf install -y gcovr lcov cmake gcc g++ make
+        # sudo dnf install -y clang-format cppcheck
