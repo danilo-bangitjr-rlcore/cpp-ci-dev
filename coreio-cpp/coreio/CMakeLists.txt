@@ -4,7 +4,11 @@ add_executable(
   hello.cpp
 )
 
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+set_property(
+  TARGET
+  ${PROJECT_NAME}
+  PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+)
 
 target_include_directories(
   ${PROJECT_NAME}

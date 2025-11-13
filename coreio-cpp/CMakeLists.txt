@@ -12,7 +12,8 @@ if(ENABLE_COVERAGE)
 
   add_library(coverage_flags INTERFACE)
   target_compile_options(coverage_flags INTERFACE -O0 -g --coverage)
-  target_compile_options(coverage_flags INTERFACE -fprofile-arcs -ftest-coverage)
+  target_compile_options(coverage_flags INTERFACE -fprofile-arcs)
+  target_compile_options(coverage_flags INTERFACE -ftest-coverage)
   target_link_options(coverage_flags INTERFACE --coverage)
 endif()
 
