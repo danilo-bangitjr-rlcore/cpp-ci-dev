@@ -70,17 +70,16 @@ jobs:
           cmake --preset coverage
           cmake --build --preset coverage-build
 
-      # TODO: Upload code coverage artifact - do this after setting up C++ testing and coverage
-      # - uses: actions/upload-artifact@v4
-      #   id: htmlcov-upload-step
-      #   with:
-      #     name: htmlcov
-      #     path: coreio-cpp/htmlcov/
-      #     overwrite: true
+      - uses: actions/upload-artifact@v4
+        id: code-coverage-upload-step
+        with:
+          name: code-coverage-report
+          path: build/coverage/report/
+          overwrite: true
 
-      # - run: |
-      #     echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
-      #     echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+      - run: |
+          echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.code-coverage-upload-step.outputs.artifact-url }}"
 
       # - uses: thollander/actions-comment-pull-request@v3
       #   with:
