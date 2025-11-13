@@ -74,6 +74,14 @@ jobs:
           cmake --build --preset coverage-build
           ls ./build/coverage/report
 
+      - name: Extract Coverage Percentage
+        id: extract-coverage
+        run: |
+          ls ./build/coverage/report
+          COV_PERCENTAGE=$(gcovr --root=. --exclude-unreachable-branches --print-summary | grep "lines:" | awk '{print $2}' | sed 's/%//')
+          echo "Coverage Percentage: $COV_PERCENTAGE"
+          echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
+
       - uses: actions/upload-artifact@v4
         id: code-coverage-upload-step
         with:
