@@ -45,7 +45,8 @@ jobs:
 
       - name: Run clang-format (style check)
         run: |
-          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\)' -not -path "./build/*" -exec clang-format --style=file --dry-run --Werror {} \;
+          find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\)' -not -path "./build/*" -exec clang-format --style=file -i {} \;
+          git diff --exit-code
 
       - name: Run cppcheck (static analysis)
         run: |
