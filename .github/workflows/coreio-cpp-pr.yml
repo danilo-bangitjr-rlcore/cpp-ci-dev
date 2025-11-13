@@ -41,14 +41,16 @@ jobs:
       - name: set up path
         run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
-      # TODO: Also lint CMakeLists.txt files using cmakelang
+      - name: Lint CMake files
+        run: |
+          find . -name "CMakeLists.txt" -not -path "./build/*" -o -name "*.cmake" -not -path "./build/*" | xargs cmake-lint
 
-      - name: Run clang-format (style check)
+      - name: Check Source File Styles with clang-format
         run: |
           find . -regex '.*\.\(cpp\|hpp\|cc\|cxx\|h\)' -not -path "./build/*" -exec clang-format --style=file -i {} \;
           git diff --exit-code
 
-      - name: Run cppcheck (static analysis)
+      - name: Static Analysis with cppcheck
         run: |
           cppcheck --enable=warning,style,performance,portability \
                    --suppress=missingIncludeSystem \
@@ -72,10 +74,6 @@ jobs:
         run: |
           cmake --preset coverage
           cmake --build --preset coverage-build
-
-      - name: Extract Coverage Percentage
-        id: extract-coverage
-        run: |
           COV_PERCENTAGE=$(grep "TOTAL" build/coverage/report/coverage.txt | awk '{print $NF}' | sed 's/%//')
           echo "Coverage Percentage: $COV_PERCENTAGE"
           echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
