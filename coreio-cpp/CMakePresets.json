@@ -87,7 +87,7 @@
       "name": "coverage-build",
       "displayName": "Build Coverage",
       "configurePreset": "coverage",
-      "targets": ["hello_test", "coverage_report"]
+      "targets": ["coreio_test", "coverage_report"]
     }
   ],
   "testPresets": [

@@ -9,8 +9,10 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Optional, for stricter standard compliance
 
 if(ENABLE_COVERAGE)
   message(STATUS "Coverage instrumentation ENABLED")
-  add_compile_options(-O0 -g --coverage -fprofile-arcs -ftest-coverage)
-  add_link_options(--coverage)
+
+  add_library(coverage_flags INTERFACE)
+  target_compile_options(coverage_flags INTERFACE -O0 -g --coverage -fprofile-arcs -ftest-coverage)
+  target_link_options(coverage_flags INTERFACE --coverage)
 endif()
 
 include(FetchContent)

@@ -22,3 +22,6 @@ target_link_libraries(
 	${PROJECT_NAME}
 )
 
+if(ENABLE_COVERAGE)
+  target_link_libraries(${PROJECT_NAME} PRIVATE coverage_flags)
+endif()
