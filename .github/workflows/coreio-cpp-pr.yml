@@ -55,6 +55,7 @@ jobs:
                    --error-exitcode=1 \
                    --inline-suppr \
                    --quiet \
+                   --language=c++ \
                    $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.cxx' -o -name '*.h' | grep -v "./build/")      
 
       - name: Configure & Build Debug
