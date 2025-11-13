@@ -1,11 +1,11 @@
-#include <gtest/gtest.h>
 #include "../include/hello.h"
+#include <gtest/gtest.h>
 
 // Define a test case: Suite Name "HelloTest", Test Name "BasicAssertions"
 TEST(HelloTest, BasicAssertions) {
-    std::string expected = "Hello, World!";
-    std::string actual = hello_world_message();
+  std::string expected = "Hello, World!";
+  std::string actual = hello_world_message();
 
-    // Google Test assertion for equality
-    EXPECT_EQ(expected, actual);
+  // Google Test assertion for equality
+  EXPECT_EQ(expected, actual);
 }
