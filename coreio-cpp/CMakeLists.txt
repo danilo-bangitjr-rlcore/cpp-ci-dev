@@ -1,33 +1,23 @@
 cmake_minimum_required(VERSION 3.25)
-project(coreio-cpp)
+project(coreio-cpp CXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED True) # Optional, but recommended
 set(CMAKE_CXX_EXTENSIONS OFF) # Optional, for stricter standard compliance
 
+include(FetchContent)
+FetchContent_Declare(
+  GoogleTest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG        v1.17.0 # Or a specific tag like 'release-1.12.1' for a stable version  
+)
+
+# Source: https://google.github.io/googletest/quickstart-cmake.html
+# For Windows: Prevent overriding the parent project's compiler/linker settings
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(GoogleTest)
+
 enable_testing()
 
-add_executable(
-	${PROJECT_NAME}
-	coreio/main.cpp
-	coreio/hello.cpp
-)
-
-set_property(TARGET ${PROJECT_NAME} PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
-
-target_include_directories(
-	${PROJECT_NAME}
-	PUBLIC
-	coreio/
-)
-
-target_include_directories(
-	${PROJECT_NAME}
-	PRIVATE
-	"include/"
-)
-
-target_link_libraries(
-	${PROJECT_NAME}
-)
-
+add_subdirectory(coreio)
+add_subdirectory(tests)
