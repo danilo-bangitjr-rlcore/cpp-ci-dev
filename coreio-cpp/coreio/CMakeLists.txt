@@ -10,12 +10,6 @@ set_property(
   PROPERTY VS_DEBUGGER_WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-target_include_directories(
-  ${PROJECT_NAME}
-  PUBLIC
-  ../include/
-)
-
 target_link_libraries(
   ${PROJECT_NAME}
 )
