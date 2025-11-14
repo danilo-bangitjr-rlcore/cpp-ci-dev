@@ -32,5 +32,7 @@ FetchContent_MakeAvailable(GoogleTest)
 
 enable_testing()
 
+include_directories(${CMAKE_SOURCE_DIR}/include)
+
 add_subdirectory(coreio)
 add_subdirectory(tests)
