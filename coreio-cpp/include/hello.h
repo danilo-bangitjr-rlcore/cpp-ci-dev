@@ -1,8 +1,5 @@
-#ifndef HELLO_H
-#define HELLO_H
+#pragma once
 
 #include <string>
 
 std::string hello_world_message();
-
-#endif // HELLO_H
