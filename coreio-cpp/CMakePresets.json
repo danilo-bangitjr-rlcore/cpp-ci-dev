@@ -93,8 +93,16 @@
   "testPresets": [
     {
       "name": "run-tests",
-      "displayName": "Run All Tests",
+      "displayName": "Run All Tests (Debug)",
       "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "run-tests-release",
+      "displayName": "Run All Tests (Release)",
+      "configurePreset": "release-linux",
       "output": {
         "outputOnFailure": true
       }
