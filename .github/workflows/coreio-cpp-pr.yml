@@ -21,7 +21,7 @@ concurrency:
 
 jobs:
   # ------------------------------------------------------------------
-  # 1. Checkout + restore caches (produces artifacts for other jobs)
+  # Checkout + restore caches (produces artifacts for other jobs)
   # ------------------------------------------------------------------
   checkout-and-cache:
     name: Checkout & Cache
@@ -42,6 +42,7 @@ jobs:
           key: ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
           max-size: 1G
 
+      # TODO: Investigate Conan caching to speed up dependency installation
       # - name: Cache Conan packages
       #   uses: actions/cache@v4
       #   with:
@@ -50,7 +51,7 @@ jobs:
       #     restore-keys: conan-${{ runner.os }}-
 
   # ------------------------------------------------------------------
-  # 2. Fast required lane (must pass before merge)
+  # Fast required lane (must pass before merge)
   # ------------------------------------------------------------------
   build-and-test:
     needs: checkout-and-cache
@@ -64,7 +65,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: Ubuntu GCC Debug + ASan
+          - name: Build & Test Debug + ASan (Ubuntu GCC)
             os: ubuntu-latest
             compiler: gcc
             configure-preset: debug-linux
@@ -73,7 +74,7 @@ jobs:
             extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
             required: true
 
-          - name: Ubuntu GCC Release + ASan
+          - name: Build & Test Release + ASan (Ubuntu GCC)
             os: ubuntu-latest
             compiler: gcc
             configure-preset: release-linux
@@ -91,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup compiler (Linux/macOS)
+      - name: Setup compiler and dependencies
         if: runner.os != 'Windows'
         run: |
           sudo apt update -y
@@ -138,7 +139,35 @@ jobs:
           exclude-regex: '^third_party/|^build/'
 
   # ------------------------------------------------------------------
+  # clang-tidy (best-effort, runs only on changed files → super fast)
+  # ------------------------------------------------------------------
+  clang-tidy:
+    needs: checkout-and-cache
+    name: Static Analysis (clang-tidy)
+    runs-on: ubuntu-latest
+    continue-on-error: true   # change to false if you want to block merges
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup clang-tidy
+        run: sudo apt install -y clang-tidy-20
+
+      - name: Run clang-tidy on changed files
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }} | grep -E '\.(cpp|hpp|cxx|hxx)$' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No C++ files changed"
+            exit 0
+          fi
+          cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          run-clang-tidy-20 -quiet -p build $CHANGED_FILES || echo "clang-tidy found issues (non-blocking)"
+
+  # ------------------------------------------------------------------
   # Static Analysis (fail fast)
+  # TODO: Investigate CodeQL analysis for C++ (may not be fast enough for PRs)
   # ------------------------------------------------------------------
   static-analysis:
     needs: checkout-and-cache
@@ -180,7 +209,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup GCC + ccache
+      - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
 
       - name: Install coverage dependencies
@@ -220,40 +249,7 @@ jobs:
       # Optional: also upload to Coveralls, SonarCloud, etc.
 
   # # ------------------------------------------------------------------
-  # # 4. clang-tidy (best-effort, runs only on changed files → super fast)
-  # # ------------------------------------------------------------------
-  # clang-tidy:
-  #   needs: checkout-and-cache
-  #   name: clang-tidy
-  #   runs-on: ubuntu-latest
-  #   continue-on-error: true   # change to false if you want to block merges
-  #   steps:
-  #     - uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
-
-  #     - name: Setup clang-tidy
-  #       run: sudo apt install -y clang-tidy-19
-
-  #     - name: Install dependencies
-  #       run: |
-  #         pip install conan
-  #         conan profile detect --force
-  #         conan install . --output-folder=build --build=missing -s build_type=Debug
-
-  #     - name: Run clang-tidy on changed files
-  #       run: |
-  #         git fetch origin ${{ github.base_ref }} --depth=1
-  #         CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }} | grep -E '\.(cpp|hpp|cxx|hxx)$' || true)
-  #         if [ -z "$CHANGED_FILES" ]; then
-  #           echo "No C++ files changed"
-  #           exit 0
-  #         fi
-  #         cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-  #         run-clang-tidy-19 -quiet -p build $CHANGED_FILES || echo "clang-tidy found issues (non-blocking)"
-
-  # # ------------------------------------------------------------------
-  # # 5. Optional heavy jobs (run nightly or on main only)
+  # # Optional heavy jobs (run nightly or on main only)
   # # ------------------------------------------------------------------
   # static-analysis:
   #   if: github.ref == 'refs/heads/main' || github.event_name == 'schedule'
