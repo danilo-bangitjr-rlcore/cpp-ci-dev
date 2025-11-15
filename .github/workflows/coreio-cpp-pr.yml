@@ -149,7 +149,7 @@ jobs:
         working-directory: coreio-cpp
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Setup cppcheck
         run: sudo apt install -y cppcheck
 
@@ -182,6 +182,11 @@ jobs:
 
       - name: Setup GCC + ccache
         uses: hendrikmuhs/ccache-action@v1.2
+
+      - name: Install coverage dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gcovr lcov cmake build-essential
 
       - name: Configure CMake with coverage flags
         run: cmake --preset coverage
