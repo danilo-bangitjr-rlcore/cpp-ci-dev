@@ -1,4 +1,4 @@
-name: CoreIO-CPP Style and Tests
+name: CoreIO-CPP CI
 permissions: write-all # Needed to comment coverage% on PR
 
 on:
@@ -20,79 +20,233 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # -----------
-  # -- Style --
-  # -----------
-  coreio-cpp-ci:
+  # ------------------------------------------------------------------
+  # Checkout + restore caches (produces artifacts for other jobs)
+  # ------------------------------------------------------------------
+  checkout-and-cache:
+    name: Checkout & Cache
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    outputs:
+      cache-ccache: ${{ steps.ccache.outputs.cache-hit }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0      # needed for clang-tidy diff mode
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ccache-${{ runner.os }}-${{ hashFiles('**/CMakeLists.txt', 'cmake/**') }}
+          max-size: 1G
+
+      # TODO: Investigate Conan caching to speed up dependency installation
+      # - name: Cache Conan packages
+      #   uses: actions/cache@v4
+      #   with:
+      #     path: ~/.conan2
+      #     key: conan-${{ runner.os }}-${{ hashFiles('conanfile.txt', 'conanfile.py') }}
+      #     restore-keys: conan-${{ runner.os }}-
+
+  # ------------------------------------------------------------------
+  # Fast required lane (must pass before merge)
+  # ------------------------------------------------------------------
+  build-and-test:
+    needs: checkout-and-cache
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Build & Test Debug + ASan (Ubuntu GCC)
+            os: ubuntu-latest
+            compiler: gcc
+            configure-preset: debug-linux
+            build-preset: debug-build
+            test-preset: run-tests
+            extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+            required: true
+
+          - name: Build & Test Release + ASan (Ubuntu GCC)
+            os: ubuntu-latest
+            compiler: gcc
+            configure-preset: release-linux
+            build-preset: release-build
+            test-preset: run-tests-release
+            extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+            required: true
+
+          # - name: Windows MSVC 2022
+          #   os: windows-latest
+          #   compiler: msvc
+          #   build-type: RelWithDebInfo
+          #   required: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup compiler and dependencies
+        if: runner.os != 'Windows'
+        run: |
+          sudo apt update -y
+          sudo apt-get install -y gcovr lcov cmake build-essential
+          echo "CC=${{ matrix.compiler == 'gcc' && 'gcc' }}" >> $GITHUB_ENV
+          echo "CXX=${{ matrix.compiler == 'gcc' && 'g++' }}" >> $GITHUB_ENV
+
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+
+      # - name: Install dependencies (Conan)
+      #   run: |
+      #     pip install conan
+      #     conan profile detect --force
+      #     conan install . --output-folder=build --build=missing -s build_type=${{ matrix.build-type }}
+
+      - name: Configure CMake
+        run: cmake --preset ${{ matrix.configure-preset }} ${{ matrix.extra-cmake }}
+
+      - name: Build
+        run: cmake --build --preset ${{ matrix.build-preset }}
+
+      - name: Test
+        run: ctest --preset ${{ matrix.test-preset }} --output-on-failure
+
+  # ------------------------------------------------------------------
+  # Formatting (fail fast)
+  # ------------------------------------------------------------------
+  format:
+    needs: checkout-and-cache
+    name: Style Check (clang-format)
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: coreio-cpp
     steps:
       - uses: actions/checkout@v4
-      - name: Setup
-        uses: ./.github/actions/setup
+
+      - name: Run clang-format check
+        uses: jidicula/clang-format-action@v4.13.0
         with:
-          subrepo: coreio-cpp
-          language: cpp
+          clang-format-version: 20
+          fallback-style: Google
+          exclude-regex: '^third_party/|^build/'
 
-      - name: set up path
-        run: echo "$PWD/.venv/bin" >> $GITHUB_PATH
+  # ------------------------------------------------------------------
+  # clang-tidy (best-effort, runs only on changed files → super fast)
+  # ------------------------------------------------------------------
+  clang-tidy:
+    needs: checkout-and-cache
+    name: Static Analysis (clang-tidy)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    continue-on-error: true   # change to false if you want to block merges
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # TODO: Integrate a C++ linter here
-      # TODO: Choose best C++ linter for the project and configure it properly
-      # linting
-      # - uses: astral-sh/ruff-action@v1
-      #   with:
-      #       src: coreio-cpp
+      - name: Setup clang-tidy
+        run: sudo apt install -y clang-tidy-20
 
-      # - uses: dciborow/action-pylint@0.1.0
-      #   with:
-      #     github_token: ${{ secrets.github_token }}
-      #     reporter: github-pr-review
-      #     level: warning
-      #     workdir: coreio-cpp
-      #     glob_pattern: "src/"
+      - name: Run clang-tidy on changed files
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          CHANGED_FILES=$(git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }} | grep -E '\.(cpp|hpp|cxx|hxx)$' || true)
+          if [ -z "$CHANGED_FILES" ]; then
+            echo "No C++ files changed"
+            exit 0
+          fi
+          cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          run-clang-tidy-20 -quiet -p build $CHANGED_FILES || echo "clang-tidy found issues (non-blocking)"
 
-      # TODO: Delete before final PR. CPP is strongly typed so type checking is done at compile time.
-      # type checking
-      # - uses: jakebailey/pyright-action@v2
-      #   with:
-      #     pylance-version: latest-release
-      #     working-directory: coreio-cpp
+  # ------------------------------------------------------------------
+  # Static Analysis (fail fast)
+  # TODO: Investigate CodeQL analysis for C++ (may not be fast enough for PRs)
+  # ------------------------------------------------------------------
+  static-analysis:
+    needs: checkout-and-cache
+    name: Static Analysis (cppcheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Configure Debug Build
-        run: cmake --preset debug-linux
+      - name: Setup cppcheck
+        run: sudo apt install -y cppcheck
 
-      - name: Build Debug
-        run: cmake --build --preset debug-build
+      - name: Run static analysis with cppcheck
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+                   --suppress=missingIncludeSystem \
+                   --error-exitcode=1 \
+                   --inline-suppr \
+                   --quiet \
+                   --language=c++ \
+                   --std=c++20 \
+                   $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.cxx' -o -name '*.h' | grep -v "./build/")      
 
-      # TODO: Set up C++ testing framework (gtest?) and write tests
-      # - name: Run Pytest
-      #   run: |
-      #     pytest --cov=coreio --cov-report=html --asyncio-mode=auto tests/
+  # ------------------------------------------------------------------
+  # Code Coverage – non-blocking, runs on every PR and push
+  # ------------------------------------------------------------------
+  coverage:
+    needs: checkout-and-cache
+    name: Coverage (Ubuntu GCC)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    continue-on-error: true   # Never blocks merge
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      # TODO: Setup code coverage for C++ tests (gcov/lcov?)
-      # - name: Combine coverage
-      #   run: |
-      #     uv run coverage html
-      #     echo "COV_PERCENTAGE=$(uv run coverage report --format=total)" >> "$GITHUB_ENV"
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
 
-      # TODO: Upload code coverage artifact - do this after setting up C++ testing and coverage
-      # - uses: actions/upload-artifact@v4
-      #   id: htmlcov-upload-step
-      #   with:
-      #     name: htmlcov
-      #     path: coreio-cpp/htmlcov/
-      #     overwrite: true
+      - name: Install coverage dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gcovr lcov cmake build-essential
 
-      # - run: |
-      #     echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
-      #     echo "${{ steps.htmlcov-upload-step.outputs.artifact-url }}"
+      - name: Configure CMake with coverage flags
+        run: cmake --preset coverage
 
-      # - uses: thollander/actions-comment-pull-request@v3
-      #   with:
-      #     message: |
-      #       _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
-      #       🏁 CoreIO-CPP tests ran. Coverage reporting is not yet configured. 🏁
-      #     comment-tag: execution-coreio-cpp
+      - name: Run tests & capture coverage
+        run: |
+          cmake --build --preset coverage-build
+          COV_PERCENTAGE=$(grep "TOTAL" build/coverage/report/coverage.txt | awk '{print $NF}' | sed 's/%//')
+          echo "Coverage Percentage: $COV_PERCENTAGE"
+          echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v4
+        id: code-coverage-upload-step
+        with:
+          name: code-coverage-report
+          path: coreio-cpp/build/coverage/report/
+          overwrite: true
+
+      - run: |
+          echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.code-coverage-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.code-coverage-upload-step.outputs.artifact-url }}
+          comment-tag: execution-coreio-cpp
+
+      # Optional: also upload to Coveralls, SonarCloud, etc.

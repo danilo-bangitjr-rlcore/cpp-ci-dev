@@ -27,6 +27,22 @@
       }
     },
     {
+      "name": "default",
+      "displayName": "Default Build",
+      "generator": "Unix Makefiles",
+      "inherits": "debug-linux"
+    },
+    {
+      "name": "coverage",
+      "displayName": "Coverage Build",
+      "generator": "Unix Makefiles",
+      "inherits": "default",
+      "binaryDir": "${sourceDir}/build/coverage",
+      "cacheVariables": {
+        "ENABLE_COVERAGE": "ON"
+      }
+    },
+    {
       "name": "release-linux",
       "displayName": "Release Build for Linux",
       "description": "Configures a release build using Makefiles on Linux.",
@@ -66,13 +82,35 @@
       "configurePreset": "ci-build",
       "jobs": 8,
       "verbose": true
+    },
+    {
+      "name": "coverage-build",
+      "displayName": "Build Coverage",
+      "configurePreset": "coverage",
+      "targets": ["coreio_test", "coverage_report"]
     }
   ],
   "testPresets": [
     {
       "name": "run-tests",
-      "displayName": "Run All Tests",
-      "configurePreset": "debug-linux",
+      "displayName": "Run All Tests (Debug)",
+      "configurePreset": "default",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "run-tests-release",
+      "displayName": "Run All Tests (Release)",
+      "configurePreset": "release-linux",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "name": "coverage-tests",
+      "displayName": "Run Coverage Tests",
+      "configurePreset": "coverage",
       "output": {
         "outputOnFailure": true
       }
