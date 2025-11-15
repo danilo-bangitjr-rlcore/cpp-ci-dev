@@ -70,8 +70,7 @@ jobs:
             configure-preset: debug-linux
             build-preset: debug-build
             test-preset: run-tests
-            # TODO: What do these flags do on GCC? Do we need them?
-            # extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+            extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
             required: true
 
           - name: Ubuntu GCC Release + ASan
@@ -80,8 +79,7 @@ jobs:
             configure-preset: release-linux
             build-preset: release-build
             test-preset: run-tests-release
-            # TODO: What do these flags do on GCC? Do we need them?
-            # extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
+            extra-cmake: -DCMAKE_CXX_FLAGS="-fsanitize=address,undefined -fno-omit-frame-pointer"
             required: true
 
           # - name: Windows MSVC 2022
@@ -112,7 +110,9 @@ jobs:
       #     conan install . --output-folder=build --build=missing -s build_type=${{ matrix.build-type }}
 
       - name: Configure CMake
-        run: cmake --preset ${{ matrix.configure-preset }}
+        run: cmake --preset ${{ matrix.configure-preset }} -- ${{
+          matrix.extra-cmake
+        }}
 
       - name: Build
         run: cmake --build --preset ${{ matrix.build-preset }}
