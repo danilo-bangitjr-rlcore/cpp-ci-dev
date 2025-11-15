@@ -99,11 +99,11 @@ jobs:
       - name: Setup ccache
         uses: hendrikmuhs/ccache-action@v1.2
 
-      - name: Install dependencies (Conan)
-        run: |
-          pip install conan
-          conan profile detect --force
-          conan install . --output-folder=build --build=missing -s build_type=${{ matrix.build-type }}
+      # - name: Install dependencies (Conan)
+      #   run: |
+      #     pip install conan
+      #     conan profile detect --force
+      #     conan install . --output-folder=build --build=missing -s build_type=${{ matrix.build-type }}
 
       - name: Configure CMake
         run: cmake --preset ${{ matrix.configure-preset }}
