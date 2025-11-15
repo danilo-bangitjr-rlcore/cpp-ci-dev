@@ -1,9 +1,9 @@
-name: CoreIO-CPP Style and Tests
+name: CoreIO-CPP CI
 permissions: write-all # Needed to comment coverage% on PR
 
 on:
   pull_request:
-    paths:
+    pathStyle and Testss:
       - "coreio-cpp/**"
       # Prevent triggering on other folders changes while cpp workflow is not ready
       # - "libs/**"
@@ -26,6 +26,9 @@ jobs:
   checkout-and-cache:
     name: Checkout & Cache
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
     outputs:
       cache-ccache: ${{ steps.ccache.outputs.cache-hit }}
     steps:
@@ -53,6 +56,9 @@ jobs:
     needs: checkout-and-cache
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        working-directory: coreio-cpp
     timeout-minutes: 25
     strategy:
       fail-fast: false
