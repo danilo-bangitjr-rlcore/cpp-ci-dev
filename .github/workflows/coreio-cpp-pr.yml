@@ -96,7 +96,6 @@ jobs:
         run: |
           sudo apt update -y
           sudo apt-get install -y gcovr lcov cmake build-essential
-          sudo apt-get install -y clang-format cppcheck
           echo "CC=${{ matrix.compiler == 'gcc' && 'gcc' }}" >> $GITHUB_ENV
           echo "CXX=${{ matrix.compiler == 'gcc' && 'g++' }}" >> $GITHUB_ENV
 
@@ -119,11 +118,11 @@ jobs:
         run: ctest --preset ${{ matrix.test-preset }} --output-on-failure
 
   # ------------------------------------------------------------------
-  # 3. Formatting (fail fast)
+  # Formatting (fail fast)
   # ------------------------------------------------------------------
   format:
     needs: checkout-and-cache
-    name: clang-format
+    name: Style Check (clang-format)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -137,6 +136,83 @@ jobs:
           clang-format-version: 20
           fallback-style: Google
           exclude-regex: '^third_party/|^build/'
+
+  # ------------------------------------------------------------------
+  # Static Analysis (fail fast)
+  # ------------------------------------------------------------------
+  static-analysis:
+    needs: checkout-and-cache
+    name: Static Analysis (cppcheck)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup cppcheck
+        run: sudo apt install -y cppcheck
+
+      - name: Run static analysis with cppcheck
+        run: |
+          cppcheck --enable=warning,style,performance,portability \
+                   --suppress=missingIncludeSystem \
+                   --error-exitcode=1 \
+                   --inline-suppr \
+                   --quiet \
+                   --language=c++ \
+                   --std=c++20 \
+                   $(find . -name '*.cpp' -o -name '*.hpp' -o -name '*.cc' -o -name '*.cxx' -o -name '*.h' | grep -v "./build/")      
+
+  # ------------------------------------------------------------------
+  # Code Coverage – non-blocking, runs on every PR and push
+  # ------------------------------------------------------------------
+  coverage:
+    needs: checkout-and-cache
+    name: Coverage (Ubuntu GCC)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    continue-on-error: true   # Never blocks merge
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup GCC + ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+
+      - name: Configure CMake with coverage flags
+        run: cmake --preset coverage
+
+      - name: Run tests & capture coverage
+        run: |
+          cmake --build --preset coverage-build
+          COV_PERCENTAGE=$(grep "TOTAL" build/coverage/report/coverage.txt | awk '{print $NF}' | sed 's/%//')
+          echo "Coverage Percentage: $COV_PERCENTAGE"
+          echo "COV_PERCENTAGE=$COV_PERCENTAGE" >> $GITHUB_ENV
+
+      - uses: actions/upload-artifact@v4
+        id: code-coverage-upload-step
+        with:
+          name: code-coverage-report
+          path: coreio-cpp/build/coverage/report/
+          overwrite: true
+
+      - run: |
+          echo "🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁"
+          echo "${{ steps.code-coverage-upload-step.outputs.artifact-url }}"
+
+      - uses: thollander/actions-comment-pull-request@v3
+        with:
+          message: |
+            _(execution **${{ github.run_id }}** / attempt **${{ github.run_attempt }}**)_
+            🏁 CoreIO-CPP tests ran with ${{ env.COV_PERCENTAGE }}% coverage 🏁
+            ${{ steps.code-coverage-upload-step.outputs.artifact-url }}
+          comment-tag: execution-coreio-cpp
+
+      # Optional: also upload to Coveralls, SonarCloud, etc.
 
   # # ------------------------------------------------------------------
   # # 4. clang-tidy (best-effort, runs only on changed files → super fast)
