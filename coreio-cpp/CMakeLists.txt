@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.6.0...3.25.0)
 project(coreio-cpp CXX)
 
 option(ENABLE_COVERAGE "Build with gcovr instrumentation" OFF)
