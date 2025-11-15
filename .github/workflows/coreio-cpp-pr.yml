@@ -118,22 +118,25 @@ jobs:
       - name: Test
         run: ctest --preset ${{ matrix.test-preset }} --output-on-failure
 
-  # # ------------------------------------------------------------------
-  # # 3. Formatting (fail fast)
-  # # ------------------------------------------------------------------
-  # format:
-  #   needs: checkout-and-cache
-  #   name: clang-format
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v4
+  # ------------------------------------------------------------------
+  # 3. Formatting (fail fast)
+  # ------------------------------------------------------------------
+  format:
+    needs: checkout-and-cache
+    name: clang-format
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
+    steps:
+      - uses: actions/checkout@v4
 
-  #     - name: Run clang-format check
-  #       uses: jidicula/clang-format-action@v4.13.0
-  #       with:
-  #         clang-format-version: 19
-  #         fallback-style: Google
-  #         exclude-regex: '^third_party/|^build/'
+      - name: Run clang-format check
+        uses: jidicula/clang-format-action@v4.13.0
+        with:
+          clang-format-version: 19
+          fallback-style: Google
+          exclude-regex: '^third_party/|^build/'
 
   # # ------------------------------------------------------------------
   # # 4. clang-tidy (best-effort, runs only on changed files → super fast)
