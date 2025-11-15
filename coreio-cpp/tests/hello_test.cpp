@@ -1,6 +1,6 @@
-#include <gtest/gtest.h>
-
 #include "../include/hello.h"
+
+#include <gtest/gtest.h>
 
 // Define a test case: Suite Name "HelloTest", Test Name "BasicAssertions"
 TEST(HelloTest, BasicAssertions) {
