@@ -145,6 +145,9 @@ jobs:
     needs: checkout-and-cache
     name: Static Analysis (clang-tidy)
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: coreio-cpp
     continue-on-error: true   # change to false if you want to block merges
     steps:
       - uses: actions/checkout@v4
