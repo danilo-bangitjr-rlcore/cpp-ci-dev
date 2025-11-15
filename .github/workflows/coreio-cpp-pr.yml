@@ -110,9 +110,7 @@ jobs:
       #     conan install . --output-folder=build --build=missing -s build_type=${{ matrix.build-type }}
 
       - name: Configure CMake
-        run: cmake --preset ${{ matrix.configure-preset }} -- ${{
-          matrix.extra-cmake
-        }}
+        run: cmake --preset ${{ matrix.configure-preset }} -- ${{ matrix.extra-cmake }}
 
       - name: Build
         run: cmake --build --preset ${{ matrix.build-preset }}
